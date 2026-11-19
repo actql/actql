@@ -82,6 +82,8 @@ pub fn local_mock_account_configuration_prepared(LocalMockAccountSubjects, Array
 
 pub fn local_mock_account_construction_before_signing(LocalMockAccountSubjects, Array[(String, String)], Int) -> AccountConfigurationConstruction?
 
+pub fn local_mock_control_connection_prepared(String, BootstrapProfile?, String?, Array[(String, String)], Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalMockProfileIssue]?
+
 pub fn local_mock_profile_body() -> String
 
 pub fn local_mock_profile_identity() -> BootstrapProfile

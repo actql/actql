@@ -115,18 +115,14 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   if (frame !== undefined) frame.record(0n, 16n + 4n * BigInt(sources.length + targets.length), 2n);
   const sourceTuples = sources.map(runtimeTupleFromFields);
   const targetTuples = targets.map(runtimeTupleFromFields);
-  const requestTuple = requestTarget === undefined ? undefined : runtimeTupleFromFields(requestTarget);
-  if (frame !== undefined) {
-    const validate = moon.clientProgramLocalMockAccountInventoryPrepared;
-    if (typeof validate !== 'function' || typeof moon.clientProgramLocalMockAccountConfigurationPrepared !== 'function' ||
-        typeof moon.clientProgramLocalMockAccountBeforeSigningPrepared !== 'function') {
-      fail('LocalMockAccountInventoryUnavailable');
-    }
-    const checkedInventory = Reflect.apply(validate, moon,
-      ['local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, frame.core]);
-    frame.assert();
-    if (checkedInventory === undefined) fail('LocalMockAccountInventoryUnavailable');
-    checked(checkedInventory);
+  let requestTuple;
+  let controlConnection = 'local-mock';
+  const selectControl = moon.clientProgramLocalMockAccountControlConnectionPrepared;
+  if (frame !== undefined && (typeof selectControl !== 'function' ||
+      typeof moon.clientProgramLocalMockAccountInventoryPrepared !== 'function' ||
+      typeof moon.clientProgramLocalMockAccountConfigurationPrepared !== 'function' ||
+      typeof moon.clientProgramLocalMockAccountBeforeSigningPrepared !== 'function')) {
+    fail('LocalMockAccountInventoryUnavailable');
   }
   const policyOriginal = moon.clientLocalSigningBootstrapOriginal;
   const bootstrapIssue = moon.clientLocalSigningBootstrapIssue;
@@ -206,6 +202,41 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   }
   let intentWire = await readOptional(intentPath);
   let adoptedWire = await readOptional(receiptPath), adoptionFlight;
+  const savedIntent = intentWire === undefined ? undefined : parse(intentWire);
+  if (typeof selectControl === 'function') {
+    if (frame === undefined) fail('LocalMockAccountInventoryUnavailable');
+    // Transport only actual optional fields. Common owns current/legacy
+    // profile interpretation, collision selection and missing-carrier refusal.
+    const originalControl = savedIntent?.controlConnection;
+    if (originalControl !== undefined && typeof originalControl !== 'string') fail('LocalMockInstallationChanged');
+    if (savedIntent !== undefined) {
+      if (![savedIntent.profile?.id, savedIntent.profile?.version, savedIntent.profile?.cid]
+        .every(value => typeof value === 'string')) fail('LocalMockInstallationChanged');
+      frame.record(0n, 5n, 1n);
+    }
+    const savedProfile = savedIntent === undefined ? undefined : runtimeTupleFromFields([
+      savedIntent.profile?.id, savedIntent.profile?.version, savedIntent.profile?.cid]);
+    const selected = Reflect.apply(selectControl, moon,
+      [originalControl ?? 'local-mock', savedProfile, originalControl, sourceTuples, targetTuples, frame.core]);
+    frame.assert();
+    if (selected === undefined) fail('LocalMockAccountInventoryUnavailable');
+    controlConnection = checked(selected);
+    if (typeof controlConnection !== 'string') fail('LocalMockInstallationChanged');
+  }
+  if (requestTarget !== undefined) {
+    // This tuple is the Host's original request-realization purpose, not a
+    // user Source/Effect target. Preserve its resource and selected domain.
+    if (requestTarget[0] !== 'local-mock') fail('LocalMockInstallationChanged');
+    frame?.record(0n, 4n, 1n);
+    requestTuple = runtimeTupleFromFields([controlConnection, requestTarget[1]]);
+  }
+  if (frame !== undefined) {
+    const checkedInventory = Reflect.apply(moon.clientProgramLocalMockAccountInventoryPrepared, moon,
+      [controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, frame.core]);
+    frame.assert();
+    if (checkedInventory === undefined) fail('LocalMockAccountInventoryUnavailable');
+    checked(checkedInventory);
+  }
   if (intentWire === undefined) {
     if (adoptedWire !== undefined) fail('LocalMockAdoptedStateMissing');
     if (!explicitSelection) fail('LocalMockInitializationConsentRequired');
@@ -216,7 +247,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       // bytesCid over the actual Ed25519 public PEM has the existing exact
       // ASCII SHA256 name length. This is a constructor bound, not a key value.
       const prepared = moon.clientProgramLocalMockAccountBeforeSigningPrepared(accountId, principal,
-        'local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, 71, frame.core);
+        controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, 71, frame.core);
       frame.assert();
       if (prepared !== true) fail('LocalMockAccountConstructionUnavailable');
     }
@@ -231,10 +262,10 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     const reviewerResource = bytesCid(Buffer.from(reviewerPublic));
     const generated = frame === undefined
       ? moon.clientProgramLocalMockAccountConfiguration(accountId, principal,
-        'local-mock', sourceTuples, modelTasks, requestTuple,
+        controlConnection, sourceTuples, modelTasks, requestTuple,
         updateTarget === undefined ? undefined : targetTuples[0], reviewerResource)
       : moon.clientProgramLocalMockAccountConfigurationPrepared(accountId, principal,
-        'local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, reviewerResource, frame.core);
+        controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, reviewerResource, frame.core);
     frame?.assert();
     if (generated === undefined) fail('LocalMockAccountConstructionUnavailable');
     const configuration = checked(generated);
@@ -254,14 +285,19 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         fail('InvalidHostRuntimeResult');
       }
     }
+    // Added private carrier: original String alias plus its JSON key/value
+    // and writer occurrence. The Common selector already retains the String.
+    if (typeof selectControl === 'function') frame?.record(
+      BigInt(2 * controlConnection.length + 'controlConnection'.length), 6n, 2n);
     frame?.record(BigInt(configuration.length + reviewerPem.length + hostPem.length + reviewerPublic.length) + 1024n,
       64n, 6n);
     intentWire = canonicalJson({attempt: randomUUID(), profile: identity, subjectCid, accountId,
+      ...(typeof selectControl === 'function' ? {controlConnection} : {}),
       configuration, configurationCid: contentCid(parse(configuration)), reviewerResource,
       reviewerPem, hostPem, evidence: randomBytes(32).toString('base64'), signingPolicy, signingPublicKey});
     await createOriginal(intentPath, intentWire);
   }
-  const intent = parse(intentWire);
+  const intent = savedIntent ?? parse(intentWire);
   if (intent.subjectCid !== subjectCid || intent.profile === null || typeof intent.profile !== 'object' ||
       Array.isArray(intent.profile) || Object.keys(intent.profile).sort().join('\0') !== 'cid\0id\0version' ||
       ![intent.profile.id, intent.profile.version, intent.profile.cid].every(value => typeof value === 'string') ||
@@ -400,7 +436,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         privateKey: reviewerKey});
     },
     // The original control connection is independent of signing capability.
-    authorization: Object.freeze(publicKey === undefined ? {...diagnostic, accountConfig: configPath, siteKey: 'local-mock'} : {...diagnostic, accountConfig: configPath, siteKey: 'local-mock',
+    authorization: Object.freeze(publicKey === undefined ? {...diagnostic, accountConfig: configPath, siteKey: controlConnection} : {...diagnostic, accountConfig: configPath, siteKey: controlConnection,
       reviewers: Object.freeze([Object.freeze({keyId: 'local-mock-reviewer', reviewerId: 'local-mock',
         principalId: principal, publicKey})]), reviewReaders: Object.freeze([principal]),
       // Existing Checkpoint construction admits PKCS8 input itself. Preserve

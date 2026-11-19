@@ -321,6 +321,43 @@ fn LocalCommandPreparationOriginal::execute_product_command(
           )
         _ => None
       }
+      let mock = mock.map(subjects => {
+        // Target vector1H1R, new subjects8R and Some1R/tag1W; the existing
+        // assembler additionally retains one alias to the selected String.
+        if !self.prepare_account_construction({
+            retained: {
+              record_headers: 3L,
+              reference_slots: 11L,
+              scalar_words: 1L,
+              owned_utf16_units: 0L,
+              owned_wire_bytes: 0L,
+            },
+            execution: {
+              record_headers: 3L,
+              reference_slots: 11L,
+              scalar_words: 1L,
+              owned_utf16_units: 0L,
+              owned_wire_bytes: 0L,
+            },
+          }) {
+          stop("LocalMockAccountConstructionUnavailable")
+        }
+        let targets = match subjects.update_target {
+          Some(target) => [target]
+          None => []
+        }
+        let selected = @authorization.local_mock_control_connection_prepared(
+            subjects.control_connection,
+            None,
+            None,
+            subjects.sources,
+            targets,
+            request => self.prepare_account_construction(request),
+          )
+          .unwrap_or_else(() => stop("LocalMockAccountConstructionUnavailable"))
+          .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable"))
+        { ..subjects, control_connection: selected, }
+      })
       let host_configuration = if mock is Some(subjects) &&
         subjects.update_target is Some(_) {
         Some(self.select_operator_host(matches, true))

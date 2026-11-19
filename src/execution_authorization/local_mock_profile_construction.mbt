@@ -1,4 +1,40 @@
 ///|
+// One growing borrowed-key connection Map. The owned result String and
+// payload-bearing Ok/Some are retained; candidate+decimal suffix are scratch.
+// No candidate history, copied source labels, policy or new resource owner.
+fn local_mock_control_construction(
+  preferred : String,
+  sources : Array[(String, String)],
+  targets : Array[(String, String)],
+) -> AccountConfigurationConstruction? {
+  let count = sources.length().to_int64() + targets.length().to_int64() + 1L
+  if count > 2147483646L {
+    return None
+  }
+  guard @shape.map_construction_extent(1L, count) is Some(index) &&
+    @canonical.nfc_lf_construction_extent(preferred.length()) is Some(nfc) else {
+    return None
+  }
+  Some({
+    // String1H; Ok/Some2H2R2W, including their logical tags.
+    retained: account_construction_units(
+      3L,
+      2L,
+      2L,
+      Int::max(preferred.length(), 30).to_int64(),
+    ),
+    // Result wrappers2H2R2W, candidate/suffix2H40U; loop/map controls2H2R2W.
+    // Canonical validation's normalization coexists with the borrowed-key Map.
+    execution: account_construction_units(
+      index.record_headers + nfc.record_headers + 6L,
+      index.reference_slots + nfc.reference_slots + 4L,
+      index.scalar_words + nfc.scalar_words + 4L,
+      nfc.owned_utf16_units + 40L,
+    ),
+  })
+}
+
+///|
 // Constructor DATA for the existing Mock Account initializer, priced by its
 // SAME Account Read. This does not establish a budget, installation or grant.
 fn local_mock_inventory_construction(
@@ -62,8 +98,7 @@ fn local_mock_account_construction(
   let entries = subjects.sources.length().to_int64() +
     subjects.model_tasks.length().to_int64() +
     update_targets.length().to_int64() +
-    3L +
-    (if update_targets.is_empty() { 0L } else { 1L }) +
+    2L +
     (if subjects.request_target is Some(_) { 1L } else { 0L }) +
     (if signing_units is Some(_) { 1L } else { 0L })
   if entries > 2147483647L {

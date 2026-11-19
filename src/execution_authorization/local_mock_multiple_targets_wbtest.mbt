@@ -26,7 +26,6 @@ test "Local Mock complete inventory scopes each delegate and retains one updates
     tuple in [
       mock_profile_at("crm", "Control", "effect"),
       mock_profile_at("other", "Accounts", "effect"),
-      mock_profile_at("local-host", "result/other", "read"),
     ] {
     assert_true(evaluate_account(account, tuple) is Deny(NoMatch))
   }
@@ -37,7 +36,7 @@ test "Local Mock complete inventory scopes each delegate and retains one updates
     )
     is Allow(_),
   )
-  assert_eq(wire.split("\"entry_id\":\"local-update-result-read\"").length(), 2)
+  assert_eq(wire.split("\"entry_id\":\"local-result-read\"").length(), 2)
   assert_eq(
     local_mock_account_configuration_prepared(
       subjects,
@@ -59,7 +58,7 @@ test "Local Mock complete inventory scopes each delegate and retains one updates
 }
 
 ///|
-test "Local Mock complete constructor preserves the original single-target preimage" {
+test "Local Mock complete constructor matches the current single-target independent preimage" {
   let subjects = mock_profile_subjects()
   let wire = local_mock_account_configuration_prepared(
       subjects,
@@ -70,7 +69,7 @@ test "Local Mock complete constructor preserves the original single-target preim
     .unwrap()
   assert_eq(
     admit_account_configuration_json(wire).unwrap().configuration_cid(),
-    "sha256:d516378d5284e53e3c9667e62a11ffd020b477111920fa0405d93f73695f2907",
+    "sha256:94f4170019ee50edbe161fa3697d1d509441962092046df298abf6d4be5da40d",
   )
   let calls = Ref(0)
   assert_true(

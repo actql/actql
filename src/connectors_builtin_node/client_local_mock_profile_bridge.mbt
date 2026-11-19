@@ -158,3 +158,50 @@ pub fn client_program_local_mock_account_before_signing_prepared(
   // constructor separately retains its one returned configuration String.
   prepare(0L, Int64::max(r, e))
 }
+
+///|
+/// Additive String DATA projection; the existing inventory Unit ABI is intact.
+#export_name("clientProgramLocalMockAccountControlConnectionPrepared")
+pub fn client_program_local_mock_account_control_connection_prepared(
+  preferred : String,
+  saved_profile : (String, String, String)?,
+  original_control : String?,
+  sources : Array[(String, String)],
+  update_targets : Array[(String, String)],
+  prepare : (Int64, Int64) -> Bool,
+) -> Result[String, @authorization.LocalMockProfileIssue]? {
+  // The bridge's optional profile record is also under the original Read,
+  // before record/Some construction. It borrows the three retained fields.
+  if saved_profile is Some(_) {
+    guard account_bridge_cost({
+        record_headers: 2L,
+        reference_slots: 4L,
+        scalar_words: 1L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+      is Some(e) &&
+      prepare(0L, e) else {
+      return None
+    }
+  }
+  let profile : @authorization.BootstrapProfile? = saved_profile.map(value => {
+    profile_id: value.0,
+    profile_version: value.1,
+    profile_cid: value.2,
+  })
+  @authorization.local_mock_control_connection_prepared(
+    preferred,
+    profile,
+    original_control,
+    sources,
+    update_targets,
+    request => {
+      guard account_bridge_cost(request.retained) is Some(r) &&
+        account_bridge_cost(request.execution) is Some(e) else {
+        return false
+      }
+      prepare(r, e)
+    },
+  )
+}

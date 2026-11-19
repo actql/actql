@@ -2047,26 +2047,33 @@ complete before use. Authored configuration replaces this profile in full.
 <!-- requirement-block: policy-routing.mock-result-original-binding policy-routing.mock-request-protection-target -->
 For trusted explicit initial Local Mock selection, the limited shared profile is
 `actql-local-mock` version `0.1`, with original body CID
-`sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52`.
+`sha256:c910a820bfc2428234bcb73701593a3aafe7f457fb586eb000d4587c1e600a5e`.
 Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
-instantiate only finite principal/connection/resource/operation tuples for the
-same selected Project and actual Mock installation: selected Source reads,
-exact Mock Task inference/answer retention, original Local request/control,
-and purpose-confined signing. The actual Local control connection retains
-`run` operations `cancel`, `publish`, `read`, `resolve` and `submit`.
-The supported defaults use the exact `result/main` resource for new public
-read-only Source and `result/answer` for the historical or explicitly selected
-answer recipe, each with `read`, independently of `run/read` and Source reads. Each use MUST
-retain the actual same-Run preparation or committed Result, installation and
-current authority. This finite default scope does not authorize another Named
-Result, an alias, a caller-supplied name list or a live backend. A selected
-UPDATE recipe additionally materializes only its exact `result/updates` read
-tuple. That read does not approve the Effect or create a Result; the actual
-same-Run Result and current authority remain required. The prior two-default
-profile body CID
-`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`
-and its saved configuration remain exact historical originals, without this
-additional grant. Reopen never materializes a newer profile over saved state.
+retain finite original Source, Mock Task, request, signing and operation scopes.
+The initial Host control connection is selected by Common to be disjoint from
+all actual configured Source/target connections and the Mock Model provider.
+Collisions select another bounded private control identifier; they do not rename
+or reject a legal user Source. The same selected original is retained through
+materialization, adoption, current checks and reopen.
+
+On that disjoint control connection, the exact principal's Result read uses the
+existing standard Local resource `All` selector with operation `read`. This is
+not a prefix pattern or a Source/Model grant. The actual Result owner still
+selects its original same-Run committed Named Result and enforces current,
+publication, retention, authorization and egress checks. Each use MUST retain
+the actual same-Run preparation or committed Result, installation and current
+authority. The Local control retains `run` operations `cancel`, `publish`,
+`read`, `resolve` and `submit`; read access never grants inference or an Effect.
+
+The prior finite profile body
+`sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52`,
+the earlier two-default body
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`,
+and their saved configurations remain exact historical originals. Common
+recognizes their original legacy control domain without expanding their finite
+Result grants. Reopen never materializes a newer profile over saved state.
+A new-profile intent lacking its original selected control, or one whose actual
+connection inventory now collides with it, refuses instead of retargeting.
 The selected UPDATE uses `delegate`, never
 automatic approval. The original Host request-protection `write` tuple is
 distinct from a Source or Effect target and MUST NOT name either in its place.

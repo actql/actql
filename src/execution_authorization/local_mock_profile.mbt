@@ -11,6 +11,14 @@ pub const LOCAL_MOCK_PROFILE_VERSION : String = "0.1"
 /// remain Host originals; these policy bytes cannot authenticate any of them.
 pub fn local_mock_profile_body() -> String {
   (
+    #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"scope":"same-run-original-results"},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
+  )
+}
+
+///|
+/// Exact previously issued finite Result policy; recovery never broadens it.
+fn local_mock_updates_profile_body() -> String {
+  (
     #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resources":["result/answer","result/main","result/updates"]},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
   )
 }
@@ -64,6 +72,7 @@ fn local_mock_profile_body_identity(wire : String) -> BootstrapProfile {
 /// This does not issue adoption, a Run, a Result or replacement permissions.
 pub fn is_known_local_mock_profile(profile : BootstrapProfile) -> Bool {
   profile == local_mock_profile_identity() ||
+  profile == local_mock_profile_body_identity(local_mock_updates_profile_body()) ||
   profile == local_mock_profile_body_identity(local_mock_primary_profile_body()) ||
   profile == local_mock_profile_body_identity(local_mock_answer_profile_body()) ||
   profile ==
@@ -98,7 +107,7 @@ fn local_mock_entry(
   name : String,
   subjects : LocalMockAccountSubjects,
   connection : String,
-  resource : String,
+  resource : Selector,
   operations : Array[String],
   outcome : ConfiguredOutcome,
 ) -> RawAccountEntry {
@@ -108,7 +117,7 @@ fn local_mock_entry(
     scope: {
       principal: AnyOf([subjects.principal]),
       connection: AnyOf([connection]),
-      resource: AnyOf([resource]),
+      resource,
       operation: AnyOf(operations),
     },
     exclusions: [],
@@ -146,6 +155,91 @@ pub fn local_mock_account_configuration_prepared(
     return None
   }
   Some(local_mock_account_configuration_original(subjects, update_targets))
+}
+
+///|
+/// Choose DATA for a fresh Host control domain, disjoint from every actual
+/// Source/target connection and the Mock Model provider. The SAME Read admits
+/// the borrowed-key index and bounded String workspace before allocation.
+/// Reopen must compare this result with its retained original, never retarget.
+pub fn local_mock_control_connection_prepared(
+  preferred : String,
+  saved_profile : BootstrapProfile?,
+  original_control : String?,
+  sources : Array[(String, String)],
+  update_targets : Array[(String, String)],
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[String, LocalMockProfileIssue]? {
+  guard local_mock_control_construction(preferred, sources, update_targets)
+    is Some(request) &&
+    prepare(request) else {
+    return None
+  }
+  if !valid_name(preferred) || !normalized_text(preferred) {
+    return Some(Err(InvalidSubjects))
+  }
+  if saved_profile is Some(profile) {
+    if profile.profile_id != LOCAL_MOCK_PROFILE_ID ||
+      profile.profile_version != LOCAL_MOCK_PROFILE_VERSION {
+      return Some(Err(InvalidSubjects))
+    }
+    // These are independently pinned complete profile-body identities, not
+    // another interpretation of policy JSON or a replacement adoption record.
+    match profile.profile_cid {
+      "sha256:c910a820bfc2428234bcb73701593a3aafe7f457fb586eb000d4587c1e600a5e" => {
+        guard original_control is Some(control) &&
+          control == preferred &&
+          local_mock_control_disjoint(control, sources, update_targets) else {
+          return Some(Err(InvalidSubjects))
+        }
+        return Some(Ok(control))
+      }
+      "sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52"
+      | "sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01"
+      | "sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f"
+      | "sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a" => {
+        if original_control is Some(_) {
+          return Some(Err(InvalidSubjects))
+        }
+        return Some(Ok(preferred))
+      }
+      _ => return Some(Err(InvalidSubjects))
+    }
+  }
+  if original_control is Some(_) {
+    return Some(Err(InvalidSubjects))
+  }
+  let occupied : Map[String, Bool] = { "mock": true }
+  for source in sources {
+    occupied[source.0] = true
+  }
+  for target in update_targets {
+    occupied[target.0] = true
+  }
+  if !occupied.contains(preferred) {
+    return Some(Ok(preferred))
+  }
+  // At most N distinct occupied labels, hence one of these N+1 candidates is
+  // free. Int bounds were checked before the index or decimal String existed.
+  let count = sources.length() + update_targets.length() + 1
+  for index in 0..<=count {
+    let candidate = "actql-local-control-" + index.to_string()
+    if !occupied.contains(candidate) {
+      return Some(Ok(candidate))
+    }
+  }
+  Some(Err(InvalidSubjects))
+}
+
+///|
+fn local_mock_control_disjoint(
+  control : String,
+  sources : Array[(String, String)],
+  targets : Array[(String, String)],
+) -> Bool {
+  control != "mock" &&
+  !sources.any(source => source.0 == control) &&
+  !targets.any(target => target.0 == control)
 }
 
 ///|
@@ -218,14 +312,17 @@ fn local_mock_account_configuration_original(
 ) -> Result[String, LocalMockProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
-    !valid_name(subjects.control_connection) {
+    !valid_name(subjects.control_connection) ||
+    !local_mock_control_disjoint(
+      subjects.control_connection,
+      subjects.sources,
+      update_targets,
+    ) {
     return Err(InvalidSubjects)
   }
-  // Each target has its own exact delegate. The shared updates Result read
-  // entry occurs once, independently of the number of logical targets.
-  let fixed = 3L +
+  // One own-domain Result read; every target retains its exact delegate.
+  let fixed = 2L +
     update_targets.length().to_int64() +
-    (if update_targets.is_empty() { 0L } else { 1L }) +
     (if subjects.request_target is Some(_) { 1L } else { 0L }) +
     (if subjects.signing_key_resource is Some(_) { 1L } else { 0L })
   if fixed > 2147483647L {
@@ -258,26 +355,17 @@ fn local_mock_account_configuration_original(
       "local-run",
       subjects,
       subjects.control_connection,
-      "run",
+      AnyOf(["run"]),
       ["cancel", "publish", "read", "resolve", "submit"],
       Allow,
     ),
-    // Both exact supported defaults are finite subjects: legacy/explicit
-    // answer and the new public read-only Source primary main. Neither entry
-    // grants another name or substitutes for the same-Run manifest/current gate.
+    // ResultOwner still selects the original committed same-Run name/current
+    // publication. All is safe only in this genuinely disjoint Host domain.
     local_mock_entry(
       "local-result-read",
       subjects,
       subjects.control_connection,
-      "result/answer",
-      ["read"],
-      Allow,
-    ),
-    local_mock_entry(
-      "local-primary-result-read",
-      subjects,
-      subjects.control_connection,
-      "result/main",
+      All,
       ["read"],
       Allow,
     ),
@@ -295,7 +383,7 @@ fn local_mock_account_configuration_original(
         "mock-read-" + index.to_string(),
         subjects,
         source.0,
-        source.1,
+        AnyOf([source.1]),
         ["read"],
         Allow,
       ),
@@ -312,7 +400,7 @@ fn local_mock_account_configuration_original(
         "mock-infer-" + index.to_string(),
         subjects,
         "mock",
-        task,
+        AnyOf([task]),
         ["infer", "model_raw_capture"],
         Allow,
       ),
@@ -336,23 +424,9 @@ fn local_mock_account_configuration_original(
         },
         subjects,
         target.0,
-        target.1,
+        AnyOf([target.1]),
         ["effect"],
         Delegate,
-      ),
-    )
-  }
-  if !targets.is_empty() {
-    // Only the selected UPDATE recipe's exact Named Result. This does not
-    // approve the Effect, issue a Result or replace its same-Run/current gate.
-    entries.push(
-      local_mock_entry(
-        "local-update-result-read",
-        subjects,
-        subjects.control_connection,
-        "result/updates",
-        ["read"],
-        Allow,
       ),
     )
   }
@@ -365,7 +439,7 @@ fn local_mock_account_configuration_original(
         "local-sign",
         subjects,
         subjects.control_connection,
-        resource,
+        AnyOf([resource]),
         ["sign"],
         Allow,
       ),
@@ -383,7 +457,7 @@ fn local_mock_account_configuration_original(
         "local-request",
         subjects,
         target.0,
-        target.1,
+        AnyOf([target.1]),
         ["write"],
         Allow,
       ),

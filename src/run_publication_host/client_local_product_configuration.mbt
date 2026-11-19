@@ -25,6 +25,7 @@ pub(all) struct ClientLocalProductCommonOriginals {
 
 ///|
 priv struct ProductCommonAssembly {
+  control_connection : String
   account : String
   retention_dependencies : String
   retention_policy : String
@@ -212,14 +213,14 @@ fn product_assemble_common(
     return Err(InvalidResultPolicy)
   }
   let principal = "local-cli"
-  let connection = "local"
+  let connection = mock
+    .map(subjects => subjects.control_connection)
+    .unwrap_or("local")
   let account = match mock {
     Some(subjects) => {
-      // This installer has one fixed principal/control connection. A Project
-      // supplies exact source/task subjects, never replacement Host identity.
-      if subjects.account_id != principal ||
-        subjects.principal != principal ||
-        subjects.control_connection != connection {
+      // The installing Host selected this disjoint control original under its
+      // SAME Read before assembly. A Project cannot replace Host identity.
+      if subjects.account_id != principal || subjects.principal != principal {
         return Err(UnsupportedAsset)
       }
       match @authorization.local_mock_account_configuration(subjects) {
@@ -359,6 +360,7 @@ fn product_assemble_common(
     _ => return Err(ConfigurationLimit)
   }
   Ok({
+    control_connection: connection,
     account,
     retention_dependencies: product_require(
       product_wire(Json::array(dependencies)),
@@ -421,7 +423,7 @@ fn product_assemble_originals(
     None
   }
   let principal = "local-cli"
-  let connection = "local"
+  let connection = common.control_connection
   let policy = product_cid(common.result_policy)
   let source_free = product_object([
     ("registry", Json::string(assets.registry)),

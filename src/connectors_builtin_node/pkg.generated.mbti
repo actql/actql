@@ -3038,6 +3038,8 @@ pub fn client_program_local_mock_account_configuration(String, String, String, A
 
 pub fn client_program_local_mock_account_configuration_prepared(String, String, String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], String?, (Int64, Int64) -> Bool) -> Result[String, @execution_authorization.LocalMockProfileIssue]?
 
+pub fn client_program_local_mock_account_control_connection_prepared(String, (String, String, String)?, String?, Array[(String, String)], Array[(String, String)], (Int64, Int64) -> Bool) -> Result[String, @execution_authorization.LocalMockProfileIssue]?
+
 pub fn client_program_local_mock_account_inventory_prepared(String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], (Int64, Int64) -> Bool) -> Result[Unit, @execution_authorization.LocalMockProfileIssue]?
 
 pub fn client_program_local_mock_account_profile() -> (String, String, String, String)
