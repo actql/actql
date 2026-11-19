@@ -1620,13 +1620,21 @@ test('large CI plans launch both original portable Core step command sequences',
         'scripts/test-python-local-metadata-wasm.mjs',
         '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',
         '_build/wasm/release/test/client_host_wasm/__whitebox_test_info.json', name]));
-      const failedCalls = join(root, 'wasm-failed.jsonl');
-      const failed = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
-        env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
-          PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: failedCalls,
-          FAIL_CASE: 'sdk_row_original_wbtest.mbt'}});
-      assert.equal(failed.status, 23, failed.stderr);
-      assert.deepEqual(readFileSync(failedCalls, 'utf8').trim().split('\n').map(line => JSON.parse(line)), observed);
+      for (const failedCase of requiredCases) {
+        const failedCalls = join(root, `wasm-failed-${failedCase}.jsonl`);
+        const failed = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
+          env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
+            PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: failedCalls,
+            FAIL_CASE: failedCase}});
+        assert.equal(failed.status, 23, failed.stderr);
+        const actual = readFileSync(failedCalls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+        // Preserve each original prerequisite and stop at the actual failed
+        // case; later required cases must never run after an earlier failure.
+        const failedIndex = observed.findIndex(entry => entry.command === 'node' &&
+          entry.args.at(-1) === failedCase);
+        assert(failedIndex >= 0);
+        assert.deepEqual(actual, observed.slice(0, failedIndex + 1));
+      }
     }
     assert(observed.every(entry => entry.revision === head && entry.paths === selection.paths.length));
     assert.equal(readFileSync(join(root, 'plan.json'), 'utf8'), original + '\n');
