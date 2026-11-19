@@ -23,7 +23,7 @@ if not INSTALLED_IMAGE:
     sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient
 from actql_sdk._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, _NORMAL_HOST_OPERATION_FUEL
-from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _ordinary_core_limits
+from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution, _ordinary_core_limits
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import StoredBytes
 from actql_sdk._values import thaw, wire_bytes
@@ -78,6 +78,39 @@ class Trace:
         assert counts.get('unrelatedEffectRows', 0) == 0, observed
         assert counts.get('changedTargetRows', 0) == 0, observed
         return result
+
+
+def retire_pending_original_parents(host, original):
+    """Return one fresh admission's private loans, never close or stop its Run.
+
+    The caller passes the unchanged descriptor returned by _accept_original,
+    after leaving that admission's operation frame. Core still owns each ACK.
+    """
+    core = host._core
+    with core._lock:
+        if (type(original) is not _OriginalExecution or original.host is not host
+                or any(getattr(original, field) is not None for field in (
+                    'reference', 'compute', 'preflight', 'publisher', 'tasks',
+                    'results', 'publication', 'state', 'physical_start',
+                    'start_step', 'stop_interest'))
+                or original.submission is None or original.rows_input is None):
+            raise ValueError('Expected the same fresh unstarted admission descriptor')
+        run, prepared = original.run, original.run.preparation
+        if (not any(value is run for value in host._run_loans)
+                or not any(value is prepared for value in host._prepared_inputs)
+                or run.handle in host._runs._run_restorations
+                or any(value is not run and value.preparation is prepared
+                       for value in host._runs._runs.values())
+                or any((host._physical_work, host._physical_starts,
+                        host._source_free_computes, host._tasks, host._public_run_references))
+                or any(getattr(host, field) is not None for field in (
+                    '_uncertain_ticket', '_pending_run_write',
+                    '_pending_start_write', '_pending_binding_write'))
+                or core._host_fuel_phase is not None or core._host_retained_work is not None):
+            raise ValueError('Original admission has shared, restored or active custody')
+        with core._host_cleanup():
+            if host._retire_original_execution_parents(original) is not True:
+                raise LocalProductCleanupPending(host)
 
 
 async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False, installed=False):
@@ -197,6 +230,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
     completed_history = 0
     accepted_pending_history = 0
     closed_pending_history = 0
+    retired_pending_parent_loans = 0
     pending_references = set()
     cleanup = []
 
@@ -256,6 +290,12 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     assert not host._source_free_computes and not host._tasks
                     accepted_pending_history += 1
                     print(json.dumps({'acceptedPendingHistory': accepted_pending_history}), flush=True)
+                    # Keep the same Host/Core and durable rows. A private loan
+                    # ACK is neither a whole-Host close nor a Run stop/result.
+                    retire_pending_original_parents(host, run)
+                    run = None  # Only after the complete original ACK chain.
+                    retired_pending_parent_loans += 1
+                    print(json.dumps({'retiredPendingParentLoans': retired_pending_parent_loans}), flush=True)
                 else:
                     original = await client.start_source(
                         'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
@@ -263,20 +303,17 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     assert await original.result('answer').all(schema=Row, max_rows=2) == [Row(41)]
                     completed_history += 1
                     print(json.dumps({'completedHistory': completed_history}), flush=True)
-                if persisted or pending:
-                    # Original child-first close only. Pending mode has an
-                    # acknowledged admission, not a successfully executed Run.
-                    # Keep this fresh case's durable originals in place.
+                if persisted:
+                    # Persisted mode retains its original child-first whole
+                    # close/reopen route and this case's durable originals.
                     await client.aclose()
                     await host.aclose()
                     assert core.close() is True
-                    if pending:
-                        closed_pending_history += 1
-                        print(json.dumps({'closedPendingHistory': closed_pending_history}), flush=True)
                     await open_original()
 
             if pending:
-                assert accepted_pending_history == closed_pending_history == len(pending_references) == history
+                assert accepted_pending_history == retired_pending_parent_loans == len(pending_references) == history
+                assert closed_pending_history == 0
 
             read_start = core.read_sdk_start_step
             select_task = core.reserve_next_sdk_task
@@ -366,6 +403,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
         print(json.dumps({'completedHistory': completed_history,
                           'acceptedPendingHistory': accepted_pending_history,
                           'closedPendingHistory': closed_pending_history,
+                          'retiredPendingParentLoans': retired_pending_parent_loans,
                           'originalWorkFailures': failures}), flush=True)
         if fault is None:
             raise
@@ -398,10 +436,11 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             print(json.dumps({'cleanupFailures': [type(error).__name__ for error in cleanup]}), file=sys.stderr)
     return {'history': history, 'fault': fault, 'steps': trace.steps,
             'coreMode': 'installed-image/ordinary-operation-owner' if installed else 'raw-component/initial-fuel',
-            'populationMode': 'accepted-pending-durable-history/live-target' if pending else
+            'populationMode': 'accepted-pending-durable-history/private-parent-retirement/live-target' if pending else
                 'persisted-history-fresh-live-target' if persisted else 'same-live-host',
             'completedHistory': completed_history, 'acceptedPendingHistory': accepted_pending_history,
             'closedPendingHistory': closed_pending_history,
+            'retiredPendingParentLoans': retired_pending_parent_loans,
             'refusal': None if trace.refusal is None else trace.refusal.code,
             'firstCloseReturned': not cleanup,
             'cleanupFailures': [type(error).__name__ for error in cleanup]}
