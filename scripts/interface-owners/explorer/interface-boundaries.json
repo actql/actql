@@ -2400,11 +2400,12 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "73f448f6b32736f2e1cfed5a353bb1a1b0867920262b2d5a8db211ff1f2abd5b",
+      "sha256": "ead348260dbd142252944419433e0135fcc37a18b0648fe9edc97a75b2929644",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
         "OriginalRunPlanReadModel",
+        "OriginalRunPresentationReadModel",
         "OriginalRunStoryReadModel",
         "PlanReadModel",
         "PlanStoryModel",
@@ -2416,7 +2417,9 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunExplanation",
         "readExistingRunPlan",
+        "readExistingRunPresentation",
         "readExistingRunStory",
         "readStaticPlan"
       ],
@@ -2485,6 +2488,15 @@
           "result": "Promise<WireRunView>"
         },
         {
+          "name": "readExistingRunExplanation",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<WireRunExplanationView>"
+        },
+        {
           "name": "readExistingRunPlan",
           "parameters": [
             "client: Pick<Client, 'attach'>",
@@ -2492,6 +2504,16 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<OriginalRunPlanReadModel>"
+        },
+        {
+          "name": "readExistingRunPresentation",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "options: {locale?: 'en' | 'ja'} | undefined",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<OriginalRunPresentationReadModel>"
         },
         {
           "name": "readExistingRunStory",
@@ -2661,6 +2683,155 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readExistingRunExplanation"
+          ],
+          "exports": [
+            "readExistingRunExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readExistingRunPresentation"
+          ],
+          "exports": [
+            "OriginalRunPresentationReadModel",
+            "readExistingRunPresentation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
           }
