@@ -283,7 +283,7 @@ test('reviewed module options retain dependency target and package metadata refu
   const resolved = resolveConnectorBuildInputs(f.configuration);
   // Module format DATA is not permission to accept package-level linker data.
   f.put(join(core, 'src/connector_sdk/moon.pkg'), 'supported_targets = "+js+wasm+native"\n' + option);
-  assert.throws(() => resolved.resolvePackage('actql/actql/connector_sdk'), /Unsupported build metadata syntax/);
+  assert.throws(() => resolved.resolvePackage('actql/actql/connector_sdk'), {message: 'UnknownManifestOptions: unreviewed compiler input option'});
   assert.throws(() => inspectCore(core, ['connector_sdk']), /UnknownManifestSyntax/);
 });
 
