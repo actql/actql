@@ -365,10 +365,12 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 }
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
-  template = 'churn-risk-mock', variant = 'readme'}) {
+  template = 'churn-risk-mock', variant = 'readme', accountScenario = 'default'}) {
+  assert(['default', 'explicit-operator-content'].includes(accountScenario));
+  if (accountScenario !== 'default') assert.equal(variant, 'terminal-content');
   if (['terminal-infer', 'terminal-content'].includes(variant)) {
     assert.equal(template, 'churn-risk-mock');
-    return terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant});
+    return terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant, accountScenario});
   }
   const multipleTargets = variant === 'multiple-targets';
   assert.ok(variant === 'readme' || multipleTargets && template === 'churn-risk-mock' ||
@@ -539,7 +541,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
 // Same normal installation, command supervisor and functional report as the
 // existing workflow. These terminal Programs have no approval phase; they do
 // not weaken any Effect fixture's original phase/count/cleanup assertions.
-async function terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant}) {
+async function terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant, accountScenario}) {
   const selected = terminalMockScenario(variant), files = {...projectTemplateFiles(template), [selected.path]: selected.source};
   const members = ['adapters/host-node/fixtures/mock-project-terminal-public.mjs',
     'adapters/host-node/fixtures/work-observation.fixture.mjs',
@@ -551,7 +553,9 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
     unit: 'ms', requiredSamples: counts.coldSamples, template, variant, samples: [], evidence: root,
     performanceAcceptance: false,
     qualification: 'Functional terminal public Result/Saved only; Content byte-derived envelope, not Store payload read',
-    fixtureSha256: jsonDigest({files, fixtures: [...fixtures].map(([path, bytes]) => [path, digest(bytes)])})};
+    fixtureSha256: jsonDigest({files, fixtures: [...fixtures].map(([path, bytes]) => [path, digest(bytes)]),
+      ...(accountScenario === 'default' ? {} : {accountScenario})})};
+  if (accountScenario !== 'default') metric.accountScenario = accountScenario;
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
     const project = join(root, `mock-project-${template}-${variant}-${iteration}`);await mkdir(project);
     for (const [path, bytes] of [...Object.entries(files), ...fixtures]) {
@@ -569,6 +573,7 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
     try {
       for (const phase of ['capture', 'recover']) {
         const args = [join(project, members[0]), phase, variant, join(project, 'handoff.json')];
+        if (accountScenario !== 'default') args.push(accountScenario);
         const record = {phase, command: process.execPath, args, cwd: project, status: 'running', completed: false};
         phases.push(record);
         const path = join(project, `${phase}.observation.json`);
@@ -583,6 +588,11 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
             {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
           record.pid = observed.pid;record.summary = JSON.parse(observed.stdout.trim());
           assertTerminalMockObservation(record.summary, {variant, phase, pid: observed.pid, capturedPid});
+          if (accountScenario === 'default') assert.equal(Object.hasOwn(record.summary, 'accountScenario'), false);
+          else {
+            assert.equal(Object.hasOwn(record.summary, 'accountScenario'), true);
+            assert.equal(record.summary.accountScenario, accountScenario);
+          }
           if (phase === 'capture') {
             capturedPid = observed.pid;
             assert.equal(await readlink(join(project, 'node_modules')), join(prepared.consumer, 'node_modules'));

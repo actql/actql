@@ -73,6 +73,66 @@ test('terminal Mock normal harness stages both public cases and refuses repeated
   }
 });
 
+test('terminal Mock parent carries only the selected Account scenario and rejects mislabeled original phases', async t => {
+  // Real imported orchestration with explicit child outcomes, not an actor or
+  // a normal Common/Account/Store acceptance. One sample per authored control.
+  for (const accountScenario of ['default', 'explicit-operator-content']) {
+    const faults = accountScenario === 'default' ? ['none', 'wrong-capture', 'wrong-recover']
+      : ['none', 'missing-capture', 'wrong-capture', 'missing-recover', 'wrong-recover'];
+    for (const fault of faults) {
+      const scratch = await createOwnedScratch({parent:tmpdir(),prefix:'actql-terminal-account-parent-',label:'finite Account propagation component'});
+      t.after(() => scratch.passed());
+      const root = join(scratch.path,'run'), consumer = join(scratch.path,'consumer');
+      await mkdir(root);await mkdir(join(consumer,'node_modules'),{recursive:true});
+      const phases = [];let metric;
+      const operation = mockWorkflowMetrics({prepared:{consumer},root,
+        repository:new URL('../',import.meta.url).pathname,variant:'terminal-content',
+        ...(accountScenario === 'default' ? {} : {accountScenario}),counts:{coldSamples:1},
+        onMetric:async value => {metric = value;},
+        async command(_node,args,options) {
+          const phase = args[1];phases.push(phase);
+          assert.equal(args.length,accountScenario === 'default' ? 4 : 5);
+          assert.equal(args[4],accountScenario === 'default' ? undefined : accountScenario);
+          assert.equal(options.timeout,30000);assert.equal(args[2],'terminal-content');
+          const pid = phase === 'capture' ? 101 : 202;
+          const value = {phase,variant:'terminal-content',pid,status:'passed',complete:true,
+            submits:phase === 'capture' ? 1 : 0,resultReads:1,lookupOriginal:true,
+            originalRefBeforeWait:phase === 'capture',savedFirst:phase === 'recover',
+            originalInputsAbsent:phase === 'recover',firstClose:{attempted:true,returned:true,calls:1},
+            aliveScopedFD:{before:0,after:0,pid},workObservation:{complete:true,
+              sourceAcquisitionStarts:0,modelCallStarts:0,effectReplacementReturns:0}};
+          if (accountScenario !== 'default') value.accountScenario = accountScenario;
+          if (fault.endsWith(phase)) {
+            if (fault.startsWith('missing')) delete value.accountScenario;
+            else value.accountScenario = accountScenario === 'default' ? 'explicit-operator-content' : 'default';
+          }
+          return {pid,code:0,signal:null,stdout:JSON.stringify(value)};
+        }});
+      if (fault === 'none') {
+        assert.equal((await operation).samples[0].verified,true);
+        assert.equal(metric.accountScenario,accountScenario === 'default' ? undefined : accountScenario);
+      } else await assert.rejects(operation,{code:'ERR_ASSERTION'});
+      assert.deepEqual(phases,fault.endsWith('capture') ? ['capture'] : ['capture','recover']);
+      assert.equal(metric.samples[0].verified,fault === 'none');
+      const project = metric.samples[0].stateId;
+      assert(!(await readdir(project)).includes('node_modules'));
+      if (fault.endsWith('capture')) {
+        assert.equal(metric.samples[0].phases[0].originalInputsRemovedAfterFirstClose,undefined);
+        assert.equal(await readFile(join(project,'terminal.program.json'),'utf8'),terminalMockScenario('terminal-content').source);
+        assert.equal(await readFile(join(project,'mock/churn-risk.v1.answers.yaml'),'utf8'),
+          projectTemplateFiles('churn-risk-mock')['mock/churn-risk.v1.answers.yaml']);
+      }
+    }
+  }
+  let calls = 0;
+  for (const [accountScenario,variant] of [['unsupported','terminal-content'],[null,'terminal-content'],
+    ['explicit-operator-content','terminal-infer'],['explicit-operator-content','readme']]) {
+    await assert.rejects(mockWorkflowMetrics({accountScenario,variant,command:async () => {calls++;}}),
+      {code:'ERR_ASSERTION'});
+  }
+  assert.equal(calls,0);
+});
+
 test('terminal Mock harness stops first failed child and keeps original authored inputs', async t => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-terminal-first-failure-', label: 'terminal failure command-port component'});
   t.after(() => scratch.passed());
