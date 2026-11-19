@@ -14,12 +14,15 @@ priv struct InstalledQueryTasksFixture {
   controls : @resources.CapacityReservation
   ledger : @resources.Ledger
   verify_hooks : Array[Ref[(() -> Unit)?]]
+  provider_pages : Array[Ref[Bytes?]]
 }
 
 ///|
 fn installed_query_tasks_fixture(
   request_protocols? : Bool = false,
   original_filter? : Bool = false,
+  retained_provider? : Bool = false,
+  compiled_body? : Bool = false,
 ) -> InstalledQueryTasksFixture raise {
   let declaration = if original_filter {
     let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
@@ -163,11 +166,29 @@ fn installed_query_tasks_fixture(
         ).unwrap()
     }
   })
+  // Reuse the existing trusted-declared JSON reader fixture's recipe. This
+  // is a component supplier declaration, not Native file or transport proof.
+  let provider = if retained_provider {
+    Some(
+      installed_json_source_reader_capacity(
+        [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4],
+        declaration.views[0].fields.length(),
+        3,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  let factory = _ => []
   let plan = prepare_installed_managed_capture_plan(
     prepared,
     request,
     acquisitions.map(acquisition => {
-      installed_row_capture_capacity(acquisition).unwrap()
+      match provider {
+        Some(original) =>
+          installed_provider_row_capture_capacity(acquisition, Some(original)).unwrap()
+        None => installed_row_capture_capacity(acquisition).unwrap()
+      }
     }),
     Array::make(count, 4096L),
     Array::make(count, 4096L),
@@ -176,12 +197,25 @@ fn installed_query_tasks_fixture(
     fragment,
     ordered,
     retained_output=!original_filter,
-    provider_factory=_ => [],
+    provider_factory=factory,
     runtime_admission=true,
   ).unwrap()
-  complete_request_capture_preparation(parent, input, plan).unwrap()
+  if compiled_body {
+    prepare_request_capture_module_body(
+      parent,
+      input,
+      plan,
+      manifests=request_program_module_manifests(),
+      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+      provider_factory=factory,
+    ).unwrap()
+    assert_true(plan.compilation is Some(_))
+  } else {
+    complete_request_capture_preparation(parent, input, plan).unwrap()
+  }
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
   let captures = []
+  let provider_pages : Array[Ref[Bytes?]] = []
   let verify_hooks : Array[Ref[(() -> Unit)?]] = Array::makei(count, _ => {
     Ref(None)
   })
@@ -191,37 +225,61 @@ fn installed_query_tasks_fixture(
     ).unwrap()
     assert_true(physical_equal(acquisition, acquisitions[index]))
     let hook = verify_hooks[index]
-    let source = start_installed_source_read_rows(
-      read,
-      acquisition,
-      "query-original-" + index.to_string(),
-      _ => {
-        if hook.val is Some(call) {
-          hook.val = None
-          call()
-        }
-        true
-      },
-      4096L,
-      4096L,
-    ).unwrap()
+    let verify = _ => {
+      if hook.val is Some(call) {
+        hook.val = None
+        call()
+      }
+      true
+    }
+    let source = (match provider {
+      Some(original) =>
+        start_installed_source_read_provider_rows(
+          read,
+          acquisition,
+          Some(original),
+          "query-original-" + index.to_string(),
+          verify,
+          4096L,
+          4096L,
+        )
+      None =>
+        start_installed_source_read_rows(
+          read,
+          acquisition,
+          "query-original-" + index.to_string(),
+          verify,
+          4096L,
+          4096L,
+        )
+    }).unwrap()
     @row_source_host.begin_row_run(source, 4096, 3, 3).unwrap()
-    @row_source_host.accept_row_run_page(
-      source,
-      @utf8.encode(
-        if original_filter {
-          // Schema-directed int64 wire after Native's document projection.
-          // This page is scan DATA, not a fabricated filtered output.
-          "[{\"account_id\":\"001Acme\",\"active_users\":\"4\",\"trend\":\"down\"},{\"account_id\":\"001Globex\",\"active_users\":\"12\",\"trend\":\"flat\"}]"
-        } else if index == 0 {
-          "[{\"id\":1},{\"id\":2}]"
-        } else {
-          "[{\"id\":2},{\"id\":3}]"
-        },
-      ),
-    ).unwrap()
-    |> ignore
+    let page = @utf8.encode(
+      if original_filter {
+        // Schema-directed int64 wire after Native's document projection.
+        // This page is scan DATA, not a fabricated filtered output.
+        "[{\"account_id\":\"001Acme\",\"active_users\":\"4\",\"trend\":\"down\"},{\"account_id\":\"001Globex\",\"active_users\":\"12\",\"trend\":\"flat\"}]"
+      } else if index == 0 {
+        "[{\"id\":1},{\"id\":2}]"
+      } else {
+        "[{\"id\":2},{\"id\":3}]"
+      },
+    )
+    if retained_provider {
+      let original_page : Ref[Bytes?] = Ref(Some(page))
+      provider_pages.push(original_page)
+      let responses = @row_source_host.borrow_row_run_responses(
+        source, acquisition,
+      ).unwrap()
+      // This observer witnesses only release of this component's actual
+      // in-memory page root, never Native file/Reader/physical stop.
+      @row_source_host.bind_row_run_response_borrow_cleanup(responses, () => {
+        original_page.val is None
+      }).unwrap()
+    }
+    @row_source_host.accept_row_run_page(source, page).unwrap() |> ignore
     @row_source_host.finish_row_run(source).unwrap()
+    let before_capture = @resources.ledger_usage(parent.ledger)
     @row_source_host.begin_row_capture(source).unwrap()
     let mut complete = false
     for _ in 0..<1000 {
@@ -232,6 +290,19 @@ fn installed_query_tasks_fixture(
     }
     assert_true(complete)
     captures.push(@row_source_host.capture_row_run(source).unwrap())
+    if retained_provider {
+      let after_capture = @resources.ledger_usage(parent.ledger)
+      // The declared provider's original Row token must coexist with the
+      // suffix. Completed acquisition does not retire its remaining debt.
+      assert_eq(
+        after_capture.live_reservations,
+        before_capture.live_reservations,
+      )
+      assert_eq(
+        after_capture.reserved_execution_bytes,
+        before_capture.reserved_execution_bytes,
+      )
+    }
   }
   let (setup, _, _) = open_installed_managed_capture_host(
     owner,
@@ -256,6 +327,7 @@ fn installed_query_tasks_fixture(
     controls,
     ledger: parent.ledger,
     verify_hooks,
+    provider_pages,
   }
 }
 
@@ -265,6 +337,9 @@ fn close_installed_query_tasks_fixture(
 ) -> Unit raise {
   assert_true(physical_equal(value.parent.ledger, value.ledger))
   @resources.settle_capacity(value.ledger, value.controls).unwrap()
+  for original in value.provider_pages {
+    original.val = None
+  }
   for index = value.owner.reads.length() - 1; index >= 0; index = index - 1 {
     retire_installed_source_read(value.owner.reads[index].unwrap()).unwrap()
   }
@@ -533,8 +608,15 @@ test "installed filtered SQL read keeps its actual checked acquisition route" {
 // Node-admitted common driver diagnostic only. Query scan/capture and the
 // receiving LocalDispatch/FixedCompute suffix retain their actual originals;
 // no Native file, Account, physical cleanup or installed CLI is simulated.
-test "installed original readonly filter executes SAME Query capture and Local driver" {
-  let value = installed_query_tasks_fixture(original_filter=true)
+fn installed_original_filter_driver_case(
+  retained_provider : Bool,
+  compiled_body? : Bool = false,
+) -> Unit raise {
+  let value = installed_query_tasks_fixture(
+    original_filter=true,
+    retained_provider~,
+    compiled_body~,
+  )
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(value.setup),
   )
@@ -602,6 +684,21 @@ test "installed original readonly filter executes SAME Query capture and Local d
       fail("original filter Local driver: " + cause)
     }
   }
+}
+
+///|
+test "installed original readonly filter executes SAME Query capture and Local driver" {
+  installed_original_filter_driver_case(false)
+}
+
+///|
+test "installed original readonly filter retains declared provider beside Local driver" {
+  installed_original_filter_driver_case(true)
+}
+
+///|
+test "installed original readonly filter retains compiled body and provider beside Local driver" {
+  installed_original_filter_driver_case(true, compiled_body=true)
 }
 
 ///|
