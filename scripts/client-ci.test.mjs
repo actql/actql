@@ -297,17 +297,33 @@ test('Host REST controls reuse the Model Common build and cannot run after the p
   const directory = mkdtempSync(join(tmpdir(), 'actql-rest-common-ci-')), bin = join(directory, 'bin');
   t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
   const callsPath = join(directory, 'calls.txt');
-  writeFileSync(join(bin, 'node'), '#!/bin/sh\n' +
-    'printf "%s\\n" "$1" >> "$ACTQL_CI_CALLS"\n' +
-    'if [ "$1" = "scripts/local-checks.mjs" ]; then exit "$ACTQL_CI_MODEL_STATUS"; fi\n', {mode: 0o755});
-  for (const status of [0, 73]) {
+  writeFileSync(join(bin, 'node'), `#!${process.execPath}\n` +
+    "const {appendFileSync} = require('node:fs');\n" +
+    "const args = process.argv.slice(2);\n" +
+    "appendFileSync(process.env.ACTQL_CI_CALLS, JSON.stringify(args) + '\\n');\n" +
+    "if (args.includes(process.env.ACTQL_CI_FAIL_INPUT)) process.exit(73);\n", {mode: 0o755});
+  const modelFile = 'adapters/host-node/installed-project-model-task-funding.actual.test.mjs';
+  const restScript = 'scripts/ci-rest-actual-common.mjs';
+  const catalogueFile = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  for (const failedInput of ['', modelFile, restScript, catalogueFile]) {
     writeFileSync(callsPath, '');
     const result = run(gate.run, {PATH: bin + ':' + process.env.PATH,
-      ACTQL_CI_CALLS: callsPath, ACTQL_CI_MODEL_STATUS: String(status)});
-    assert.equal(result.status, status, result.stderr);
-    const calls = readFileSync(callsPath, 'utf8').trim().split('\n');
-    assert.equal(calls.filter(value => value === 'scripts/local-checks.mjs').length, 1);
-    assert.equal(calls.filter(value => value === 'scripts/ci-rest-actual-common.mjs').length, status === 0 ? 1 : 0);
+      ACTQL_CI_CALLS: callsPath, ACTQL_CI_FAIL_INPUT: failedInput});
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);
+    assert.equal(result.status, failedInput ? 73 : 0, result.stderr);
+    const calls = readFileSync(callsPath, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    const selected = input => calls.filter(args => args.includes(input));
+    assert.equal(selected(modelFile).length, 1);
+    assert.equal(selected(restScript).length, failedInput === modelFile ? 0 : 1);
+    assert.equal(selected(catalogueFile).length,
+      failedInput === modelFile || failedInput === restScript ? 0 : 1);
+    assert.equal(selected(modelFile)[0][0], 'scripts/local-checks.mjs');
+    assert.equal(calls[0], selected(modelFile)[0]);
+    if (selected(restScript).length) assert.equal(calls[1], selected(restScript)[0]);
+    if (selected(catalogueFile).length) {
+      assert.equal(selected(catalogueFile)[0][0], 'scripts/local-checks.mjs');
+      assert.equal(calls.at(-1), selected(catalogueFile)[0]);
+    }
   }
 });
 
@@ -1034,6 +1050,13 @@ test('Client lanes cover local acceptance without positional command snapshots',
     return count === 1 ? [] : [`${count} owners: ${key}`];
   });
   assert.deepEqual(gaps, [], 'Missing or duplicated local acceptance across Client, lint and Host');
+  const contentFile = 'adapters/host-common/content-output-demand.test.mjs';
+  const callerJob = jobs['client-distribution-callers'];
+  const contentOwner = callerJob.steps.find(step => step.run?.split(/\s+/u).includes(contentFile));
+  assert(contentOwner, 'Content demand keeps its prepared caller owner');
+  assert.equal(contentOwner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(contentOwner['continue-on-error'], undefined);
+  assert(callerJob.steps.findIndex(step => step.id === 'distribution-preparation') < callerJob.steps.indexOf(contentOwner));
   const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert.deepEqual(hooks['postcheck:distribution-client'].split(' && '),
