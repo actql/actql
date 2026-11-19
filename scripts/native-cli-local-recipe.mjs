@@ -186,6 +186,8 @@ export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory,
     !aoa.pipeline_registry_file.split('/').includes('..'));
   capture(join(sourceRoot, aoa.pipeline_registry_file), 1024 * 1024);
   capture(join(sourceRoot, 'spec/local-check-environment.json'), 65536);
+  capture(join(sourceRoot, 'spec/contracts/actql-query-acquisition.json'), 65536);
+  capture(join(sourceRoot, 'spec/contracts/actql-query-process-evidence.json'), 65536);
   const defaults = nativeLocalDefaultAssets(sourceRoot);
   const contents = new Map([...defaults].map(([role, bytes]) => [`${role}.json`, bytes]));
   contents.set('sqlite.txt', sqliteNotice); contents.set('crypto.txt', combined);

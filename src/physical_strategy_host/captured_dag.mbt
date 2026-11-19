@@ -2516,26 +2516,35 @@ pub fn captured_task_analytic_envelope_at(
 }
 
 ///|
+/// Callback-free correspondence to this original live captured port. This
+/// neither invokes Source availability nor grants a read, dispatch or stop ACK.
+pub fn captured_task_source_original_matches(
+  run : CapturedDAG,
+  task : Int,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  task >= 0 &&
+  task < run.graph.captured_prefix_value() &&
+  run.lifetimes[task].live &&
+  run.original_sources[task] is Some(expected) &&
+  physical_equal(expected, source)
+}
+
+///|
 /// Physical handoff checks the original opaque capture, not equal rows or CIDs.
 pub fn captured_task_source_matches(
   run : CapturedDAG,
   task : Int,
   source : @query.CapturedInputSource,
 ) -> Bool {
-  guard task >= 0 &&
-    task < run.graph.captured_prefix_value() &&
-    run.lifetimes[task].live &&
-    run.original_sources[task] is Some(expected) &&
-    physical_equal(expected, source) &&
+  guard captured_task_source_original_matches(run, task, source) &&
     @query.captured_source_available(source) else {
     return false
   }
   // The original verifier may retire this DAG port while its independently
   // owned Source remains live. Recheck the same port after that callback.
   // Stopping new work alone does not retire an original captured output.
-  run.lifetimes[task].live &&
-  run.original_sources[task] is Some(current) &&
-  physical_equal(current, source)
+  captured_task_source_original_matches(run, task, source)
 }
 
 ///|

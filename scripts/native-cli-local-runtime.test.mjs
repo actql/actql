@@ -68,6 +68,38 @@ test('Local runtime sidecars bind exact source/platform/original bytes and finit
   assert.equal(f.metadata.sha256, hash(await readFile(join(f.output, 'local-runtime.json'))));
 });
 
+test('Native Query runtime retains both original members and refuses partial or changed protocol pairs', async t => {
+  const f = await fixture(t);
+  // The existing five-member fixture remains independently admitted above.
+  // These are protocol DATA; synthetic library headers prove no native ABI.
+  const assets = [];
+  for (const [role, source] of [['query', 'actql-query-acquisition.json'],
+    ['query-evidence', 'actql-query-process-evidence.json']]) {
+    const bytes = Buffer.from(JSON.stringify(JSON.parse(await readFile(new URL(`../spec/contracts/${source}`, import.meta.url), 'utf8'))));
+    const path = join(f.source, `${role}.json`); await writeFile(path, bytes);
+    assets.push({role, original: {path, bytes: bytes.length, sha256: hash(bytes)}});
+  }
+  const output = join(f.root, 'query-runtime'); await mkdir(output);
+  const options = {...f.options, assets: [...f.options.assets, ...assets]};
+  const metadata = await prepareNativeLocalRuntime(output, options, inspectFixture);
+  const expected = {...f.expected, localRuntimeSha256: metadata.sha256};
+  const manifest = admitInstalledLocalRuntime({root: output, metadata, expected});
+  assert.equal(manifest.assets.length, 7);
+  for (const asset of assets) {
+    const member = manifest.assets.find(value => value.role === asset.role);
+    assert.equal(member.sha256, asset.original.sha256);
+    assert.deepEqual(await readFile(join(output, member.path)), await readFile(asset.original.path));
+  }
+  for (const missing of ['query', 'query-evidence']) {
+    const partial = {...manifest, assets: manifest.assets.filter(value => value.role !== missing)};
+    assert.throws(() => validateLocalRuntimeManifest(partial, expected));
+  }
+  const member = manifest.assets.find(value => value.role === 'query');
+  const changed = await readFile(join(output, member.path)); changed[0] ^= 1;
+  await writeFile(join(output, member.path), changed);
+  assert.throws(() => admitInstalledLocalRuntime({root: output, metadata, expected}), error => error.exitCode === 65);
+});
+
 test('Linux x64 shared-library headers use the same explicit closure and source binding', async t => {
   const f = await fixture(t, 'linux-x64-gnu');
   assert.deepEqual(admitInstalledLocalRuntime({root: f.output, metadata: f.metadata, expected: f.expected}), f.manifest);

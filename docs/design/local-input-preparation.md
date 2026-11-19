@@ -7243,3 +7243,75 @@ return stays in the existing connection cleanup owner, without resnapshot,
 resubmit, recompile or a fabricated physical acknowledgement. An additional
 carrier must provide its actual same-parent construction and original projection
 before advertising support; execution cannot stand in for static planning.
+
+### Native finite Query Source continuation
+
+The installed Native read-only path keeps the original checked direct Source
+inventory, rather than identifying a Query by one resource or a fixed task
+index. The Project supplies its existing declaration, physical locator and
+prepared provider for each exact logical connection/resource. The immutable
+Query Plan fixes every acquisition and its captured task. SQL aliases do not
+supply a capture count: repeated uses may share one original Source, whereas
+separate direct occurrences retain their separate original bindings.
+
+The normal Native asset pipeline carries the original Query-acquisition and
+Query-evidence protocol bodies as a closed optional pair. The manifest's byte
+and identity checks apply to these members too. Their original strings remain
+under the same physical Runtime/current/Read lifetime. Missing old assets do
+not select a repository body or a default protocol. The original Request
+admits the pair once before its finite acquisition vector; subsequent slots
+reuse that same nominal contract value. The existing Row protocol-construction
+recipe, actual checked Query material/writer recipes, bounded array backing and
+closed caller frontier grow that same working reservation before construction.
+A pricing result is neither a new allowance nor Source execution authority.
+
+Runtime acquisition precedes the consuming Read claim. Its Query asset
+constructor therefore adds its named inventory to the original initial Read
+budget before any Runtime/Reader is opened; a consuming-Read grow method is
+not valid at that boundary. The increment counts the physical Runtime's one
+reference and original optional pair, two bounded immutable decoded bodies,
+original file observations, witness backing, Map growth and transport/UTF8
+overlap. It uses the existing text constructor, collection inventories,
+shared tariff and the compiled filesystem's readonly layout facts. The
+initial execution clipping is applied before this addition. The unchanged
+original domain ceilings admit the sum or refuse it; no unused bootstrap
+space or facility maximum is treated as backing. The CLI borrows the same
+physical Runtime pair instead of retaining another field. These quantities
+are logical construction bounds, not RSS or physical cleanup evidence.
+
+There is one prepared relation-file Work entry, original claim and managed
+DAG for the entire prefix. Its original Read backs all selection snapshots and
+its business child prebacks the complete checked Work quote before Journal
+reservation. Every slot checks the original Plan acquisition, declaration,
+provider capacity, Account target and current scope. The private source vector
+is snapshotted on that prepaid Read before canonical admission can invoke
+current. The admission callback cannot enlarge the copied prefix or replace
+its quoted paths, even when it retains the same acquisition. The subsequent
+original checks use that same snapshot. An actual acquired-but-unready arena
+entry remains in its original cleanup carrier. Legacy single-entry locator fields do not select a
+primary read or publication input for this purpose.
+
+Each original managed read is retained before the next fallible operation.
+Each physical capture or partial-open failure is retained before advancing or
+opening another child. The existing managed Query capture API performs the
+physical read; the common captured-prefix loop performs its original checked
+Compute tail. Neither path opens another Run, reclaims a dispatch or uses a
+caller-provided skip index. Current cancellation, claim and no-resend rules
+remain at the original Journal/operation boundary.
+
+Publication scans every actual retained Query capture under that acquisition's
+completion/measurement bounds, independent of smaller aggregate Result bounds.
+All original identities, Query requirements, logical artifacts and Source
+receipts enter the existing captured-publication issuer in prefix order. The
+Result binds the complete input-CID vector and original resolved policy; a
+legacy first locator is not a substitute. Metadata and identity-scan overlap
+grow through the same prepared body's native backing and current fence.
+
+Cleanup closes the dependent DAG ports/Compute before physical captures, then
+those captures before their original managed reads. The cleanup-only port
+entry also handles a failed Host binding that returned no setup, without
+requiring a fresh current/Allow. It checks the same nominal Pure Query Plan,
+DAG/resource/pin retirement and pending boundary obligations. Its success says
+nothing about physical readers or whole Host stop; those remain the actual
+Native owners' separate acknowledgements. Failure never enables Source replay,
+publication success, or another physical start.

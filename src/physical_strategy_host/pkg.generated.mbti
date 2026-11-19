@@ -457,6 +457,8 @@ pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
 
 pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
 
+pub fn captured_task_source_original_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
+
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn census_captured_effect_dependency_ports(CapturedEffectRunDAG, Int, Int, (Int) -> Bool) -> Result[CapturedEffectDependencyPortCensus, RunIssue]

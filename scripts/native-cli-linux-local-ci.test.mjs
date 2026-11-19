@@ -10,7 +10,7 @@ import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
 import {classifyJob} from './local-checks-policy.mjs';
 import {nativeInstalledIngressSelection} from './test-native-cli-source-free-install.mjs';
-import {nativeFileSourceQueries} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const job = workflow.jobs['native-cli-linux-local'];
@@ -309,7 +309,7 @@ test('mandatory Local installation retains ingress controls on its actual instal
   const selection=nativeInstalledIngressSelection();
   for(const file of ['test-native-local-cli.test.mjs','test-native-file-source-queries.test.mjs'])
     assert.equal(selection.files.filter(path=>path.endsWith('/'+file)).length,1,file);
-  assert.equal(selection.expectedTests,13+nativeFileSourceQueries.length);
+  assert.equal(selection.expectedTests,13+nativeInstalledSourceQueries.length);
   assert(installed.includes('const {files,expectedTests}=nativeInstalledIngressSelection()'));
   assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
   for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY']) {

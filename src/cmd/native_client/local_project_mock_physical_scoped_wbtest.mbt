@@ -153,7 +153,7 @@ fn native_project_mock_model_backed_read(
   let profile = local_command_installed_profile(
     "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
   )
-  let budget = local_command_initial_read_budget(profile)
+  let budget = local_command_initial_read_budget(profile).unwrap()
   let pool = native_storage_sum([
     budget.bootstrap_retained,
     budget.bootstrap_execution,
@@ -443,7 +443,7 @@ test "Native Project input keeps the original consuming Read current" {
   let profile = local_command_installed_profile(
     "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
   )
-  let budget = local_command_initial_read_budget(profile)
+  let budget = local_command_initial_read_budget(profile).unwrap()
   let pool = native_storage_sum([
     budget.bootstrap_retained,
     budget.bootstrap_execution,
@@ -1104,7 +1104,7 @@ test "Native Mock Account opens its original consuming Journal Read before Model
   host
   .return_backing_borrow(backing)
   .native_mock_journal_required("return backing borrow")
-  let budget = local_command_initial_read_budget(profile)
+  let budget = local_command_initial_read_budget(profile).unwrap()
   host
   .prepare_domain_read(
     read_domain,

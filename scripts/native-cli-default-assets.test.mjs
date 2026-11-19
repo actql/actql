@@ -8,7 +8,8 @@ const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('Local product assets retain source-free environment and unknown Result Policy', () => {
   const assets = nativeLocalDefaultAssets();
-  assert.deepEqual([...assets.keys()], ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy']);
+  assert.deepEqual([...assets.keys()], ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy',
+    'query', 'query-evidence']);
   const environment = JSON.parse(assets.get('environment'));
   assert.equal(assets.get('environment').toString('utf8'), JSON.stringify(JSON.parse(readFileSync(new URL('../spec/local-check-environment.json', import.meta.url)))));
   for (const name of ['source_views', 'model_task_contracts', 'command_contracts', 'connector_capabilities',
@@ -17,6 +18,16 @@ test('Local product assets retain source-free environment and unknown Result Pol
   assert.equal(digest(assets.get('result-policy')), '470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563');
   assert.deepEqual(JSON.parse(assets.get('result-policy')), {classification: 'unknown', source_data_policy_cids: [],
     source_response_policy_cids: [], unknown_provenance: true, version: 'actql-effective-data-policy/0.1'});
+});
+
+test('Native Query assets retain both exact canonical protocol originals without source/runtime authority', () => {
+  const assets = nativeLocalDefaultAssets();
+  for (const [role, path] of [['query', 'actql-query-acquisition.json'],
+    ['query-evidence', 'actql-query-process-evidence.json']]) {
+    const expected = JSON.stringify(JSON.parse(readFileSync(new URL(`../spec/contracts/${path}`, import.meta.url), 'utf8')));
+    assert.equal(assets.get(role).toString('utf8'), expected);
+    assert(assets.get(role).length > 0 && assets.get(role).length <= 65536);
+  }
 });
 
 test('Local input fixtures are fresh and use the existing contract originals', () => {

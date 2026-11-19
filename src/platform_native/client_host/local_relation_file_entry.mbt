@@ -380,7 +380,8 @@ fn NativeClientRelationFileWorkEntry::take_entered_ledger(
   if !physical_equal(operation, access.base.operation) ||
     !physical_equal(host, access.base.host) ||
     !(access.source is RelationFile(_, _, _) ||
-    access.source is WholeRelationFile(_, _, _, _, _, _)) ||
+    access.source is WholeRelationFile(_, _, _, _, _, _) ||
+    access.source is ManagedRelationFiles(_, _)) ||
     !relation_file_prepared_binding_current(
       host.journal,
       access.base.request,
