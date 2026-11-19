@@ -94,6 +94,27 @@ async function terminalScratch(t) {
   return root;
 }
 
+test('terminal preparation failure projection accepts only closed source locations and original capacity scalars', () => {
+  const sites = 'adapters/host-common/runtime-result.mjs:8:25\nadapters/host-node/embedded-local.mjs:5500:9';
+  const capacity = {phase: 'request_snapshot', dimension: 'execution', requiredRetentionBytes: '7',
+    requiredExecutionBytes: '19', availableRetentionBytes: '8', availableExecutionBytes: '18'};
+  let touched = 0;
+  const detail = {boundary: 'request_admission', available: true,
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message: sites}, capacity};
+  Object.defineProperty(detail, 'cause', {get() {touched++;throw Error('Do not inspect causes');}});
+  assert.deepEqual(terminalMockFailureDiagnostic('preparation_failed', detail), {
+    event: 'preparation_failed', available: true, boundary: 'request_admission',
+    primary: {phase: 'dispatch', kind: 'code_site'}, sites, capacity});
+  for (const message of ['private prompt/key', '/private/state/request:1:2', 'adapters/../private.mjs:1:2', sites.repeat(200)]) {
+    const result = terminalMockFailureDiagnostic('preparation_failed', {
+      ...detail, primaryDiagnostic: {kind: 'code_site', message}});
+    assert.equal(Object.hasOwn(result, 'sites'), false);
+  }
+  assert.equal(touched, 0);
+  assert.deepEqual(terminalMockFailureDiagnostic('preparation_failed', {boundary: 'request_admission', available: false}),
+    {event: 'preparation_failed', available: false, boundary: 'request_admission'});
+});
+
 test('terminal Content existing authorization callback retains only bounded original failure scalars before first close', async t => {
   const root = await terminalScratch(t), path = join(root, 'handoff.json');
   await terminalFs.writeFile(join(root, 'terminal.program.json'), terminalMockScenario('terminal-content').source);

@@ -4,6 +4,11 @@ import {validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError, runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {types as nodeTypes} from 'node:util';
+import {dispatchFailureSnapshot, dispatchFailureCodeSite} from './client-dispatch-diagnostic.mjs';
+
+const preparationErrorType = Error;
+const preparationStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
 
 const issueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -97,6 +102,30 @@ export function requestProgramPreparationProblemCode(error) {
 export function requestProgramPreparationRefusalCode(error) {
   return originalPreparationRefusal(error)?.refusalCode;
 }
+// Preserve the existing failed-admission association BEFORE optional delivery.
+// Diagnostics carry only existing original projections, never the thrown
+// object/cause or a new acceptance/refusal classification. This always throws
+// the SAME primary, including undefined; cleanup remains with its caller.
+export function retainPreparedSubmissionFailure(failures, submission, error, requested, sourceRefusal, observe) {
+  failures.set(submission, Object.freeze({error, requested,
+    prepared: submission.preparedProgram, sourceRefusal}));
+  if (observe !== undefined) try {
+    let primaryDiagnostic;
+    if (!nodeTypes.isProxy(error) && nodeTypes.isNativeError(error)) {
+      primaryDiagnostic = dispatchFailureSnapshot(error)?.primaryDiagnostic ??
+        dispatchFailureCodeSite(error, preparationErrorType, preparationStackFormatter);
+    }
+    const capacity = requestProgramCapacityRefusal(error);
+    // This phase spelling describes this optional catch observation only;
+    // it does not issue a durable submission phase or prove nonacceptance.
+    observe('preparation_failed', Object.freeze({boundary: 'request_admission',
+      available: primaryDiagnostic !== undefined || capacity !== undefined,
+      ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
+      ...(capacity === undefined ? {} : {capacity})}));
+  } catch { /* The original failure and awaited cleanup must remain primary. */ }
+  throw error;
+}
+
 function projectCapacityRefusal(moon, result) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
   if (typeof project !== 'function') fail('InvalidHostRuntimeResult');

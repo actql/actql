@@ -25,11 +25,13 @@ const ownDiagnosticData = (value, key) => {
 // Caller-owned projection of the existing optional callback. Never copy an
 // exception message, stack, input, reference, arbitrary member or secret.
 export function terminalMockFailureDiagnostic(event, detail) {
-  if (!['content_preparation_rejected', 'dispatch_failed'].includes(event)) return undefined;
+  if (!['preparation_failed', 'content_preparation_rejected', 'dispatch_failed'].includes(event)) return undefined;
   const record = {event}, code = ownDiagnosticData(detail, 'code');
+  const available = ownDiagnosticData(detail, 'available');
+  if (typeof available === 'boolean') record.available = available;
   if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code)) record.code = code;
   const boundary = ownDiagnosticData(detail, 'boundary');
-  if (boundary === 'task_compilation') record.boundary = boundary;
+  if (['task_compilation', 'request_admission'].includes(boundary)) record.boundary = boundary;
   const primary = ownDiagnosticData(detail, 'primaryDiagnostic');
   for (const key of ['phase', 'kind']) {
     const value = ownDiagnosticData(primary, key);
@@ -37,7 +39,29 @@ export function terminalMockFailureDiagnostic(event, detail) {
       (record.primary ??= {})[key] = value;
     }
   }
-  let issue = ownDiagnosticData(detail, 'cause');
+  // Only the existing code-site projector's closed relative locations may
+  // cross this fixture. Its field is named message, but raw text never does.
+  if (ownDiagnosticData(primary, 'kind') === 'code_site') {
+    const sites = ownDiagnosticData(primary, 'message');
+    if (typeof sites === 'string' && sites.length > 0 && sites.length <= 2048) {
+      const lines = sites.split('\n');
+      if (lines.length <= 8 && lines.every(line =>
+        /^(?:(?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):[1-9][0-9]{0,8}:[1-9][0-9]{0,8}$/u.test(line) &&
+        !line.split('/').includes('..'))) record.sites = sites;
+    }
+  }
+  const capacity = ownDiagnosticData(detail, 'capacity');
+  if (capacity !== undefined) {
+    const phase = ownDiagnosticData(capacity, 'phase'), dimension = ownDiagnosticData(capacity, 'dimension');
+    const keys = ['requiredRetentionBytes', 'requiredExecutionBytes', 'availableRetentionBytes', 'availableExecutionBytes'];
+    const amounts = keys.map(key => ownDiagnosticData(capacity, key));
+    if (typeof phase === 'string' && /^[a-z_]{1,96}$/u.test(phase) &&
+        ['retention', 'execution'].includes(dimension) && amounts.every(value =>
+          typeof value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(value) && BigInt(value) <= 9223372036854775807n)) {
+      record.capacity = {phase, dimension, ...Object.fromEntries(keys.map((key, index) => [key, amounts[index]]))};
+    }
+  }
+  let issue = event === 'preparation_failed' ? undefined : ownDiagnosticData(detail, 'cause');
   for (const key of ['issueTag', 'nestedIssueTag', 'leafIssueTag']) {
     const supplied = ownDiagnosticData(detail, key);
     const tag = supplied ?? (typeof issue === 'number' ? issue : ownDiagnosticData(issue, '$tag'));

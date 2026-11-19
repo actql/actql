@@ -1,4 +1,4 @@
-import {dispatchFailureSnapshot, publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
+import {dispatchFailureSnapshot, dispatchFailureCodeSite, publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
@@ -26,68 +26,6 @@ import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observ
 const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 
-
-// Resolve only the engine's own lazy Error stack. The managed cleanup wrapper
-// retains its original failure in one inert own slot; prefer that original
-// site without walking a cause chain or changing the cleanup owner. An
-// observer receives locations, never the exception, message or capabilities.
-function dispatchFailureCodeSite(error, errorType, formatter) {
-  try {
-    if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
-    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
-    if (primary !== undefined) {
-      if (!Object.hasOwn(primary, 'value') || primary.value === error) return undefined;
-      error = primary.value;
-      if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
-    }
-    if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
-    const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
-    if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
-        currentFormatter?.value !== formatter) return undefined;
-    const heading = {};
-    const code = Object.getOwnPropertyDescriptor(error, 'code');
-    if (!code || !Object.hasOwn(code, 'value') || typeof code.value !== 'string' ||
-        code.value.length < 1 || code.value.length > 96 ||
-        !/^[A-Za-z][A-Za-z0-9_]*$/u.test(code.value)) return undefined;
-    for (const key of ['name', 'message']) {
-      const own = Object.getOwnPropertyDescriptor(error, key);
-      const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
-      if (key === 'message' && own === undefined) return undefined;
-      if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
-          inherited === undefined || !Object.hasOwn(inherited, 'value')) return undefined;
-      heading[key] = own?.value ?? inherited.value;
-    }
-    // Only a bounded code used verbatim as its own inert message is a safe
-    // heading. Arbitrary exception text is neither resolved nor copied.
-    if (heading.name !== 'Error' || heading.message !== code.value) return undefined;
-    const field = Object.getOwnPropertyDescriptor(error, 'stack');
-    if (field === undefined) return undefined;
-    let stack;
-    if (Object.hasOwn(field, 'value')) stack = field.value;
-    else {
-      const native = Object.getOwnPropertyDescriptor(new errorType(), 'stack');
-      if (typeof native?.get !== 'function' || field.get !== native.get || field.set !== native.set) return undefined;
-      stack = native.get.call(error);
-    }
-    if (typeof stack !== 'string') return undefined;
-    const header = heading.name === '' ? heading.message : heading.message === ''
-      ? heading.name : `${heading.name}: ${heading.message}`;
-    if (!stack.startsWith(`${header}\n`)) return undefined;
-    const sites = [];
-    for (const line of stack.slice(header.length + 1, header.length + 16385).split('\n').slice(0, 16)) {
-      // Drop function names and absolute installation/state prefixes. These
-      // are optional source locations, not artifact or provenance evidence.
-      const site = /^\s+at [^\n]*\/((?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):([1-9][0-9]{0,8}):([1-9][0-9]{0,8})\)?$/u.exec(line);
-      if (site !== null && !site[1].split('/').includes('..')) {
-        sites.push(`${site[1]}:${site[2]}:${site[3]}`);
-        if (sites.length === 8) break;
-      }
-    }
-    if (sites.length !== 0) return Object.freeze({phase: 'dispatch', kind: 'code_site',
-      message: sites.join('\n').slice(0, 2048)});
-  } catch { /* Optional diagnostics cannot replace a failure or its cleanup. */ }
-  return undefined;
-}
 
 // This message extends the existing failed Run observation, not its status,
 // authority or cleanup evidence. Never format arbitrary exception text.

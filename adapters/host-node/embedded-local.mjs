@@ -81,7 +81,7 @@ function retireEffectCaptureResourceFrame(record, liveRuns, entry, view) {
 }
 import {retireCompletedEffectfulCapture, suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
-import {installNodeClientProgramPreparation} from
+import {installNodeClientProgramPreparation, retainPreparedSubmissionFailure} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication, sourceAliasPublicationOriginal,
   retireSourceAliasPublicationOriginal} from './source-alias-publication.mjs';
@@ -5455,9 +5455,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (missingModelExecutionRefusals.has(error)) {
           requested = sourceFreeRequestIdentities.get(submission.preparedProgram)?.requested;
         }
-        admissionFailures.set(submission, Object.freeze({error, requested,
-          prepared: submission.preparedProgram, sourceRefusal}));
-        throw error;
+        retainPreparedSubmissionFailure(admissionFailures, submission, error,
+          requested, sourceRefusal, diagnostic);
       }
     }, {isOriginalPreparationRefusal(error, submission) {
       if (this !== admitPreparedSubmission) return false;
