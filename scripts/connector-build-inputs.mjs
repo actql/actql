@@ -2,8 +2,8 @@
 // The caller owns package acquisition, integrity and stable input placement.
 // These snapshots are not a new manifest, identity or runtime authority.
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
-import {isAbsolute, join, relative, resolve, sep} from 'node:path';
-import {tokens, reviewedEsmModuleOptionEnd, readPackageTargetOptions} from './portable-core.mjs';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
+import {tokens, reviewedEsmModuleOptionEnd, readPackageCompilerInputOptions} from './portable-core.mjs';
 import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
 const coreNamespace = 'actql/actql';
@@ -138,7 +138,7 @@ export function packageMetadata(path) {
   const input = reader(readFileSync(path, 'utf8'), path);
   const imports = [], productionImports = [];
   let target;
-  let targets = null;
+  let targets = null, nativeStubs = null, optionsSeen = false;
   while (!input.done()) {
     const directive = input.take('word');
     if (directive === 'supported_targets') {
@@ -159,8 +159,9 @@ export function packageMetadata(path) {
         if (!['test', 'wbtest'].includes(input.take('string'))) throw new Error('Unsupported package import scope');
       } else productionImports.push(...imports.slice(first));
     } else if (directive === 'options') {
-      if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
-      targets = readPackageTargetOptions(input);
+      if (optionsSeen) throw new Error('UnknownManifestOptions: duplicate options');
+      optionsSeen = true;
+      ({targets, nativeStubs} = readPackageCompilerInputOptions(input));
     } else if (directive === 'pkgtype') {
       input.take('symbol', '('); input.take('word', 'kind'); input.take('symbol', ':');
       if (!['executable', 'foreign_library', 'library'].includes(input.take('string'))) {
@@ -181,7 +182,11 @@ export function packageMetadata(path) {
     } else throw new Error(`Unsupported package metadata: ${directive}`);
   }
   supportsJS(target, path);
-  return {imports, productionImports, targets};
+  // Inspect the actual files under this same package owner, never an absolute,
+  // parent-traversing, symlinked or unowned build input. No C is compiled here.
+  for (const file of nativeStubs ?? []) ownedPath(dirname(path), file, 'file');
+  return {imports, productionImports, targets,
+    ...(nativeStubs === null ? {} : {nativeStubs})};
 }
 
 export function resolveConnectorBuildInputs(configuration) {
@@ -294,7 +299,7 @@ export function resolveConnectorBuildInputs(configuration) {
       if (imported.startsWith('moonbitlang/core/')) continue;
       canImport(owner.namespace, ownerOf(imported).namespace);
     }
-    // Pass the original manifest, including metadata.targets, to the compiler.
+    // Pass the original manifest, including targets/nativeStubs, to the compiler.
     // No target expression selects files here or rewrites its import closure.
     return path;
   };

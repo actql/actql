@@ -3,7 +3,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync,
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
-import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
+import {resolveConnectorBuildInputs, packageMetadata} from './connector-build-inputs.mjs';
 import {readHostBundles} from './connector-node-bundles.mjs';
 import {inspectCore, copyProductionCore, tokens, readPackageTargetOptions} from './portable-core.mjs';
 
@@ -764,6 +764,7 @@ test('duplicate installed source and Effect profiles are refused by the shared s
 
 test('selected packages preserve compiler-owned literal targets and refuse structural options', t => {
   const f = fixture(t);
+  f.put(join(f.connector, 'src/driver/capacity_observation_stub.c'), '/* owned literal Native input; not compiled by this metadata control */\n');
   const path = join(f.connector, 'src/driver/moon.pkg');
   const original = readFileSync(path, 'utf8');
   for (const source of [
@@ -814,4 +815,53 @@ test('compiler standard library cannot be shadowed and lookalikes require declar
     f.put(path, readFileSync(path, 'utf8') + `import {${JSON.stringify(imported)}}`);
     assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Unavailable package namespace/);
   }
+});
+
+
+test('compiler input Native-stub DATA preserves original targets manifests and import scopes', t => {
+  const f = fixture(t), path = join(f.connector,'src/driver/moon.pkg');
+  const original = readFileSync(path,'utf8');
+  f.put(join(dirname(path),'observer.c'),'/* selected original Native source; metadata only */\n');
+  f.put(join(dirname(path),'target_native.mbt'),'pub fn identity() -> Int { 1 }\n');
+  const targets = [['target_native.mbt',['not','js']],['future.mbt',['future-compiler-data']]];
+  for(const clause of [
+    'options("native-stub":["observer.c"],targets:{"target_native.mbt":["not","js"],"future.mbt":["future-compiler-data"]},)',
+    'options(targets:{"target_native.mbt":["not","js"],"future.mbt":["future-compiler-data"]},"native-stub":["observer.c"],)',
+    'options("native-stub":["observer.c"])',
+  ]) {
+    const source = original+'\nimport {"moonbitlang/core/env" @test_only} for "wbtest"\n'+clause;
+    f.put(path,source);
+    const metadata=packageMetadata(path);
+    assert.deepEqual(metadata.nativeStubs,['observer.c']);
+    assert.deepEqual(metadata.targets,clause.includes('targets:')?targets:null);
+    assert(metadata.imports.includes('moonbitlang/core/env'));
+    assert(!metadata.productionImports.includes('moonbitlang/core/env'));
+    assert.equal(resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),path);
+    assert.equal(readFileSync(path,'utf8'),source);
+  }
+});
+
+test('compiler input Native-stub DATA refuses malformed hooks missing aliased and unowned inputs', t => {
+  const f=fixture(t),path=join(f.connector,'src/driver/moon.pkg'),original=readFileSync(path,'utf8');
+  const stub=join(dirname(path),'observer.c');f.put(stub,'/* original */\n');
+  for(const clause of [
+    'options("native-stub":[observer])','options("native-stub":[["observer.c"]])',
+    'options("native-stub":["observer.c","observer.c"])',
+    'options("native-stub":[],"native-stub":[])',
+    'options("native-stub":["observer.c"],link:["socket"])',
+    'options("native-stub":["observer.c"],pre_build:"run")',
+    'options("native-stub":["../observer.c"])',
+    'options("native-stub":["/observer.c"])',
+    'options("native-stub":["missing.c"])',
+    'options("native-stub":[]) options(targets:{})',
+    'options("native-stub":["observer.c"],targets:{},targets:{})',
+    'options("native-stub":["observer.c"]) import {"unavailable/driver"}',
+  ]) {f.put(path,original+clause);assert.throws(()=>resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),undefined,clause);}
+  rmSync(stub);symlinkSync(join(f.modules[0].root,'src/connector_sdk/moon.pkg'),stub);
+  f.put(path,original+'options("native-stub":["observer.c"])');
+  assert.throws(()=>resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),/aliased or nonregular/);
+  const pure=join(f.modules[0].root,'src/connector_sdk/moon.pkg');
+  f.put(pure,'supported_targets = "+js+wasm+native"\noptions("native-stub":[])');
+  assert.throws(()=>inspectCore(f.modules[0].root,['connector_sdk']),/UnknownManifestSyntax/);
+  assert.throws(()=>copyProductionCore(f.modules[0].root,join(f.root,'never-copied'),['connector_sdk']),/UnknownManifestSyntax/);
 });
