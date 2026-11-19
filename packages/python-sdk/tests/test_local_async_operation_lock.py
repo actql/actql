@@ -1,5 +1,6 @@
 """Core-lock contention must not occupy the asynchronous Client's event loop."""
 import asyncio
+from contextlib import ExitStack
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,9 +13,96 @@ from actql_sdk._local_work import OriginalLocalWork
 from actql_sdk._values import wire_bytes
 import test_local_product_operation_port as operation_fixture
 import test_local_sdk_results as result_fixture
+import test_local_product_store_observation as store_fixture
 
 
 class AsyncOperationLockTests(unittest.IsolatedAsyncioTestCase):
+    async def test_store_observation_worker_hands_same_original_to_control_between_real_reader_quanta(self):
+        with TemporaryDirectory(prefix='actql-store-control-continuing-') as directory:
+            fixture = store_fixture.ProductStoreObservationTests()
+            self.addCleanup(fixture.doCleanups)
+            admitted = []
+            accept = InstalledLocalHost._accept_original
+
+            def original_admission(*args, **kwargs):
+                value = accept(*args, **kwargs)
+                admitted.append(value)
+                return value
+
+            with patch.object(InstalledLocalHost, '_accept_original', new=original_admission):
+                host, core, held, projection, store, scope, _, _, _ = fixture.host(
+                    Path(directory), stored=True)
+            self.assertEqual(len(admitted), 1)
+            run, saved = admitted[0]
+            compute = host._source_free_computes[0]
+            host._register_original_run_reference(run, saved)
+            preflight, publisher = host._publication_preflights[0], host._publishers[0]
+            previous, advances, observed = core._call, [], []
+            started = Event()
+            remaining, used = 64 * 256, 0
+
+            def call(family, name, *args):
+                nonlocal remaining, used
+                if (family, name) == ('publication', 'advance_observation'):
+                    self.assertEqual(args, (held.publication.handle, host._configuration.handle, 256))
+                    advances.append(args[0])
+                    used = min(remaining, args[-1])
+                    remaining -= used
+                    started.set()
+                    return 0
+                if (family, name) == ('publication', 'observation_progress'):
+                    return int(remaining == 0) if args[-1] == 0 else used
+                return previous(family, name, *args)
+
+            core._call = call
+            core._invoking = False  # Existing non-executable scalar fixture is idle.
+            work = OriginalLocalWork(lambda: host._execute_original_admitted_run(run),
+                on_exit=core._finish_work_operation, owner=run)
+            host._physical_work.append(work)
+            core._retain_work_operation(work)
+            original_scope = core._host_retained_work
+            refusal = ValueError('UnOfferedOriginalControlObservation')
+
+            def selected(*_):
+                observed.append((len(advances), core._host_retained_work is original_scope))
+                # This is the actual fixture Store, never the candidate or a new write.
+                self.assertIsNotNone(store.read(scope))
+                raise refusal
+
+            # Earlier phases are already supplied by the original fixture. Only
+            # their opaque driver returns are ports here, not a second execution.
+            # The Store-observation method, reader, SQLite and control path remain real.
+            with ExitStack() as ports:
+                ports.enter_context(patch.object(host, '_source_free_computes', []))
+                for name, value in [
+                    ('_configure_original_compute', compute),
+                    ('_prepare_original_publication', (preflight, publisher)),
+                    ('_execute_original_tasks', ()),
+                    ('_capture_original_results', held.publication),
+                    ('_prepare_original_commit_candidate', None),
+                    ('_advance_original_commit_candidate', projection),
+                    ('_store_original_commit', None),
+                ]:
+                    ports.enter_context(patch.object(host, name, return_value=value))
+                ports.enter_context(patch.object(host, '_select_original_run', side_effect=selected))
+                work.start()
+                try:
+                    self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                    with self.assertRaises(ValueError) as failed:
+                        await asyncio.wait_for(host.open('status', wire_bytes({
+                            'connection': _LOCAL_SELECTION, 'ref': json.loads(saved)['ref']})), 10)
+                    self.assertIs(failed.exception, refusal)
+                    self.assertEqual(len(observed), 1)
+                    self.assertGreater(observed[0][0], 0)
+                    self.assertLess(observed[0][0], 64)
+                    self.assertTrue(observed[0][1])
+                finally:
+                    await asyncio.wait_for(work.wait(), 20)
+            self.assertEqual(len(advances), 64)
+            self.assertEqual(remaining, 0)
+            self.assertIs(host._store_observations[held.publication.ticket]._projection, projection)
+            self.assertTrue(host.close())
+
     async def test_continuing_result_worker_allows_actual_same_run_control_with_real_lock(self):
         with TemporaryDirectory(prefix='actql-control-continuing-') as directory:
             fixture = result_fixture.SDKResultAssemblyTests()

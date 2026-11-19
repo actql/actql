@@ -1986,17 +1986,17 @@ class InstalledLocalHost:
                 self._prepare_original_payload_writing(held)
                 self._acquire_original_payload_file(held)
                 self._stage_original_payload_file(held)
-                while not self._advance_original_payload_copy(held):
+                while not self._handoff_original_step(run, self._advance_original_payload_copy(held)):
                     pass  # Existing bounded Core/File cursor, same input and fuel.
-                while not self._advance_original_payload_sealing(held):
+                while not self._handoff_original_step(run, self._advance_original_payload_sealing(held)):
                     pass
                 self._open_original_payload_reader(held)
-                while not self._advance_original_payload_reader(held):
+                while not self._handoff_original_step(run, self._advance_original_payload_reader(held)):
                     pass
             self._prepare_original_commit_candidate(publication, preflight)
-            projection = self._advance_original_commit_candidate(publication)
+            projection = self._handoff_original_step(run, self._advance_original_commit_candidate(publication))
             while projection is None:
-                projection = self._advance_original_commit_candidate(publication)
+                projection = self._handoff_original_step(run, self._advance_original_commit_candidate(publication))
             facts = self._original_commit_reader_facts(projection)
             originals: list[tuple[ByteFence, CapacityReservation]] = []
             for fact in facts:
@@ -2006,7 +2006,7 @@ class InstalledLocalHost:
                 originals.append((held.row, held.capacity))
             self._store_original_commit(projection, facts, tuple(originals), publisher)
             self._prepare_original_store_observation(projection, publisher)
-            while self._advance_original_store_observation(projection) is None:
+            while self._handoff_original_step(run, self._advance_original_store_observation(projection)) is None:
                 pass
             # An action is not ACK or terminal. Public observation must still copy
             # the actual stored chain through the original RunState/read Owners.
@@ -2253,13 +2253,21 @@ class InstalledLocalHost:
             values: list[_T] = []
             installation.binding.inspect(lambda current: values.append(
                 self._checked_original_read(current, work)))
+        return self._handoff_original_step(compute.start.run, values[0])
+
+    def _handoff_original_step(self, run: _Run, value: _T) -> _T:
+        """Return the same completed unit after its actual worker's control turn.
+
+        The caller has left Core/current/Store scopes; this never constructs,
+        replaces or retires a cursor. This is scheduling interest only, not current permission,
+        cancellation, Store acknowledgement or a wall-clock latency guarantee.
+        """
+        with self._core._lock:
             retained = getattr(self._core, '_host_retained_work', None)
-            physical = retained[0] if retained is not None and retained[0]._owner is compute.start.run else None
-        # A control waiter cannot observe this unit's guest/current frame.
-        # Only the actual retained worker yields, without any Core/Store lock.
+            physical = retained[0] if retained is not None and retained[0]._owner is run else None
         if physical is not None:
             physical._yield_to_control()
-        return values[0]
+        return value
 
     def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
                                   results: tuple[_ResultExport, ...]) -> _Output:
@@ -3263,11 +3271,12 @@ class InstalledLocalHost:
             observation = self._store_observations.get(projection._publication.ticket)
             if observation is None or observation._projection is not projection:
                 raise ValueError('Original Local Store observation is unavailable')
-            # This synchronous caller does not yield between advances. Use a
-            # bounded 256-unit quantum instead of reopening the complete current
-            # transaction every 16 units. Core still charges the same original
-            # total work/fuel, and each advance retains its before/after physical
-            # checks, failure state and the original observation owner.
+            # Keep a bounded 256-unit quantum; the physical driver hands off
+            # after this method releases its complete current/Store scopes.
+            # Do not reopen the complete current transaction every 16 units.
+            # Use the same original total work/fuel, without a larger quantum.
+            # Each advance retains before/after physical checks, failure state
+            # and the original observation owner.
             progress = observation.advance(256)
             if not progress.ready:
                 return None

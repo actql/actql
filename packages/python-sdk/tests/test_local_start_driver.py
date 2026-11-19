@@ -17,6 +17,7 @@ class LocalStartDriverTests(unittest.TestCase):
         host._core = SimpleNamespace(_lock=RLock(), _host_retained_work=None)
         host._runs = SimpleNamespace(_run=Mock())
         host._source_free_computes = []
+        host._physical_work = []
         records = [object(), object()]
         held = [SimpleNamespace(record=record, row=object(), capacity=object()) for record in records]
         host._payloads = held
@@ -52,7 +53,7 @@ class LocalStartDriverTests(unittest.TestCase):
         host._runs._run.assert_called_once_with(run)
         host._configure_original_compute.assert_called_once_with(run)
         host._prepare_original_publication.assert_called_once_with(compute)
-        host._execute_original_tasks.assert_called_once_with(compute, preflight, publisher)
+        host._execute_original_tasks.assert_called_once_with(compute, preflight, publisher, retained_tasks=[])
         host._prepare_original_payload.assert_any_call(publication, 0)
         host._prepare_original_payload.assert_any_call(publication, 1)
         host._store_original_commit.assert_called_once_with(projection, facts,
@@ -87,6 +88,38 @@ class LocalStartDriverTests(unittest.TestCase):
         ])
         self.assertIs(host._core._host_retained_work[0], work)
         host._store_original_commit.assert_called_once()
+
+    def test_handoff_cannot_select_foreign_work_or_replace_original_return(self):
+        host, _, values = self.fixture()
+        run, value = values[0], object()
+        foreign = OriginalLocalWork(lambda: None, owner=object())
+        foreign._yield_to_control = Mock()
+        for retained in [None, (foreign,)]:
+            host._core._host_retained_work = retained
+            self.assertIs(host._handoff_original_step(run, value), value)
+        foreign._yield_to_control.assert_not_called()
+        original = OriginalLocalWork(lambda: None, owner=run)
+        original._yield_to_control = Mock()
+        host._core._host_retained_work = (original,)
+        self.assertIs(host._handoff_original_step(run, value), value)
+        original._yield_to_control.assert_called_once_with()
+
+    def test_failed_continuation_keeps_primary_without_handoff_or_retry(self):
+        host, _, values = self.fixture()
+        run, held = values[0], values[6]
+        original = OriginalLocalWork(lambda: None, owner=run)
+        original._yield_to_control = Mock()
+        host._core._host_retained_work = (original,)
+        failure = LocalStorageError('Original payload continuation refused')
+        host._advance_original_payload_copy.side_effect = failure
+        with self.assertRaises(LocalStorageError) as failed:
+            host._execute_original_admitted_run(run)
+        self.assertIs(failed.exception, failure)
+        host._advance_original_payload_copy.assert_called_once_with(held[0])
+        host._advance_original_payload_sealing.assert_not_called()
+        host._store_original_commit.assert_not_called()
+        original._yield_to_control.assert_not_called()
+        self.assertIs(host._payloads, held)
 
     def test_store_unknown_is_preserved_without_retry_new_observation_or_cleanup(self):
         host, ports, values = self.fixture()

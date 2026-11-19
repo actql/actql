@@ -4222,3 +4222,12 @@ Public chunk projection retains its original copy behavior. No borrowed memory
 or original escapes its existing synchronous owner. Existing material child
 checks and Run cleanup still control retirement and input-borrow return; a
 pure material match neither starts execution nor closes a trapped instance.
+
+The same worker handoff also follows each original payload copy, physical
+sealing, reader, publication-candidate and Store-observation continuation in the
+explicit start driver. Their existing bounded methods and current/SQLite scopes
+return before the worker checks scheduling interest. The original return value,
+reader/cursor, pending write and full-chain observation stay with their existing
+Owner; no handoff is a close, commit, cancellation or publication acknowledgement.
+Physical I/O and indivisible CAS/COMMIT are not interrupted, and this supplies no
+wall-clock latency bound or fairness promise between unrelated workers.
