@@ -1471,6 +1471,17 @@ pub fn[T] start_local_managed_dispatch(
       usage.reserved_execution_bytes
     let r_refused = requested_retention > available_retention
     if r_refused || requested_execution > available_execution {
+      if !r_refused {
+        capacity_observation(
+          ledger,
+          12,
+          -1,
+          requested_execution,
+          setup.capacity.execution_bytes,
+          limits.execution_bytes,
+          usage.reserved_execution_bytes,
+        )
+      }
       working_failure.val = Some(
         if r_refused {
           ExecutionCapacityRefusal(
@@ -1588,6 +1599,15 @@ pub fn[T] start_local_managed_dispatch(
     let needed = total - previous
     let available = limits.execution_bytes - usage.reserved_execution_bytes
     if needed > available {
+      capacity_observation(
+        ledger,
+        13,
+        -1,
+        needed,
+        setup.capacity.execution_bytes,
+        limits.execution_bytes,
+        usage.reserved_execution_bytes,
+      )
       return Err(
         ExecutionCapacityRefusal(
           ExecutionLimit,

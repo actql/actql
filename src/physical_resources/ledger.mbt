@@ -247,6 +247,15 @@ fn reserve_attempt_current(
   }
   if execution_bytes >
     ledger.limits.execution_bytes - u.reserved_execution_bytes {
+    capacity_observation(
+      ledger,
+      10,
+      -1,
+      execution_bytes,
+      0L,
+      ledger.limits.execution_bytes,
+      u.reserved_execution_bytes,
+    )
     return Err(ExecutionLimit)
   }
   match check_quantity_reservation(ledger, quantities) {
@@ -305,6 +314,7 @@ fn reserve_attempt_current(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
+  capacity_observation(ledger, 3, serial, 0L, execution_bytes, 0L, 0L)
   record_original_reservation(ledger, reservation, preparation_input~)
   Ok(reservation)
 }
@@ -628,6 +638,15 @@ pub fn settle_completed_output_reservation(
   reservation.transfer = 0L
   reservation.retention = 0L
   reservation.execution = remaining_execution
+  capacity_observation(
+    ledger,
+    4,
+    reservation.serial,
+    0L,
+    remaining_execution,
+    0L,
+    0L,
+  )
   reservation.cleanup_pending = remaining_execution > 0L
   reservation.completed_output = Some(notification)
   reservation.open = remaining_execution > 0L
@@ -688,6 +707,15 @@ pub fn settle_execution_reservation(
   }
   reservation.transfer = 0L
   reservation.execution = remaining_execution
+  capacity_observation(
+    ledger,
+    4,
+    reservation.serial,
+    0L,
+    remaining_execution,
+    0L,
+    0L,
+  )
   reservation.cleanup_pending = false
   Ok(())
 }
@@ -742,6 +770,7 @@ fn settle_reservation_current(
     }
     reservation.quantities = None
   }
+  capacity_observation(ledger, 4, reservation.serial, 0L, 0L, 0L, 0L)
   reservation.open = false
   return_unused_attempt(ledger, reservation)
   ledger.usage = {

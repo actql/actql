@@ -139,5 +139,14 @@ fn reduce_execution_reservation_capacity_current(
   }
   reservation.retention = remaining_retention
   reservation.execution = remaining_execution
+  capacity_observation(
+    ledger,
+    4,
+    reservation.serial,
+    0L,
+    remaining_execution,
+    0L,
+    0L,
+  )
   Ok(())
 }

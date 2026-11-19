@@ -7282,6 +7282,42 @@ before advertising support; execution cannot stand in for static planning.
 
 ### Native finite Query Source continuation
 
+The Native File continuation may select a private first-capacity-refusal
+observation only when both existing timing and acceptance observation flags
+are exactly `1`. A lexical scope borrows the same entered Ledger through the
+existing Work call and clears it on every return. The observer never dereferences
+that identity, exposes it, supplies a current check, or owns its lifetime.
+Nested or foreign-ledger events invalidate the scope; forked children decline.
+Only the first refusal emits, using the existing bounded errno/SIGPIPE-preserving
+writer. A missing or truncated row remains unmeasured, never a zero or an ACK.
+
+The fixed numeric observation distinguishes reserve, grow, pure driver precheck,
+and imported-window refusal. It reports the original request/delta and the
+same Ledger's execution limit and already-reserved execution before cleanup.
+A live Row token is followed by its existing serial and committed Resource
+updates, including response-workspace retirement and actual settlement. Multiple
+Row tokens make that quantity unavailable rather than replacing their total
+with an estimate. The entry reservation is reported only when originally a
+singleton; unclassified later resizes invalidate its quantity. Suffix task
+capacity is taken from its actual token, never from an opaque representation or
+a policy ceiling. These observations do not prove that a planner's `max` covers
+simultaneous provider-backed Row and suffix Compute reservations.
+
+This observer adds no Ledger/Reservation field, callback, retained managed
+object, map, serialized identity or failure-path heap allocation. Its native
+operator recorder has fixed diagnostic TLS (at most 96 bytes per thread),
+one process-local first-event flag, and a bounded 768-byte emission stack,
+separate from the Request's managed representation/accounting recipe. It does
+not reduce any Request quote or claim unused capacity. Standalone Native Core
+links the existing private bridge to a weak no-op fallback; an installed
+filesystem supplies the strong recorder. JS/Wasm calls inline to Unit. Neither
+an absent sink nor a refused/truncated observation changes the original typed
+failure, current checks, cleanup ordering or reservation. The existing File
+fixture forwards only these two diagnostic flags and still strips every
+execution, runtime and loader override. Actual matched Native execution is
+required to measure a refusal; compiler and writer controls alone do not do so.
+
+
 The existing Request also has a separate complete-input construction frontier.
 `reserve_request_whole_source_construction` accepts the same original input and
 Request identity in the already reserved Plan phase. It extends the existing

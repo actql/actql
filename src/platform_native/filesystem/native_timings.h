@@ -54,6 +54,11 @@ void actql_native_acceptance_mutation(int32_t tag);
  * caller-selected deltas; this diagnostic neither reads nor owns a resource. */
 void actql_native_timing_amount(int32_t tag, int64_t amount);
 
+/* Private File Work scope, optional from standalone Core. Numeric observation
+ * only; the borrowed identity is never serialized or retained after scope end. */
+void actql_native_file_capacity_observe(const void *, int32_t, int32_t,
+    int64_t, int64_t, int64_t, int64_t);
+
 /* Evaluate the same function designator once; keep original arguments/result.
  * Counts describe attempted adapter calls, not SQLite-internal statements. */
 #define ACTQL_NATIVE_TIMED_CALL(counter, function) \

@@ -47,6 +47,17 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     StoreBusinessDomain(value) => value
     StoreRunObservationDomain => return entry.unavailable
   }
+  let diagnostic_usage = @resources.ledger_usage(ledger)
+  native_file_capacity_observation(
+    ledger,
+    0,
+    diagnostic_usage.live_reservations,
+    0L,
+    0L,
+    0L,
+    diagnostic_usage.reserved_execution_bytes,
+  )
+  defer native_file_capacity_observation(ledger, 1, 0, 0L, 0L, 0L, 0L)
   let reads : Array[@local.ClientInstalledSourceRead] = []
   let sources : Array[@row_file.NativeRelationFileCapture] = []
   let pending : Ref[@row_file.NativeRelationFileFailure?] = Ref(None)
@@ -277,6 +288,15 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     captured_inputs.push(original)
   }
   let source_usage = @resources.ledger_usage(ledger)
+  native_file_capacity_observation(
+    ledger,
+    2,
+    0,
+    0L,
+    0L,
+    0L,
+    source_usage.reserved_execution_bytes,
+  )
   let completed = current_time()
   match access.require_start_current(start) {
     Err(issue) => return refuse(OriginalOperation(issue))

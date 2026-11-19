@@ -1,0 +1,9 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/physical_resources" @resources,
+} for "test"
+
+options(
+  "native-stub": [ "observation_probe.c" ],
+)
