@@ -2741,7 +2741,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/index.mjs",
+                "path": "packages/provider-ai-sdk/index.mts",
                 "anchor": "export"
               }
             ],
@@ -3264,7 +3264,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/index.mjs",
+                "path": "packages/provider-http/index.mts",
                 "anchor": "export"
               }
             ],
@@ -3567,13 +3567,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "export function createOpenAIChatProvider"
               }
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "context.prepareBindingOriginals"
               }
             ],
@@ -3591,7 +3591,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "OpenAIProviderConfigurationReused"
               }
             ],
@@ -3607,7 +3607,7 @@
                 "anchor": "const nodes = 128n + 2048n"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
               },
               {

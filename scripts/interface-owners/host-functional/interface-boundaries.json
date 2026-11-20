@@ -13422,8 +13422,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -13662,8 +13662,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -23423,8 +23423,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -23615,8 +23615,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -23922,8 +23922,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -24114,8 +24114,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -24306,8 +24306,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -24498,8 +24498,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -24690,8 +24690,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -42522,7 +42522,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -42881,7 +42881,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -43361,7 +43361,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -84726,19 +84726,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -84760,7 +84760,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -84806,19 +84806,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -84840,7 +84840,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -86172,19 +86172,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -86206,7 +86206,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               },
               {

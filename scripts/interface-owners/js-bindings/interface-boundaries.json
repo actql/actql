@@ -53845,8 +53845,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -61069,8 +61069,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
