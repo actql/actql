@@ -7274,6 +7274,26 @@ other carrier construction remain implementation boundaries, never proof that
 an otherwise legal Program is invalid. Unobserved target, permission, gate and
 approval facts stay unknown; the static envelope does not invent a sealed Preview.
 
+The Native Project Mock path can supply its retained Model profiles and the
+same installed compiler contracts to this static read. It borrows the original
+Request's Plan input and prepares the declared Model graphs on that capacity;
+it neither reads Source payloads nor invokes a Model. The existing compiler
+selects its single or composed Model input and validates every acquired route.
+A captured prefix alone is not an unsupported-Program verdict. The command
+retains the borrow before graph construction, returns that exact token before
+clearing it, and leaves pending return or failure with its existing cleanup.
+This does not extend the Node connection's installed static carriers.
+
+Native Effect acceptance retains the same compiler's computation Plan alongside
+its already-checked observation originals in the existing first-admission
+transaction. No second Run binding, compiler, persisted format or Store round
+trip supplies this metadata. The original Read admits the temporary compiler
+variant and reservation closure before construction and includes their held
+extent throughout measurement and encoding. Copied or restored observation
+objects cannot replace those first-capture originals. Saved planning reads the
+stored Plan after its existing authorization/current checks; an older accepted
+Run without that Plan remains unavailable and is never recompiled or repaired.
+
 Aborting a static read ends that read; it cannot cancel or create a Run. Failed
 return stays in the existing connection cleanup owner, without resnapshot,
 resubmit, recompile or a fabricated physical acknowledgement. An additional

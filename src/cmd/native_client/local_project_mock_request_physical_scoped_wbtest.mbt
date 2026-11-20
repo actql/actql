@@ -295,6 +295,7 @@ fn native_mock_readme_static_explain(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   document : String,
+  original : LocalProjectMockDeclarations,
 ) -> String? raise {
   @local_values.reserve_request_snapshot(
     facility.parent,
@@ -319,18 +320,66 @@ fn native_mock_readme_static_explain(
     Ok(_) => ()
   }
   match
-    @local_values.request_native_static_plan_view(
+    @local_values.finish_request_checked_computation(
       facility.parent,
       facility.input,
       environment,
       publication,
-      native_request_manifests,
     ) {
     Err(issue) =>
-      return Some(native_mock_readme_request_issue(@local_host.Request(issue)))
+      return Some(
+        "static compilation: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
+    Ok(kind) => assert_true(kind == @local_values.Effect)
+  }
+  let body = @local_host.borrow_native_client_request_plan_input(
+    facility.parent,
+    facility.input,
+  ).unwrap()
+  guard body is @local_host.Effect(borrow) &&
+    @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) else {
+    fail("static explanation original Effect borrow")
+  }
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let occurrences = @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 1)
+  let models = original
+    .prepare_effect_models(
+      facility.parent,
+      facility.input,
+      occurrences,
+      environment,
+      contracts,
+    )
+    .unwrap()
+  let result = @local_values.request_prepared_static_plan_view(
+    facility.parent,
+    facility.input,
+    native_request_manifests,
+    65536,
+    8192,
+    64,
+    infers=models.map(value => value.graph),
+  )
+  @local_host.return_native_client_submitted_request_body(body).unwrap()
+  |> ignore
+  match result {
+    Err(issue) =>
+      return Some(
+        "static projection: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
     Ok(view) => {
       assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
       assert_true(view.contains("\"provider_io\":0"))
+      assert_true(view.contains("\"state\":\"unknown\""))
       return None
     }
   }
@@ -359,7 +408,7 @@ fn native_mock_readme_request_payload(
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   if static_explain {
     let issue = native_mock_readme_static_explain(
-      facility, environment, publication, document,
+      facility, environment, publication, document, original,
     )
     ignore(
       @local_values.abort_request_preparation_after_cleanup(facility.parent),

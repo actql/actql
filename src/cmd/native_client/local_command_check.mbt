@@ -679,7 +679,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               configuration=Some(configuration),
             )
             let input = self.prepare_static_request(capture, input_root, child)
-            context.project_request(self, capture, input, true)
+            context.project_request(
+              self,
+              capture,
+              input,
+              true,
+              installed_contracts=preparation_runtime.map(runtime => {
+                runtime.installed_contracts
+              }),
+            )
           }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(
