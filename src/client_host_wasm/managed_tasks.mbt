@@ -299,7 +299,8 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
       }
     }
     for other in value.tasks.values() {
-      if other.compute == record.compute && other.producers.contains(record.task) {
+      if other.compute == record.compute &&
+        other.producers.contains(record.task) {
         return 2L
       }
     }
