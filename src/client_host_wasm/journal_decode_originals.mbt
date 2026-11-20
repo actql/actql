@@ -187,6 +187,16 @@ fn journal_inspect_run_with_observation(
       Ok(decoded),
       observation_original=retained,
       retain_observation=capture,
+      // Prefix Policy/unsupported checks keep their original order. A refused
+      // SAME-cell quote must stop BEFORE the nested constructor, not silently
+      // execute it under the unrelated outer-row reservation.
+      observation_construction_issue=if decoded.2 is Some(_) &&
+        retained is None &&
+        !admitted {
+        -4
+      } else {
+        0
+      },
       before_observation~,
     ) {
     Ok(record) => record

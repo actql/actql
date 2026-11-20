@@ -132,6 +132,7 @@ fn validate_sdk_run_row_decoded(
   ],
   observation_original? : @host.ClientRunObservationOriginals? = None,
   retain_observation? : ((@host.ClientRunObservationOriginals) -> Unit)? = None,
+  observation_construction_issue? : Int = 0,
   before_observation? : (() -> Unit)? = None,
 ) -> Result[@host.ClientRunJournalEncoding, Int] {
   let (record, local_policy, observation_originals) = match decoded {
@@ -166,6 +167,12 @@ fn validate_sdk_run_row_decoded(
         original
       }
       None => {
+        // The closed journal caller carries only its actual reservation
+        // refusal here. Existing Policy/unsupported checks ran first; no
+        // constructor or test observer may run after that funding refusal.
+        if observation_construction_issue != 0 {
+          return Err(observation_construction_issue)
+        }
         if before_observation is Some(observe) {
           observe()
         }

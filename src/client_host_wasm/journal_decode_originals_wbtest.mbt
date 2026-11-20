@@ -258,7 +258,7 @@ test "journal typed observation reuses actual restore while preserving same-fram
 }
 
 ///|
-test "journal typed observation exact construction allowance and one-short keep the original full path" {
+test "journal typed observation exact construction allowance admits and one-short refuses before restore" {
   for short in [false, true] {
     let (value, child, frame, parent) = journal_observation_profile_fixture()
     let row = journal_observation_fixture_row()
@@ -275,27 +275,45 @@ test "journal typed observation exact construction allowance and one-short keep 
     ).unwrap()
     let constructions = Ref(0)
     let before = () => constructions.val += 1
-    ignore(
-      journal_decode_run_inspection(
-        value,
-        child,
-        frame,
-        row,
-        before_observation=Some(before),
-      ).unwrap(),
+    let first = journal_decode_run_inspection(
+      value,
+      child,
+      frame,
+      row,
+      before_observation=Some(before),
     )
-    assert_eq(constructions.val, 1)
-    assert_eq(frame.selected.unwrap().observation is Some(_), !short)
-    ignore(
-      journal_decode_run_inspection(
-        value,
-        child,
-        frame,
-        row,
-        before_observation=Some(before),
-      ).unwrap(),
+    if short {
+      assert_true(first is Err(-4))
+      assert_eq(constructions.val, 0)
+      assert_true(frame.rows.unwrap().observation is None)
+      assert_true(
+        @resources.capacity_reservation_open(frame.rows.unwrap().capacity),
+      )
+      let (record, local_policy, observation) = @host.decode_client_run_journal_row_with_observation_originals(
+        row.body,
+      ).unwrap()
+      assert_true(
+        validate_sdk_run_row_decoded(
+          Ok(({ ..record, checkpoint: Some([]), }, local_policy, observation)),
+          observation_construction_issue=-4,
+          before_observation=Some(before),
+        )
+        is Err(-42),
+      )
+    } else {
+      assert_true(first is Ok(_))
+      assert_eq(constructions.val, 1)
+      assert_true(frame.selected.unwrap().observation is Some(_))
+    }
+    let second = journal_decode_run_inspection(
+      value,
+      child,
+      frame,
+      row,
+      before_observation=Some(before),
     )
-    assert_eq(constructions.val, if short { 2 } else { 1 })
+    assert_eq(second is Err(-4), short)
+    assert_eq(constructions.val, if short { 0 } else { 1 })
     assert_eq(close_journal_observation(value.nonce, 73), 0)
     @resources.settle_capacity(value.root, blocker).unwrap()
     sdk_row_original_fixture_close(value, parent)

@@ -42,11 +42,12 @@ fn journal_observation_construction_capacity() -> (Int64, Int64)? {
       // parse/admit/lookup/text/error/returned Result/Option carriers12H/12R/12W;
       // original paired metadata1H/2R. This already covers those outputs.
       // Resident Some1H/1R/1W, capture closure+Some2H/2R/1W,
-      // and original resize/quote Some+tuple/control3H/3R/5W.
+      // and original resize/quote Some+tuple/control3H/3R/5W, plus the
+      // scalar construction-issue passed through the fresh SDK prefix1W.
       // Cell's additional reference slot is in its ordinary row quote.
       record_headers: 22L,
       reference_slots: 39L,
-      scalar_words: 21L,
+      scalar_words: 22L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
