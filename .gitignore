@@ -287,3 +287,7 @@ target/
 # Generated installed HTTP registration.
 /packages/provider-http/_internal/installed-http-chat.mjs
 /packages/provider-http/_internal/installed-http-chat.d.mts
+
+# Existing HTTP public JS entry is emitted; exports keep canonical index.d.ts.
+/packages/provider-http/index.mjs
+/packages/provider-http/index.d.mts
