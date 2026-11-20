@@ -464,6 +464,15 @@ test "journal same-frame pure original avoids repeated construction but keeps ro
     ).unwrap(),
   )
   assert_eq(constructions.val, 12)
+  let returned = journal_decode_run_inspection(
+    value,
+    child,
+    frame,
+    row,
+    before_construction=Some(observe),
+  ).unwrap()
+  assert_eq(constructions.val, 12)
+  assert_true(physical_equal(first.request, returned.request))
   assert_true(
     journal_decode_run_inspection(value, { ..child, physical: 44, }, frame, row)
     is Err(-2),
@@ -914,9 +923,37 @@ test "journal same-frame index collision ceiling uses the complete decoder" {
   )
   assert_eq(constructions.val, 3)
   assert_eq(frame.indexed_rows, 1)
+  let unindexed = frame.rows.unwrap()
   assert_true(
-    frame.rows.unwrap().next is Some(previous) && physical_equal(previous, cell),
+    unindexed.next is Some(previous) && physical_equal(previous, cell),
   )
+  let (retention, _) = journal_decode_row_capacity(row).unwrap()
+  let usage = @resources.ledger_usage(value.root)
+  let available = @resources.ledger_limits(value.root).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  let blocker = @resources.reserve_capacity(
+    value.root,
+    available - retention + 1L,
+    0L,
+  ).unwrap()
+  let limited = @resources.ledger_usage(value.root)
+  ignore(
+    journal_decode_run_inspection(
+      value,
+      child,
+      frame,
+      row,
+      before_construction=Some(_ => {
+        constructions.val += 1
+        Ok(())
+      }),
+    ).unwrap(),
+  )
+  assert_eq(constructions.val, 3)
+  assert_true(physical_equal(frame.rows.unwrap(), unindexed))
+  assert_eq(@resources.ledger_usage(value.root), limited)
+  @resources.settle_capacity(value.root, blocker).unwrap()
   assert_eq(close_journal_observation(value.nonce, 73), 0)
   assert_true(frame.index is None && frame.rows is None)
   sdk_row_original_fixture_close(value, parent)

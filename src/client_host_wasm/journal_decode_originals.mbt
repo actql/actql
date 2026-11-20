@@ -67,8 +67,8 @@ let journal_decode_index_slots = 2048
 
 ///|
 // The index has no deletions while active and uses at most half the slots.
-// Collision work is capped even for an unfavorable key set. No slot means
-// run the ordinary full decoder, not missing history or a validated result.
+// The fast probe is capped even for an unfavorable key set. An exhausted
+// probe does not establish absence from the separate original-cell list.
 fn journal_decode_index_probe(
   index : FixedArray[StoredJournalRunOriginal?],
   key : String,
@@ -89,6 +89,35 @@ fn journal_decode_index_probe(
     }
   }
   (-1, 32)
+}
+
+///|
+fn journal_decode_cell_matches(
+  cell : StoredJournalRunOriginal,
+  row : @host.ClientJournalPhysicalRow,
+) -> Bool {
+  cell.row is Some(original) &&
+  original.key == row.key &&
+  original.revision == row.revision &&
+  original.body == row.body &&
+  cell.decoded is Some(_)
+}
+
+///|
+// An unindexed original remains admissible under its own token. This path
+// only handles exhausted probes, full backing or a replaced same-key entry.
+fn journal_decode_original_from_list(
+  rows : StoredJournalRunOriginal?,
+  row : @host.ClientJournalPhysicalRow,
+) -> StoredJournalRunOriginal? {
+  let mut cursor = rows
+  while cursor is Some(cell) {
+    if journal_decode_cell_matches(cell, row) {
+      return cursor
+    }
+    cursor = cell.next
+  }
+  None
 }
 
 ///|
@@ -305,13 +334,13 @@ fn journal_decode_run_inspection(
     return Err(-4)
   }
   let (slot, _) = journal_decode_index_probe(index, row.key)
-  if slot >= 0 &&
-    index[slot] is Some(cell) &&
-    cell.row is Some(original) &&
-    original.key == row.key &&
-    original.revision == row.revision &&
-    original.body == row.body &&
-    cell.decoded is Some(decoded) {
+  let indexed = if slot >= 0 { index[slot] } else { None }
+  let original = match indexed {
+    Some(cell) if journal_decode_cell_matches(cell, row) => indexed
+    None if slot >= 0 && frame.indexed_rows < journal_decode_index_limit => None
+    _ => journal_decode_original_from_list(frame.rows, row)
+  }
+  if original is Some(cell) && cell.decoded is Some(decoded) {
     if !@resources.capacity_reservation_covers(
         value.root,
         cell.capacity,

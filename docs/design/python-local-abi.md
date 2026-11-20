@@ -4332,9 +4332,11 @@ result, including the new frame fields. No backing is inferred from the
 journal's maximum record count. The index borrows existing keys and cells;
 the separate linked list still owns every original token until settlement.
 A key selects a candidate, and exact revision and full body comparisons
-still precede reuse and the typed validator. A changed candidate, full
-index or 32-probe limit takes the same complete decoder. Missing optional
-frame capacity takes the existing unoptimized path. No physical read or
+still precede reuse and the typed validator. A replaced same-key candidate,
+full index or exhausted 32-probe search checks the original list so an
+already funded exact row remains usable. Without an exact row the original
+complete decoder runs. Missing optional frame capacity takes the existing
+unoptimized path. No physical read or
 current decision is taken from the index. Close drops the index aliases
 under the original reservation before touching the linked cleanup list.
 
