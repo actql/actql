@@ -130,6 +130,9 @@ fn validate_sdk_run_row_decoded(
     (@host.ClientRunJournalEncoding, String?, String?),
     @host.ClientJournalDecodingIssue,
   ],
+  observation_original? : @host.ClientRunObservationOriginals? = None,
+  retain_observation? : ((@host.ClientRunObservationOriginals) -> Unit)? = None,
+  before_observation? : (() -> Unit)? = None,
 ) -> Result[@host.ClientRunJournalEncoding, Int] {
   let (record, local_policy, observation_originals) = match decoded {
     Ok(value) => value
@@ -147,16 +150,43 @@ fn validate_sdk_run_row_decoded(
   if record.checkpoint is Some(_) || record.effect_material_originals is Some(_) {
     return Err(-42)
   }
-  if observation_originals is Some(wire) &&
-    @host.restore_client_run_observation_originals_wire(
-      record.definition,
-      wire,
-      131072,
-      8192,
-      64,
-    )
-    is Err(_) {
-    return Err(-31)
+  if observation_originals is Some(wire) {
+    let original = match observation_original {
+      Some(original) => {
+        // Only SAME-frame exact-row metadata can enter this private port.
+        // The original Definition correspondence is still checked EVERY hit.
+        if @publication.validate_original_interactive_run_evidence(
+            record.definition,
+            original.prepared(),
+            original.authorization(),
+          )
+          is Err(_) {
+          return Err(-31)
+        }
+        original
+      }
+      None => {
+        if before_observation is Some(observe) {
+          observe()
+        }
+        match
+          @host.restore_client_run_observation_originals_wire(
+            record.definition,
+            wire,
+            131072,
+            8192,
+            64,
+          ) {
+          Ok(original) => original
+          Err(_) => return Err(-31)
+        }
+      }
+    }
+    // This synchronous handoff carries the actual constructor's typed DATA,
+    // never a validation Bool/Unit, current decision, callback or permission.
+    if retain_observation is Some(retain) {
+      retain(original)
+    }
   }
   if record.publication_policy_originals is Some(wire) &&
     @host.read_client_run_policy_originals(wire) is Err(_) {

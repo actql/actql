@@ -4,8 +4,9 @@
 priv struct StoredJournalRunOriginal {
   mut row : @host.ClientJournalPhysicalRow?
   mut decoded : (@host.ClientRunJournalEncoding, String?, String?)?
+  mut observation : @host.ClientRunObservationOriginals?
   capacity : @resources.CapacityReservation
-  retention : Int64
+  mut retention : Int64
   mut next : StoredJournalRunOriginal?
 }
 
@@ -69,7 +70,8 @@ fn journal_decode_row_capacity(
       // Linked cell, inspection projection, row/Option/Result carriers. The
       // actual request/Definition backing is in the shared codec quote above.
       record_headers: 8L,
-      reference_slots: 24L,
+      // One extra optional metadata reference exists even while it is None.
+      reference_slots: 25L,
       scalar_words: 5L,
       owned_utf16_units: 2L * row.key.length().to_int64(),
       // An exact-hit selected snapshot keeps a DISTINCT fresh physical body
@@ -138,15 +140,80 @@ fn journal_decode_frame_current(
 }
 
 ///|
-fn journal_inspect_decoded_run(
+fn journal_inspect_run_with_observation(
+  value : Instance,
+  cell : StoredJournalRunOriginal?,
+  row : @host.ClientJournalPhysicalRow,
   decoded : (@host.ClientRunJournalEncoding, String?, String?),
+  before_observation : (() -> Unit)?,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
-  validate_sdk_run_row_decoded(Ok(decoded)).map(record => {
+  let retained = cell.bind(cell => cell.observation)
+  let admitted = if retained is Some(_) || decoded.2 is None {
+    false
+  } else {
+    match
+      (
+        cell,
+        journal_observation_construction_capacity(),
+        journal_decode_row_capacity(row),
+      ) {
+      (Some(cell), Some((retention, execution)), Some((base, outer))) =>
+        match
+          (
+            @execution.checked_preparation_add_product(base, retention, 1L),
+            @execution.checked_preparation_add_product(outer, execution, 1L),
+          ) {
+          (Some(retention), Some(execution)) =>
+            @resources.grow_capacity_reservation(
+              value.root,
+              cell.capacity,
+              retention,
+              execution,
+            )
+            is Ok(_)
+          _ => false
+        }
+      _ => false
+    }
+  }
+  let capture : ((@host.ClientRunObservationOriginals) -> Unit)? = if admitted &&
+    cell is Some(cell) {
+    Some(original => cell.observation = Some(original))
+  } else {
+    None
+  }
+  let record = match
+    validate_sdk_run_row_decoded(
+      Ok(decoded),
+      observation_original=retained,
+      retain_observation=capture,
+      before_observation~,
+    ) {
+    Ok(record) => record
+    Err(code) => return Err(code)
+  }
+  if admitted && cell is Some(cell) && cell.observation is Some(original) {
+    // Both outputs and this extent walk remain funded by the original peak.
+    // No shrink occurs until this helper and its constructor stack return.
+    guard journal_observation_retention(original) is Some(retention) &&
+      journal_decode_row_capacity(row) is Some((base, _)) &&
+      @execution.checked_preparation_add_product(base, retention, 1L)
+      is Some(total) else {
+      return Err(-4)
+    }
+    cell.retention = total
+  }
+  Ok({
     request: record.request,
     definition: record.definition,
     checkpoint: None,
     task_materials_cid: record.task_materials_cid,
   })
+}
+
+///|
+fn journal_drop_observation(cell : StoredJournalRunOriginal) -> Unit {
+  cell.observation = None
 }
 
 ///|
@@ -159,6 +226,7 @@ fn journal_decode_run_inspection(
     Unit,
     @host.ClientJournalDecodingIssue,
   ])? = None,
+  before_observation? : (() -> Unit)? = None,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
   if !journal_decode_frame_current(value, child, frame) {
     return Err(-2)
@@ -185,15 +253,39 @@ fn journal_decode_run_inspection(
         ) {
         return Err(-4)
       }
-      // Only the pure outer codec result is reused. The original Policy,
-      // evidence, publication and unsupported-Effect validator always runs.
-      let inspected = journal_inspect_decoded_run(decoded)
+      // The original SDK/Definition/unsupported/current checks still run.
+      frame.busy = true
+      let inspected = journal_inspect_run_with_observation(
+        value,
+        Some(cell),
+        row,
+        decoded,
+        before_observation,
+      )
+      frame.busy = false
+      if frame.issue != 0 {
+        return Err(frame.issue)
+      }
+      if !journal_decode_frame_current(value, child, frame) {
+        return Err(-2)
+      }
       match inspected {
         Err(code) => {
           frame.issue = code
           return Err(code)
         }
         Ok(_) => ()
+      }
+      // The constructor/measurement helper returned before workspace return.
+      if @resources.shrink_capacity_reservation(
+          value.root,
+          cell.capacity,
+          cell.retention,
+          0L,
+        )
+        is Err(_) {
+        frame.issue = -4
+        return Err(-4)
       }
       if row.key == frame.selected_key {
         frame.selected = Some(cell)
@@ -217,6 +309,7 @@ fn journal_decode_run_inspection(
       let cell : StoredJournalRunOriginal = {
         row: Some(row),
         decoded: None,
+        observation: None,
         capacity,
         retention,
         next: frame.rows,
@@ -234,7 +327,11 @@ fn journal_decode_run_inspection(
     row.body,
     before_construction~,
   ).map_err(_ => -31)
-  let inspected = decoded.bind(journal_inspect_decoded_run)
+  let inspected = decoded.bind(decoded => {
+    journal_inspect_run_with_observation(
+      value, cell, row, decoded, before_observation,
+    )
+  })
   frame.busy = false
   if frame.issue != 0 {
     return Err(frame.issue)
@@ -248,14 +345,12 @@ fn journal_decode_run_inspection(
       Err(code)
     }
     Ok(inspected) => {
-      if cell is Some(cell) &&
-        quoted is Some((retention, _)) &&
-        decoded is Ok(decoded) {
+      if cell is Some(cell) && quoted is Some(_) && decoded is Ok(decoded) {
         match
           @resources.shrink_capacity_reservation(
             value.root,
             cell.capacity,
-            retention,
+            cell.retention,
             0L,
           ) {
           Err(_) => {
@@ -311,7 +406,27 @@ fn dispose_journal_decode_rows(
   let mut cursor = frame.rows
   while cursor is Some(cell) {
     let next = cell.next
+    let had_observation = cell.observation is Some(_)
+    journal_drop_observation(cell)
+    // The drop helper returned without any nested metadata loan. The selected
+    // outer snapshot still owns its original request/Definition/body backing.
     if selected is Some(original) && physical_equal(original, cell) {
+      if had_observation {
+        guard cell.row is Some(row) &&
+          journal_decode_row_capacity(row) is Some((retention, _)) else {
+          return -4
+        }
+        if @resources.shrink_capacity_reservation(
+            value.root,
+            cell.capacity,
+            retention,
+            0L,
+          )
+          is Err(_) {
+          return -4
+        }
+        cell.retention = retention
+      }
       previous = Some(cell)
     } else {
       cell.decoded = None

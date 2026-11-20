@@ -42,6 +42,33 @@ fn journal_decode_fixture_row() -> @host.ClientJournalPhysicalRow {
 }
 
 ///|
+test "journal typed observation quote admits before actual construction under the existing component profile" {
+  let (value, _, _, parent) = journal_decode_fixture()
+  let (retention, peak) = journal_observation_construction_capacity().unwrap()
+  let limits = @resources.ledger_limits(value.root)
+  println(
+    "nested observation preconstructor bytes: retention=\{retention}; execution=\{peak}; fixture retained limit=\{limits.retained_bytes}; fixture execution limit=\{limits.execution_bytes}",
+  )
+  // This test does not lift the fixture profile to accommodate a quote.
+  // Actual reserve refuses if any same-Root constructor overlap cannot fit.
+  let reserved = @resources.reserve_capacity(value.root, retention, peak)
+  assert_true(reserved is Ok(_))
+  let capacity = reserved.unwrap()
+  assert_true(
+    @resources.capacity_reservation_covers(
+      value.root,
+      capacity,
+      retention,
+      peak,
+    ),
+  )
+  assert_true(peak > 0L && peak <= limits.execution_bytes)
+  @resources.settle_capacity(value.root, capacity).unwrap()
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
 test "journal same-frame pure original avoids repeated construction but keeps row changes distinct" {
   let (value, child, frame, parent) = journal_decode_fixture()
   let row = journal_decode_fixture_row()
