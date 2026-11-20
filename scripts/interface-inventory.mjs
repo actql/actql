@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, relative, resolve} from 'node:path';
 import {parse} from 'acorn';
+import ts from 'typescript';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {hasExecutableTestCase} from './executable-test-cases.mjs';
@@ -432,9 +433,22 @@ export function packageEntrances(manifest, directory = '.') {
 // A verification reference identifies a real test entry, not its presentation
 // label. Registration presence does not prove execution, assertions or coverage;
 // the existing runtime/nonzero-test gates remain responsible for those claims.
-function hasNodeTestRegistration(source) {
+function hasNodeTestRegistration(source, filename = 'interface.mjs') {
   let tree;
-  try {tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true});}
+  try {
+    if (/\.[cm]?tsx?$/u.test(filename)) {
+      if (/\.d\.[cm]?ts$/u.test(filename)) return false;
+      // Erase types with the pinned compiler, then use the same Node import,
+      // scope and skip checks. This is registration syntax, never execution
+      // or a substitute for the separate strict compiler owner.
+      const lowered = ts.transpileModule(source, {fileName: filename,
+        compilerOptions: {module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES2022,
+          verbatimModuleSyntax: true}, reportDiagnostics: true});
+      if (lowered.diagnostics?.some(value => value.category === ts.DiagnosticCategory.Error)) return false;
+      source = lowered.outputText;
+    }
+    tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true});
+  }
   catch {return false;}
   const imports = new Map();
   for (const node of tree.body) if (node.type === 'ImportDeclaration' && node.source.value === 'node:test') {
@@ -506,9 +520,12 @@ function reference(root, ref, readReference, verification = false, registeredTes
       : typeof ref.anchor === 'string' && ref.anchor.length),
     'Invalid interface reference');
   assert(!ref.path.split('/').includes('..'), 'Invalid interface reference traversal');
-  const testEntry = verification && /\.test\.[cm]?js$/u.test(ref.path);
+  // Converted Node .mjs/.cjs entries use .mts/.cts sources. Existing .test.ts
+  // compiler fixtures retain their exact source anchors and compiler owners;
+  // their declarations are not claims of Node test registration.
+  const testEntry = verification && /\.test\.(?:[cm]?js|[cm]ts)$/u.test(ref.path);
   const present = source => executable ? hasExecutableTestCase(source, ref.case_id)
-    : testEntry ? registeredTest(source) : source.includes(ref.anchor);
+    : testEntry ? registeredTest(source, ref.path) : source.includes(ref.anchor);
   const label = executable ? `case_id=${ref.case_id}` : ref.anchor;
   if (readReference) {
     assert(present(readReference(ref.path)), `Missing interface reference: ${ref.path}#${label}`);
@@ -546,9 +563,11 @@ function sourceOperationCorrespondence(module, operations, privateOperations = [
 
 export function assertInterfaceCoverage({root, modules, declarations, generated = [], readReference}) {
   const references = new Map(), registrations = new Map();
-  const registeredTest = source => {
-    if (!registrations.has(source)) registrations.set(source, hasNodeTestRegistration(source));
-    return registrations.get(source);
+  const registeredTest = (source, filename) => {
+    if (!registrations.has(filename)) registrations.set(filename, new Map());
+    const selected = registrations.get(filename);
+    if (!selected.has(source)) selected.set(source, hasNodeTestRegistration(source, filename));
+    return selected.get(source);
   };
   const read = path => {
     if (!references.has(path)) references.set(path, readReference

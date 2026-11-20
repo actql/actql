@@ -368,3 +368,46 @@ test('real stdlib wheel and source readers execute the original and normal corre
   assert.match(result.stderr, /^OK$/mu);
   process.stdout.write(result.stderr);
 });
+
+test('TypeScript verification uses actual lowered Node registration and preserves syntax boundaries', t => {
+  const {root, put, declaration} = fixture(t);
+  put('entry.mjs', 'export function read() {}');
+  const modules = javascriptClosure(root, ['entry.mjs']);
+  const decl = declaration(modules[0]);
+  const ref = {path: 'recovery.test.mts', anchor: 'the prior display label'};
+  decl.contracts[0].attributes.verification = [ref];
+  const source = "import test from 'node:test'; import type {TestContext} from 'node:test'; test('current label', (t: TestContext) => {t.diagnostic('source only');});";
+  for (const text of [source,
+    "import * as nodeTest from 'node:test'; nodeTest.test('typed', (): void => {});"]) {
+    put(ref.path, text);
+    assertInterfaceCoverage({root, modules, declarations: [decl]});
+  }
+  for (const text of [
+    "import type {test} from 'node:test'; test('type-only', () => {});",
+    "declare const test: (name: string, body: () => void) => void; test('ambient', () => {});",
+    "import test from 'node:test'; test('skipped', {skip: true as const}, () => {});",
+    "import test from 'node:test'; function helper(): void {test('not registered', () => {});}",
+    "import test from 'node:test'; test('invalid', (value: ) => {});",
+  ]) {
+    put(ref.path, text);
+    assert.throws(() => assertInterfaceCoverage({root, modules, declarations: [decl]}), /Missing interface reference/u);
+  }
+  // Identical bytes cannot reuse TS syntax qualification for a JavaScript file.
+  put(ref.path, source);
+  put('recovery.test.mjs', source);
+  decl.contracts[0].attributes.verification = [ref, {...ref, path: 'recovery.test.mjs'}];
+  assert.throws(() => assertInterfaceCoverage({root, modules, declarations: [decl]}), /Missing interface reference/u);
+});
+
+test('existing TypeScript compiler-only verification keeps its source anchor without a Node registration claim', t => {
+  const {root, put, declaration} = fixture(t);
+  put('entry.mjs', 'export function read() {}');
+  const modules = javascriptClosure(root, ['entry.mjs']);
+  const decl = declaration(modules[0]);
+  const ref = {path: 'types.negative.test.ts', anchor: 'const stateRevision: number = nextRunStateRevision('};
+  put(ref.path, 'const stateRevision: number = nextRunStateRevision(original);');
+  decl.contracts[0].attributes.verification = [ref];
+  assertInterfaceCoverage({root, modules, declarations: [decl]});
+  put(ref.path, 'const unrelated: number = 1;');
+  assert.throws(() => assertInterfaceCoverage({root, modules, declarations: [decl]}), /Missing interface reference/u);
+});

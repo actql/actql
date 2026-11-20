@@ -4102,13 +4102,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4118,7 +4118,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4128,7 +4128,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4138,7 +4138,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4148,7 +4148,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4158,7 +4158,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4168,7 +4168,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4178,7 +4178,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -5161,13 +5161,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5177,7 +5177,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5187,7 +5187,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5197,7 +5197,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5207,7 +5207,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5217,7 +5217,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5227,7 +5227,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5237,13 +5237,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-string.test.mjs",
+                "path": "packages/sdk/connection-string.test.mts",
                 "anchor": "test("
               }
             ]
@@ -8895,19 +8895,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "// Class-only delivery for the Node facade."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "export class RequestHeld extends ClientError"
               },
               {
@@ -8917,11 +8917,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
-                "anchor": "const ownedClientFailures = new WeakMap();"
+                "path": "packages/sdk/internal/errors.mts",
+                "anchor": "const ownedClientFailures = new WeakMap<object, string>();"
               },
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "// refusal state remain private to the SDK implementation module."
               }
             ],
@@ -8930,7 +8930,7 @@
             },
             "failure": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               },
               {
@@ -8943,12 +8943,12 @@
             },
             "resources": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "Object.assign(this, details);"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
-                "anchor": "const ownedClientFailures = new WeakMap();"
+                "path": "packages/sdk/internal/errors.mts",
+                "anchor": "const ownedClientFailures = new WeakMap<object, string>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -8957,7 +8957,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
               },
               {
@@ -9051,13 +9051,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9067,7 +9067,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9077,7 +9077,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9087,7 +9087,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9097,7 +9097,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9107,7 +9107,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9117,7 +9117,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9127,17 +9127,17 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/client-close.test.mjs",
+                "path": "packages/sdk/client-close.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/client-close.test.mjs",
+                "path": "packages/sdk/client-close.test.mts",
                 "anchor": "client-initiated close reports original frame cleanup uncertainty after releasing its lease"
               }
             ]
@@ -9503,7 +9503,7 @@
         {
           "name": "connectionOptions",
           "parameters": [
-            "options",
+            "original",
             "parsedConnectionString"
           ],
           "async": false
@@ -9540,7 +9540,7 @@
           "name": "connectionStringOptions",
           "parameters": [
             "input",
-            "options"
+            "original"
           ],
           "async": false
         },
@@ -9554,7 +9554,7 @@
         {
           "name": "inProcessOptions",
           "parameters": [
-            "options"
+            "original"
           ],
           "async": false
         },
@@ -9610,13 +9610,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9626,7 +9626,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9636,7 +9636,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9646,7 +9646,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9656,7 +9656,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9666,7 +9666,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9676,7 +9676,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9686,7 +9686,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9775,13 +9775,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9791,7 +9791,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9801,7 +9801,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9811,7 +9811,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9821,7 +9821,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9831,7 +9831,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9841,7 +9841,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9851,7 +9851,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9975,13 +9975,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -9991,7 +9991,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10001,7 +10001,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10011,7 +10011,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10021,7 +10021,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10031,7 +10031,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10041,7 +10041,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10051,7 +10051,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10873,14 +10873,14 @@
                 "anchor": "export {freezeInput} from './data.mjs';"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
-                "anchor": "export const freezeInput = value =>"
+                "path": "packages/sdk/internal/data.mts",
+                "anchor": "export const freezeInput = <const T,>(value: T): T =>"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/data.mjs",
-                "anchor": "export const freezeInput = value =>"
+                "path": "packages/sdk/internal/data.mts",
+                "anchor": "export const freezeInput = <const T,>(value: T): T =>"
               },
               {
                 "path": "adapters/host-node/http-request-preparation.mjs",
@@ -10909,7 +10909,7 @@
                 "anchor": "body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "Object.freeze(value);"
               }
             ],
@@ -10932,7 +10932,7 @@
                 "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "return value;"
               }
             ],
@@ -10942,7 +10942,7 @@
                 "anchor": "\"./_internal/source-preparation\": \"./internal/private-source-preparation.mjs\""
               },
               {
-                "path": "scripts/local-node-package-imports.mjs",
+                "path": "scripts/local-node-package-imports.mts",
                 "anchor": "['sdk/internal/private-source-preparation.mjs', '@actql/sdk/_internal/source-preparation']"
               }
             ],
@@ -13182,13 +13182,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13198,7 +13198,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13208,7 +13208,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13218,7 +13218,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13228,7 +13228,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13238,7 +13238,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13248,7 +13248,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13258,7 +13258,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13717,13 +13717,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13733,7 +13733,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13743,7 +13743,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13753,7 +13753,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13763,7 +13763,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13773,7 +13773,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13783,7 +13783,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13793,13 +13793,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/loopback-http-browser.test.mjs",
+                "path": "packages/sdk/loopback-http-browser.test.mts",
                 "anchor": "test("
               }
             ]
@@ -13898,13 +13898,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13914,7 +13914,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13924,7 +13924,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13934,7 +13934,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13944,7 +13944,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13954,7 +13954,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13964,7 +13964,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13974,13 +13974,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/loopback-http.test.mjs",
+                "path": "packages/sdk/loopback-http.test.mts",
                 "anchor": "test("
               }
             ]
@@ -14050,13 +14050,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14066,7 +14066,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14076,7 +14076,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14086,7 +14086,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14096,7 +14096,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14106,7 +14106,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14116,7 +14116,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14126,7 +14126,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14394,13 +14394,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14410,7 +14410,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14420,7 +14420,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14430,7 +14430,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14440,7 +14440,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14450,7 +14450,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14460,7 +14460,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14470,7 +14470,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14614,13 +14614,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14630,7 +14630,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14640,7 +14640,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14650,7 +14650,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14660,7 +14660,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14670,7 +14670,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14680,7 +14680,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14690,7 +14690,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
