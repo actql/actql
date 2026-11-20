@@ -1597,6 +1597,9 @@ fn QueryParser::projections(
         value
       }
     }
+    if projection.star is None && projection_public_name(projection) is None {
+      self.source.anonymous_output_required = true
+    }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
       let (direction, nulls) = self.order_suffix()
@@ -4196,4 +4199,29 @@ fn QueryParser::update_effect_clause(
     self.symbol(41)
   }
   { kind, name, target, mapping, result, id, id_expression, set: assignments, }
+}
+
+///|
+// The original optional SQL name; display labels never enter this projection.
+pub fn projection_public_name(projection : Projection) -> NamePart? {
+  match projection.name {
+    Some(name) => Some(name)
+    None =>
+      match projection.expression {
+        Some(expression) =>
+          match expression.nodes[expression.root].kind {
+            Reference(path) => path.last()
+            Property(_, name) => Some(name)
+            _ => None
+          }
+        None => None
+      }
+  }
+}
+
+
+///|
+// One parser-owned fact shared by the nested queries of this document.
+pub fn anonymous_output_context_required(query : Query) -> Bool {
+  query.source.anonymous_output_required
 }

@@ -15,8 +15,8 @@ test "input geometry counts original fields without copying or rereading Catalog
   let fields = inputs[0].visible_fields
   for _ in 0..<2 {
     assert_eq(
-      prepared_published_query_input_field_count(prepared, environment).unwrap(),
-      1L,
+      prepared_published_query_input_field_geometry(prepared, environment).unwrap(),
+      (1L, 2L),
     )
   }
   assert_eq(reads.val, 1)
@@ -42,7 +42,7 @@ test "input geometry preserves equal-CID foreign Environment refusal" {
     @program_check.checking_environment_cid(foreign),
   )
   assert_true(
-    prepared_published_query_input_field_count(prepared, foreign)
+    prepared_published_query_input_field_geometry(prepared, foreign)
     is Err(ForeignEnvironment),
   )
 }
@@ -57,8 +57,8 @@ test "input geometry sums all alias field inventories including an empty Context
     "\",\"aliases\":[]}",
   ).unwrap()
   assert_eq(
-    prepared_published_query_input_field_count(empty, environment).unwrap(),
-    0L,
+    prepared_published_query_input_field_geometry(empty, environment).unwrap(),
+    (0L, 0L),
   )
   let extra =
     #|{"name":"more","sourceRef":"connector://crm/main/records#v","sourceViewContractCid":"sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143","schemaContractCid":"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"}
@@ -70,7 +70,7 @@ test "input geometry sums all alias field inventories including an empty Context
     ),
   ).unwrap()
   assert_eq(
-    prepared_published_query_input_field_count(two, environment).unwrap(),
-    2L,
+    prepared_published_query_input_field_geometry(two, environment).unwrap(),
+    (2L, 4L),
   )
 }

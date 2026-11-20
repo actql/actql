@@ -98,7 +98,7 @@ fn script_carrier_field_name(
     script_input_scope(
       construction,
       sources,
-      input.name,
+      input,
       query_range_name(query),
     ) {
     Some(scope) => pipe_slot(path, scope.visible, scope.ranges)

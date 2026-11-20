@@ -72,6 +72,8 @@ struct Tokens {
   // Set only while constructing actual scalar Call nodes from this source.
   // Shared CTE/set expressions retain this same parser-owned token original.
   mut integer_context_required : Bool
+  // Set at the same bounded original Projection construction, not a discovery walk.
+  mut anonymous_output_required : Bool
 }
 
 ///|
@@ -167,6 +169,7 @@ fn scan_tokens(
       usage: budget.used,
       identifiers,
       integer_context_required: false,
+      anonymous_output_required: false,
     })
   } catch {
     LexicalAbort(issue, at) =>

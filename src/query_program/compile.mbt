@@ -1059,23 +1059,7 @@ fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
 // One authored-name rule for SELECT output and its GROUP/HAVING alias tables.
 // Anonymous expressions do not gain a synthetic alias or an input binding.
 fn projection_alias(projection : @query.Projection) -> @query.NamePart? {
-  match projection.name {
-    Some(name) => Some(name)
-    None =>
-      match projection.expression {
-        Some(expression) =>
-          match
-            @query.expression_node(
-              expression,
-              @query.expression_root(expression),
-            ).unwrap().kind {
-            Reference(path) => path.last()
-            Property(_, name) => Some(name)
-            _ => None
-          }
-        None => None
-      }
-  }
+  @query.projection_public_name(projection)
 }
 
 ///|
@@ -2327,7 +2311,6 @@ fn compile_steps(
   reserved_bindings? : Array[String] = [],
   prefix_context? : Context? = None,
   positional_set_output? : Bool = false,
-  input_columns? : Array[ResultColumn] = [],
   output_columns? : Array[Array[ResultColumn]]? = None,
   source_projection_capture? : SourceProjectionCapture? = None,
   checked_infer_prefix? : ((
@@ -2342,10 +2325,14 @@ fn compile_steps(
   // additionally retain duplicate authored columns; neither role creates an alias.
   let positional_set_output = positional_set_output ||
     @query.positional_output(query)
-  let positional_projection = positional_set_terminal_projection(query)
-  let positional_private_fields : Array[String] = input_columns
-    .filter(column => column.name is None)
-    .map(column => column.slot)
+  let columns_required = @query.anonymous_output_context_required(query) ||
+    initial_scope.bind(scope => scope.result_columns) is Some(_)
+  let positional_projection = if positional_set_output || columns_required {
+    positional_set_terminal_projection(query)
+  } else { None }
+  // Incoming anonymous roles are resolved by exact occurrence/slot metadata.
+  // This legacy list belongs only to newly privatized positional projections.
+  let positional_private_fields : Array[String] = []
   let positional_authored_aliases : Array[(String, String)] = []
   // A later authored column destination is a real column name. Reserve it
   // before assigning private storage names to anonymous/duplicate occurrences.
@@ -2460,9 +2447,6 @@ fn compile_steps(
     None => seed_infer_key_labels(construction, [], pipe_visible)
   }
   let mut column_profiles = initial_scope.bind(scope => scope.result_columns)
-  if column_profiles is None && !input_columns.is_empty() {
-    column_profiles = Some(input_columns)
-  }
   let resolve_named_columns = fn(path, visible, ranges) {
     pipe_slot(
       path,
@@ -2543,6 +2527,7 @@ fn compile_steps(
                   value_ranges=value_range_names(
                     value_table_receivers, scalar_value_table_ranges,
                   ),
+                  column_profiles=column_profiles,
                 ),
               ),
             ]),
@@ -3000,6 +2985,7 @@ fn compile_steps(
           value_ranges=value_range_names(
             value_table_receivers, scalar_value_table_ranges,
           ),
+          column_profiles=column_profiles,
         )
         entries.push(("derive", construction.object([(column, derived)])))
         step_entries.push(entries.copy())
@@ -3391,6 +3377,7 @@ fn compile_steps(
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
+              column_profiles=column_profiles,
             ),
           ),
         )
@@ -3418,6 +3405,7 @@ fn compile_steps(
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
+              column_profiles=column_profiles,
             ),
           ),
         )
@@ -3427,6 +3415,7 @@ fn compile_steps(
             "filter",
             append_expression(
               construction, predicate, query, input, active_fields, max_work,
+              column_profiles=column_profiles,
             ),
           ),
         )
@@ -3473,6 +3462,7 @@ fn compile_steps(
                   value_ranges=value_range_names(
                     value_table_receivers, scalar_value_table_ranges,
                   ),
+                  column_profiles=column_profiles,
                 ),
               ),
             )
@@ -3517,6 +3507,7 @@ fn compile_steps(
                 value_ranges=value_range_names(
                   value_table_receivers, scalar_value_table_ranges,
                 ),
+                column_profiles=column_profiles,
               ),
             ),
           )
@@ -3549,6 +3540,7 @@ fn compile_steps(
                 input,
                 snapshot,
                 max_work,
+                column_profiles=column_profiles,
               ),
             ),
           )
@@ -3568,7 +3560,7 @@ fn compile_steps(
       Set(assignments) => {
         pipe_value_table = false
         let snapshot = pipe_visible.copy()
-        let target_columns = pipe_columns.copy()
+        let target_columns = scope_named_columns(pipe_columns, column_profiles)
         let window_bindings = if i > 0 &&
           @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) {
           analytic_expression_bindings.copy()
@@ -3613,6 +3605,7 @@ fn compile_steps(
                 value_ranges=value_range_names(
                   value_table_receivers, scalar_value_table_ranges,
                 ),
+                column_profiles=column_profiles,
               ),
             ),
           )
@@ -3735,7 +3728,7 @@ fn compile_steps(
             same_name(name, { value: current.0, quoted: false, })
           })
         })
-        let target_columns = pipe_columns.copy()
+        let target_columns = scope_named_columns(pipe_columns, column_profiles)
         for name in names {
           if !named_column_exists(target_columns, name) {
             raise Abort(UnknownColumn)
@@ -3798,7 +3791,7 @@ fn compile_steps(
         }
       }
       Rename(names) => {
-        let target_columns = pipe_columns.copy()
+        let target_columns = scope_named_columns(pipe_columns, column_profiles)
         // RENAME targets the pre-operator current row. Unrelated duplicate
         // names, and ambiguities introduced by renaming, can be resolved by
         // a later projection through the retained immutable ranges.
@@ -4050,6 +4043,7 @@ fn compile_steps(
             value_ranges=value_range_names(
               value_table_receivers, scalar_value_table_ranges,
             ),
+            column_profiles=column_profiles,
           )
           let reserved = active_fields + pipe_columns.map(field => field.0)
           for entry in clause.values {
@@ -4401,10 +4395,12 @@ fn compile_steps(
                       value_ranges=value_range_names(
                         value_table_receivers, scalar_value_table_ranges,
                       ),
+                      column_profiles=column_profiles,
                     )
                   } else {
                     append_expression(
                       construction, expression, query, input, active_fields, max_work,
+                      column_profiles=column_profiles,
                     )
                   },
                 ),
@@ -5156,6 +5152,7 @@ fn compile_steps(
                   value_ranges=value_range_names(
                     value_table_receivers, scalar_value_table_ranges,
                   ),
+                  column_profiles=column_profiles,
                 )
               },
             ),
@@ -5311,6 +5308,7 @@ fn compile_steps(
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
+              column_profiles=column_profiles,
             )
           },
           "aql_qualify_expr_",
@@ -5517,6 +5515,7 @@ fn compile_steps(
                   value_ranges=value_range_names(
                     value_table_receivers, scalar_value_table_ranges,
                   ),
+                  column_profiles=column_profiles,
                 )
               }
             },
@@ -5835,7 +5834,7 @@ fn compile_steps(
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
         let expression_positions : Array[Int] = []
-        let selection_columns : Array[ResultColumn] = []
+        let selection_columns : Array[ResultColumn]? = if columns_required { Some([]) } else { None }
         let physical = active_fields.copy()
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
@@ -5875,12 +5874,12 @@ fn compile_steps(
                 } else {
                   visible.0
                 }
-                selection_columns.push({
+                if selection_columns is Some(retained_columns) { retained_columns.push({
                   slot: name,
                   label: name,
                   name: public_name,
                   name_view: original.bind(column => column.name_view),
-                })
+                }) }
                 names.push(name)
                 selected.push(
                   if name == visible.1 {
@@ -5948,9 +5947,9 @@ fn compile_steps(
                 }
                 names.push(name)
                 bindings.push((name, slot))
-                selection_columns.push(
+                if selection_columns is Some(retained_columns) { retained_columns.push(
                   projection_result_column(projection, name),
-                )
+                ) }
                 selected.push(
                   if slot == name {
                     construction.text(slot)
@@ -6001,9 +6000,9 @@ fn compile_steps(
                 }
                 names.push(name)
                 bindings.push((name, source))
-                selection_columns.push(
+                if selection_columns is Some(retained_columns) { retained_columns.push(
                   projection_result_column(projection, name),
-                )
+                ) }
                 selected.push(
                   if source == name {
                     construction.text(source)
@@ -6028,7 +6027,7 @@ fn compile_steps(
                 }
               }
               let cached = qualify_cached_slot(expression, qualify_values)
-              let namespace_result : Array[NamespaceView?] = []
+              let namespace_result : Array[NamespaceView?]? = if columns_required { Some([]) } else { None }
               let source = if (match cached {
                   Some(_) => cached
                   None => grouped_slot
@@ -6053,7 +6052,7 @@ fn compile_steps(
                           (
                             slot,
                             lower_select_expression(
-                              expression, computed_star_bindings, Some(namespace_result),
+                              expression, computed_star_bindings, namespace_result,
                             ),
                           ),
                         )
@@ -6067,7 +6066,7 @@ fn compile_steps(
                       (
                         slot,
                         lower_select_expression(
-                          expression, computed_star_bindings, Some(namespace_result),
+                          expression, computed_star_bindings, namespace_result,
                         ),
                       ),
                     )
@@ -6093,7 +6092,7 @@ fn compile_steps(
               }
               names.push(name)
               bindings.push((name, source))
-              selection_columns.push(projection_result_column(projection, name, name_view=namespace_result.get(0).unwrap_or(slot_namespace(column_profiles, source))))
+              if selection_columns is Some(retained_columns) { retained_columns.push(projection_result_column(projection, name, name_view=namespace_result.bind(result => result.get(0)).unwrap_or(slot_namespace(column_profiles, source)))) }
               expression_positions.push(names.length() - 1)
               expressions.push(
                 (
@@ -6309,7 +6308,7 @@ fn compile_steps(
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
         let expression_positions : Array[Int] = []
-        let selection_columns : Array[ResultColumn] = []
+        let selection_columns : Array[ResultColumn]? = if columns_required { Some([]) } else { None }
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
           match projection.star {
@@ -6346,12 +6345,12 @@ fn compile_steps(
                 } else {
                   name
                 }
-                selection_columns.push({
+                if selection_columns is Some(retained_columns) { retained_columns.push({
                   slot: name,
                   label: name,
                   name: public_name,
                   name_view: original.bind(column => column.name_view),
-                })
+                }) }
                 names.push(name)
                 selected.push(
                   if name == field {
@@ -6444,9 +6443,9 @@ fn compile_steps(
                   },
                 )
                 bindings.push((name, source))
-                selection_columns.push(
+                if selection_columns is Some(retained_columns) { retained_columns.push(
                   projection_result_column(projection, name),
-                )
+                ) }
                 continue
               }
               let expression = projection.expression.unwrap()
@@ -6491,7 +6490,7 @@ fn compile_steps(
                 None => direct
               }
               let cached = qualify_cached_slot(expression, qualify_values)
-              let namespace_result : Array[NamespaceView?] = []
+              let namespace_result : Array[NamespaceView?]? = if columns_required { Some([]) } else { None }
               let source = if (match cached {
                   Some(_) => cached
                   None => direct
@@ -6511,7 +6510,7 @@ fn compile_steps(
                 derives.push(
                   (
                     temporary,
-                    lower_select_expression(expression, computed_star_bindings, Some(namespace_result)),
+                    lower_select_expression(expression, computed_star_bindings, namespace_result),
                   ),
                 )
                 temporary
@@ -6524,7 +6523,7 @@ fn compile_steps(
                 },
               )
               bindings.push((name, source))
-              selection_columns.push(projection_result_column(projection, name, name_view=namespace_result.get(0).unwrap_or(slot_namespace(column_profiles, source))))
+              if selection_columns is Some(retained_columns) { retained_columns.push(projection_result_column(projection, name, name_view=namespace_result.bind(result => result.get(0)).unwrap_or(slot_namespace(column_profiles, source)))) }
             }
           }
         }
@@ -6812,6 +6811,7 @@ fn compile_steps(
                           )
                         },
                         max_work,
+                        column_profiles~,
                         resolve_row=Some(path => {
                           row_reference_fields(
                             path,
@@ -7396,40 +7396,42 @@ fn compile_steps(
     step_entries.push(entries)
     output = pipe_visible.map(field => field.0)
   }
-  let columns = output.map(slot => {
-    match result_column_profile(column_profiles, slot, slot) {
-      Some(column) => column
-      None => {
-        let column : ResultColumn = {
-          slot,
-          label: slot,
-          name: Some({
-            value: positional_authored_column_name(
-              slot, positional_authored_aliases,
-            ),
-            quoted: false,
-          }),
-          name_view: None,
+  if columns_required || output_columns is Some(_) {
+    let columns = output.map(slot => {
+      match result_column_profile(column_profiles, slot, slot) {
+        Some(column) => column
+        None => {
+          let column : ResultColumn = {
+            slot,
+            label: slot,
+            name: Some({
+              value: positional_authored_column_name(
+                slot, positional_authored_aliases,
+              ),
+              quoted: false,
+            }),
+            name_view: None,
+          }
+          column
         }
-        column
       }
+    })
+    match output_columns {
+      Some(retained) => retained.push(columns)
+      None =>
+        if !positional_set_output && columns.any(column => column.name is None) {
+          let displayed = result_column_display_names(columns, max_work)
+          let entries : Array[(String, @builder.Node)] = []
+          if step_entries.is_empty() {
+            entries.push(("from", construction.text(input_from)))
+          }
+          entries.push(
+            ("select", set_select_fields(construction, displayed, output)),
+          )
+          step_entries.push(entries)
+          output = displayed
+        }
     }
-  })
-  match output_columns {
-    Some(retained) => retained.push(columns)
-    None =>
-      if !positional_set_output && columns.any(column => column.name is None) {
-        let displayed = result_column_display_names(columns, max_work)
-        let entries : Array[(String, @builder.Node)] = []
-        if step_entries.is_empty() {
-          entries.push(("from", construction.text(input_from)))
-        }
-        entries.push(
-          ("select", set_select_fields(construction, displayed, output)),
-        )
-        step_entries.push(entries)
-        output = displayed
-      }
   }
   if step_entries.is_empty() {
     return ([], output)
@@ -8668,7 +8670,7 @@ fn compile_set_stages(
       raise Abort(InvalidContext)
     }
     let term_name = "aql_set_output_" + index.to_string()
-    let collected_columns : Array[Array[ResultColumn]] = []
+    let collected_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(query) { Some([]) } else { None }
     let (body, compiled_output) = compile_steps(
       construction,
       term,
@@ -8715,7 +8717,7 @@ fn compile_set_stages(
           authored_aliases,
         )
       }),
-      output_columns=Some(collected_columns),
+      output_columns=collected_columns,
       positional_set_output=index > 0 &&
         !@query.set_part_at(query, index - 1).unwrap().by_name,
     )
@@ -8735,7 +8737,7 @@ fn compile_set_stages(
         ]),
       )
     }
-    let original_columns = collected_columns[0]
+    let original_columns = collected_columns.bind(columns => columns.get(0)).unwrap_or([])
     if (
         index == 0 &&
         @query.set_part_at(query, 0).unwrap().by_name &&
@@ -8796,7 +8798,7 @@ fn compile_set_stages(
     sources.push(term_stage)
     outputs.push(output)
     term_columns.push(
-      output.map(field => {
+      if @query.anonymous_output_context_required(query) { output.map(field => {
         match result_column_profile(Some(original_columns), field, field) {
           Some(column) => column
           None =>
@@ -8807,7 +8809,7 @@ fn compile_set_stages(
               name_view: None,
             }
         }
-      }),
+      }) } else { [] },
     )
   }
   let sql_inner_count = set_inner_chain_length(query)
@@ -9104,7 +9106,7 @@ fn compile_set_stages(
     left_fields,
     steps,
     "",
-    column_profiles=Some(combined_columns),
+    column_profiles=if combined_columns.is_empty() { None } else { Some(combined_columns) },
   )
   if steps.is_empty() {
     current = "aql_set_final_0"

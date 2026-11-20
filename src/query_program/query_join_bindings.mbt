@@ -76,7 +76,7 @@ fn lower_script_join_relation(
   let initial_scope = script_input_scope(
     construction,
     sources,
-    selected.name,
+    selected,
     query_range_name(query),
   )
   let right_scopes : Array[JoinChainScope?] = []
@@ -87,7 +87,7 @@ fn lower_script_join_relation(
       script_input_scope(
         construction,
         sources,
-        right.name,
+        right,
         part.source_alias.unwrap_or(part.relation.last().unwrap()),
       ),
     )
@@ -134,7 +134,7 @@ fn lower_script_join_relation(
     let nearest_vectors = script_nearest_vector_inputs(
       construction, query, nearest_inputs, context, sources, limits, steps,
     )
-    let exported_columns : Array[Array[ResultColumn]] = []
+    let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(query) || initial_scope.bind(scope => scope.result_columns) is Some(_) || right_scopes.any(scope => scope.bind(scope => scope.result_columns) is Some(_)) { Some([]) } else { None }
     let (body, fields, from) = compile_join_chain_steps(
       construction,
       query,
@@ -151,7 +151,7 @@ fn lower_script_join_relation(
       nearest_inputs~,
       nearest_vectors~,
       positional_set_output~,
-      output_columns=Some(exported_columns),
+      output_columns=exported_columns,
       checked_nearest_prefix=Some(nodes => {
         script_nearest_prefix_pipeline(
           construction, query, context, sources, nodes, limits,
@@ -165,9 +165,9 @@ fn lower_script_join_relation(
       }),
     )
     steps.append(body)
-    if exported_columns.get(0) is Some(columns) &&
+    if exported_columns.bind(columns => columns.get(0)) is Some(columns) &&
       columns.any(column => column.name is None || column.name_view is Some(_)) {
-      sources.result_columns[from] = columns
+      put_script_result_columns(sources, from, columns)
     }
     return {
       relation: [],

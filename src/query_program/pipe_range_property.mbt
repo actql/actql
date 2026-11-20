@@ -22,7 +22,9 @@ fn row_reference_fields(
     }
     seen[key] = true
   }
-  Some(fields.copy())
+  // This private view stays inside one synchronous compiler expression.
+  // The consumer only reads it; materialized Object fields get their own array.
+  Some(fields)
 }
 
 ///|
@@ -145,33 +147,40 @@ fn append_resolved_range_expression(
   column_profiles? : Array[ResultColumn]? = None,
   namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
-  let namespace_frame = expression_namespace(expression, resolve, path => resolve_row.bind(resolver => resolver(path)), column_profiles, max_work)
-  if namespace_out is Some(output) { output.push(namespace_frame.root) }
   let (lowered, slots, remaining) = bind_range_property_expression(
-    expression, resolve, value_name_exists, namespace_frame.remaining,
+    expression, resolve, value_name_exists, max_work,
   )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name { return Some(slot) }
+      }
+    }
+    resolve(path)
+  }
+  let namespace_frame = if column_profiles is Some(_) {
+    Some(expression_namespace(lowered, bound_resolve, path => resolve_row.bind(resolver => resolver(path)), column_profiles, remaining))
+  } else { None }
+  if namespace_out is Some(output) { output.push(namespace_frame.bind(frame => frame.root)) }
   match
     @expression.append_with_properties(
       lowered,
-      path => {
-        if path.length() == 1 {
-          for (name, slot) in slots {
-            if path[0].value == name {
-              return Some(slot)
+      bound_resolve,
+      construction.builder,
+      namespace_frame.map(frame => frame.remaining).unwrap_or(remaining),
+      resolve_parameter=construction.parameter_resolver(),
+      resolve_row~,
+      resolve_row_with_work=match namespace_frame {
+        None => None
+        Some(frame) => Some((path, available) => {
+          for (original, fields) in frame.rows {
+            if same_path(path, original) {
+              return namespace_row_fields(fields, column_profiles, available).map(projected => Some(projected))
             }
           }
-        }
-        resolve(path)
+          Ok(None)
+        })
       },
-      construction.builder,
-      remaining,
-      resolve_parameter=construction.parameter_resolver(),
-      resolve_row=Some(path => {
-        for (original, fields) in namespace_frame.rows {
-          if same_path(path, original) { return Some(fields) }
-        }
-        resolve_row.bind(resolver => resolver(path))
-      }),
     ) {
     Ok(node) => node
     Err(issue) => raise Abort(Expression(issue))

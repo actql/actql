@@ -67,7 +67,7 @@ test "checked window grouping replaces an aggregate spelling without recycling i
     bound: Map([]),
     unshared: [],
     ranges: Map([("rows", scope)]),
-    result_columns: Map([]),
+    result_columns: None,
     value_tables: Map([]),
     binding_ranges: [],
     carriers: Map([]),

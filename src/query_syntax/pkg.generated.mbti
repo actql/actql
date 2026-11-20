@@ -20,6 +20,8 @@ pub fn after_query_bindings(Query) -> Query
 
 pub fn after_relation_generator(Query, NamePart) -> Query?
 
+pub fn anonymous_output_context_required(Query) -> Bool
+
 pub fn bound_source(Query) -> NamePart?
 
 pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
@@ -99,6 +101,8 @@ pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaC
 pub fn positional_output(Query) -> Bool
 
 pub fn producer_primary(Query) -> ProducerPrimary?
+
+pub fn projection_public_name(Projection) -> NamePart?
 
 pub fn query_binding_at(Query, Int) -> QueryBinding?
 

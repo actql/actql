@@ -29,40 +29,185 @@ fn merge_namespace_views(
   match (left, right) {
     (None, _) => right
     (_, None) => left
-    (Some(Array(a)), Some(Array(b))) =>
-      merge_namespace_views(Some(a), Some(b), spend).map(view => Array(view))
-    (Some(Row(a)), Some(Row(b))) => {
-      let fields : Array[NamespaceField] = []
-      for field in a {
-        spend(1)
-        let mut other : NamespaceField? = None
-        for candidate in b {
-          spend(1)
-          if candidate.key == field.key { other = Some(candidate); break }
-        }
-        fields.push(match other {
-          None => field
-          Some(other) => {
-            ..field,
-            name: if field.name == other.name { field.name } else { None },
-            name_view: merge_namespace_views(field.name_view, other.name_view, spend),
-          }
-        })
-      }
-      for field in b {
-        spend(1)
-        let mut found = false
-        for original in a {
-          spend(1)
-          if original.key == field.key { found = true; break }
-        }
-        if !found { fields.push(field) }
-      }
-      Some(Row(fields))
-    }
-    // Incompatible scalar/array/object branches remain the type owner's error.
-    _ => None
+    (Some(a), Some(b)) => Some(Joined(a, b))
   }
+}
+
+///|
+priv enum NamespaceAccess {
+  Field(@query.NamePart)
+  Item
+}
+
+///|
+priv enum NamespaceUndo {
+  Pop
+  Push(NamespaceAccess)
+}
+
+///|
+priv enum NamespaceVisit {
+  Enter(NamespaceView)
+  Restore(Int)
+}
+
+///|
+// Walk shared original links with one mutable path and rollback log. Branches
+// save indices, never a copied path or a retained validation result. The live
+// path/log/DFS stack are bounded by the original namespace graph depth even
+// when a repeated DAG path consumes more Work than its live representation.
+fn namespace_validate_access(
+  view : NamespaceView,
+  access : NamespaceAccess,
+  spend : (Int) -> Unit raise Abort,
+  expression : @query.Expression,
+  node : Int,
+) -> Unit raise Abort {
+  let path = [access]
+  let undo : Array[NamespaceUndo] = []
+  let pending : Array[NamespaceVisit] = [Enter(view)]
+  while pending.pop() is Some(visit) {
+    spend(1)
+    match visit {
+      Restore(mark) => while undo.length() > mark {
+        spend(1)
+        match undo.pop().unwrap() {
+          Pop => ignore(path.pop())
+          Push(original) => path.push(original)
+        }
+      }
+      Enter(view) => {
+        spend(1)
+        pending.push(Restore(undo.length()))
+        match view {
+          Joined(left, right) => {
+            spend(2)
+            pending.push(Enter(right))
+            pending.push(Enter(left))
+          }
+          Member(receiver, name) => {
+            spend(2)
+            path.push(Field(name))
+            undo.push(Pop)
+            pending.push(Enter(receiver))
+          }
+          Element(receiver) => {
+            spend(2)
+            path.push(Item)
+            undo.push(Pop)
+            pending.push(Enter(receiver))
+          }
+          Array(item) => if path.last() is Some(Item) {
+            spend(2)
+            ignore(path.pop())
+            undo.push(Push(Item))
+            if !path.is_empty() { pending.push(Enter(item)) }
+          }
+          Row(fields) => if path.last() is Some(Field(name)) {
+            let mut found = false
+            for field in fields {
+              spend(1)
+              if field.name is Some(original) {
+                spend(original.value.length())
+                spend(name.value.length())
+                if same_name(original, name) {
+                  found = true
+                  spend(2)
+                  ignore(path.pop())
+                  undo.push(Push(Field(name)))
+                  if field.name_view is Some(child) && !path.is_empty() {
+                    pending.push(Enter(child))
+                  }
+                  break
+                }
+              }
+            }
+            if !found { raise Abort(Expression({ issue: @expression.UnknownReference, origin: @query.expression_origin(expression, node), })) }
+          }
+          Captured(fields, profiles) => if path.last() is Some(Field(name)) {
+            let mut found = false
+            for field in fields {
+              spend(1)
+              spend(profiles.map(columns => columns.length()).unwrap_or(0))
+              let original = result_column_profile(profiles, field.0, field.1)
+              let public_name = match original {
+                Some(column) => column.name
+                None => Some({ value: field.0, quoted: false, })
+              }
+              if public_name is Some(public_name) {
+                spend(public_name.value.length())
+                spend(name.value.length())
+                if same_name(public_name, name) {
+                  found = true
+                  spend(2)
+                  ignore(path.pop())
+                  undo.push(Push(Field(name)))
+                  if original.bind(column => column.name_view) is Some(child) && !path.is_empty() {
+                    pending.push(Enter(child))
+                  }
+                  break
+                }
+              }
+            }
+            if !found { raise Abort(Expression({ issue: @expression.UnknownReference, origin: @query.expression_origin(expression, node), })) }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
+fn namespace_member(
+  view : NamespaceView?,
+  name : @query.NamePart,
+  spend : (Int) -> Unit raise Abort,
+  expression : @query.Expression,
+  node : Int,
+) -> NamespaceView? raise Abort {
+  guard view is Some(view) else { return None }
+  namespace_validate_access(view, Field(name), spend, expression, node)
+  Some(Member(view, name))
+}
+
+///|
+fn namespace_array_item(
+  view : NamespaceView?,
+  spend : (Int) -> Unit raise Abort,
+) -> NamespaceView? raise Abort {
+  spend(1)
+  view.map(view => Element(view))
+}
+
+///|
+// Materialize only when the expression owner actually consumes this row. The
+// returned work is charged by that same owner before its Object construction.
+fn namespace_row_fields(
+  fields : Array[(String, String)],
+  columns : Array[ResultColumn]?,
+  max_work : Int,
+) -> Result[(Array[(String, String)], Int), @expression.Issue] {
+  let mut remaining = max_work
+  if fields.length() > remaining { return Err(@expression.WorkLimit) }
+  remaining -= fields.length()
+  let profiles : Array[ResultColumn] = []
+  for field in fields {
+    let scan = columns.map(columns => columns.length()).unwrap_or(0)
+    if scan > remaining { return Err(@expression.WorkLimit) }
+    remaining -= scan
+    profiles.push(result_column_profile(columns, field.0, field.1).unwrap_or({
+      slot: field.1, label: field.0,
+      name: Some({ value: field.0, quoted: false, }), name_view: None,
+    }))
+  }
+  let (names, after_names) = match result_column_display_names_work(profiles, remaining) {
+    Ok(result) => result
+    Err(issue) => return Err(issue)
+  }
+  remaining = after_names
+  if fields.length() > remaining { return Err(@expression.WorkLimit) }
+  remaining -= fields.length()
+  Ok((fields.mapi((index, field) => (names[index], field.1)), max_work - remaining))
 }
 
 ///|
@@ -81,18 +226,6 @@ fn expression_namespace(
       raise Abort(Expression({ issue: @expression.WorkLimit, origin: @query.expression_origin(expression, current), }))
     }
     remaining -= amount
-  }
-  let select_member = fn(view : NamespaceView?, name : @query.NamePart) -> NamespaceView? raise Abort {
-    guard view is Some(Row(fields)) else { return None }
-    for field in fields {
-      spend(1)
-      if field.name is Some(original) {
-        spend(original.value.length())
-        spend(name.value.length())
-        if same_name(original, name) { return field.name_view }
-      }
-    }
-    raise Abort(Expression({ issue: @expression.UnknownReference, origin: @query.expression_origin(expression, current), }))
   }
   let count = @query.expression_node_count(expression)
   spend(count)
@@ -113,38 +246,22 @@ fn expression_namespace(
         if selected is Some(slot) {
           spend(columns.unwrap().length())
           let mut view = slot_namespace(columns, slot)
-          for part in path[length:] { view = select_member(view, part) }
+          for part in path[length:] { view = namespace_member(view, part, spend, expression, current) }
           view
         } else if resolve_row(path) is Some(fields) {
           spend(fields.length())
-          let profiles : Array[ResultColumn] = []
-          for field in fields {
-            spend(columns.unwrap().length())
-            profiles.push(result_column_profile(columns, field.0, field.1).unwrap_or({
-              slot: field.1, label: field.0,
-              name: Some({ value: field.0, quoted: false, }), name_view: None,
-            }))
-          }
-          let (names, after_names) = result_column_display_names_work(profiles, remaining)
-          remaining = after_names
-          spend(fields.length())
-          rows.push((path, fields.mapi((index, field) => (names[index], field.1))))
-          Some(Row(profiles.mapi((index, field) => {
-            { key: names[index], name: field.name, name_view: field.name_view, }
-          })))
+          rows.push((path, fields))
+          Some(Captured(fields, columns))
         } else { None }
       }
-      Property(child, name) => select_member(views[child], name)
+      Property(child, name) => namespace_member(views[child], name, spend, expression, current)
       Parenthesized(child) => views[child]
-      ArrayOffset(child, _, _) => match views[child] {
-        Some(Array(view)) => Some(view)
-        _ => None
-      }
+      ArrayOffset(child, _, _) => namespace_array_item(views[child], spend)
       StructConstructor(fields) => {
         spend(fields.length())
         if fields.any(field => views[field.1] is Some(_)) {
           Some(Row(fields.map(field => {
-            { key: field.0.value, name: Some(field.0), name_view: views[field.1], }
+            { name: Some(field.0), name_view: views[field.1], }
           })))
         } else { None }
       }

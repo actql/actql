@@ -14,11 +14,14 @@ priv struct ResultColumn {
 priv enum NamespaceView {
   Row(Array[NamespaceField])
   Array(NamespaceView)
+  Joined(NamespaceView, NamespaceView)
+  Captured(Array[(String, String)], Array[ResultColumn]?)
+  Member(NamespaceView, @query.NamePart)
+  Element(NamespaceView)
 }
 
 ///|
 priv struct NamespaceField {
-  key : String
   name : @query.NamePart?
   name_view : NamespaceView?
 }
@@ -77,9 +80,10 @@ fn projection_result_column(
 
 ///|
 fn selected_result_columns(
-  columns : Array[ResultColumn],
+  columns : Array[ResultColumn]?,
   names : Array[String],
 ) -> Array[ResultColumn]? {
+  guard columns is Some(columns) else { return None }
   if !columns.any(column => column.name is None || column.name_view is Some(_)) {
     return None
   }
@@ -97,18 +101,21 @@ fn result_column_display_names(
   columns : Array[ResultColumn],
   max_work : Int,
 ) -> Array[String] raise Abort {
-  result_column_display_names_work(columns, max_work).0
+  match result_column_display_names_work(columns, max_work) {
+    Ok((names, _)) => names
+    Err(issue) => raise Abort(Expression({ issue, origin: None, }))
+  }
 }
 
 ///|
 fn result_column_display_names_work(
   columns : Array[ResultColumn],
   max_work : Int,
-) -> (Array[String], Int) raise Abort {
+) -> Result[(Array[String], Int), @expression.Issue] {
   let mut remaining = max_work
   let result : Array[String] = []
   for index, column in columns {
-    guard remaining > 0 else { raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, })) }
+    guard remaining > 0 else { return Err(@expression.WorkLimit) }
     remaining -= 1
     match column.name {
       Some(name) => result.push(name.value)
@@ -118,19 +125,19 @@ fn result_column_display_names_work(
         while searching {
           searching = false
           for other in columns {
-            guard remaining > 0 else { raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, })) }
+            guard remaining > 0 else { return Err(@expression.WorkLimit) }
             remaining -= 1
             if other.name is Some(name) {
               // Charge the original name comparison before its temporary
               // case-folded strings, using the existing column-name law.
               if name.value.length() > remaining ||
                 candidate.length() > remaining - name.value.length() {
-                raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+                return Err(@expression.WorkLimit)
               }
               remaining -= name.value.length() + candidate.length()
               if same_name(name, { value: candidate, quoted: false, }) {
                 guard remaining >= candidate.length() + 1 else {
-                  raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+                  return Err(@expression.WorkLimit)
                 }
                 remaining -= candidate.length() + 1
                 candidate += "_"
@@ -144,7 +151,7 @@ fn result_column_display_names_work(
       }
     }
   }
-  (result, remaining)
+  Ok((result, remaining))
 }
 
 ///|
@@ -158,7 +165,7 @@ fn publish_script_result_columns(
   reserved : Array[String],
   max_work : Int,
 ) -> Input raise Abort {
-  guard sources.result_columns.get(input.name) is Some(columns) &&
+  guard script_result_columns(sources, input.name) is Some(columns) &&
     columns.any(column => column.name is None) else {
     return input
   }
@@ -175,9 +182,9 @@ fn publish_script_result_columns(
       ("as", construction.text(producer)),
     ]),
   )
-  sources.result_columns[producer] = columns.mapi((index, column) => {
+  put_script_result_columns(sources, producer, columns.mapi((index, column) => {
     { ..column, slot: displayed[index], label: displayed[index], }
-  })
+  }))
   { ..input, name: producer, visible_fields: displayed, }
 }
 
@@ -201,4 +208,52 @@ fn join_result_columns(
     }
   }
   Some(result)
+}
+
+///|
+// Set correspondence uses the same proven physical alignment as the operation.
+// The left public column role survives; nested anonymous restrictions from
+// either operand survive the value/type join. This does not validate values.
+fn merge_set_result_columns(
+  left : Array[ResultColumn]?,
+  right : Array[ResultColumn]?,
+  output : Array[String],
+  left_matched : Array[String],
+  right_matched : Array[String],
+  max_work : Int,
+) -> Array[ResultColumn]? raise Abort {
+  if left is None && right is None { return None }
+  guard output.length() == left_matched.length() && output.length() == right_matched.length() else { raise Abort(InvalidContext) }
+  let mut remaining = max_work
+  let spend = fn(amount : Int) -> Unit raise Abort {
+    if amount < 0 || amount > remaining { raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, })) }
+    remaining -= amount
+  }
+  let result : Array[ResultColumn] = []
+  for index, name in output {
+    spend(1)
+    spend(left.map(columns => columns.length()).unwrap_or(0))
+    spend(right.map(columns => columns.length()).unwrap_or(0))
+    let original = result_column_profile(left, left_matched[index], left_matched[index])
+    let incoming = result_column_profile(right, right_matched[index], right_matched[index])
+    result.push({
+      label: name, slot: name,
+      name: original.map(column => column.name).unwrap_or(Some({ value: name, quoted: false, })),
+      name_view: merge_namespace_views(original.bind(column => column.name_view), incoming.bind(column => column.name_view), spend),
+    })
+  }
+  Some(result)
+}
+
+///|
+fn script_result_columns(sources : ScriptSources, input : String) -> Array[ResultColumn]? {
+  sources.result_columns.bind(columns => columns.get(input))
+}
+
+///|
+// No namespace Map is constructed on the proven all-named path. This is the
+// same private compiler table; entries never contain a checked/current grant.
+fn put_script_result_columns(sources : ScriptSources, input : String, columns : Array[ResultColumn]) -> Unit {
+  if sources.result_columns is None { sources.result_columns = Some(Map([])) }
+  sources.result_columns.unwrap()[input] = columns
 }

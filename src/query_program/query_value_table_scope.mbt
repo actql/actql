@@ -4,11 +4,18 @@
 fn script_input_scope(
   construction : Construction,
   sources : ScriptSources,
-  input : String,
+  input : Input,
   range : @query.NamePart,
 ) -> JoinChainScope? raise Abort {
-  if sources.result_columns.get(input) is Some(columns) &&
-    columns.any(column => column.name is None) {
+  if script_result_columns(sources, input.name) is Some(original_columns) &&
+    original_columns.any(column => column.name is None || column.name_view is Some(_)) {
+    // The original Input has already excluded private exact-integer companions.
+    // Namespace metadata must not restore those storage slots as user fields.
+    let columns = input.visible_fields.map(field => {
+      result_column_profile(Some(original_columns), field, field).unwrap_or({
+        label: field, slot: field, name: Some({ value: field, quoted: false, }), name_view: None,
+      })
+    })
     let physical = columns.map(column => (column.slot, column.slot))
     let named : Array[(String, String)] = []
     for column in columns {
@@ -31,9 +38,9 @@ fn script_input_scope(
       key_labels: seed_infer_key_labels(construction, [], named),
     })
   }
-  match sources.value_tables.get(input) {
+  match sources.value_tables.get(input.name) {
     Some(scope) => Some(bind_value_table_scope(construction, scope, range))
-    None => sources.ranges.get(input)
+    None => sources.ranges.get(input.name)
   }
 }
 
