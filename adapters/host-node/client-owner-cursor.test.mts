@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {generateKeyPairSync} from 'node:crypto';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId:'namespace-e\u0301', authorityScopeCid:cid('a'), runDefinitionCid:cid('b')};
 const owner = {kind:'effect', scopeCid:cid('c'), streamCid:cid('d')};
 const position = {generation:cid('1'), revision:2, entryCid:cid('2')};

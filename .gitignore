@@ -351,3 +351,9 @@ target/
 # Generated Client Host runtime keeps its original public import path.
 /packages/client-wire/index.mjs
 /packages/client-wire/index.d.mts
+
+# Generated stateless Owner cursor binding and its maintained controls.
+/adapters/host-node/client-owner-cursor.mjs
+/adapters/host-node/client-owner-cursor.d.mts
+/adapters/host-node/client-owner-cursor.test.mjs
+/adapters/host-node/client-owner-cursor.test.d.mts

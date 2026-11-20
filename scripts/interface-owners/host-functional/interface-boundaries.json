@@ -25700,8 +25700,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25714,8 +25714,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25728,7 +25728,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// A stateless Host binding for existing Owner history prefixes. The token is"
               },
               {
@@ -25742,7 +25742,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// A stateless Host binding for existing Owner history prefixes. The token is"
               },
               {
@@ -25756,8 +25756,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25770,7 +25770,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "throw new TypeError('InvalidClientOwnerCursorLifetime');"
               },
               {
@@ -25784,8 +25784,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25798,7 +25798,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// These fixed fields contain admitted identities and a bounded counter."
               },
               {
@@ -25812,7 +25812,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "const claim = {version:domain, expiresAt, ref:snapshotClientRequest(ref),"
               },
               {
@@ -25826,7 +25826,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-owner-cursor.test.mjs",
+                "path": "adapters/host-node/client-owner-cursor.test.mts",
                 "anchor": "test('Owner cursor preserves the original scoped prefix across codec recreation', async () => {"
               },
               {
@@ -25844,8 +25844,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25858,8 +25858,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25872,7 +25872,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// A stateless Host binding for existing Owner history prefixes. The token is"
               },
               {
@@ -25886,7 +25886,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// A stateless Host binding for existing Owner history prefixes. The token is"
               },
               {
@@ -25900,8 +25900,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25914,7 +25914,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "throw new TypeError('InvalidClientOwnerCursorLifetime');"
               },
               {
@@ -25928,8 +25928,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
-                "anchor": "export function createClientOwnerCursorCodec({privateKey, publicKey, now=Date.now, maxAgeMs=300000}) {"
+                "path": "adapters/host-node/client-owner-cursor.mts",
+                "anchor": "export function createClientOwnerCursorCodec"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25942,7 +25942,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "// These fixed fields contain admitted identities and a bounded counter."
               },
               {
@@ -25956,7 +25956,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-owner-cursor.mjs",
+                "path": "adapters/host-node/client-owner-cursor.mts",
                 "anchor": "const claim = {version:domain, expiresAt, ref:snapshotClientRequest(ref),"
               },
               {
@@ -25970,7 +25970,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-owner-cursor.test.mjs",
+                "path": "adapters/host-node/client-owner-cursor.test.mts",
                 "anchor": "test('Owner cursor preserves the original scoped prefix across codec recreation', async () => {"
               },
               {
