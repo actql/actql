@@ -291,3 +291,9 @@ target/
 # Existing HTTP public JS entry is emitted; exports keep canonical index.d.ts.
 /packages/provider-http/index.mjs
 /packages/provider-http/index.d.mts
+
+# Generated action projection tooling; Owner action codes remain canonical.
+/scripts/js-action-boundaries.mjs
+/scripts/js-action-boundaries.d.mts
+/scripts/generate-js-action-bindings.mjs
+/scripts/generate-js-action-bindings.d.mts

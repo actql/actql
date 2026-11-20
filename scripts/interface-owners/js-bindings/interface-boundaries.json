@@ -162767,7 +162767,7 @@
       "module": "adapters/host-common/publication-action.mjs",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {
@@ -162779,7 +162779,7 @@
       "module": "adapters/host-common/strategy-actions.mjs",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {
@@ -162839,7 +162839,7 @@
       "module": "packages/run-host-core/publication-action.mjs",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {

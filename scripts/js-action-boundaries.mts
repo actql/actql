@@ -1,8 +1,13 @@
 // Existing Owner decisions -> existing JS facade names. There are deliberately
 // no action numbers here. Code assignments come only from the named Owner fn.
-const publication = (kind, source, enumeration, projection, names) =>
+export type ActionBoundary = Readonly<{
+  family: 'publication' | 'strategy'; kind: string; source: string;
+  enumeration: string; projection: string;
+  names?: Readonly<Record<string, string>>; error?: string; excluded?: readonly string[];
+}>;
+const publication = (kind: string, source: string, enumeration: string, projection: string, names: Readonly<Record<string, string>>): ActionBoundary =>
   Object.freeze({family:'publication',kind,source,enumeration,projection,names});
-const strategy = (kind, source, enumeration, projection, error, excluded = []) =>
+const strategy = (kind: string, source: string, enumeration: string, projection: string, error: string, excluded: readonly string[] = []): ActionBoundary =>
   Object.freeze({family:'strategy',kind,source,enumeration,projection,error,excluded});
 const runtime = 'src/run_publication/runtime_progress.mbt';
 const delivery = 'src/run_publication/delivery_runtime_progress.mbt';
