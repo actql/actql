@@ -42,8 +42,7 @@ test "POW refuses foreign domains and invalid arities without coercion" {
   for
     text in [
       "POW(2)", "POW(2, 3, 4)", "POWER(2)", "POWER(2, 3, 4)", "POW('2', 3)", "POW(2, TRUE)",
-      "POW(NULL, '3')", "POW(2, CAST('3' AS DECIMAL(2,0)))", "MOD(5, 2)", "POW(1e400, 0)",
-      "POW(1, 1e400)",
+      "POW(NULL, '3')", "POW(2, CAST('3' AS DECIMAL(2,0)))", "POW(1e400, 0)", "POW(1, 1e400)",
     ] {
     match @query.parse_query("SELECT " + text + " AS value", syntax_limits()) {
       Err(_) => ()

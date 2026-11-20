@@ -1142,8 +1142,27 @@ pub fn compile_query_script(
   store_targets? : StoreTargetPublication? = None,
   command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
+  let query = match
+    @query.with_integer_function_context(
+      @query.script_query(script),
+      limits.max_expression_work,
+    ) {
+    Ok(query) => query
+    Err({ issue: InvalidLimits, .. }) => return Err(InvalidContext)
+    Err(_) => {
+      let document = @query.script_document(script)
+      return Err(
+        Expression({
+          issue: WorkLimit,
+          origin: Some(
+            @origin.range(document, 0, @origin.input_bytes(document)).unwrap(),
+          ),
+        }),
+      )
+    }
+  }
   compile_query_script_with_source(
-    script,
+    @query.single_query_script(query),
     context,
     limits,
     table_writes~,

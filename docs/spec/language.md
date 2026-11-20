@@ -3652,6 +3652,7 @@ the same tree limits; opaque literal payloads are counted but not parsed as code
 | Cast target | Admitted non-null input | Value law / corresponding source function |
 | --- | --- | --- |
 | NUMBER | string or number | `to_number`; number to number is identity |
+| INT64 | string, number, int64, decimal or boolean | Exact signed result; explicit numeric conversion rounds to nearest, with halfway values away from zero |
 | STRING | string, number, decimal, boolean, timestamp, date | `to_string` canonical spelling |
 | BOOLEAN | string or boolean | `to_boolean`; boolean to boolean is identity |
 | TIMESTAMP | string or timestamp | `to_timestamp`; timestamp to timestamp is identity |
@@ -3667,6 +3668,36 @@ spellings have the same tree. `DATE`, `::`, and arbitrary SQL type names are
 not cast targets in this revision. Decimal/binary64 fractional mixing remains
 invalid; `CAST('0.1' AS DECIMAL(2,1))` is exact, while casting binary64 `0.1`
 fails if evaluated. `quantize` remains the explicit rounding operation.
+
+<!-- requirement-block: casts.signed64-exact-result casts.signed64-number-rounding casts.signed64-decimal-rounding casts.signed64-input-versus-wire casts.signed64-no-implicit-conversion -->
+An explicit `CAST(e AS INT64)` MUST retain the distinct exact `int64` result
+contract and reject a result outside its signed range before integer narrowing.
+A Number input MUST round to the nearest integer, with halfway values rounded
+away from zero; an exact Decimal input MUST apply that rule to its original
+coefficient and scale without binary64 conversion. Boolean true and false
+convert to one and zero, respectively. An int64 input preserves its exact value.
+String conversion MUST use the selected GoogleSQL integer conversion grammar,
+including its optional sign, decimal or hexadecimal spelling and permitted
+ASCII whitespace, rather than requiring canonical value-wire spelling.
+The result still uses the unchanged canonical signed64 value wire. These
+explicit conversions MUST NOT widen assignment, comparison-context admission,
+the existing Number literal domain, or Decimal conversion and quantize rules.
+NULL propagates under the checked nullable target. Invalid spelling and
+out-of-range conversion remain operation failures, never wrapping or clamping.
+
+<!-- requirement-block: integer-functions.original-context integer-functions.no-number-promotion integer-functions.exact-values integer-functions.null-and-failure integer-functions.decimal-domain -->
+SQL `MOD` and `DIV` MUST preserve original integer-spelled literal context
+before binary64 lowering, including the corresponding authored CTE/UNION
+producer columns. This context MUST NOT promote floating-spelled literals
+(`5.0`, `5e0`), observed rows, or declared Number parameters or columns to int64.
+Both functions MUST compute in the exact checked integer/Decimal domain:
+`DIV` truncates toward zero and `MOD` has the dividend's sign. NULL MUST
+propagate after both demanded operands, while a zero divisor and an overflowing
+quotient fail; minimum int64 modulo negative one is zero and its division
+overflows. Decimal combinations MUST retain exact original coefficients and
+scales, with scale zero for `DIV` and the maximum operand scale for `MOD`.
+Mixed int64/Decimal operands produce Decimal. The existing Number arithmetic
+operators and unrelated literal/result/schema meanings remain unchanged.
 
 <!-- requirement-block: casts.null-array-context -->
 The immediate NULL ARRAY source context MUST preserve the NULL value and the
@@ -11532,7 +11563,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:fd7bf4ecc87ce648726899f77f7dff72940456bfcf26e2ee00ba9320b7309703
+../../spec/contracts/actql-aoa.json# sha256:4cbca799a8c32f0e92b153b0cff575ba893873983d1c64532645383203f7b0cd
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11541,13 +11572,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:e848e1617d5a1f41684cb93f469c667020a9e6c4714c38399687fa7eeb99c550
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:254378a85b9b89b65343a974cb69964cdf12fb433a037f37b0accdd1155c231c
+../../spec/contracts/actql-expressions.json# sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:51ba270a05eeb56424314cac588712ed1668a07de63a628dd9aecdb80186db27
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:8fe178875664bacd86ef0e86cac7de46f7bd98b2566c7867b633da50bad07ba7
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:68c92e6beb9bceeb237f974d3263bb48be00242fa1045555b2ae570863f24e87
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:be96b6072058cb165d5350a2575403a4fe35bafc229e669ca296aacc0ca79cdf
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b5208c2ba7441620b41ccc35f50432b8a0a42b0ee799b0ed4f55fc0da4051154
+../../spec/contracts/actql-expressions.json#/laws sha256:1fb3a6ac73e9f1d9e4561121e7cf5e737a8c1378e8842e49663501422b747a88
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:d6bb2573825196a25ebfc2e73f657f78412f24f0b482fd8f51b59e3eef6d6c1a
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:043427623b48f5a49c1b2d01ff0dbe5f6cdf3316e4219ee12ee40d028468d91f
 ```
 
 <!-- stage-contract-pins:start -->

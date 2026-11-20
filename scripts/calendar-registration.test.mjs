@@ -34,7 +34,7 @@ test('Calendar opcodes and arities match the existing normative mapping', () => 
   const language = readFileSync('docs/spec/language.md', 'utf8');
   assert(language.includes('`TEA.calendar.bucket` / `TEA.calendar.series`'));
   checkRegistration(aoa, registry);
-  assert.equal(cid(registry), 'sha256:204fd80c64c2bff246015f06ae50d0044aa566f197922f14cd15ecf0b3285fdb');
+  assert.equal(cid(registry), 'sha256:0dbcd76665f919493fbd4da00b7fa69efa6e6d0131c6008ad39722ac30f78735');
   assert.equal(cid(aoa.execution_contracts[operations[0]]), 'sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227');
   assert.equal(cid(aoa.execution_contracts[operations[1]]), 'sha256:8070a5fa9b6177df0d407b474a2b34aff2ecde9cf9c5b726191f7bd908a4dc83');
   assert.deepEqual(registry[operations[0]].inputs, ['relation']);
@@ -110,10 +110,28 @@ test('current Calendar registration preserves complete old bodies and changes on
   for (const endpoint of ['start', 'end'])
     restoredSeries.params_schema.properties[endpoint] = prior.series.params_schema.properties[endpoint];
   assert.deepEqual(restoredSeries, prior.series);
+  const restoredOwner = structuredClone(aoa);
+  // Later expression-language changes rebind these exact dependency roles;
+  // they do not replace this published Calendar transition or its preimages.
+  restoredOwner.expression_contract_cid = prior.aoa.expression_contract_cid;
+  for (const [name, roles] of [
+    ['ACTQL.expression_fragment/0.1', ['expression_contract', 'fragment_schema']],
+    ['REL.derive.ordered', ['expression_contract', 'expression_node', 'source_expression']],
+  ]) for (const role of roles) {
+    const retained = prior.aoa.execution_contracts[name].dependencies[role];
+    const current = restoredOwner.execution_contracts[name].dependencies[role];
+    assert.deepEqual({...current, cid: retained.cid}, retained);
+    current.cid = retained.cid;
+  }
+  const fragmentCid = cid(restoredOwner.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const orderedCid = cid(restoredOwner.execution_contracts['REL.derive.ordered']);
   const restoredRegistry = structuredClone(registry);
+  restoredRegistry['ACTQL.expression_fragment/0.1'].execution_contract.cid = fragmentCid;
+  restoredRegistry['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
   restoredRegistry[operations[1]].execution_contract.cid = prior.series_cid;
   assert.deepEqual(restoredRegistry, prior.registry);
-  const restoredOwner = structuredClone(aoa);
+  restoredOwner.target_registry_requirements['ACTQL.expression_fragment/0.1'].execution_contract.cid = fragmentCid;
+  restoredOwner.target_registry_requirements['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
   restoredOwner.execution_contracts[operations[1]] = prior.series;
   restoredOwner.target_registry_requirements[operations[1]].execution_contract.cid = prior.series_cid;
   restoredOwner.pipeline_registry_cid = prior.registry_cid;

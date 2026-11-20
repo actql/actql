@@ -1651,7 +1651,9 @@ class InitialPhaseObservationTests(unittest.TestCase):
         stream = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
                 patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
-                patch.object(consumer.sys, 'stderr', stream):
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True,
+                             side_effect=[1000] + list(range(1000, 1200, 10))) as clock:
             observed = consumer._sync('private-version', 'initial', Path(tmp) / 'original.json')
         self.assertIs(observed, control.result.return_value)
         records = [json.loads(line) for line in stream.getvalue().splitlines()]
@@ -1661,8 +1663,10 @@ class InitialPhaseObservationTests(unittest.TestCase):
             'first-result-enter', 'first-result-return', 'first-reread-enter', 'first-reread-return',
             'second-start-enter', 'second-start-return', 'second-state-enter', 'second-state-return',
             'second-result-enter', 'second-result-return', 'first-close-enter', 'first-close-return'])
-        self.assertTrue(all(set(record) == {'stage', 'phase'} and
+        self.assertTrue(all(set(record) == {'stage', 'phase', 'elapsed_ns'} and
                             record['stage'] == 'installed-sync-initial-phase' for record in records))
+        self.assertEqual([record['elapsed_ns'] for record in records], list(range(0, 200, 10)))
+        self.assertEqual(clock.call_count, 21)  # One origin and the same twenty boundaries.
         self.assertLess(len(stream.getvalue().encode()), 4096)
         self.assertNotIn('private-version', stream.getvalue())
         public.Client.open.assert_called_once_with()
@@ -1699,9 +1703,11 @@ class InitialPhaseObservationTests(unittest.TestCase):
         stream = io.StringIO()
         with patch.dict(sys.modules, {'actql': public}), patch.object(consumer, '_saved', return_value=saved), \
                 patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control) as observation, \
-                patch.object(consumer.sys, 'stderr', stream):
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True) as clock:
             self.assertIsNone(consumer._sync('fixture', 'resume', Path('/unused/receipt')))
         self.assertEqual(stream.getvalue(), '')
+        clock.assert_not_called()
         observation.assert_not_called()
         client.start_source.assert_not_called()
         client.attach.assert_called_once_with(saved['run'])
@@ -1718,6 +1724,53 @@ class InitialPhaseObservationTests(unittest.TestCase):
             consumer._sync_initial_phase(True, Foreign())
             consumer._sync_initial_phase(True, 'private-stage-not-selected')
         self.assertEqual(stream.getvalue(), '')
+
+    def test_elapsed_refuses_foreign_negative_overflow_and_failed_clock_without_fabricating_time(self):
+        consumer, _, _, _, _ = self.fixture()
+        class Foreign:
+            def __sub__(self, other):
+                raise AssertionError('Do not subtract foreign diagnostic clocks')
+            def __lt__(self, other):
+                raise AssertionError('Do not compare foreign diagnostic clocks')
+        maximum = (1 << 63) - 1
+        cases = [(0, 0, 0), (0, maximum, maximum), (100, 125, 25),
+                 (100, 99, None), (0, maximum + 1, None), (0, True, None),
+                 (0, 1.5, None), (0, Foreign(), None), (None, 100, None),
+                 (True, 100, None), (-1, 100, None), (maximum + 1, maximum + 2, None),
+                 (Foreign(), 100, None)]
+        for origin, now, expected in cases:
+            stream = io.StringIO()
+            with self.subTest(origin_type=type(origin).__name__, now_type=type(now).__name__), \
+                    patch.object(consumer.sys, 'stderr', stream), \
+                    patch.object(consumer, 'monotonic_ns', create=True, return_value=now):
+                consumer._sync_initial_phase(True, 'factory-enter', origin)
+            if expected is None:
+                self.assertEqual(stream.getvalue(), '')
+            else:
+                self.assertEqual(json.loads(stream.getvalue())['elapsed_ns'], expected)
+        stream = io.StringIO()
+        with patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt):
+            consumer._sync_initial_phase(True, 'factory-enter', 0)
+        self.assertEqual(stream.getvalue(), '')
+
+    def test_failed_origin_preserves_original_failure_and_first_close_without_reorigin(self):
+        consumer, public, client, _, control = self.fixture()
+        original = RuntimeError('original first-start failure')
+        client.start_source.side_effect = original
+        stream = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt) as clock:
+            with self.assertRaises(RuntimeError) as raised:
+                consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(raised.exception, original)
+        clock.assert_called_once_with()
+        self.assertEqual(stream.getvalue(), '')
+        self.assertEqual(client.__exit__.call_count, 1)
+        self.assertIs(client.__exit__.call_args.args[1], original)
+        control.result.assert_not_called()
 
 
 class InstalledCancellationTests(unittest.TestCase):
