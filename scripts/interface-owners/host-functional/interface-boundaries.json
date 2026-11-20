@@ -92239,7 +92239,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/source-profile-json.mts",
-                "anchor": "return await consume(selected as ReadFileOriginal);"
+                "anchor": "return await consume(selected);"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",

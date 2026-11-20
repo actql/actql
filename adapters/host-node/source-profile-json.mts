@@ -12,6 +12,7 @@ interface ReadFileOriginal {
   stat(): Promise<{size: number}>;
   close: Method;
 }
+type ReadFileSelection = Pick<ReadFileOriginal, 'read' | 'stat'>;
 interface ReadOptions {
   maxBytes?: number; openFile?: unknown; beforeRead?: unknown;
   beforeDecode?: unknown; beforeParse?: unknown; io?: unknown;
@@ -155,7 +156,7 @@ async function readOriginalConfiguration<T>(path: unknown,
   }, io);
 }
 
-async function readConfigurationBody<T>(original: ReadFileOriginal, maxBytes: number, project: (bytes: Buffer) => T, beforeDecode: unknown) {
+async function readConfigurationBody<T>(original: ReadFileSelection, maxBytes: number, project: (bytes: Buffer) => T, beforeDecode: unknown) {
     const chunks: Buffer[] = [];
     let bytes = 0;
     let used = 0;
@@ -234,7 +235,7 @@ function capturePhysicalIo(io: unknown) {
   return {receiver: io, methods};
 }
 
-export async function withOriginalFile<T>(path: unknown, openFile: unknown, consume: (selected: ReadFileOriginal) => T | Promise<T>, physicalIo?: unknown) {
+export async function withOriginalFile<T>(path: unknown, openFile: unknown, consume: (selected: ReadFileSelection) => T | Promise<T>, physicalIo?: unknown) {
   const io = capturePhysicalIo(physicalIo), pending = new Set<PendingIo>(), computations = new Set<Computation>();
   let original: ReadFileOriginal | undefined, originalClose: Method | undefined, physicallyClosed = false;
   const invalidIo = () => new TypeError('InvalidInstalledSourcePhysicalIo');
@@ -328,7 +329,7 @@ export async function withOriginalFile<T>(path: unknown, openFile: unknown, cons
         const result = await applyOriginal(method, original, []);finish(record!);return result as {size: number};
       },
     });
-    return await consume(selected as ReadFileOriginal);
+    return await consume(selected);
   } catch (cause) {
     readFailed = true;failure = cause;throw cause;
   } finally {
