@@ -81090,8 +81090,7 @@
             "required_number",
             "reserve_submission_projection",
             "retire_submission_output",
-            "submission_projection_length",
-            "saved_result_projection_kind"
+            "submission_projection_length"
           ],
           "exports": [],
           "attributes": {
@@ -81237,6 +81236,78 @@
               {
                 "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
                 "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "saved_result_projection_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The matched installed Local Host and Core use private submission kind 13 for"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn saved_result_projection_kind(kind : Int) -> Bool"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "kind == 6 || kind == INCREMENTAL_SAVED_RESULT_KIND"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/saved_sdk_read_context.mbt",
+                "anchor": "saved_result_projection_kind(parent.kind)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The Host releases the Core lock, current reader and SQLite transaction before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "A different supported schema refuses continuation before"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "pub fn begin_submission_cleanup(nonce : Int64, handle : Int) -> Int"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Kind 13 returns `1` from `submission.produce` while the original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "def test_saved_payload_reserves_selection_on_both_paths(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):"
               }
             ]
           }
