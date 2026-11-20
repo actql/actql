@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {writeFileSync} from 'node:fs';
 import {createLocalAuthorizationGate, observeInstalledAccount,
-  sourceReadAccountConfiguration} from './local-account-config.mjs';
+  readAccountConfiguration, sourceReadAccountConfiguration} from './local-account-config.mjs';
 
 const tuple = {connection: 'connection', resource: 'resource', operation: 'read'};
 const wire = sourceReadAccountConfiguration(tuple);
@@ -14,6 +14,22 @@ const fakeMoon = {
   executionAuthorizationAdmit: text => ({state: 'admitted', text}),
   executionAuthorizationMissing: () => ({state: 'missing'}),
 };
+
+test('reading Account configuration preserves original wire without issuing a Host CID', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-original-cid-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  const original = '{ "version": "actql-execution-account-config/0.1", "account_id": "operator", "entries": [] }';
+  await writeFile(path, original);
+  // This physical read supplies the original text and the Host context's
+  // account name. Only the subsequent Common admission owns canonical identity.
+  t.mock.method(String.prototype, 'normalize', () => {
+    assert.fail('The physical Account reader must not canonicalize configuration');
+  });
+  const actual = await readAccountConfiguration(path);
+  assert.deepEqual(actual, {path, text: original, accountId: 'operator'});
+  assert.equal(Object.isFrozen(actual), true);
+});
 
 test('the account observer allocates only the opened file length and growth sentinel', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-account-buffer-'));
@@ -128,4 +144,43 @@ test('installed wire-backed gate preserves original context and cannot synthesiz
     assert.equal(missing.accountConfiguration, undefined);
     assert.notEqual((await missing.authorize('acquisition', tuple, {subjectCid})).action, 'dispatch');
   } finally {gate.close(); missing.close();}
+});
+
+// Independent published Account corpus preimage, not a CID calculated by the
+// Host writer or by this test's product runtime.
+const corpusWire = '{"version":"actql-execution-account-config/0.1","account_id":"local:operator","entries":[{"entry_id":"files","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["local-files"]},"resource":{"all":true},"operation":{"all":true},"exclusions":[]}]}';
+const corpusCid = 'sha256:e240525257340428cc9117b0b0e84a000996791f43b230abdb553e55223bec12';
+
+test('installed Account uses the admitted Common identity for wire and original file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-common-cid-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  await writeFile(path, corpusWire);
+  for (const selection of [{accountConfiguration: corpusWire}, {accountConfig: path}]) {
+    const gate = await createLocalAuthorizationGate({...selection, principal: 'operator'});
+    try {
+      assert.equal(gate.configurationCid, corpusCid);
+      assert.equal(gate.accountConfiguration, corpusWire);
+      const original = await gate.authorize('acquisition', {
+        connection: 'local-files', resource: 'rows', operation: 'read',
+      }, {subjectCid});
+      assert.equal(original.action, 'dispatch');
+      gate.assertAccountCurrent(original);
+      if (selection.accountConfig) {
+        await writeFile(path, corpusWire.replace('"allow"', '"deny"'));
+        assert.throws(() => gate.assertAccountCurrent(original),
+          {code: 'AuthorizationCurrentAccountChanged'});
+      }
+    } finally {gate.close();}
+  }
+});
+
+test('installed Account retains an explicit expected-CID refusal instead of overwriting it', async () => {
+  let gate;
+  try {
+    await assert.rejects(async () => {
+      gate = await createLocalAuthorizationGate({accountConfiguration: corpusWire,
+        principal: 'operator', configurationCid: subjectCid});
+    }, {code: 'AuthorizationConfigurationCidMismatch'});
+  } finally {gate?.close();}
 });
