@@ -298,16 +298,24 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           record
         }
         Err(issue) => {
-          self.retain_primary(CommandSavedResolution(issue))
-          stop("LocalCheckpointResolutionUnavailable")
+          let primary = CommandSavedResolution(issue)
+          self.retain_primary(primary)
+          stop(
+            "LocalCheckpointResolutionUnavailable:" +
+            command_preparation_cleanup_cause(primary),
+          )
         }
       }
     } else {
       match review.resolve_initial_in_original_read(operation, "host.json") {
         Ok(value) => value
         Err(issue) => {
-          self.retain_primary(CommandSavedResolution(issue))
-          stop("LocalCheckpointResolutionUnavailable")
+          let primary = CommandSavedResolution(issue)
+          self.retain_primary(primary)
+          stop(
+            "LocalCheckpointResolutionUnavailable:" +
+            command_preparation_cleanup_cause(primary),
+          )
         }
       }
     }

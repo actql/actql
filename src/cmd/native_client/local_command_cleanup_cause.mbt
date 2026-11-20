@@ -81,7 +81,54 @@ fn command_preparation_cleanup_cause(
         SavedResolutionProof(_) => "SavedResolutionProof"
         SavedResolutionSigning(_) => "SavedResolutionSigning"
         SavedResolutionAccount(_) => "SavedResolutionAccount"
-        SavedResolutionHost(_) => "SavedResolutionHost"
+        SavedResolutionHost(cause) =>
+          match cause {
+            HostAttestationJournal(original) =>
+              match original {
+                CustodyLost => "SavedResolutionHost:Journal:CustodyLost"
+                CapacityExceeded =>
+                  "SavedResolutionHost:Journal:CapacityExceeded"
+                AuthorizationDenied =>
+                  "SavedResolutionHost:Journal:AuthorizationDenied"
+                ChangedIntent => "SavedResolutionHost:Journal:ChangedIntent"
+                ForeignRun => "SavedResolutionHost:Journal:ForeignRun"
+                Fenced => "SavedResolutionHost:Journal:Fenced"
+                TransactionUnknown =>
+                  "SavedResolutionHost:Journal:TransactionUnknown"
+                Encoding => "SavedResolutionHost:Journal:Encoding"
+                Physical(_) => "SavedResolutionHost:Journal:Physical"
+                Checkpoint(checkpoint) =>
+                  match checkpoint {
+                    InvalidMaterial =>
+                      "SavedResolutionHost:Journal:Checkpoint:InvalidMaterial"
+                    StaleRevision =>
+                      "SavedResolutionHost:Journal:Checkpoint:StaleRevision"
+                    ConflictingResolution =>
+                      "SavedResolutionHost:Journal:Checkpoint:ConflictingResolution"
+                    Expired => "SavedResolutionHost:Journal:Checkpoint:Expired"
+                    NeedsOriginalContinuation =>
+                      "SavedResolutionHost:Journal:Checkpoint:NeedsOriginalContinuation"
+                    State(_) => "SavedResolutionHost:Journal:Checkpoint:State"
+                    Signature(_) =>
+                      "SavedResolutionHost:Journal:Checkpoint:Signature"
+                    Resume(_) => "SavedResolutionHost:Journal:Checkpoint:Resume"
+                    Ledger(_) => "SavedResolutionHost:Journal:Checkpoint:Ledger"
+                    EffectBinding(_) =>
+                      "SavedResolutionHost:Journal:Checkpoint:EffectBinding"
+                  }
+                _ => "SavedResolutionHost:Journal"
+              }
+            HostAttestationUnavailable => "SavedResolutionHost:Unavailable"
+            HostAttestationOriginal(_) => "SavedResolutionHost:Original"
+            HostAttestationAccount(_) => "SavedResolutionHost:Account"
+            HostAttestationReviewer(_) => "SavedResolutionHost:Reviewer"
+            HostAttestationProof(_) => "SavedResolutionHost:Proof"
+            HostAttestationBody(_) => "SavedResolutionHost:Body"
+            HostAttestationAuthorization(_) =>
+              "SavedResolutionHost:Authorization"
+            HostAttestationCredential(_) => "SavedResolutionHost:Credential"
+            HostAttestationPhysical(_) => "SavedResolutionHost:Physical"
+          }
         SavedResolutionEncoding => "SavedResolutionEncoding"
       }
     CommandBusinessChildren => "CommandBusinessChildren"
