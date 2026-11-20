@@ -145,3 +145,42 @@ test('installed wire-backed gate preserves original context and cannot synthesiz
     assert.notEqual((await missing.authorize('acquisition', tuple, {subjectCid})).action, 'dispatch');
   } finally {gate.close(); missing.close();}
 });
+
+// Independent published Account corpus preimage, not a CID calculated by the
+// Host writer or by this test's product runtime.
+const corpusWire = '{"version":"actql-execution-account-config/0.1","account_id":"local:operator","entries":[{"entry_id":"files","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["local-files"]},"resource":{"all":true},"operation":{"all":true},"exclusions":[]}]}';
+const corpusCid = 'sha256:e240525257340428cc9117b0b0e84a000996791f43b230abdb553e55223bec12';
+
+test('installed Account uses the admitted Common identity for wire and original file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-common-cid-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  await writeFile(path, corpusWire);
+  for (const selection of [{accountConfiguration: corpusWire}, {accountConfig: path}]) {
+    const gate = await createLocalAuthorizationGate({...selection, principal: 'operator'});
+    try {
+      assert.equal(gate.configurationCid, corpusCid);
+      assert.equal(gate.accountConfiguration, corpusWire);
+      const original = await gate.authorize('acquisition', {
+        connection: 'local-files', resource: 'rows', operation: 'read',
+      }, {subjectCid});
+      assert.equal(original.action, 'dispatch');
+      gate.assertAccountCurrent(original);
+      if (selection.accountConfig) {
+        await writeFile(path, corpusWire.replace('"allow"', '"deny"'));
+        assert.throws(() => gate.assertAccountCurrent(original),
+          {code: 'AuthorizationCurrentAccountChanged'});
+      }
+    } finally {gate.close();}
+  }
+});
+
+test('installed Account retains an explicit expected-CID refusal instead of overwriting it', async () => {
+  let gate;
+  try {
+    await assert.rejects(async () => {
+      gate = await createLocalAuthorizationGate({accountConfiguration: corpusWire,
+        principal: 'operator', configurationCid: subjectCid});
+    }, {code: 'AuthorizationConfigurationCidMismatch'});
+  } finally {gate?.close();}
+});

@@ -1,5 +1,17 @@
 # OSS Host authorization behavior
 
+## Installed Account identity
+
+The Local configuration reader retains the original wire and reads the account
+name needed for the installed Host context. It does not canonicalize that document
+or issue a second configuration CID. The existing Common Account admission owns
+the complete document's identity, which the gate retains for decision subjects,
+Checkpoint binding and current comparisons. An explicitly supplied expected CID
+remains only a cross-check against that admitted identity and cannot replace it.
+File-current observations, admission construction custody and scope retirement
+keep their existing owners. Host-private context and storage-policy identities
+remain separate domains; their local writer is not an Account admission path.
+
 ## Local Result read authorization
 
 Result identity and the authenticated principal do not replace the current
