@@ -3,7 +3,7 @@ import {snapshotDataProfile} from './data-profile.mjs';
 // Installed example-reader policy. Cumulative content limits belong to the
 // application; decoding retains one bounded canonical row and frame at a time.
 // This is a declared container/encoding allowance, not a V8 RSS guarantee.
-export function retainedReaderPolicy(supplied) {
+export function retainedReaderPolicy(supplied?: unknown) {
   const data = snapshotDataProfile(supplied);
   const columns = data?.columns ?? 10;
   const batchBytes = data?.batch_bytes ?? 100000;

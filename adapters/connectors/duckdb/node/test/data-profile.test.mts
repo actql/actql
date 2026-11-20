@@ -8,7 +8,7 @@ test('explicit data profile snapshots exact integers and rejects cumulative rece
     text_bytes: 1000000, work: 10000000, entries: 200000, batch_bytes: 100000};
   const snapshot = snapshotDataProfile(input);
   input.source_rows = 1;
-  assert.equal(snapshot.source_rows, 1000);
+  assert.equal(snapshot!.source_rows, 1000);
   assert(Object.isFrozen(snapshot));
   assert.equal(snapshotDataProfile(undefined), undefined);
   for (const invalid of [null, {}, {...snapshot, extra: 1}, {...snapshot, work: 0},

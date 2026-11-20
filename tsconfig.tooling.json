@@ -20,7 +20,8 @@
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
     "adapters/host-common/**/*.mts",
-    "adapters/host-node/**/*.mts"
+    "adapters/host-node/**/*.mts",
+    "adapters/connectors/duckdb/node/**/*.mts"
   ],
   "exclude": [
     "**/*.typecheck.mts",
