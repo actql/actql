@@ -563,49 +563,9 @@ fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_c
     if !physical_equal(capture, saved.capture) {
       return Err(HostAttestationUnavailable)
     }
-    guard !capture.closing &&
-      capture.original_resources is Some(resources) &&
-      !resources.interrupted &&
-      resources.active_phase is Some(@arena.HostRead) else {
-      return Err(HostAttestationOriginal(OriginalResourceScopePending))
-    }
-    // Charge fixed newly retained routing controls, not a larger allowance:
-    // two Read accessor bundles (34 headers/86 references), the operation
-    // bundle (13/35), queries plus invalidator (2/6), and callback/options/
-    // Results/temporary handoffs (15/33 plus sixteen scalar words). Each
-    // accessor closure includes its code and original receiver reference.
-    // Keep this prefix in SAME Read metadata so the subsequent row codec
-    // pays its simultaneous overlap; a temporary peak would omit that sum.
-    let controls = @execution.preparation_representation_cost({
-      record_headers: 64L,
-      reference_slots: 160L,
-      scalar_words: 16L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    }).unwrap()
-    guard @execution.checked_preparation_add_product(
-        resources.metadata_retained,
-        controls,
-        1L,
-      )
-      is Some(total) else {
-      return Err(HostAttestationOriginal(ConfigurationLimit))
-    }
-    // Existing non-grant Owner admission checks the unchanged Ledger policy
-    // and acquires backing before any callback/bundle below is constructed.
-    // Refusal keeps its original resource/cleanup issue and emits no commit.
-    match
-      resources.host.prepare_domain_original_read_construction(
-        resources.read,
-        total,
-        total,
-        controls,
-      ) {
-      Ok(_) => resources.metadata_retained = total
-      Err(issue) =>
-        return Err(
-          HostAttestationOriginal(OriginalResources(@arena.Read(issue))),
-        )
+    match capture.retain_effect_journal_route_controls() {
+      Ok(_) => ()
+      Err(issue) => return Err(HostAttestationOriginal(issue))
     }
     return match
       capture.with_current_adoption_material_in_original_read((

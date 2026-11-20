@@ -76,10 +76,23 @@ fn file_receipt_fixture_work(
   let original_database = library
     .open_database(directory + "/client-file-receipt.sqlite3", 65536L)
     .unwrap_or_else(() => abort("file SQLite database"))
+  let calls : Array[String] = []
+  let routed = if binding_case == 3 {
+    Some({
+      ..journal_test_operation_access(original_database, calls),
+      before_construction: Some((_, _, _) => {
+        calls.push("construct")
+        Ok(())
+      }),
+    })
+  } else {
+    None
+  }
   let (database, journal, dispatch, preview, locator, key, basis) = receipt_test_dispatch(
     "client-file-receipt",
     file=true,
     original_database=Some(original_database),
+    operations=routed,
   )
   let limits = native_client_effect_storage_profile.receipt
   let installation = @publication.effect_preview_member_source_binding_cid(
@@ -285,7 +298,7 @@ fn file_receipt_fixture_work(
     is Err(CustodyLost),
   )
   journal
-  .record_effect_file_response(
+  .record_effect_file_response_with_operations(
     dispatch,
     preview,
     0,
@@ -297,10 +310,11 @@ fn file_receipt_fixture_work(
     outcome,
     () => true,
     4096,
+    routed,
   )
   .unwrap()
   journal
-  .record_effect_file_response(
+  .record_effect_file_response_with_operations(
     dispatch,
     preview,
     0,
@@ -312,6 +326,7 @@ fn file_receipt_fixture_work(
     outcome,
     () => true,
     4096,
+    routed,
   )
   .unwrap()
   // The HTTP facade cannot invent a status or credential use for this record.
@@ -319,9 +334,11 @@ fn file_receipt_fixture_work(
     journal.effect_row_response(dispatch, () => true, 4096)
     is Err(Checkpoint(InvalidMaterial)),
   )
-  journal.record_effect_row_unknown(dispatch).unwrap() |> ignore
+  if binding_case != 3 {
+    journal.record_effect_row_unknown(dispatch).unwrap() |> ignore
+  }
   assert_true(
-    journal.record_effect_row_receipt(
+    journal.record_effect_row_receipt_with_operations(
       dispatch,
       preview,
       0,
@@ -332,11 +349,12 @@ fn file_receipt_fixture_work(
       "{\"result\":{},\"state\":\"applied\"}",
       () => true,
       4096,
+      routed,
     )
     is Err(_),
   )
   let (receipt, terminal) = journal
-    .record_effect_row_receipt(
+    .record_effect_row_receipt_with_operations(
       dispatch,
       preview,
       0,
@@ -347,6 +365,7 @@ fn file_receipt_fixture_work(
       outcome,
       () => true,
       4096,
+      routed,
     )
     .unwrap()
   assert_eq(@effect.effect_ledger_entry_state_code(terminal), 2)
@@ -377,6 +396,37 @@ fn file_receipt_fixture_work(
     .unwrap()
   assert_eq(saved_response.body, ack.replacement())
   assert_true(saved_response.protocol is FileOriginal(_))
+  if binding_case == 3 {
+    assert_true(calls.contains("construct"))
+    for
+      table in [
+        "client_effect_custody", "client_effect_response_meta", "client_effect_response_bytes",
+        "client_effect_row_receipt",
+      ] {
+      assert_true(calls.any(value => value.has_prefix("read:" + table + ":")))
+    }
+    assert_true(
+      calls.any(value => value.has_prefix("insert:client_effect_response_meta:")),
+    )
+    assert_true(
+      calls.any(value => {
+        value.has_prefix("insert:client_effect_response_bytes:")
+      }),
+    )
+    assert_true(
+      calls.any(value => value.has_prefix("insert:client_effect_row_receipt:")),
+    )
+    assert_true(
+      calls.any(value => {
+        value.has_prefix("compare_exchange:client_effect_custody:")
+      }),
+    )
+    assert_true(
+      calls.any(value => value.has_prefix("compare_exchange:client_runs:")),
+    )
+    assert_true(calls.contains("begin"))
+    assert_true(calls.contains("commit"))
+  }
   // Losing both rows cannot turn the recorded physical outcome back to unsent.
   // Exact retirement requires an original transaction, even for this fixture.
   database
@@ -473,4 +523,9 @@ test "Native file response refuses foreign Run before retaining either row" {
 ///|
 test "Native file response refuses foreign row locator and key before retaining either row" {
   file_receipt_fixture_physical(2)
+}
+
+///|
+test "Native original operations carry claim dispatch actual file ACK and receipt through one SQLite" {
+  file_receipt_fixture_physical(3)
 }

@@ -315,3 +315,56 @@ test "Journal metadata retains multiple decoded originals on one real Read throu
   fixture.host.close_domain_after_owner_ack(fixture.read_domain).unwrap()
   fixture.host.try_close().unwrap()
 }
+
+///|
+fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
+  let limit = 131072L
+  let controls = 2432L // Independent 64 headers, 160 references, 16 words.
+  let fixture = journal_metadata_original_read_fixture(retained_limit=limit)
+  // Admit the actual held prefix on this same Owner before recording it. The
+  // proposed route then fits exactly, or exceeds the unchanged limit by one.
+  let previous = limit - controls + (if one_short { 1L } else { 0L })
+  fixture.original
+  .stage(@arena.HostRead, fn() {
+    fixture.host
+    .prepare_domain_original_read_construction(
+      fixture.read,
+      previous,
+      previous,
+      previous,
+    )
+    .map_err(issue => OriginalResources(@arena.Read(issue)))
+  })
+  .unwrap()
+  fixture.original.metadata_retained = previous
+  let result = fixture.original.stage(@arena.HostRead, fn() {
+    fixture.original.retain_effect_journal_route_controls()
+  })
+  if one_short {
+    assert_true(result is Err(OriginalResources(_)))
+    assert_eq(fixture.original.metadata_retained, previous)
+  } else {
+    result.unwrap()
+    assert_eq(fixture.original.metadata_retained, limit)
+    assert_true(physical_equal(fixture.original.read, fixture.read))
+    // Outside the actual entered phase, another route cannot allocate.
+    assert_true(
+      fixture.original.retain_effect_journal_route_controls()
+      is Err(OriginalResourceScopePending),
+    )
+    assert_eq(fixture.original.metadata_retained, limit)
+  }
+  // Actual original cleanup, after all route aliases are gone. No synthetic
+  // physical ACK or allowance refund is made by the metadata admission.
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+test "Effect Journal routing controls fit the exact same real Read retained boundary" {
+  effect_route_original_read_quote_case(false)
+}
+
+///|
+test "Effect Journal routing one short refuses before retained controls change" {
+  effect_route_original_read_quote_case(true)
+}
