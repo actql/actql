@@ -17791,11 +17791,6 @@
           "async": false
         },
         {
-          "name": "main",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "nativeProgramSchema",
           "parameters": [
             "protocol"
@@ -17806,13 +17801,6 @@
           "name": "projectClientHostOptionalFields",
           "parameters": [
             "registry"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectClientHostOptionalFields/canonical/canonical",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -17908,10 +17896,8 @@
             "buildClientHostWire/types/types#2",
             "buildClientHostWire/types/types#3",
             "buildClientHostWire/types/types#4",
-            "main",
             "nativeProgramSchema",
             "projectClientHostOptionalFields",
-            "projectClientHostOptionalFields/canonical/canonical",
             "projectClientHostOptionalFields/canonical/canonical/canonical",
             "projectClientHostOptionalFields/expected/expected",
             "projectClientHostOptionalFields/projectClientHostOptionalFields",
