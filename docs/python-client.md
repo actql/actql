@@ -67,6 +67,9 @@ cleanup-only retry; an earlier handle is not replaced. A later successful close
 does not erase the original failure. Without a body failure, the original close
 failure is raised normally. Neither path acknowledges pending resources or
 permits resubmission.
+Foreign exceptions can refuse auxiliary metadata. Their original context and
+traceback still propagate unchanged; retain the Client itself for explicit
+cleanup-only retry when an association is unavailable.
 
 ## Original operations and recovery
 

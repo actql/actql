@@ -78,7 +78,7 @@ class Client:
             try:
                 _retain_context_cleanup(failure, cleanup, self)
             except BaseException:
-                raise failure
+                pass  # The context protocol propagates the original traceback.
         return False
 
     def close(self):

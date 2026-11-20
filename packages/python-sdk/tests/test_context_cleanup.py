@@ -1,6 +1,7 @@
 """Imported public Client contexts with actual HTTP cleanup and no Local VM."""
 import asyncio
 import unittest
+from unittest.mock import patch
 
 import httpx
 
@@ -27,6 +28,13 @@ class CleanupTransport(httpx.MockTransport):
 
 
 class MetadataRefusal(Exception):
+    def __setattr__(self, name, value):
+        if name == 'cleanup_error':
+            raise RuntimeError('Exception metadata is unavailable')
+        super().__setattr__(name, value)
+
+
+class MetadataStop(BaseException):
     def __setattr__(self, name, value):
         if name == 'cleanup_error':
             raise RuntimeError('Exception metadata is unavailable')
@@ -75,18 +83,62 @@ class AsyncContextCleanupTests(unittest.IsolatedAsyncioTestCase):
                     await client.aclose()
 
     async def test_foreign_metadata_refusal_keeps_original_with_actual_handling_context(self):
+        for primary in (MetadataRefusal('Original body failure'), MetadataStop('Original body stop')):
+            with self.subTest(primary=type(primary).__name__):
+                transport = CleanupTransport()
+                client = await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
+                original_context = LookupError('Original body context')
+                primary.__context__ = original_context
+                body_traceback = None
+                try:
+                    try:
+                        async with client:
+                            try:
+                                raise primary
+                            except type(primary):
+                                body_traceback = primary.__traceback__
+                                raise
+                    except type(primary) as caught:
+                        self.assertIs(caught, primary)
+                        self.assertIs(caught.__context__, original_context)
+                        self.assertIs(caught.__traceback__, body_traceback)
+                        self.assertFalse(hasattr(caught, 'cleanup_error'))
+                    else:
+                        self.fail('Original body failure was suppressed')
+                    self.assertEqual(transport.closes, 1)
+                finally:
+                    await client.aclose()
+
+    async def test_failed_metadata_helper_does_not_reraise_or_replace_original_context(self):
         transport = CleanupTransport()
         client = await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
-        primary = MetadataRefusal('Original body failure')
+        primary = ClientError('OriginalBodyUnknown', cleanup_error=ClientError('EarlierCleanup'))
+        original_context, previous = LookupError('Original context'), primary.cleanup_error
+        primary.__context__ = original_context
+        recorded = []
+        def unavailable(body, cleanup, owner):
+            recorded.append((body, cleanup, owner))
+            raise RuntimeError('Metadata helper unavailable')
         try:
-            with self.assertRaises(MetadataRefusal) as caught:
-                async with client:
-                    raise primary
-            self.assertIs(caught.exception, primary)
-            self.assertIsInstance(primary.__context__, RuntimeError)
-            cleanup = primary.__context__.__context__
-            self.assertEqual(cleanup.code, 'ClientCleanupFailed')
-            self.assertIs(cleanup.cleanup_client, client)
+            with patch('actql_sdk._async._retain_context_cleanup', side_effect=unavailable):
+                try:
+                    async with client:
+                        try:
+                            raise primary
+                        except ClientError:
+                            body_traceback = primary.__traceback__
+                            raise
+                except ClientError as caught:
+                    self.assertIs(caught, primary)
+                    self.assertIs(caught.__context__, original_context)
+                    self.assertIs(caught.__traceback__, body_traceback)
+                    self.assertIs(caught.cleanup_error, previous)
+                else:
+                    self.fail('Original failure was suppressed')
+            self.assertEqual(len(recorded), 1)
+            self.assertIs(recorded[0][0], primary)
+            self.assertEqual(recorded[0][1].code, 'ClientCleanupFailed')
+            self.assertIs(recorded[0][2], client)
             self.assertEqual(transport.closes, 1)
         finally:
             await client.aclose()
@@ -187,18 +239,62 @@ class SyncContextCleanupTests(unittest.TestCase):
                     client.close()
 
     def test_foreign_metadata_refusal_keeps_original_with_actual_handling_context(self):
+        for primary in (MetadataRefusal('Original body failure'), MetadataStop('Original body stop')):
+            with self.subTest(primary=type(primary).__name__):
+                transport = CleanupTransport()
+                client = Client.connect('https://host.invalid/', 'token', transport=transport)
+                original_context = LookupError('Original body context')
+                primary.__context__ = original_context
+                body_traceback = None
+                try:
+                    try:
+                        with client:
+                            try:
+                                raise primary
+                            except type(primary):
+                                body_traceback = primary.__traceback__
+                                raise
+                    except type(primary) as caught:
+                        self.assertIs(caught, primary)
+                        self.assertIs(caught.__context__, original_context)
+                        self.assertIs(caught.__traceback__, body_traceback)
+                        self.assertFalse(hasattr(caught, 'cleanup_error'))
+                    else:
+                        self.fail('Original body failure was suppressed')
+                    self.assertEqual(transport.closes, 1)
+                finally:
+                    client.close()
+
+    def test_failed_metadata_helper_does_not_reraise_or_replace_original_context(self):
         transport = CleanupTransport()
         client = Client.connect('https://host.invalid/', 'token', transport=transport)
-        primary = MetadataRefusal('Original body failure')
+        primary = ClientError('OriginalBodyUnknown', cleanup_error=ClientError('EarlierCleanup'))
+        original_context, previous = LookupError('Original context'), primary.cleanup_error
+        primary.__context__ = original_context
+        recorded = []
+        def unavailable(body, cleanup, owner):
+            recorded.append((body, cleanup, owner))
+            raise RuntimeError('Metadata helper unavailable')
         try:
-            with self.assertRaises(MetadataRefusal) as caught:
-                with client:
-                    raise primary
-            self.assertIs(caught.exception, primary)
-            self.assertIsInstance(primary.__context__, RuntimeError)
-            cleanup = primary.__context__.__context__
-            self.assertEqual(cleanup.code, 'ClientCleanupFailed')
-            self.assertIs(cleanup.cleanup_client, client)
+            with patch('actql_sdk._sync._retain_context_cleanup', side_effect=unavailable):
+                try:
+                    with client:
+                        try:
+                            raise primary
+                        except ClientError:
+                            body_traceback = primary.__traceback__
+                            raise
+                except ClientError as caught:
+                    self.assertIs(caught, primary)
+                    self.assertIs(caught.__context__, original_context)
+                    self.assertIs(caught.__traceback__, body_traceback)
+                    self.assertIs(caught.cleanup_error, previous)
+                else:
+                    self.fail('Original failure was suppressed')
+            self.assertEqual(len(recorded), 1)
+            self.assertIs(recorded[0][0], primary)
+            self.assertEqual(recorded[0][1].code, 'ClientCleanupFailed')
+            self.assertIs(recorded[0][2], client)
             self.assertEqual(transport.closes, 1)
         finally:
             client.close()

@@ -237,9 +237,9 @@ class AsyncClient:
             try:
                 _retain_context_cleanup(failure, cleanup, self)
             except BaseException:
-                # A foreign exception may refuse metadata. Keep the SAME body
-                # exception, with the actual handling context and traceback.
-                raise failure
+                # Propagation by the context protocol keeps the original native
+                # context/traceback even if secondary metadata cannot be kept.
+                pass
         return False
 
     async def aclose(self):
