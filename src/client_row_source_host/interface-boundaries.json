@@ -5564,7 +5564,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]

@@ -7,6 +7,12 @@ import test from 'node:test';
 import {projectCoreLedger, renderLedgerTransportContract, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic, renderLedgerAccountingValues} from './generate-ledger-transport-contract.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
+type UncheckedFixtureCodec = {
+  emptyProcessUsage(): object;
+  encodeProcessUsage(value: object): unknown;
+  decodeProcessUsage(wire: unknown): unknown;
+};
+
 const core = readFileSync(new URL('../src/physical_resources/ledger.mbt', import.meta.url), 'utf8') + '\n' +
   readFileSync(new URL('../src/physical_resources/ledger_usage_pending.mbt', import.meta.url), 'utf8');
 
@@ -36,12 +42,12 @@ test('adding a Core field mechanically reaches the generated transport without a
   // projection. No handwritten replacement codec or field schema is supplied.
   writeFileSync(join(scratch.path, 'host-node/process-accounting.mjs'), readFileSync(
     new URL('../adapters/host-node/process-accounting.mjs', import.meta.url)));
-  const module = await import(pathToFileURL(join(scratch.path, 'host-common/ledger-contract.generated.mjs')).href);
+  const module = await import(pathToFileURL(join(scratch.path, 'host-common/ledger-contract.generated.mjs')).href) as {ledgerUsageFields: readonly unknown[]};
   assert.deepEqual(module.ledgerUsageFields[0], {name: 'future_count', bits: 32});
   assert.equal(module.ledgerUsageFields.length, 14);
   assert(Object.isFrozen(module.ledgerUsageFields));
   assert(module.ledgerUsageFields.every(Object.isFrozen));
-  const codec = await import(pathToFileURL(join(scratch.path, 'host-node/process-accounting.mjs')).href);
+  const codec = await import(pathToFileURL(join(scratch.path, 'host-node/process-accounting.mjs')).href) as UncheckedFixtureCodec;
   const usage = {...codec.emptyProcessUsage(), future_count: 7};
   assert.equal(Object.keys(usage).length, 14);
   assert.deepEqual(codec.decodeProcessUsage(codec.encodeProcessUsage(usage)), usage);

@@ -632,3 +632,18 @@ target/
 
 /adapters/host-node/installed-connectors.test.mjs
 /adapters/host-node/installed-connectors.test.d.mts
+
+/scripts/generate-update-target-data-codec.mjs
+/scripts/generate-update-target-data-codec.d.mts
+
+/scripts/client-bridge-mirrors.mjs
+/scripts/client-bridge-mirrors.d.mts
+
+/scripts/notion-user-list-read-wire.mjs
+/scripts/notion-user-list-read-wire.d.mts
+
+/scripts/generate-ledger-transport-contract.mjs
+/scripts/generate-ledger-transport-contract.d.mts
+
+/scripts/generate-ledger-transport-contract.test.mjs
+/scripts/generate-ledger-transport-contract.test.d.mts

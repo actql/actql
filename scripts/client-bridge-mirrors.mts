@@ -3,7 +3,7 @@ import {readFileSync, existsSync, writeFileSync, mkdirSync} from 'node:fs';
 import {join, dirname} from 'node:path';
 import {generateUpdateTargetDataCodec} from './generate-update-target-data-codec.mjs';
 
-export function checkRelaClientBridges(root, write = false) {
+export function checkRelaClientBridges(root: string, write = false) {
   generateUpdateTargetDataCodec(root, write);
   const sourcePreparation = readFileSync(join(root,
     'src/connectors_builtin_node/client_source_preparation.mbt'), 'utf8');

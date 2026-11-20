@@ -5,10 +5,10 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-export function generateNotionUserListReadWire(root, write = false) {
+export function generateNotionUserListReadWire(root: string, write = false) {
   const input = join(root, 'src/connectors/notion/user-list-request.json');
   const output = join(root, 'adapters/connectors/notion/site/user-list-read-wire.generated.mjs');
-  const original = JSON.parse(readFileSync(input, 'utf8'));
+  const original = JSON.parse(readFileSync(input, 'utf8')) as {read?: unknown};
   assert(original.read && typeof original.read === 'object' && !Array.isArray(original.read),
     'Missing original Notion user-list request DATA');
   const wire = JSON.stringify(original.read);

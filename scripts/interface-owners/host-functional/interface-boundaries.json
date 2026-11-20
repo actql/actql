@@ -122842,8 +122842,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122854,8 +122854,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122868,8 +122868,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122880,8 +122880,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122894,8 +122894,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122906,8 +122906,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122920,8 +122920,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122932,8 +122932,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122946,8 +122946,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122958,8 +122958,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122972,8 +122972,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122984,8 +122984,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -122998,8 +122998,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123010,8 +123010,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123024,8 +123024,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123036,8 +123036,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123050,8 +123050,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123062,8 +123062,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123076,11 +123076,11 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "path": "scripts/generate-ledger-transport-contract.test.mts",
                 "anchor": "test('actual Core owns the complete current limits and thirteen-field usage contract'"
               },
               {
@@ -123088,15 +123088,15 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "path": "scripts/generate-ledger-transport-contract.test.mts",
                 "anchor": "test('diagnostic writer and spent projection follow the same Core owner without a parallel field list'"
               }
             ]
@@ -123114,8 +123114,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123126,8 +123126,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123140,8 +123140,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123152,8 +123152,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123166,8 +123166,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123178,8 +123178,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123192,8 +123192,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123204,8 +123204,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123218,8 +123218,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123230,8 +123230,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123244,8 +123244,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123256,8 +123256,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123270,8 +123270,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123282,8 +123282,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123296,8 +123296,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123308,8 +123308,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123322,8 +123322,8 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123334,8 +123334,8 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
@@ -123348,11 +123348,11 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectCoreLedger(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectCoreLedger(source: string) {"
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "path": "scripts/generate-ledger-transport-contract.test.mts",
                 "anchor": "test('actual Core owns the complete current limits and thirteen-field usage contract'"
               },
               {
@@ -123360,15 +123360,15 @@
                 "anchor": "pub fn ledger_usage_has_pending_resources("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.mjs",
-                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+                "path": "scripts/generate-ledger-transport-contract.mts",
+                "anchor": "export function projectLedgerUsageSpentFields(source: string) {"
               },
               {
                 "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               },
               {
-                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "path": "scripts/generate-ledger-transport-contract.test.mts",
                 "anchor": "test('diagnostic writer and spent projection follow the same Core owner without a parallel field list'"
               }
             ]
@@ -130012,7 +130012,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -136999,7 +136999,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
