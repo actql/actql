@@ -283,3 +283,7 @@ target/
 # Generated HTTP physical model port.
 /packages/provider-http/_internal/model-port.mjs
 /packages/provider-http/_internal/model-port.d.mts
+
+# Generated installed HTTP registration.
+/packages/provider-http/_internal/installed-http-chat.mjs
+/packages/provider-http/_internal/installed-http-chat.d.mts

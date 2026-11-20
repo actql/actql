@@ -2,17 +2,40 @@ import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createHttpChatPreflight} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {snapshotHTTPOriginalMaterials, admitHTTPOriginalMaterials} from './original-materials.mjs';
+import type {ProjectionLimits, RequestLimits, ResponseLimits, QuantityCapacity} from '../index.d.ts';
 
-const fail = code => { throw new TypeError(code); };
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const text = value => typeof value === 'string' && value.length > 0;
-const integer = (value, minimum = 1) => Number.isSafeInteger(value) &&
-  value >= minimum && value <= 2_147_483_647;
-const frozen = value => value !== null && typeof value === 'object' && Object.isFrozen(value);
+type Preflight = Parameters<typeof createHttpChatPreflight>[0];
+type Runtime = Preflight['moon'] & Parameters<typeof admitHTTPOriginalMaterials>[0];
+// Unchecked views over existing Host borrows. DATA snapshots, Common readers
+// and original equality/current checks below retain their complete authority.
+interface ReadOriginal {bootstrap: unknown; nodeInstallation: {
+  layout: {response_profile: unknown}; probability: unknown;
+}}
+interface RawOriginal {profile: unknown; probability: unknown; installation: {
+  endpoint: unknown; http_method: unknown; streaming: unknown; completion_basis: unknown; sdk: unknown;
+}}
+type Configuration = Pick<Preflight, 'modelId' | 'modelSelector' | 'taskCid' | 'promptCid' |
+  'outputSchemaCid' | 'endpoint' | 'fetch' | 'observeAt'> & {providerId: string;
+  promptPayloadWire: string; headers: unknown; observeEgress: (facts: unknown) => unknown;
+  originalMaterials?: unknown; originalReadInstallation: ReadOriginal; rawCaptureSelection: RawOriginal;
+  bindingOriginals: Readonly<Record<string, unknown>>; quantityCapacity: QuantityCapacity;
+  projectionLimits: ProjectionLimits; requestLimits: RequestLimits; responseLimits: ResponseLimits;
+};
+type Registration = (moon: Runtime) => readonly Readonly<Record<string, unknown>>[];
+type Notification = {notify: NonNullable<Preflight['notify']>};
+type Binder = NonNullable<Preflight['rawCaptureBinder']>;
+
+
+const fail: (code: string) => never = code => { throw new TypeError(code); };
+const cid = (value: unknown) => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const text = (value: unknown) => typeof value === 'string' && value.length > 0;
+const integer = (value: unknown, minimum = 1) => Number.isSafeInteger(value) &&
+  (value as number) >= minimum && (value as number) <= 2_147_483_647;
+const frozen = (value: unknown) => value !== null && typeof value === 'object' && Object.isFrozen(value);
 
 // Inspect and retain the same own DATA values. This is an installation
 // snapshot, not canonical admission, funding, nominal custody or authority.
-function snapshot(value, fields, code) {
+function snapshot(value: unknown, fields: readonly string[], code: string): Readonly<Record<string, unknown>> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(code);
   const names = Reflect.ownKeys(value);
   const expected = [...fields].sort();
@@ -21,23 +44,23 @@ function snapshot(value, fields, code) {
   return Object.freeze(Object.fromEntries(names.map(name => {
     const descriptor = Object.getOwnPropertyDescriptor(value, name);
     if (descriptor?.enumerable !== true || !Object.hasOwn(descriptor, 'value')) fail(code);
-    return [name, descriptor.value];
+    return [name, descriptor.value as unknown];
   })));
 }
 
-function snapshotArray(value, maximum, code) {
+function snapshotArray(value: unknown, maximum: number, code: string): readonly unknown[] {
   if (!Array.isArray(value)) fail(code);
   const length = Object.getOwnPropertyDescriptor(value, 'length');
   if (length === undefined || !Object.hasOwn(length, 'value') ||
       !Number.isSafeInteger(length.value) || length.value < 0 || length.value > maximum) fail(code);
-  const count = length.value;
+  const count = length.value as number;
   const names = Reflect.ownKeys(value);
   if (names.length !== count + 1 || names.some(name => typeof name !== 'string') ||
       !names.includes('length')) fail(code);
   for (let index = 0; index < count; index++) {
     if (!names.includes(String(index))) fail(code);
   }
-  const result = [];
+  const result: unknown[] = [];
   for (let index = 0; index < count; index++) {
     const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
     if (descriptor?.enumerable !== true || !Object.hasOwn(descriptor, 'value')) fail(code);
@@ -50,7 +73,7 @@ function snapshotArray(value, maximum, code) {
 // profile, infer credentials or replace the existing Model/Run/Store Owner.
 // The package exposes this assembler only; original funding and public
 // execution acceptance remain separate required boundaries.
-export function createInstalledHttpChatRegistration(value) {
+export function createInstalledHttpChatRegistration(value: unknown): Registration {
   const materialsMode = value !== null && typeof value === 'object' &&
     Object.hasOwn(value, 'originalMaterials');
   const fields = ['providerId', 'modelSelector', 'modelId',
@@ -60,24 +83,24 @@ export function createInstalledHttpChatRegistration(value) {
     'responseLimits', 'fetch', 'observeAt', 'observeEgress'];
   let config = snapshot(value, materialsMode
     ? fields.filter(name => !['originalReadInstallation', 'rawCaptureSelection'].includes(name))
-      .concat('originalMaterials') : fields, 'InvalidInstalledHTTPChatConfiguration');
+      .concat('originalMaterials') : fields, 'InvalidInstalledHTTPChatConfiguration') as unknown as Configuration;
   value = undefined;
   // DATA is captured before the Host calls this registration. Only that
   // callback's actual Common runtime can admit the profile and four policies.
   // The old opaque selection and this mode are mutually exclusive.
   if (materialsMode) {
-    let materials = snapshotHTTPOriginalMaterials(config.originalMaterials);
+    let materials: ReturnType<typeof snapshotHTTPOriginalMaterials> | undefined = snapshotHTTPOriginalMaterials(config.originalMaterials);
     const {originalMaterials: unused, ...source} = config;
     void unused;
-    let retained = retainConfiguration(source);
-    config = undefined;
+    let retained: ReturnType<typeof retainConfiguration> | undefined = retainConfiguration(source);
+    config = undefined as unknown as Configuration;
     let entered = false;
-    return moon => {
+    return (moon: Runtime) => {
       if (entered) fail('HTTPOriginalInstallationReused');
       assertRuntime(moon);
       entered = true;
       try {
-        const originals = admitHTTPOriginalMaterials(moon, materials);
+        const originals = admitHTTPOriginalMaterials(moon, materials!);
         return createInstalledHttpChatRegistration({...retained, ...originals})(moon);
       } finally {
         // A spent callback never retries admission or keeps unused snapshots.
@@ -91,7 +114,7 @@ export function createInstalledHttpChatRegistration(value) {
   return installedOpaqueRegistration(retainConfiguration(config));
 }
 
-function retainConfiguration(config) {
+function retainConfiguration(config: Configuration) {
   const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
     outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress} = config;
   if (![providerId, modelSelector, modelId, endpoint].every(text) ||
@@ -100,16 +123,16 @@ function retainConfiguration(config) {
       ![fetch, observeAt, observeEgress].every(x => typeof x === 'function')) {
     fail('InvalidInstalledHTTPChatConfiguration');
   }
-  let url;
+  let url!: URL;
   try { url = new URL(endpoint); } catch { fail('InvalidInstalledHTTPChatEndpoint'); }
   if (url.href !== endpoint || !['http:', 'https:'].includes(url.protocol) ||
       url.username || url.password || url.search || url.hash) fail('InvalidInstalledHTTPChatEndpoint');
   const projectionLimits = snapshot(config.projectionLimits,
-    ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'], 'InvalidInstalledHTTPChatProjection');
+    ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'], 'InvalidInstalledHTTPChatProjection') as unknown as ProjectionLimits;
   if (!Object.entries(projectionLimits).every(([name, amount]) =>
     integer(amount, name === 'maxWork' ? 0 : 1))) fail('InvalidInstalledHTTPChatProjection');
   const requestLimits = snapshot(config.requestLimits,
-    ['maxBytes', 'maxHeaderBytes', 'maxHeaders'], 'InvalidInstalledHTTPChatRequestLimits');
+    ['maxBytes', 'maxHeaderBytes', 'maxHeaders'], 'InvalidInstalledHTTPChatRequestLimits') as unknown as RequestLimits;
   if (!Object.values(requestLimits).every(x => integer(x)) || requestLimits.maxHeaders > 64) {
     fail('InvalidInstalledHTTPChatRequestLimits');
   }
@@ -132,7 +155,7 @@ function retainConfiguration(config) {
   return Object.freeze({...config, projectionLimits, requestLimits, responseLimits, headers});
 }
 
-function assertRuntime(moon) {
+function assertRuntime(moon: Runtime) {
   if (!['clientProgramModelResponseProfileTransportMatches',
     'clientProgramProjectHTTPChatRequest', 'clientProgramInstallAsyncModelProvider',
     'clientProgramModelRequestPreflight', 'clientProgramModelAsyncPhysicalRequestPlan',
@@ -141,7 +164,7 @@ function assertRuntime(moon) {
     .every(name => typeof moon?.[name] === 'function')) fail('HTTPChatOriginalRuntimeUnavailable');
 }
 
-function installedOpaqueRegistration(config) {
+function installedOpaqueRegistration(config: ReturnType<typeof retainConfiguration>): Registration {
   const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
     outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress,
     projectionLimits, requestLimits, responseLimits, headers} = config;
@@ -164,7 +187,7 @@ function installedOpaqueRegistration(config) {
   if (!frozen(quantities) || !frozen(quantities.limits) || !frozen(quantities.perAttempt) ||
       !frozen(bindings) || !['configuration', 'configurationContract', 'installationRevision']
         .every(name => frozen(bindings[name]))) fail('HTTPChatOriginalInstallationUnavailable');
-  return moon => {
+  return (moon: Runtime) => {
     assertRuntime(moon);
     if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
       requestLimits.maxBytes, responseLimits.maxBytes, responseLimits.maxChunkBytes,
@@ -174,9 +197,9 @@ function installedOpaqueRegistration(config) {
     return [Object.freeze({providerId, entryPersistence: 'async',
       bindingOriginals: bindings, originalReadInstallation: original,
       rawCaptureSelection: raw, quantityCapacity: quantities, observeEgress,
-      validatePrompt: (task, selector, payload) => task === taskCid &&
+      validatePrompt: (task: unknown, selector: unknown, payload: unknown) => task === taskCid &&
         selector === modelSelector && payload === promptPayloadWire,
-      physicalPreflight(request, notification, retainRawBinder, admittedProvider) {
+      physicalPreflight(request: unknown, notification: Notification, retainRawBinder: Binder, admittedProvider: unknown) {
         if (typeof notification?.notify !== 'function' ||
             typeof retainRawBinder !== 'function' || admittedProvider === undefined) {
           fail('HTTPChatOriginalPhysicalContextUnavailable');
@@ -186,7 +209,7 @@ function installedOpaqueRegistration(config) {
           endpoint, headers, requestLimits, responseLimits, fetch, observeAt,
           notify: notification.notify, rawCaptureBinder: retainRawBinder,
           profile: raw.profile, installation, quantities: quantities.perAttempt,
-          checked(result) {
+          checked(result: unknown) {
             if (runtimeIsOk(result)) return runtimeField(result, 0);
             fail('HTTPChatOriginalCommonRefused');
           }}).preflight;
