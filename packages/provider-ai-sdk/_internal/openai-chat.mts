@@ -2,6 +2,13 @@ import * as openai from '@ai-sdk/openai';
 import * as providerUtils from '@ai-sdk/provider-utils';
 import {interceptSdkRequest} from './intercepted-request.mjs';
 
+type InterceptionOptions = Parameters<typeof interceptSdkRequest>[0];
+type ChatOptions = Parameters<ReturnType<ReturnType<typeof openai.createOpenAI>['chat']>['doGenerate']>[0];
+type PreparationOptions = Pick<InterceptionOptions,
+  'maxRequestBytes' | 'maxHeaderBytes' | 'maxHeaders' | 'signal' | 'notify' | 'verifyRequest'> & {
+    modelId: string; baseURL: string; apiKey: string; options: ChatOptions;
+  };
+
 const createOpenAI=openai.createOpenAI;
 // The actual builder's module originals, never caller DATA, a source hash or
 // a numerical/dispatch grant. Existing Host custody selects their fixed static
@@ -13,7 +20,7 @@ export const openAIChatStaticOriginals=Object.freeze({openai,providerUtils,creat
 // The Host obtains current secrets through its existing authorized mechanism;
 // do not accept endpoint or credentials from a Program or public Run value.
 export function prepareOpenAIChatRequest({modelId, baseURL, apiKey, options,
-  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
+  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}: PreparationOptions) {
   if (typeof modelId !== 'string' || modelId.length === 0 ||
       typeof baseURL !== 'string' || baseURL.endsWith('/') ||
       typeof apiKey !== 'string' || apiKey.length === 0 ||

@@ -42,12 +42,24 @@ writeFileSync(new URL('../executed.json', import.meta.url), JSON.stringify({payl
 }
 
 test('canonical npm preparation emits runnable same-path JavaScript and declarations', async t => {
-  const f = await fixture(t), result = f.prepare();
+  const f = await fixture(t);
+  // The private root compiler must resolve the actual selected SDK, transport
+  // and schema declarations without a second package-local tool installation.
+  await writeFile(join(f.root, 'scripts/provider-input.mts'), `
+import type {LanguageModelV4} from '@ai-sdk/provider';
+import type {PhysicalAcquisitionLimits} from '@actql/provider-ai-sdk';
+import type {Client} from 'undici';
+export type OriginalProviderInputs = {
+  model: LanguageModelV4; acquisition: PhysicalAcquisitionLimits; client: Client;
+};
+`);
+  const result = f.prepare();
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert(existsSync(join(f.root, 'scripts/entry.mjs')));
   assert(existsSync(join(f.root, 'scripts/entry.d.mts')));
+  assert(existsSync(join(f.root, 'scripts/provider-input.d.mts')));
   assert.deepEqual(JSON.parse(await readFile(join(f.root, 'executed.json'), 'utf8')),
     {payload: 'original', node: process.versions.node});
 });

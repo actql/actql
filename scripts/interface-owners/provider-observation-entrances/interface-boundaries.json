@@ -1361,7 +1361,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -1823,7 +1823,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -1905,7 +1905,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "prepareOpenAIChatRequest"
               }
             ],
@@ -1921,17 +1921,17 @@
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "openAIChatStaticOriginals"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "forgetting this borrowed shell is not module GC"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "interceptSdkRequest"
               }
             ],
@@ -1971,7 +1971,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -2401,7 +2401,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -2680,7 +2680,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -2811,7 +2811,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -3023,7 +3023,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -3211,7 +3211,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -3334,7 +3334,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],

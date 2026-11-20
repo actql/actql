@@ -214,3 +214,7 @@ target/
 # Generated private suspended SDK request preparation and transport.
 /packages/provider-ai-sdk/_internal/intercepted-request.mjs
 /packages/provider-ai-sdk/_internal/intercepted-request.d.mts
+
+# Generated pinned SDK builder boundary and private declaration.
+/packages/provider-ai-sdk/_internal/openai-chat.mjs
+/packages/provider-ai-sdk/_internal/openai-chat.d.mts
