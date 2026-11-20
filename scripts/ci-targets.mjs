@@ -105,7 +105,7 @@ export function gateJobRequired(selection, name) {
 // Shared core changes still receive full applicable verification when Ready/main.
 const pythonWheelInputs = new Set([
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
+  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mts',
   'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
   'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
   'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',

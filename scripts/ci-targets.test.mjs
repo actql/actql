@@ -2194,7 +2194,7 @@ test('Python original observation fixture selects its same-source wheel consumer
 
 test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
   for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mts', 'scripts/ci-focused-tests.mjs',
     'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
     'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
     'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
