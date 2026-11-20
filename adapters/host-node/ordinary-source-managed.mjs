@@ -15,6 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {readInstalledModelExecution} from './installed-model.mjs';
 
 // Existing Source/Compute responsibility, using real ordinary Node allocation
 // and FileHandles rather than a startup-wide provenance proof. Actual Account
@@ -437,6 +438,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   }
   function cleanupOriginalRequestInput(state, retire) {
     if (!disposeOriginalExplanation(state)) fail('InstalledExplanationAdmissionCleanupPending');
+    if (state.staticPlanRead && state.compilationKind === 'effectful') {
+      // Static projection issued no submitted/preparation alias. Drop all of
+      // its local metadata while the SAME holder still backs them; only the
+      // existing abort/return below can acknowledge the original capacity.
+      state.staticModelOccurrences = state.staticModelExecutions = state.staticModelGraphs = undefined;
+      state.modelGraph = state.prepared = undefined;
+    }
     return cleanupRequestInput(state, retire);
   }
   function constructRequestDomain(state, construct) {
@@ -1142,7 +1150,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return wire;
       });
     },
-    async fundedPreparation(request, environment, originalVerifier, signal, journal, staticPlan) {
+    async fundedPreparation(request, environment, originalVerifier, signal, journal, staticPlan, staticModelInstallation, staticFileReadDeclarations) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
@@ -1169,6 +1177,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramReadRequestCheckedStaticPlan')?.value;
       const checkedStaticIssue = staticPlan === undefined ? undefined
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestCheckedStaticPlanIssueCode')?.value;
+      const borrowStaticEffect = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramBorrowRequestEffectPlanInput')?.value;
+      const readStaticOccurrences = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramEffectInferOccurrences')?.value;
+      const readStaticEffect = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramEffectPreparationInputRead')?.value;
+      const returnStaticEffect = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramEffectPreparationInputReturn')?.value;
+      const retiringStaticEffect = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramEffectPreparationInputRetirementStarted')?.value;
       if (staticPlan !== undefined) {
         if (state.staticPlanRead || state.holder !== undefined) fail('ForeignInstalledSourceProducer');
         state.staticPlanRead = true;
@@ -1262,52 +1280,58 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           // parent or claim that an unconstructed Plan is ready.
           if (state.compilationKind === 'effectful') {
             if (staticPlan !== undefined) {
-              if (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function') {
+              if (typeof borrowStaticEffect !== 'function' || typeof readStaticOccurrences !== 'function' ||
+                  typeof readStaticEffect !== 'function' || typeof returnStaticEffect !== 'function' ||
+                  typeof retiringStaticEffect !== 'function' ||
+                  typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function') {
                 fail('ClientOperationUnavailable');
               }
-              // The same checked Effect and original Request capacity supply
-              // the existing static envelope before any execution material.
-              return constructRequestDomain(state, () => {
-                const wire = checkedRequestProgramPreparation(moon,
-                  Reflect.apply(readCheckedStaticPlan, moon, [parent, producer.receipt,
-                    staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth]), checkedStaticIssue);
-                current();
-                assertPreparingOriginal();
-                if (typeof wire !== 'string') fail('InvalidOriginalStaticPlan');
-                return wire;
+              // Reserve this metadata purpose before constructing captured
+              // method/occurrence/graph vectors. Retain the nominal token
+              // before any following callback or fallible namespace read.
+              state.holder = checked(Reflect.apply(borrowStaticEffect, moon,
+                [state.parent, producer.receipt, true]));
+              // Install the original cleanup immediately. Later optional
+              // method capture can fail without stranding this exact holder.
+              state.effectBorrowMethods = Object.freeze({
+                clientProgramEffectPreparationInputRead: (...args) => Reflect.apply(readStaticEffect, moon, args),
+                clientProgramEffectPreparationInputReturn: (...args) => Reflect.apply(returnStaticEffect, moon, args),
+                clientProgramEffectPreparationInputRetirementStarted: (...args) => Reflect.apply(retiringStaticEffect, moon, args),
               });
             }
-            // The actual typed Effect borrow reserves construction on this SAME
-            // Request. Never cast it to a Program borrow or select a new Root.
-            const names = ['clientProgramBorrowRequestEffectPlanInput',
-              'clientProgramEffectPreparationInputRead', 'clientProgramEffectPreparationInputReturn',
-              'clientProgramEffectPreparationInputSibling', 'clientProgramEffectPreparationInputRetirementStarted',
-              'clientProgramCompleteRequestEffectPreparation', 'clientProgramAdoptRequestEffectPreparation',
-              'clientProgramReserveRequestEffectOriginalMaterial'];
-            const methods = names.map(name => moon[name]);
-            if (methods.some(method => typeof method !== 'function')) fail('NodeManagedRunRuntimeUnavailable');
-            // Model is optional for a non-Model installation. Capture each
-            // selected original once; later namespace replacement cannot supply
-            // a different Scope constructor or adoption method.
-            for (const name of ['clientProgramPrepareRequestEffectModelReadScope',
-              'clientProgramPrepareRequestEffectModelReadScopeWithQuantities',
-              'clientProgramAdoptRequestEffectModelPreparation',
-              'clientProgramPrepareRequestEffectModelsReadScopes',
-              'clientProgramPrepareRequestEffectModelsReadScopesWithQuantities',
-              'clientProgramAdoptRequestEffectModelsPreparation',
-              'clientProgramPrepareRequestEffectKeyedPlan',
-              'clientProgramPrepareRequestEffectKeyedOriginal',
-              'clientProgramIssueRequestEffectPreparedOriginal',
-              'clientProgramIssueRequestEffectRunMaterials',
-              'clientProgramAdmitRequestEffectRunMaterialsWithCompilation']) {
-              names.push(name);
-              methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
+            if (staticPlan === undefined) {
+              // The actual typed Effect borrow reserves construction on this SAME
+              // Request. Never cast it to a Program borrow or select a new Root.
+              const names = ['clientProgramBorrowRequestEffectPlanInput',
+                'clientProgramEffectPreparationInputRead', 'clientProgramEffectPreparationInputReturn',
+                'clientProgramEffectPreparationInputSibling', 'clientProgramEffectPreparationInputRetirementStarted',
+                'clientProgramCompleteRequestEffectPreparation', 'clientProgramAdoptRequestEffectPreparation',
+                'clientProgramReserveRequestEffectOriginalMaterial'];
+              const methods = names.map(name => moon[name]);
+              if (methods.some(method => typeof method !== 'function')) fail('NodeManagedRunRuntimeUnavailable');
+              // Model is optional for a non-Model installation. Capture each
+              // selected original once; later namespace replacement cannot supply
+              // a different Scope constructor or adoption method.
+              for (const name of ['clientProgramPrepareRequestEffectModelReadScope',
+                'clientProgramPrepareRequestEffectModelReadScopeWithQuantities',
+                'clientProgramAdoptRequestEffectModelPreparation',
+                'clientProgramPrepareRequestEffectModelsReadScopes',
+                'clientProgramPrepareRequestEffectModelsReadScopesWithQuantities',
+                'clientProgramAdoptRequestEffectModelsPreparation',
+                'clientProgramPrepareRequestEffectKeyedPlan',
+                'clientProgramPrepareRequestEffectKeyedOriginal',
+                'clientProgramIssueRequestEffectPreparedOriginal',
+                'clientProgramIssueRequestEffectRunMaterials',
+                'clientProgramAdmitRequestEffectRunMaterialsWithCompilation']) {
+                names.push(name);
+                methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
+              }
+              state.effectBorrowMethods = Object.freeze(Object.fromEntries(names.map((name, index) =>
+                [name, typeof methods[index] === 'function'
+                  ? (...args) => Reflect.apply(methods[index], moon, args) : undefined])));
+              state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
+                state.parent, producer.receipt));
             }
-            state.effectBorrowMethods = Object.freeze(Object.fromEntries(names.map((name, index) =>
-              [name, typeof methods[index] === 'function'
-                ? (...args) => Reflect.apply(methods[index], moon, args) : undefined])));
-            state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
-              state.parent, producer.receipt));
           } else if (state.compilationKind === 'effect_free') {
             // Core retains the original audit/journal under this SAME Request.
             // ProgramCompiled precedes the Plan borrow and optional Facts;
@@ -1413,6 +1437,52 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       if (staticPlan !== undefined) {
+        if (state.compilationKind === 'effectful') {
+          // Checking has finished and its real nominal borrow is retained.
+          // Metadata readers now enter their normal owner stages: no forged
+          // `prepared`, preparing-guard bypass or execution-route setup.
+          state.prepared = prepared;
+          try {
+            state.staticModelGraphs = [];
+            state.staticModelExecutions = [];
+            state.staticModelOccurrences = constructRequestDomain(state, () =>
+              checked(Reflect.apply(readStaticOccurrences, moon, [prepared])));
+            const assertOriginal = () => {
+              current(); signal?.throwIfAborted();
+              if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+                  state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+                fail('ForeignInstalledSourceProducer');
+              }
+            };
+            assertOriginal();
+            for (const occurrence of state.staticModelOccurrences) {
+              const {execution} = readInstalledModelExecution(moon, prepared, staticModelInstallation,
+                occurrence, (count, wireAt, containers) =>
+                  view.prepareModelMaterials(prepared, request, count, wireAt, containers));
+              // Preserve the original parser return before Graph/current can
+              // refuse; no Provider, Scope, Source read or Model invocation.
+              state.staticModelExecutions.push(execution);
+              assertOriginal();
+              state.staticModelGraphs.push(view.prepareModelGraph(prepared, request,
+                occurrence, execution, undefined, undefined, staticFileReadDeclarations));
+              assertOriginal();
+            }
+            Object.freeze(state.staticModelGraphs);
+            return constructRequestDomain(state, () => {
+              const wire = checkedRequestProgramPreparation(moon,
+                Reflect.apply(readCheckedStaticPlan, moon, [state.parent, producer.receipt,
+                  staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth,
+                  state.staticModelGraphs]), checkedStaticIssue);
+              assertOriginal();
+              if (typeof wire !== 'string') fail('InvalidOriginalStaticPlan');
+              return wire;
+            });
+          } catch (cause) {
+            reportCapacityRefusal(cause);
+            state.preparationFailed = true; state.preparationFailure = cause;
+            throw cause;
+          }
+        }
         if (typeof readStaticPlan !== 'function') fail('ClientOperationUnavailable');
         const original = state.originalExplanation;
         if (original?.preparation === undefined) fail('ClientOperationUnavailable');

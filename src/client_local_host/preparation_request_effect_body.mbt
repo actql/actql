@@ -218,6 +218,7 @@ pub fn[I] reserve_request_effect_plan(
 pub fn[I] borrow_request_effect_plan_input(
   owner : ClientRequestPreparation[I],
   input : I,
+  static_models? : Bool = false,
 ) -> Result[
   @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientEffectComputation,
@@ -236,6 +237,22 @@ pub fn[I] borrow_request_effect_plan_input(
       Err(issue) => return Err(Capacity(issue))
       Ok(value) => value
     }
+  } else {
+    (r, e)
+  }
+  // The installed static reader retains its metadata inventory before any
+  // occurrence/vector/closure is exposed. Normal and Native callers retain
+  // their original quote. This adds no body, Run, permission or capacity owner.
+  let (r, e) = if static_models {
+    let bytes = match request_effect_static_model_controls_bytes(prepared) {
+      Some(value) => value
+      None => return Err(Policy)
+    }
+    guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+      return Err(Policy)
+    }
+    (r, e)
   } else {
     (r, e)
   }

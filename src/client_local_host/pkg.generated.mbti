@@ -241,7 +241,7 @@ pub fn borrow_program_commit_validation(ClientProgramValidation) -> @run_publica
 
 pub fn[I] borrow_request_content_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
-pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], ClientRequestPreparationIssue]
+pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I, static_models? : Bool) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], ClientRequestPreparationIssue]
 
 pub fn[I] borrow_request_effect_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[ClientInstalledEffectManagedPlan], ClientRequestPreparationIssue]
 

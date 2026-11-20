@@ -47436,7 +47436,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7cac6a2afee245177f87a984638c3c9df8c6307b091cd3ee61c907c256d1c033",
+      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -47455,7 +47455,7 @@
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
-          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , static_models ? : Bool"
         },
         {
           "name": "[I]borrow_request_effect_preparation",
@@ -47493,7 +47493,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]begin_request_effect_managed_run",
             "[I]borrow_request_effect_plan_input",
             "[I]borrow_request_effect_preparation",
@@ -64243,7 +64242,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "client_program_abort_request_preparation",
             "client_program_adopt_request_effect_preparation",
             "client_program_adopt_request_program_preparation",
@@ -67607,7 +67605,7 @@
         },
         {
           "name": "client_program_borrow_request_effect_plan_input",
-          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , static_models : Bool , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
           "name": "client_program_borrow_request_model_plan_input",
@@ -67991,7 +67989,7 @@
         },
         {
           "name": "client_program_read_request_checked_static_plan",
-          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
+          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
         {
           "name": "client_program_read_request_explanation",
@@ -68182,7 +68180,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "19b99ec67dd7c7f168440592f5c52c6b90cae582735ba46566ed20e6b6304944"
+      "sha256": "9f5ae64b37ecdc41bceddadb1438ea386d262303ca951ad6db725efd93f15029"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

@@ -610,7 +610,7 @@ pub fn client_program_borrow_installed_source_material(@physical_resources.Prepa
 
 pub fn client_program_borrow_request_content_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
-pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
+pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Bool) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_borrow_request_model_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
@@ -3862,7 +3862,7 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
-pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[String, ClientRequestStaticPlanBridgeIssue]
+pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 

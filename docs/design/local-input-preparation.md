@@ -7254,7 +7254,7 @@ unchanged extent through the parent-current check. The same owner fences reentry
 
 Missing runtime methods or unsupported carrier construction return explicit
 operation unavailability. The current Node connection supplies source-free Pure
-and checked source-free Effect computation; this implementation boundary does not make other authored Programs
+and checked Effect computation with its installed original Model metadata; this implementation boundary does not make other authored Programs
 invalid or establish their target coverage. A declined original construction
 admission cannot select a raw compiler fallback. Current loss and primary/read
 or cleanup failures remain failures, with their original owner and retry duty.
@@ -7282,7 +7282,22 @@ selects its single or composed Model input and validates every acquired route.
 A captured prefix alone is not an unsupported-Program verdict. The command
 retains the borrow before graph construction, returns that exact token before
 clearing it, and leaves pending return or failure with its existing cleanup.
-This does not extend the Node connection's installed static carriers.
+The Node installed static service uses the same nominal Plan-input borrower
+before exposing any original Infer occurrence or graph. It completes the
+already-started check first, then enters the existing metadata-material and
+graph owner stages with the retained prepared identity and installed sequence
+contracts. The execution-contract reader is metadata-only: Provider binding,
+Account observation, Source rows, Model invocation and executable Effect material
+are not prepared. The ordered opaque graphs cross the existing static bridge;
+the compiler retains its single/composed distinction and original checks.
+
+Before those Host vectors and captured methods are constructed, the same borrow
+reserves their finite occurrence/graph/closure overlap on the original Effect
+capacity. Partial metadata and graph holds remain with that producer through
+failure. Static reads issue no submitted alias: cleanup drops their local holds
+while the same nominal token is still backed, then uses the existing abort and
+exact token return. A declined return retains the original parent cleanup duty;
+metadata success is not a physical cleanup acknowledgement.
 
 Native Effect acceptance retains the same compiler's computation Plan alongside
 its already-checked observation originals in the existing first-admission

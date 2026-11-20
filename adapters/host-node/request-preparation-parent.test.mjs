@@ -3175,20 +3175,116 @@ test('static Effect Plan failures preserve the original cause and decline missin
     moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
     moon.clientProgramFinishRequestComputation = () => ok('effectful');
     moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No typed refusal selected');
-    let reads = 0;
+    const holder = {}, prepared = {};
+    let reads = 0, borrowed = 0, returned = false, retiring = false;
+    const abort = moon.clientProgramAbortRequestPreparation;
+    moon.clientProgramBorrowRequestEffectPlanInput = (parent, original, staticModels) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(staticModels, true); borrowed++; return ok(holder);
+    };
+    moon.clientProgramEffectPreparationInputRead = value => {assert.equal(value, holder); return prepared;};
+    moon.clientProgramEffectPreparationInputRetirementStarted = value => {
+      assert.equal(value, holder); return retiring;
+    };
+    moon.clientProgramEffectPreparationInputReturn = value => {
+      assert.equal(value, holder); assert.equal(retiring, true); returned = true; return ok(false);
+    };
+    moon.clientProgramAbortRequestPreparation = parent => {
+      if (returned || borrowed === 0) return Reflect.apply(abort, moon, [parent]);
+      retiring = true; return ok(undefined);
+    };
+    moon.clientProgramEffectInferOccurrences = value => {assert.equal(value, prepared); return ok([]);};
     if (outcome !== 'missing') moon.clientProgramReadRequestCheckedStaticPlan = () => {
       reads++;
       if (outcome === 'original-error') throw primary;
       current = false; return ok('must not escape a stale current boundary');
     };
-    moon.clientProgramBorrowRequestEffectPlanInput = () => assert.fail('No execution fallback');
     try {
       await assert.rejects(f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits),
         error => outcome === 'missing' ? error.code === 'ClientOperationUnavailable' : error === primary);
       assert.equal(reads, outcome === 'missing' ? 0 : 1);
+      assert.equal(borrowed, outcome === 'missing' ? 0 : 1);
     } finally {
       current = true; f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();
     }
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
+test('static Model metadata keeps same holder through reentry current loss and pending original cleanup', async () => {
+  // Actual imported manager and Resource owner, with explicit Core return/
+  // current ports. Full compiler/graph identity is tested by the real Core
+  // controls and installed-template caller, not supplied by these sentinels.
+  for (const boundary of ['metadata', 'graph-current']) {
+    const primary = Error(`Original ${boundary} refusal`), cleanup = Error('Original return still pending');
+    let current = true, returned = false, retiring = false, settled = false, returns = 0;
+    const environment = {}, f = await fixture({environment,
+      validate: () => {if (!current) throw primary;}});
+    const moon = f.context.runtime, request = {}, prepared = {}, holder = {}, occurrence = {}, execution = {}, graph = {};
+    const program = input(), receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    const admission = {};
+    f.originals.installation = {sequenceContractOriginal: {moon, admission}};
+    moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+    moon.clientProgramFinishRequestComputation = () => ok('effectful');
+    moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No typed refusal substitution');
+    moon.clientProgramRequestProgramModuleIssueCode = () => assert.fail('No typed refusal substitution');
+    moon.clientProgramReadRequestCheckedStaticPlan = () => assert.fail('No Plan after original failure');
+    moon.clientProgramBorrowRequestEffectPlanInput = () => ok(holder);
+    moon.clientProgramEffectPreparationInputRead = value => {assert.equal(value, holder); return prepared;};
+    moon.clientProgramEffectPreparationInputRetirementStarted = value => {assert.equal(value, holder); return retiring;};
+    moon.clientProgramEffectPreparationInputReturn = value => {
+      assert.equal(value, holder); assert.equal(retiring, true); returns++; returned = true;
+      // The static alias is disposed while this exact token is still backed.
+      assert.throws(() => f.view.prepareModelGraph(prepared, request, occurrence, execution),
+        {code: 'ForeignInstalledSourceProducer'});
+      return ok(false);
+    };
+    const abort = moon.clientProgramAbortRequestPreparation;
+    moon.clientProgramAbortRequestPreparation = parent => {
+      if (!returned) {retiring = true; return ok(undefined);}
+      if (!settled) throw cleanup;
+      return Reflect.apply(abort, moon, [parent]);
+    };
+    moon.clientProgramEffectInferOccurrences = value => {assert.equal(value, prepared); return ok([occurrence]);};
+    moon.clientProgramInferOccurrenceCoordinates = value => {assert.equal(value, occurrence); return {_2: 0};};
+    moon.clientProgramInferOccurrenceModelTaskCid = value => {assert.equal(value, occurrence); return 'original-task';};
+    let funded = false, graphs = 0;
+    moon.clientProgramPrepareRequestModelContractMaterials = (parent, original, count, at, containers) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(count, 1); assert.equal(containers, 1); assert.equal(at(0), 'original-execution');
+      assert.throws(() => f.view.prepareModelGraph(prepared, request, occurrence, execution),
+        {code: 'ForeignInstalledSourceProducer'});
+      funded = true; return ok(undefined);
+    };
+    moon.clientProgramReadComposedInferModelExecution = (original, wire, cid) => {
+      assert.equal(funded, true); assert.equal(original, occurrence);
+      assert.equal(wire, 'original-execution'); assert.equal(cid, 'original-execution-cid');
+      if (boundary === 'metadata') throw primary;
+      return ok(execution);
+    };
+    moon.clientProgramPrepareRequestModelGraph = (parent, original, selected, actual, contracts) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(selected, occurrence); assert.equal(actual, execution); assert.equal(contracts, admission);
+      graphs++; current = false; return ok(graph);
+    };
+    const installation = Object.freeze({environmentWire: '{}', dependencyBodies: Object.freeze([]),
+      executionContracts: Object.freeze([Object.freeze({modelTaskCid: 'original-task',
+        cid: 'original-execution-cid', bodyWire: 'original-execution'})])});
+    const limits = {maxWireBytes: 4096, maxNodes: 512, maxDepth: 32};
+    await assert.rejects(f.view.fundedPreparation(request, environment, undefined, undefined, undefined,
+      limits, installation), error => error === primary);
+    assert.equal(graphs, boundary === 'metadata' ? 0 : 1);
+    current = true;
+    assert.throws(() => f.view.finishSourceProducer(receipt, 'failed'), error => error === cleanup);
+    assert.equal(returns, 1);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+    await assert.rejects(f.view.close(), error => error === cleanup);
+    settled = true;
+    assert.deepEqual(await f.view.close(), {pending: false});
+    assert.deepEqual(await f.view.close(), {pending: false});
+    assert.equal(returns, 1);
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   }
 });

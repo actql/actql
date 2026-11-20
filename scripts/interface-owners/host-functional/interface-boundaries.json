@@ -27125,7 +27125,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27288,7 +27288,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27920,7 +27920,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -112123,9 +112123,7 @@
           }
         },
         {
-          "operations": [
-            "<module>"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -113681,7 +113679,12 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2"
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#5",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#6",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#7",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#8",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#9"
           ],
           "exports": [],
           "attributes": {
@@ -113767,6 +113770,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "// Actual imported installed static service"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"static Model Plan consumes only the same original graph and retains its input through refusal\""
               }
             ]
           }
@@ -114226,7 +114237,9 @@
             "originalVerifier",
             "signal",
             "journal",
-            "staticPlan"
+            "staticPlan",
+            "staticModelInstallation",
+            "staticFileReadDeclarations"
           ],
           "async": true
         },
@@ -114246,22 +114259,57 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
           "parameters": [
-            "method"
+            "args"
           ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#4",
           "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#5",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#6",
+          "parameters": [
             "name",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#8",
+          "parameters": [
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#9",
+          "parameters": [],
           "async": false
         },
         {
@@ -115125,6 +115173,7 @@
         "./client-program-preparation.mjs",
         "./client-request-journal.mjs",
         "./infer-operation.mjs",
+        "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
@@ -115134,7 +115183,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3a10ab366267b82bbe72376e60b986e650ac388e16d4dcc148762d43d008042e"
+      "sha256": "795d7947ce3967f012063abdebc5f4f81f135cab4c2fe353b5e3f3c027b0aa7c"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -123659,7 +123708,7 @@
       "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -124790,7 +124839,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -125999,7 +126048,7 @@
       "sha256": "d0e0dd21c38dd3c6c0cf0dc891c62a6f632d5fe1f91480b2716ceb283fa49b17",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -133145,7 +133194,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -133448,7 +133497,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134083,7 +134132,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
