@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {ExplorerAsset} from './gateway.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createExplorerGateway} from './gateway.mjs';
@@ -6,17 +8,17 @@ const origin = 'http://127.0.0.1:43210';
 const navigation = {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate',
   'Sec-Fetch-Dest': 'document', 'Sec-Fetch-User': '?1'};
 
-function fixture(t) {
+function fixture(t:TestContext) {
   const html = '<!doctype html><title>Explorer</title>';
   const gateway = createExplorerGateway({origin,
     client: {attach() {assert.fail('static navigation must not call the Client');}},
-    assets: new Map([
+    assets: new Map<string,ExplorerAsset>([
       ['/index.html', {body: Buffer.from(html), contentType: 'text/html; charset=utf-8'}],
       ['/assets/app.js', {body: Buffer.from('export {};'), contentType: 'text/javascript; charset=utf-8'}],
     ]),
   });
   t.after(() => gateway.close());
-  return {html, send(path = '/', headers = {}, method = 'GET') {
+  return {html, send(path = '/', headers:Record<string,string> = {}, method = 'GET') {
     return gateway.fetch(new Request(origin + path, {method,
       headers: {Host: '127.0.0.1:43210', ...headers},
       ...(method === 'POST' ? {body: '{}'} : {}),
@@ -45,7 +47,7 @@ test('document navigation cannot bypass API Origin, Host, framing or asset check
     ['/api/session', navigation, 'GET'],
     ['/api/session', navigation, 'POST'],
     ['/api/session', {...navigation, Origin: origin}, 'POST'],
-  ]) {
+  ] as const) {
     const response = await h.send(path, headers, method);
     assert.equal(response.status, 403, `${method} ${path}`);
     assert.deepEqual(await response.json(), {error: 'ExplorerOriginRefused'});
@@ -61,13 +63,13 @@ test('document navigation cannot bypass API Origin, Host, framing or asset check
 
 test('ordinary static reads keep no-store CSP and same-origin behavior', async t => {
   const h = fixture(t);
-  for (const headers of [{}, {'Sec-Fetch-Site': 'none'}, {'Sec-Fetch-Site': 'same-origin'}]) {
+  for (const headers of [{}, {'Sec-Fetch-Site': 'none'}, {'Sec-Fetch-Site': 'same-origin'}] as Record<string,string>[]) {
     const response = await h.send('/', headers);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
-    assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/u);
-    assert.match(response.headers.get('content-security-policy'), /script-src 'self'/u);
+    assert.match(response.headers.get('content-security-policy')!, /frame-ancestors 'none'/u);
+    assert.match(response.headers.get('content-security-policy')!, /script-src 'self'/u);
   }
 });

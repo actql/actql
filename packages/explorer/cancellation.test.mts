@@ -1,3 +1,5 @@
+import type {RunReference} from '@actql/sdk';
+type ClientPort = Parameters<typeof requestExistingCancellation>[0];
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {captureCancellation,requestExistingCancellation,lookupExistingCancellation,
@@ -5,20 +7,20 @@ import {captureCancellation,requestExistingCancellation,lookupExistingCancellati
 import {createReadEpoch} from '../explorer-ui/read-model.mjs';
 const ref={namespaceId:'original',authorityScopeCid:'sha256:'+'a'.repeat(64),runDefinitionCid:'sha256:'+'b'.repeat(64)};
 const original=()=>({cancelRef:{...ref,cancelId:'original-cancel',expectedRevision:7},
-  attemptRef:{operation:'cancel',attemptId:'original-attempt'}});
-const accepted=()=>({kind:'accepted',attemptRef:original().attemptRef,
-  cancellation:{kind:'accepted',ref:{...ref},cancelRef:original().cancelRef,revision:8}});
+  attemptRef:{operation:'cancel' as const,attemptId:'original-attempt'}});
+const accepted=()=>({kind:'accepted' as const,attemptRef:original().attemptRef,
+  cancellation:{kind:'accepted' as const,ref:{...ref},cancelRef:original().cancelRef,revision:8}});
 const ticket=()=>createReadEpoch().capture();
 
 test('cancellation captures exact identities and dispatches once without status or replacement revision',async()=>{
-  const input=original(),calls=[];
-  const client={async attach(r){calls.push(['attach',r]);input.cancelRef.expectedRevision=99;return{
-    async cancel(options){calls.push(['cancel',options]);return accepted();},
+  const input=original(),calls:unknown[]=[];
+  const client={async attach(r:RunReference){calls.push(['attach',r]);input.cancelRef.expectedRevision=99;return{
+    async cancel(options:unknown){calls.push(['cancel',options]);return accepted();},
     status(){assert.fail('no revision replacement');},reconcile(){assert.fail('no implicit reconcile');},
   };}};
-  const answer=await requestExistingCancellation(client,input,ticket());
+  const answer=await requestExistingCancellation(client as unknown as ClientPort,input,ticket());
   assert.deepEqual(calls,[['attach',ref],['cancel',{cancelId:'original-cancel',expectedRevision:7,attemptId:'original-attempt'}]]);
-  assert.equal(answer.state,'observed');assert.equal(answer.outcome.kind,'accepted');
+  assert.equal(answer.state,'observed');assert.equal((answer as Extract<Awaited<ReturnType<typeof requestExistingCancellation>>,{state:'observed'}>).outcome.kind,'accepted');
   assert(validCancellationObservation(answer,original()));
   assert(!Object.hasOwn(answer,'physicalStop'));
 });
@@ -31,7 +33,7 @@ test('lost or malformed cancellation replies stay presentation Unknown with orig
       if(behavior==='malformed')return{kind:'stopped'};
       const value=accepted();value.cancellation.cancelRef.cancelId='foreign';return value;
     }}}};
-    const answer=await requestExistingCancellation(client,original(),ticket());
+    const answer=await requestExistingCancellation(client as unknown as ClientPort,original(),ticket());
     assert.equal(requests,1);assert.deepEqual(answer,{state:'unknown',original:original()});
     assert(validCancellationObservation(answer,original()));assert(!JSON.stringify(answer).includes('secret'));
     assert(!Object.hasOwn(answer,'kind'),'not a fabricated Owner attempt wire');
@@ -44,27 +46,27 @@ test('known Owner refusal and conflict remain exact and never become no physical
       guarantee:'attempt_uncommitted_unconsumed',reason:'authorization'},
     {kind:'conflict',attemptRef:original().attemptRef,cancelRef:original().cancelRef,reason:'control_revision'},
   ]){
-    const answer=await requestExistingCancellation({attach:async()=>({cancel:async()=>outcome})},original(),ticket());
+    const answer=await requestExistingCancellation({attach:async()=>({cancel:async()=>outcome})} as unknown as ClientPort,original(),ticket());
     assert.deepEqual(answer,{state:'observed',original:original(),outcome});
   }
 });
 
 test('original cancellation lookup never calls cancel, start, payload or accepts another Run',async()=>{
-  const calls=[];
-  const client={async attach(r){assert.deepEqual(r,ref);return{
-    async lookupCancellation(r){calls.push(r);return{kind:'found',cancellation:accepted().cancellation};},
+  const calls:unknown[]=[];
+  const client={async attach(r:RunReference){assert.deepEqual(r,ref);return{
+    async lookupCancellation(r:unknown){calls.push(r);return{kind:'found',cancellation:accepted().cancellation};},
     cancel(){assert.fail('no resend');},result(){assert.fail('no payload');},
   };},start(){assert.fail('no new Run');}};
-  const result=await lookupExistingCancellation(client,original().cancelRef,ticket());
+  const result=await lookupExistingCancellation(client as unknown as ClientPort,original().cancelRef,ticket());
   assert.equal(result.kind,'found');assert.deepEqual(calls,[original().cancelRef]);
   const foreign={kind:'found',cancellation:accepted().cancellation};foreign.cancellation.ref.namespaceId='foreign';
-  await assert.rejects(lookupExistingCancellation({attach:async()=>({lookupCancellation:async()=>foreign})},original().cancelRef,ticket()),{code:'ExplorerInvalidCancellation'});
+  await assert.rejects(lookupExistingCancellation({attach:async()=>({lookupCancellation:async()=>foreign})} as unknown as ClientPort,original().cancelRef,ticket()),{code:'ExplorerInvalidCancellation'});
 });
 
 test('scope switch discards delayed control replies but never sends a compensating operation',async()=>{
-  const epoch=createReadEpoch();let release,requests=0;
-  const ready=new Promise(resolve=>release=resolve);
-  const answer=requestExistingCancellation({attach:async()=>({async cancel(){requests++;return ready;}})},original(),epoch.capture());
+  const epoch=createReadEpoch();let release!:(value:ReturnType<typeof accepted>)=>void,requests=0;
+  const ready=new Promise<ReturnType<typeof accepted>>(resolve=>release=resolve);
+  const answer=requestExistingCancellation({attach:async()=>({async cancel(){requests++;return ready;}})} as unknown as ClientPort,original(),epoch.capture());
   await new Promise(resolve=>setImmediate(resolve));epoch.invalidate();release(accepted());
   await assert.rejects(answer,{code:'ExplorerStaleScope'});assert.equal(requests,1);
 });
