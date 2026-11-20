@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {createInflateRaw} from 'node:zlib';
+import type {BigIntStats, PathLike} from 'node:fs';
+import type {FileHandle} from 'node:fs/promises';
 
 const MiB = 1024 * 1024;
 export const DEFAULT_ARTIFACT_LIMITS = Object.freeze({
@@ -15,32 +17,39 @@ export const DEFAULT_ARTIFACT_LIMITS = Object.freeze({
   maxCompressionRatio: 2_000,
   maxJsonBytes: 160 * MiB,
 });
+type Limits = {-readonly [K in keyof typeof DEFAULT_ARTIFACT_LIMITS]: number};
+type ArtifactOptions = {expectedSha256?: string; limits?: Partial<Limits>};
+type CentralEntry = {path: string; directory: boolean; rawName?: Buffer; needed: number;
+  flags: number; method: number; crc: number; compressedBytes: number; bytes: number;
+  localOffset: number; modified: number; dataOffset?: number; endOffset?: number};
+type ReadKind = 'read' | 'json' | 'digest';
+
 const chunkBytes = 64 * 1024;
 const utf8 = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
-const fail = message => { throw new Error(`Invalid artifact ZIP: ${message}`); };
+const fail: (message: string) => never = message => { throw new Error(`Invalid artifact ZIP: ${message}`); };
 const crcTable = Uint32Array.from({length: 256}, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit++) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
   return value >>> 0;
 });
-function crcUpdate(value, data) {
+function crcUpdate(value: number, data: Buffer) {
   for (const byte of data) value = crcTable[(value ^ byte) & 255] ^ (value >>> 8);
   return value;
 }
 
-function boundedLimits(overrides = {}) {
+function boundedLimits(overrides: Partial<Limits> = {}) {
   if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) fail('invalid limits');
-  const limits = {...DEFAULT_ARTIFACT_LIMITS};
+  const limits: Limits = {...DEFAULT_ARTIFACT_LIMITS};
   for (const [key, value] of Object.entries(overrides)) {
-    if (!Object.hasOwn(limits, key) || !Number.isSafeInteger(value) || value <= 0 || value > limits[key]) {
+    if (!Object.hasOwn(limits, key) || !Number.isSafeInteger(value) || value <= 0 || value > limits[key as keyof Limits]) {
       fail(`limit ${key} must be a positive integer no larger than its default`);
     }
-    limits[key] = value;
+    limits[key as keyof Limits] = value;
   }
   return limits;
 }
 
-async function readAt(handle, size, position, end) {
+async function readAt(handle: FileHandle, size: number, position: number, end: number) {
   if (!Number.isSafeInteger(size) || !Number.isSafeInteger(position) || size < 0 ||
       position < 0 || position + size > end) fail('record extends outside its permitted range');
   const data = Buffer.allocUnsafe(size);
@@ -52,7 +61,7 @@ async function readAt(handle, size, position, end) {
   return data;
 }
 
-function checkExtra(extra) {
+function checkExtra(extra: Buffer) {
   for (let offset = 0; offset < extra.length;) {
     if (offset + 4 > extra.length) fail('truncated extra field');
     const id = extra.readUInt16LE(offset);
@@ -63,7 +72,7 @@ function checkExtra(extra) {
   }
 }
 
-function safeName(raw, flags) {
+function safeName(raw: Buffer, flags: number) {
   if (!raw.length) fail('empty member name');
   // Legacy code pages are intentionally unsupported rather than decoded ambiguously.
   if (!(flags & 0x0800) && raw.some(byte => byte >= 128)) fail('non-UTF-8 member name is unsupported');
@@ -77,24 +86,24 @@ function safeName(raw, flags) {
   return {path: parts.join('/').normalize('NFC'), directory};
 }
 
-function checkType(attributes, directory) {
+function checkType(attributes: number, directory: boolean) {
   const kind = (attributes >>> 16) & 0xf000;
   if (kind !== 0 && kind !== 0x8000 && kind !== 0x4000) fail('symlink or special member is unsupported');
   if ((attributes & 8) || (directory && kind === 0x8000) ||
       (!directory && (kind === 0x4000 || (attributes & 16)))) fail('inconsistent member type');
 }
 
-function streamRange(handle, position, bytes) {
-  return bytes === 0 ? Readable.from([]) : createReadStream(null, {
+function streamRange(handle: FileHandle, position: number, bytes: number) {
+  return bytes === 0 ? Readable.from([]) : createReadStream(null as unknown as PathLike, {
     fd: handle.fd, start: position, end: position + bytes - 1, autoClose: false, highWaterMark: chunkBytes,
   });
 }
 
-function fingerprint(stat) {
+function fingerprint(stat: BigIntStats) {
   return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':');
 }
 
-async function centralEntries(handle, archiveBytes, limits) {
+async function centralEntries(handle: FileHandle, archiveBytes: number, limits: Limits) {
   const tailStart = Math.max(0, archiveBytes - 65_557);
   const tail = await readAt(handle, archiveBytes - tailStart, tailStart, archiveBytes);
   let endIndex = -1;
@@ -118,8 +127,8 @@ async function centralEntries(handle, archiveBytes, limits) {
   }
   if (count > limits.maxEntries) fail('member count exceeds limit');
   if (centralOffset + centralSize !== endOffset) fail('invalid central-directory extent');
-  const entries = [];
-  const names = new Map();
+  const entries: CentralEntry[] = [];
+  const names = new Map<string, CentralEntry>();
   let offset = centralOffset;
   let totalBytes = 0;
   for (let index = 0; index < count; index++) {
@@ -170,7 +179,7 @@ async function centralEntries(handle, archiveBytes, limits) {
   return {entries, centralOffset};
 }
 
-async function validateLocalEntries(handle, entries, centralOffset) {
+async function validateLocalEntries(handle: FileHandle, entries: readonly CentralEntry[], centralOffset: number) {
   for (const entry of entries) {
     const local = await readAt(handle, 30, entry.localOffset, centralOffset);
     if (local.readUInt32LE(0) !== 0x04034b50) fail('invalid local member header');
@@ -181,7 +190,7 @@ async function validateLocalEntries(handle, entries, centralOffset) {
     const nameBytes = local.readUInt16LE(26);
     const extraBytes = local.readUInt16LE(28);
     const variable = await readAt(handle, nameBytes + extraBytes, entry.localOffset + 30, centralOffset);
-    if (!variable.subarray(0, nameBytes).equals(entry.rawName)) fail('local and central member names disagree');
+    if (!variable.subarray(0, nameBytes).equals(entry.rawName!)) fail('local and central member names disagree');
     checkExtra(variable.subarray(nameBytes));
     const descriptor = Boolean(entry.flags & 8);
     for (const [position, value] of [[14, entry.crc], [18, entry.compressedBytes], [22, entry.bytes]]) {
@@ -193,7 +202,7 @@ async function validateLocalEntries(handle, entries, centralOffset) {
     if (entry.endOffset > centralOffset) fail('member payload overlaps central directory');
     if (descriptor) {
       const data = await readAt(handle, Math.min(16, centralOffset - entry.endOffset), entry.endOffset, centralOffset);
-      const matches = position => data.length >= position + 12 &&
+      const matches = (position: number) => data.length >= position + 12 &&
         data.readUInt32LE(position) === entry.crc &&
         data.readUInt32LE(position + 4) === entry.compressedBytes &&
         data.readUInt32LE(position + 8) === entry.bytes;
@@ -205,7 +214,7 @@ async function validateLocalEntries(handle, entries, centralOffset) {
   }
   const ranges = [...entries].sort((left, right) => left.localOffset - right.localOffset);
   for (let index = 1; index < ranges.length; index++) {
-    if (ranges[index].localOffset < ranges[index - 1].endOffset) fail('overlapping local members');
+    if (ranges[index].localOffset < ranges[index - 1].endOffset!) fail('overlapping local members');
   }
 }
 
@@ -218,7 +227,7 @@ async function validateLocalEntries(handle, entries, centralOffset) {
  * Callers must consume/digest every member used as evidence; unused payloads
  * are not inflated during open. Returned read buffers belong to the caller.
  */
-export async function openArtifactZip(filename, {expectedSha256, limits: overrides} = {}) {
+export async function openArtifactZip(filename: string, {expectedSha256, limits: overrides}: ArtifactOptions = {}) {
   const limits = boundedLimits(overrides);
   if (expectedSha256 !== undefined && (typeof expectedSha256 !== 'string' ||
       !/^(?:sha256:)?[a-f0-9]{64}$/iu.test(expectedSha256))) fail('invalid expected SHA-256');
@@ -251,19 +260,19 @@ export async function openArtifactZip(filename, {expectedSha256, limits: overrid
     const entries = Object.freeze(files.map(({path, bytes, compressedBytes: size}) =>
       Object.freeze({path, bytes, compressedBytes: size})));
     let closed = false;
-    let queue = Promise.resolve();
-    let closePromise;
+    let queue: Promise<unknown> = Promise.resolve();
+    let closePromise: Promise<void> | undefined;
 
-    const consume = async (entry, retain) => {
+    const consume = async (entry: CentralEntry, retain: boolean) => {
       await unchanged();
-      const chunks = retain ? [] : undefined;
+      const chunks: Buffer[] | undefined = retain ? [] : undefined;
       const digest = retain ? undefined : createHash('sha256');
       let bytes = 0;
       let crc = 0xffffffff;
-      let validationError;
-      const input = streamRange(handle, entry.dataOffset, entry.compressedBytes);
+      let validationError: Error | undefined;
+      const input = streamRange(handle, entry.dataOffset!, entry.compressedBytes);
       const inflater = entry.method === 8 ? createInflateRaw({chunkSize: chunkBytes}) : undefined;
-      const sink = async output => {
+      const sink = async (output: AsyncIterable<Buffer>) => {
         for await (const chunk of output) {
           bytes += chunk.length;
           // Check before retaining anything: declarations cannot bypass the bound.
@@ -272,8 +281,8 @@ export async function openArtifactZip(filename, {expectedSha256, limits: overrid
             throw validationError;
           }
           crc = crcUpdate(crc, chunk);
-          if (retain) chunks.push(chunk);
-          else digest.update(chunk);
+          if (retain) chunks!.push(chunk);
+          else digest!.update(chunk);
         }
       };
       try {
@@ -288,10 +297,10 @@ export async function openArtifactZip(filename, {expectedSha256, limits: overrid
       if (((crc ^ 0xffffffff) >>> 0) !== entry.crc) fail('member CRC mismatch');
       if (inflater && inflater.bytesWritten !== entry.compressedBytes) fail('trailing bytes in deflated member');
       await unchanged();
-      return retain ? Buffer.concat(chunks, bytes) : digest.digest('hex');
+      return retain ? Buffer.concat(chunks!, bytes) : digest!.digest('hex');
     };
     // Serialize I/O so concurrent calls cannot multiply decompression buffers.
-    const run = (path, kind) => {
+    const run = (path: string, kind: ReadKind): Promise<unknown> => {
       if (closed) return Promise.reject(new Error('Artifact ZIP is closed'));
       const entry = byPath.get(path);
       if (!entry) return Promise.reject(new Error('Artifact ZIP member not found'));
@@ -302,17 +311,17 @@ export async function openArtifactZip(filename, {expectedSha256, limits: overrid
         const value = await consume(entry, kind !== 'digest');
         if (kind !== 'json') return value;
         let text;
-        try { text = utf8.decode(value); } catch { fail('JSON member has invalid UTF-8'); }
-        try { return JSON.parse(text); } catch { fail('JSON member has invalid JSON'); }
+        try { text = utf8.decode(value as Buffer); } catch { fail('JSON member has invalid UTF-8'); }
+        try { return JSON.parse(text) as unknown; } catch { fail('JSON member has invalid JSON'); }
       });
       queue = operation.catch(() => {});
       return operation;
     };
     return Object.freeze({
       entries, compressedBytes, sha256,
-      read: path => run(path, 'read'),
-      json: path => run(path, 'json'),
-      digest: path => run(path, 'digest'),
+      read: (path: string) => run(path, 'read') as Promise<Buffer>,
+      json: (path: string) => run(path, 'json'),
+      digest: (path: string) => run(path, 'digest') as Promise<string>,
       close() {
         if (!closePromise) {
           closed = true;

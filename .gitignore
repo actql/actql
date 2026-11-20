@@ -877,3 +877,7 @@ target/
 /scripts/produce-native-cli-darwin-local.test.d.mts
 /scripts/produce-native-cli-linux-local.test.mjs
 /scripts/produce-native-cli-linux-local.test.d.mts
+/scripts/ci-artifact-reader.mjs
+/scripts/ci-artifact-reader.d.mts
+/scripts/ci-artifact-reader.test.mjs
+/scripts/ci-artifact-reader.test.d.mts

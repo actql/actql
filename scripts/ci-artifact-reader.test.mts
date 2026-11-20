@@ -5,11 +5,21 @@ import {mkdtemp, writeFile, rm, appendFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {deflateRawSync} from 'node:zlib';
 import {DEFAULT_ARTIFACT_LIMITS, openArtifactZip} from './ci-artifact-reader.mjs';
 
+type ArtifactOptions = Parameters<typeof openArtifactZip>[1];
+type Patch = (bytes: Buffer) => void;
+type Member = {name: string | Buffer; data?: string | Buffer; packed?: Buffer;
+  method?: number; crc?: number; bytes?: number; compressedBytes?: number; flags?: number;
+  needed?: number; extra?: Buffer; localExtra?: Buffer; localName?: string | Buffer;
+  localPatch?: Patch; centralPatch?: Patch; descriptorPatch?: Patch; unsignedDescriptor?: boolean;
+  attributes?: number; localOffset?: number};
+type Archive = ReturnType<typeof zip>;
+
 // Independent, deliberately simple fixture CRC; no product ZIP construction.
-function crc32(data) {
+function crc32(data: Buffer) {
   let crc = 0xffffffff;
   for (const byte of data) {
     crc ^= byte;
@@ -17,18 +27,18 @@ function crc32(data) {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
-const sha256 = data => createHash('sha256').update(data).digest('hex');
+const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 
 // ZIP records are authored here rather than using an archive package. Each
 // optional override exists to construct a particular malformed test record.
-function zip(specs, {comment = Buffer.alloc(0), endPatch} = {}) {
+function zip(specs: readonly Member[], {comment = Buffer.alloc(0), endPatch}: {comment?: Buffer; endPatch?: Patch} = {}) {
   const locals = [];
   const centrals = [];
   const layout = [];
   let offset = 0;
   for (const spec of specs) {
     const name = Buffer.isBuffer(spec.name) ? spec.name : Buffer.from(spec.name);
-    const localName = spec.localName ? Buffer.from(spec.localName) : name;
+    const localName = spec.localName ? Buffer.from(spec.localName as string) : name;
     const data = Buffer.isBuffer(spec.data) ? spec.data : Buffer.from(spec.data ?? '123456789');
     const method = spec.method ?? 0;
     const packed = spec.packed ?? (method === 8 ? deflateRawSync(data) : data);
@@ -93,7 +103,7 @@ function zip(specs, {comment = Buffer.alloc(0), endPatch} = {}) {
   return {bytes: Buffer.concat([...locals, centralBytes, end, comment]), layout, centralOffset: offset};
 }
 
-async function fixture(t, bytes, options) {
+async function fixture(t: TestContext, bytes: Buffer, options?: ArtifactOptions) {
   const directory = await mkdtemp(join(tmpdir(), 'ci-artifact-reader-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'artifact.zip');
@@ -103,12 +113,12 @@ async function fixture(t, bytes, options) {
   return {reader, path, directory};
 }
 
-async function rejected(t, archive, pattern, options) {
+async function rejected(t: TestContext, archive: Archive | Buffer, pattern: RegExp, options?: unknown) {
   const directory = await mkdtemp(join(tmpdir(), 'ci-artifact-invalid-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'artifact.zip');
-  await writeFile(path, archive.bytes ?? archive);
-  await assert.rejects(openArtifactZip(path, options), pattern);
+  await writeFile(path, (archive as Archive).bytes ?? archive as Buffer);
+  await assert.rejects(openArtifactZip(path, options as ArtifactOptions), pattern);
 }
 
 test('reads stored/deflated files and both descriptor layouts without extraction', async t => {
@@ -238,8 +248,8 @@ test('rejects malformed records, truncation, trailing data and bad directory ext
 
 test('rejects local/central disagreement, invalid descriptors and overlapping records', async t => {
   await rejected(t, zip([{name: 'central', localName: 'changed'}]), /names disagree/u);
-  for (const localPatch of [h => h.writeUInt16LE(8, 8), h => h.writeUInt16LE(10, 4),
-    h => h.writeUInt16LE(0, 6), h => h.writeUInt32LE(1, 10)]) {
+  for (const localPatch of [(h: Buffer) => h.writeUInt16LE(8, 8), (h: Buffer) => h.writeUInt16LE(10, 4),
+    (h: Buffer) => h.writeUInt16LE(0, 6), (h: Buffer) => h.writeUInt32LE(1, 10)]) {
     await rejected(t, zip([{name: 'a', localPatch}]), /headers disagree/u);
   }
   for (const position of [14, 18, 22]) {
@@ -282,10 +292,10 @@ test('JSON is parsed as data with strict UTF-8 and errors do not poison subseque
   ]).bytes);
   await assert.rejects(reader.json('invalid.json'), /invalid JSON/u);
   await assert.rejects(reader.json('encoding.json'), /invalid UTF-8/u);
-  const data = await reader.json('data.json');
+  const data = await reader.json('data.json') as {script: unknown};
   assert.equal(data.script, 'throw Error()');
   assert.equal(Object.hasOwn(data, '__proto__'), true);
-  assert.equal({}.polluted, undefined);
+  assert.equal(({} as {polluted?: unknown}).polluted, undefined);
   await assert.rejects(reader.read('../missing'), /not found/u);
 });
 
@@ -316,10 +326,10 @@ test('detects mutation, refuses symlink inputs, and closes idempotently after qu
 
 test('repeated streaming reads do not retain FileHandle close listeners', async t => {
   const {reader} = await fixture(t, zip([{name: 'many', method: 8}]).bytes);
-  const warnings = []; const capture = warning => warnings.push(warning);
+  const warnings: Error[] = []; const capture = (warning: Error) => warnings.push(warning);
   process.on('warning', capture); t.after(() => process.off('warning', capture));
   for (let i = 0; i < 32; i++) assert.equal(await reader.digest('many'), sha256(Buffer.from('123456789')));
-  await new Promise(resolve => setImmediate(resolve));
+  await new Promise<void>(resolve => setImmediate(resolve));
   assert.equal(warnings.filter(w => w.name === 'MaxListenersExceededWarning').length, 0);
 });
 test('FIFO archive input is rejected without waiting for a writer', {skip: process.platform === 'win32'}, async t => {
