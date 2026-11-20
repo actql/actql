@@ -28,6 +28,17 @@ test('RC sequence option is explicit, paired and cannot enter a formal or foreig
   assert.throws(() => nativeMockInstallOptions(['--release-project-sequences', '/own/node-rc'], 'linux'));
 });
 
+test('Original Mock regression selection reuses exact Mac companion and stays separate from Stage2', () => {
+  const options = nativeMockInstallOptions(['--measure-approval-resources', '--original-mock-regressions', '/own/node-rc'], 'darwin');
+  assert.equal(options.projectSequenceNodeRelease, '/own/node-rc'); assert.equal(options.originalMockRegressions, true);
+  assert.equal(nativeMockInstallOptions(['--release-project-sequences', '/own/node-rc'], 'darwin').originalMockRegressions, undefined);
+  for (const args of [['--original-mock-regressions'], ['--original-mock-regressions', ''],
+    ['--release-project-sequences', '/one', '--original-mock-regressions', '/two'],
+    ['--original-mock-regressions', '/one', '--release-project-sequences', '/two']])
+    assert.throws(() => nativeMockInstallOptions(args, 'darwin'));
+  assert.throws(() => nativeMockInstallOptions(['--original-mock-regressions', '/own/node-rc'], 'linux'));
+});
+
 test('RC companion fences exact source, version and complete Node roles before installation', () => {
   assertReleaseProjectCohort(native, nodeManifest());
   for (const mutate of [value => {value.sourceSha = 'b'.repeat(40);},
