@@ -115,7 +115,10 @@ test('original producer and digest precede exact-source checkout and the one con
   const bind = steps.find(step => step.name === 'Verify the original producer source and exact artifact archive');
   const consume = steps.find(step => step.name === 'Sample one installed wait with unchanged normal packages');
   assert(steps.indexOf(bind) < steps.indexOf(consume));
-  assert(bind.run.indexOf('diagnostic.mjs" artifact') < bind.run.indexOf('git checkout --detach'));
+  const prepare = steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+  assert(prepare >= 0 && prepare < steps.indexOf(bind));
+  const verify = bind.run.indexOf('diagnostic.mjs" artifact');
+  assert(verify >= 0 && verify < bind.run.indexOf('bash scripts/ci-checkout-artifact-source.sh "$source_sha"'));
   assert.equal(bind.env.PACKAGE_EVENT_HEAD_SHA, '${{ inputs.node-wait-event-head }}');
   assert.equal(bind.env.PACKAGE_BUILD_SOURCE_SHA, '${{ inputs.node-wait-build-source }}');
   assert.equal(bind.env.PACKAGE_ARCHIVE_SHA256, '${{ inputs.node-wait-archive-sha256 }}');
