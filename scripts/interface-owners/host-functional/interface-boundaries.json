@@ -68948,8 +68948,8 @@
                 "anchor": "export async function loadInstalledProjectConfiguration(moon,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readBoundedConfigurationUtf8(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readBoundedConfigurationUtf8"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -69000,8 +69000,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -69064,7 +69064,7 @@
                 "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
@@ -69090,8 +69090,8 @@
                 "anchor": "A pending read remains pending; caller"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -69146,7 +69146,7 @@
                 "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               },
               {
@@ -69555,8 +69555,8 @@
                 "anchor": "export async function loadInstalledProjectConfiguration(moon,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readBoundedConfigurationUtf8(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readBoundedConfigurationUtf8"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -69607,8 +69607,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -69671,7 +69671,7 @@
                 "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
@@ -69697,8 +69697,8 @@
                 "anchor": "A pending read remains pending; caller"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -69753,7 +69753,7 @@
                 "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               },
               {
@@ -69900,8 +69900,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-connections.mjs",
@@ -70040,8 +70040,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-connections.mjs",
@@ -70505,7 +70505,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
@@ -70883,7 +70883,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
@@ -78489,8 +78489,8 @@
                 "anchor": "and cleanup custody remain with their existing Owners."
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               }
             ],
             "resources": [
@@ -78779,8 +78779,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               }
             ],
             "resources": [
@@ -79015,8 +79015,8 @@
                 "anchor": "and cleanup custody remain with their existing Owners."
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               }
             ],
             "resources": [
@@ -91896,8 +91896,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readSourceProfileJson(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readSourceProfileJson"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -91918,8 +91918,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readSourceProfileJson(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readSourceProfileJson"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -91934,8 +91934,8 @@
                 "anchor": "export async function loadInstalledProjectConfiguration(moon,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readBoundedConfigurationUtf8(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readBoundedConfigurationUtf8"
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
@@ -91944,7 +91944,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -91964,7 +91964,7 @@
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               },
               {
@@ -91974,8 +91974,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -91986,8 +91986,8 @@
                 "anchor": "# Resident Source acquisition"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -92000,7 +92000,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "import {open} from 'node:fs/promises';"
               },
               {
@@ -92020,7 +92020,7 @@
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               },
               {
@@ -92030,7 +92030,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "throw new TypeError('InvalidInstalledSourceProfileByteLimit');"
               },
               {
@@ -92046,11 +92046,11 @@
                 "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "if (original !== undefined && originalClose === undefined) throw failure;"
               },
               {
@@ -92060,8 +92060,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -92082,7 +92082,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -92116,7 +92116,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -92132,7 +92132,7 @@
                 "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               },
               {
@@ -92208,8 +92208,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function installedRuntimeBundleCid(path, {openFile = open, io} = {})"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function installedRuntimeBundleCid"
               }
             ],
             "identity": [
@@ -92218,18 +92218,18 @@
                 "anchor": "byte digest. Each installation rereads its original runtime file: an ESM module"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const digest = createHash('sha256');"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function withOriginalFile(path, openFile, consume, physicalIo)"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function withOriginalFile"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -92238,29 +92238,29 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "return await consume(selected);"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "return await consume(selected as ReadFileOriginal);"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "if (flight !== undefined) return flight;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "primary = new AggregateError([failure, cause], message, {cause: failure});"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "throw exported;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "if (original !== undefined && originalClose === undefined) throw failure;"
               }
             ],
@@ -92341,7 +92341,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92351,7 +92351,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92361,7 +92361,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92371,7 +92371,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92381,7 +92381,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92391,7 +92391,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92401,7 +92401,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92411,7 +92411,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92421,7 +92421,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92431,7 +92431,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -92554,8 +92554,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readSourceProfileJson(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readSourceProfileJson"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -92572,8 +92572,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readSourceProfileJson(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readSourceProfileJson"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -92588,13 +92588,13 @@
                 "anchor": "export async function loadInstalledProjectConfiguration(moon,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export async function readBoundedConfigurationUtf8(path,"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "export async function readBoundedConfigurationUtf8"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -92614,14 +92614,14 @@
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -92632,8 +92632,8 @@
                 "anchor": "# Resident Source acquisition"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "original = await openFile(path, 'r');"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "original = await (openFile as"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -92642,7 +92642,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "import {open} from 'node:fs/promises';"
               },
               {
@@ -92662,13 +92662,13 @@
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const captureClose = () => {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "throw new TypeError('InvalidInstalledSourceProfileByteLimit');"
               },
               {
@@ -92684,18 +92684,18 @@
                 "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "if (original !== undefined && originalClose === undefined) throw failure;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
+                "path": "adapters/host-node/source-profile-json.mts",
+                "anchor": "if (await applyOriginal(originalClose!, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -92712,7 +92712,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -92738,7 +92738,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Bound installed Source configuration and identity metadata before buffering."
               },
               {
@@ -92754,7 +92754,7 @@
                 "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               }
             ],
@@ -130222,7 +130222,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
@@ -130258,7 +130258,7 @@
                 "anchor": "// module owns no provider I/O, credential, capacity, reader or publication"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
@@ -130378,7 +130378,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
@@ -130414,7 +130414,7 @@
                 "anchor": "// module owns no provider I/O, credential, capacity, reader or publication"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {

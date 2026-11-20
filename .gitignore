@@ -339,3 +339,7 @@ target/
 /adapters/host-node/bounded-continuation-directory.test.d.mts
 /adapters/host-node/bounded-continuation-directory-close-ack.test.mjs
 /adapters/host-node/bounded-continuation-directory-close-ack.test.d.mts
+
+# Generated bounded installed configuration and original-file custody.
+/adapters/host-node/source-profile-json.mjs
+/adapters/host-node/source-profile-json.d.mts
