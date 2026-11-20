@@ -270,7 +270,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/build-node-directory-native.mjs",
+                "path": "scripts/build-node-directory-native.mts",
                 "anchor": "localFilesPath"
               }
             ],
@@ -362,7 +362,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/build-node-directory-native.mjs",
+                "path": "scripts/build-node-directory-native.mts",
                 "anchor": "localFilesPath"
               }
             ],

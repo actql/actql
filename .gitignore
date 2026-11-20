@@ -713,3 +713,9 @@ target/
 /scripts/initial-control-package-images.d.mts
 /scripts/initial-control-package-images.test.mjs
 /scripts/initial-control-package-images.test.d.mts
+
+# Emitted from the authored Native package builder.
+/scripts/build-node-directory-native.mjs
+/scripts/build-node-directory-native.d.mts
+/scripts/node-directory-native-inputs.test.mjs
+/scripts/node-directory-native-inputs.test.d.mts

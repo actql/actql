@@ -12,13 +12,25 @@ import test from 'node:test';
 import {assembleNodeDirectoryNative, directoryNativeDescriptor, exportNodeDirectoryNativeInput}
   from './build-node-directory-native.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+import type {TestContext} from 'node:test';
+
+type Fact = {path: string; bytes: number; sha256: string};
+type Original = {platform: string; arch: string; headers: Fact[]; binary: Fact};
+type Manifest = {source: {revision: string; packageVersion: string; recipe: {path: string; sha256: string}[]};
+  engine: {platform: string; arch: string; [key: string]: unknown};
+  original: Fact & {mode: number}; binary: Fact & {mode: number}; [key: string]: unknown};
+type Combined = {targets: {platform: string; arch: string; original: Original;
+  originalSource: string; originalSha256: string}[]};
+type Content = {bytes: Buffer; descriptor: Buffer; original: Original; filename: string};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
-const wire = value => Buffer.from(JSON.stringify(value, null, 2) + '\n');
-const git = (root, ...args) => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
+const sha = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const wire = (value: unknown) => Buffer.from(JSON.stringify(value, null, 2) + '\n');
+const git = (root: string, ...args: string[]) => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
 const targets = [['darwin', 'arm64', 'directory-darwin-arm64.node', 'directory-darwin.c'],
-  ['linux', 'x64', 'local-files-linux-x64.node', 'local-files-linux.c']];
-function fixture(t) {
+  ['linux', 'x64', 'local-files-linux-x64.node', 'local-files-linux.c']] as const;
+function fixture(t: TestContext) {
   const scratch = mkdtempSync(join(tmpdir(), 'actql-native-input-data-'));
   t.after(() => rmSync(scratch, {recursive: true}));
   const root = join(scratch, 'source'); mkdirSync(root);
@@ -37,7 +49,7 @@ function fixture(t) {
     'commit', '-q', '-m', 'fixture');
   const normal = join(scratch, 'normal'), inputs = join(scratch, 'inputs');
   mkdirSync(join(normal, '_build/native'), {recursive: true}); mkdirSync(inputs);
-  const contents = new Map();
+  const contents = new Map<string, Content>();
   for (const [platform, arch, filename, sourceFile] of targets) {
     const bytes = Buffer.from(`Independent ${platform}/${arch} build DATA; not executable.`);
     const sourcePath = 'adapters/host-node/native/' + sourceFile;
@@ -59,12 +71,12 @@ function fixture(t) {
   writeFileSync(join(normal, '_build/native', selected.filename), selected.bytes);
   writeFileSync(join(normal, directoryNativeDescriptor), selected.descriptor);
   const exported = exportNodeDirectoryNativeInput({root, destination: normal, output: join(inputs, 'current')});
-  const seed = JSON.parse(readFileSync(exported.manifest));
+  const seed = JSON.parse(readFileSync(exported.manifest) as unknown as string) as Manifest;
   for (const [target, value] of contents) {
     const directory = join(inputs, target); mkdirSync(directory);
     writeFileSync(join(directory, value.filename), value.bytes);
     writeFileSync(join(directory, 'directory-original.json'), value.descriptor);
-    const fact = (path, bytes) => ({path, bytes: bytes.length, mode: 0o644, sha256: sha(bytes)});
+    const fact = (path: string, bytes: Buffer) => ({path, bytes: bytes.length, mode: 0o644, sha256: sha(bytes)});
     const manifest = {...seed, engine: {...seed.engine, platform: value.original.platform,
       arch: value.original.arch}, original: fact('directory-original.json', value.descriptor),
       binary: fact(value.filename, value.bytes)};
@@ -77,7 +89,7 @@ function fixture(t) {
       sha256: sha(readFileSync(join(inputs, path)))}))};
     writeFileSync(selection, wire(data)); return sha(wire(data));
   };
-  const assemble = (options = {}) => assembleNodeDirectoryNative({root, destination, selection,
+  const assemble = (options: Parameters<typeof assembleNodeDirectoryNative>[0] = {}) => assembleNodeDirectoryNative({root, destination, selection,
     expectedSha256: sha(readFileSync(selection)), ...options});
   choose();
   return {root, inputs, normal, selection, destination, contents, seed, choose, assemble, exported};
@@ -87,10 +99,10 @@ test('native input export binds source/version/recipe and preserves original des
   const f = fixture(t), manifestBytes = readFileSync(f.exported.manifest);
   assert.equal(sha(manifestBytes), f.exported.sha256);
   assert.equal(f.seed.source.revision, git(f.root, 'rev-parse', 'HEAD'));
-  assert.equal(f.seed.source.packageVersion, JSON.parse(readFileSync(join(f.root, 'release/client-cohort.json'))).packageVersion);
-  assert.equal(f.seed.source.recipe.find(value => value.path === 'scripts/build-node-directory-native.mjs').sha256,
+  assert.equal(f.seed.source.packageVersion, (JSON.parse(readFileSync(join(f.root, 'release/client-cohort.json')) as unknown as string) as {packageVersion: string}).packageVersion);
+  assert.equal(f.seed.source.recipe.find(value => value.path === 'scripts/build-node-directory-native.mjs')!.sha256,
     sha(readFileSync(join(f.root, 'scripts/build-node-directory-native.mjs'))));
-  const selected = f.contents.get(`${process.platform}-${process.arch}`);
+  const selected = f.contents.get(`${process.platform}-${process.arch}`)!;
   assert.deepEqual(readFileSync(join(dirname(f.exported.manifest), f.seed.original.path)), selected.descriptor);
   assert.deepEqual(readFileSync(join(dirname(f.exported.manifest), f.seed.binary.path)), selected.bytes);
   assert.equal(manifestBytes.includes(Buffer.from(f.root)), false);
@@ -98,10 +110,10 @@ test('native input export binds source/version/recipe and preserves original des
 
 test('explicit two-target assembly retains both original records and has deterministic read-only verification', t => {
   const f = fixture(t), first = f.assemble();
-  const descriptor = JSON.parse(first.get(directoryNativeDescriptor));
+  const descriptor = JSON.parse(first.get(directoryNativeDescriptor)! as unknown as string) as Combined;
   assert.deepEqual(descriptor.targets.map(value => `${value.platform}-${value.arch}`), ['darwin-arm64', 'linux-x64']);
   for (const target of descriptor.targets) {
-    const expected = f.contents.get(`${target.platform}-${target.arch}`);
+    const expected = f.contents.get(`${target.platform}-${target.arch}`)!;
     assert.equal(target.originalSource, expected.descriptor.toString('utf8'));
     assert.equal(target.originalSha256, sha(expected.descriptor));
     assert.deepEqual(target.original, expected.original);
@@ -120,10 +132,10 @@ test('changed selection, input bytes and source bindings refuse before changing 
   const binary = join(f.inputs, 'linux-x64/local-files-linux-x64.node');
   writeFileSync(binary, 'changed');
   assert.throws(f.assemble, /ChangedDirectoryNativeInput/);
-  writeFileSync(binary, f.contents.get('linux-x64').bytes);
+  writeFileSync(binary, f.contents.get('linux-x64')!.bytes);
   const manifest = join(f.inputs, 'linux-x64/native-input.json'), original = readFileSync(manifest);
   for (const field of ['revision', 'packageVersion', 'recipe']) {
-    const value = JSON.parse(original);
+    const value = JSON.parse(original as unknown as string) as {source: Record<string, unknown>};
     value.source[field] = field === 'recipe' ? [] : 'different';
     writeFileSync(manifest, wire(value)); f.choose();
     assert.throws(f.assemble, /WrongDirectoryNativeSource/);
@@ -138,9 +150,9 @@ test('duplicate targets and descriptor/binary disagreement never produce a combi
   assert.throws(f.assemble, /InvalidDirectoryNativeInput/);
   f.choose();
   const path = join(f.inputs, 'linux-x64/directory-original.json');
-  const original = JSON.parse(readFileSync(path)); original.binary.sha256 = 'a'.repeat(64);
+  const original = JSON.parse(readFileSync(path) as unknown as string) as Original; original.binary.sha256 = 'a'.repeat(64);
   const bytes = wire(original); writeFileSync(path, bytes);
-  const manifestPath = join(f.inputs, 'linux-x64/native-input.json'), manifest = JSON.parse(readFileSync(manifestPath));
+  const manifestPath = join(f.inputs, 'linux-x64/native-input.json'), manifest = JSON.parse(readFileSync(manifestPath) as unknown as string) as Manifest;
   manifest.original.bytes = bytes.length; manifest.original.sha256 = sha(bytes);
   writeFileSync(manifestPath, wire(manifest)); f.choose();
   assert.throws(f.assemble, /InvalidDirectoryNativeOriginal/);
@@ -148,11 +160,11 @@ test('duplicate targets and descriptor/binary disagreement never produce a combi
 
 test('compiler Source dependencies keep exact names and same-checkout bytes rather than an adapters wildcard', t => {
   const f = fixture(t), descriptorPath = join(f.inputs, 'linux-x64/directory-original.json');
-  const original = JSON.parse(readFileSync(descriptorPath));
+  const original = JSON.parse(readFileSync(descriptorPath) as unknown as string) as Original;
   const source = original.headers.find(value => value.path === 'adapters/connectors/local/site/root-file-writer.inc');
   assert(source);
   const manifestPath = join(f.inputs, 'linux-x64/native-input.json');
-  const manifest = JSON.parse(readFileSync(manifestPath));
+  const manifest = JSON.parse(readFileSync(manifestPath) as unknown as string) as Manifest;
   function update() {
     const bytes = wire(original); writeFileSync(descriptorPath, bytes);
     manifest.original.bytes = bytes.length; manifest.original.sha256 = sha(bytes);
