@@ -88989,6 +88989,7 @@
             "complete_managed_task",
             "feed_managed_task",
             "managed_task_assessment",
+            "managed_task_dispatch_issue_code",
             "managed_task_inputs_ready",
             "managed_task_issue",
             "managed_task_progress",
@@ -89205,7 +89206,7 @@
           }
         }
       ],
-      "sha256": "7e12c5abcfa96c21a309c792f4c10089a9674ff292a1c47ed87999c86e2aa15a",
+      "sha256": "90da607a5b7342e62b9d92f3c6db96a9a87356379fb35fdb17bb16a225d4ded7",
       "exports": [],
       "operations": [
         {
@@ -89235,6 +89236,10 @@
         {
           "name": "managed_task_assessment",
           "declaration": "managed_task_assessment ( nonce : Int64 , handle : Int , index : Int , field : Int , ) - > Int64"
+        },
+        {
+          "name": "managed_task_dispatch_issue_code",
+          "declaration": "managed_task_dispatch_issue_code ( issue : @ managed . LocalDispatchIssue ) - > Int"
         },
         {
           "name": "managed_task_inputs_ready",

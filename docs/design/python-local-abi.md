@@ -3403,6 +3403,29 @@ The same close operation still checks dependent-task and Result pins and alone
 acknowledges task retirement. Missing or pending originals retain `-33`; field4
 and normal advance/current/cancellation checks are unchanged.
 
+Private task progress fields6/7 are optional failure diagnostics under the same
+instance/task/nonpending lookup. They are a **post-close current snapshot**,
+never an authenticated last-close arm. Field6 observes existing stored state:
+`0` not closing, `1` a Result-export pin, `2` a dependent-task pin, `3` no
+operations, `4` unsettled operations with the stop-versus-settle reason
+unlocalized, and `5` settled operations still retained. It invokes no operation,
+current callback or cleanup refresh. A missing or pending original remains
+`-33`. Field7 separately projects the retained typed cleanup issue through the
+same closed `71..83` classifier as the Managed branch of task issue (`0` when
+absent); task issue continues to project only the original execution issue.
+Neither getter clears, formats or replaces either original cause.
+
+These scalar observations add no StoredManagedTask field, closure, persistent
+reference, export signature, reservation or allowance. Common reads existing
+bounded inventories and returns integers; Native and NormalNone construction
+retain their existing layouts and quotes. The optional CI caller bounds its
+temporary diagnostic list to16 tasks and the existing64KiB output limit,
+acquires the original Core lock nonblocking only after the same worker Future
+is done, and releases it on every exit. Its evidence does not authorize another
+close, guest advance, fuel refill, outcome or physical acknowledgment. Only the
+failed installed sync cancellation initial case selects this observation;
+observation refusal/failure preserves the exact primary and first close.
+
 Result export and publication preparation use the same bounded read-step owner.
 Each feed or advance keeps its existing 256-work quantum and original cursor,
 but ends its current frame and Store reader before releasing the Core lock.

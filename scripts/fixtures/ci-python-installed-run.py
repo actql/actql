@@ -8,6 +8,7 @@ original exception are retained; no operation is repeated.
 """
 from __future__ import annotations
 
+import _thread
 from collections import deque
 from concurrent.futures import Future
 import json
@@ -158,7 +159,81 @@ def same_frame_cancellation_kind(frames, requested, wire_fields):
     return matches[0] if matches and all(item == matches[0] for item in matches) else None
 
 
-def selected_local_work(failure: BaseException):
+def post_close_task_snapshot(host, work):
+    """Read bounded scalar evidence, never another close or an historical arm.
+
+    Only the same finished original worker's retained tasks are selected. No
+    guest entry runs while another thread holds the Core lock. Observation is
+    optional: its refusal/failure cannot replace the original consumer error.
+    """
+    result = {'scope': 'post-close-current-snapshot', 'available': False,
+              'lock_busy': False, 'observation_failed': False,
+              'refusal_code': None, 'tasks': []}
+    try:
+        product = sys.modules.get('actql_sdk._local_product')
+        core_module = sys.modules.get('actql_sdk._local_core')
+        work_module = sys.modules.get('actql_sdk._local_work')
+        if not all(type(module) is ModuleType for module in (product, core_module, work_module)):
+            return result
+        host_type, original_type = (vars(product).get('InstalledLocalHost'),
+                                    vars(product).get('_OriginalExecution'))
+        core_type, task_type = (vars(core_module).get('LocalCore'), vars(core_module).get('_Task'))
+        work_type = vars(work_module).get('OriginalLocalWork')
+        if (type(host) is not host_type or type(work) is not work_type
+                or vars(host).get('_original') is not host or vars(work).get('_original') is not work):
+            return result
+        core, original = vars(host).get('_core'), vars(work).get('_invoke')
+        future = vars(work).get('_future')
+        if (type(core) is not core_type or type(original) is not original_type
+                or original.host is not host or original.run is not vars(work).get('_owner')
+                or type(future) is not Future or not future.done() or future.cancelled()):
+            return result
+        lock = vars(core).get('_lock')
+        if type(lock) is not _thread.RLock or '_call' in vars(core):
+            return result
+        if not lock.acquire(blocking=False):
+            result['lock_busy'] = True
+            return result
+        try:
+            tasks, loans = original.tasks, vars(core).get('_task_loans')
+            if (type(tasks) is not list or len(tasks) > MAX_WORK_RECORDS
+                    or type(loans) is not dict):
+                return result
+            observations = []
+            for task in tasks:
+                if (type(task) is not task_type or task.owner is not vars(core).get('_identity')
+                        or type(task.handle) is not int or task.handle <= 0):
+                    return result
+                if loans.get(task.handle) is not task:
+                    continue  # Already returned originals need no guest observation.
+                # These existing scalar ports return no handles, rows or error
+                # payloads. Keep execution and cleanup causes independent; the
+                # Common classifier alone defines their numeric vocabulary.
+                stage = core._call('task', 'progress', task.handle, 6)
+                cleanup = core._call('task', 'progress', task.handle, 7)
+                issue = core._call('task', 'issue', task.handle)
+                if any(type(code) is not int or not -(1 << 31) <= code < (1 << 31)
+                       for code in (stage, cleanup, issue)):
+                    return result
+                if stage < 0 or cleanup < 0:
+                    result['refusal_code'] = stage if stage < 0 else cleanup
+                    return result
+                observations.append({'stage_code': stage,
+                    'execution_issue_code': issue, 'cleanup_issue_code': cleanup})
+            result['tasks'] = observations
+            result['available'] = True
+        finally:
+            lock.release()
+    except BaseException:
+        # No formatter or exception payload is copied. Same pending custody,
+        # initiating error and first public close remain owned by their callers.
+        result['observation_failed'] = True
+    if not result['available']:
+        result['tasks'].clear()
+    return result
+
+
+def selected_local_work(failure: BaseException, *, task_retirement=False):
     """Observe only an already-selected original; never wait or invoke it."""
     product = sys.modules.get('actql_sdk._local_product')
     core_module = sys.modules.get('actql_sdk._local_core')
@@ -304,11 +379,13 @@ def selected_local_work(failure: BaseException):
         errors = [(original, 'physical-original'),
                   (work.get('_cleanup_error'), 'physical-cleanup'),
                   (work.get('_exit_error'), 'physical-exit')]
+        if task_retirement:
+            bits['task_retirement'] = post_close_task_snapshot(host, selected[0])
         return bits, [(error, role) for error, role in errors if isinstance(error, BaseException)]
     return None
 
 
-def report_contexts(failure: BaseException, stream) -> None:
+def report_contexts(failure: BaseException, stream, *, task_retirement=False) -> None:
     seen: set[int] = set()
     pending = [(failure, None)]
     emitted = 0
@@ -325,7 +402,7 @@ def report_contexts(failure: BaseException, stream) -> None:
         if role is not None:
             record['failure_role'] = role
         try:
-            selected = selected_local_work(current)
+            selected = selected_local_work(current, task_retirement=task_retirement)
         except Exception:
             # A changed/malformed diagnostic snapshot never interrupts the
             # original bounded exception-chain report or changes its failure.
@@ -366,7 +443,16 @@ def run_consumer(target: Path) -> None:
         runpy.run_path(str(target), run_name='__main__')
     except Exception as failure:
         try:
-            report_contexts(failure, sys.stderr)
+            # Only the existing failed installed sync cancellation initial case
+            # selects the optional task snapshot. Other acceptance paths keep
+            # their existing failure report and perform no extra Core calls.
+            args = sys.argv[1:]
+            selected = target.name == 'python-product-installed.py' and all(
+                args.count(flag) == 1 and args.index(flag) + 1 < len(args)
+                and args[args.index(flag) + 1] == expected
+                for flag, expected in (('--mode', 'local'), ('--facade', 'sync'),
+                                       ('--case', 'cancellation'), ('--phase', 'initial')))
+            report_contexts(failure, sys.stderr, task_retirement=selected)
         except Exception:
             # Diagnostics must never replace the original failure or retry it.
             pass

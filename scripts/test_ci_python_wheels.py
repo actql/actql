@@ -782,6 +782,127 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
             control.result()
 
 
+class TaskRetirementSnapshotTests(unittest.TestCase):
+    """Diagnostic service ports only; no installed runtime or cancellation run."""
+
+    def fixture(self):
+        import threading
+        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
+        sys.path.insert(0, str(sdk))
+        try:
+            from actql_sdk._local_core import LocalCore, _Task
+            from actql_sdk._local_product import InstalledLocalHost, _OriginalExecution
+            from actql_sdk._local_work import OriginalLocalWork
+        finally:
+            sys.path.remove(str(sdk))
+        module = load('ci_task_retirement_snapshot', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        core = object.__new__(LocalCore)
+        core._identity, core._lock = object(), threading.RLock()
+        task = _Task(core._identity, 11)
+        core._task_loans = {11: task}
+        host = object.__new__(InstalledLocalHost)
+        host._original, host._core = host, core
+        owner = object()
+        original = _OriginalExecution(host, owner, tasks=[task])
+        work = OriginalLocalWork(original, owner=owner)
+        primary = RuntimeError('private-primary-secret')
+        work._future.set_exception(primary)
+        return module, core, host, work, original, task, primary
+
+    def test_snapshot_keeps_separate_closed_codes_and_same_originals(self):
+        module, core, host, work, original, task, primary = self.fixture()
+        calls = []
+        def observe(self, family, operation, handle, *fields):
+            self_test.assertIs(self, core)
+            calls.append((family, operation, handle, fields))
+            return 4 if fields == (6,) else 83 if fields == (7,) else 2
+        self_test = self
+        with patch.object(type(core), '_call', observe):
+            result = module.post_close_task_snapshot(host, work)
+        self.assertEqual(result, {'scope': 'post-close-current-snapshot', 'available': True,
+            'lock_busy': False, 'observation_failed': False, 'refusal_code': None, 'tasks': [
+                {'stage_code': 4, 'execution_issue_code': 2, 'cleanup_issue_code': 83}]})
+        self.assertEqual(calls, [('task', 'progress', 11, (6,)),
+                                ('task', 'progress', 11, (7,)), ('task', 'issue', 11, ())])
+        self.assertIs(core._task_loans[11], task)
+        self.assertIs(original.tasks[0], task)
+        self.assertIs(work._future.exception(timeout=0), primary)
+        self.assertFalse(core._lock._is_owned())
+        self.assertNotIn('private-', json.dumps(result))
+
+    def test_observation_failure_keeps_pending_owner_and_does_not_format_error(self):
+        module, core, host, work, original, task, primary = self.fixture()
+        class OpaqueFailure(BaseException):
+            def __str__(self):
+                raise AssertionError('Never format an optional diagnostic cause')
+        with patch.object(type(core), '_call', side_effect=OpaqueFailure()):
+            result = module.post_close_task_snapshot(host, work)
+        self.assertFalse(result['available'])
+        self.assertTrue(result['observation_failed'])
+        self.assertEqual(result['tasks'], [])
+        self.assertIs(work._future.exception(timeout=0), primary)
+        self.assertIs(core._task_loans[11], task)
+        self.assertIs(original.tasks[0], task)
+        self.assertFalse(core._lock._is_owned())
+
+    def test_foreign_task_and_busy_lock_decline_without_guest_entry(self):
+        import threading
+        module, core, host, work, original, task, primary = self.fixture()
+        entered, release = threading.Event(), threading.Event()
+        def holder():
+            with core._lock:
+                entered.set()
+                release.wait(2)
+        thread = threading.Thread(target=holder)
+        thread.start()
+        try:
+            self.assertTrue(entered.wait(2))
+            with patch.object(type(core), '_call') as call:
+                result = module.post_close_task_snapshot(host, work)
+            self.assertTrue(result['lock_busy'])
+            call.assert_not_called()
+        finally:
+            release.set()
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        original.tasks = [type(task)(object(), 11)]
+        with patch.object(type(core), '_call') as call:
+            result = module.post_close_task_snapshot(host, work)
+        self.assertFalse(result['available'])
+        call.assert_not_called()
+        self.assertIs(core._task_loans[11], task)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_unsupported_snapshot_field_is_refusal_not_available_evidence(self):
+        module, core, host, work, original, task, primary = self.fixture()
+        with patch.object(type(core), '_call', return_value=-3):
+            result = module.post_close_task_snapshot(host, work)
+        self.assertFalse(result['available'])
+        self.assertEqual(result['refusal_code'], -3)
+        self.assertEqual(result['tasks'], [])
+        self.assertIs(core._task_loans[11], task)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_only_failed_sync_initial_cancellation_selects_optional_snapshot(self):
+        module, *_ = self.fixture()
+        primary = RuntimeError('same consumer failure')
+        base = ['python-product-installed.py', '--mode', 'local', '--facade', 'sync',
+                '--case', 'cancellation', '--phase', 'initial']
+        for replacements, expected in [({}, True), ({'sync': 'async'}, False),
+                                        ({'initial': 'resume'}, False),
+                                        ({'cancellation': 'execution'}, False)]:
+            args = [replacements.get(value, value) for value in base]
+            with self.subTest(replacements=replacements), patch.object(module.sys, 'argv', args), patch.object(
+                    module.runpy, 'run_path', side_effect=primary) as run, patch.object(
+                    module, 'report_contexts') as report:
+                with self.assertRaises(RuntimeError) as caught:
+                    module.run_consumer(Path('/external/python-product-installed.py'))
+            self.assertIs(caught.exception, primary)
+            self.assertIs(report.call_args.args[0], primary)
+            self.assertIs(report.call_args.kwargs['task_retirement'], expected)
+            run.assert_called_once()
+
+
 class FailureLocationTests(unittest.TestCase):
     def rejected_wait_fixture(self, *, completed=True, same_reference=True, task_drive_code=None,
                               state_changes=None, expected_schema_valid=True):

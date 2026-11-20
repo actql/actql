@@ -196,3 +196,108 @@ test "managed producer lookup distinguishes source-free task zero from the captu
   assert_true(foreign is None)
   assert_true(negative is None)
 }
+
+///|
+// Explicit stored-state fixture, not an historical close arm or normal Run.
+// The real private ABI getters must not drive an operation or replace causes.
+test "post-close task diagnostic keeps original causes and pending snapshot distinct" {
+  let root = @resources.create_ledger({
+    planning_work: 100,
+    attempts: 16,
+    holdings: 16,
+    transfer_bytes: 65536L,
+    retained_bytes: 65536L,
+    execution_bytes: 16781312L,
+  }).unwrap()
+  let capacity = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
+  let pool = @buffers.open_pool_on_ledger(root, 4096L, 16, 1048576).unwrap()
+  let nonce = 7146L
+  assert_eq(
+    install_buffer_instance(
+      nonce,
+      root,
+      capacity,
+      None,
+      pool,
+      16,
+      prepare_product_sequence_contracts().unwrap(),
+    ),
+    0,
+  )
+  let value = selected(nonce).unwrap()
+  let original_issue = @local_run.UnsupportedCapability
+  let record : StoredManagedTask = {
+    compute: 1,
+    current_configuration: 2,
+    task: 3,
+    invoked: false,
+    pending: false,
+    closing: false,
+    issue: Some(original_issue),
+    cleanup_issue: None,
+    operations: None,
+    progress: None,
+    producers: [],
+    positions: [],
+    finished_inputs: [],
+    live: Ref(true),
+    completed: None,
+    finalization_invoked: false,
+    execution_settled: false,
+  }
+  value.tasks[4] = record
+  let before = @resources.ledger_usage(root)
+  for field in [6, 7] {
+    assert_eq(managed_task_progress(nonce + 1L, 4, field), -33L)
+    assert_eq(managed_task_progress(nonce, 5, field), -33L)
+    assert_eq(managed_task_progress(nonce, 4, field), 0L)
+  }
+  record.closing = true
+  assert_eq(managed_task_progress(nonce, 4, 6), 3L)
+  value.tasks[5] = { ..record, task: 4, producers: [3], }
+  assert_eq(managed_task_progress(nonce, 4, 6), 2L)
+  value.tasks.remove(5) |> ignore
+  for
+    (cause, expected) in [
+      (@managed.ControlWorkLimit(17), 82L),
+      (@managed.LogicalWorkLimit(17, 3L, @managed.Unspecified), 71L),
+      (
+        @managed.ExecutionCapacityRefusal(
+          @resources.RetentionLimit,
+          19L,
+          7L,
+          512L,
+        ),
+        83L,
+      ),
+    ] {
+    record.cleanup_issue = Some(cause)
+    assert_eq(managed_task_issue(nonce, 4), 2)
+    assert_eq(managed_task_progress(nonce, 4, 7), expected)
+    assert_eq(managed_task_progress(nonce, 4, 6), 3L)
+    guard record.cleanup_issue is Some(retained) else {
+      abort("original cleanup cause disappeared")
+    }
+    assert_true(physical_equal(retained, cause))
+    guard record.issue is Some(retained_issue) else {
+      abort("original execution cause disappeared")
+    }
+    assert_true(physical_equal(retained_issue, original_issue))
+  }
+  record.pending = true
+  assert_eq(managed_task_progress(nonce, 4, 6), -33L)
+  assert_eq(managed_task_progress(nonce, 4, 7), -33L)
+  record.pending = false
+  assert_eq(managed_task_progress(nonce, 4, 4), -33L)
+  assert_eq(managed_task_progress(nonce, 4, 5), -1L)
+  assert_true(record.live.val && !record.invoked && record.operations is None)
+  assert_true(physical_equal(value.tasks[4], record))
+  assert_eq(@resources.ledger_usage(root), before)
+  assert_eq(close_managed_task(nonce, 4), 0)
+  assert_eq(managed_task_progress(nonce, 4, 6), -33L)
+  assert_eq(managed_task_progress(nonce, 4, 7), -33L)
+  @buffers.close_pool(pool).unwrap()
+  @resources.close_shared_capacity(capacity).unwrap()
+  @resources.settle_shared_capacity(capacity).unwrap()
+  instance.val = None
+}

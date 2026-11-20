@@ -286,6 +286,41 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
     !record.pending else {
     return -33L
   }
+  // Diagnostic-only POST-CLOSE CURRENT SNAPSHOT, not a retained last-close arm.
+  // The same instance/task and pending refusal above remain required. These
+  // fields never advance, settle, refresh, release or authorize the operation.
+  if field == 6 {
+    if !record.closing {
+      return 0L
+    }
+    for result in value.result_exports.values() {
+      if result.task == handle {
+        return 1L
+      }
+    }
+    for other in value.tasks.values() {
+      if other.compute == record.compute && other.producers.contains(record.task) {
+        return 2L
+      }
+    }
+    if record.operations is None {
+      return 3L
+    }
+    if !record.execution_settled {
+      // The stored fields do not distinguish stop-pending from a failed
+      // settle. Do not invoke either operation to reconstruct the old arm.
+      return 4L
+    }
+    // Settled operations still exist. Do not invoke cleanup_refresh to learn
+    // what remains or authenticate which earlier close returned pending.
+    return 5L
+  }
+  if field == 7 {
+    return match record.cleanup_issue {
+      None => 0L
+      Some(issue) => managed_task_dispatch_issue_code(issue).to_int64()
+    }
+  }
   // A valid reserved task may not have reached provider activation. It has no
   // provider-local continuation; only close can acknowledge its retirement.
   // Missing/pending originals above still refuse, as does field4 without ops.
@@ -715,24 +750,7 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
     Some(Task(_)) => 4
     Some(Obligations(_)) => 5
     Some(Dispatch(_)) => 6
-    Some(Managed(issue)) =>
-      match issue {
-        Configuration(_) => 71
-        Preparation(_) => 72
-        Dispatch(_) => 73
-        Execution(_) => 74
-        Search(_) => 75
-        ManagedValues(_) => 76
-        ManagedCopy(_) => 77
-        ManagedRetention(_) => 78
-        ManagedCompletion(_) => 79
-        IdentityExport(_) => 80
-        CarrierSnapshot(_) => 81
-        ControlWorkLimit(_) => 82
-        // Preserve the original Configuration(Rows(..)) classification.
-        LogicalWorkLimit(_, _, _) => 71
-        ExecutionCapacityRefusal(_, _, _, _) => 83
-      }
+    Some(Managed(issue)) => managed_task_dispatch_issue_code(issue)
     Some(Estimate(issue)) =>
       match issue {
         InvalidConfiguration => 91
@@ -751,6 +769,29 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
       }
     Some(Start(_)) => 10
     Some(StartNotPermitted) => 11
+  }
+}
+
+///|
+// One closed projection for the separately retained execution and cleanup
+// causes. No payload, formatted text or replacement error is constructed.
+fn managed_task_dispatch_issue_code(issue : @managed.LocalDispatchIssue) -> Int {
+  match issue {
+    Configuration(_) => 71
+    Preparation(_) => 72
+    Dispatch(_) => 73
+    Execution(_) => 74
+    Search(_) => 75
+    ManagedValues(_) => 76
+    ManagedCopy(_) => 77
+    ManagedRetention(_) => 78
+    ManagedCompletion(_) => 79
+    IdentityExport(_) => 80
+    CarrierSnapshot(_) => 81
+    ControlWorkLimit(_) => 82
+    // Preserve the original Configuration(Rows(..)) classification.
+    LogicalWorkLimit(_, _, _) => 71
+    ExecutionCapacityRefusal(_, _, _, _) => 83
   }
 }
 
