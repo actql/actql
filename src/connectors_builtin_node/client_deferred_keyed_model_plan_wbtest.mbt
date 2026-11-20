@@ -273,6 +273,61 @@ test "README deferred keyed producer completes a Model plan without claiming liv
 }
 
 ///|
+extern "js" fn static_explanation_source_links_match(
+  plan_wire : String,
+  source_wire : String,
+) -> Bool =
+  #|(planWire, sourceWire) => {
+  #|  const view = JSON.parse(planWire);
+  #|  const steps = view.computation.plan_view.logical_map.steps;
+  #|  const sources = JSON.parse(sourceWire);
+  #|  const expected = [['salesforce', 'Opportunity', 'direct'], ['drive', 'files', 'direct'], ['drive', 'contents', 'keyed']];
+  #|  if (view.provider_io !== 0 || sources.length !== expected.length) return false;
+  #|  return sources.every(({source_view, stage_input, request_kind, link_state, consuming_ports}, stage) => {
+  #|    const [connector, resource, mode] = expected[stage];
+  #|    const links = steps.flatMap(step => step.ports.filter(port =>
+  #|      port.role === 'input' && port.source?.kind === 'stage_input' &&
+  #|      port.source.stage_ordinal === stage && port.source.input_port_ordinal === 0
+  #|    ).map(port => ({port_id: port.port_id, step_id: step.step_id})));
+  #|    return source_view.connector === connector && source_view.resource === resource &&
+  #|      stage_input.kind === 'stage_input' && stage_input.stage_ordinal === stage && stage_input.input_port_ordinal === 0 &&
+  #|      request_kind === mode && link_state === 'linked' && links.length > 0 &&
+  #|      JSON.stringify(consuming_ports) === JSON.stringify(links);
+  #|  });
+  #|}
+
+///|
+test "Static explanation Source rows retain the exact consuming ports of one Effect Plan" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let writer = @encode.writer(65536, 8192, 64)
+  @publication_host.write_client_static_effect_explanation_sources(
+    original, owner, compiled, writer, 10000,
+  ).unwrap()
+  assert_true(
+    static_explanation_source_links_match(plan, @encode.finish(writer)),
+  )
+  let too_small = @encode.writer(65536, 8192, 64)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_sources(
+      original, owner, compiled, too_small, 1,
+    )
+    is Err(WorkLimit),
+  )
+  let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let rejected = @encode.writer(65536, 8192, 64)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_sources(
+      original, owner, foreign, rejected, 10000,
+    )
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
 // Inspect the original exported Array representation without a conversion.
 #warnings("-deprecated")
 extern "js" fn direct_source_coordinates_js_arrays(

@@ -174,6 +174,22 @@ pub fn client_effectful_static_plan_view(
   max_members? : Int = 64,
   max_work? : Int = 10000,
 ) -> Result[String, ClientEffectfulStaticPlanIssue] {
+  issue_client_effectful_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth, max_members, max_work,
+  )
+}
+
+///|
+fn issue_client_effectful_static_plan_view(
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_work : Int,
+  retained_computation? : Ref[@canonical.CanonicalValue?]? = None,
+) -> Result[String, ClientEffectfulStaticPlanIssue] {
   if !physical_equal(compiled.owner, prepared) {
     return Err(ForeignCompilation)
   }
@@ -212,7 +228,12 @@ pub fn client_effectful_static_plan_view(
     @publication.parse_interactive_run_control_shape(
       "effectful_static_plan_view", wire, max_bytes, max_nodes, max_depth,
     ) {
-    Ok(_) => Ok(wire)
+    Ok(_) => {
+      if retained_computation is Some(retained) {
+        retained.val = Some(computation)
+      }
+      Ok(wire)
+    }
     Err(issue) => Err(Contract(issue))
   }
 }
