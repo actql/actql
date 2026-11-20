@@ -25,7 +25,7 @@ for (const [template, program, target] of [
     process.chdir(project.directory);
     try {
       client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
-        installation: {directory: '.actql-static'}});
+        installation: {directory: '.actql-node'}});
       const plan = await client.plan(source, {format: 'aql'});
       assert.equal(plan.version, 'actql-effectful-static-plan-view/0.1');
       assert.equal(plan.computation.scope, 'computation_component');
