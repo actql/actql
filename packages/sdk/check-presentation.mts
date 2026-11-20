@@ -1,10 +1,39 @@
 import {validCheckOutcome} from '@actql/client-wire';
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 import {freezeInput, utf8} from './internal/data.mjs';
+import type {CheckOutcome, CheckOutcomeExplanation, CheckExplanationOptions, CheckFormatOptions,
+  CheckPositionEncoding, CheckFailureExplanation,
+  resolveCheckLocation as ResolveCheckLocation,
+  resolveCheckTextRangeEncoding as ResolveCheckTextRangeEncoding} from './index.d.ts';
+
+type CompleteReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+type PartialReport = NonNullable<Extract<CheckOutcome, {outcome: 'failed'}>['partial_report']>;
+type RenderObservation = CheckOutcomeExplanation & {
+  report?: Extract<CheckOutcomeExplanation, {outcome: 'completed'}>['report'] |
+    NonNullable<Extract<CheckOutcomeExplanation, {outcome: 'failed'}>['report']>;
+  correlationRef?: string;
+};
+// The internal resolvers admit unknown/missing display DATA. Their public
+// caller types are narrower, while their result shapes remain the same.
+type LocationResolver = (outcome: unknown, location: unknown,
+  currentInput?: unknown) => ReturnType<typeof ResolveCheckLocation>;
+type RangeResolver = (outcome: unknown, location: unknown, encoding: CheckPositionEncoding,
+  currentInput?: unknown) => ReturnType<typeof ResolveCheckTextRangeEncoding>;
+
+interface DisplayRow {
+  kind: string;
+  reason: {code: string; facts?: unknown; location?: Parameters<typeof ResolveCheckLocation>[1]};
+  boundary?: unknown;
+}
+interface DisplayEntry {
+  kind: string; code: string; summary: string; hint?: string; explanationKind: string;
+  facts?: unknown; boundary?: unknown; location?: Record<string, unknown>;
+}
+
 // Translation data is separate from wire semantics and checking authority.
 // English Reason defaults come from the generated public catalog; a missing or malformed
 // translation uses that same safe default without changing the observation.
-const japanese = Object.freeze(Object.fromEntries(Object.entries({
+const japanese: Readonly<Record<string, readonly string[]>> = Object.freeze(Object.fromEntries(Object.entries({
   'reason.numeric_reduction_profile_required': ['この集計に必要な数値還元profileが検査文脈で受理されていません。',
     '検査文脈の管理者に、参照CIDの固定profileの設定を依頼し、束縛された入力全体を再検査してください。profileへの所属だけでは還元方式の選択や実行は認可されません。'],
   'reason.host_capacity_policy_required': ['検査文脈でHost容量policyが選択されていません。',
@@ -125,8 +154,8 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
   'constraint.array_size': ['渡された値が宣言された制約を満たしていません。', '宣言された最大要素数以内の配列を渡してください。'],
 }).map(([key, value]) => [key, Object.freeze(value)])));
 
-export function getCheckPresentationInfo(options) {
-  let locale = 'en';
+export function getCheckPresentationInfo(options?: CheckExplanationOptions) {
+  let locale: 'en' | 'ja' = 'en';
   try {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
@@ -134,7 +163,7 @@ export function getCheckPresentationInfo(options) {
   return Object.freeze({locale, translationRevision: `2026-10-25.${locale}.11`});
 }
 
-export function localizeCheck(key, english, options) {
+export function localizeCheck(key: string, english: readonly string[], options?: CheckExplanationOptions): readonly string[] {
   const locale = getCheckPresentationInfo(options).locale;
   const translated = locale === 'ja' && Object.hasOwn(japanese, key) ? japanese[key] : undefined;
   return Array.isArray(translated) && translated.length === english.length &&
@@ -142,10 +171,10 @@ export function localizeCheck(key, english, options) {
     ? translated : english;
 }
 
-export function explainCheckOutcome(outcome, options) {
+export function explainCheckOutcome(outcome: unknown, options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined {
   if (!validCheckOutcome(outcome)) return undefined;
-  const reportExplanation = (report, completeness) => ({completeness,
-    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref,
+  const reportExplanation = <R extends CompleteReport | PartialReport, C extends 'complete' | 'partial'>(report: R, completeness: C) => ({completeness,
+    verdict: report.verdict as R['verdict'], scope: {...report.scope}, contextRef: report.context_ref,
     ...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})});
   if (outcome.outcome === 'completed') {
     const explanations = {
@@ -160,17 +189,17 @@ export function explainCheckOutcome(outcome, options) {
     const report = reportExplanation(outcome.report, 'complete');
     const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
       explanations[report.verdict], options);
-    return freezeInput({outcome: 'completed', summary, hint, report});
+    return freezeInput({outcome: 'completed', summary, hint, report} as const);
   }
   if (outcome.outcome === 'failed') {
-    const explanations = {
+    const explanations: Record<string, readonly string[]> = {
       check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
         'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
       check_internal: ['An internal checking failure prevented a complete bound check report.',
         'Ask the checking-context owner to investigate the reporting failure.'],
     };
     const known = Object.hasOwn(explanations, outcome.problem.code);
-    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code};
+    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code} as const;
     const correlationRef = outcome.correlation_ref;
     const report = outcome.partial_report === undefined ? undefined
       : reportExplanation(outcome.partial_report, 'partial');
@@ -179,42 +208,44 @@ export function explainCheckOutcome(outcome, options) {
       : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
         'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
     return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
-      ...(report === undefined ? {} : {report})});
+      ...(report === undefined ? {} : {report})} as const);
   }
   const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
-    code: outcome.problem.code};
+    code: outcome.problem.code} as const;
   const correlationRef = outcome.correlation_ref;
   const [summary, hint] = localizeCheck('unavailable',
     ['The scope and checking context needed for a safe public report are unavailable.',
       'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
-  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
+  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef} as const);
 }
 
 
 // Presentation formats consume the disclosed report, never internal causes.
 // Escape untrusted controls and bidi marks without changing source identity.
 
-const checkDisplayString = value => JSON.stringify(value).replace(
+const checkDisplayString = (value: unknown) => JSON.stringify(value).replace(
   /[\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
-  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+  (character: string) => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
 
-const checkHtml = value => value.replace(/[&<>"']/gu, character =>
-  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[character]);
+const checkHtml = (value: string) => value.replace(/[&<>"']/gu, (character: string) =>
+  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'} as Record<string, string>)[character]);
 
-const checkAgentJson = value => JSON.stringify(value).replace(
+const checkAgentJson = (value: unknown) => JSON.stringify(value).replace(
   /[<>&\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/gu,
-  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+  (character: string) => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
 
 /** Format a validated public observation without granting actions or input access. */
 
-export function renderCheckOutcome(outcome, options, resolveCheckLocation, resolveCheckTextRangeEncoding) {
-  let snapshot;
+export function renderCheckOutcome(outcome: unknown, options: CheckFormatOptions | undefined,
+  resolveCheckLocation: LocationResolver, resolveCheckTextRangeEncoding: RangeResolver): string | undefined {
+  let snapshot: unknown;
   try {
     if (!validCheckOutcome(outcome)) return undefined;
     snapshot = JSON.parse(JSON.stringify(outcome));
     if (!validCheckOutcome(snapshot)) return undefined;
   } catch { return undefined; }
-  let format, maxBytes, currentInputs, locale, positionEncoding;
+  let format: string, maxBytes: number, currentInputs: CheckFormatOptions['currentInputs'];
+  let locale: string | undefined, positionEncoding: CheckPositionEncoding;
   try {
     format = options?.format ?? 'text';
     maxBytes = options?.maxBytes ?? 65536;
@@ -225,19 +256,19 @@ export function renderCheckOutcome(outcome, options, resolveCheckLocation, resol
   if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
   const presentation = getCheckPresentationInfo({locale});
-  const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
-  const report = snapshot.outcome === 'completed' ? snapshot.report : snapshot.partial_report;
-  const rows = report === undefined ? [] : [
+  const observation = explainCheckOutcome(snapshot, {locale: presentation.locale}) as RenderObservation;
+  const report = snapshot.outcome === 'completed' ? snapshot.report : (snapshot as {partial_report?: PartialReport}).partial_report;
+  const rows: DisplayRow[] = report === undefined ? [] : [
     ...report.reasons.map(reason => ({kind: 'violation', reason})),
     ...report.requirements.map(reason => ({kind: 'requirement', reason})),
     ...report.coverage.limits.map(reason => ({kind: 'limit', reason})),
     ...report.coverage.unresolved.map(({reason, boundary}) =>
       ({kind: 'unresolved', reason: {code: reason}, boundary})),
   ];
-  const entries = [];
+  const entries: DisplayEntry[] = [];
   const model = () => ({observation, presentation, entries, omittedEntries: rows.length - entries.length,
     reasonSchemaCid: snapshot.reason_schema_cid, outcomeSchemaCid: snapshot.outcome_schema_cid});
-  const line = entry => entry.kind + ': ' + checkDisplayString(entry.code) + ' ' + entry.summary +
+  const line = (entry: DisplayEntry) => entry.kind + ': ' + checkDisplayString(entry.code) + ' ' + entry.summary +
     (entry.hint === undefined ? '' : ' ' + entry.hint) +
     (entry.facts === undefined ? '' : ' facts=' + checkDisplayString(entry.facts)) +
     (entry.boundary === undefined ? '' : ' boundary=' + checkDisplayString(entry.boundary)) +
@@ -266,7 +297,7 @@ export function renderCheckOutcome(outcome, options, resolveCheckLocation, resol
   for (const row of rows) {
     const explanation = explainCheckReason(row.reason, {locale: presentation.locale});
     const {kind: explanationKind, ...display} = explanation;
-    const entry = {kind: row.kind, code: row.reason.code, ...display, explanationKind};
+    const entry: DisplayEntry = {kind: row.kind, code: row.reason.code, ...display, explanationKind};
     if (explanation.kind === 'known' && row.reason.facts !== undefined) entry.facts = row.reason.facts;
     if (row.boundary !== undefined) entry.boundary = row.boundary;
     try {
@@ -294,7 +325,7 @@ export function renderCheckOutcome(outcome, options, resolveCheckLocation, resol
 
 // Reason presentation does not decide the report's verdict or outcome branch.
 
-export function explainCheckReason(reason, options) {
+export function explainCheckReason(reason: unknown, options?: CheckExplanationOptions) {
   const display = selectCheckReasonPresentation(reason);
   if (display) {
     const [summary, hint] = localizeCheck(display.key, display.english, options);
@@ -304,7 +335,7 @@ export function explainCheckReason(reason, options) {
   return Object.freeze({kind: 'unknown', summary});
 }
 
-export function presentCheckFailure(failure, options) {
+export function presentCheckFailure(failure: Pick<CheckFailureExplanation, 'kind' | 'problem'>, options?: CheckExplanationOptions) {
   const messages = {
     unknown_outcome: ['The check reply contains an outcome this SDK cannot interpret.',
       'Review Host and SDK contract support; this observation establishes no check verdict or retry permission.'],

@@ -72,3 +72,5 @@ target/
 /scripts/typescript-packaging.test.d.mts
 /scripts/typescript-bootstrap.test.mjs
 /scripts/typescript-bootstrap.test.d.mts
+/packages/sdk/check-presentation.mjs
+/packages/sdk/check-presentation.d.mts
