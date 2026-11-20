@@ -17002,8 +17002,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "export async function listContinuationLedgerNamesBounded(path, supplied, signal) {"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "export async function listContinuationLedgerNamesBounded"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -17016,8 +17016,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "export async function listContinuationLedgerNamesBounded(path, supplied, signal) {"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "export async function listContinuationLedgerNamesBounded"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -17030,7 +17030,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// Physical acquisition only. The installed original Scope must fund the"
               },
               {
@@ -17044,7 +17044,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// pending-close controls simultaneously BEFORE calling this primitive. These"
               },
               {
@@ -17058,7 +17058,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "import {opendir} from 'node:fs/promises';"
               },
               {
@@ -17072,8 +17072,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17086,7 +17086,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// pending-close controls simultaneously BEFORE calling this primitive. These"
               },
               {
@@ -17100,7 +17100,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// limits are not that funding, a ledger-entry count, custody or a send grant."
               },
               {
@@ -17114,7 +17114,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// Physical acquisition only. The installed original Scope must fund the"
               },
               {
@@ -17146,8 +17146,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "export async function listContinuationLedgerNamesBounded(path, supplied, signal) {"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "export async function listContinuationLedgerNamesBounded"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -17160,8 +17160,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "export async function listContinuationLedgerNamesBounded(path, supplied, signal) {"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "export async function listContinuationLedgerNamesBounded"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -17174,7 +17174,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// Physical acquisition only. The installed original Scope must fund the"
               },
               {
@@ -17188,7 +17188,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// pending-close controls simultaneously BEFORE calling this primitive. These"
               },
               {
@@ -17202,7 +17202,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "import {opendir} from 'node:fs/promises';"
               },
               {
@@ -17216,8 +17216,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
+                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17230,7 +17230,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// pending-close controls simultaneously BEFORE calling this primitive. These"
               },
               {
@@ -17244,7 +17244,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// limits are not that funding, a ledger-entry count, custody or a send grant."
               },
               {
@@ -17258,7 +17258,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.mts",
                 "anchor": "// Physical acquisition only. The installed original Scope must fund the"
               },
               {
@@ -17420,7 +17420,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17564,7 +17564,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",

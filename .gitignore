@@ -329,3 +329,7 @@ target/
 /adapters/host-common/diagnostic-observer.d.mts
 /adapters/host-node/client-authentication-observation.mjs
 /adapters/host-node/client-authentication-observation.d.mts
+
+# Generated bounded original-directory physical acquisition adapter.
+/adapters/host-node/bounded-continuation-directory.mjs
+/adapters/host-node/bounded-continuation-directory.d.mts

@@ -1,15 +1,24 @@
 import {opendir} from 'node:fs/promises';
 
-const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
-const count = n => Number.isSafeInteger(n) && n >= 0;
+// Unchecked views of the original encoding:buffer Dir and existing cleanup
+// carrier. Native bytes, bounds and close acknowledgements are checked below.
+interface BufferedDirectory {
+  read(): Promise<{name: unknown} | null>;
+  close(): unknown;
+}
+interface DirectoryBounds {maxDirectoryEntries: number; maxWireBytes: number}
+interface CleanupCarrier {cleanupHandle?: unknown; cleanupPending?: boolean; cleanupError?: unknown}
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
+const count = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
 
 // Physical acquisition only. The installed original Scope must fund the
 // directory handle/buffer, all names, UTF8 decode, result backing, sorting and
 // pending-close controls simultaneously BEFORE calling this primitive. These
 // limits are not that funding, a ledger-entry count, custody or a send grant.
-export async function listContinuationLedgerNamesBounded(path, supplied, signal) {
-  const maxDirectoryEntries = supplied?.maxDirectoryEntries;
-  const maxWireBytes = supplied?.maxWireBytes;
+export async function listContinuationLedgerNamesBounded(path: unknown, supplied: unknown, signal?: unknown) {
+  const maxDirectoryEntries = (supplied as DirectoryBounds | undefined)?.maxDirectoryEntries;
+  const maxWireBytes = (supplied as DirectoryBounds | undefined)?.maxWireBytes;
   if (typeof path !== 'string' || path.length === 0 || supplied === null ||
       typeof supplied !== 'object' || Array.isArray(supplied) ||
       Object.keys(supplied).sort().join(',') !== 'maxDirectoryEntries,maxWireBytes' ||
@@ -19,21 +28,21 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
   }
   // One entry per internal fill, rather than readdir's unbounded array. The
   // single excess entry needed to detect N+1 also belongs in the funded overlap.
-  signal?.throwIfAborted();
-  let directory;
-  try { directory = await opendir(path, {encoding: 'buffer', bufferSize: 1}); }
+  (signal as AbortSignal | undefined)?.throwIfAborted();
+  let directory: BufferedDirectory;
+  try { directory = await (opendir as unknown as (path: string, options: {encoding: 'buffer'; bufferSize: number}) => Promise<BufferedDirectory>)(path, {encoding: 'buffer', bufferSize: 1}); }
   catch (cause) {
-    if (cause?.code === 'ENOENT') fail('ContinuationDirectoryUnavailable', cause);
+    if ((cause as NodeJS.ErrnoException | null | undefined)?.code === 'ENOENT') fail('ContinuationDirectoryUnavailable', cause);
     throw cause;
   }
-  let primary, failed = false;
+  let primary: unknown, failed = false;
   try {
-    const names = [];
+    const names: string[] = [];
     let entries = 0, wireBytes = 0;
     for (;;) {
-      signal?.throwIfAborted();
+      (signal as AbortSignal | undefined)?.throwIfAborted();
       const entry = await directory.read();
-      signal?.throwIfAborted();
+      (signal as AbortSignal | undefined)?.throwIfAborted();
       if (entry === null) break;
       if (entries === maxDirectoryEntries) fail('ContinuationDirectoryEntriesLimit');
       entries++;
@@ -42,7 +51,7 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
         fail('ContinuationDirectoryWireLimit');
       }
       wireBytes += entry.name.byteLength;
-      let name;
+      let name: string;
       try { name = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(entry.name); }
       catch (cause) { fail('InvalidContinuationDirectoryName', cause); }
       // Every entry counts before filtering. Unrelated/tmp/invalid attempt
@@ -59,12 +68,12 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
     catch (closeFailure) {
       // Keep this same physical Dir and its original reservation/custody. A
       // retry is close-only; it never reopens or repeats directory acquisition.
-      let original = directory, flight;
+      let original: BufferedDirectory | undefined = directory, flight: Promise<Readonly<{pending: boolean}>> | undefined;
       const status = () => Object.freeze({pending: original !== undefined});
       const cleanup = Object.freeze({status, retry() {
         if (flight !== undefined) return flight;
         if (original === undefined) return Promise.resolve(status());
-        flight = Promise.resolve().then(() => original.close()).then(result => {
+        flight = Promise.resolve().then(() => original!.close()).then(result => {
           if (result === false) fail('ContinuationDirectoryCleanupPending');
           original = undefined;
           return status();
@@ -72,15 +81,15 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
         return flight;
       }});
       const reason = failed ? primary : closeFailure;
-      const failure = reason !== null && typeof reason === 'object' &&
-        Object.isExtensible(reason) && reason.cleanupHandle === undefined
-        ? reason : new Error('ContinuationDirectoryCleanupPending', {cause: reason});
+      const failure = (reason !== null && typeof reason === 'object' &&
+        Object.isExtensible(reason) && (reason as CleanupCarrier).cleanupHandle === undefined
+        ? reason : new Error('ContinuationDirectoryCleanupPending', {cause: reason})) as CleanupCarrier;
       failure.cleanupHandle = cleanup;
       failure.cleanupPending = true;
       failure.cleanupError = closeFailure;
       throw failure;
     }
     // A cancellation during close must not publish a successful names result.
-    if (!failed) signal?.throwIfAborted();
+    if (!failed) (signal as AbortSignal | undefined)?.throwIfAborted();
   }
 }
