@@ -27125,7 +27125,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27288,7 +27288,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27920,7 +27920,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -42480,8 +42480,8 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -42518,7 +42518,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -42602,7 +42602,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -42644,11 +42644,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -42686,7 +42686,7 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -42867,8 +42867,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -42877,7 +42877,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -42897,7 +42897,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -42907,17 +42907,17 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -43319,8 +43319,8 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -43357,7 +43357,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -43437,7 +43437,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -43479,11 +43479,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -43517,7 +43517,7 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -123659,7 +123659,7 @@
       "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -124790,7 +124790,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -125999,7 +125999,7 @@
       "sha256": "d0e0dd21c38dd3c6c0cf0dc891c62a6f632d5fe1f91480b2716ceb283fa49b17",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -133145,7 +133145,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -133448,7 +133448,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134083,7 +134083,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

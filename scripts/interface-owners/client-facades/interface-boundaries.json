@@ -5360,8 +5360,8 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -5378,7 +5378,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -5414,7 +5414,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -5432,11 +5432,11 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -5450,7 +5450,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -5528,8 +5528,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -5538,7 +5538,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -5558,7 +5558,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -5568,17 +5568,17 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -6942,8 +6942,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -6972,7 +6972,7 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -7040,7 +7040,7 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -7070,11 +7070,11 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -7104,7 +7104,7 @@
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -7239,8 +7239,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -7249,7 +7249,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -7277,7 +7277,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -7287,11 +7287,11 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -7301,7 +7301,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8394,23 +8394,23 @@
                 "anchor": "Self-addressed identities are checked without changing the signed"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
               },
               {
@@ -8420,7 +8420,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8577,7 +8577,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8587,19 +8587,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "!await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
@@ -8609,11 +8609,11 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -8627,7 +8627,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8645,11 +8645,11 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -8663,15 +8663,15 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -8681,11 +8681,11 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8699,7 +8699,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8713,7 +8713,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8770,8 +8770,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -8780,7 +8780,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -8800,7 +8800,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -8810,17 +8810,17 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -9215,8 +9215,8 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -9233,7 +9233,7 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -9269,7 +9269,7 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -9287,11 +9287,11 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -9305,7 +9305,7 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -9383,8 +9383,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -9393,7 +9393,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -9413,7 +9413,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -9423,17 +9423,17 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -11906,8 +11906,8 @@
                 "anchor": "\"run_wait\": {"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -11932,7 +11932,7 @@
                 "anchor": "state.run_id !== latestState.runId"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
@@ -11988,7 +11988,7 @@
                 "anchor": "const observeStep = async promise => {"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
@@ -12014,11 +12014,11 @@
                 "anchor": "return Err(InvalidSince)"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -12040,7 +12040,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -16250,23 +16250,23 @@
                 "anchor": "Self-addressed identities are checked without changing the signed"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
               },
               {
@@ -16276,7 +16276,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {

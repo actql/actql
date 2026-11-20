@@ -86,3 +86,6 @@ target/
 
 /packages/sdk/checkpoints.mjs
 /packages/sdk/checkpoints.d.mts
+
+/packages/sdk/internal/checkpoint-operations.mjs
+/packages/sdk/internal/checkpoint-operations.d.mts
