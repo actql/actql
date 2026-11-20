@@ -897,3 +897,5 @@ target/
 /scripts/ci-supported-versions.test.d.mts
 /scripts/ci-focused-tests.mjs
 /scripts/ci-focused-tests.d.mts
+/scripts/ci-session-controls.mjs
+/scripts/ci-session-controls.d.mts

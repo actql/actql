@@ -37,7 +37,7 @@ export const policyPaths = Object.freeze([
   'scripts/ci-targets.mjs', 'scripts/ci-preflight.mts', 'scripts/ci-focused-tests.mts',
   'scripts/ci-input.mts',
   'scripts/test-execution.mts', 'scripts/test-execution-reporter.mts', 'scripts/packed-query-evidence.mts',
-  'scripts/ci-main-base.mts', 'scripts/ci-core-partitions.mts', 'scripts/ci-session-controls.mjs',
+  'scripts/ci-main-base.mts', 'scripts/ci-core-partitions.mts', 'scripts/ci-session-controls.mts',
 ]);
 const gitDefault: GitRead = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
 const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
