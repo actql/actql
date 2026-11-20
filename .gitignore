@@ -363,3 +363,7 @@ target/
 /scripts/client-wire-scalar-rules.d.mts
 /scripts/generate-client-publication-wire.mjs
 /scripts/generate-client-publication-wire.d.mts
+
+# Generated maintained publication schema projection controls.
+/scripts/generate-client-publication-wire.test.mjs
+/scripts/generate-client-publication-wire.test.d.mts

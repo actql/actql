@@ -6,14 +6,21 @@ import {buildClientPublicationWire} from
 
 const runPath = 'spec/contracts/actql-run-publication.json';
 const protocolPath = 'spec/contracts/actql-protocol-schemas.json';
+// The mutable fixture view describes only this test's deliberate mutations;
+// it supplies neither runtime validation nor an admitted publication.
+interface MutationRegistry {schemas: {delivery_attempt: {properties: {result_name: {
+  minLength?: number; newRule?: boolean; type?: string;
+}}}}}
+type Projection = ReturnType<(typeof import('./generate-client-publication-wire.mjs'))['project']>;
+
 const registries = {
   [runPath]: JSON.parse(await readFile(runPath, 'utf8')),
   [protocolPath]: JSON.parse(await readFile(protocolPath, 'utf8')),
-};
+} as Record<typeof runPath | typeof protocolPath, MutationRegistry>;
 
 test('projected property-count constraints distinguish empty Effect-only inventories', async () => {
   const {project, structuralValidatorSource} = await import('./generate-client-publication-wire.mjs');
-  const validate = new Function(`${structuralValidatorSource()}return valid;`)();
+  const validate = new Function(`${structuralValidatorSource()}return valid;`)() as (value: unknown, schema: Projection) => boolean;
   const schema = project({maxProperties: 0});
   assert.deepEqual(schema, {maxProperties: 0});
   assert.equal(validate({}, schema), true);
@@ -27,7 +34,7 @@ test('projected property-count constraints distinguish empty Effect-only invento
 test('selected full artifact projection preserves alternatives and composite constants', async () => {
   const {project, structuralValidatorSource} = await import('./generate-client-publication-wire.mjs');
   const schema = project({anyOf: [{const: ['first', 'second']}, {const: {original: true}}]}, {extended: true});
-  const validate = new Function(`${structuralValidatorSource({extended: true, compositeConstants: true})}return valid;`)();
+  const validate = new Function(`${structuralValidatorSource({extended: true, compositeConstants: true})}return valid;`)() as (value: unknown, schema: Projection) => boolean;
   assert.equal(validate(['first', 'second'], schema), true);
   assert.equal(validate({original: true}, schema), true);
   for (const value of [['second', 'first'], ['first'], {original: false}, {original: true, extra: 1}]) {
