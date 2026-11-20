@@ -92725,12 +92725,16 @@
     },
     {
       "module": "src/run_publication_host/client_task_material_original.mbt",
-      "sha256": "2206bf801e9a022dbe6abee32a2fb35b34b081fef5474fec16bd07e583625a96",
+      "sha256": "ab0ae4f162b0e01daa75fdedd9c1de13f41f9eea0423f4eb23b1e6bd9bff5a6b",
       "exports": [],
       "operations": [
         {
           "name": "[E]read_client_task_material_original",
           "declaration": "[ E ] read_client_task_material_original ( key : String , cid : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ String , E ]"
+        },
+        {
+          "name": "[E]read_saved_task_material_original",
+          "declaration": "[ E ] read_saved_task_material_original ( key : String , cid : String , original_wire : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , digest ? : ( Bytes ) - > String"
         },
         {
           "name": "[E]read_task_material_original_details",
@@ -92773,6 +92777,14 @@
           "declaration": "client_task_material_original_cid ( wire : String , ) - > Result [ String , ClientJournalEncodingIssue ]"
         },
         {
+          "name": "task_material_continuation",
+          "declaration": "task_material_continuation ( value : Byte ) - > Bool"
+        },
+        {
+          "name": "task_material_maximal_chunk",
+          "declaration": "task_material_maximal_chunk ( length : Int , next : Bytes ) - > Bool"
+        },
+        {
           "name": "task_material_original_chunk_bytes",
           "declaration": "task_material_original_chunk_bytes ( key : String , bytes : Bytes , ) - > Result [ Array [ ( String , String ) ] , ClientJournalEncodingIssue ]"
         },
@@ -92789,9 +92801,12 @@
           "operations": [
             "<module>",
             "[E]read_client_task_material_original",
+            "[E]read_saved_task_material_original",
             "[E]read_task_material_original_details",
             "client_task_material_original_chunks",
             "client_task_material_original_cid",
+            "task_material_continuation",
+            "task_material_maximal_chunk",
             "task_material_original_chunk_bytes",
             "task_material_original_cid_bytes"
           ],
@@ -92891,6 +92906,10 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",
                 "anchor": "test \"single-pass nominal saved reader keeps construction fences and fresh material\""
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"exact saved material skips the fresh hash only after every canonical row probe\""
               }
             ]
           }
@@ -93306,7 +93325,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "1b8b1ac6ef1d34724376d232514c8d2663979fcbdc9e2df5e71f7bdc98365b27",
+      "sha256": "00ac3afc44a6de7c78d4decc72d0c49083b34fbdaf2d9218c5cab18471c71352",
       "exports": [],
       "operations": [
         {

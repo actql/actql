@@ -127,6 +127,81 @@ test "single-pass materials retain independent raw Unicode CID vectors" {
 }
 
 ///|
+test "exact saved material skips the fresh hash only after every canonical row probe" {
+  let key = "sha256:" + "a".repeat(64)
+  let first = "a".repeat(131070)
+  let tail = "😀\u{feff}z"
+  let wire = first + tail
+  let cid = client_task_material_original_cid(wire).unwrap()
+  let keys = [key + ":0", key + ":1", key + ":2", key + ":3"]
+  let reads : Array[String] = []
+  let hashed : Array[Int] = []
+  let digest = (bytes : Bytes) => {
+    hashed.push(bytes.length())
+    @sha.hex(bytes)
+  }
+  let reobserve = (first, tail, fourth) => {
+    reads.clear()
+    read_saved_task_material_original(
+      key,
+      cid,
+      wire,
+      (table, name) => {
+        if table != "client_task_run_materials" {
+          return Err("foreign table")
+        }
+        reads.push(name)
+        if name == keys[0] {
+          Ok(Some(inventory_row(name, first)))
+        } else if name == keys[1] {
+          Ok(Some(inventory_row(name, tail)))
+        } else if name == keys[3] {
+          fourth
+        } else {
+          Ok(None)
+        }
+      },
+      "custody",
+      digest~,
+    )
+  }
+  assert_eq(
+    reobserve(@utf8.encode(first), @utf8.encode(tail), Ok(None)),
+    Ok(wire),
+  )
+  assert_eq(reads, keys)
+  assert_true(hashed.is_empty())
+  // The same wire split one scalar too early must go through the original
+  // validator and reject, even though its complete SHA is unchanged.
+  assert_eq(
+    reobserve(
+      @utf8.encode("a".repeat(131069)),
+      @utf8.encode("a" + tail),
+      Ok(None),
+    ),
+    Err("custody"),
+  )
+  assert_eq(reads, keys)
+  assert_eq(hashed, [131078])
+  assert_eq(
+    reobserve(@utf8.encode(first), @utf8.encode("😀\u{feff}x"), Ok(None)),
+    Err("custody"),
+  )
+  assert_eq(reads, keys)
+  assert_eq(hashed, [131078, 131078])
+  assert_eq(
+    reobserve(
+      @utf8.encode(first),
+      @utf8.encode(tail),
+      Err("fourth physical query"),
+    ),
+    Err("fourth physical query"),
+  )
+  assert_eq(reads, keys)
+  assert_eq(hashed, [131078, 131078])
+}
+
+///|
 test "single-pass fresh reader hashes once per read and retains every physical probe" {
   let key = "sha256:" + "a".repeat(64)
   let wire = "original task materials"

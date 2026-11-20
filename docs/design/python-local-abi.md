@@ -4479,6 +4479,19 @@ inventories, cancellation inspection, resource constructors and subsequent
 relation checks still execute. An exact match is never cached inventory,
 authorization, currentness or physical cleanup acknowledgement.
 
+Saved Result reobservation also uses the wire and CID already held by the
+original Saved snapshot. It starts with fresh exact Submission and Run rows
+and performs the four material probes in the current reader. Strict UTF-8
+decoding and exact wire equality establish byte correspondence. A nonfinal
+chunk is canonical only if the next complete scalar cannot fit in its remaining
+byte allowance. The reader checks this at each boundary without keeping an
+extra original chunk array or copying chunk bodies. An exact match reuses the
+checked wire and skips a second whole-material encode and hash. Changed bytes
+or a noncanonical split still go through the full validator on the fresh rows.
+Physical read errors keep their original order and outcome. The Saved snapshot
+layout, chunk descriptor bound, inventory, current checks and close stay the
+same.
+
 The checked chunk array stays private to the Common reader/inventory call.
 The submitted-intent append decision also forwards that same optional original
 into its early `Retained` read, before the append-only callback can be reached.

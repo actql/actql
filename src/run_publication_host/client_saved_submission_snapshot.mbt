@@ -95,16 +95,16 @@ pub fn[E] reobserve_client_saved_submission_original(
       match original.task_materials {
         None => Ok(Some(original))
         Some(wire) => {
-          // Snapshot construction checked this inspection's original CID
-          // against the retained wire. Preserve the complete fresh material
-          // read and its hash below without hashing the retained wire again.
+          // Snapshot construction checked this wire under this inspection CID.
+          // Reuse it only after the complete fresh exact material observation.
           guard inspection.task_materials_cid is Some(cid) else {
             return Ok(None)
           }
           match
-            read_client_task_material_original(
+            read_saved_task_material_original(
               run.key,
               cid,
+              wire,
               (table, key) => read(table, key).map_err(issue => Some(issue)),
               None,
             ) {

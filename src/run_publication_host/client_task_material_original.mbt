@@ -117,9 +117,7 @@ fn task_material_original_chunk_bytes(
   while start < bytes.length() {
     let mut end = Int::min(start + 131072, bytes.length())
     // A UTF-8 continuation byte cannot begin the next physical row.
-    while end < bytes.length() &&
-          bytes[end].to_int() >= 128 &&
-          bytes[end].to_int() <= 191 {
+    while end < bytes.length() && task_material_continuation(bytes[end]) {
       end -= 1
     }
     let body = @utf8.decode(bytes[start:end]) catch {
@@ -132,6 +130,27 @@ fn task_material_original_chunk_bytes(
     start = end
   }
   Ok(chunks)
+}
+
+///|
+fn task_material_continuation(value : Byte) -> Bool {
+  value.to_int() >= 128 && value.to_int() <= 191
+}
+
+///|
+// Called after strict UTF-8 decoding. A nonfinal chunk must leave no room
+// for the next complete scalar, which is exactly where the splitter stops.
+fn task_material_maximal_chunk(length : Int, next : Bytes) -> Bool {
+  let available = 131072 - length
+  if available >= 4 || available >= next.length() {
+    return false
+  }
+  for offset in 1..<(available + 1) {
+    if !task_material_continuation(next[offset]) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -179,10 +198,13 @@ fn[Plan, E] read_task_material_original_details_with_original(
   custody_lost : E,
   original : ClientTaskMaterialsOriginal[Plan]?,
   digest? : (Bytes) -> String = @sha.hex,
+  saved_wire? : String? = None,
 ) -> Result[(String, Array[(String, String)]), E] {
   let mut wire = ""
   let mut total = 0
   let mut ended = false
+  let mut previous_length = 131072
+  let mut canonical = saved_wire is Some(_)
   let observed : Array[String] = []
   for index in 0..<4 {
     let chunk_key = key + ":" + index.to_string()
@@ -205,13 +227,15 @@ fn[Plan, E] read_task_material_original_details_with_original(
         let body = @utf8.decode(row.body) catch {
           _ => return Err(custody_lost)
         }
+        if canonical {
+          canonical = task_material_maximal_chunk(previous_length, row.body)
+          previous_length = row.body.length()
+        }
         wire += body
         observed.push(body)
       }
     }
   }
-  // All four original physical observations and row/key/revision/extent/UTF8
-  // checks above still run. Reuse only a complete exact immutable match.
   if original is Some(original) &&
     original.cid == cid &&
     original.wire == wire &&
@@ -226,6 +250,20 @@ fn[Plan, E] read_task_material_original_details_with_original(
     if same {
       return Ok((original.wire, original.chunks))
     }
+  }
+  // Exact validated UTF-8 and maximal chunk boundaries fix the physical
+  // material wire and its canonical partition. Copy only the same bounded
+  // chunk descriptors the complete validator returns, sharing the Strings.
+  if canonical &&
+    !observed.is_empty() &&
+    valid_client_request_cid(key) &&
+    saved_wire is Some(original_wire) &&
+    wire == original_wire {
+    let exact : Array[(String, String)] = []
+    for index in 0..<observed.length() {
+      exact.push((key + ":" + index.to_string(), observed[index]))
+    }
+    return Ok((original_wire, exact))
   }
   let bytes = @utf8.encode(wire)
   guard task_material_original_cid_bytes(bytes, digest~) is Ok(actual) &&
@@ -245,6 +283,32 @@ fn[Plan, E] read_task_material_original_details_with_original(
     }
   }
   Ok((wire, expected))
+}
+
+///|
+// Sole production caller supplies the wire already checked under the same
+// Saved snapshot inspection CID. Strict UTF-8 and exact wire equality fix
+// every byte, and the original greedy boundaries fix the entire partition.
+// No second backing for old chunks survives the read. On a miss, validate
+// the fresh observation without replacing the first physical result.
+fn[E] read_saved_task_material_original(
+  key : String,
+  cid : String,
+  original_wire : String,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+  digest? : (Bytes) -> String = @sha.hex,
+) -> Result[String, E] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  read_task_material_original_details_with_original(
+    key,
+    cid,
+    read,
+    custody_lost,
+    original,
+    digest~,
+    saved_wire=Some(original_wire),
+  ).map(value => value.0)
 }
 
 ///|
