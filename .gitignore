@@ -899,3 +899,5 @@ target/
 /scripts/ci-focused-tests.d.mts
 /scripts/ci-session-controls.mjs
 /scripts/ci-session-controls.d.mts
+/scripts/ci-native-background-groups.mjs
+/scripts/ci-native-background-groups.d.mts
