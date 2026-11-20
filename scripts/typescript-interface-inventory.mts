@@ -22,7 +22,9 @@ function literalValue(node: ts.Node | undefined, depth = 0): Literal | undefined
   if (ts.isNumericLiteral(node)) return Number(node.text);
   if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
   if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (ts.isParenthesizedExpression(node)) return literalValue(node.expression, depth + 1);
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) ||
+      ts.isTypeAssertionExpression(node) || ts.isSatisfiesExpression(node) ||
+      ts.isNonNullExpression(node)) return literalValue(node.expression, depth + 1);
   if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
     const left = literalValue(node.left, depth + 1), right = literalValue(node.right, depth + 1);
     if (left !== undefined && right !== undefined) {

@@ -117,3 +117,33 @@ test('authored TypeScript fixture forms refuse direct and resolved interface aut
     assert.throws(() => typescriptInterfaceInputs(root, ['entry.ts']), /Test authority in TypeScript interface/u);
   }
 });
+
+
+test('TS erased expression wrappers retain only actual literal dependency and field syntax', () => {
+  const syntax = typescriptInterface(`
+    const a = import("./owner.mjs" as string);
+    const b = import(("./owner.mjs" satisfies string)!);
+    const c = require(<string>"./owner.mjs");
+    const field = value[("_" + 0) as string];
+  `);
+  assert.deepEqual(syntax.imports, ['./owner.mjs']);
+  assert.deepEqual(syntax.compilerFields, ['_0']);
+  assert.equal(syntax.unresolvedSyntax, undefined);
+  const dynamic = typescriptInterface('const a = import(selected as "./owner.mjs");');
+  assert.deepEqual(dynamic.imports, []);
+  assert.equal(dynamic.unresolvedSyntax?.length, 1, 'asserted types do not supply runtime import values');
+  assert.deepEqual(typescriptInterface('value[selected as "_0"]').compilerFields, []);
+});
+
+test('actual TS closure resolves type-wrapped literal imports and still refuses fixture authority', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-wrapped-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({compilerOptions: {moduleResolution: 'Bundler'}}));
+  writeFileSync(join(root, 'owner.mts'), 'export const value = 1;');
+  writeFileSync(join(root, 'entry.mts'), 'export const read = () => import("./owner.mjs" as string);');
+  assert.deepEqual(typescriptInterfaceInputs(root, ['entry.mts']).modules.map(value => value.module),
+    ['entry.mts', 'owner.mts']);
+  writeFileSync(join(root, 'owner.fixture.mts'), 'export const value = 1;');
+  writeFileSync(join(root, 'entry.mts'), 'export const read = () => import("./owner.fixture.mjs" as string);');
+  assert.throws(() => typescriptInterfaceInputs(root, ['entry.mts']), /Test authority in TypeScript interface/u);
+});
