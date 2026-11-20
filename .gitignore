@@ -222,3 +222,11 @@ target/
 # Generated existing SDK Model physical port and private declarations.
 /packages/provider-ai-sdk/_internal/model-port.mjs
 /packages/provider-ai-sdk/_internal/model-port.d.mts
+
+# Generated pinned decision SDK projection consumer.
+/packages/provider-ai-sdk/_internal/typesafe-decision.mjs
+/packages/provider-ai-sdk/_internal/typesafe-decision.d.mts
+
+# Generated existing bounded decision projection preflight.
+/packages/provider-ai-sdk/_internal/native-decision-preflight.mjs
+/packages/provider-ai-sdk/_internal/native-decision-preflight.d.mts

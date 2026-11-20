@@ -2,19 +2,38 @@ import {runtimeField, runtimeIsOk, runtimePair} from './compiler-binding.generat
 import {createProjectedTypeSafeDecisionPreflight,requireTypeSafeOriginalTransportLimits} from './typesafe-decision.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 
+type ProjectedInput = Parameters<typeof createProjectedTypeSafeDecisionPreflight>[0];
+type ProjectedRuntime = ProjectedInput['moon'];
+interface ProjectionRuntime extends ProjectedRuntime {
+  clientProgramStartNativeDecisionProjection(provider: unknown, request: unknown,
+    maxBytes: number, maxNodes: number, maxDepth: number, maxFrames: number, maxWork: number): unknown;
+  clientProgramAdvanceNativeDecisionProjection(cursor: unknown): unknown;
+  clientProgramRetireNativeDecisionProjection(cursor: unknown): unknown;
+  clientProgramRetireNativeDecisionRequest(projected: unknown): unknown;
+}
+type AdmittedInput = Omit<ProjectedInput, 'moon' | 'projected'> & {
+  moon: ProjectionRuntime; projectionLimits: unknown;
+};
+// ModelRequestPreflight's existing public callback fields, not an opaque
+// payload decoder or a new issuer. Common and the original checks still own
+// every accepted response, Plan, current binding and cleanup observation.
+type PhysicalPreflightView = ReturnType<typeof createProjectedTypeSafeDecisionPreflight> & {
+  preflight: {advance(): unknown; cleanup(): unknown};
+};
+
 // Private installed adapter composition, not a Model executor or scheduler.
 // Common owns the bounded projection and original Plan/Entry/response meaning.
 // The caller must fund both cursors, escaped view, callbacks and SDK overlap.
 export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
-  request, projectionLimits, signal, ...options}) {
-  const keys = ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'];
+  request, projectionLimits, signal, ...options}: AdmittedInput) {
+  const keys = ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'] as const;
   const descriptors = projectionLimits !== null && typeof projectionLimits === 'object' &&
     !Array.isArray(projectionLimits) ? Object.getOwnPropertyDescriptors(projectionLimits) : undefined;
   if (descriptors === undefined || Reflect.ownKeys(descriptors).length !== keys.length ||
       keys.some(key => !Object.hasOwn(descriptors[key] ?? {}, 'value'))) {
     throw new TypeError('InvalidNativeDecisionProjectionLimits');
   }
-  const bounds = Object.freeze(Object.fromEntries(keys.map(key => [key, descriptors[key].value])));
+  const bounds = Object.freeze(Object.fromEntries(keys.map(key => [key, descriptors[key].value]))) as Readonly<Record<typeof keys[number], number>>;
   if (keys.some(key => !Number.isSafeInteger(bounds[key]) ||
       bounds[key] < (key === 'maxWork' ? 0 : 1) || bounds[key] > 2_147_483_647)) {
     throw new TypeError('InvalidNativeDecisionProjectionLimits');
@@ -24,16 +43,16 @@ export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
     'clientProgramRetireNativeDecisionRequest', 'clientProgramNativeDecisionRequestMatches',
     'clientProgramNativeDecisionRequestBinding', 'clientProgramNativeDecisionRequestWires',
     'clientProgramModelRequestPreflight', 'clientProgramModelAsyncNativeDecisionRequestPlan',
-    'clientProgramModelPhysicalSavedNativeDecision'];
+    'clientProgramModelPhysicalSavedNativeDecision'] as const;
   if (hooks.some(name => typeof moon?.[name] !== 'function') ||
       admittedProvider === undefined || request === undefined || options.probability === undefined) {
     throw new TypeError('NativeDecisionProjectionRuntimeUnavailable');
   }
-  options.responseLimits=fixedInferResponseLimits(options.responseLimits);
+  options.responseLimits=fixedInferResponseLimits(options.responseLimits!);
   requireTypeSafeOriginalTransportLimits(moon,options.profile,options.maxRequestBytes,options.responseLimits);
-  let cursor, projected, physical;
+  let cursor: unknown, projected: unknown, physical: PhysicalPreflightView | undefined;
   let refused = false, retired = false;
-  const checked = value => {
+  const checked = (value: unknown): unknown => {
     if (!runtimeIsOk(value)) throw new TypeError('OriginalNativeDecisionProjectionRefused');
     return runtimeField(value, 0);
   };
@@ -54,7 +73,7 @@ export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
         moon.clientProgramRetireNativeDecisionProjection(cursor);
         cursor = undefined;
         physical = createProjectedTypeSafeDecisionPreflight({...options, moon,
-          admittedProvider, request, projected, signal});
+          admittedProvider, request, projected, signal}) as PhysicalPreflightView;
         return runtimePair(false, undefined);
       }
       // ModelRequestPreflight is the existing public-field Common data type.
@@ -84,7 +103,10 @@ export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
       }
     } catch {return false;}
     physical = undefined;
-    admittedProvider = request = signal = options = moon = undefined;
+    // Clear the terminal views in the original assignment order. These erased
+    // casts cannot make a live runtime, option record or cleanup receipt.
+    admittedProvider = request = signal =
+      (options = (moon = undefined as unknown as typeof moon) as unknown as typeof options) as unknown as undefined;
     retired = true;
     return true;
   };

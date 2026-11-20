@@ -5,10 +5,41 @@ import {isDeepStrictEqual} from 'node:util';
 import {createSdkNativeDecisionPreflight} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 
+type InterceptionOptions = Parameters<typeof interceptSdkRequest>[0];
+type DecisionOptions = Pick<Parameters<ReturnType<ReturnType<typeof createTypeSafeAi>['decisionModel']>['doDecide']>[0], 'state' | 'questions'>;
+type PhysicalOptions = Parameters<typeof createSdkNativeDecisionPreflight>[0];
+type ResponseLimits = Parameters<typeof fixedInferResponseLimits>[0];
+interface ProjectionRuntime {
+  clientProgramNativeDecisionRequestMatches?(projected: unknown, provider: unknown, request: unknown): unknown;
+  clientProgramNativeDecisionRequestBinding?(projected: unknown): unknown;
+  clientProgramNativeDecisionRequestWires?(projected: unknown): unknown;
+}
+interface TransportRuntime {
+  clientProgramModelResponseProfileTransportMatches?(profile: unknown, requestBytes: number,
+    maxBytes: number, maxChunkBytes: number, maxChunks: number, maxHeaderBytes: number): unknown;
+}
+type PreparationOptions = Pick<InterceptionOptions,
+  'maxRequestBytes' | 'maxHeaderBytes' | 'maxHeaders' | 'signal' | 'notify' | 'verifyRequest'> & {
+    modelId: string; baseURL: string; apiKey: string; options: DecisionOptions;
+  };
+type ProjectionInput = Omit<PreparationOptions, 'options' | 'verifyRequest'> & {
+  moon: ProjectionRuntime; projected: unknown; admittedProvider: unknown; request: unknown;
+  taskCid: string; promptCid: string; outputSchemaCid: string; modelSelector: string;
+};
+type ProjectionPreflightInput = Omit<PhysicalOptions, 'moon' | 'notify'> & Omit<ProjectionInput, 'apiKey' | 'notify'> & {
+  apiKey: string | undefined; notify: (() => unknown) | undefined;
+  moon: ProjectionRuntime & TransportRuntime & PhysicalOptions['moon']; probability: unknown;
+};
+interface AnswerRuntime extends ProjectionRuntime {
+  clientProgramProjectNativeDecisionAnswers?(projected: unknown, provider: unknown,
+    request: unknown, response: unknown, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxWork: number): unknown;
+}
+
 // Consume the existing Common profile predicate, not another support table or
 // numerical policy. Callers retain immutable physical declarations through
 // their original preparation; matching is neither funding nor send authority.
-export function requireTypeSafeOriginalTransportLimits(moon,profile,requestBytes,responseLimits) {
+export function requireTypeSafeOriginalTransportLimits(moon: TransportRuntime, profile: unknown, requestBytes: number, responseLimits: ResponseLimits) {
   if(typeof moon?.clientProgramModelResponseProfileTransportMatches!=='function'||
       profile===undefined||profile===null) {
     throw new TypeError('TypeSafeOriginalTransportLimitsUnavailable');
@@ -26,7 +57,7 @@ export function requireTypeSafeOriginalTransportLimits(moon,profile,requestBytes
 // state/questions and funds the SDK representation before invoking this.
 // Public exports and installed native execution remain unavailable.
 export function prepareTypeSafeDecisionRequest({modelId,baseURL,apiKey,options,
-  maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify,verifyRequest}) {
+  maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify,verifyRequest}: PreparationOptions) {
   if(typeof modelId!=='string'||modelId.length===0||
     typeof baseURL!=='string'||baseURL.endsWith('/')||
     typeof apiKey!=='string'||apiKey.length===0||
@@ -60,35 +91,35 @@ export function prepareTypeSafeDecisionRequest({modelId,baseURL,apiKey,options,
 // retiring its emitter does not retire that separate borrowed view.
 export function prepareProjectedTypeSafeDecisionRequest({moon,projected,
   admittedProvider,request,taskCid,promptCid,outputSchemaCid,modelSelector,
-  modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify}) {
-  if (!['clientProgramNativeDecisionRequestMatches',
-    'clientProgramNativeDecisionRequestBinding','clientProgramNativeDecisionRequestWires']
+  modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify}: ProjectionInput) {
+  if (!(['clientProgramNativeDecisionRequestMatches',
+    'clientProgramNativeDecisionRequestBinding','clientProgramNativeDecisionRequestWires'] as const)
     .every(name=>typeof moon?.[name]==='function') ||
-      !moon.clientProgramNativeDecisionRequestMatches(projected,admittedProvider,request)) {
+      !moon.clientProgramNativeDecisionRequestMatches!(projected,admittedProvider,request)) {
     throw new TypeError('TypeSafeOriginalProjectionUnavailable');
   }
-  const binding=moon.clientProgramNativeDecisionRequestBinding(projected);
-  const wires=moon.clientProgramNativeDecisionRequestWires(projected);
+  const binding=moon.clientProgramNativeDecisionRequestBinding!(projected);
+  const wires=moon.clientProgramNativeDecisionRequestWires!(projected);
   if (binding===undefined || wires===undefined ||
       runtimeField(binding, 0)!==taskCid || runtimeField(binding, 1)!==promptCid ||
       runtimeField(binding, 2)!==outputSchemaCid || runtimeField(binding, 3)!==modelSelector ||
       typeof runtimeField(wires, 0)!=='string' || typeof runtimeField(wires, 1)!=='string') {
     throw new TypeError('TypeSafeOriginalProjectionBindingMismatch');
   }
-  const stateWire=runtimeField(wires, 0),questionsWire=runtimeField(wires, 1);
-  let state,questions;
+  const stateWire=runtimeField(wires, 0) as string,questionsWire=runtimeField(wires, 1) as string;
+  let state: unknown, questions: unknown;
   try {state=JSON.parse(stateWire);questions=JSON.parse(questionsWire);}
   catch {throw new TypeError('TypeSafeOriginalProjectionWireUnavailable');}
   // These trees/callbacks and the SDK overlap are funded by the original
   // installation before entry. JSON parsing in this external adapter is
   // finite under Common's projection bounds, not cooperatively preemptible.
   return prepareTypeSafeDecisionRequest({modelId,baseURL,apiKey,
-    options:{state,questions},maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify,
+    options:{state,questions} as DecisionOptions,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify,
     verifyRequest(body) {
       // Compare against immutable original wires, never the mutable tree
       // handed to SDK code. The pinned SDK maps Boolean to its native noul
       // wire discriminator; Common's question and answer contract is unchanged.
-      const originalQuestions=Object.fromEntries(Object.entries(JSON.parse(questionsWire))
+      const originalQuestions=Object.fromEntries(Object.entries(JSON.parse(questionsWire) as Record<string, {type?: unknown}>)
         .map(([id,question])=>[id,question.type==='boolean'
           ? {...question,type:'noul'}:question]));
       return isDeepStrictEqual(JSON.parse(body),{
@@ -105,14 +136,14 @@ export function prepareProjectedTypeSafeDecisionRequest({moon,projected,
 export function createProjectedTypeSafeDecisionPreflight({moon, projected,
   admittedProvider, request, probability, taskCid, promptCid, outputSchemaCid,
   modelSelector, modelId, baseURL, apiKey, maxRequestBytes, maxHeaderBytes,
-  maxHeaders, signal, notify, ...port}) {
+  maxHeaders, signal, notify, ...port}: ProjectionPreflightInput): ReturnType<typeof createSdkNativeDecisionPreflight> {
   if (!moon.clientProgramNativeDecisionRequestMatches?.(projected, admittedProvider, request)) {
     throw new TypeError('TypeSafeOriginalProjectionUnavailable');
   }
   // Direct private callers do not bypass the installed profile check. Retain
   // the same snapshotted reader limits that were compared, not mutable inputs
   // that may change before later SDK preparation or physical acquisition.
-  port.responseLimits=fixedInferResponseLimits(port.responseLimits);
+  port.responseLimits=fixedInferResponseLimits(port.responseLimits!);
   requireTypeSafeOriginalTransportLimits(moon,port.profile,maxRequestBytes,port.responseLimits);
   let terminal = false;
   const progress = {
@@ -122,7 +153,7 @@ export function createProjectedTypeSafeDecisionPreflight({moon, projected,
       return {kind: 'ready', preparation: prepareProjectedTypeSafeDecisionRequest({
         moon, projected, admittedProvider, request, taskCid, promptCid, outputSchemaCid,
         modelSelector, modelId, baseURL, apiKey, maxRequestBytes, maxHeaderBytes,
-        maxHeaders, signal, notify})};
+        maxHeaders, signal, notify} as ProjectionInput)};
     },
     cleanup() {
       terminal = true;
@@ -140,7 +171,7 @@ export function createProjectedTypeSafeDecisionPreflight({moon, projected,
 // authority or treats a mapped wire as saved/complete/validated output. The
 // original raw Store/EOF/status/profile and Decision validator remain separate.
 export function projectProjectedTypeSafeDecisionAnswers({moon,projected,
-  admittedProvider,request,admittedResponse,limits}) {
+  admittedProvider,request,admittedResponse,limits}: {moon: AnswerRuntime; projected: unknown; admittedProvider: unknown; request: unknown; admittedResponse: unknown; limits: unknown}) {
   if (typeof moon?.clientProgramProjectNativeDecisionAnswers!=='function' ||
       !moon.clientProgramNativeDecisionRequestMatches?.(projected,admittedProvider,request)) {
     throw new TypeError('TypeSafeOriginalProjectionUnavailable');
@@ -148,18 +179,18 @@ export function projectProjectedTypeSafeDecisionAnswers({moon,projected,
   const keys=['maxBytes','maxDepth','maxNodes','maxWork'];
   const descriptors=limits===null || typeof limits!=='object' || Array.isArray(limits)
     ? undefined : Object.getOwnPropertyDescriptors(limits);
-  const amounts=descriptors===undefined ? undefined : keys.map(name=>descriptors[name]?.value);
+  const amounts: unknown[] | undefined=descriptors===undefined ? undefined : keys.map(name=>descriptors[name]?.value);
   if (limits===null || typeof limits!=='object' || Array.isArray(limits) ||
-      Reflect.ownKeys(descriptors).length!==keys.length ||
-      keys.some((name,index)=>!Object.hasOwn(descriptors[name] ?? {},'value') ||
-        !Number.isSafeInteger(amounts[index]) ||
-        amounts[index]<(name==='maxWork'?0:1) || amounts[index]>2_147_483_647)) {
+      Reflect.ownKeys(descriptors!).length!==keys.length ||
+      keys.some((name,index)=>!Object.hasOwn(descriptors![name] ?? {},'value') ||
+        !Number.isSafeInteger(amounts![index]) ||
+        (amounts![index] as number)<(name==='maxWork'?0:1) || (amounts![index] as number)>2_147_483_647)) {
     throw new TypeError('InvalidTypeSafeAnswerProjectionLimits');
   }
   // Validate and pass the same DATA descriptor values, never re-read a getter
   // or Proxy property after checking a different finite amount.
-  const result=moon.clientProgramProjectNativeDecisionAnswers(projected,
-    admittedProvider,request,admittedResponse,amounts[0],amounts[2],amounts[1],amounts[3]);
+  const result=moon.clientProgramProjectNativeDecisionAnswers!(projected,
+    admittedProvider,request,admittedResponse,amounts![0] as number,amounts![2] as number,amounts![1] as number,amounts![3] as number);
   if (!runtimeIsOk(result)) throw new TypeError('TypeSafeOriginalAnswerProjectionRefused');
   return runtimeField(result, 0);
 }
