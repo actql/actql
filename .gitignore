@@ -297,3 +297,7 @@ target/
 /scripts/js-action-boundaries.d.mts
 /scripts/generate-js-action-bindings.mjs
 /scripts/generate-js-action-bindings.d.mts
+
+# Generated real SDK request preparation regression.
+/packages/provider-ai-sdk/request-preparation.test.mjs
+/packages/provider-ai-sdk/request-preparation.test.d.mts

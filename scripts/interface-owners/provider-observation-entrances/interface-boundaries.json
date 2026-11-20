@@ -1341,7 +1341,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -1357,7 +1357,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -1793,7 +1793,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -1803,7 +1803,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -1819,7 +1819,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -1829,7 +1829,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -1941,7 +1941,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -1951,7 +1951,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -1967,7 +1967,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -1977,7 +1977,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -2363,7 +2363,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2373,7 +2373,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               },
               {
@@ -2397,7 +2397,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -2650,7 +2650,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2660,7 +2660,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -2676,7 +2676,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -2686,7 +2686,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -2781,7 +2781,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2791,7 +2791,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -2807,7 +2807,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -2817,7 +2817,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3003,7 +3003,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3019,7 +3019,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -3181,7 +3181,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3191,7 +3191,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3207,7 +3207,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -3217,7 +3217,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3304,7 +3304,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3314,7 +3314,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3330,7 +3330,7 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
@@ -3340,7 +3340,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
