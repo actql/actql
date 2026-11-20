@@ -3627,11 +3627,11 @@
                 "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal binding profile and original Read recipe"
               },
               {

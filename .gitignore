@@ -267,3 +267,7 @@ target/
 # Generated maintained original transport limit controls.
 /packages/provider-ai-sdk/original-undici-limits.test.mjs
 /packages/provider-ai-sdk/original-undici-limits.test.d.mts
+
+# Generated maintained original acquisition boundary controls.
+/packages/provider-ai-sdk/original-acquisition-limits.test.mjs
+/packages/provider-ai-sdk/original-acquisition-limits.test.d.mts

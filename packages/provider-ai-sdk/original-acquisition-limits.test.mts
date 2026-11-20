@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+import type {Socket} from 'node:net';
+import type {PhysicalAcquisitionLimits} from './index.d.ts';
 import {createRequire} from 'node:module';
 import {Duplex} from 'node:stream';
 import {setImmediate as turn} from 'node:timers/promises';
@@ -9,33 +12,33 @@ import {setImmediate as turn} from 'node:timers/promises';
 // The controlled connector bypasses native delivery; its input backing still
 // exists at preparation and must be included in the same declared union.
 const require = createRequire(import.meta.url);
-const undici = require('undici');
+const undici = require('undici') as typeof import('undici');
 const buildConnector = undici.buildConnector;
-let selectedSocket, connections = 0;
+let selectedSocket!: Duplex, connections = 0;
 undici.buildConnector = () => (_options, callback) => {
   const socket = selectedSocket;
   connections++;
-  queueMicrotask(() => callback(null, socket));
+  queueMicrotask(() => callback(null, socket as Socket));
   return socket;
 };
-let physical;
+let physical!: typeof import('./_internal/original-undici-transport.mjs');
 try { physical = await import('./_internal/original-undici-transport.mjs'); }
 finally { undici.buildConnector = buildConnector; }
 const endpoint = 'http://fixture.invalid/chat/completions';
 const responseLimits = {maxBytes: 8192, maxChunkBytes: 8192, maxChunks: 32,
   maxHeaderBytes: 16384, observedHeaders: []};
 const limits = {maxPlaintextBytes: 65536, maxBorrowedBackingBytes: 131072, maxReads: 64};
-const select = physicalAcquisitionLimits => physical.createOriginalUndiciFetch({endpoint,
+const select = (physicalAcquisitionLimits: unknown) => physical.createOriginalUndiciFetch({endpoint,
   requestLimits: {maxBytes: 64, maxHeaderBytes: 128, maxHeaders: 4},
   responseLimits, physicalAcquisitionLimits});
-const exactBuffer = text => {
+const exactBuffer = (text: string) => {
   const bytes = Buffer.allocUnsafeSlow(Buffer.byteLength(text));
   bytes.write(text);
   return bytes;
 };
 const wire = 'HTTP/1.1 200 OK\r\nContent-Length: 1\r\nConnection: close\r\n\r\nA';
 
-async function exercise(t, declaration, packets, firstBorrowedView) {
+async function exercise(t: TestContext, declaration: PhysicalAcquisitionLimits, packets: readonly Buffer[], firstBorrowedView?: Buffer) {
   let responded = false, closes = 0;
   const socket = new Duplex({read() {}, write(_bytes, _encoding, callback) {
     callback();
@@ -66,12 +69,12 @@ async function exercise(t, declaration, packets, firstBorrowedView) {
   const call = physical.prepareOriginalUndiciFetch(fetch, endpoint,
     {method: 'POST', body: '{}', headers: [], redirect: 'error',
       signal: new AbortController().signal}, responseLimits);
-  t.after(async () => { assert.equal(await call.cleanup(), true); });
-  let result;
+  t.after(async () => { assert.equal(await call!.cleanup(), true); });
+  let result: {body?: string; error?: unknown} | undefined;
   try {
-    const response = await call.invoke();
+    const response = await call!.invoke();
     const reader = response.body.getReader();
-    const parts = [];
+    const parts: Uint8Array[] = [];
     for (let index = 0; index < 8; index++) {
       const next = await reader.read();
       if (next.done) {
@@ -79,21 +82,21 @@ async function exercise(t, declaration, packets, firstBorrowedView) {
         result = {body: Buffer.concat(parts).toString()};
         break;
       }
-      parts.push(next.value);
+      parts.push(next.value as Uint8Array);
     }
     assert.ok(result);
-  } catch (error) { result = {error: error.code}; }
-  assert.equal(await call.cleanup(), true);
-  assert.equal(await call.cleanup(), true);
+  } catch (error) { result = {error: (error as NodeJS.ErrnoException).code}; }
+  assert.equal(await call!.cleanup(), true);
+  assert.equal(await call!.cleanup(), true);
   assert.equal(closes, 1);
   assert.equal(connections, before + 1);
-  if (result.error === 'UndiciOriginalAcquisitionReadsExceeded') {
+  if (result!.error === 'UndiciOriginalAcquisitionReadsExceeded') {
     assert.equal(originalReads, declaration.maxReads, 'no original read after exhaustion');
     assert.ok(nullProbes > 0, 'null probes were charged, not free reads');
   }
   t.diagnostic(JSON.stringify({originalReads, nullProbes, socketCloses: closes,
     qualification: 'Controlled original read calls, not native queue/allocator coverage.'}));
-  assert.throws(() => call.invoke(), {code: 'UndiciOriginalTransportRetired'});
+  assert.throws(() => call!.invoke(), {code: 'UndiciOriginalTransportRetired'});
   return result;
 }
 
@@ -113,7 +116,7 @@ test('acquisition DATA is required closed positive and does not invoke accessors
 
 test('private acquisition snapshot reads DATA descriptors once and ignores later input mutation', () => {
   const source = {...limits};
-  const reads = [];
+  const reads: PropertyKey[] = [];
   const proxy = new Proxy(source, {
     get() { assert.fail('No late Proxy property read'); },
     getOwnPropertyDescriptor(target, key) {
