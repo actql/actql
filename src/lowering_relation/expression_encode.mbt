@@ -30,6 +30,8 @@ fn binary_name(op : BinaryOperator) -> String {
     SafeSubtract => "safe_subtract"
     SafeMultiply => "safe_multiply"
     Modulo => "modulo"
+    ExactModulo => "exact_modulo"
+    IntegerDivide => "integer_divide"
     Pow => "pow"
     Atan2 => "atan2"
     Log => "log"

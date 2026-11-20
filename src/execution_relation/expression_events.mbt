@@ -123,7 +123,19 @@ fn expression_event_binary(
     Err(ComparisonChargeInvalidOperand) =>
       return Err({ kind: Scalar(InvalidOperand), expression: expr, })
   }
-  let value = if op is @lower.DecimalDivide(mode) {
+  let value = if (op == @lower.IntegerDivide || op == @lower.ExactModulo) &&
+    @lower.expression_contract(expr).shape is @contract.Decimal(..) {
+    guard workspace is Some(workspace) else {
+      return Err({ kind: WorkspaceLimit, expression: expr, })
+    }
+    match
+      exact_decimal_integer_expression_value(
+        expr, op, left, right, control, workspace,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else if op is @lower.DecimalDivide(mode) {
     guard workspace is Some(workspace) else {
       return Err({ kind: WorkspaceLimit, expression: expr, })
     }
