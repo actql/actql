@@ -188,14 +188,28 @@ export function buildClientHostWire(registry, protocol) {
     `statuses: readonly (${runStatuses.map(value => JSON.stringify(value)).join(' | ')})[]}>;\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
+    `export declare const checkReasonSchemaCid: string;\n` +
+    `export declare const checkOutcomeSchemaCid: string;\n` +
+    `export declare const clientHostOperations: readonly ClientHostOperation[];\n` +
+    `export declare function clientHostRequestKeys(operation: unknown, body?: unknown): string[] | undefined;\n` +
+    `export declare function validClientRequestOptionalFields(operation: unknown, body: unknown): boolean;\n` +
     `export type WireValueContractShape = ${typeOf(schemas.value_contract)};\n` +
     names.map((name, index) =>
-      `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`
+      `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n` +
+      `export declare function valid${exports[index]}Shape(value: unknown): value is Wire${exports[index]}Shape;\n`
     ).join('\n') +
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
-    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
+    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n` +
+    `export declare function validRunStateShape(value: unknown): value is WireRunStateShape;\n` +
+    `export declare function validCheckOutcomeShape(value: unknown): value is WireCheckOutcomeShape;\n` +
+    `export declare function validProfileContract(value: unknown, selected: WireConnectionShape): value is WireProfileShape;\n` +
+    `export declare function validAdmissionContract(value: unknown, selected: WireConnectionShape): value is WireAdmissionShape;\n` +
+    `export declare function validRunWaitContract(value: unknown, since: number | null): value is WireRunStateShape;\n` +
+    `export declare function validHeldContract(value: unknown, expected: string): value is WireHeldShape;\n` +
+    `export declare function validRequestLookupContract(value: unknown, expected: string): value is WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape | WireHeldShape;\n` +
+    `export declare function validCheckOutcomeContract(value: unknown): value is WireCheckOutcomeShape;\n`;
   // SDK action correspondence uses the existing artifact contracts, not a
   // second handwritten Resolution/Evidence grammar. This is structural DATA
   // admission only; the actual Host still owns authentication and authority.

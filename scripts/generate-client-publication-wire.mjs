@@ -193,7 +193,10 @@ structuralValidatorSource() +
 `export type WireDeliveryAttempt = ${typeOf(schemas.delivery_attempt)};\n\n` +
 `export type WireDeliveryRecord = ${typeOf(schemas.delivery_record)};\n\n` +
 `export type WireHostReleaseReceipt = ${typeOf(
-  schemas.result_delivery_receipt)};\n`;
+  schemas.result_delivery_receipt)};\n` +
+`export declare function validDeliveryAttempt(value: unknown): value is WireDeliveryAttempt;\n` +
+`export declare function validDeliveryRecord(value: unknown): value is WireDeliveryRecord;\n` +
+`export declare function validHostReleaseReceipt(value: unknown): value is WireHostReleaseReceipt;\n`;
   return {module, types};
 }
 

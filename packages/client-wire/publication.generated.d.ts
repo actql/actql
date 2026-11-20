@@ -43,3 +43,6 @@ export type WireHostReleaseReceipt = Readonly<{
   egress_admission_cid: string;
   result_delivery_receipt_cid: string;
 }>;
+export declare function validDeliveryAttempt(value: unknown): value is WireDeliveryAttempt;
+export declare function validDeliveryRecord(value: unknown): value is WireDeliveryRecord;
+export declare function validHostReleaseReceipt(value: unknown): value is WireHostReleaseReceipt;
