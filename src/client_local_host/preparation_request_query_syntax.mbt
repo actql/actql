@@ -35,7 +35,9 @@ fn request_query_syntax_data_bytes(
   guard @execution.preparation_representation_cost({
       record_headers: 4L * units,
       reference_slots: 12L * units,
-      scalar_words: 20L * units,
+      // One retained scalar on the SAME Tokens owner records the bounded
+      // parser's actual MOD/DIV Call fact, before any context pass is selected.
+      scalar_words: 20L * units + 1L,
       owned_utf16_units: 4L * units,
       owned_wire_bytes: 4L * units,
     })

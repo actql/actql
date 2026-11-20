@@ -320,7 +320,20 @@ fn lower_script_bindings(
     scoped = scoped.filter(input => {
       !input_relation_matches([binding.name], input)
     })
-    scoped.push({ ..bound, relation: [binding.name], })
+    let private_integer_columns = @query.integer_context_companion_columns(
+      binding.query,
+    )
+    scoped.push({
+      ..bound,
+      relation: [binding.name],
+      visible_fields: if private_integer_columns.is_empty() {
+        bound.visible_fields
+      } else {
+        bound.visible_fields.filter(name => {
+          !private_integer_columns.contains(name)
+        })
+      },
+    })
     scoped_graphs = scoped_graphs.filter(graph => {
       !same_name(graph.name, binding.name)
     })

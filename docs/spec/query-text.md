@@ -159,6 +159,14 @@ Expression text is never concatenated and reparsed with the legacy dialect.
 
 Integer tokens follow the selected [GoogleSQL lexical forms](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#integer_literals): decimal digits or `0x`/`0X` followed by one or more hexadecimal digits. Hexadecimal digits are case-insensitive; the token and AST retain the exact authored spelling and original source span. Unary `+` and `-` remain expression operators. The existing common `number` profile admits integer magnitudes through `9007199254740991` (`0x1fffffffffffff`) exactly, before conversion to finite binary64. Larger integer tokens are refused without rounding; this profile does not claim GoogleSQL's full INT64 value domain. Signed zero expression tokens normalize to canonical positive zero; canonical JSON Number and Parameter admission still reject negative zero. Hexadecimal fractions, binary exponents, digit separators and incomplete prefixes are not integer tokens in the selected profile.
 
+SQL `MOD`/`DIV` have a separate exact signature context. It retains original
+integer-spelled tokens before Number conversion, including the referenced
+literal columns of authored CTE/UNION producers, and admits the full signed64
+domain there. It does not recover integers from rounded Doubles or observed
+external rows. Floating-spelled literals (`5.0`, `5e0`) and declared Number
+columns/parameters keep their existing contracts. Explicit `CAST(... AS INT64)`
+is a distinct conversion with its documented rounding and range rules.
+
 The same unsigned exact-integer decoder supplies literal LIMIT/OFFSET, bounded type arguments, ORDER/GROUP column positions and navigation offsets. Each context retains its own positivity, column-range, parameter and role checks; hex spelling does not bypass them. Named numeric operation arguments use the ordinary expression numeric admission. Integer UNPIVOT row aliases still reach the existing explicitly unsupported lowering boundary; accepting an integer token is not evidence of integer-label execution. No separate numeric runtime, cast or execution owner is introduced.
 
 `ABS(expr)` in SQL and Pipe has exactly one finite binary64 `number` operand

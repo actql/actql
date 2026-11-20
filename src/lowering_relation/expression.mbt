@@ -103,6 +103,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  ExactModulo
+  IntegerDivide
   Pow
   Atan2
   Log
@@ -386,6 +388,8 @@ fn expression_tag(
     | "safe_subtract"
     | "safe_multiply"
     | "modulo"
+    | "exact_modulo"
+    | "integer_divide"
     | "pow"
     | "atan2"
     | "log"
@@ -1144,34 +1148,55 @@ fn lower_typed_expression_measured(
           ExpressionBody::Field(name, target)
         }
         "typed_literal" => {
-          let text = @decode.text(
-            @decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap(),
+          let literal_type = @decode.text(
+            @decode.lookup(@decode.open_object(body).unwrap(), "type").unwrap(),
           ).unwrap()
-          let (value, nodes, _) = match
-            @value.admit_json_literal(text, {
-              max_nodes: limits.max_literal_nodes - budget.literal_nodes,
-              max_depth: limits.max_depth,
-              max_text_bytes: limits.max_literal_text_bytes -
-              budget.literal_bytes,
-            }) {
-            Ok(value) => value
-            Err(issue) => expression_fail(cursor, JsonLiteralAdmission(issue))
+          if literal_type == "int64" {
+            let value = @decode.lookup(
+              @decode.open_object(body).unwrap(),
+              "value",
+            ).unwrap()
+            charge_literal(budget, value)
+            let checked = match
+              @value.admit(contract, value, {
+                max_nodes: limits.max_literal_nodes,
+                max_depth: limits.max_depth,
+                max_text_bytes: limits.max_literal_text_bytes,
+              }) {
+              Ok(checked) => checked
+              Err(issue) => expression_fail(cursor, LiteralAdmission(issue))
+            }
+            Literal(checked)
+          } else {
+            let text = @decode.text(
+              @decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap(),
+            ).unwrap()
+            let (value, nodes, _) = match
+              @value.admit_json_literal(text, {
+                max_nodes: limits.max_literal_nodes - budget.literal_nodes,
+                max_depth: limits.max_depth,
+                max_text_bytes: limits.max_literal_text_bytes -
+                budget.literal_bytes,
+              }) {
+              Ok(value) => value
+              Err(issue) => expression_fail(cursor, JsonLiteralAdmission(issue))
+            }
+            let bytes = @scalar.admit_utf8_length(
+              text,
+              limits.max_literal_text_bytes - budget.literal_bytes,
+            ).unwrap()
+            budget.literal_nodes += nodes
+            budget.literal_bytes += bytes
+            if nodes > limits.max_work - budget.work {
+              expression_fail(cursor, ExpressionBudgetExceeded)
+            }
+            budget.work += nodes
+            if bytes > limits.max_work - budget.work {
+              expression_fail(cursor, ExpressionBudgetExceeded)
+            }
+            budget.work += bytes
+            Literal(value)
           }
-          let bytes = @scalar.admit_utf8_length(
-            text,
-            limits.max_literal_text_bytes - budget.literal_bytes,
-          ).unwrap()
-          budget.literal_nodes += nodes
-          budget.literal_bytes += bytes
-          if nodes > limits.max_work - budget.work {
-            expression_fail(cursor, ExpressionBudgetExceeded)
-          }
-          budget.work += nodes
-          if bytes > limits.max_work - budget.work {
-            expression_fail(cursor, ExpressionBudgetExceeded)
-          }
-          budget.work += bytes
-          Literal(value)
         }
         "literal" =>
           if membership_lists.get(index) is Some(list_index) {
@@ -1291,6 +1316,8 @@ fn lower_typed_expression_measured(
         "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
         "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
+        "exact_modulo" => Binary(ExactModulo, args[0], args[1])
+        "integer_divide" => Binary(IntegerDivide, args[0], args[1])
         "pow" => Binary(Pow, args[0], args[1])
         "atan2" => Binary(Atan2, args[0], args[1])
         "log" => Binary(Log, args[0], args[1])

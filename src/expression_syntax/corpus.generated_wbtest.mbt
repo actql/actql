@@ -745,6 +745,14 @@ test "structured expression corpus accepted: 93" {
 }
 
 ///|
+test "structured expression corpus accepted: 94" {
+  assert_tree("{\"cast\":{\"value\":\"$x\",\"target\":{\"type\":\"int64\"}}}", "{\"cast\":{\"value\":{\"$param\":\"x\"},\"target\":{\"type\":\"int64\"}}}")
+  let expression = admit(source_cursor("{\"cast\":{\"value\":\"$x\",\"target\":{\"type\":\"int64\"}}}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), ["x"])
+}
+
+///|
 test "structured expression corpus rejected: 1" {
   assert_true(admit(source_cursor("\"\\\"right.\\\"\""), test_limits()) is Err(_))
 }
@@ -1232,6 +1240,11 @@ test "structured expression corpus rejected: 97" {
 ///|
 test "structured expression corpus rejected: 98" {
   assert_true(admit(source_cursor("{\"try_timestamp\":{\"value\":{\"literal\":null},\"unexpected\":false}}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 99" {
+  assert_true(admit(source_cursor("{\"cast\":{\"value\":{\"literal\":\"12\"},\"target\":{\"type\":\"int64\",\"precision\":19}}}"), test_limits()) is Err(_))
 }
 
 ///|
@@ -1937,6 +1950,11 @@ test "common admission of text corpus: 140" {
 ///|
 test "common admission of text corpus: 141" {
   assert_tree("\"-0\"", "{\"literal\":0}")
+}
+
+///|
+test "common admission of text corpus: 142" {
+  assert_tree("\"CAST('9007199254740993' AS INT64)\"", "{\"cast\":{\"value\":{\"literal\":\"9007199254740993\"},\"target\":{\"type\":\"int64\"}}}")
 }
 
 ///|

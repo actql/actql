@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "9e23a12f73ea54abb2ef855e26362d26a848c15b6bcb11003329f22168655816",
+  "grammar_sha256": "54064b1bbd4f91693b3ddcba004fbf71afec6423bfbcd4a6c68e2a48a08f8251",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -948,7 +948,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -1974,6 +1975,40 @@
               ],
               "properties": {
                 "modulo": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "integer_divide"
+              ],
+              "properties": {
+                "integer_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "exact_modulo"
+              ],
+              "properties": {
+                "exact_modulo": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -5491,7 +5526,10 @@
                   ],
                   "properties": {
                     "type": {
-                      "const": "json"
+                      "enum": [
+                        "json",
+                        "int64"
+                      ]
                     },
                     "value": {
                       "type": "string"
@@ -7051,7 +7089,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -8118,6 +8157,48 @@
               "properties": {
                 "op": {
                   "const": "modulo"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "integer_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "exact_modulo"
                 },
                 "body": {
                   "type": "array",
@@ -19600,7 +19681,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -20626,6 +20708,40 @@
               ],
               "properties": {
                 "modulo": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "integer_divide"
+              ],
+              "properties": {
+                "integer_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "exact_modulo"
+              ],
+              "properties": {
+                "exact_modulo": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -24143,7 +24259,10 @@
                   ],
                   "properties": {
                     "type": {
-                      "const": "json"
+                      "enum": [
+                        "json",
+                        "int64"
+                      ]
                     },
                     "value": {
                       "type": "string"
@@ -24789,7 +24908,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -25856,6 +25976,48 @@
               "properties": {
                 "op": {
                   "const": "modulo"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "integer_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "exact_modulo"
                 },
                 "body": {
                   "type": "array",
@@ -33310,7 +33472,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -34336,6 +34499,40 @@
               ],
               "properties": {
                 "modulo": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "integer_divide"
+              ],
+              "properties": {
+                "integer_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "exact_modulo"
+              ],
+              "properties": {
+                "exact_modulo": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -37853,7 +38050,10 @@
                   ],
                   "properties": {
                     "type": {
-                      "const": "json"
+                      "enum": [
+                        "json",
+                        "int64"
+                      ]
                     },
                     "value": {
                       "type": "string"
@@ -38499,7 +38699,8 @@
                                 "number",
                                 "string",
                                 "boolean",
-                                "timestamp"
+                                "timestamp",
+                                "int64"
                               ]
                             }
                           }
@@ -39566,6 +39767,48 @@
               "properties": {
                 "op": {
                   "const": "modulo"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "integer_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "exact_modulo"
                 },
                 "body": {
                   "type": "array",
@@ -45267,6 +45510,17 @@
       "value": "After both demanded children succeed, return NULL if either operand is NULL. Otherwise require an integral Number index. Indexes are zero-based. Negative or outside-array indexes return NULL. Fractional indexes fail evaluation. Compare in the Number domain against the bounded array length before integer narrowing, so huge integral offsets follow the same out-of-range rule rather than an arbitrary safe-integer limit.",
       "evaluation": "Evaluate receiver then index exactly once, eagerly. Child failures precede NULL propagation and index-domain checks. Retain enclosing lazy demand, root leases, logical work, live-value and workspace budgets, and cancellation through the existing typed-subscript owner. SAFE changes only the operation-owned out-of-range outcome, never suppressing failures in child expressions.",
       "identity": "The closed source is {array_safe_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_safe_offset, body: {value: receiver_node, index: offset_node}}. SQL SAFE_OFFSET maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
+    },
+    "signed64_cast": {
+      "signature": "Explicit cast to the distinct int64 contract from String, Number, Decimal, Boolean or int64. Preserve checked nullability and the original operand; no implicit conversion or global numeric literal retyping.",
+      "value": "Return the exact signed64 value. Number and original Decimal coefficient/scale round to nearest, ties away from zero. Boolean true/false yield 1/0. String uses GoogleSQL signed decimal/hex conversion grammar, not canonical wire admission. Preserve same-type values. Reject invalid input or out-of-range results before narrowing; no wrap, clamp or binary64 Decimal intermediary.",
+      "demand": "Evaluate the original operand once on demand. Existing current, logical/control work, complete input extent charges, workspace, cancellation and failed-child retirement remain mandatory. Conversion failure cannot hide an earlier child failure.",
+      "wire": "Emit the existing int64 canonical decimal String under its original checked contract. SQL input spelling never relaxes value-wire admission."
+    },
+    "exact_integer_arithmetic": {
+      "signature": "SQL MOD and DIV select exact int64/Decimal operand domains. Integer-spelled original SQL literals, including CTE/UNION producer columns required by these signatures, are typed from the original lexeme before binary64 lowering. Existing Number, floating-spelled literals and declared Number parameters/columns are not implicitly int64.",
+      "value": "MOD returns the exact remainder with dividend sign; DIV truncates the exact quotient toward zero. NULL propagates after demanded operands. Zero divisor and quotient overflow fail. MIN_INT64 MOD -1 is zero; MIN_INT64 DIV -1 overflows. Decimal operands retain coefficient/scale arithmetic; mixed int64/Decimal has Decimal result. DIV Decimal result has scale zero; MOD has maximum operand scale. No binary64 modulo or quotient intermediary.",
+      "demand": "Both original children use existing checked contracts, work/control charges, workspace, cancellation, current and failed-child cleanup. Context selection uses original query-local producer syntax, never observed rows or provider ordering."
     }
   },
   "regex_ast_contract": {

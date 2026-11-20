@@ -230,9 +230,9 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
                 } else {
                   ["type"]
                 }
-                if !["number", "string", "boolean", "timestamp", "decimal"].contains(
-                    name,
-                  ) {
+                if ![
+                    "number", "int64", "string", "boolean", "timestamp", "decimal",
+                  ].contains(name) {
                   invalid(type_cursor, origin, InvalidArguments)
                 }
                 ignore(closed(cursor, origin, fields, fields))

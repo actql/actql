@@ -3,7 +3,7 @@ fn timestamp_sql_original(
   sql : String,
   declarations? : String = "{}",
   supplied? : String? = None,
-) -> PreparedClientProgram {
+) -> PreparedClientProgram raise {
   let environment = string_try_number_test_environment(max_pattern_bytes=100)
   let has_parameters = declarations != "{}"
   let declarations = @parameter.read_declarations(
@@ -29,12 +29,30 @@ fn timestamp_sql_original(
     },
   ).unwrap()
   let lowered = @source_frontend.lower(sql, Sql, Some(context)).unwrap()
-  prepare_parsed_effect_free_client_program(
-    lowered.program.unwrap(),
-    environment,
-    supplied.map(scalar_profile_cursor),
-    client_standard_program_preparation_limits(),
-  ).unwrap()
+  match
+    prepare_parsed_effect_free_client_program(
+      lowered.program.unwrap(),
+      environment,
+      supplied.map(scalar_profile_cursor),
+      client_standard_program_preparation_limits(),
+    ) {
+    Ok(original) => original
+    Err(Check(issue)) =>
+      match @checked.diagnostic_cause(issue) {
+        @checked.LocalConstructionFailure::Closure(
+          @checked.ConstructionFailure::Contracts(cause)
+        ) => {
+          debug_inspect(
+            cause,
+            content="the original SQL contract closure must admit",
+          )
+          abort("unreachable after the original contract closure failure")
+        }
+        @checked.LocalConstructionFailure::Closure(cause) => raise cause
+        cause => raise cause
+      }
+    Err(_) => abort("original SQL preparation outside the Common check phase")
+  }
 }
 
 ///|

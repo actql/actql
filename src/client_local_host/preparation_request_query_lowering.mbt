@@ -52,7 +52,18 @@ fn request_query_lowering_data_bytes(
     _ => return None
   }
   let copy_bytes = request_query_literal_copy_bytes(request_copy, occurrences)
-  guard copy_bytes is Some(copy_bytes) else { return None }
+  guard copy_bytes is Some(copy_bytes) &&
+    request_integer_context_data_bytes(
+      if query.query is Some(Ok(parsed)) &&
+        !@query_syntax.integer_function_context_required(parsed) {
+        0L
+      } else {
+        occurrences.to_int64()
+      },
+    )
+    is Some(integer_context) else {
+    return None
+  }
   let units = query.document.length().to_int64() +
     (match declarations {
       Some(value) => value.length().to_int64()
@@ -64,7 +75,36 @@ fn request_query_lowering_data_bytes(
   guard request_snapshot_data_bytes(units, units) is Some(base) else {
     return None
   }
-  @execution.checked_preparation_add_product(base, copy_bytes, 1L)
+  guard @execution.checked_preparation_add_product(base, copy_bytes, 1L)
+    is Some(base) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(base, integer_context, 1L)
+}
+
+///|
+// Original token count bounds the added query-local context inventory. Each
+// syntax occurrence has one task/immutable scope link, work/desired-column
+// entries and at most one rebuilt query/operation/expression. The 20H/72R/40W
+// envelope includes original/rewritten overlap, Option/tuple tags, compacting
+// subtree maps, nullable typed literals and the already-returned child arrays.
+// 128 UTF16 units cover full signed64 spellings plus collision-free companion
+// identifiers (three bounded Int indices and the fixed private prefix).
+// Immutable scope links (not copied visible-name vectors) and idempotent
+// subtree reuse keep simultaneous storage linear in this original inventory.
+// This is added to, not borrowed from, the existing lowerer/writer quote, and
+// is reserved on the SAME Request before any contextual AST construction.
+fn request_integer_context_data_bytes(tokens : Int64) -> Int64? {
+  if tokens < 0L || tokens > 9223372036854775807L / 128L {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: 20L * tokens,
+    reference_slots: 72L * tokens,
+    scalar_words: 40L * tokens,
+    owned_utf16_units: 128L * tokens,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|

@@ -156,6 +156,8 @@ fn check_backend_capabilities(
             | SafeSubtract
             | SafeMultiply
             | Modulo
+            | ExactModulo
+            | IntegerDivide
             | Pow
             | Atan2
             | Log
