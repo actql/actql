@@ -4645,7 +4645,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "invocationBindingsMatch"
               },
               {

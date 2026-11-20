@@ -37,18 +37,36 @@ export function credentialInvocationFields(source: string) {
   return fields.filter(field => !Object.hasOwn(separate, field)).map(camel);
 }
 
+type BindingRow = {name: string; values: readonly string[]};
+const declarationPath = (path: string) => path.replace(/\.mjs$/u, '.d.mts');
+const runtimeBindings = (rows: readonly BindingRow[]) => rows.map(({name, values}) =>
+  `export const ${name} = Object.freeze([\n` +
+  values.map(field => `  '${field}',`).join('\n') + '\n]);\n').join('');
+const declarationBindings = (rows: readonly BindingRow[]) =>
+  '// Generated from the same Common Owner fields as the runtime.\n' +
+  '// Primitive DATA only; these types confer no custody or authority.\n' +
+  rows.map(({name, values}) => `export declare const ${name}: readonly ${JSON.stringify(values)};\n`).join('');
+const credentialBindingRows = (source: string): BindingRow[] =>
+  [{name: 'credentialInvocationBindingKeys', values: credentialInvocationFields(source)}];
+
 export function renderCredentialScopeBinding(source: string) {
-  const fields = credentialInvocationFields(source);
   return '// Generated from src/remote_credential/credential.mbt#RemoteCredentialGrant.\n' +
     '// Run scripts/generate-credential-scope-binding.mjs; do not edit the field list.\n' +
     '// Operation, expiry, quota and derived CID stay with their separate Owner checks.\n' +
-    'export const credentialInvocationBindingKeys = Object.freeze([\n' +
-    fields.map(field => `  '${field}',`).join('\n') + '\n]);\n';
+    runtimeBindings(credentialBindingRows(source));
+}
+
+export function renderCredentialScopeBindingDeclarations(source: string) {
+  return declarationBindings(credentialBindingRows(source));
 }
 
 export function checkCredentialScopeBinding(root = repository, source = readFileSync(join(root, ownerPath), 'utf8')) {
   if (readFileSync(join(root, credentialScopeBindingPath), 'utf8') !== renderCredentialScopeBinding(source)) {
     throw new Error('CredentialScopeBindingStale');
+  }
+  if (readFileSync(join(root, declarationPath(credentialScopeBindingPath)), 'utf8') !==
+      renderCredentialScopeBindingDeclarations(source)) {
+    throw new Error('CredentialScopeBindingDeclarationsStale');
   }
 }
 
@@ -81,16 +99,23 @@ export function installationPreparationFields(subjectSource: string, grantSource
     request: preparationOwnerFields(grantSource, 'InstallationPreparationCredentialScope', true).map(field => field.key)};
 }
 
-export function renderInstallationPreparationBinding(subjectSource: string, grantSource: string) {
+function preparationBindingRows(subjectSource: string, grantSource: string): BindingRow[] {
   const fields = installationPreparationFields(subjectSource, grantSource);
+  return [...['subject', 'request'].map(kind => ({
+    name: `installationPreparation${kind === 'subject' ? 'Subject' : 'Request'}Keys`,
+    values: fields[kind as keyof typeof fields],
+  })), {name: 'installationPreparationSubjectKinds',
+    values: preparationOwnerFields(subjectSource, 'InstallationPreparationSubjectFields').map(field => field.type)}];
+}
+
+export function renderInstallationPreparationBinding(subjectSource: string, grantSource: string) {
   return '// Generated from the existing remote_credential installation preparation declarations.\n' +
     '// DATA binding only; original opaque custody and per-use authority stay separate.\n' +
-    ['subject', 'request'].map(kind =>
-      `export const installationPreparation${kind === 'subject' ? 'Subject' : 'Request'}Keys = Object.freeze([\n` +
-      fields[kind as keyof typeof fields].map(field => `  '${field}',`).join('\n') + '\n]);\n').join('') +
-    'export const installationPreparationSubjectKinds = Object.freeze([\n' +
-    preparationOwnerFields(subjectSource, 'InstallationPreparationSubjectFields')
-      .map(field => `  '${field.type}',`).join('\n') + '\n]);\n';
+    runtimeBindings(preparationBindingRows(subjectSource, grantSource));
+}
+
+export function renderInstallationPreparationDeclarations(subjectSource: string, grantSource: string) {
+  return declarationBindings(preparationBindingRows(subjectSource, grantSource));
 }
 
 export function renderInstallationPreparationBridge(subjectSource: string, grantSource: string) {
@@ -130,14 +155,23 @@ export function checkInstallationPreparationBinding(root = repository,
       renderInstallationPreparationBinding(subjectSource, grantSource)) {
     throw new Error('InstallationPreparationBindingStale');
   }
+  if (readFileSync(join(root, declarationPath(installationPreparationBindingPath)), 'utf8') !==
+      renderInstallationPreparationDeclarations(subjectSource, grantSource)) {
+    throw new Error('InstallationPreparationDeclarationsStale');
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.includes('--write')) writeFileSync(join(repository, credentialScopeBindingPath),
     renderCredentialScopeBinding(readFileSync(join(repository, ownerPath), 'utf8')));
+  if (process.argv.includes('--write')) writeFileSync(join(repository, declarationPath(credentialScopeBindingPath)),
+    renderCredentialScopeBindingDeclarations(readFileSync(join(repository, ownerPath), 'utf8')));
   checkCredentialScopeBinding();
   if (process.argv.includes('--write')) writeFileSync(join(repository, installationPreparationBindingPath),
     renderInstallationPreparationBinding(readFileSync(join(repository, preparationSubjectPath), 'utf8'),
+      readFileSync(join(repository, preparationGrantPath), 'utf8')));
+  if (process.argv.includes('--write')) writeFileSync(join(repository, declarationPath(installationPreparationBindingPath)),
+    renderInstallationPreparationDeclarations(readFileSync(join(repository, preparationSubjectPath), 'utf8'),
       readFileSync(join(repository, preparationGrantPath), 'utf8')));
   checkInstallationPreparationBinding();
   if (process.argv.includes('--write')) writeFileSync(join(repository, installationPreparationBridgePath),

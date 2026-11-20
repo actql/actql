@@ -540,3 +540,9 @@ target/
 
 /scripts/interface-owner-coverage.test.mjs
 /scripts/interface-owner-coverage.test.d.mts
+
+/adapters/host-common/http-exchange.mjs
+/adapters/host-common/http-exchange.d.mts
+
+/adapters/host-common/owned-invocation-context.mjs
+/adapters/host-common/owned-invocation-context.d.mts

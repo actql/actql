@@ -6056,7 +6056,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6074,7 +6074,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6096,7 +6096,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6114,7 +6114,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// are not retained by this boundary."
               },
               {
@@ -6132,8 +6132,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
-                "anchor": "export function checkHttpRequestMethodBody(method, body,"
+                "path": "adapters/host-common/http-exchange.mts",
+                "anchor": "export function checkHttpRequestMethodBody(method: unknown, body: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -6150,7 +6150,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// An over-long or unexpected header observation is a typed refusal, never a"
               },
               {
@@ -6172,7 +6172,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6190,7 +6190,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// request headers and body; this boundary assembles one exact request target"
               },
               {
@@ -6212,7 +6212,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// and admits only the response headers an installation declared, under fixed"
               },
               {
@@ -6268,7 +6268,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6286,7 +6286,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6308,7 +6308,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6326,7 +6326,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// are not retained by this boundary."
               },
               {
@@ -6344,8 +6344,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
-                "anchor": "export function checkHttpRequestMethodBody(method, body,"
+                "path": "adapters/host-common/http-exchange.mts",
+                "anchor": "export function checkHttpRequestMethodBody(method: unknown, body: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -6362,7 +6362,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// An over-long or unexpected header observation is a typed refusal, never a"
               },
               {
@@ -6380,7 +6380,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "export const exchangeLimits = Object.freeze({"
               },
               {
@@ -6398,7 +6398,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// request headers and body; this boundary assembles one exact request target"
               },
               {
@@ -6416,7 +6416,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/http-exchange.mjs",
+                "path": "adapters/host-common/http-exchange.mts",
                 "anchor": "// and admits only the response headers an installation declared, under fixed"
               },
               {

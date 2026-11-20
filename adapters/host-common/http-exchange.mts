@@ -9,7 +9,10 @@
 // shortened observation that a provider could read as "no next page".
 // Observed header values are returned to the provider that declared them and
 // are not retained by this boundary.
-const fail = code => {
+type UncheckedRequest = {method: unknown; path: unknown; query?: unknown; headers?: unknown; body?: unknown};
+type QueryConstruction = {maxQueryBytes?: number};
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
@@ -30,9 +33,9 @@ export const exchangeMethods = Object.freeze(['GET', 'POST', 'PATCH', 'PUT',
 // typed boundary historically allows an absent POST/PATCH body; the physical
 // resource requires it. PUT always requires a string; GET/DELETE never take
 // one. This validates transport shape, not JSON or provider Effect meaning.
-export function checkHttpRequestMethodBody(method, body,
+export function checkHttpRequestMethodBody(method: unknown, body: unknown,
   {requireBody = false} = {}) {
-  if (!exchangeMethods.includes(method)) fail('InvalidHttpRequestMethod');
+  if (!exchangeMethods.includes(method as string)) fail('InvalidHttpRequestMethod');
   const bodyless = method === 'GET' || method === 'DELETE';
   if ((body !== undefined && typeof body !== 'string') ||
       (bodyless && body !== undefined) ||
@@ -55,7 +58,7 @@ const reservedRequestHeaders = new Set([
 const headerNamePattern = /^[a-z0-9][a-z0-9-]*$/u;
 const visibleAscii = /^[\x21-\x7e][\x20-\x7e]*$/u;
 
-function checkHeaderName(name, code) {
+function checkHeaderName(name: unknown, code: string) {
   if (typeof name !== 'string' || !headerNamePattern.test(name) ||
       Buffer.byteLength(name) > exchangeLimits.maxHeaderNameBytes) {
     fail(code);
@@ -63,7 +66,7 @@ function checkHeaderName(name, code) {
   return name;
 }
 
-function checkHeaderValue(value, code) {
+function checkHeaderValue(value: unknown, code: string) {
   if (typeof value !== 'string' || !visibleAscii.test(value) ||
       value.endsWith(' ') ||
       Buffer.byteLength(value) > exchangeLimits.maxHeaderValueBytes) {
@@ -75,37 +78,37 @@ function checkHeaderValue(value, code) {
 // Allowed non-secret request headers, as ordered `[name, value]` pairs with
 // lowercase names. `accept` may be replaced here; everything the resource
 // owns is reserved.
-export function ownRequestHeaders(headers = []) {
+export function ownRequestHeaders(headers: unknown = []) {
   if (!Array.isArray(headers) ||
       headers.length > exchangeLimits.maxRequestHeaders) {
     fail('InvalidHttpRequestHeaders');
   }
-  const names = new Set();
-  return Object.freeze(headers.map(pair => {
+  const names = new Set<string>();
+  return Object.freeze(headers.map((pair: unknown) => {
     if (!Array.isArray(pair) || pair.length !== 2) {
       fail('InvalidHttpRequestHeaders');
     }
     const name = checkHeaderName(pair[0], 'InvalidHttpRequestHeaders');
-    if (reservedRequestHeaders.has(name)) fail('ReservedHttpRequestHeader');
+    if (reservedRequestHeaders.has(name as string)) fail('ReservedHttpRequestHeader');
     if (names.has(name)) fail('InvalidHttpRequestHeaders');
     names.add(name);
     return Object.freeze([name, checkHeaderValue(pair[1],
-      'InvalidHttpRequestHeaders')]);
+      'InvalidHttpRequestHeaders')] as const);
   }));
 }
 
 // RFC 3986 unreserved characters only; the credential resource re-checks the
 // whole exact request target before sending.
-const encodeComponent = value => encodeURIComponent(value)
+const encodeComponent = (value: string) => encodeURIComponent(value)
   .replace(/[!'()*]/gu, character =>
     `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 
 // Physical RFC 3986 encoding demand, before allocating encoded strings. Stop
 // at the SAME owner's bound; this does not interpret provider query meaning.
-function componentBytes(value, remaining) {
+function componentBytes(value: string, remaining: number) {
   let bytes = 0;
   for (const unit of value) {
-    const point = unit.codePointAt(0);
+    const point = unit.codePointAt(0)!;
     if (point >= 0xd800 && point <= 0xdfff) throw new URIError('URI malformed');
     bytes += /^[A-Za-z0-9._~-]$/u.test(unit) ? 1
       : point < 128 ? 3 : point < 2048 ? 6 : point < 65536 ? 9 : 12;
@@ -118,7 +121,7 @@ function componentBytes(value, remaining) {
 // pairs, encoded here so that no caller text reaches the wire unencoded. A
 // path that already carries its own encoded query (a provider-built locator)
 // takes no further pairs; the credential resource re-checks the whole target.
-export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.maxQueryBytes} = {}) {
+export function requestTarget(path: unknown, query: unknown = [], {maxQueryBytes = exchangeLimits.maxQueryBytes}: QueryConstruction = {}) {
   if (typeof path !== 'string' || path.length === 0) {
     fail('InvalidHttpRequestTarget');
   }
@@ -132,7 +135,7 @@ export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.
   if (query.length === 0) return path;
   if (path.includes('?')) fail('InvalidHttpRequestTarget');
   let bytes = query.length - 1;
-  const encoded = query.map(pair => {
+  const encoded = query.map((pair: unknown) => {
     if (!Array.isArray(pair) || pair.length !== 2) {
       fail('InvalidHttpRequestQuery');
     }
@@ -151,7 +154,7 @@ export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.
 
 // One owned request: method, exact target, owned headers and an optional
 // string body (POST/PATCH/PUT only).
-export function ownHttpRequest({method, path, query, headers, body}, queryConstruction) {
+export function ownHttpRequest({method, path, query, headers, body}: UncheckedRequest, queryConstruction?: QueryConstruction) {
   checkHttpRequestMethodBody(method, body);
   return Object.freeze({
     method,
@@ -161,10 +164,10 @@ export function ownHttpRequest({method, path, query, headers, body}, queryConstr
   });
 }
 
-const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
-const viewByteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength').get;
-const viewBacking = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'buffer').get;
-const arrayBufferByteLength = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
+const typedArrayPrototype: object = Object.getPrototypeOf(Uint8Array.prototype);
+const viewByteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength')!.get as (this: unknown) => number;
+const viewBacking = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'buffer')!.get as (this: unknown) => unknown;
+const arrayBufferByteLength = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')!.get as (this: unknown) => number;
 const copyViewBytes = Uint8Array.prototype.set;
 
 // An explicitly bounded binary request is a separate transport shape. Keep
@@ -172,17 +175,17 @@ const copyViewBytes = Uint8Array.prototype.set;
 // view, before any await or credential use; never decode/re-encode its bytes.
 // These clamps are not a ContentRef issuer, original holding or reservation.
 export function ownHttpByteRequest({method, path, query, headers, body,
-  bodyBytes, bodyMediaType, maxBodyBytes}) {
+  bodyBytes, bodyMediaType, maxBodyBytes}: UncheckedRequest & {bodyBytes?: unknown; bodyMediaType?: unknown; maxBodyBytes?: unknown}) {
   if (body !== undefined || !(bodyBytes instanceof Uint8Array) ||
-      !Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 0) fail('InvalidHttpRequestBody');
-  let length;
+      !Number.isSafeInteger(maxBodyBytes) || (maxBodyBytes as number) < 0) fail('InvalidHttpRequestBody');
+  let length: number;
   try {
     // Intrinsic brands/lengths cannot be replaced by own JS properties. The
     // ArrayBuffer getter also refuses cross-realm SharedArrayBuffer backing.
     arrayBufferByteLength.call(viewBacking.call(bodyBytes));
     length = viewByteLength.call(bodyBytes);
   } catch { fail('InvalidHttpRequestBody'); }
-  if (length > maxBodyBytes) fail('InvalidHttpRequestBody');
+  if (length > (maxBodyBytes as number)) fail('InvalidHttpRequestBody');
   checkHeaderValue(bodyMediaType, 'InvalidHttpRequestBody');
   // The existing body-bearing method rules and exact target/header admission
   // apply unchanged. The temporary empty String is shape-only, never sent.
@@ -197,22 +200,22 @@ export function ownHttpByteRequest({method, path, query, headers, body,
 }
 
 // Whether a lowercase header name may be declared or set by a provider.
-export function reservedHttpHeader(name) {
-  return reservedRequestHeaders.has(name);
+export function reservedHttpHeader(name: unknown) {
+  return reservedRequestHeaders.has(name as string);
 }
 
 // The response header names an installation declared it reads. A reserved
 // name refuses the declaration here, before any credential use or request.
-export function ownResponseHeaderNames(names = []) {
+export function ownResponseHeaderNames(names: unknown = []) {
   if (!Array.isArray(names) ||
       names.length > exchangeLimits.maxObservedHeaders ||
       new Set(names).size !== names.length) {
     fail('InvalidHttpResponseHeaderNames');
   }
-  return Object.freeze(names.map(name => {
+  return Object.freeze(names.map((name: unknown) => {
     checkHeaderName(name, 'InvalidHttpResponseHeaderNames');
-    if (reservedRequestHeaders.has(name)) fail('InvalidHttpResponseHeaderNames');
-    return name;
+    if (reservedRequestHeaders.has(name as string)) fail('InvalidHttpResponseHeaderNames');
+    return name as string;
   }));
 }
 
@@ -220,12 +223,12 @@ export function ownResponseHeaderNames(names = []) {
 // map; repeated headers arrive joined, `set-cookie` is never declarable
 // since it is reserved). Absent headers are absent; a value or total beyond
 // the caps refuses the whole observation.
-export function observeResponseHeaders(received, names) {
+export function observeResponseHeaders(received: unknown, names: unknown) {
   const owned = ownResponseHeaderNames(names);
-  const entries = [];
+  const entries: (readonly [string, string])[] = [];
   let total = 0;
   for (const name of owned) {
-    const value = received?.[name];
+    const value = (received as Record<string, unknown> | null | undefined)?.[name];
     if (value === undefined) continue;
     if (typeof value !== 'string') fail('HttpHeaderObservationInvalid');
     const bytes = Buffer.byteLength(value);
@@ -234,7 +237,7 @@ export function observeResponseHeaders(received, names) {
         total > exchangeLimits.maxObservedHeaderBytes) {
       fail('HttpHeaderObservationExceeded');
     }
-    entries.push(Object.freeze([name, value]));
+    entries.push(Object.freeze([name, value] as const));
   }
   return Object.freeze(entries);
 }

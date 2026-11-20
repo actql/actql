@@ -256,7 +256,7 @@
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],
@@ -594,7 +594,7 @@
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],

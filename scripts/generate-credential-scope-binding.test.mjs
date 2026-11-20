@@ -6,7 +6,7 @@ import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {checkCredentialScopeBinding, credentialInvocationFields,
-  credentialScopeBindingPath, renderCredentialScopeBinding} from './generate-credential-scope-binding.mjs';
+  credentialScopeBindingPath, renderCredentialScopeBinding, renderCredentialScopeBindingDeclarations} from './generate-credential-scope-binding.mjs';
 import {invocationBindingsMatch} from '../adapters/host-common/owned-invocation-context.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -51,9 +51,11 @@ test('a new Owner field and an omitted generated comparison fail freshness indep
 
 const cli = 'scripts/generate-credential-scope-binding.mjs';
 const cliInputs = [cli, 'src/remote_credential/credential.mbt',
+  credentialScopeBindingPath.replace(/\.mjs$/u, '.d.mts'),
   'src/remote_credential/installation_preparation_subject.mbt',
   'src/remote_credential/installation_preparation_grant.mbt', credentialScopeBindingPath,
   'adapters/host-common/installation-preparation-fields.generated.mjs',
+  'adapters/host-common/installation-preparation-fields.generated.d.mts',
   'src/connectors_builtin_node/client_installation_preparation_fields.generated.mbt'];
 
 test('actual prepack freshness CLI preserves machine stdout and reports its diagnostic on stderr', () => {
@@ -91,5 +93,24 @@ test('actual stale freshness CLI remains nonzero and cannot emit success or rewr
     assert.match(result.stderr, /CredentialScopeBindingStale/u);
     assert.doesNotMatch(result.stderr, /Credential invocation fields match/u);
     assert.equal(readFileSync(target, 'utf8'), stale);
+  } finally { rmSync(scratch, {recursive: true, force: true}); }
+});
+
+
+test('credential field declarations stay with actual Owner rows and refuse independent stale types', () => {
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'credential-types-')));
+  try {
+    const path = join(scratch, credentialScopeBindingPath);
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(path, renderCredentialScopeBinding(owner));
+    const typesPath = path.replace(/\.mjs$/u, '.d.mts');
+    const types = renderCredentialScopeBindingDeclarations(owner);
+    writeFileSync(typesPath, types);
+    checkCredentialScopeBinding(scratch, owner);
+    const stale = types.replace('"namespaceId"', '"foreignNamespace"');
+    assert.notEqual(stale, types);
+    writeFileSync(typesPath, stale);
+    assert.throws(() => checkCredentialScopeBinding(scratch, owner), /CredentialScopeBindingDeclarationsStale/u);
+    assert.equal(readFileSync(typesPath, 'utf8'), stale);
   } finally { rmSync(scratch, {recursive: true, force: true}); }
 });

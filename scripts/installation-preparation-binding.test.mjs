@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {checkInstallationPreparationBinding, installationPreparationBindingPath,
   installationPreparationFields, renderInstallationPreparationBinding,
   checkInstallationPreparationBridge, installationPreparationBridgePath,
-  renderInstallationPreparationBridge} from './generate-credential-scope-binding.mjs';
+  renderInstallationPreparationBridge, renderInstallationPreparationDeclarations} from './generate-credential-scope-binding.mjs';
 import {installationPreparationRequestKeys, installationPreparationSubjectKeys} from
   '../adapters/host-common/installation-preparation-fields.generated.mjs';
 
@@ -91,5 +91,24 @@ test('new metadata Owner field or missing generated comparison independently fai
     assert.throws(() => installationPreparationFields(subject,
       grant.replace('subject : InstallationPreparationSubject', 'foreign : InstallationPreparationSubject')),
     /InstallationPreparationOwnerFieldUnsupported/u);
+  } finally { rmSync(scratch, {recursive: true, force: true}); }
+});
+
+
+test('preparation declaration freshness keeps both field roles and opaque omission with the same Owner', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'preparation-types-'));
+  try {
+    const path = join(scratch, installationPreparationBindingPath);
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(path, renderInstallationPreparationBinding(subject, grant));
+    const typesPath = path.replace(/\.mjs$/u, '.d.mts');
+    const types = renderInstallationPreparationDeclarations(subject, grant);
+    writeFileSync(typesPath, types);
+    checkInstallationPreparationBinding(scratch, subject, grant);
+    const stale = types.replace('"metadataOccurrenceId"', '"foreignOccurrence"');
+    assert.notEqual(stale, types);
+    writeFileSync(typesPath, stale);
+    assert.throws(() => checkInstallationPreparationBinding(scratch, subject, grant), /InstallationPreparationDeclarationsStale/u);
+    assert.equal(readFileSync(typesPath, 'utf8'), stale);
   } finally { rmSync(scratch, {recursive: true, force: true}); }
 });
