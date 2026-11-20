@@ -279,3 +279,7 @@ target/
 # Generated HTTP bounded response reader.
 /packages/provider-http/_internal/bounded-response.mjs
 /packages/provider-http/_internal/bounded-response.d.mts
+
+# Generated HTTP physical model port.
+/packages/provider-http/_internal/model-port.mjs
+/packages/provider-http/_internal/model-port.d.mts

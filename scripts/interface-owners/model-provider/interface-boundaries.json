@@ -226,7 +226,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -242,7 +242,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -252,7 +252,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -477,7 +477,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -493,7 +493,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -503,7 +503,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -781,7 +781,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -797,7 +797,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -807,7 +807,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -957,7 +957,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -973,7 +973,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -983,7 +983,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -1302,7 +1302,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -1318,7 +1318,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1328,7 +1328,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -1524,7 +1524,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -1540,7 +1540,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1550,7 +1550,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -1826,7 +1826,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -1842,7 +1842,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1852,7 +1852,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -2105,7 +2105,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2121,7 +2121,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2131,7 +2131,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -2477,7 +2477,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2493,7 +2493,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2503,7 +2503,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -2635,7 +2635,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2651,7 +2651,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2661,7 +2661,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
@@ -2988,7 +2988,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3004,7 +3004,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -3014,7 +3014,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {

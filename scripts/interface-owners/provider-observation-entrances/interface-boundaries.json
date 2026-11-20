@@ -1783,7 +1783,7 @@
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2640,7 +2640,7 @@
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2771,7 +2771,7 @@
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3171,7 +3171,7 @@
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3294,7 +3294,7 @@
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
