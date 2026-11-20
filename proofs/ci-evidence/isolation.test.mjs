@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, symlinkSync, rmSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {mutationSourcePaths, stageMutationSource, pipelinePristineSourcePaths, stagePipelinePristineSource, pipelineChild, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
 import {scratchCompilerConfigs, scratchOriginal, scratchRuntime, snapshotFilePaths} from '../relation-pipeline/inventory.mjs';
 import {pipelineFixedJsSourcePaths, stagePipelineFixedJsSource, pipelineFixedJsChild, localIsolatedRunArguments} from './isolation.mjs';
+import {gitTree} from './inputs.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -288,4 +291,19 @@ test('typed pristine staging derives just its scratch runtime from the exact sel
   assert.equal(readFileSync(join(destination, 'source', scratchOriginal), 'utf8'), bodies.get(scratchOriginal));
   tree.entries.set(scratchRuntime, {kind: 'blob', mode: '100644'});
   assert.throws(() => pipelinePristineSourcePaths(tree), /Ambiguous authored pipeline scratch input/u);
+});
+
+test('the staged fixed JS replay can load its actual mutation and scratch dependencies', async t => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const sha = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
+  const tree = gitTree(root, sha), destination = temporary(t);
+  const staged = stagePipelineFixedJsSource({tree, destination});
+  assert.equal(staged.files.filter(file => file.path === `source/${scratchRuntime}`).length, 1);
+  assert(!pipelineFixedJsSourcePaths(tree).includes(scratchRuntime));
+  const source = join(destination, 'source/proofs/relation-pipeline');
+  const replay = await import(pathToFileURL(join(source, 'fixed-js-replay.mjs')).href);
+  // Import the dynamically loaded entry without running its mutation campaign.
+  const mutation = await import(pathToFileURL(join(source, 'mutations.mjs')).href);
+  assert.equal(typeof replay.replayFixedJs, 'function');
+  assert.equal(typeof mutation.runMutations, 'function');
 });

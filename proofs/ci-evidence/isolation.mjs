@@ -88,14 +88,14 @@ export function stagePipelinePristineSource({tree, destination, maxBytes = 128 *
   return stageSource({tree, destination, maxBytes, paths, emitted: pipelineScratchEmit(tree, 'pipeline-pristine')});
 }
 export function stagePipelineFixedJsSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
-  return stageSource({tree, destination, maxBytes, paths: pipelineFixedJsSourcePaths(tree)});
+  const paths = pipelineFixedJsSourcePaths(tree);
+  return stageSource({tree, destination, maxBytes, paths, emitted: pipelineScratchEmit(tree, 'pipeline-fixed-js')});
 }
 
-// Pristine replay imports the scratch owner. Its runtime member is derived
-// from the selected authored bytes, never read from the working checkout's
-// emit. Only this local profile needs the compiler during image preparation.
+// Both local Pipeline replays import the scratch owner. Derive its runtime
+// member from the selected authored bytes without reading the checkout emit.
 export function pipelineScratchEmit(tree, profile) {
-  if (profile !== 'pipeline-pristine' || !tree.entries.has(scratchOriginal)) return null;
+  if (!['pipeline-pristine', 'pipeline-fixed-js'].includes(profile) || !tree.entries.has(scratchOriginal)) return null;
   const ts = createRequire(import.meta.url)('typescript');
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const inputs = new Map(scratchCompilerConfigs.map(path => [resolve(root, path), tree.read(path).toString('utf8')]));
