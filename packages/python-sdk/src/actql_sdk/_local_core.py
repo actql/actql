@@ -30,7 +30,9 @@ from ._local_native_holding import _NativeHoldingLease
 from ._local_work import OriginalLocalWork
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
-_NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
+# Full admission revalidates saved originals within this one finite operation.
+# This product ceiling includes that work; private ABI calls never refill it.
+_NORMAL_HOST_OPERATION_FUEL = 64_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
@@ -2428,6 +2430,20 @@ class LocalCore:
             result = self._read_output(value, 'submission_append', 'length', abi_family='submission')
             self.validate_submission_append(value, current)
             return result
+
+    def produce_and_read_submission_append(self, value: _Output, current: _Output) -> bytes:
+        """One synchronous handoff in the original protected Store snapshot.
+
+        Production's postcheck is the adjacent transfer precheck under this
+        same Core lock and current reader. Full post-copy validation remains;
+        standalone methods retain both of their existing checks. No successful
+        validation or permission is reused by another operation or snapshot.
+        """
+        with self._lock:
+            self.produce_submission_append(value, current)
+            raw = self._read_output(value, 'submission_append', 'length', abi_family='submission')
+            self.validate_submission_append(value, current)
+            return raw
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
@@ -4884,6 +4900,25 @@ class LocalCore:
                     return False
                 self._check('close_pool', code)
                 self._retired = True
+            # A trapped constructor can register a physical prefix before the
+            # guest has registered a buffer or returned a loan. Pool ACK stops
+            # guest borrowers; it does not acknowledge that prefix's cleanup.
+            # Keep the SAME Store until every remaining original callback ACKs.
+            while self._inputs:
+                ticket = next(iter(self._inputs))
+                self._invoking = True  # Physical cleanup cannot reenter Core.
+                try:
+                    complete = self._cleanup(ticket) == 0
+                finally:
+                    self._invoking = False
+                if not complete:
+                    return False
+                if ticket in self._inputs:
+                    # An interrupted callback return may already have recorded
+                    # its physical ACK before removing this same input alias.
+                    if ticket not in self._released:
+                        return False
+                    del self._inputs[ticket]
             self._dispose()
             return True
 

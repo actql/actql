@@ -1660,8 +1660,7 @@ class InstalledLocalHost:
             self._append_sources[output.ticket] = source
             captured: list[dict[str, Any]] = []
             def observe(current: _Output) -> None:
-                self._core.produce_submission_append(output, current)
-                captured.append(_object(self._core.read_submission_append(output, current), 1048576))
+                captured.append(_object(self._core.produce_and_read_submission_append(output, current), 1048576))
             installation.binding.inspect(observe)
             candidate = captured[0]
             kind = candidate.get('kind')
@@ -4195,8 +4194,11 @@ class InstalledLocalHost:
             for stream in tuple(self._response_streams):
                 if stream._attached or not stream._close():
                     return False
-            if self._uncertain_ticket is not None and not self._core._closed:
-                return False
+            # An interrupted constructor may have registered its physical
+            # input without returning a named loan. Keep that exact ticket,
+            # but still return the known children before asking the SAME
+            # Root to close its pool. Only that Owner can retire the unnamed
+            # buffer; uncertainty alone must not block reaching its cleanup.
             if not self._client_check.close():
                 return False
             for saved_read in tuple(reversed(self._saved_result_reads)):
@@ -4341,6 +4343,9 @@ class InstalledLocalHost:
                 self._project_members.clear()
             if not self._core.close():
                 return False
+            # Core has acknowledged its pool and actual physical retirement.
+            # A refused/thrown close above retains this same constructor debt.
+            self._uncertain_ticket = None
             self._physical_work.clear()
             self._run_restore_attempts.clear()
             return True

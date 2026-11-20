@@ -245,43 +245,83 @@ def _saved(path: Path, version: str, *, fields: set[str] | None = None) -> dict[
     return body
 
 
+def _sync_initial_phase(enabled: bool, phase: str) -> None:
+    """Optional fixed public-boundary labels, never values or runtime calls."""
+    if enabled is not True or type(phase) is not str or phase not in (
+            'facade-import-enter', 'facade-import-return', 'factory-enter', 'factory-return',
+            'first-start-enter', 'first-start-return',
+            'first-wait-enter', 'first-wait-return', 'first-result-enter', 'first-result-return',
+            'first-reread-enter', 'first-reread-return', 'second-start-enter', 'second-start-return',
+            'second-state-enter', 'second-state-return', 'second-result-enter', 'second-result-return',
+            'first-close-enter', 'first-close-return'):
+        return
+    try:
+        sys.stderr.write(json.dumps({'stage': 'installed-sync-initial-phase', 'phase': phase}) + '\n')
+        sys.stderr.flush()
+    except BaseException:
+        pass  # Optional observation cannot replace an operation or close failure.
+
+
 def _sync(version: str, phase: str, receipt: Path) -> dict[str, Any] | None:
+    initial = phase == 'initial'
+    _sync_initial_phase(initial, 'facade-import-enter')
     from actql import Client
+    _sync_initial_phase(initial, 'facade-import-return')
     saved = _saved(receipt, version) if phase == 'resume' else None
+    _sync_initial_phase(initial, 'factory-enter')
     with Client.open() as client:
-        with (_ClosedTaskDriveObservation(client._client._local_host)
-              if saved is None else nullcontext(None)) as control:
-            if saved is None:
-                submission = client.new_submission()
-                run = client.start_source('SELECT 1 AS n', format='sql', submission_ref=submission)
-            else:
-                submission = saved['submission']
-                observed = client.lookup_submission(submission)
-                if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
-                    raise AssertionError('Lookup did not return the original admitted Run')
-                run = client.attach(saved['run'])
-            if saved is None:
-                _record(receipt.with_name(receipt.name + '.submitted'), version=version,
-                        facade='sync', submission=submission, run=_plain(run.ref))
-            state = run.wait()
-            if state['status'] != 'succeeded':
-                raise AssertionError('Original Run did not succeed')
-            _rows(run.result('answer').all(max_rows=1))
-            _rows(run.result('answer').all(max_rows=1))
-            original = _plain(run.ref)
-            if saved is not None and original != saved['run']:
-                raise AssertionError('Attach replaced the original Run')
-            if saved is None:
-                second_submission = client.new_submission()
-                if _plain(second_submission) == _plain(submission):
-                    raise AssertionError('Second submission must have a distinct original reference')
-                second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
-                _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
-                        facade='sync', submission=second_submission, run=_plain(second.ref))
-                if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
-                    raise AssertionError('Second distinct Run did not succeed on the same Host')
-                # all() consumes through EOF and refuses any extra row at this bound.
-                _rows(second.result('answer').all(max_rows=1))
+        _sync_initial_phase(initial, 'factory-return')
+        try:
+            with (_ClosedTaskDriveObservation(client._client._local_host)
+                  if saved is None else nullcontext(None)) as control:
+                if saved is None:
+                    submission = client.new_submission()
+                    _sync_initial_phase(initial, 'first-start-enter')
+                    run = client.start_source('SELECT 1 AS n', format='sql', submission_ref=submission)
+                    _sync_initial_phase(initial, 'first-start-return')
+                else:
+                    submission = saved['submission']
+                    observed = client.lookup_submission(submission)
+                    if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
+                        raise AssertionError('Lookup did not return the original admitted Run')
+                    run = client.attach(saved['run'])
+                if saved is None:
+                    _record(receipt.with_name(receipt.name + '.submitted'), version=version,
+                            facade='sync', submission=submission, run=_plain(run.ref))
+                _sync_initial_phase(initial, 'first-wait-enter')
+                state = run.wait()
+                _sync_initial_phase(initial, 'first-wait-return')
+                if state['status'] != 'succeeded':
+                    raise AssertionError('Original Run did not succeed')
+                _sync_initial_phase(initial, 'first-result-enter')
+                _rows(run.result('answer').all(max_rows=1))
+                _sync_initial_phase(initial, 'first-result-return')
+                _sync_initial_phase(initial, 'first-reread-enter')
+                _rows(run.result('answer').all(max_rows=1))
+                _sync_initial_phase(initial, 'first-reread-return')
+                original = _plain(run.ref)
+                if saved is not None and original != saved['run']:
+                    raise AssertionError('Attach replaced the original Run')
+                if saved is None:
+                    second_submission = client.new_submission()
+                    if _plain(second_submission) == _plain(submission):
+                        raise AssertionError('Second submission must have a distinct original reference')
+                    _sync_initial_phase(initial, 'second-start-enter')
+                    second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
+                    _sync_initial_phase(initial, 'second-start-return')
+                    _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
+                            facade='sync', submission=second_submission, run=_plain(second.ref))
+                    _sync_initial_phase(initial, 'second-state-enter')
+                    if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
+                        raise AssertionError('Second distinct Run did not succeed on the same Host')
+                    _sync_initial_phase(initial, 'second-state-return')
+                    # all() consumes through EOF and refuses any extra row at this bound.
+                    _sync_initial_phase(initial, 'second-result-enter')
+                    _rows(second.result('answer').all(max_rows=1))
+                    _sync_initial_phase(initial, 'second-result-return')
+        finally:
+            _sync_initial_phase(initial, 'first-close-enter')
+    _sync_initial_phase(initial, 'first-close-return')
     observed = control.result() if control is not None else None
     if saved is None:
         _record(receipt, version=version, facade='sync', submission=submission, run=original)
