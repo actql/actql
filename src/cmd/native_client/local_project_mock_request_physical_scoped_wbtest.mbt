@@ -290,6 +290,53 @@ fn native_mock_readme_request_issue(
 }
 
 ///|
+fn native_mock_readme_static_explain(
+  facility : NativeMockReadmeRequestFacility,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  document : String,
+) -> String? raise {
+  @local_values.reserve_request_snapshot(
+    facility.parent,
+    facility.input,
+    document.length().to_int64() + 32L,
+    document.length().to_int64() + 32L,
+  ).unwrap()
+  let checked = @local_values.prepare_request_native_document_check(
+    facility.parent,
+    facility.input,
+    document,
+    @frontend.Text,
+    None,
+    None,
+    environment,
+    publication,
+    static_check=false,
+  )
+  match checked {
+    Err(issue) =>
+      return Some(native_mock_readme_request_issue(@local_host.Request(issue)))
+    Ok(_) => ()
+  }
+  match
+    @local_values.request_native_static_plan_view(
+      facility.parent,
+      facility.input,
+      environment,
+      publication,
+      native_request_manifests,
+    ) {
+    Err(issue) =>
+      return Some(native_mock_readme_request_issue(@local_host.Request(issue)))
+    Ok(view) => {
+      assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
+      assert_true(view.contains("\"provider_io\":0"))
+      return None
+    }
+  }
+}
+
+///|
 // All new Request/body aliases leave this frame before its issuer closes the
 // physical payload. Metadata belongs to its separately retained original Read.
 fn native_mock_readme_request_payload(
@@ -311,48 +358,16 @@ fn native_mock_readme_request_payload(
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   if static_explain {
-    @local_values.reserve_request_snapshot(
-      facility.parent,
-      facility.input,
-      document.length().to_int64() + 32L,
-      document.length().to_int64() + 32L,
-    ).unwrap()
-    let checked = @local_values.prepare_request_native_document_check(
-      facility.parent,
-      facility.input,
-      document,
-      @frontend.Text,
-      None,
-      None,
-      environment,
-      publication,
-      static_check=false,
+    let issue = native_mock_readme_static_explain(
+      facility, environment, publication, document,
     )
-    match checked {
-      Err(issue) =>
-        return Some(
-          native_mock_readme_request_issue(@local_host.Request(issue)),
-        )
-      Ok(_) => ()
-    }
-    match
-      @local_values.request_native_static_plan_view(
-        facility.parent,
-        facility.input,
-        environment,
-        publication,
-        native_request_manifests,
-      ) {
-      Err(issue) =>
-        return Some(
-          native_mock_readme_request_issue(@local_host.Request(issue)),
-        )
-      Ok(view) => {
-        assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
-        assert_true(view.contains("\"provider_io\":0"))
-        return None
-      }
-    }
+    ignore(
+      @local_values.abort_request_preparation_after_cleanup(facility.parent),
+    )
+    facility.arena
+    .leave_domain_retained_execution(facility.physical)
+    .native_content_join_stage("leave same original Native Request frame")
+    return issue
   }
   let wire : Json = {
     "kind": "aql",
