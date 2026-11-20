@@ -588,3 +588,15 @@ target/
 
 /adapters/host-common/installed-checkpoint-codec-limits.mjs
 /adapters/host-common/installed-checkpoint-codec-limits.d.mts
+
+/scripts/python-interface-sources.mjs
+/scripts/python-interface-sources.d.mts
+
+/scripts/native-cli-package-inputs.mjs
+/scripts/native-cli-package-inputs.d.mts
+
+/scripts/native-cli-project-staging.test.mjs
+/scripts/native-cli-project-staging.test.d.mts
+
+/scripts/local-table-data-interface.test.mjs
+/scripts/local-table-data-interface.test.d.mts

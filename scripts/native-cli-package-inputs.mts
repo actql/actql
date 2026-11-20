@@ -10,7 +10,7 @@ export const nativeCliPlatforms = Object.freeze({'darwin-arm64': {os: 'darwin', 
 
 // The producer owns these source-to-stage copies. Discovery consumes this
 // exact projection rather than treating the entry import graph as all files.
-export function nativeCliPackageInputs(root) {
+export function nativeCliPackageInputs(root: string) {
   const manifest = 'packages/native-cli/package.json';
   if (!existsSync(join(root, manifest))) return undefined;
   return {manifest, copies: nativeCliLauncherInputs.map(member => ({

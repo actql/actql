@@ -9,7 +9,7 @@ import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('formal Native launcher copies include both private project helpers', () => {
-  const selected = nativeCliPackageInputs(root);
+  const selected = nativeCliPackageInputs(root)!;
   assert.equal(selected.manifest, 'packages/native-cli/package.json');
   assert.deepEqual(selected.copies, [
     'README.md', 'bin/actql.mjs', 'lib/local-runtime.mjs', 'lib/product-members.mjs',
@@ -22,7 +22,7 @@ test('staged private project preparation runs from exact selected bytes without 
   t.after(() => rm(scratch, {recursive: true, force: true}));
   const stage = join(scratch, 'cli');
   await mkdir(stage);
-  for (const {source, member} of nativeCliPackageInputs(root).copies) {
+  for (const {source, member} of nativeCliPackageInputs(root)!.copies) {
     const destination = join(stage, member);
     await mkdir(dirname(destination), {recursive: true});
     await copyFile(join(root, source), destination);
@@ -30,13 +30,13 @@ test('staged private project preparation runs from exact selected bytes without 
     assert.equal((await stat(destination)).mode & 0o777, (await stat(join(root, source))).mode & 0o777);
   }
   await writeFile(join(stage, 'package.json'), '{"type":"module"}\n');
-  const {scaffoldProject} = await import(pathToFileURL(join(stage, 'lib/project-scaffold.mjs')));
+  const {scaffoldProject} = await import(pathToFileURL(join(stage, 'lib/project-scaffold.mjs')) as unknown as string) as {scaffoldProject(path: string, template?: string): {files: readonly string[]; stateDirectory: string}};
   const project = join(scratch, 'project');
   const result = scaffoldProject(project, 'churn-risk-mock');
   assert.deepEqual([...result.files].sort(), ['actql.config.json', 'churn-risk.aql', 'connectors.json',
     'mock/catalog.json', 'mock/churn-risk.v1.answers.yaml', 'mock/data.json', 'model-tasks.json', 'model-tasks/churn-risk.v1.yaml']);
   assert.equal(await readFile(join(project, 'churn-risk.aql'), 'utf8'),
-    (await readFile(join(root, 'docs/getting-started/quickstart.md'), 'utf8')).match(/```sql\n([\s\S]*?)```/u)[1]);
+    (await readFile(join(root, 'docs/getting-started/quickstart.md'), 'utf8')).match(/```sql\n([\s\S]*?)```/u)![1]);
   assert.deepEqual(await readdir(join(stage, 'lib')), [
     'local-runtime.mjs', 'product-members.mjs', 'project-scaffold.mjs', 'project-template.mjs',
   ]);
