@@ -1,4 +1,15 @@
 ///|
+test "parser integer-context need scalar is funded before constructing the same Tokens" {
+  // 15 original input units at 332 bytes/unit, plus exactly one stored word.
+  // Existing coheld explicit lexical-limit controls remain a separate152 bytes.
+  assert_eq(request_query_syntax_data_bytes("SELECT 1 AS id"), Some(4988L))
+  assert_eq(
+    request_query_syntax_data_bytes("SELECT 1 AS id", lexical_work=Some(64)),
+    Some(5140L),
+  )
+}
+
+///|
 test "same Request query syntax uses one original current and refuses reentry without a second parse" {
   let input = [1]
   let calls = Ref(0)

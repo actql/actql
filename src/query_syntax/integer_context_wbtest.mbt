@@ -1,4 +1,38 @@
 ///|
+test "integer context need comes only from actual parser Call nodes" {
+  for
+    text in [
+      "SELECT 5 + 1 AS value", "SELECT 'MOD(5,2)' AS value /* DIV(9,3) */", "SELECT MOD AS value FROM numbers",
+      "SELECT pkg.MOD(5,2) AS value", "FROM numbers |> EFFECT COMMAND mail.send ID id INPUT (body = 'same')",
+    ] {
+    let original = parse_query(text, integer_context_test_limits()).unwrap()
+    assert_false(integer_function_context_required(original), msg=text)
+    assert_true(
+      physical_equal(
+        with_integer_function_context(original, 0).unwrap(),
+        original,
+      ),
+    )
+    assert_true(
+      with_integer_function_context(original, -1)
+      is Err({ issue: InvalidLimits, .. }),
+    )
+  }
+  for
+    text in [
+      "SELECT mOd(5,2) AS value", "WITH t AS (SELECT DIV(8,3) AS v) SELECT v FROM t",
+      "SELECT 1 AS value UNION ALL SELECT MOD(5,2) AS value", "FROM numbers |> EXTEND MOD(id,2) AS value |> SELECT value",
+    ] {
+    let original = parse_query(text, integer_context_test_limits()).unwrap()
+    assert_true(integer_function_context_required(original), msg=text)
+    assert_true(
+      with_integer_function_context(original, 0)
+      is Err({ issue: Limit(Work), .. }),
+    )
+  }
+}
+
+///|
 test "integer context retains original lexemes document and source tree without a second parse" {
   let original = parse_query(
     "WITH t AS (SELECT 9007199254740993 AS v) SELECT MOD(v,2) AS x FROM t",

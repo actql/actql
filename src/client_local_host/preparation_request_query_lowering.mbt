@@ -53,7 +53,14 @@ fn request_query_lowering_data_bytes(
   }
   let copy_bytes = request_query_literal_copy_bytes(request_copy, occurrences)
   guard copy_bytes is Some(copy_bytes) &&
-    request_integer_context_data_bytes(occurrences.to_int64())
+    request_integer_context_data_bytes(
+      if query.query is Some(Ok(parsed)) &&
+        !@query_syntax.integer_function_context_required(parsed) {
+        0L
+      } else {
+        occurrences.to_int64()
+      },
+    )
     is Some(integer_context) else {
     return None
   }

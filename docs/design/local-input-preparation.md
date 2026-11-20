@@ -2699,6 +2699,18 @@ the same quoted Request and no constructor output; successful cleanup still
 uses its original parent and borrower. This is a logical bound, not a heap
 measurement, policy grant or complete work observation.
 
+The same bounded parser records the actual MOD/DIV Call predicate on its
+original Tokens owner while constructing scalar nodes. This one stored word
+adds eight bytes to the base syntax construction quote, before parsing. It
+is not supplied by a caller, a text search, an authorization result or a new
+discovery traversal. Nested CTE/set/operation expressions share that original;
+retained derived views conservatively retain the fact. A proved absence skips
+both the contextual pass and its incremental token charge, preserving ordinary
+COMMAND and expression work owners. A needed pass is funded on the same
+Request before creating its task/scope arrays. If it exhausts Work before
+selecting an expression, its diagnostic retains the original whole Query
+document; later expression-local diagnostics keep their original attribution.
+
 Integer demand does not replace a CTE's original Number projection. The
 compiler adds a collision-free private companion over the same producer row
 and directs only the exact function operand to that companion. Original

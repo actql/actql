@@ -383,6 +383,11 @@ fn ExpressionParser::add(
     raise ExpressionAbort("Expression depth limit", start)
   }
   let index = self.nodes.length()
+  // This fixed three-character predicate is part of the already bounded Call
+  // constructor, not another source/token/AST discovery traversal.
+  if kind is Call(path, _) && integer_context_call_name(path) {
+    self.source.integer_context_required = true
+  }
   self.nodes.push({ kind, start, end, })
   self.depths.push(child_depth + 1)
   index
