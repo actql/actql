@@ -3213,7 +3213,9 @@ fn compile_steps(
       AssertUnique(keys) => {
         let unique : Array[@builder.Node] = []
         for path in keys {
-          guard resolve_named_columns(path, pipe_visible, pipe_ranges)
+          guard profiled_pipe_slot(
+              path, pipe_visible, pipe_ranges, column_profiles,
+            )
             is Some(slot) else {
             raise Abort(UnknownColumn)
           }
@@ -4430,6 +4432,12 @@ fn compile_steps(
         let hidden_order_derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
+        let key_public_names : Array[@query.NamePart?]? = if columns_required &&
+          !sql_group_projection {
+          Some([])
+        } else {
+          None
+        }
         let key_aliases = match grouping_scope {
           SqlSelect | SqlSelectAll => []
           PipeAggregate(names, _) => names
@@ -4442,13 +4450,14 @@ fn compile_steps(
         let mut key_reuse_work = max_work
         let resolve_key_input = path => {
           if scoped {
-            resolve_named_columns(
+            profiled_pipe_slot(
               path,
               unnest_expression_columns(
                 input_visible, value_table_receivers, scalar_value_table_ranges,
                 pipe_columns,
               ),
               input_ranges,
+              column_profiles,
             )
           } else {
             resolve_column(path, query, input, input_fields)
@@ -4535,13 +4544,14 @@ fn compile_steps(
           let direct = match root.kind {
             Reference(path) =>
               if scoped {
-                resolve_named_columns(
+                profiled_pipe_slot(
                   path,
                   unnest_expression_columns(
                     pipe_visible, value_table_receivers, scalar_value_table_ranges,
                     pipe_columns,
                   ),
                   pipe_ranges,
+                  column_profiles,
                 )
               } else {
                 resolve_column(path, query, input, active_fields)
@@ -4635,6 +4645,14 @@ fn compile_steps(
             }
           }
           key_names.push(name)
+          if key_public_names is Some(names) {
+            names.push(
+              match key_aliases.get(index).bind(value => value) {
+                Some(output_name) => Some(output_name)
+                None => @query.expression_implicit_name(expression)
+              },
+            )
+          }
           key_display_names.push(
             match key_aliases.get(index).bind(value => value) {
               Some(output_name) => output_name.value
@@ -5260,12 +5278,37 @@ fn compile_steps(
           // group keys after aggregation; arguments used the old value slots.
           let names : Array[String] = []
           let selected : Array[@builder.Node] = []
-          let selected_columns : Array[ResultColumn]? = group_namespace_profiles.map(_ => {
-              []
-            },
-          )
+          let selected_columns : Array[ResultColumn]? = if columns_required {
+            Some([])
+          } else {
+            group_namespace_profiles.map(_ => [])
+          }
+          // Reserve every real output before choosing any private physical
+          // output. Its spelling never supplies the optional SQL name.
+          let private_reserved : Array[String]? = key_public_names.map(_ => {
+            active_fields +
+            key_display_names +
+            projections.map(projection => projection.name.unwrap().value)
+          })
           for index in 0..<key_names.length() {
-            let name = key_display_names[index]
+            let public_name = match key_public_names {
+              Some(names) => names[index]
+              None =>
+                Some(
+                  key_aliases
+                  .get(index)
+                  .bind(value => value)
+                  .unwrap_or({ value: key_display_names[index], quoted: false, }),
+                )
+            }
+            let name = if public_name is None {
+              let reserved = private_reserved.unwrap()
+              let slot = pipe_physical_name(reserved, "aql_group_output_")
+              reserved.push(slot)
+              slot
+            } else {
+              key_display_names[index]
+            }
             if names.any(previous => ascii_upper(previous) == ascii_upper(name)) {
               raise Abort(DuplicateOutput)
             }
@@ -5274,12 +5317,7 @@ fn compile_steps(
               columns.push({
                 label: name,
                 slot: name,
-                name: Some(
-                  key_aliases
-                  .get(index)
-                  .bind(value => value)
-                  .unwrap_or({ value: name, quoted: false, }),
-                ),
+                name: public_name,
                 name_view: slot_namespace(
                   group_namespace_profiles,
                   key_names[index],
@@ -7332,6 +7370,7 @@ fn compile_steps(
             value_ranges=value_range_names(
               value_table_receivers, scalar_value_table_ranges,
             ),
+            column_profiles~,
           ).filter(slot => active_fields.contains(slot))
           if current is Some(_) {
             return current

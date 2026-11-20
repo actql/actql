@@ -2009,9 +2009,14 @@ fn QueryParser::group_keys(
   while true {
     self.node()
     let start = self.peek().start
-    keys.push(self.expression())
+    let expression = self.expression()
+    keys.push(expression)
     if names is Some(names) {
-      names.push(self.optional_output_alias())
+      let name = self.optional_output_alias()
+      names.push(name)
+      if name is None && expression_implicit_name(expression) is None {
+        self.source.anonymous_output_required = true
+      }
     }
     if ordering is Some(terms) &&
       (order_all || self.has("ASC") || self.has("DESC") || self.has("NULLS")) {
@@ -3473,6 +3478,12 @@ fn QueryParser::pipe_tail(
         except_columns: [],
         replacements: [],
       })
+      self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+        namespace_count_add(
+          keys.length(),
+          namespace_count_add(aggregates.length(), calls.length()),
+        ),
+      )
       operations.push(
         Group(
           keys,
@@ -4249,14 +4260,19 @@ pub fn projection_public_name(projection : Projection) -> NamePart? {
     Some(name) => Some(name)
     None =>
       match projection.expression {
-        Some(expression) =>
-          match expression.nodes[expression.root].kind {
-            Reference(path) => path.last()
-            Property(_, name) => Some(name)
-            _ => None
-          }
+        Some(expression) => expression_implicit_name(expression)
         None => None
       }
+  }
+}
+
+///|
+// Only a genuine implicit SQL name, never an evaluated/display slot.
+pub fn expression_implicit_name(expression : Expression) -> NamePart? {
+  match expression.nodes[expression.root].kind {
+    Reference(path) => path.last()
+    Property(_, name) => Some(name)
+    _ => None
   }
 }
 

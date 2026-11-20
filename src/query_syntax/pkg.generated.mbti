@@ -42,6 +42,8 @@ pub fn expression_child(Expression, Int) -> Expression?
 
 pub fn expression_document(Expression) -> @frontend_source_map.Document
 
+pub fn expression_implicit_name(Expression) -> NamePart?
+
 pub fn expression_node(Expression, Int) -> ExpressionNode?
 
 pub fn expression_node_count(Expression) -> Int

@@ -26,11 +26,12 @@ fn pipe_expression_slot(
   visible : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   value_ranges? : Array[@query.NamePart] = [],
+  column_profiles? : Array[ResultColumn]? = None,
 ) -> String? {
   if path.length() == 1 && ordinary_range_name(path[0], ranges, value_ranges) {
     return None
   }
-  pipe_slot(path, visible, ranges)
+  profiled_pipe_slot(path, visible, ranges, column_profiles)
 }
 
 ///|
