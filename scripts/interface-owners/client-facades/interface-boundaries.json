@@ -8135,13 +8135,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8151,7 +8151,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8161,7 +8161,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8171,7 +8171,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8181,7 +8181,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8191,7 +8191,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8201,7 +8201,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8211,7 +8211,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],

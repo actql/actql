@@ -4,33 +4,59 @@ import {presentCheckFailure, renderCheckOutcome} from '../check-presentation.mjs
 import {captureResponse, freezeInput, structuralKey, utf8} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {checkOutcomeProtocol, snapshotClientRequest, validCheckOutcome, validClientBody} from '@actql/client-wire';
+import type {WireClientBodyByOperation, WireConnection, WireCheckLocation} from '@actql/client-wire';
+import type {Client, CheckOutcome, CheckInput, CheckFix, CheckFailureInput,
+  CheckRequirementFrontier, CheckContextRequirement, CheckSupplementationDecision,
+  CheckSupplementationSession, CheckDocumentSession, CheckDocumentObservation,
+  CheckTextOptions, TextCheckOptions, ProgramCheckOptions, CheckPositionEncoding,
+  CheckTextRange, CheckFormatOptions, CheckExplanationOptions} from '../index.d.ts';
 
-const checkInputs = new WeakMap();
+type CompleteOutcome = Extract<CheckOutcome, {outcome: 'completed'}>;
+type CompleteReport = CompleteOutcome['report'];
+type PartialReport = NonNullable<Extract<CheckOutcome, {outcome: 'failed'}>['partial_report']>;
+type AdmittedCheckView = CheckOutcome & {report?: CompleteReport; partial_report?: PartialReport};
+type Without<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+type CheckRequest = Without<WireClientBodyByOperation['check'], 'connection'>;
+type TextRequest = Extract<CheckRequest, {kind: 'text'}>;
+type TextInput = Extract<CheckInput, {kind: 'text'}>;
+type StructuredInput = Extract<CheckInput, {kind: 'structured'}>;
+type InputPayload = Without<CheckInput, 'documentId' | 'revision'>;
+type ParamRequirement = CheckRequirementFrontier['requirements'][number];
+type ParamFacts = ParamRequirement['facts'];
+type CheckFailure = Parameters<typeof presentCheckFailure>[0] & {input: CheckFailureInput};
+type ResolvedLocation =
+  (Extract<WireCheckLocation, {kind: 'text'}> & {input: TextInput; text: string}) |
+  (Extract<WireCheckLocation, {kind: 'structured'}> & {input: StructuredInput});
+interface DocumentRecord {ticket: bigint; input?: TextInput; request?: TextRequest}
+type Mutable<T> = {-readonly [K in keyof T]: T[K]};
+
+
+const checkInputs = new WeakMap<object, Map<string, CheckInput>>();
 // Rejected transport observations retain only a safe classification and this
 // call's own input. No unvalidated reply, revision or location gains custody.
-const checkFailures = new WeakMap();
+const checkFailures = new WeakMap<object, CheckFailure>();
 
-const checkRequests = new WeakMap();
+const checkRequests = new WeakMap<object, CheckRequest>();
 
-const checkFrontiers = new WeakMap();
+const checkFrontiers = new WeakMap<object, CheckRequirementFrontier>();
 
-export function bindCheckObservation(outcome, body) {
+export function bindCheckObservation(outcome: AdmittedCheckView, body: CheckRequest) {
   try {
     const report = outcome.report ?? outcome.partial_report;
     if (report) {
       if (report.scope.kind !== (body.scope ?? 'bound_input')) throw new TypeError('InvalidCheckScopeBinding');
       const received = body.kind === 'program'
-        ? new Map([['program', {kind: 'structured', value: body.input}]])
-        : new Map([['source', {kind: 'text', text: body.input.text}]]);
+        ? new Map<string, InputPayload>([['program', {kind: 'structured', value: body.input}]])
+        : new Map<string, InputPayload>([['source', {kind: 'text', text: body.input.text}]]);
       if (body.kind !== 'program' && body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
         {kind: 'structured', value: body.input.parameterDeclarations});
       if (body.parameters !== undefined && body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
       if (report.inputs.length !== received.size) throw new TypeError('InvalidCheckInputBinding');
-      const snapshots = new Map();
+      const snapshots = new Map<string, CheckInput>();
       for (const document of report.inputs) {
         const original = received.get(document.document_id);
         if (!original || document.kind !== original.kind || document.byte_length !==
-            utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
+            utf8.encode(original.kind === 'text' ? original.text : JSON.stringify((original as StructuredInput).value)).length) {
           throw new TypeError('InvalidCheckInputBinding');
         }
         snapshots.set(document.document_id, Object.freeze({...original,
@@ -38,7 +64,7 @@ export function bindCheckObservation(outcome, body) {
       }
       checkInputs.set(outcome, snapshots);
       for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
-        if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
+        if ((reason as {location?: WireCheckLocation}).location && !resolveCheckLocation(outcome, (reason as {location?: WireCheckLocation}).location)) {
           checkInputs.delete(outcome);
           throw new TypeError('InvalidCheckInputBinding');
         }
@@ -55,50 +81,50 @@ export function bindCheckObservation(outcome, body) {
 
 /** Return only the original SDK submission's transient checking observation. */
 
-export function getCheckFailureInput(error) {
-  return checkFailures.get(error)?.input;
+export function getCheckFailureInput(error: unknown) {
+  return checkFailures.get(error as object)?.input;
 }
 
-export function explainCheckFailure(error, options) {
-  const failure = checkFailures.get(error);
+export function explainCheckFailure(error: unknown, options?: CheckExplanationOptions) {
+  const failure = checkFailures.get(error as object);
   return failure === undefined ? undefined : presentCheckFailure(failure, options);
 }
 
-export function getCheckInput(outcome, documentId, revision) {
+export function getCheckInput(outcome: CheckOutcome, documentId: string, revision?: string) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
 }
 
 // Proposals require the original SDK response, not a copied wire value.
-export function getCheckFixes(outcome) {
+export function getCheckFixes(outcome: CheckOutcome): readonly CheckFix[] | undefined {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   return Object.freeze(outcome.report.reasons.flatMap(reason => reason.fixes ?? []));
 }
 
-const unordered = values => [...new Map(values.map(value =>
+const unordered = <T,>(values: readonly T[]): T[] => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
-  left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
+  (left as string) < (right as string) ? -1 : (left as string) > (right as string) ? 1 : 0).map(([, value]) => value);
 
 // Admitted declaration conditions from this call's public Requirement only.
 // This is neither supplied-value admission nor proof of the remaining Program.
-export function getCheckParameterAdmission(outcome, parameter) {
+export function getCheckParameterAdmission(outcome: CheckOutcome, parameter: string): ParamFacts['admission'] | undefined {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed' ||
       typeof parameter !== 'string') return undefined;
-  return outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
-    reason.facts.parameter === parameter)?.facts.admission;
+  return (outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
+    (reason.facts as ParamFacts).parameter === parameter) as ParamRequirement | undefined)?.facts.admission;
 }
 
 // Existing caller-owned response custody; this advice grants no configuration write.
-export function getCheckContextRequirements(outcome) {
-  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
-  return Object.freeze(outcome.report.requirements.filter(reason => ['host_capacity_policy_required', 'numeric_reduction_profile_required'].includes(reason.code)));
+export function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined {
+  if (!checkInputs.has(outcome as object) || (outcome as CheckOutcome).outcome !== 'completed') return undefined;
+  return Object.freeze((outcome as CompleteOutcome).report.requirements.filter(reason => ['host_capacity_policy_required', 'numeric_reduction_profile_required'].includes(reason.code)) as readonly CheckContextRequirement[]);
 }
 
-export function getCheckRequirementFrontier(outcome) {
+export function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
-  const report = outcome.report;
+  const report = outcome.report as Omit<CompleteReport, 'requirements'> & {requirements: readonly ParamRequirement[]};
   // These are the currently exposed typed Requirements. Unknown obligations
   // cannot supply a structural admission condition for supplementation.
   if (report.omissions?.requirements || report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
@@ -113,7 +139,7 @@ export function getCheckRequirementFrontier(outcome) {
   return frontier;
 }
 
-export function equalCheckRequirementFrontiers(first, second) {
+export function equalCheckRequirementFrontiers(first: CheckOutcome, second: CheckOutcome) {
   const left = getCheckRequirementFrontier(first);
   const right = getCheckRequirementFrontier(second);
   if (!left || !right) return undefined;
@@ -121,15 +147,16 @@ export function equalCheckRequirementFrontiers(first, second) {
 }
 
 // This bounds read-only checking, not an authoritative supplement write.
-export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
-  if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+export function createCheckSupplementationSession(client: Pick<Client, 'check'>,
+  {maxAttempts}: {maxAttempts?: number} = {}): CheckSupplementationSession {
+  if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || (maxAttempts as number) < 1) {
     fail('InvalidCheckSupplementationSession');
   }
-  let attempts = 0, checking = false, previous, stopped;
+  let attempts = 0, checking = false, previous: CheckRequirementFrontier | undefined, stopped: Extract<CheckSupplementationDecision, {kind: 'stop'}> | undefined;
   return Object.freeze({
-    async check(text, options) {
+    async check(text: string | Record<string, unknown>, options: TextCheckOptions | ProgramCheckOptions) {
       if (checking) fail('CheckSupplementationBusy');
-      if (stopped || attempts >= maxAttempts) {
+      if (stopped || attempts >= maxAttempts!) {
         throw new ClientError('CheckSupplementationStopped', {
           decision: stopped ?? Object.freeze({kind: 'stop', reason: 'attempt_budget'}),
           attempts, maxAttempts});
@@ -137,17 +164,17 @@ export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
       checking = true;
       attempts++;
       try {
-        const outcome = await client.check(text, options);
+        const outcome = await (client.check as (input: string | Record<string, unknown>, options: TextCheckOptions | ProgramCheckOptions) => Promise<CheckOutcome>)(text, options);
         const frontier = getCheckRequirementFrontier(outcome);
-        let reason;
+        let reason: Extract<CheckSupplementationDecision, {kind: 'stop'}>['reason'] | undefined;
         if (!frontier) reason = 'frontier_unavailable';
-        else if ((outcome.report.verdict !== 'undetermined' &&
-            !(outcome.report.scope.kind === 'template_only' && outcome.report.verdict === 'verified')) ||
+        else if (((outcome as CompleteOutcome).report.verdict !== 'undetermined' &&
+            !((outcome as CompleteOutcome).report.scope.kind === 'template_only' && (outcome as CompleteOutcome).report.verdict === 'verified')) ||
             frontier.requirements.length === 0) {
           reason = 'no_known_supplement';
         } else if (previous && structuralKey(previous) === structuralKey(frontier)) {
           reason = 'unchanged_frontier';
-        } else if (attempts >= maxAttempts) reason = 'attempt_budget';
+        } else if (attempts >= maxAttempts!) reason = 'attempt_budget';
         const decision = Object.freeze(reason === undefined
           ? {kind: 'more_checks'} : {kind: 'stop', reason});
         if (decision.kind === 'stop') stopped = decision;
@@ -160,7 +187,7 @@ export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
   });
 }
 
-const structuredNodeExists = (value, pointer) => {
+const structuredNodeExists = (value: unknown, pointer: string) => {
   if (typeof pointer !== 'string' || pointer.length > 4096 ||
       !/^(?:\/(?:[^~]|~[01])*)*$/u.test(pointer)) return false;
   if (pointer === '') return true;
@@ -174,41 +201,41 @@ const structuredNodeExists = (value, pointer) => {
       if (!Number.isSafeInteger(index) || index >= value.length) return false;
     }
     if (!Object.hasOwn(value, key)) return false;
-    value = value[key];
+    value = (value as Record<string, unknown>)[key];
   }
   return true;
 };
 
 // Reading original bytes and converting offsets is not parsing the language.
-export function resolveCheckLocation(outcome, location, currentInput) {
-  const original = getCheckInput(outcome, location?.document_id, location?.revision);
+export function resolveCheckLocation(outcome: CheckOutcome, location: WireCheckLocation | undefined, currentInput?: CheckInput): ResolvedLocation | undefined {
+  const original = getCheckInput(outcome, location?.document_id as string, location?.revision);
   const input = currentInput ?? original;
-  if (!original || !input || location.revision !== original.revision ||
+  if (!original || !input || location!.revision !== original.revision ||
       input.documentId !== original.documentId ||
       input.revision !== original.revision || input.kind !== original.kind ||
-      location.kind !== original.kind ||
-      (input.kind === 'text' ? input.text !== original.text :
-        JSON.stringify(input.value) !== JSON.stringify(original.value))) return undefined;
-  if (location.kind === 'structured') {
-    if (!structuredNodeExists(original.value, location.pointer)) return undefined;
-    return Object.freeze({...location, input: original});
+      location!.kind !== original.kind ||
+      (input.kind === 'text' ? input.text !== (original as TextInput).text :
+        JSON.stringify(input.value) !== JSON.stringify((original as StructuredInput).value))) return undefined;
+  if (location!.kind === 'structured') {
+    if (!structuredNodeExists((original as StructuredInput).value, (location as Extract<WireCheckLocation, {kind: 'structured'}>).pointer)) return undefined;
+    return Object.freeze({...location as Extract<WireCheckLocation, {kind: 'structured'}>, input: original as StructuredInput});
   }
-  const bytes = utf8.encode(original.text);
-  const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+  const bytes = utf8.encode((original as TextInput).text);
+  const boundary = (at: number) => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
     (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
-  if (!boundary(location.start_byte) || !boundary(location.end_byte) ||
-      location.start_byte > location.end_byte) return undefined;
-  return Object.freeze({...location, input: original,
+  if (!boundary((location as Extract<WireCheckLocation, {kind: 'text'}>).start_byte) || !boundary((location as Extract<WireCheckLocation, {kind: 'text'}>).end_byte) ||
+      (location as Extract<WireCheckLocation, {kind: 'text'}>).start_byte > (location as Extract<WireCheckLocation, {kind: 'text'}>).end_byte) return undefined;
+  return Object.freeze({...location as Extract<WireCheckLocation, {kind: 'text'}>, input: original as TextInput,
     text: new TextDecoder('utf-8', {fatal: true, ignoreBOM: true})
-      .decode(bytes.subarray(location.start_byte, location.end_byte))});
+      .decode(bytes.subarray((location as Extract<WireCheckLocation, {kind: 'text'}>).start_byte, (location as Extract<WireCheckLocation, {kind: 'text'}>).end_byte))});
 }
 
 // Coordinates describe this submitted revision, never a newer editor buffer.
-export function resolveCheckTextRange(outcome, location, currentInput) {
+export function resolveCheckTextRange(outcome: CheckOutcome, location: WireCheckLocation | undefined, currentInput?: CheckInput) {
   return resolveCheckTextRangeEncoding(outcome, location, 'utf-16', currentInput);
 }
 
-export function resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput) {
+export function resolveCheckTextRangeEncoding<E extends CheckPositionEncoding>(outcome: CheckOutcome, location: WireCheckLocation | undefined, encoding: E, currentInput?: CheckInput): CheckTextRange<E> | undefined {
   if (!['utf-8', 'utf-16', 'utf-32'].includes(encoding)) return undefined;
   const resolved = resolveCheckLocation(outcome, location, currentInput);
   if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
@@ -221,7 +248,7 @@ export function resolveCheckTextRangeEncoding(outcome, location, encoding, curre
       break;
     }
     if (at === text.length) return undefined;
-    const scalar = text.codePointAt(at);
+    const scalar = text.codePointAt(at)!;
     const units = scalar > 0xffff ? 2 : 1;
     let width = scalar <= 0x7f ? 1 : scalar <= 0x7ff ? 2 : scalar <= 0xffff ? 3 : 4;
     if (scalar === 13 && text[at + 1] === '\n') {
@@ -240,20 +267,21 @@ export function resolveCheckTextRangeEncoding(outcome, location, encoding, curre
 }
 
 // A session owns one current unsaved buffer; replies retain their SDK input custody.
-export function createCheckDocumentSession(client, options) {
+export function createCheckDocumentSession(client: Pick<Client, 'check'>,
+  options: {text: string; version: number; positionEncoding?: CheckPositionEncoding}): CheckDocumentSession {
   const {text, version, positionEncoding = 'utf-16'} = options ?? {};
-  const validDocument = (text, version) => typeof text === 'string' && text.isWellFormed() &&
-    Number.isInteger(version) && version >= -2147483648 && version <= 2147483647;
+  const validDocument = (text: string | undefined, version: number | undefined) => typeof text === 'string' && text.isWellFormed() &&
+    Number.isInteger(version) && (version as number) >= -2147483648 && (version as number) <= 2147483647;
   if (typeof client?.check !== 'function' || !validDocument(text, version) ||
       !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
-  let current = {text, version}, checker = client, issued = 0n;
-  const observations = new WeakMap();
-  const currentRecord = observation => {
+  let current: {text: string; version: number} | undefined = {text, version}, checker: Pick<Client, 'check'> | undefined = client, issued = 0n;
+  const observations = new WeakMap<object, DocumentRecord>();
+  const currentRecord = (observation: CheckDocumentObservation): (DocumentRecord & {input: TextInput}) | undefined => {
     const record = observations.get(observation);
     return current && record?.input && record.ticket === issued &&
-      observation.version === current.version && record.input.text === current.text ? record : undefined;
+      observation.version === current.version && record.input.text === current.text ? record as DocumentRecord & {input: TextInput} : undefined;
   };
-  return Object.freeze({
+  return Object.freeze<CheckDocumentSession>({
     update(text, version) {
       if (!current) fail('CheckDocumentClosed');
       if (!validDocument(text, version) || version <= current.version) fail('InvalidCheckDocument');
@@ -263,11 +291,11 @@ export function createCheckDocumentSession(client, options) {
       if (!current) fail('CheckDocumentClosed');
       const submitted = current, ticket = ++issued;
       // Call the existing SDK before yielding so it also detaches supplied bindings.
-      const outcome = await checker.check(submitted.text, {...options, kind: 'text'});
+      const outcome = await checker!.check(submitted.text, {...options, kind: 'text'});
       const input = getCheckInput(outcome, 'source');
       const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
       observations.set(observation, {ticket, input: input?.kind === 'text' &&
-        input.text === submitted.text ? input : undefined, request: checkRequests.get(outcome)});
+        input.text === submitted.text ? input : undefined, request: checkRequests.get(outcome) as TextRequest | undefined});
       return observation;
     },
     async applyFixes(observation, fixes, options) {
@@ -277,17 +305,17 @@ export function createCheckDocumentSession(client, options) {
       const record = currentRecord(observation);
       if (!record?.request) fail('CheckFixStale');
       if (reviewed !== true) fail('CheckFixReviewRequired');
-      if (!validDocument(current.text, version) || version <= current.version ||
+      if (!validDocument(current!.text, version) || version <= current!.version ||
           !selected?.length || selected.length > 32) fail('InvalidCheckFixes');
       const offered = getCheckFixes(observation.outcome);
-      if (selected.some(fix => !offered.includes(fix))) fail('InvalidCheckFixes');
+      if (selected.some(fix => !offered!.includes(fix))) fail('InvalidCheckFixes');
       const edits = selected.flatMap(fix => {
         if (fix.target.document_id !== 'source' ||
             fix.target.revision !== record.input.revision) fail('InvalidCheckFixes');
         return fix.edits;
       }).sort((a, b) => a.start_byte - b.start_byte || a.end_byte - b.end_byte);
       const bytes = utf8.encode(record.input.text);
-      const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+      const boundary = (at: number) => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
         (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
       for (let i = 0; i < edits.length; i++) {
         const edit = edits[i], previous = edits[i - 1];
@@ -303,38 +331,38 @@ export function createCheckDocumentSession(client, options) {
         cursor = edit.end_byte;
       }
       text += decoder.decode(bytes.subarray(cursor));
-      const checkOptions = {kind: 'text', scope: record.request.scope, format: record.request.input.format,
+      const checkOptions = {kind: 'text' as const, scope: record.request.scope, format: record.request.input.format,
         parameterDeclarations: record.request.input.parameterDeclarations,
-        ...(Object.hasOwn(record.request, 'parameters') ? {parameters: record.request.parameters} : {})};
+        ...(Object.hasOwn(record.request, 'parameters') ? {parameters: record.request.parameters} : {})} as TextCheckOptions;
       const originalClient = checker;
       const assertCurrent = () => {
         if (currentRecord(observation) !== record) fail('CheckFixStale');
       };
-      const assertContext = outcome => {
+      const assertContext = (outcome: CheckOutcome) => {
         if (outcome.outcome !== 'completed' ||
-            outcome.report.context_ref !== observation.outcome.report.context_ref ||
+            outcome.report.context_ref !== (observation.outcome as CompleteOutcome).report.context_ref ||
             getCheckInput(outcome, 'source')?.revision !== record.input.revision ||
             selected.some(fix => !getCheckFixes(outcome)?.some(candidate =>
               structuralKey(candidate) === structuralKey(fix)))) fail('CheckFixContextChanged');
       };
       // Bracket the candidate check with current-context checks of the original
       // request. These are observations, not an authorization lease or execution.
-      const before = await originalClient.check(record.input.text, checkOptions);
+      const before = await originalClient!.check(record.input.text, checkOptions);
       assertCurrent(); assertContext(before);
-      const outcome = await originalClient.check(text, checkOptions);
+      const outcome = await originalClient!.check(text, checkOptions);
       assertCurrent();
       const input = getCheckInput(outcome, 'source');
       if (outcome.outcome !== 'completed' || input?.kind !== 'text' || input.text !== text) {
         fail('CheckFixRecheckUnavailable');
       }
-      const after = await originalClient.check(record.input.text, checkOptions);
+      const after = await originalClient!.check(record.input.text, checkOptions);
       assertCurrent(); assertContext(after);
       // Commit the one-document edit and its rechecked observation together,
       // without yielding. No partial update survives a failed check.
       current = {text, version};
       const ticket = ++issued;
       const updated = Object.freeze({outcome, version, positionEncoding});
-      observations.set(updated, {ticket, input, request: checkRequests.get(outcome)});
+      observations.set(updated, {ticket, input, request: checkRequests.get(outcome) as TextRequest | undefined});
       return updated;
     },
     resolveTextRange(observation, location) {
@@ -347,7 +375,7 @@ export function createCheckDocumentSession(client, options) {
       return currentRecord(observation) === record ? range : undefined;
     },
     format(observation, options) {
-      let outcome, selected;
+      let outcome: CheckOutcome, selected: Mutable<CheckFormatOptions>;
       try {
         outcome = observation?.outcome;
         selected = {format: options?.format, maxBytes: options?.maxBytes,
@@ -357,7 +385,7 @@ export function createCheckDocumentSession(client, options) {
       // Read application options before deciding whether editor positions are current.
       const record = currentRecord(observation);
       if (!record) selected.currentInputs = [];
-      else if (selected.currentInputs === undefined) selected.currentInputs = [...checkInputs.get(outcome).values()];
+      else if (selected.currentInputs === undefined) selected.currentInputs = [...checkInputs.get(outcome)!.values()];
       const rendered = formatCheckOutcome(outcome, selected);
       // Input accessors can edit, close or issue a newer check while rendering.
       return record && currentRecord(observation) !== record
@@ -370,7 +398,7 @@ export function createCheckDocumentSession(client, options) {
   });
 }
 
-const rejectedCheckHeader = value => {
+const rejectedCheckHeader = (value: unknown): Record<string, unknown> | undefined => {
   try {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined;
     return Object.fromEntries(['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
@@ -378,17 +406,17 @@ const rejectedCheckHeader = value => {
   } catch { return undefined; }
 };
 
-const rejectedCheckProblem = header => {
+const rejectedCheckProblem = (header: Record<string, unknown> | undefined): CheckFailure['problem'] => {
   if (!header || !['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
     .every(key => typeof header[key] === 'string' && header[key].length > 0)) return 'malformed_response';
   if (header.version !== checkOutcomeProtocol.version ||
       header.reason_schema_cid !== checkOutcomeProtocol.reasonSchemaCid ||
       header.outcome_schema_cid !== checkOutcomeProtocol.outcomeSchemaCid) return 'contract_mismatch';
-  return checkOutcomeProtocol.outcomes.includes(header.outcome)
+  return checkOutcomeProtocol.outcomes.includes(header.outcome as typeof checkOutcomeProtocol.outcomes[number])
     ? 'malformed_response' : 'unknown_outcome';
 };
 
-const rejectedCheck = (body, problem) => {
+const rejectedCheck = (body: CheckRequest, problem: CheckFailure['problem']) => {
   const error = new ClientError('InvalidHostCheckOutcome');
   checkFailures.set(error, freezeInput({problem,
     kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',
@@ -396,19 +424,21 @@ const rejectedCheck = (body, problem) => {
       ...(body.kind === 'program' ? {program: body.input} : {text: body.input.text, format: body.input.format,
       ...(body.input.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: body.input.parameterDeclarations})}),
-      ...(Object.hasOwn(body, 'parameters') ? {parameters: body.parameters} : {})}}));
+      ...(Object.hasOwn(body, 'parameters') ? {parameters: body.parameters} : {})}}) as CheckFailure);
   return error;
 };
 
-export function formatCheckOutcome(outcome, options) {
-  return renderCheckOutcome(outcome, options, resolveCheckLocation, resolveCheckTextRangeEncoding);
+export function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions) {
+  return renderCheckOutcome(outcome, options, resolveCheckLocation as Parameters<typeof renderCheckOutcome>[2], resolveCheckTextRangeEncoding as Parameters<typeof renderCheckOutcome>[3]);
 }
 
 // Read-only checking; admission and input custody use the existing wire contract.
-export function createCheckOperation(connection, exchange, responseValue) {
+export function createCheckOperation(connection: WireConnection,
+  exchange: (operation: 'check', body: CheckRequest, signal?: AbortSignal) => Promise<unknown>,
+  responseValue: (response: unknown) => unknown | Promise<unknown>): Client['check'] {
   const selected = {wire: connection};
   return {
-    check: async (input, options) => {
+    check: async (input: unknown, options: TextCheckOptions | ProgramCheckOptions) => {
       if (options === null || typeof options !== 'object' || Array.isArray(options)) fail('InvalidCheckRequest');
       const kind = options.kind, scope = options.scope;
       if (!['text', 'program'].includes(kind) ||
@@ -419,20 +449,20 @@ export function createCheckOperation(connection, exchange, responseValue) {
             Object.hasOwn(options, 'parameterDeclarations'))) ||
           (scope === 'template_only' && Object.hasOwn(options, 'parameters'))) fail('InvalidCheckRequest');
       const signal = options.signal;
-      let body;
+      let body: CheckRequest;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
         body = freezeInput(snapshotClientRequest({kind, scope,
           input: kind === 'program' ? input : {text: input, format: options.format,
             ...(options.parameterDeclarations === undefined ? {} :
               {parameterDeclarations: options.parameterDeclarations})},
-          ...(scope === 'bound_input' ? {parameters: options.parameters ?? null} : {})}));
+          ...(scope === 'bound_input' ? {parameters: options.parameters ?? null} : {})})) as CheckRequest;
       } catch { fail('InvalidCheckRequest'); }
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');
       }
       const response = await exchange('check', body, signal);
-      let outcome;
+      let outcome: unknown;
       try { outcome = await responseValue(response); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
@@ -441,13 +471,13 @@ export function createCheckOperation(connection, exchange, responseValue) {
       try { outcome = captureResponse(outcome); }
       catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
-      const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
+      const reject: () => never = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
       try {
         if (!validCheckOutcome(outcome)) reject();
         if (!bindCheckObservation(outcome, body)) reject();
       } catch (cause) {
-        checkInputs.delete(outcome);
-        if (checkFailures.has(cause)) throw cause;
+        checkInputs.delete(outcome as object);
+        if (checkFailures.has(cause as object)) throw cause;
         throw rejectedCheck(body, 'malformed_response');
       }
       checkRequests.set(outcome, body);

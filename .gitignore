@@ -98,3 +98,6 @@ target/
 
 /scripts/copied-typescript-preparation.mjs
 /scripts/copied-typescript-preparation.d.mts
+
+/packages/sdk/internal/check-observation.mjs
+/packages/sdk/internal/check-observation.d.mts
