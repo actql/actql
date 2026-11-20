@@ -4,24 +4,37 @@ import {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {connectInProcess} from '../packages/sdk/index.mjs';
 
+type Action = Parameters<typeof runReleaseProjectNodeAction>[0];
+type Close = Parameters<Action['retainClose']>[0];
+type Accepted = Parameters<Action['retainAccepted']>[0];
+type Completed = Extract<Parameters<Action['getCheckInput']>[0], {outcome: 'completed'}>;
+type Check = {outcome: string; report: {scope: {kind: string}; verdict: string;
+  runnable?: {verdict: string}; reasons: unknown[]; requirements: unknown[]; coverage: object}};
+type Options = {decisionFailure?: unknown; closeFailure?: unknown; closeObservationFailure?: unknown;
+  closeObservationFailureAfterClose?: unknown; foreignCheckpoint?: boolean; source?: string;
+  checkReply?: (value: Check, text: string) => Check; resolutionFields?: Record<string, string>; readonly?: boolean};
+type AssertionFailure = {code: string; actual: unknown; expected: unknown};
+type TransportFailure = {code: string; cause: unknown};
+type CheckRequest = {kind: string; scope: string; input: unknown; parameters: unknown};
+
 function ports({decisionFailure, closeFailure, closeObservationFailure, closeObservationFailureAfterClose, foreignCheckpoint = false,
-  source = 'authored source', checkReply, resolutionFields = {}, readonly = false} = {}) {
+  source = 'authored source', checkReply, resolutionFields = {}, readonly = false}: Options = {}) {
   const ref = {namespaceId: 'original-namespace', authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
   const original = {ref, runId: 'original-run', checkpointId: 'original-checkpoint', checkpointCid: 'sha256:' + 'c'.repeat(64)};
-  const calls = [], closes = [], accepted = [];
-  const checks = [], checkInputs = new WeakMap();
+  const calls: string[] = [], closes: Close[] = [], accepted: Accepted[] = [];
+  const checks: {text: string; options: unknown}[] = [], checkInputs = new WeakMap<object, {kind: string; text: string}>();
   let status = readonly ? 'succeeded' : 'waiting_checkpoint';
   const state = () => ({version: 'actql-run-state/0.1', run_id: original.runId, status,
     checkpoint: {id: original.checkpointId, checkpoint_id: original.checkpointId, checkpoint_cid: original.checkpointCid}});
   const execution = {ref,
     async wait() {calls.push('wait'); return state();},
     async status() {calls.push('status'); return state();},
-    async result(name) {assert.equal(name, readonly ? 'main' : 'updates'); calls.push('result'); return {
+    async result(name: string) {assert.equal(name, readonly ? 'main' : 'updates'); calls.push('result'); return {
       async all() {calls.push('all'); return [{id: 'independent-result'}];},
       async describe() {calls.push('describe'); return {resultName: name, ref};},
     };},
   };
-  const resolve = async (decision, args) => {
+  const resolve = async (decision: 'approved' | 'rejected', args: string[]) => {
     assert.deepEqual(args, [original.checkpointId], 'Decide exactly the original first-wait Checkpoint');
     calls.push(decision);
     if (decisionFailure) throw decisionFailure;
@@ -32,17 +45,17 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, closeObs
       ...resolutionFields})}]};
   };
   const client = {
-    async startSource(source, options) {assert.equal(source, 'authored source');
+    async startSource(source: string, options: unknown) {assert.equal(source, 'authored source');
       assert.deepEqual(options, readonly ? {format: 'aql'} : {format: 'aql', stopBefore: 'commit'});
       calls.push('start'); return execution;},
-    async attach(value) {assert.deepEqual(value, ref); calls.push('attach'); return execution;},
-    async checkpoints({checkpointId}) {assert.equal(checkpointId, original.checkpointId); calls.push('checkpoints'); return {items: [{
+    async attach(value: unknown) {assert.deepEqual(value, ref); calls.push('attach'); return execution;},
+    async checkpoints({checkpointId}: {checkpointId: string}) {assert.equal(checkpointId, original.checkpointId); calls.push('checkpoints'); return {items: [{
       checkpointId, checkpointCid: foreignCheckpoint ? 'sha256:' + 'd'.repeat(64) : original.checkpointCid,
       subject: {kind: 'run_unit', runId: original.runId, runDefinitionCid: ref.runDefinitionCid},
     }]};},
     async reviewCheckpoint() {calls.push('review'); return {bytes: new TextEncoder().encode('original sealed review')};},
-    approve: (...args) => resolve('approved', args), reject: (...args) => resolve('rejected', args),
-    async check(text, options) {
+    approve: (...args: string[]) => resolve('approved', args), reject: (...args: string[]) => resolve('rejected', args),
+    async check(text: string, options: unknown) {
       calls.push('check'); checks.push({text, options});
       const unknown = text.includes('EFFECT UPDATE private.unknown');
       const invalid = text.includes('.outcome = 1');
@@ -57,22 +70,23 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, closeObs
     async plan() {calls.push('plan'); return {provider_io: 0};},
     async close() {calls.push('close'); if (closeFailure) throw closeFailure;},
   };
-  return {original, calls, closes, accepted, checks, setStatus: value => {status = value;},
-    config: {async connect(options) {assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'}); calls.push('connect'); return client;},
+  return {original, calls, closes, accepted, checks, setStatus: (value: string) => {status = value;},
+    // The port fixture supplies only the exercised public methods and fields.
+    config: {async connect(options: Parameters<Action['connect']>[0]) {assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'}); calls.push('connect'); return client;},
       async readProgram() {calls.push('read-source'); return source;},
-      getCheckInput(value, id) {assert.equal(id, 'source'); return checkInputs.get(value);},
-      async retainAccepted(value) {calls.push('retain-accepted'); accepted.push(value);},
+      getCheckInput(value: object, id: string) {assert.equal(id, 'source'); return checkInputs.get(value);},
+      async retainAccepted(value: Accepted) {calls.push('retain-accepted'); accepted.push(value);},
       assertPendingTarget() {calls.push('pending-target');},
-      retainClose(value) {closes.push(value); if (closeObservationFailure) throw closeObservationFailure;
+      retainClose(value: Close) {closes.push(value); if (closeObservationFailure) throw closeObservationFailure;
         if (value.outcome !== undefined && closeObservationFailureAfterClose) throw closeObservationFailureAfterClose;},
-    }};
+    } as unknown as Omit<Action, 'request'>};
 }
 
 test('RC immediate approval uses the same Client directly after wait without another async read', async () => {
-  for (const decision of ['approved', 'rejected']) {
+  for (const decision of ['approved', 'rejected'] as const) {
     const f = ports();
     const result = await runReleaseProjectNodeAction({...f.config, request: {kind: 'start', decision}});
-    assert.equal(result.state.status, decision === 'approved' ? 'succeeded' : 'cancelled');
+    assert.equal(result.state!.status, decision === 'approved' ? 'succeeded' : 'cancelled');
     assert.deepEqual(result.original, f.original);
     assert(f.calls.indexOf('retain-accepted') < f.calls.indexOf('wait'));
     assert(!f.calls.includes('checkpoints') && !f.calls.includes('review'));
@@ -92,7 +106,7 @@ test('RC readonly original checks and starts once without approval, then cold re
   const f = ports({readonly: true});
   const value = await runReleaseProjectNodeAction({...f.config, request: {kind: 'read', program: 'original.aql'}});
   assert.deepEqual(value.original, {ref: f.original.ref, runId: f.original.runId});
-  assert.equal(value.state.status, 'succeeded'); assert.equal(value.description.resultName, 'main');
+  assert.equal(value.state!.status, 'succeeded'); assert.equal(value.description!.resultName, 'main');
   assert.deepEqual(value.rows, [{id: 'independent-result'}]);
   assert(f.calls.indexOf('check') < f.calls.indexOf('start'));
   assert(f.calls.indexOf('retain-accepted') < f.calls.indexOf('wait'));
@@ -111,11 +125,14 @@ test('RC static and readonly checks reach actual SDK bound-text admission and pr
     limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
       maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
       maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
-  for (const kind of ['static', 'read']) {
-    const source = 'SELECT 1 AS n |> RESULT main', calls = [], closes = [];
+  for (const kind of ['static', 'read'] as const) {
+    const source = 'SELECT 1 AS n |> RESULT main',
+      calls: {operation: string; body?: unknown}[] = [],
+      closes: Close[] = [];
     const primary = new Error('original Host check failure');
+    // This fixture omits reinspection because the original check rejects.
     await assert.rejects(runReleaseProjectNodeAction({request: {kind, program: 'original.aql'},
-      async connect(options) {
+      async connect(options: Parameters<Action['connect']>[0]) {
         assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
         return connectInProcess({mode: 'local', owner: 'local'}, {async perform(operation, body) {
           calls.push({operation, body});
@@ -127,13 +144,14 @@ test('RC static and readonly checks reach actual SDK bound-text admission and pr
       async readProgram() {return source;},
       retainAccepted() {assert.fail('Failed check must not create an accepted Run');},
       assertPendingTarget() {assert.fail('Failed check must not reach approval');},
-      retainClose(value) {closes.push(value);},
-    }), cause => cause.code === 'ClientTransportUnknown' && cause.cause === primary);
+      retainClose(value: Close) {closes.push(value);},
+    } as unknown as Action), cause => (cause as TransportFailure).code === 'ClientTransportUnknown' &&
+      (cause as TransportFailure).cause === primary);
     assert.deepEqual(calls.map(value => value.operation), ['connect', 'check', 'close']);
-    assert.equal(calls[1].body.kind, 'text');
-    assert.equal(calls[1].body.scope, 'bound_input');
-    assert.deepEqual(calls[1].body.input, {text: source, format: 'aql'});
-    assert.equal(calls[1].body.parameters, null);
+    assert.equal((calls[1].body as CheckRequest).kind, 'text');
+    assert.equal((calls[1].body as CheckRequest).scope, 'bound_input');
+    assert.deepEqual((calls[1].body as CheckRequest).input, {text: source, format: 'aql'});
+    assert.equal((calls[1].body as CheckRequest).parameters, null);
     assert.equal(closes.length, 2);
     assert.deepEqual(closes.map(({attempted, returned}) => ({attempted, returned})),
       [{attempted: true, returned: false}, {attempted: true, returned: true}]);
@@ -141,7 +159,7 @@ test('RC static and readonly checks reach actual SDK bound-text admission and pr
 });
 
 test('RC readonly refusal stops before submission and still closes its own Client', async () => {
-  const f = ports({readonly: true, checkReply(value) {value.report.runnable.verdict = 'no'; return value;}});
+  const f = ports({readonly: true, checkReply(value) {value.report.runnable!.verdict = 'no'; return value;}});
   await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}));
   assert(!f.calls.includes('start')); assert(!f.calls.includes('wait')); assert.equal(f.accepted.length, 0);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
@@ -164,22 +182,22 @@ test('RC successful first close does not hide a failed later close observation',
   assert.deepEqual(f.closes.at(-1), {attempted: true, returned: true, outcome: 'returned'});
 });
 
-for (const decision of ['approved', 'rejected']) for (const field of ['checkpoint_id', 'checkpoint_cid'])
+for (const decision of ['approved', 'rejected'] as const) for (const field of ['checkpoint_id', 'checkpoint_cid'])
 test(`RC immediate decision refuses foreign ${field} for ${decision}`, async () => {
   const foreign = field === 'checkpoint_id' ? 'foreign-checkpoint' : 'sha256:' + 'd'.repeat(64);
   const f = ports({resolutionFields: {[field]: foreign},
     closeFailure: new Error('later close failure'), closeObservationFailure: new Error('later observation failure')});
   await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'start', decision}}), error => {
-    assert.equal(error.code, 'ERR_ASSERTION');
-    assert.equal(error.actual, foreign);
-    assert.equal(error.expected, field === 'checkpoint_id' ? f.original.checkpointId : f.original.checkpointCid);
+    assert.equal((error as AssertionFailure).code, 'ERR_ASSERTION');
+    assert.equal((error as AssertionFailure).actual, foreign);
+    assert.equal((error as AssertionFailure).expected, field === 'checkpoint_id' ? f.original.checkpointId : f.original.checkpointCid);
     return true;
   });
   for (const operation of ['start', decision, 'close', 'wait'])
     assert.equal(f.calls.filter(value => value === operation).length, 1);
   assert(!f.calls.includes('checkpoints') && !f.calls.includes('review'));
   assert.deepEqual(f.accepted, [{ref: f.original.ref}]);
-  assert.equal(f.closes.at(-1).returned, false); assert.equal(f.closes.at(-1).outcome, 'threw');
+  assert.equal(f.closes.at(-1)!.returned, false); assert.equal(f.closes.at(-1)!.outcome, 'threw');
 });
 
 test('RC original resolution failure remains primary across failed close and observation', async () => {
@@ -189,14 +207,14 @@ test('RC original resolution failure remains primary across failed close and obs
   assert.equal(f.calls.filter(value => value === 'approved').length, 1);
   assert.equal(f.calls.filter(value => value === 'start').length, 1);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
-  assert.equal(f.closes.at(-1).returned, false); assert.equal(f.closes.at(-1).outcome, 'threw');
+  assert.equal(f.closes.at(-1)!.returned, false); assert.equal(f.closes.at(-1)!.outcome, 'threw');
   assert.equal(f.accepted.length, 1);
 });
 
 test('RC cold resolution selects only the original public checkpoint without reprepare', async () => {
   const f = ports();
   const result = await runReleaseProjectNodeAction({...f.config, request: {kind: 'resolve', original: f.original, decision: 'rejected'}});
-  assert.equal(result.state.status, 'cancelled'); assert(!f.calls.includes('start'));
+  assert.equal(result.state!.status, 'cancelled'); assert(!f.calls.includes('start'));
   assert.equal(f.calls.filter(value => value === 'rejected').length, 1);
   const foreign = ports({foreignCheckpoint: true});
   await assert.rejects(runReleaseProjectNodeAction({...foreign.config,
@@ -225,7 +243,7 @@ for (const template of ['churn-risk-mock', 'deal-review-mock']) test(`RC static 
   assert.equal(f.checks[1].text, source.replace(variable + ".outcome = 'ok'", variable + '.outcome = 1'));
   assert.equal(f.checks[2].text, 'SELECT 1 AS id |> RESULT out |> EFFECT UPDATE private.unknown FROM RESULT out ID id SET (Name = 1)');
   for (const call of f.checks) assert.deepEqual(call.options, {kind: 'text', format: 'aql', scope: 'bound_input'});
-  assert.deepEqual(result.staticChecks.map(value => value.check.report.verdict), ['invalid', 'undetermined']);
+  assert.deepEqual(result.staticChecks!.map(value => (value.check as Completed).report.verdict), ['invalid', 'undetermined']);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
   assert(!f.calls.includes('start') && !f.calls.includes('approved'));
   assert.deepEqual(result.firstClose, {attempted: true, returned: true});
@@ -233,7 +251,7 @@ for (const template of ['churn-risk-mock', 'deal-review-mock']) test(`RC static 
 
 test('RC static refuses wrong causes, fabricated Requirements and changed original text while retaining first close', async () => {
   const program = 'churn-risk.aql', source = projectTemplateFiles('churn-risk-mock')[program];
-  const changes = [
+  const changes: ((value: Check) => void)[] = [
     value => {if (value.report.verdict === 'invalid') value.report.verdict = 'undetermined';},
     value => {if (value.report.verdict === 'undetermined') value.report.verdict = 'invalid';},
     value => {if (value.report.verdict === 'invalid') value.report.reasons = [];},
@@ -248,7 +266,8 @@ test('RC static refuses wrong causes, fabricated Requirements and changed origin
   }
   const f = ports({source});
   await assert.rejects(runReleaseProjectNodeAction({...f.config,
-    getCheckInput: () => ({kind: 'text', text: source}), request: {kind: 'static', program}}), /original public check text/u);
+    getCheckInput: () => ({kind: 'text', text: source}) as ReturnType<Action['getCheckInput']>,
+    request: {kind: 'static', program}}), /original public check text/u);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
   assert(!f.calls.includes('start'));
 });
