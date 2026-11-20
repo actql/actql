@@ -71,9 +71,18 @@ test "a joined CTE retains anonymous roles for its next consumer" {
   let prefix = "WITH t AS (SELECT 1), u AS (SELECT 2 AS n), j AS (SELECT u.n, t.* FROM t CROSS JOIN u) "
   for source in [prefix + "SELECT f1_ FROM j", prefix + "SELECT j.f1_ FROM j"] {
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
-    match compile_query_script(script, { ..fixture_context(), inputs: [], }, construction_limits()) {
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
       Err(UnknownColumn) => ()
-      Err(Expression({ issue: @expression.UnknownReference, origin: Some(origin), })) =>
+      Err(
+        Expression(
+          { issue: @expression.UnknownReference, origin: Some(origin), }
+        )
+      ) =>
         assert_true(@origin.belongs_to(@query.script_document(script), origin))
       Err(_) => fail("expected the original unknown SQL name")
       Ok(_) => fail("JOIN published an anonymous display key as a CTE name")
@@ -81,5 +90,8 @@ test "a joined CTE retains anonymous roles for its next consumer" {
   }
   let program = anonymous_result_program(prefix + "SELECT j.* FROM j")
   assert_eq(anonymous_result_fields(program), ["n", "f1_"])
-  assert_true(@check.check_parsed(program, check_environment(), None, check_limits()) is Checked(_))
+  assert_true(
+    @check.check_parsed(program, check_environment(), None, check_limits())
+    is Checked(_),
+  )
 }

@@ -45,7 +45,9 @@ fn expanded_star_columns(
     for original in expanded {
       if physical_equal(original.projection, projection) {
         if columns.length() > remaining {
-          raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+          raise Abort(
+            Expression({ issue: @expression.WorkLimit, origin: None, }),
+          )
         }
         // A later scope cannot use this occurrence to restore a removed slot.
         guard columns.any(column => column == original.column) else {
@@ -57,7 +59,10 @@ fn expanded_star_columns(
   }
   // Charge each actual profile consultation before scanning it. Ordinary
   // short-circuit name checks do not spend for lookups they never enter.
-  let matches = fn(column : (String, String), name : @query.NamePart) -> Bool raise Abort {
+  let matches = fn(
+    column : (String, String),
+    name : @query.NamePart,
+  ) -> Bool raise Abort {
     if column_profiles is Some(profiles) {
       if profiles.length() > remaining {
         raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
@@ -67,16 +72,12 @@ fn expanded_star_columns(
     star_column_matches_name(column, name, column_profiles, authored_aliases)
   }
   for excluded in projection.except_columns {
-    if !columns.any(column => {
-        matches(column, excluded)
-      }) {
+    if !columns.any(column => matches(column, excluded)) {
       raise Abort(UnknownColumn)
     }
   }
   columns.filter(column => {
-    !projection.except_columns.any(excluded => {
-      matches(column, excluded)
-    })
+    !projection.except_columns.any(excluded => matches(column, excluded))
   })
 }
 
@@ -92,9 +93,10 @@ fn star_column_matches_name(
   match result_column_profile(profiles, column.0, column.1) {
     Some({ name: None, .. }) => false
     Some({ name: Some(original), .. }) => same_name(name, original)
-    None => same_name(name, {
-      value: positional_authored_column_name(column.0, authored_aliases),
-      quoted: false,
-    })
+    None =>
+      same_name(name, {
+        value: positional_authored_column_name(column.0, authored_aliases),
+        quoted: false,
+      })
   }
 }

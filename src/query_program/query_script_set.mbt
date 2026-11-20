@@ -149,8 +149,12 @@ fn lower_script_set_relation(
       allow_subset=part.inner_by_name,
     )
     combined_columns = merge_set_result_columns(
-      combined_columns, script_result_columns(sources, right.name), fields,
-      left_matched, matched, limits.max_expression_work,
+      combined_columns,
+      script_result_columns(sources, right.name),
+      fields,
+      left_matched,
+      matched,
+      limits.max_expression_work,
     )
     let mut right_name = right.name
     let folded = alignment_needed &&

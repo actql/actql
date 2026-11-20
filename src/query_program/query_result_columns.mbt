@@ -78,9 +78,13 @@ fn selected_result_columns(
   if !columns.any(column => column.name is None || column.name_view is Some(_)) {
     return None
   }
-  Some(columns.mapi((index, column) => {
-    { ..column, slot: names[index], label: names[index], }
-  }))
+  Some(
+    columns.mapi((index, column) => {
+      ..column,
+      slot: names[index],
+      label: names[index],
+    }),
+  )
 }
 
 ///|
@@ -168,14 +172,24 @@ fn publish_script_result_columns(
       ("from", construction.text(input.name)),
       (
         "select",
-        set_select_fields(construction, displayed, columns.map(column => column.slot)),
+        set_select_fields(
+          construction,
+          displayed,
+          columns.map(column => column.slot),
+        ),
       ),
       ("as", construction.text(producer)),
     ]),
   )
-  put_script_result_columns(sources, producer, columns.mapi((index, column) => {
-    { ..column, slot: displayed[index], label: displayed[index], }
-  }))
+  put_script_result_columns(
+    sources,
+    producer,
+    columns.mapi((index, column) => {
+      ..column,
+      slot: displayed[index],
+      label: displayed[index],
+    }),
+  )
   { ..input, name: producer, visible_fields: displayed, }
 }
 
@@ -186,11 +200,16 @@ fn join_result_columns(
   left_slots : Map[String, String]?,
   right_slots : Map[String, String],
 ) -> Array[ResultColumn]? {
-  if left is None && right is None { return None }
+  if left is None && right is None {
+    return None
+  }
   let result : Array[ResultColumn] = []
   if left is Some(columns) {
     for column in columns {
-      result.push({ ..column, slot: left_slots.map(slots => slots[column.slot]).unwrap_or(column.slot), })
+      result.push({
+        ..column,
+        slot: left_slots.map(slots => slots[column.slot]).unwrap_or(column.slot),
+      })
     }
   }
   if right is Some(columns) {
@@ -213,11 +232,18 @@ fn merge_set_result_columns(
   right_matched : Array[String],
   max_work : Int,
 ) -> Array[ResultColumn]? raise Abort {
-  if left is None && right is None { return None }
-  guard output.length() == left_matched.length() && output.length() == right_matched.length() else { raise Abort(InvalidContext) }
+  if left is None && right is None {
+    return None
+  }
+  guard output.length() == left_matched.length() &&
+    output.length() == right_matched.length() else {
+    raise Abort(InvalidContext)
+  }
   let mut remaining = max_work
   let spend = fn(amount : Int) -> Unit raise Abort {
-    if amount < 0 || amount > remaining { raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, })) }
+    if amount < 0 || amount > remaining {
+      raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+    }
     remaining -= amount
   }
   let result : Array[ResultColumn] = []
@@ -225,27 +251,51 @@ fn merge_set_result_columns(
     spend(1)
     spend(left.map(columns => columns.length()).unwrap_or(0))
     spend(right.map(columns => columns.length()).unwrap_or(0))
-    let original = result_column_profile(left, left_matched[index], left_matched[index])
-    let incoming = result_column_profile(right, right_matched[index], right_matched[index])
+    let original = result_column_profile(
+      left,
+      left_matched[index],
+      left_matched[index],
+    )
+    let incoming = result_column_profile(
+      right,
+      right_matched[index],
+      right_matched[index],
+    )
     result.push({
-      label: name, slot: name,
-      name: original.map(column => column.name).unwrap_or(Some({ value: name, quoted: false, })),
-      name_view: merge_namespace_views(original.bind(column => column.name_view), incoming.bind(column => column.name_view), spend),
+      label: name,
+      slot: name,
+      name: original
+      .map(column => column.name)
+      .unwrap_or(Some({ value: name, quoted: false, })),
+      name_view: merge_namespace_views(
+        original.bind(column => column.name_view),
+        incoming.bind(column => column.name_view),
+        spend,
+      ),
     })
   }
   Some(result)
 }
 
 ///|
-fn script_result_columns(sources : ScriptSources, input : String) -> Array[ResultColumn]? {
+fn script_result_columns(
+  sources : ScriptSources,
+  input : String,
+) -> Array[ResultColumn]? {
   sources.result_columns.bind(columns => columns.get(input))
 }
 
 ///|
 // No namespace Map is constructed on the proven all-named path. This is the
 // same private compiler table; entries never contain a checked/current grant.
-fn put_script_result_columns(sources : ScriptSources, input : String, columns : Array[ResultColumn]) -> Unit {
-  if sources.result_columns is None { sources.result_columns = Some(Map([])) }
+fn put_script_result_columns(
+  sources : ScriptSources,
+  input : String,
+  columns : Array[ResultColumn],
+) -> Unit {
+  if sources.result_columns is None {
+    sources.result_columns = Some(Map([]))
+  }
   sources.result_columns.unwrap()[input] = columns
 }
 
@@ -259,5 +309,8 @@ fn retain_column_view(
   view : NamespaceView?,
 ) -> Array[ResultColumn]? {
   guard view is Some(_) else { return columns }
-  Some(columns.unwrap_or([]) + [{ label: name.value, slot, name: Some(name), name_view: view, }])
+  Some(
+    columns.unwrap_or([]) +
+    [{ label: name.value, slot, name: Some(name), name_view: view, }],
+  )
 }

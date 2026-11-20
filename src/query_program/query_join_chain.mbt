@@ -642,9 +642,17 @@ fn compile_join_chain_steps(
         (range.0, range.1.map(field => (field.0, right_slots[field.1])))
       }),
       result_columns: join_result_columns(
-        if index == 0 { source_scope.result_columns } else { scope.result_columns },
+        if index == 0 {
+          source_scope.result_columns
+        } else {
+          scope.result_columns
+        },
         right_scope.result_columns,
-        if index == 0 { Some(slots) } else { None },
+        if index == 0 {
+          Some(slots)
+        } else {
+          None
+        },
         right_slots,
       ),
       scalar_ranges: (if index == 0 {

@@ -214,7 +214,10 @@ fn append_set_final_steps(
         }
         let derives : Array[(String, @builder.Node)] = []
         let evaluated : Array[(@query.Expression, String)] = []
-        let visible = scope_named_columns(left_fields.map(field => (field, field)), column_profiles)
+        let visible = scope_named_columns(
+          left_fields.map(field => (field, field)),
+          column_profiles,
+        )
         let bodies = groups.map(group => {
           lower_analytic(
             construction,
@@ -269,7 +272,11 @@ fn append_set_final_steps(
         // every public field for the final projection. Window input keys
         // continue to resolve against left_fields above, not this output scope.
         let visible = order_windows +
-          scope_named_columns(left_fields.map(field => (field, field)), column_profiles).map(field => field.0)
+          scope_named_columns(
+            left_fields.map(field => (field, field)),
+            column_profiles,
+          )
+          .map(field => field.0)
           .filter(field => {
             !order_windows.any(window => {
               ascii_upper(window.0) == ascii_upper(field)

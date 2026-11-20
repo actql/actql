@@ -44,12 +44,24 @@ fn inferred_group_keys(
   for projection in projections {
     spend(1)
     let star_columns = if projection.star == Some("*") {
-      let columns = expanded_star_columns(projection, visible, ranges~, column_profiles~, expansions~, max_work=remaining)
+      let columns = expanded_star_columns(
+        projection,
+        visible,
+        ranges~,
+        column_profiles~,
+        expansions~,
+        max_work=remaining,
+      )
       spend(columns.length())
       Some(columns)
-    } else { None }
+    } else {
+      None
+    }
     let expanded = match star_columns {
-      Some(columns) => columns.map(column => @query.star_column_projection(query, projection, column.0))
+      Some(columns) =>
+        columns.map(column => {
+          @query.star_column_projection(query, projection, column.0)
+        })
       None => [projection]
     }
     for item_index, item in expanded {
@@ -100,7 +112,9 @@ fn inferred_group_keys(
       let pending = if star_column is Some(column) {
         normalized.push((column.1, []))
         []
-      } else { [@query.expression_root(expression)] }
+      } else {
+        [@query.expression_root(expression)]
+      }
       while pending.pop() is Some(node) {
         spend(@query.expression_node_count(expression))
         if group_reference_parts(expression, node) is Some((path, members)) {
@@ -133,10 +147,12 @@ fn inferred_group_keys(
         }
       }
       let position = expressions.length()
-      expressions.push(match star_column {
-        Some(column) => StarColumn(column)
-        None => Expression(expression)
-      })
+      expressions.push(
+        match star_column {
+          Some(column) => StarColumn(column)
+          None => Expression(expression)
+        },
+      )
       paths.push(normalized)
       if group_reference_parts(expression, @query.expression_root(expression))
         is Some(_) {

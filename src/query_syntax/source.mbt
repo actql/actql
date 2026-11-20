@@ -246,7 +246,6 @@ pub fn token_origin(tokens : Tokens, index : Int) -> @origin.Origin? {
   }
 }
 
-
 ///|
 // Every represented field/array count is Int-indexed. Saturation retains a
 // conservative construction ceiling; it never rejects syntax or grants space.

@@ -506,7 +506,9 @@ pub fn prepared_published_query_input_field_geometry(
     count += input.visible_fields.length().to_int64()
     for name in input.visible_fields {
       let units = name.length().to_int64()
-      if units > 9223372036854775807L - names { return Err(Publication(Limit)) }
+      if units > 9223372036854775807L - names {
+        return Err(Publication(Limit))
+      }
       names += units
     }
   }

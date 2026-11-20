@@ -9,14 +9,21 @@ fn script_input_scope(
 ) -> JoinChainScope? raise Abort {
   // A private continuation keeps the same captured AS/SET scope. Namespace
   // metadata does not turn its hidden retained slots into a fresh public row.
-  if sources.ranges.get(input.name) is Some(scope) { return Some(scope) }
+  if sources.ranges.get(input.name) is Some(scope) {
+    return Some(scope)
+  }
   if script_result_columns(sources, input.name) is Some(original_columns) &&
-    original_columns.any(column => column.name is None || column.name_view is Some(_)) {
+    original_columns.any(column => {
+      column.name is None || column.name_view is Some(_)
+    }) {
     // The original Input has already excluded private exact-integer companions.
     // Namespace metadata must not restore those storage slots as user fields.
     let columns = input.visible_fields.map(field => {
       result_column_profile(Some(original_columns), field, field).unwrap_or({
-        label: field, slot: field, name: Some({ value: field, quoted: false, }), name_view: None,
+        label: field,
+        slot: field,
+        name: Some({ value: field, quoted: false, }),
+        name_view: None,
       })
     })
     let physical = columns.map(column => (column.slot, column.slot))

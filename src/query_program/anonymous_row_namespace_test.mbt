@@ -330,8 +330,14 @@ test "range star replacements preserve anonymous occurrences and their original 
         "WITH a AS (SELECT 1, 2 AS n), t AS (SELECT a AS row, 3 AS z FROM a) SELECT * REPLACE (4 AS z) FROM t",
         ["row", "z"],
       ),
-      ("WITH t AS (SELECT 1, 2 AS n) SELECT * REPLACE (3 AS n) FROM t GROUP BY 1", ["f0_", "n"]),
-      ("WITH t AS (SELECT 1, 2 AS n) SELECT * REPLACE (3 AS n) FROM t GROUP BY ALL", ["f0_", "n"]),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT * REPLACE (3 AS n) FROM t GROUP BY 1",
+        ["f0_", "n"],
+      ),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT * REPLACE (3 AS n) FROM t GROUP BY ALL",
+        ["f0_", "n"],
+      ),
     ] {
     let program = anonymous_result_program(source)
     assert_eq(anonymous_result_fields(program), expected, msg=source)
@@ -345,9 +351,21 @@ test "range star replacements preserve anonymous occurrences and their original 
     let source = "WITH t AS (SELECT 1, 2 AS n) SELECT * REPLACE (3 AS n) FROM t " +
       tail
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
-    match compile_query_script(script, { ..fixture_context(), inputs: [], }, construction_limits()) {
-      Err(UnknownColumn) | Err(Expression({ issue: @expression.UnknownReference, origin: Some(_), })) => ()
-      _ => fail("a copied anonymous star occurrence must not gain an ORDER alias: " + source)
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(
+        Expression({ issue: @expression.UnknownReference, origin: Some(_), })
+      ) => ()
+      _ =>
+        fail(
+          "a copied anonymous star occurrence must not gain an ORDER alias: " +
+          source,
+        )
     }
   }
   let nested = "WITH a AS (SELECT 1, 2 AS n), t AS (SELECT a AS row, 3 AS z FROM a), r AS (SELECT * REPLACE (4 AS z) FROM t) SELECT row.f0_ AS value FROM r"

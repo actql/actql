@@ -134,7 +134,17 @@ fn lower_script_join_relation(
     let nearest_vectors = script_nearest_vector_inputs(
       construction, query, nearest_inputs, context, sources, limits, steps,
     )
-    let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(query) || initial_scope.bind(scope => scope.result_columns) is Some(_) || right_scopes.any(scope => scope.bind(scope => scope.result_columns) is Some(_)) { Some([]) } else { None }
+    let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(
+        query,
+      ) ||
+      initial_scope.bind(scope => scope.result_columns) is Some(_) ||
+      right_scopes.any(scope => {
+        scope.bind(scope => scope.result_columns) is Some(_)
+      }) {
+      Some([])
+    } else {
+      None
+    }
     let (body, fields, from) = compile_join_chain_steps(
       construction,
       query,

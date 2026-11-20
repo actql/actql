@@ -123,7 +123,10 @@ fn append_pipe_range_expression(
     construction,
     expression,
     path => {
-      if path.length() == 1 && ordinary_range_name(path[0], ranges, value_ranges) { return None }
+      if path.length() == 1 &&
+        ordinary_range_name(path[0], ranges, value_ranges) {
+        return None
+      }
       profiled_pipe_slot(path, visible, ranges, column_profiles)
     },
     name => {
@@ -156,15 +159,29 @@ fn append_resolved_range_expression(
   let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
     if path.length() == 1 {
       for (name, slot) in slots {
-        if path[0].value == name { return Some(slot) }
+        if path[0].value == name {
+          return Some(slot)
+        }
       }
     }
     resolve(path)
   }
   let namespace_frame = if column_profiles is Some(_) {
-    Some(expression_namespace(lowered, bound_resolve, path => resolve_row.bind(resolver => resolver(path)), column_profiles, remaining))
-  } else { None }
-  if namespace_out is Some(output) { output.push(namespace_frame.bind(frame => frame.root)) }
+    Some(
+      expression_namespace(
+        lowered,
+        bound_resolve,
+        path => resolve_row.bind(resolver => resolver(path)),
+        column_profiles,
+        remaining,
+      ),
+    )
+  } else {
+    None
+  }
+  if namespace_out is Some(output) {
+    output.push(namespace_frame.bind(frame => frame.root))
+  }
   match
     @expression.append_with_properties(
       lowered,
@@ -175,14 +192,18 @@ fn append_resolved_range_expression(
       resolve_row~,
       resolve_row_with_work=match namespace_frame {
         None => None
-        Some(frame) => Some((path, available) => {
-          for (original, fields) in frame.rows {
-            if same_path(path, original) {
-              return namespace_row_fields(fields, column_profiles, available).map(projected => Some(projected))
+        Some(frame) =>
+          Some((path, available) => {
+            for (original, fields) in frame.rows {
+              if same_path(path, original) {
+                return namespace_row_fields(fields, column_profiles, available).map(projected => {
+                    Some(projected)
+                  },
+                )
+              }
             }
-          }
-          Ok(None)
-        })
+            Ok(None)
+          })
       },
     ) {
     Ok(node) => node

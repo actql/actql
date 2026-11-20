@@ -34,7 +34,14 @@ fn resolved_group_key(
       for projection in projections {
         let columns = match projection.star {
           Some("*") =>
-            expanded_star_columns(projection, input_visible, ranges~, column_profiles~, expansions~, max_work~).length()
+            expanded_star_columns(
+              projection,
+              input_visible,
+              ranges~,
+              column_profiles~,
+              expansions~,
+              max_work~,
+            ).length()
           Some(_) => raise Abort(UnsupportedProjection)
           None => 1
         }
@@ -59,7 +66,9 @@ fn resolved_group_key(
               projection,
               input_visible,
               ranges~,
-              column_profiles~, expansions~, max_work~,
+              column_profiles~,
+              expansions~,
+              max_work~,
             )
             if ordinal <= columns.length() {
               return StarColumn(columns[ordinal - 1])

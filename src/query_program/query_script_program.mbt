@@ -338,7 +338,14 @@ fn lower_script_relation_term(
   let nearest_vectors = script_nearest_vector_inputs(
     construction, query, nearest_inputs, context, sources, limits, steps,
   )
-  let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(query) || script_result_columns(sources, input.name) is Some(_) { Some([]) } else { None }
+  let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(
+      query,
+    ) ||
+    script_result_columns(sources, input.name) is Some(_) {
+    Some([])
+  } else {
+    None
+  }
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -416,7 +423,8 @@ fn lower_script_relation_term(
   } else {
     output
   }
-  if exported_columns.bind(columns => columns.get(0)) is Some(columns) && columns.any(column => column.name is None || column.name_view is Some(_)) {
+  if exported_columns.bind(columns => columns.get(0)) is Some(columns) &&
+    columns.any(column => column.name is None || column.name_view is Some(_)) {
     put_script_result_columns(sources, name, columns)
   }
   if preserved is Some(scopes) {
@@ -811,7 +819,12 @@ fn compile_query_script_with_source(
       }
       let table_effect = @query.terminal_table_effect(current)
       result = publish_script_result_columns(
-        construction, stage_sources, result, stage_steps, reserved, limits.max_expression_work,
+        construction,
+        stage_sources,
+        result,
+        stage_steps,
+        reserved,
+        limits.max_expression_work,
       )
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
@@ -1029,7 +1042,7 @@ fn compile_query_script_with_source(
         bound: Map([]),
         unshared: [],
         ranges: Map([]),
-      result_columns: None,
+        result_columns: None,
         value_tables: Map([]),
         binding_ranges: sources.binding_ranges,
         carriers: Map([]),

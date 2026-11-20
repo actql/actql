@@ -80,7 +80,14 @@ fn expanded_replacement_projections(
       })
       .map(field => (field, field))
     } else {
-      expanded_star_columns(projection, visible, ranges~, authored_aliases~, column_profiles~, max_work=remaining)
+      expanded_star_columns(
+        projection,
+        visible,
+        ranges~,
+        authored_aliases~,
+        column_profiles~,
+        max_work=remaining,
+      )
     }
     spend(columns.length())
     for index in 0..<projection.replacements.length() {
@@ -97,9 +104,16 @@ fn expanded_replacement_projections(
           same_name(replacement.name, { value: column.0, quoted: false, })
         } else {
           spend(column_profiles.map(profiles => profiles.length()).unwrap_or(0))
-          star_column_matches_name(column, replacement.name, column_profiles, authored_aliases)
+          star_column_matches_name(
+            column,
+            replacement.name,
+            column_profiles,
+            authored_aliases,
+          )
         }
-        if matches { count += 1 }
+        if matches {
+          count += 1
+        }
       }
       if count == 0 {
         raise Abort(UnknownColumn)
@@ -114,21 +128,30 @@ fn expanded_replacement_projections(
       }
       if !object_star && column_profiles is Some(profiles) {
         spend(profiles.length())
-        if result_column_profile(column_profiles, column.0, column.1) is Some(original) {
+        if result_column_profile(column_profiles, column.0, column.1)
+          is Some(original) {
           spend(projection.replacements.length())
           let replaced = original.name is Some(name) &&
-            projection.replacements.any(replacement => same_name(replacement.name, name))
+            projection.replacements.any(replacement => {
+              same_name(replacement.name, name)
+            })
           if !replaced {
             // Copy this actual star occurrence as a star, without synthesizing
             // a Reference whose storage spelling could gain an implicit alias.
             // Its retained slot is consulted only by the same expansion owner.
-            guard expansions_out is Some(expanded) else { raise Abort(InvalidContext) }
+            guard expansions_out is Some(expanded) else {
+              raise Abort(InvalidContext)
+            }
             let copied = { ..projection, except_columns: [], replacements: [], }
             expanded.push({ projection: copied, column, })
             values.push(copied)
             continue
           }
-          let generated = @query.star_column_projection(query, projection, original.name.unwrap().value)
+          let generated = @query.star_column_projection(
+            query,
+            projection,
+            original.name.unwrap().value,
+          )
           values.push({ ..generated, name: original.name, })
           continue
         }
