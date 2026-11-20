@@ -1299,11 +1299,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -1319,19 +1319,19 @@
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -1347,11 +1347,11 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
@@ -1367,11 +1367,11 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -1773,7 +1773,7 @@
                 "anchor": "preparations = new WeakMap()"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -1809,7 +1809,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -1837,7 +1837,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -1957,7 +1957,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -1985,7 +1985,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -2694,7 +2694,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               },
               {
@@ -2761,7 +2761,7 @@
                 "anchor": "preparations = new WeakMap()"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -2797,7 +2797,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -2825,7 +2825,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -2987,13 +2987,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -3029,11 +3029,11 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -3225,7 +3225,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3284,7 +3284,7 @@
                 "anchor": "preparations = new WeakMap()"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -3320,7 +3320,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -3348,7 +3348,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]

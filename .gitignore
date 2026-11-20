@@ -192,3 +192,9 @@ target/
 /packages/sdk/check-requirement-frontier.test.d.mts
 /packages/sdk/check-protocol-failures.test.mjs
 /packages/sdk/check-protocol-failures.test.d.mts
+
+# Generated bounded optional-provider response boundary.
+/packages/provider-ai-sdk/_internal/bounded-response.mjs
+/packages/provider-ai-sdk/_internal/bounded-response.d.mts
+/packages/provider-ai-sdk/bounded-response.test.mjs
+/packages/provider-ai-sdk/bounded-response.test.d.mts

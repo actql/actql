@@ -16,7 +16,8 @@
   },
   "include": [
     "scripts/**/*.mts",
-    "packages/sdk/**/*.mts"
+    "packages/sdk/**/*.mts",
+    "packages/provider-ai-sdk/**/*.mts"
   ],
   "exclude": [
     "**/*.typecheck.mts",

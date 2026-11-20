@@ -4,8 +4,8 @@ import {readBoundedInferResponse} from './_internal/bounded-response.mjs';
 
 const limits = {maxBytes: 8, maxChunkBytes: 4, maxChunks: 8, maxHeaderBytes: 16,
   observedHeaders: ['content-type']};
-const bytes = text => new TextEncoder().encode(text);
-function fixture(chunks, {readError, cancel} = {}) {
+const bytes = (text: string) => new TextEncoder().encode(text);
+function fixture(chunks: readonly unknown[], {readError, cancel}: {readError?: number; cancel?: () => unknown} = {}) {
   let reads = 0;
   let cancellations = 0;
   let releases = 0;
@@ -20,12 +20,12 @@ function fixture(chunks, {readError, cancel} = {}) {
     cancel() { cancellations++; return cancel?.(); },
     releaseLock() { releases++; },
   };
-  const response = {status: 200, headers: new Headers({'content-type': 'text/plain'}),
+  const response: Parameters<typeof readBoundedInferResponse>[0] & {headers: Headers} & Record<string, unknown> = {status: 200, headers: new Headers({'content-type': 'text/plain'}),
     body: {getReader() { return reader; }}};
   for (const name of ['text', 'json', 'arrayBuffer', 'clone']) {
     response[name] = () => { forbidden++; throw new Error('unbounded'); };
   }
-  response.body.tee = () => { forbidden++; throw new Error('tee'); };
+  (response.body as NonNullable<typeof response.body> & {tee?: () => never}).tee = () => { forbidden++; throw new Error('tee'); };
   return {response, counts: () => ({reads, cancellations, releases, forbidden})};
 }
 
@@ -102,8 +102,8 @@ test('transport failure retains bytes and sanitizes the physical diagnostic', as
 });
 
 test('incomplete observation does not wait for or fabricate reader retirement', async () => {
-  let finish;
-  const pending = new Promise(resolve => { finish = resolve; });
+  let finish!: () => void;
+  const pending = new Promise<void>(resolve => { finish = resolve; });
   const input = fixture([bytes('abcde')], {cancel: () => pending});
   const result = await readBoundedInferResponse(input.response, limits);
   assert.equal(result.transportComplete, false);
@@ -134,10 +134,10 @@ test('cleanup failure retains the same reader and retries without reading again'
 });
 
 test('status and bounded header originals cannot change across the body await', async () => {
-  let resolveRead;
+  let resolveRead!: (value: {done?: unknown; value?: unknown}) => void;
   const input = fixture([]);
-  input.response.body.getReader = () => ({
-    read: () => new Promise(resolve => { resolveRead = resolve; }),
+  input.response.body!.getReader = () => ({
+    read: () => new Promise<{done?: unknown; value?: unknown}>(resolve => { resolveRead = resolve; }),
     releaseLock() {},
   });
   const pending = readBoundedInferResponse(input.response, limits);
@@ -207,12 +207,12 @@ test('raw invalid UTF-8 is retained without replacement or premature JSON decodi
 
 test('abort during reading retains an incomplete original without claiming EOF or reader release', async () => {
   const controller = new AbortController();
-  let finishRead;
-  let finishCancel;
+  let finishRead!: (value: {done?: unknown; value?: unknown}) => void;
+  let finishCancel!: () => void;
   let releases = 0;
   const response = {status: 200, headers: new Headers(), body: {getReader() {
-    return {read: () => new Promise(resolve => { finishRead = resolve; }),
-      cancel: () => new Promise(resolve => { finishCancel = resolve; }),
+    return {read: () => new Promise<{done?: unknown; value?: unknown}>(resolve => { finishRead = resolve; }),
+      cancel: () => new Promise<void>(resolve => { finishCancel = resolve; }),
       releaseLock() { releases++; }};
   }}};
   const operation = readBoundedInferResponse(response, limits, controller.signal);

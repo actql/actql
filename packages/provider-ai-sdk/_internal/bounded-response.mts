@@ -3,13 +3,26 @@
 // Fund the fixed backing buffer, one borrowed stream chunk, header originals,
 // reader, pending read/abort wait and cancellation in the shared retention sum
 // before use. Returning an incomplete view does not release those obligations.
-const positive = value => Number.isSafeInteger(value) && value > 0;
-const fail = code => { throw Object.assign(new TypeError(code), {code}); };
+interface ResponseLimits {maxBytes: number; maxChunkBytes: number; maxChunks: number;
+  observedHeaders?: readonly string[]; maxHeaderBytes: number}
+interface ReaderPort {
+  read(): {done?: unknown; value?: unknown} | PromiseLike<{done?: unknown; value?: unknown}>;
+  cancel?(): unknown;
+  releaseLock(): void;
+}
+// An unchecked physical response view. The existing status/header/reader and
+// chunk guards below still decide validity; no Model admission is inferred.
+interface PhysicalResponse {status: number; headers: {get(name: string): unknown};
+  body: null | {getReader(): ReaderPort}}
+interface ReadObservation {next?: {done?: unknown; value?: unknown}; failed?: boolean; cancelled?: boolean}
+
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
+const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };
 
 // Fixed once before the final Core send gate, never rebuilt from Run values.
 export function fixedInferResponseLimits({
   maxBytes, maxChunkBytes, maxChunks, observedHeaders = [], maxHeaderBytes,
-}) {
+}: ResponseLimits): Readonly<ResponseLimits> & {observedHeaders: readonly string[]} {
   if (!positive(maxBytes) || maxBytes > 2_147_483_647 ||
       !positive(maxChunkBytes) || maxChunkBytes > maxBytes ||
       !positive(maxChunks) || maxChunks > 2_147_483_647 ||
@@ -24,7 +37,7 @@ export function fixedInferResponseLimits({
     observedHeaders: Object.freeze([...observedHeaders])});
 }
 
-export async function readBoundedInferResponse(response, inputLimits, signal) {
+export async function readBoundedInferResponse(response: PhysicalResponse, inputLimits: ResponseLimits, signal?: AbortSignal) {
   const {maxBytes, maxChunkBytes, maxChunks, observedHeaders, maxHeaderBytes} =
     fixedInferResponseLimits(inputLimits);
   if ((signal !== undefined && !(signal instanceof AbortSignal)) ||
@@ -34,7 +47,7 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
     fail('InvalidInferResponseReader');
   }
   const status = response.status;
-  const headers = [];
+  const headers: (readonly [string, string])[] = [];
   let headerBytes = 0;
   for (const name of observedHeaders) {
     const value = response.headers.get(name);
@@ -58,21 +71,21 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
   // text/json/arrayBuffer, clone or tee before the finite byte check.
   const backing = new Uint8Array(maxBytes);
   const reader = response.body.getReader();
-  let heldReader = reader;
-  let retiring;
-  let pendingRead;
-  let wakeRead;
+  let heldReader: ReaderPort | undefined = reader;
+  let retiring: Promise<boolean> | undefined;
+  let pendingRead: Promise<ReadObservation> | undefined;
+  let wakeRead: ((value: ReadObservation) => void) | undefined;
   const retryReaderRetirement = () => {
     if (heldReader === undefined) return Promise.resolve(true);
     if (retiring !== undefined) return retiring;
     let cancellation;
-    try { cancellation = heldReader.cancel(); }
+    try { cancellation = heldReader.cancel!(); }
     catch { cancellation = Promise.reject(new Error('InferReaderCancelFailed')); }
     // An abort-ignoring read remains an original physical obligation even
     // when cancel resolves. Never report reader retirement from cancel alone.
     retiring = Promise.resolve(cancellation).then(() => pendingRead).then(() => {
       try {
-        heldReader.releaseLock();
+        heldReader!.releaseLock();
         heldReader = undefined;
         pendingRead = undefined;
         return true;
@@ -88,12 +101,12 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
   };
   signal?.addEventListener('abort', abort, {once: true});
   let length = 0;
-  let observedBytes = 0;
+  let observedBytes: number | undefined = 0;
   let chunks = 0;
-  let issue;
+  let issue: string | undefined;
   for (;;) {
     if (aborted) { issue = 'InferResponseReadCancelled'; break; }
-    let observed;
+    let observed: ReadObservation;
     try {
       // Preserve the same physical read, including its late rejection/value.
       // Cancellation can expose an incomplete prefix without waiting for a
@@ -102,16 +115,16 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
         () => ({failed: true}));
       if (aborted) { issue = 'InferResponseReadCancelled'; break; }
       observed = signal === undefined ? await pendingRead
-        : await new Promise(resolve => {
+        : await new Promise<ReadObservation>(resolve => {
           wakeRead = resolve;
-          pendingRead.then(resolve);
+          pendingRead!.then(resolve);
         });
       wakeRead = undefined;
     } catch { issue = 'InferResponseReadFailed'; break; }
     if (aborted) { issue = 'InferResponseReadCancelled'; break; }
     pendingRead = undefined;
     if (observed.failed) { issue = 'InferResponseReadFailed'; break; }
-    const next = observed.next;
+    const next = observed.next!;
     if (next.done) {
       signal?.removeEventListener('abort', abort);
       try { reader.releaseLock(); heldReader = undefined; }
