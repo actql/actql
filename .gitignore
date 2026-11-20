@@ -108,3 +108,7 @@ target/
 # Generated from the maintained Run observation source.
 /packages/sdk/internal/run-observation.mjs
 /packages/sdk/internal/run-observation.d.mts
+
+# Generated from the maintained eager Source query source.
+/packages/sdk/source-query.mjs
+/packages/sdk/source-query.d.mts

@@ -1,11 +1,23 @@
 import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
 
+import type {Client, ClientError as PublicClientError, Execution,
+  QueryOptions, Result, ResultPromise, RunState, SubmissionInput} from './index.d.ts';
+import type {ClientSourceFormat} from '@actql/client-wire';
+import type {ClientError as ClientErrorConstructor} from './internal/errors.mjs';
+
+type RetainResult = (original: object, result?: object) => SubmissionInput | undefined;
+type RetainFailure = (execution: Execution, error: PublicClientError, cause?: unknown) => void;
+type CaptureAdmission = (format: ClientSourceFormat, text: string, parameters: unknown,
+  options: QueryOptions | undefined, capture: (submit: Client['startSource']) => Promise<Execution>) => Promise<Execution>;
+type ReadKind = Parameters<typeof captureQueryResultRead>[2];
+
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
 const queryOptionNames = new Set(['requestId', 'submissionRef', 'attemptId', 'signal', 'result',
   'parameterDeclarations', 'executionProfile']);
 
-function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
+function executionError(ClientError: typeof ClientErrorConstructor, retainFailure: RetainFailure,
+  code: string, execution: Execution, requestId: string, state?: RunState, cause?: unknown) {
   const error = new ClientError(code, {requestId,
     executionRef: execution.ref});
   // Live handles, observations and underlying failures are explicit inspection
@@ -19,8 +31,9 @@ function executionError(ClientError, retainFailure, code, execution, requestId, 
   return error;
 }
 
-function collectAfterQuery(query, retainResult, capture, read) {
-  let captured, captureError, captureFailed = false;
+function collectAfterQuery<T,>(query: Promise<Result>, retainResult: RetainResult, capture: () => T,
+  read: (result: Result, captured: T) => Promise<unknown>) {
+  let captured: T, captureError: unknown, captureFailed = false;
   try { captured = capture(); }
   catch (cause) { captureFailed = true; captureError = cause; }
   // Capture arguments immediately, but always observe the eager query. Its
@@ -28,16 +41,20 @@ function collectAfterQuery(query, retainResult, capture, read) {
   // a local argument failure must not leave that query rejection orphaned.
   const collected = query.then(result => {
     if (captureFailed) throw captureError;
-    return read(result, captured);
+    return read(result, captured!);
   });
   retainResult(query, collected);
   return collected;
 }
 
-export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
-  format, text, parameters, options, beforeResultRead, assertResultReadCurrent, captureAdmission) {
-  let requestId, admission, signal, selectedResult;
-  const capture = submit => {
+export function sourceQuery(startSource: Client['startSource'], ClientError: typeof ClientErrorConstructor,
+  retainResult: RetainResult, retainFailure: RetainFailure, format: ClientSourceFormat,
+  text: string, parameters: unknown, options: QueryOptions | undefined,
+  beforeResultRead?: Parameters<typeof captureQueryResultRead>[0],
+  assertResultReadCurrent?: Parameters<typeof captureQueryResultRead>[1], captureAdmission?: CaptureAdmission): ResultPromise {
+  let requestId: string | undefined, admission: Promise<Execution>, signal: AbortSignal | undefined,
+    selectedResult: string | undefined;
+  const capture = (submit: Client['startSource']) => {
     // A selected query intake observes the original omission before this
     // SDK-owned default or any caller option/property access is performed.
     if (options === undefined) options = {};
@@ -89,7 +106,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     try { state = await execution.wait({until: 'terminal', signal}); }
     catch (cause) {
       throw executionError(ClientError, retainFailure, 'QueryObservationUnknown', execution,
-        requestId, undefined, cause);
+        requestId!, undefined, cause);
     }
     if (state.status !== 'succeeded') {
       const code = ['failed', 'cancelled'].includes(state.status)
@@ -100,25 +117,25 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
         ? 'ExecutionBlocked' : 'ExecutionPending';
       // wait may return a current nonterminal observation. It is neither
       // success nor permission to poll, resume, or submit another request.
-      throw executionError(ClientError, retainFailure, code, execution, requestId, state);
+      throw executionError(ClientError, retainFailure, code, execution, requestId!, state);
     }
     const names = Object.keys(state.result_availability);
     const name = selectedResult ?? (names.length === 1 ? names[0] : undefined);
     if (name === undefined || !Object.hasOwn(state.result_availability, name)) {
       throw executionError(ClientError, retainFailure, name === undefined
         ? 'ResultSelectionRequired' : 'UnknownResultName', execution,
-      requestId, state);
+      requestId!, state);
     }
     if (state.result_availability[name].state !== 'available') {
       throw executionError(ClientError, retainFailure, 'ResultUnavailable', execution,
-        requestId, state);
+        requestId!, state);
     }
     const result = execution.result(name);
     retainResult(execution, result);
     return result;
   });
   retainResult(admission, query);
-  const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,
+  const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,
     retainResult, () => captureQueryResultRead(beforeResultRead, assertResultReadCurrent,
       kind, schemaOrOptions, options), (result, token) => collectCapturedResult(result, token));
   // Keep one native Promise. Native chaining/assimilation and repeated awaits
@@ -127,11 +144,11 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     requestId: {value: requestId, enumerable: true},
     // Both transport modes consume this call's captured options and schema
     // through the existing nominal Result, rather than a second public intake.
-    all: {value: (schemaOrOptions, options) => collectSelected('all', schemaOrOptions, options)},
-    one: {value: options => collectSelected('one', options, undefined)},
-    scalar: {value: options => collectSelected('scalar', options, undefined)},
+    all: {value: (schemaOrOptions: unknown, options?: unknown) => collectSelected('all', schemaOrOptions, options)},
+    one: {value: (options?: unknown) => collectSelected('one', options, undefined)},
+    scalar: {value: (options?: unknown) => collectSelected('scalar', options, undefined)},
   });
   // The SDK properties above are immutable, but the native Promise must stay
   // extensible: Node attaches async-context state when hooks become active.
-  return query;
+  return query as ResultPromise;
 }

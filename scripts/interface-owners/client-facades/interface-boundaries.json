@@ -14893,7 +14893,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/source-query.mjs",
+                "path": "packages/sdk/source-query.mts",
                 "anchor": "beforeResultRead, assertResultReadCurrent"
               }
             ],
@@ -14980,8 +14980,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -14990,8 +14990,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -15004,8 +15004,8 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15018,8 +15018,8 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -15032,8 +15032,8 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
@@ -15046,8 +15046,8 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15060,8 +15060,8 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
@@ -15074,8 +15074,8 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15088,8 +15088,8 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
