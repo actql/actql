@@ -1209,6 +1209,22 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
                     self.assertFalse(work._thread.is_alive())
                     self.assertIsNone(work._future.exception(timeout=0))
 
+    def test_unrelated_actual_code_is_never_hashed_by_the_observer(self):
+        from types import FunctionType
+        _, core, store, observer, _ = self.fixture()
+        # A real unrelated Python call whose constant is deliberately unhashable.
+        # It must not enter stage classification or invalidate normal evidence.
+        constant = []
+        code = (lambda: None).__code__.replace(co_consts=(constant,))
+        unrelated = FunctionType(code, {})
+        with observer:
+            with core._host_operation():
+                self.assertIs(unrelated(), constant)
+        result = observer.summary()
+        self.assertFalse(result['observationFailed'], result)
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual((store.sets, store.reads), (1, 2))
+
 
 class TaskRetirementSnapshotTests(unittest.TestCase):
     """Original Python worker/allowance timeline with explicit scalar FFI ports."""
