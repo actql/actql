@@ -1876,7 +1876,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "DuckDBTransportError"
               }
             ],

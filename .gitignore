@@ -665,3 +665,15 @@ target/
 
 /adapters/host-node/installation.mjs
 /adapters/host-node/installation.d.mts
+
+/adapters/store-local/process-binding.mjs
+/adapters/store-local/process-binding.d.mts
+
+/adapters/connectors/duckdb/node/configuration.mjs
+/adapters/connectors/duckdb/node/configuration.d.mts
+
+/adapters/connectors/duckdb/node/retained-configuration.mjs
+/adapters/connectors/duckdb/node/retained-configuration.d.mts
+
+/adapters/host-node/installation.test.mjs
+/adapters/host-node/installation.test.d.mts

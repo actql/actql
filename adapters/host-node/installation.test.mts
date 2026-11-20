@@ -6,10 +6,10 @@ import {prepareDuckDBStrategyConfiguration, preparedStrategyConfiguration} from
 
 test('selected loading snapshots keys, loader functions and opaque settings before awaiting', async () => {
   const keys = ['a','b'], a = Object.freeze({}), b = Object.freeze({});
-  const options = {a,b}, calls = [];
-  let resume;
-  const wait = new Promise(resolve => { resume = resolve; });
-  const factory = key => (_, __, ___, configuration) => {
+  const options: {a: object; b?: object} = {a,b}, calls: string[] = [];
+  let resume: (() => void) | undefined;
+  const wait = new Promise<void>(resolve => { resume = resolve; });
+  const factory = (key: string) => (_: unknown, __: unknown, ___: unknown, configuration: unknown) => {
     calls.push(key); return configuration;
   };
   const loaders = new Map([
@@ -17,26 +17,26 @@ test('selected loading snapshots keys, loader functions and opaque settings befo
     ['b', async () => factory('b')],
     ['unused', () => assert.fail('unselected import')],
   ]);
-  const pending = installSelectedContributions(loaders,{strategyHostModules: () => keys},{},x=>x,options);
+  const pending = installSelectedContributions(loaders,{strategyHostModules: () => keys},{},(x: unknown)=>x,options);
   keys.reverse(); options.a = {}; delete options.b; loaders.set('b', () => assert.fail('replaced loader'));
-  resume();
+  resume!();
   assert.deepEqual(await pending,[a,b]);
   assert.deepEqual(calls,['a','b']);
 });
 
 test('loading cancellation observes the started load but never starts another load or factory', async () => {
-  let resume, settled = false, loads = 0, factories = 0, returned = false;
-  const wait = new Promise(resolve => { resume = resolve; });
+  let resume: (() => void) | undefined, settled = false, loads = 0, factories = 0, returned = false;
+  const wait = new Promise<void>(resolve => { resume = resolve; });
   const controller = new AbortController(), reason = new Error('cancel');
   const loaders = new Map(['a','b'].map(key => [key, async () => {
     loads++; await wait; settled = true; return () => { factories++; };
   }]));
-  const pending = installSelectedContributions(loaders,{strategyHostModules: () => ['a','b']},{},x=>x,{},controller.signal);
+  const pending = installSelectedContributions(loaders,{strategyHostModules: () => ['a','b']},{},(x: unknown)=>x,{},controller.signal);
   pending.then(() => { returned = true; },() => { returned = true; });
   controller.abort(reason);
   await Promise.resolve();
   assert.equal(returned,false); assert.equal(settled,false);
-  resume();
+  resume!();
   await assert.rejects(pending, error => error === reason);
   assert.equal(settled,true); assert.equal(loads,1); assert.equal(factories,0);
 });
@@ -48,7 +48,7 @@ test('invalid selection and failed loading cannot partially install or fall back
       ['a', async () => { loads++; return () => { factories++; }; }],
       ['b', async () => { loads++; throw new Error('failed load'); }],
     ]);
-    await assert.rejects(installSelectedContributions(loaders,{strategyHostModules: () => keys},{},x=>x));
+    await assert.rejects(installSelectedContributions(loaders,{strategyHostModules: () => keys},{},(x: unknown)=>x));
     assert.equal(loads,keys[1] === 'b' ? 2 : 0); assert.equal(factories,0);
   }
 });
@@ -60,6 +60,7 @@ test('outer snapshot preserves handles without inspecting or freezing unused con
   assert.equal(snapshot.unused,unused);
   assert.equal(Object.isFrozen(options),false);
   assert.equal(Object.isFrozen(unused),false);
+  // @ts-expect-error TS2378: Preserve the original no-return JavaScript negative getter fixture.
   assert.throws(() => snapshotConfigurations({get unsafe() { assert.fail('getter called'); }}), TypeError);
 });
 

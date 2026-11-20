@@ -56337,7 +56337,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installation.test.mjs",
+                "path": "adapters/host-node/installation.test.mts",
                 "anchor": "test('selected loading snapshots keys, loader functions and opaque settings before awaiting', async () => {"
               },
               {
@@ -56481,7 +56481,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installation.test.mjs",
+                "path": "adapters/host-node/installation.test.mts",
                 "anchor": "test('selected loading snapshots keys, loader functions and opaque settings before awaiting', async () => {"
               },
               {
