@@ -4,6 +4,10 @@ import {lstatSync, readFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+type Occurrence = {path: string; token: string; contextSha256: string; line: number};
+type Inventory = {version: number; baseline: string; entries: (Omit<Occurrence, 'line'> & {
+  count: number; reason: string})[]};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const inventoryPath = 'scripts/owned-contract-version-legacy.json';
 const baseline = '0.1';
@@ -17,7 +21,7 @@ const tokens = new RegExp([
   String.raw`\burn:(?:actql|aoa):[A-Za-z0-9_.:-]+:(${number})`,
 ].join('|'), 'g');
 
-function registryPackageVersionEnd(text, start) {
+function registryPackageVersionEnd(text: string, start: number) {
   if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return -1;
   const raw = /^[^\s"'`<>()]+/u.exec(text.slice(start))?.[0];
   if (!raw) return -1;
@@ -34,12 +38,12 @@ function registryPackageVersionEnd(text, start) {
   return external ? start + raw.length : -1;
 }
 
-export function occurrences(text, path) {
-  const result = [];
+export function occurrences(text: string, path: string) {
+  const result: Occurrence[] = [];
   // Offsets increase within this one immutable text. Retain parser positions,
   // never a source admission or verdict between inputs. Look ahead lazily so
   // baseline-only files do not need another scan.
-  let line = 1, nextNewline, nextUrl, urlStart = -1, registryEnd = -1;
+  let line = 1, nextNewline: number | undefined, nextUrl: number | undefined, urlStart = -1, registryEnd: number | undefined = -1;
   for (const match of text.matchAll(tokens)) {
     const version = match[1] ?? match[2] ?? match[3];
     if (version === baseline) continue;
@@ -81,7 +85,7 @@ export function repositoryOccurrences(directory = root) {
       if (!lstatSync(join(directory, path)).isFile()) return [];
       bytes = readFileSync(join(directory, path));
     } catch (error) {
-      if (error.code === 'ENOENT') return []; // A tracked deletion.
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; // A tracked deletion.
       throw error;
     }
     if (bytes.includes(0)) return [];
@@ -91,12 +95,12 @@ export function repositoryOccurrences(directory = root) {
   });
 }
 
-const key = item => JSON.stringify([item.path, item.token, item.contextSha256]);
+const key = (item: Pick<Occurrence, 'path' | 'token' | 'contextSha256'>) => JSON.stringify([item.path, item.token, item.contextSha256]);
 
-export function violations(found, inventory) {
+export function violations(found: readonly Occurrence[], inventory: Inventory) {
   if (inventory.version !== 1 || inventory.baseline !== baseline ||
       !Array.isArray(inventory.entries)) throw new Error('InvalidVersionInventory');
-  const remaining = new Map();
+  const remaining = new Map<string, number>();
   for (const entry of inventory.entries) {
     if (typeof entry.path !== 'string' || typeof entry.token !== 'string' ||
         !/^[0-9a-f]{64}$/.test(entry.contextSha256) ||

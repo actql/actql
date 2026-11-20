@@ -725,3 +725,9 @@ target/
 /scripts/build-local-node-adapters.d.mts
 /scripts/local-node-package-inputs.test.mjs
 /scripts/local-node-package-inputs.test.d.mts
+
+# Emitted from the authored package contract-source checks.
+/scripts/check-owned-contract-versions.mjs
+/scripts/check-owned-contract-versions.d.mts
+/scripts/generated-owned-contracts.mjs
+/scripts/generated-owned-contracts.d.mts

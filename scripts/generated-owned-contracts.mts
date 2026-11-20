@@ -3,10 +3,10 @@
 // the original source still requires its exact reviewed context and count.
 import {violations} from './check-owned-contract-versions.mjs';
 
-const production = path => path.startsWith('src/') && path.endsWith('.mbt') &&
+const production = (path: string) => path.startsWith('src/') && path.endsWith('.mbt') &&
   !/(?:^|\/)[^/]*(?:_test|_wbtest)\.mbt$/u.test(path);
 
-export function assertGeneratedOwnedContracts({source, generated, inventory}) {
+export function assertGeneratedOwnedContracts({source, generated, inventory}: {source: Parameters<typeof violations>[0]; generated: Parameters<typeof violations>[0]; inventory: Parameters<typeof violations>[1]}) {
   const rejectedSource = violations(source, inventory);
   if (rejectedSource.length) {
     throw new Error('Unadmitted owned source contract contexts:\n' +
