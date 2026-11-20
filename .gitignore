@@ -579,3 +579,12 @@ target/
 
 /adapters/host-common/dispatch-failure-observation.mjs
 /adapters/host-common/dispatch-failure-observation.d.mts
+
+/adapters/host-common/local-signing-metadata.mjs
+/adapters/host-common/local-signing-metadata.d.mts
+
+/adapters/host-common/installation-preparation-metadata.mjs
+/adapters/host-common/installation-preparation-metadata.d.mts
+
+/adapters/host-common/installed-checkpoint-codec-limits.mjs
+/adapters/host-common/installed-checkpoint-codec-limits.d.mts

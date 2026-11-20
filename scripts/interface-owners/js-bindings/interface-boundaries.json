@@ -18068,7 +18068,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -19791,7 +19791,7 @@
                 "anchor": "15L + 8L * max_entries.to_int64()"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -21139,8 +21139,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "export function createLocalSigningMetadata(moon)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "export function createLocalSigningMetadata(moon: unknown)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -21149,7 +21149,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('ForeignLocalSigningMetadata')"
               },
               {
@@ -21159,8 +21159,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "let grants = new WeakMap<object, unknown>(), scopes = new WeakMap<object, unknown>(), uses = new WeakMap<object, unknown>();"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21169,8 +21169,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21179,11 +21179,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRetired')"
               }
             ],
@@ -21239,8 +21239,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
                 "path": "scripts/generate-credential-scope-binding.mts",
@@ -21249,7 +21249,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -21259,8 +21259,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21269,8 +21269,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21279,15 +21279,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -24524,7 +24524,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -25228,7 +25228,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -47223,7 +47223,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -87533,7 +87533,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -88227,7 +88227,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -89264,7 +89264,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -89915,7 +89915,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
