@@ -7,7 +7,17 @@ import {existsSync} from 'node:fs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 const sha = /^[0-9a-f]{40}$/u;
 const workflowPath = '.github/workflows/ci.yml';
-export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs', 'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-main-base.mjs', 'scripts/ci-core-partitions.mjs', 'scripts/ci-session-controls.mjs']);
+// These Git inputs bind in-place emit to the locked compiler and the exact
+// authored tooling that supplies the existing runtime entries.
+export const typescriptPreparationPolicyPaths = Object.freeze([
+  'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',
+]);
+export const policyPaths = Object.freeze([
+  '.github', 'package.json', 'package-lock.json', ...typescriptPreparationPolicyPaths,
+  'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/test-execution.mts', 'scripts/test-execution-reporter.mts', 'scripts/packed-query-evidence.mts',
+  'scripts/ci-main-base.mjs', 'scripts/ci-core-partitions.mts', 'scripts/ci-session-controls.mjs',
+]);
 const gitDefault = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
 const positive = value => Number.isSafeInteger(value) && value > 0;
 

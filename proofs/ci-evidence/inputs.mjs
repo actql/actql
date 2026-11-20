@@ -3,6 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {encode} from '../bounded-session/action-inputs.mjs';
+import {typescriptPreparationPolicyPaths} from '../../scripts/ci-main-base.mjs';
 import {packageConfigurationReviewFor, reviewedNestedFixture} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
@@ -58,6 +59,37 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
   'scripts/setup-moonbit.mjs', 'scripts/moonbit-installation.mjs',
   'scripts/ci-main-base.mjs', 'scripts/ci-targets.mjs',
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml'];
+
+// Migrated runtime entry names stay stable. In a Git input inventory retain
+// the actual authored member. An old tree with only JavaScript keeps its
+// original path and key. Never bind a checkout's untracked emitted bytes.
+const migratedTooling = new Map([
+  ['scripts/test-execution.mjs', 'scripts/test-execution.mts'],
+  ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
+  ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
+]);
+export function proofToolingInputs(tree, originalPaths) {
+  const paths = new Set(), unresolved = [];
+  let typescript = false;
+  function addTyped(authored, runtime) {
+    if (tree.entries.has(runtime)) unresolved.push(`ambiguous authored tooling input: ${runtime}`);
+    paths.add(authored);
+    typescript = true;
+  }
+  for (const path of originalPaths) {
+    const authored = migratedTooling.get(path);
+    if (authored && tree.entries.has(authored)) addTyped(authored, path);
+    else paths.add(path);
+    if (path === 'scripts/test-execution.mjs' && tree.entries.has('scripts/test-execution-reporter.mts')) {
+      addTyped('scripts/test-execution-reporter.mts', 'scripts/test-execution-reporter.mjs');
+    }
+    if (path === 'scripts/ci-main-base.mjs' && tree.entries.has('scripts/ci-core-partitions.mts')) {
+      addTyped('scripts/ci-core-partitions.mts', 'scripts/ci-core-partitions.mjs');
+    }
+  }
+  if (typescript) typescriptPreparationPolicyPaths.forEach(path => paths.add(path));
+  return {paths: [...paths], unresolved};
+}
 
 // Read cat-file's length-delimited binary protocol, never split blob bytes on
 // newlines. Bind every returned object to the ls-tree identity and content; a
@@ -349,7 +381,9 @@ function buildActionInputs({tree, revision, action, runtime}) {
     listings.set(directory + (recursive ? '/**' : '/*'), paths);
     paths.forEach(add);
   }
-  sharedFiles.forEach(add);
+  const tooling = proofToolingInputs(tree, sharedFiles);
+  tooling.paths.forEach(add);
+  tooling.unresolved.forEach(reason => unresolved.add(reason));
   // Pipeline scientific consumers are now loaded only in explicit local
   // pipeline executions. Their directory is not read/evaluated by Session.
   // Bind every evaluated module in the reviewed inventory import graph. A

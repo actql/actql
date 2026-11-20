@@ -36,6 +36,33 @@ test('unrelated source and provenance changes preserve a closed Session input id
   assert.equal(old.key, candidate.key);
 });
 
+test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no emitted aliases', () => {
+  const files = new Map(base);
+  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader'];
+  const extra = ['scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts',
+    'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts'];
+  for (const stem of moved) {
+    files.delete(stem + '.mjs');
+    files.set(stem + '.mts', stem + ' original typed source');
+  }
+  for (const path of extra) files.set(path, path + ' original');
+  const typed = inventory(files);
+  const paths = new Set(typed.inputs.files.map(member => member.path));
+  assert.deepEqual(typed.unresolved, []);
+  assert(moved.every(stem => paths.has(stem + '.mts') && !paths.has(stem + '.mjs')));
+  assert(extra.every(path => paths.has(path)));
+  assert.equal(compareInputs(inventory(), typed).eligible, false, 'A legacy key is unchanged, never equivalent to the migration');
+  for (const path of [...moved.map(stem => stem + '.mts'), ...extra, 'package-lock.json']) {
+    const changed = new Map(files); changed.set(path, 'independent mutation');
+    assert.equal(compareInputs(typed, inventory(changed)).eligible, false, path);
+  }
+  const missing = new Map(files); missing.delete('tsconfig.tooling.json');
+  assert(inventory(missing).unresolved.includes('missing source input: tsconfig.tooling.json'));
+  const ambiguous = new Map(files); ambiguous.set('scripts/ci-artifact-reader.mjs', 'tracked duplicate');
+  assert(inventory(ambiguous).unresolved.includes('ambiguous authored tooling input: scripts/ci-artifact-reader.mjs'));
+  assert.equal(compareInputs(typed, inventory(ambiguous)).eligible, false);
+});
+
 test('separate pipeline consumers and membership do not invalidate Session inputs', () => {
   const files = new Map(base); files.set('proofs/relation-pipeline/execution-original.mjs', 'reviewed shared consumer');
   const original = inventory(files);

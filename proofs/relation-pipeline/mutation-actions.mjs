@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {lstatSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {gitTree, hash} from '../ci-evidence/inputs.mjs';
+import {gitTree, hash, proofToolingInputs} from '../ci-evidence/inputs.mjs';
 import {checkPlan} from '../ci-evidence/check.mjs';
 import {mutationNamesByPart, planDigest} from './proof-parts.mjs';
 import {inspectMutationPart, inspectArchivedMutationPart, mutationReportPath} from './mutation-parts.mjs';
@@ -59,7 +59,9 @@ export function mutationSourceInputs({tree, source, root}) {
   const paths = [...new Set([...members.flatMap(entry => entry.members), ...snapshotFiles])].sort();
   assert.deepEqual(Object.keys(source.sources).sort(), paths, 'Pipeline snapshot/input membership differs');
   assert.equal(source.digest, digest(source.sources), 'Pipeline snapshot digest differs');
-  const selected = [...new Set([...paths, ...checkerFiles])].sort();
+  const tooling = proofToolingInputs(tree, checkerFiles);
+  assert.equal(tooling.unresolved.length, 0, 'Ambiguous pipeline tooling source');
+  const selected = [...new Set([...paths, ...tooling.paths])].sort();
   for (const path of selected) {
     const entry = tree.entries.get(path);
     assert(entry?.kind === 'blob' && ['100644', '100755'].includes(entry.mode), `Missing/nonregular pipeline input: ${path}`);
