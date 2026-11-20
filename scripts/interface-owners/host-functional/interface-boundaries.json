@@ -92142,7 +92142,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('Source profile reader joins UTF-8 across bounded chunks', async () => {"
               },
               {
@@ -92182,7 +92182,7 @@
                 "anchor": "JSON configuration construction still refuses genuinely excessive structure before native parse"
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "Source profile reader preserves preparse refusal and the same pending physical close"
               }
             ]
@@ -92439,23 +92439,23 @@
                 "anchor": "The existing configuration-reader owner selects original methods for connectors."
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection retains the original-text method across an awaited JSON read'"
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection refuses malformed original-text ports without fallback'"
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection retains original-bytes and text independently before an await'"
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection refuses malformed original-bytes ports and preserves omission'"
               }
             ]
@@ -92760,7 +92760,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('Source profile reader joins UTF-8 across bounded chunks', async () => {"
               },
               {

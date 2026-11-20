@@ -5,10 +5,26 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {readSourceProfileJson, readBoundedConfigurationText, captureConfigurationReaders} from './source-profile-json.mjs';
 
-function source(bytes, {step = Infinity, readFailure, closeFailure,
-  virtualBytes = bytes.length} = {}) {
+type CapturedConfiguredReaders = Exclude<ReturnType<typeof captureConfigurationReaders>,
+  {readText: typeof readBoundedConfigurationText}>;
+interface ErrorCarrier {
+  cause?: unknown; errors?: readonly unknown[]; cleanupPending?: unknown;
+  cleanupHandle: {status(): {pending: boolean}};
+}
+interface SourceOptions {step?: number; readFailure?: unknown; closeFailure?: unknown; virtualBytes?: number}
+interface ObservedSource {
+  opens: number; closes: number; bytes: number; reads: number; buffers: Set<Buffer>;
+  openFile(path: string, flags: string): Promise<{
+    read(buffer: Buffer, offset: number, length: number, at: null): Promise<{bytesRead: number}>;
+    close(): Promise<void>;
+  }>;
+}
+
+
+function source(bytes: Buffer, {step = Infinity, readFailure, closeFailure,
+  virtualBytes = bytes.length}: SourceOptions = {}) {
   let position = 0;
-  const observed = {opens: 0, closes: 0, bytes: 0, reads: 0, buffers: new Set()};
+  const observed = {opens: 0, closes: 0, bytes: 0, reads: 0, buffers: new Set()} as ObservedSource;
   observed.openFile = async (path, flags) => {
     assert.equal(path, '/profile.json');
     assert.equal(flags, 'r');
@@ -37,7 +53,7 @@ function source(bytes, {step = Infinity, readFailure, closeFailure,
   return observed;
 }
 
-for (const [name, length] of [['below', 15], ['exactly', 16]]) {
+for (const [name, length] of [['below', 15], ['exactly', 16]] as const) {
   test(`Source profile reader accepts valid JSON ${name} its byte limit`, async () => {
     const observed = source(Buffer.from('{"x":"é"}'.padEnd(length - 1)), {step: 1});
     assert.equal(observed.bytes, 0);
@@ -50,7 +66,7 @@ for (const [name, length] of [['below', 15], ['exactly', 16]]) {
   });
 }
 
-for (const [name, virtualBytes] of [['one byte over', 17], ['huge', 2 ** 40]]) {
+for (const [name, virtualBytes] of [['one byte over', 17], ['huge', 2 ** 40]] as const) {
   test(`Source profile reader rejects ${name} without reading or parsing a truncated prefix`, async () => {
     const observed = source(Buffer.from('{}'), {step: 3, virtualBytes});
     await assert.rejects(readSourceProfileJson('/profile.json',
@@ -76,15 +92,15 @@ test('Source profile reader joins UTF-8 across bounded chunks', async () => {
 
 test('Source profile reader stages the same decoded UTF8 original before its single native parse', async t => {
   const wire = '{"x":"é😀\\u0041"}', bytes = Buffer.from(wire), observed = source(bytes, {step: 1});
-  const events = [], parse = JSON.parse;
-  t.mock.method(JSON, 'parse', value => {
+  const events: string[] = [], parse = JSON.parse;
+  t.mock.method(JSON, 'parse', (value: string) => {
     assert.equal(value, wire); events.push('parse');
     return parse(value);
   });
   assert.deepEqual(await readSourceProfileJson('/profile.json', {maxBytes: bytes.length,
     openFile: observed.openFile,
-    beforeDecode(received) {assert.equal(received, bytes.length); events.push('decode');},
-    beforeParse(text) {assert.equal(text, wire); assert.equal(observed.closes, 0); events.push('geometry');}}),
+    beforeDecode(received: number) {assert.equal(received, bytes.length); events.push('decode');},
+    beforeParse(text: string) {assert.equal(text, wire); assert.equal(observed.closes, 0); events.push('geometry');}}),
   {x: 'é😀A'});
   assert.deepEqual(events, ['decode', 'geometry', 'parse']);
   assert.equal(observed.opens, 1); assert.equal(observed.closes, 1);
@@ -97,8 +113,8 @@ test('Source profile reader preserves preparse refusal and the same pending phys
   t.mock.method(JSON, 'parse', () => {parses++; assert.fail('No parse before admission');});
   await assert.rejects(readSourceProfileJson('/profile.json', {openFile: observed.openFile,
     beforeParse() {throw primary;}}), error => {
-    assert.equal(error.cause, primary); assert.deepEqual(error.errors, [primary, closeFailure]);
-    assert.equal(error.cleanupHandle.status().pending, true);
+    assert.equal((error as ErrorCarrier).cause, primary); assert.deepEqual((error as ErrorCarrier).errors, [primary, closeFailure]);
+    assert.equal((error as ErrorCarrier).cleanupHandle.status().pending, true);
     return true;
   });
   assert.equal(parses, 0); assert.equal(observed.opens, 1); assert.equal(observed.closes, 1);
@@ -108,7 +124,7 @@ test('Source profile reader keeps native invalid-JSON refusal after geometry and
   const invalid = source(Buffer.from('{"x":'));
   let calls = 0;
   await assert.rejects(readSourceProfileJson('/profile.json', {openFile: invalid.openFile,
-    beforeParse(wire) {assert.equal(wire, '{"x":'); calls++;}}), SyntaxError);
+    beforeParse(wire: string) {assert.equal(wire, '{"x":'); calls++;}}), SyntaxError);
   assert.equal(calls, 1); assert.equal(invalid.closes, 1);
   const asynchronous = source(Buffer.from('{}'));
   await assert.rejects(readSourceProfileJson('/profile.json', {openFile: asynchronous.openFile,
@@ -145,8 +161,8 @@ test('Source profile reader retains both read and close failures', async () => {
     {step: 2, readFailure, closeFailure});
   await assert.rejects(readSourceProfileJson('/profile.json',
     {maxBytes: 16, openFile: observed.openFile}), error => {
-    assert.equal(error.cause, readFailure);
-    assert.deepEqual(error.errors, [readFailure, closeFailure]);
+    assert.equal((error as ErrorCarrier).cause, readFailure);
+    assert.deepEqual((error as ErrorCarrier).errors, [readFailure, closeFailure]);
     return true;
   });
   assert.equal(observed.closes, 1);
@@ -167,19 +183,19 @@ test('Source profile reader bounds growth on the same real handle and releases i
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'profile.json');
   await writeFile(path, '{}');
-  let handle, opens = 0, closes = 0, bytes = 0;
-  const openFile = async (name, flags) => {
+  let handle: Awaited<ReturnType<typeof open>> | undefined, opens = 0, closes = 0, bytes = 0;
+  const openFile = async (name: Parameters<typeof open>[0], flags: Parameters<typeof open>[1]) => {
     handle = await open(name, flags);
     opens++;
-    assert.equal((await handle.stat()).size, 2);
+    assert.equal((await handle!.stat()).size, 2);
     return {
-      async read(buffer, offset, length, position) {
-        const result = await handle.read(buffer, offset, Math.min(length, 2), position);
+      async read(buffer: Buffer, offset: number, length: number, position: null) {
+        const result = await handle!.read(buffer, offset, Math.min(length, 2), position);
         bytes += result.bytesRead;
         if (bytes === 2) await appendFile(path, ' '.repeat(100));
         return result;
       },
-      async close() { closes++; await handle.close(); },
+      async close() { closes++; await handle!.close(); },
     };
   };
   await assert.rejects(readSourceProfileJson(path, {maxBytes: 16, openFile}),
@@ -187,7 +203,7 @@ test('Source profile reader bounds growth on the same real handle and releases i
   assert.equal(bytes, 17);
   assert.equal(opens, 1);
   assert.equal(closes, 1);
-  await assert.rejects(handle.stat(), {code: 'EBADF'});
+  await assert.rejects(handle!.stat(), {code: 'EBADF'});
   await writeFile(path, '{"retry":true}');
   assert.deepEqual(await readSourceProfileJson(path, {maxBytes: 16}), {retry: true});
 });
@@ -195,9 +211,9 @@ test('Source profile reader bounds growth on the same real handle and releases i
 
 test('configuration reader selection retains original methods receiver and pending error without I/O', async () => {
   const error = Object.assign(new Error('same pending read'), {cleanupPending: true});
-  const reader = {readJson(value) {assert.equal(this, reader); return value;},
+  const reader = {readJson(value: unknown) {assert.equal(this, reader); return value;},
     readText() {assert.equal(this, reader); throw error;}};
-  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original'));
+  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original')) as CapturedConfiguredReaders;
   reader.readJson = reader.readText = () => assert.fail('replaced method');
   assert.equal(selected.readJson('original'), 'original');
   assert.throws(() => selected.readText(), cause => cause === error);
@@ -217,29 +233,29 @@ test('configuration reader selection refuses proxies accessors and incomplete or
 });
 
 test('configuration reader selection retains the original-text method across an awaited JSON read', async () => {
-  let release, reads = 0;
+  let release!: (value: unknown) => void, reads = 0;
   const pending = new Promise(resolve => {release = resolve;});
   const exact = '\ufefforiginal CA\r\ntrailing space \n';
   const cleanupHandle = Object.freeze({status: () => ({pending: true})});
   const failure = Object.assign(new Error('same original text cleanup'),
     {cleanupHandle, cleanupPending: true});
   const reader = {
-    readJson(path) {assert.equal(this, reader); assert.equal(path, '/site.json'); return pending;},
+    readJson(path: string) {assert.equal(this, reader); assert.equal(path, '/site.json'); return pending;},
     readText() {assert.fail('A bounded text read cannot substitute for the original FD extent');},
-    readOriginalText(path) {
+    readOriginalText(path: string) {
       assert.equal(this, reader); assert.equal(path, '/ca.pem'); assert.equal(arguments.length, 1);
       reads++;
       if (reads === 2) throw failure;
       return exact;
     },
   };
-  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original'));
+  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original')) as CapturedConfiguredReaders;
   const loading = selected.readJson('/site.json');
   reader.readOriginalText = () => assert.fail('The method must be captured before the JSON await');
   release({site: true}); await loading;
-  assert.equal(selected.readOriginalText('/ca.pem'), exact);
-  assert.throws(() => selected.readOriginalText('/ca.pem'), error => error === failure &&
-    error.cleanupHandle === cleanupHandle);
+  assert.equal(selected.readOriginalText!('/ca.pem'), exact);
+  assert.throws(() => selected.readOriginalText!('/ca.pem'), error => error === failure &&
+    (error as ErrorCarrier).cleanupHandle === cleanupHandle);
   assert.equal(reads, 2); assert(Object.isFrozen(selected));
 });
 
@@ -252,14 +268,14 @@ test('configuration reader selection refuses malformed original-text ports witho
     Object.defineProperty(reader, 'readOriginalText', descriptor);
     assert.throws(() => captureConfigurationReaders(reader, undefined, refuse), error => error === failure);
   }
-  const reader = Object.create({get readOriginalText() {assert.fail('Inherited methods are not originals');}});
+  const reader = Object.create({get readOriginalText(): never {return assert.fail('Inherited methods are not originals');}});
   Object.assign(reader, {readJson() {}, readText() {}});
   assert.equal(Object.hasOwn(captureConfigurationReaders(reader, undefined, refuse), 'readOriginalText'), false);
   assert.equal(Object.hasOwn(captureConfigurationReaders(undefined, undefined, refuse), 'readOriginalText'), false);
 });
 
 test('configuration reader selection retains original-bytes and text independently before an await', async () => {
-  let release, byteCalls = 0, textCalls = 0;
+  let release!: (value: unknown) => void, byteCalls = 0, textCalls = 0;
   const loading = new Promise(resolve => {release = resolve;});
   const bytes = Buffer.from([0xff, 0xfe, 0x00, 0x41, 0x0d, 0x0a]);
   const originalPromise = Promise.resolve(bytes);
@@ -270,23 +286,23 @@ test('configuration reader selection retains original-bytes and text independent
     readJson() {assert.equal(this, reader); return loading;},
     readText() {assert.fail('No bounded reader may replace the byte original');},
     readOriginalText() {assert.equal(this, reader); textCalls++; return 'separate text';},
-    readOriginalBytes(path) {
+    readOriginalBytes(path: string) {
       assert.equal(this, reader); assert.equal(path, '/ca.pem'); assert.equal(arguments.length, 1);
       byteCalls++;
       return byteCalls === 1 ? originalPromise : Promise.reject(failure);
     },
   };
-  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid originals'));
+  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid originals')) as CapturedConfiguredReaders;
   const pending = selected.readJson('/site.json');
   reader.readOriginalBytes = reader.readOriginalText = () => assert.fail('Replaced methods are not originals');
   release({site: true}); await pending;
-  const result = selected.readOriginalBytes('/ca.pem');
+  const result = selected.readOriginalBytes!('/ca.pem');
   assert.strictEqual(result, originalPromise);
   assert.strictEqual(await result, bytes);
   assert.deepEqual([...bytes], [0xff, 0xfe, 0x00, 0x41, 0x0d, 0x0a]);
-  assert.equal(selected.readOriginalText('/separate.txt'), 'separate text');
-  await assert.rejects(selected.readOriginalBytes('/ca.pem'), error => error === failure &&
-    error.cleanupHandle === cleanupHandle && error.cleanupPending === true);
+  assert.equal(selected.readOriginalText!('/separate.txt'), 'separate text');
+  await assert.rejects(selected.readOriginalBytes!('/ca.pem') as Promise<unknown>, error => error === failure &&
+    (error as ErrorCarrier).cleanupHandle === cleanupHandle && (error as ErrorCarrier).cleanupPending === true);
   assert.equal(byteCalls, 2); assert.equal(textCalls, 1); assert(Object.isFrozen(selected));
 });
 
@@ -299,24 +315,24 @@ test('configuration reader selection refuses malformed original-bytes ports and 
     Object.defineProperty(reader, 'readOriginalBytes', descriptor);
     assert.throws(() => captureConfigurationReaders(reader, undefined, refuse), error => error === failure);
   }
-  const reader = Object.create({get readOriginalBytes() {assert.fail('Inherited methods are not originals');}});
+  const reader = Object.create({get readOriginalBytes(): never {return assert.fail('Inherited methods are not originals');}});
   Object.assign(reader, {readJson() {}, readText() {}, readOriginalText() {return 'text';}});
-  const selected = captureConfigurationReaders(reader, undefined, refuse);
+  const selected = captureConfigurationReaders(reader, undefined, refuse) as CapturedConfiguredReaders;
   assert.equal(Object.hasOwn(selected, 'readOriginalBytes'), false);
-  assert.equal(selected.readOriginalText('/text'), 'text');
+  assert.equal(selected.readOriginalText!('/text'), 'text');
   assert.equal(Object.hasOwn(captureConfigurationReaders(undefined, undefined, refuse), 'readOriginalBytes'), false);
 });
 
 test('profile construction ports retain original methods before reads await and reject accessors', async () => {
-  const events = [], receiver = {
+  const events: unknown[][] = [], receiver = {
     readJson() {return {};}, readText() {return 'original';},
-    prepareProfile(...args) {assert.strictEqual(this, receiver); events.push(['prepare', ...args]);return 'prepared';},
-    readProfile(...args) {assert.strictEqual(this, receiver); events.push(['read', ...args]);return 'read';},
+    prepareProfile(...args: unknown[]) {assert.strictEqual(this, receiver); events.push(['prepare', ...args]);return 'prepared';},
+    readProfile(...args: unknown[]) {assert.strictEqual(this, receiver); events.push(['read', ...args]);return 'read';},
   };
-  const selected = captureConfigurationReaders(receiver, undefined, () => assert.fail('Valid originals'));
+  const selected = captureConfigurationReaders(receiver, undefined, () => assert.fail('Valid originals')) as CapturedConfiguredReaders;
   receiver.prepareProfile = receiver.readProfile = () => assert.fail('Replaced method');
-  assert.equal(selected.prepareProfile('original', 1), 'prepared');
-  assert.equal(await selected.readProfile('/original', 2), 'read');
+  assert.equal(selected.prepareProfile!('original', 1), 'prepared');
+  assert.equal(await selected.readProfile!('/original', 2), 'read');
   assert.deepEqual(events, [['prepare', 'original', 1], ['read', '/original', 2]]);
   for (const name of ['prepareProfile', 'readProfile']) {
     const refused = new Error('Original refusal');

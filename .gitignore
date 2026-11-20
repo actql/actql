@@ -343,3 +343,7 @@ target/
 # Generated bounded installed configuration and original-file custody.
 /adapters/host-node/source-profile-json.mjs
 /adapters/host-node/source-profile-json.d.mts
+
+# Generated maintained bounded configuration reader controls.
+/adapters/host-node/source-profile-json.test.mjs
+/adapters/host-node/source-profile-json.test.d.mts
