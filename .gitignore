@@ -903,3 +903,7 @@ target/
 /scripts/ci-native-background-groups.d.mts
 /scripts/ci-native-background-groups.test.mjs
 /scripts/ci-native-background-groups.test.d.mts
+/scripts/release-native-install.mjs
+/scripts/release-native-install.d.mts
+/scripts/native-cli-union-rows.mjs
+/scripts/native-cli-union-rows.d.mts

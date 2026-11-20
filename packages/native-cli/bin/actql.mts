@@ -47,7 +47,9 @@ export function macOSProductVersion(query: Query = spawnSync) {
   return undefined;
 }
 
-export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}: {key: string; expected?: ExpectedBinary; metadata: Metadata; binary: Buffer; glibc?: string; macOS?: unknown}) {
+export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}: {key: string;
+  expected?: Pick<ExpectedBinary, 'sourceSha' | 'binarySha256' | 'binaryBytes'>;
+  metadata: Metadata; binary: Buffer; glibc?: string; macOS?: unknown}) {
   if (!expected || metadata.version !== 'actql-native-cli-artifact/0.1' ||
       metadata.platform !== key || metadata.sourceSha !== expected.sourceSha ||
       metadata.binarySha256 !== expected.binarySha256 ||

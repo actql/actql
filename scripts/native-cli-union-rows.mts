@@ -3,6 +3,14 @@ import {readFile, writeFile, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 
+type Row = {n: number};
+type CommandResult = {code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string;
+  sourceFreeWork?: {pid: number} | null};
+type Cli = (args: readonly string[], cwd: string, expectedCode?: number) => Promise<CommandResult>;
+type CheckReport = {outcome: string; report?: {verdict: string; runnable?: {verdict: string}}};
+type RunState = {version: string; status: string; run_id: string};
+type Phase = {tag: number; begins: number; ends: number; active: number; unmatched_end: number};
+
 // Authored rows, not expected values inferred from a preview or an aggregate.
 export const nativeUnionRowCases = Object.freeze(['direct', 'cte'].flatMap(form =>
   [10, 11, 24, 25, 40].flatMap(branches => [false, true].map(duplicates => Object.freeze({
@@ -10,14 +18,14 @@ export const nativeUnionRowCases = Object.freeze(['direct', 'cte'].flatMap(form 
     rows: Object.freeze(Array.from({length: branches}, (_, i) => Object.freeze({n: duplicates ? i % 3 : i}))),
   })))));
 
-export function nativeUnionRowSql(entry) {
+export function nativeUnionRowSql(entry: (typeof nativeUnionRowCases)[number]) {
   assert(nativeUnionRowCases.includes(entry));
   const body = entry.rows.map(({n}) => `SELECT ${n} AS n`).join(' UNION ALL ');
   return entry.form === 'direct' ? body : `WITH t AS (${body}) SELECT n FROM t`;
 }
 
-function completeRows(text, expected) {
-  const rows = text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+function completeRows(text: string, expected: readonly Row[]) {
+  const rows = text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line) as Row);
   for (const row of rows) {
     assert.deepEqual(Object.keys(row), ['n'], 'Exact one-column Result shape required');
     assert(Number.isSafeInteger(row.n), 'The original nonnull Number field must survive');
@@ -27,20 +35,20 @@ function completeRows(text, expected) {
     expected.map(({n}) => n).sort((a, b) => a - b));
 }
 
-function firstClose(record) {
+function firstClose(record: CommandResult) {
   assert.equal(record.code, 0); assert.equal(record.signal, null);
   const pid = record.sourceFreeWork?.pid;
-  assert(Number.isSafeInteger(pid) && pid > 0, 'Existing original process/work observation required');
+  assert(Number.isSafeInteger(pid) && pid! > 0, 'Existing original process/work observation required');
   const {native} = nativeLauncherEnvelope(record.stderr, 'required');
   const phases = native.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_PHASE '))
-    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length))).filter(row => row.tag === 5);
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_PHASE '.length)) as Phase).filter(row => row.tag === 5);
   assert.equal(phases.length, 1);
   assert.equal(phases[0].begins, 1); assert.equal(phases[0].ends, 1);
   assert.equal(phases[0].active, 0); assert.equal(phases[0].unmatched_end, 0);
-  return pid; // First command cleanup observation, not independent physical ACK.
+  return pid!; // First command cleanup observation, not independent physical ACK.
 }
 
-export async function observeNativeUnionRows({root, cli}) {
+export async function observeNativeUnionRows({root, cli}: {root: string; cli: Cli}) {
   const project = join(root, 'ordinary-union-rows');
   await cli(['init', project], root);
   const originalConfiguration = await readFile(join(project, 'actql.config.json'), 'utf8');
@@ -51,11 +59,11 @@ export async function observeNativeUnionRows({root, cli}) {
     await writeFile(join(project, file), nativeUnionRowSql(entry), {flag: 'wx', mode: 0o600});
     const checked = await cli(['check', file, '--format', 'sql', '--json'], project);
     firstClose(checked);
-    const report = JSON.parse(checked.stdout);
+    const report = JSON.parse(checked.stdout) as CheckReport;
     assert.equal(report.outcome, 'completed'); assert.equal(report.report?.verdict, 'verified');
     assert.equal(report.report?.runnable?.verdict, 'yes');
     const started = await cli(['run', file, '--format', 'sql', '--json'], project);
-    const startPid = firstClose(started), state = JSON.parse(started.stdout);
+    const startPid = firstClose(started), state = JSON.parse(started.stdout) as RunState;
     assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0 && !runIds.has(state.run_id));
     runIds.add(state.run_id);
@@ -91,18 +99,18 @@ export async function observeNativeUnionRows({root, cli}) {
 // A UNION's one-row inlets can pass checking while its actual combined output
 // exceeds the selected runtime policy. Require the real typed refusal, not a
 // generic failure or an authorization mismatch. The ordinary project is unchanged.
-export async function observeNativeUnionRowPolicy({project, cli}) {
+export async function observeNativeUnionRowPolicy({project, cli}: {project: string; cli: Cli}) {
   await writeFile(join(project, 'union-before.sql'), 'SELECT 79 AS n', {flag: 'wx', mode: 0o600});
-  const prior = JSON.parse((await cli(['run', 'union-before.sql', '--format', 'sql', '--json'], project)).stdout);
+  const prior = JSON.parse((await cli(['run', 'union-before.sql', '--format', 'sql', '--json'], project)).stdout) as RunState;
   assert.equal(prior.status, 'succeeded');
   assert.equal(typeof prior.run_id, 'string'); assert(prior.run_id.length > 0);
   completeRows((await cli(['result', prior.run_id, '--format', 'jsonl'], project)).stdout, [{n: 79}]);
   await unlink(join(project, 'union-before.sql'));
   await writeFile(join(project, 'union-low.sql'), 'SELECT 0 AS n UNION ALL SELECT 1 AS n', {flag: 'wx', mode: 0o600});
-  const checked = JSON.parse((await cli(['check', 'union-low.sql', '--format', 'sql', '--json'], project)).stdout);
+  const checked = JSON.parse((await cli(['check', 'union-low.sql', '--format', 'sql', '--json'], project)).stdout) as CheckReport;
   assert.equal(checked.outcome, 'completed');
-  assert.equal(checked.report.verdict, 'verified');
-  assert.equal(checked.report.runnable.verdict, 'yes');
+  assert.equal(checked.report!.verdict, 'verified');
+  assert.equal(checked.report!.runnable!.verdict, 'yes');
   const refused = await cli(['run', 'union-low.sql', '--format', 'sql', '--json'], project, 1);
   assert.equal(refused.stdout, ''); assert.equal(refused.signal, null);
   assert.deepEqual(JSON.parse(refused.stderr), {code: 'ACTQL_E_EXECUTION_LIMIT',
