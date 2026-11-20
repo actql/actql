@@ -17396,11 +17396,11 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "buildClientPublicationWire"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "packages/client-wire/publication.generated.d.ts"
               },
               {

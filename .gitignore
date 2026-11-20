@@ -357,3 +357,9 @@ target/
 /adapters/host-node/client-owner-cursor.d.mts
 /adapters/host-node/client-owner-cursor.test.mjs
 /adapters/host-node/client-owner-cursor.test.d.mts
+
+# Generated canonical publication/schema tooling; machine contracts remain inputs.
+/scripts/client-wire-scalar-rules.mjs
+/scripts/client-wire-scalar-rules.d.mts
+/scripts/generate-client-publication-wire.mjs
+/scripts/generate-client-publication-wire.d.mts

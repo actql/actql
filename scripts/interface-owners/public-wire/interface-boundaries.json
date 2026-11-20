@@ -486,7 +486,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -609,7 +609,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -2281,7 +2281,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -2389,7 +2389,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -2888,7 +2888,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -2995,7 +2995,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3105,7 +3105,7 @@
                 "anchor": "\"schemas\""
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "buildClientPublicationWire"
               }
             ],
@@ -3201,7 +3201,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "const schemas ="
               }
             ],
@@ -3401,7 +3401,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -3507,7 +3507,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3515,7 +3515,7 @@
                 "anchor": "UTF-16 maximum lengths, scalar"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "wireFieldNamePattern"
               },
               {
@@ -4270,7 +4270,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
