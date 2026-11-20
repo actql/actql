@@ -107,9 +107,9 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+      - run: npm ci
       - name: Check owned contract versions
         run: npm run check:contract-versions
-      - run: npm ci
       - name: Identify reviewed documentation modifications before compiler admission
         id: documentation-candidate
         run: node scripts/ci-targets.mjs documentation-candidate

@@ -87,6 +87,13 @@ test('preflight checks Native counter assignments before the build toolchain', (
 test('early Source admission runs original recipes once and refuses plan publication on failure', t => {
   const steps = jobs['select-targets'].steps, select = steps.find(step => step.id === 'select');
   const recipes = ['check:contract-versions', 'check:client-types'];
+  const preparation = steps.filter(step => step.run?.trim() === 'npm ci');
+  assert.equal(preparation.length, 1, 'One canonical prepare emits typed command entrances');
+  assert.equal(preparation[0].if, undefined);
+  assert.equal(preparation[0]['continue-on-error'], undefined);
+  const tools = steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert.equal(tools.length, 1);
+  assert(steps.indexOf(tools[0]) < steps.indexOf(preparation[0]));
   for (const recipe of recipes) {
     const selected = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
       .filter(step => step.run?.trim().split(/\s+/u).join(' ') === `npm run ${recipe}`)
@@ -99,6 +106,8 @@ test('early Source admission runs original recipes once and refuses plan publica
       assert.equal(enabled, recipe !== 'check:client-types' || !docs);
     }
     assert.notEqual(selected[0].step['continue-on-error'], true);
+    assert(steps.indexOf(preparation[0]) < steps.indexOf(selected[0].step),
+      `${recipe}: ignored runtime emit cannot be an unprepared entrance`);
     assert(steps.indexOf(selected[0].step) < steps.indexOf(select));
   }
   const graph = steps.find(step => step.id === 'moon-candidate');
@@ -115,6 +124,9 @@ test('early Source admission runs original recipes once and refuses plan publica
     if(command==='npm') {
       const recipe=args[0]==='run'?args[1]:args[0];
       if(recipe===process.env.FAIL_RECIPE)process.exit(71);
+      // This is a recording port for the successful canonical prepare, not an emit proof.
+      if(args[0]==='ci')fs.writeFileSync(process.env.PREPARED,'canonical prepare returned');
+      if(args[0]==='run'&&!fs.existsSync(process.env.PREPARED))process.exit(72);
     } else if(args.length===1 && args[0]==='scripts/ci-targets.mjs') {
       fs.appendFileSync(process.env.GITHUB_OUTPUT,'plan=recording-port\\n');
     }\n`;
@@ -124,15 +136,16 @@ test('early Source admission runs original recipes once and refuses plan publica
     writeFileSync(output, '');
     const child = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', prefix.map(step => step.run).join('\n')], {
       cwd: directory, encoding: 'utf8', timeout: 5000,
-      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure, GITHUB_OUTPUT: output},
+      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure,
+        PREPARED: join(directory, `prepared-${failure || 'success'}`), GITHUB_OUTPUT: output},
     });
     assert.equal(child.error, undefined);assert.equal(child.signal, null);
     assert.equal(child.status, failure ? 71 : 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     const npmCalls = observed.filter(row => row.command === 'npm');
     for (const recipe of recipes) assert.equal(npmCalls.filter(row => row.args[1] === recipe).length,
-      recipe === recipes[1] && [recipes[0], 'ci'].includes(failure) ? 0 : 1);
-    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, failure === recipes[0] ? 0 : 1);
+      failure === 'ci' || recipe === recipes[1] && failure === recipes[0] ? 0 : 1);
+    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, 1);
     assert.equal(readFileSync(output, 'utf8').includes('plan='), failure === '');
     // A refused Source cannot start even the optional Moon discovery entrance.
     assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
