@@ -418,7 +418,12 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
     return source;
   } catch (cause) {
     // The caller cannot own an adapter until validation returns it.
-    const failure = await retainBoundInstalledSourceFailure(sourceInitialization, cause, adapter);
+    // Without a bound context, this initializer retains the exact adapter
+    // returned by its selected loader. Bound construction keeps its own
+    // registered originals; a returned foreign value cannot replace them.
+    const failure = sourceInitialization === undefined
+      ? await retainInstalledHostInitializationFailure(cause, {sourceProfile: adapter})
+      : await retainBoundInstalledSourceFailure(sourceInitialization, cause, adapter);
     finishInstalledSourceInitialization(sourceInitialization, adapter, failure, true);
     throw failure;
   }
