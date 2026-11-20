@@ -1,10 +1,15 @@
 import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';
 import {captureCancellation} from '@actql/explorer-ui/cancellation';
-export {captureCancellation,validCancellationObservation} from '@actql/explorer-ui/cancellation';
-const reject=()=>{throw Object.assign(new Error('ExplorerInvalidCancellation'),{code:'ExplorerInvalidCancellation'});};
-const sameRun=(a,b)=>['namespaceId','authorityScopeCid','runDefinitionCid'].every(key=>a?.[key]===b?.[key]);
+import type {Client, RunReference} from '@actql/sdk';
+import type {WireCancellationLookup} from '@actql/client-wire';
+import type {ReadTicket} from '@actql/explorer-ui/read-model';
+import type {CancellationObservation} from '@actql/explorer-ui/cancellation';
 
-export async function requestExistingCancellation(client, original, ticket) {
+export {captureCancellation,validCancellationObservation} from '@actql/explorer-ui/cancellation';
+const reject:()=>never=()=>{throw Object.assign(new Error('ExplorerInvalidCancellation'),{code:'ExplorerInvalidCancellation'});};
+const sameRun=(a:RunReference,b:RunReference)=>(['namespaceId','authorityScopeCid','runDefinitionCid'] as const).every(key=>a?.[key]===b?.[key]);
+
+export async function requestExistingCancellation(client: Pick<Client,'attach'>, original: {cancelRef: unknown; attemptRef: unknown}, ticket: ReadTicket): Promise<CancellationObservation> {
   const {cancelRef,attemptRef}=captureCancellation(original.cancelRef,original.attemptRef);
   ticket.assertCurrent();
   const ref=Object.freeze({namespaceId:cancelRef.namespaceId,
@@ -24,7 +29,7 @@ export async function requestExistingCancellation(client, original, ticket) {
     : {state:'unknown',original:{cancelRef,attemptRef}};
 }
 
-export async function lookupExistingCancellation(client, input, ticket) {
+export async function lookupExistingCancellation(client: Pick<Client,'attach'>, input: unknown, ticket: ReadTicket): Promise<WireCancellationLookup> {
   const cancelRef=structuredClone(input);
   if (!validCancellationRef(cancelRef)) reject();
   Object.freeze(cancelRef);ticket.assertCurrent();

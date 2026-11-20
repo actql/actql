@@ -154,6 +154,7 @@
     "@actql/sdk": "file:packages/sdk",
     "@actql/provider-ai-sdk": "file:packages/provider-ai-sdk",
     "@actql/local-node": "file:packages/local-node",
+    "@actql/node": "file:packages/node",
     "@hono/node-server": "2.1.4",
     "esbuild": "0.28.2",
     "github-slugger": "2.0.0",

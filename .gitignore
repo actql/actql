@@ -377,3 +377,15 @@ target/
 /packages/explorer/launch-input.test.d.mts
 /packages/explorer/vite.config.mjs
 /packages/explorer/vite.config.d.mts
+
+# Generated Explorer Gateway/server/custody bindings; public declaration entries stay canonical.
+/packages/explorer/gateway.mjs
+/packages/explorer/gateway.d.mts
+/packages/explorer/cancellation.mjs
+/packages/explorer/cancellation.d.mts
+/packages/explorer/checkpoint-read.mjs
+/packages/explorer/checkpoint-read.d.mts
+/packages/explorer/assets.mjs
+/packages/explorer/assets.d.mts
+/packages/explorer/launcher.mjs
+/packages/explorer/launcher.d.mts

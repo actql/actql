@@ -4435,7 +4435,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               },
               {
@@ -4445,7 +4445,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4455,7 +4455,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4465,7 +4465,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4475,7 +4475,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4485,7 +4485,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4495,7 +4495,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4505,7 +4505,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -4515,7 +4515,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/assets.mjs",
+                "path": "packages/explorer/assets.mts",
                 "anchor": "import {createHash} from 'node:crypto';"
               }
             ],
@@ -5377,7 +5377,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               },
               {
@@ -5387,7 +5387,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5397,7 +5397,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5407,7 +5407,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5417,7 +5417,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5427,7 +5427,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5437,7 +5437,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5447,7 +5447,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5457,7 +5457,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cancellation.mjs",
+                "path": "packages/explorer/cancellation.mts",
                 "anchor": "import {validCancellationRef, validCancellationAttempt, validCancellationLookup} from '@actql/client-wire';"
               }
             ],
@@ -5549,7 +5549,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               },
               {
@@ -5559,7 +5559,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5569,7 +5569,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5579,7 +5579,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5589,7 +5589,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5599,7 +5599,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5609,7 +5609,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5619,7 +5619,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -5629,7 +5629,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/checkpoint-read.mjs",
+                "path": "packages/explorer/checkpoint-read.mts",
                 "anchor": "import {validCheckpointPage,withinResultDescriptionLimits} from '@actql/client-wire';"
               }
             ],
@@ -6412,7 +6412,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6422,7 +6422,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -6432,7 +6432,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -6442,7 +6442,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6460,7 +6460,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6478,7 +6478,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6492,7 +6492,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6506,7 +6506,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               },
               {
@@ -6524,7 +6524,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/gateway.mjs",
+                "path": "packages/explorer/gateway.mts",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
               }
             ],
@@ -6902,7 +6902,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               },
               {
@@ -6912,7 +6912,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6922,7 +6922,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6932,7 +6932,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6942,7 +6942,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6952,7 +6952,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6962,7 +6962,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6972,7 +6972,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],
@@ -6982,7 +6982,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/launcher.mjs",
+                "path": "packages/explorer/launcher.mts",
                 "anchor": "import {startExplorerGateway} from './gateway.mjs';"
               }
             ],

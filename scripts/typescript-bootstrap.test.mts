@@ -49,8 +49,10 @@ test('canonical npm preparation emits runnable same-path JavaScript and declarat
 import type {LanguageModelV4} from '@ai-sdk/provider';
 import type {PhysicalAcquisitionLimits} from '@actql/provider-ai-sdk';
 import type {Client} from 'undici';
+import type {EmbeddedLocalOptions} from '@actql/node';
 export type OriginalProviderInputs = {
   model: LanguageModelV4; acquisition: PhysicalAcquisitionLimits; client: Client;
+  local: EmbeddedLocalOptions;
 };
 `);
   const result = f.prepare();

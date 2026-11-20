@@ -1,3 +1,7 @@
+import type {ExplorerAsset} from './gateway.js';
+
+interface ManifestEntry {path:string;bytes:number;sha256:string}
+interface AssetManifest {version:unknown;assets:ManifestEntry[]}
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat, open} from 'node:fs/promises';
@@ -7,9 +11,9 @@ const root = new URL('./dist/', import.meta.url);
 const types = Object.freeze({html: 'text/html; charset=utf-8',
   js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8',
   svg: 'image/svg+xml'});
-const refused = () => {throw Object.assign(new Error('ExplorerInvalidBuiltAssets'),
+const refused:()=>never = () => {throw Object.assign(new Error('ExplorerInvalidBuiltAssets'),
   {code: 'ExplorerInvalidBuiltAssets'});};
-async function boundedFile(path, limit, exactBytes) {
+async function boundedFile(path:Parameters<typeof open>[0], limit:number, exactBytes?:number) {
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await file.stat();
@@ -32,13 +36,13 @@ export async function loadExplorerAssets() {
   const manifestPath = new URL('assets.json', root);
   const manifestStat = await lstat(manifestPath);
   if (!manifestStat.isFile() || manifestStat.size > 16384) refused();
-  const manifest = JSON.parse((await boundedFile(manifestPath, 16384)).toString('utf8'));
+  const manifest = JSON.parse((await boundedFile(manifestPath, 16384)).toString('utf8')) as AssetManifest;
   if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest) ||
       Object.keys(manifest).sort().join(',') !== 'assets,version' ||
       manifest.version !== 'actql-explorer-assets/0.1' ||
       !Array.isArray(manifest.assets) || manifest.assets.length === 0 ||
       manifest.assets.length > gatewayLimits.assets) refused();
-  const assets = new Map(); let size = 0;
+  const assets = new Map<string,ExplorerAsset>(); let size = 0;
   let checkedAssetDirectory = false;
   for (const item of manifest.assets) {
     if (item === null || typeof item !== 'object' ||
@@ -59,7 +63,7 @@ export async function loadExplorerAssets() {
     const body = await boundedFile(path, item.bytes, item.bytes);
     if (body.length !== item.bytes ||
         createHash('sha256').update(body).digest('hex') !== item.sha256) refused();
-    assets.set(item.path, {body, contentType: types[item.path.split('.').at(-1)]});
+    assets.set(item.path, {body, contentType: types[item.path.split('.').at(-1) as keyof typeof types]});
   }
   if (!assets.has('/index.html')) refused();
   return assets;
