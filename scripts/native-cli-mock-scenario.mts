@@ -9,11 +9,34 @@ import {fstatSync} from 'node:fs';
 import {open, readFile, stat, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 
-export const mockTemplates = Object.freeze(['deal-review-mock', 'churn-risk-mock']);
+type CaptureOptions = {cwd: string; env?: NodeJS.ProcessEnv; stderrPath: string;
+  timeout?: number; maxBuffer?: number; killSignal?: NodeJS.Signals};
+type ChildOutcome = {code: number | null; signal: NodeJS.Signals | null; pid?: number};
+type CommandFailure = NodeJS.ErrnoException & {groupStopError?: string};
+type LauncherTiming = {units: 'nanoseconds'; preparation: number; child: number; total: number};
+type LauncherTimings = 'optional' | 'required';
+type Work = ReturnType<typeof requireNativeMockWork>;
+type CommandRecord = {stdout: string; stderr: string; signal: string | null; code: string | number | null;
+  launcherTiming?: LauncherTiming; acceptance?: Work};
+type ObservedCommand = CommandRecord & {args: readonly string[]; cwd: string; workflowPhase: string};
+type ScenarioOptions = {root: string; template: keyof typeof expectedChanges;
+  run: (args: readonly string[], cwd: string) => CommandRecord | Promise<CommandRecord>;
+  launcherTimings?: LauncherTimings};
+// Parsed fixture and receipt views are interpreted by the existing assertions.
+type Checkpoint = {checkpoint_id: string; checkpoint_cid: string};
+type RunState = {version: string; status: string; run_id: string; checkpoint: Checkpoint};
+type SourceRow = {id: string; [field: string]: unknown};
+type TargetData = {salesforce: Record<string, {rows: SourceRow[]}>};
+type PreviewRow = {state: string; value: Record<string, unknown>};
+type ResultRow = SourceRow & {review: {outcome: string; value: unknown}; risk: {outcome: string; value: unknown}};
+type ObservationGroup = Pick<ReturnType<typeof nativeMockAcceptanceObservations>[number], 'events'>;
+type EffectWrite = {ordinal: number; key: string; dispatch: string; fileReceipt: string; rowReceipt: string};
+
+export const mockTemplates = Object.freeze(['deal-review-mock', 'churn-risk-mock'] as const);
 
 export const expectedChanges = Object.freeze({
   'deal-review-mock': {
-    resource: 'Opportunity', model: 'review', answers: [
+    resource: 'Opportunity', model: 'review' as const, answers: [
       {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
       {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'},
     ],
@@ -23,7 +46,7 @@ export const expectedChanges = Object.freeze({
     ],
   },
   'churn-risk-mock': {
-    resource: 'Account', model: 'risk', answers: [
+    resource: 'Account', model: 'risk' as const, answers: [
       {level: 'high', reason: 'falling usage and a competitor evaluation'},
       {level: 'high', reason: 'support tickets about pricing'},
     ],
@@ -38,28 +61,28 @@ export const expectedChanges = Object.freeze({
 // Native deliberately drops observations on pipe backpressure. A regular sink
 // preserves its unchanged best-effort writer while the parent registry stays
 // asynchronous. Read the original bytes only after the command has closed.
-export async function captureNativeMockCommand(command, args, {
+export async function captureNativeMockCommand(command: string, args: readonly string[], {
   cwd, env, stderrPath, timeout = 120_000, maxBuffer = 8 * 1024 * 1024,
   killSignal = 'SIGKILL',
-}) {
+}: CaptureOptions) {
   assert(Number.isSafeInteger(timeout) && timeout > 0);
   assert(Number.isSafeInteger(maxBuffer) && maxBuffer > 0);
   const sink = await open(stderrPath, 'wx+', 0o600);
   try {
-    const stdout = [];
-    let stdoutBytes = 0, failure, killed = false;
-    const outcome = await new Promise(resolve => {
+    const stdout: Buffer[] = [];
+    let stdoutBytes = 0, failure: CommandFailure | undefined, killed = false;
+    const outcome = await new Promise<ChildOutcome>(resolve => {
       // Same owned-group pattern as the existing Resident watchdog: only this
       // fresh command and its inherited Native descendants receive a signal.
       const child = spawn(command, args, {cwd, env, detached:true, stdio: ['ignore', 'pipe', sink.fd]});
       let stopping = false;
-      const stop = error => {
+      const stop = (error: CommandFailure) => {
         failure ??= error;
         if (stopping) return;
         stopping = true;
-        if (Number.isInteger(child.pid) && child.pid > 0) {
-          try {process.kill(-child.pid, killSignal); killed = true;}
-          catch (issue) {if (issue.code !== 'ESRCH') failure.groupStopError = issue.code ?? issue.message;}
+        if (Number.isInteger(child.pid) && child.pid! > 0) {
+          try {process.kill(-child.pid!, killSignal); killed = true;}
+          catch (issue) {if ((issue as NodeJS.ErrnoException).code !== 'ESRCH') failure.groupStopError = (issue as NodeJS.ErrnoException).code ?? (issue as Error).message;}
         }
       };
       const timer = setTimeout(() => stop(Object.assign(new Error('Native command timed out'),
@@ -72,18 +95,18 @@ export async function captureNativeMockCommand(command, args, {
           if (fstatSync(sink.fd).size > maxBuffer)
             stop(Object.assign(new Error('stderr maxBuffer exceeded'),
               {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}));
-        } catch (error) {stop(error);}
+        } catch (error) {stop(error as CommandFailure);}
       }, 25);
       const onTerm = () => stop(Object.assign(new Error('Native command observer interrupted'), {code:'ECANCELED'}));
       process.once('SIGTERM', onTerm); process.once('SIGINT', onTerm);
-      child.stdout.on('data', chunk => {
+      child.stdout!.on('data', chunk => {
         const remaining = maxBuffer - stdoutBytes;
         if (remaining > 0) stdout.push(chunk.subarray(0, remaining));
         stdoutBytes += chunk.length;
         if (stdoutBytes > maxBuffer) stop(Object.assign(new Error('stdout maxBuffer exceeded'),
           {code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}));
       });
-      child.stdout.once('error', stop);
+      child.stdout!.once('error', stop);
       child.once('error', error => {failure ??= error;});
       child.once('close', (code, signal) => {
         clearTimeout(timer); clearInterval(monitor);
@@ -114,7 +137,7 @@ export async function captureNativeMockCommand(command, args, {
   } finally {await sink.close();}
 }
 
-async function targetSnapshot(file) {
+async function targetSnapshot(file: string) {
   const bytes = await readFile(file);
   const info = await stat(file, {bigint: true});
   // atime is deliberately excluded: a metadata/Result read may inspect DATA,
@@ -124,8 +147,8 @@ async function targetSnapshot(file) {
     size: String(info.size), mtimeNs: String(info.mtimeNs), ctimeNs: String(info.ctimeNs)};
 }
 
-function runState(record, expectedStatus, runId) {
-  const value = JSON.parse(record.stdout);
+function runState(record: CommandRecord, expectedStatus: string, runId?: string) {
+  const value = JSON.parse(record.stdout) as RunState;
   assert.equal(value.version, 'actql-run-state/0.1', 'A command receipt is not a Run state');
   assert.equal(value.status, expectedStatus);
   assert.doesNotMatch(record.stdout,
@@ -137,7 +160,7 @@ function runState(record, expectedStatus, runId) {
   return value;
 }
 
-function checkpointId(state) {
+function checkpointId(state: RunState) {
   assert.equal(typeof state.checkpoint?.checkpoint_id, 'string');
   assert(state.checkpoint.checkpoint_id.length > 0);
   assert.equal(typeof state.checkpoint.checkpoint_cid, 'string');
@@ -147,7 +170,7 @@ function checkpointId(state) {
 
 // One read-only presentation of the SAME saved Checkpoint. The independent
 // template rows supply the expected changes, never parsed product output.
-function waitingHuman(record, original, before, change) {
+function waitingHuman(record: CommandRecord, original: RunState, before: Awaited<ReturnType<typeof targetSnapshot>>, change: (typeof expectedChanges)[keyof typeof expectedChanges]) {
   const lines = record.stdout.trimEnd().split('\n');
   for (const [prefix, expected] of [
     ['Run: ', `Run: ${JSON.stringify(original.run_id)}`],
@@ -161,17 +184,17 @@ function waitingHuman(record, original, before, change) {
     ['  Changes:', '  Changes:'],
   ]) assert.deepEqual(lines.filter(line => line.startsWith(prefix)), [expected],
     `Human waiting Preview must retain original ${prefix}`);
-  const values = prefix => lines.filter(line => line.startsWith(prefix))
-    .map(line => JSON.parse(line.slice(prefix.length)));
-  const identities = values('    Row: '), previous = values('      Before: '), next = values('      After: ');
+  const values = <T,>(prefix: string): T[] => lines.filter(line => line.startsWith(prefix))
+    .map(line => JSON.parse(line.slice(prefix.length)) as T);
+  const identities = values<string>('    Row: '), previous = values<PreviewRow>('      Before: '), next = values<PreviewRow>('      After: ');
   assert.deepEqual([...identities].sort(), change.rows.map(row => row.id).sort(),
     'Human Preview must display the exact original target rows');
   assert.equal(previous.length, change.rows.length, 'Human Preview must retain every before row');
   assert.equal(next.length, change.rows.length, 'Human Preview must retain every after row');
-  const originals = JSON.parse(before.bytes).salesforce[change.resource].rows;
+  const originals = (JSON.parse(before.bytes) as TargetData).salesforce[change.resource].rows;
   for (const [index, id] of identities.entries()) {
-    const expected = change.rows.find(row => row.id === id);
-    const source = originals.find(row => row.id === id);
+    const expected = change.rows.find(row => row.id === id)!;
+    const source = originals.find(row => row.id === id)!;
     const fields = Object.fromEntries(Object.entries(expected).filter(([name]) => name !== 'id'));
     assert.equal(previous[index].state, 'present', 'Human Preview must retain observed before evidence');
     assert.equal(next[index].state, 'present', 'Human Preview must retain the original intended change');
@@ -184,9 +207,9 @@ function waitingHuman(record, original, before, change) {
 }
 
 
-export function requireNativeMockWork(args, groups, rows, {minimumWrites = rows} = {}) {
+export function requireNativeMockWork(args: readonly string[], groups: readonly ObservationGroup[], rows: number, {minimumWrites = rows} = {}) {
   assert(Number.isSafeInteger(minimumWrites) && minimumWrites >= 0 && minimumWrites <= rows);
-  const model = [], modelSlots = [], writes = [];
+  const model: string[] = [], modelSlots: number[] = [], writes: EffectWrite[] = [];
   for (const group of groups) {
     const events = group.events;
     if (args[0] === 'run') {
@@ -216,13 +239,13 @@ export function requireNativeMockWork(args, groups, rows, {minimumWrites = rows}
     if (minimumWrites === rows)
       assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), Array.from({length:rows},(_,index)=>index), 'Changed original Effect ordinals');
   } else assert.equal(writes.length, 0, 'Unexpected target replacement');
-  for (const field of ['key', 'fileReceipt', 'rowReceipt']) assert.equal(new Set(writes.map(row => row[field])).size, writes.length, 'Repeated Effect operation/receipt');
+  for (const field of ['key', 'fileReceipt', 'rowReceipt'] as const) assert.equal(new Set(writes.map(row => row[field])).size, writes.length, 'Repeated Effect operation/receipt');
   return {modelAttempts: model, writes};
 }
 
 // The Node launcher's PID-less timing envelope is outside the Native stream.
 // Remove only its one canonical final line; never filter Native diagnostics.
-export function nativeLauncherEnvelope(stderr, mode) {
+export function nativeLauncherEnvelope(stderr: string, mode: LauncherTimings) {
   assert.equal(typeof stderr, 'string', 'Launcher diagnostic stream unavailable');
   const prefix = 'ACTQL_NATIVE_LAUNCHER_TIMINGS ';
   const start = stderr.indexOf(prefix);
@@ -234,36 +257,36 @@ export function nativeLauncherEnvelope(stderr, mode) {
     'Node launcher timing trailer must occur exactly once at the end');
   const body = stderr.slice(start + prefix.length, -1);
   assert(body.length <= 256, 'Oversized Node launcher timing trailer');
-  let timing;
+  let timing: LauncherTiming;
   try { timing = JSON.parse(body); } catch { assert.fail('Malformed Node launcher timing trailer'); }
   assert(timing && !Array.isArray(timing) && typeof timing === 'object' &&
     Object.keys(timing).join(',') === 'units,preparation,child,total' && JSON.stringify(timing) === body,
     'Noncanonical Node launcher timing trailer fields');
   assert(timing.units === 'nanoseconds', 'Invalid Node launcher timing units');
-  assert(['preparation','child','total'].every(key => Number.isSafeInteger(timing[key]) && timing[key] >= 0 && !Object.is(timing[key], -0)),
+  assert((['preparation','child','total'] as const).every(key => Number.isSafeInteger(timing[key]) && timing[key] >= 0 && !Object.is(timing[key], -0)),
     'Invalid Node launcher timing quantity');
   assert(timing.preparation <= Number.MAX_SAFE_INTEGER - timing.child && timing.preparation + timing.child === timing.total,
     'Inconsistent Node launcher timing total');
   return {native: stderr.slice(0, start), timing};
 }
 
-export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}) {
+export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}: ScenarioOptions) {
   assert(['optional','required'].includes(launcherTimings), 'Invalid launcher observation contract');
   assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
   assert.equal(typeof run, 'function');
   const project = join(root, template), file = join(project, 'mock/data.json');
-  const commands = [];
-  async function invoke(workflowPhase, args, cwd = project) {
+  const commands: ObservedCommand[] = [];
+  async function invoke(workflowPhase: string, args: readonly string[], cwd = project) {
     const record = await run(args, cwd);
     commands.push({args, cwd, ...record, workflowPhase});
     assert.equal(record.signal, null, `${args[0]} terminated by signal`);
     assert.equal(record.code, 0, `${args.join(' ')} failed: ${record.stderr}`);
     const envelope = nativeLauncherEnvelope(record.stderr, launcherTimings);
     const observations = nativeMockAcceptanceObservations(envelope.native);
-    if (envelope.timing) { record.launcherTiming = envelope.timing; commands.at(-1).launcherTiming = envelope.timing; }
+    if (envelope.timing) { record.launcherTiming = envelope.timing; commands.at(-1)!.launcherTiming = envelope.timing; }
     assert.equal(observations.length, args[0] === 'init' ? 2 : 1, 'Native child observations missing or duplicated');
     record.acceptance = requireNativeMockWork(args, observations, expectedChanges[template].rows.length);
-    commands.at(-1).acceptance = record.acceptance;
+    commands.at(-1)!.acceptance = record.acceptance;
     return record;
   }
   await invoke('scaffold', ['init', '--template', template, project], root);
@@ -291,7 +314,7 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
 
   await invoke('approval', ['approve', checkpoint, '--wait', '--json']);
   const after = await targetSnapshot(file);
-  const actual = JSON.parse(after.bytes), expected = JSON.parse(before.bytes);
+  const actual = JSON.parse(after.bytes), expected = JSON.parse(before.bytes) as TargetData;
   const change = expectedChanges[template];
   for (const update of change.rows) {
     const row = expected.salesforce[change.resource].rows.find(value => value.id === update.id);
@@ -305,16 +328,16 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
 
   const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
   const first = await invoke('result', resultArguments);
-  const rows = first.stdout.trim().split('\n').map(line => JSON.parse(line));
+  const rows = first.stdout.trim().split('\n').map(line => JSON.parse(line) as ResultRow);
   assert.equal(rows.length, 2, 'Both independently expected updates must be retained');
   assert.deepEqual(rows.map(value => value.id).sort(), change.rows.map(value => value.id).sort());
-  const originalRows = JSON.parse(before.bytes).salesforce[change.resource].rows;
+  const originalRows = (JSON.parse(before.bytes) as TargetData).salesforce[change.resource].rows;
   for (const [index, update] of change.rows.entries()) {
-    const row = rows.find(value => value.id === update.id);
+    const row = rows.find(value => value.id === update.id)!;
     assert.equal(row[change.model]?.outcome, 'ok', 'The retained mock Model outcome must be present');
     assert.deepEqual(row[change.model].value, change.answers[index]);
     if (template === 'deal-review-mock') {
-      const originalRow = originalRows.find(value => value.id === update.id);
+      const originalRow = originalRows.find(value => value.id === update.id)!;
       assert.equal(row.StageName, originalRow.StageName, 'Result must retain the pre-write Source');
       assert.equal(row.NextStep, originalRow.NextStep, 'Result must retain the pre-write Source');
     }

@@ -809,3 +809,9 @@ target/
 /scripts/interface-owner-source-projection.d.mts
 /scripts/installed-interface-correspondence.mjs
 /scripts/installed-interface-correspondence.d.mts
+
+# Emitted from authored Native Mock scenario and acceptance sources.
+/scripts/native-cli-mock-scenario.mjs
+/scripts/native-cli-mock-scenario.d.mts
+/scripts/native-cli-project-init.test.mjs
+/scripts/native-cli-project-init.test.d.mts

@@ -330,11 +330,11 @@
                 "anchor": "// Inject failures into operations on real, fresh handles."
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('init forwards one explicit operator Host path unchanged to the original Native adoption'"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('installed init dispatcher forwards the original Host selector without reading or creating that file'"
               }
             ]
@@ -414,7 +414,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('old, malformed, failed, timed out and oversized Native queries refuse before preparation'"
               },
               {
@@ -422,11 +422,11 @@
                 "anchor": "test \"project init support is implementation data and acquires no command original\""
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('opt-in init observations forward only complete original child metadata with unchanged support contract'"
               }
             ]

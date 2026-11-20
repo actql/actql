@@ -508,15 +508,15 @@
                 "anchor": "launch"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('public init help does not need a runtime"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('root README deal-review init selects its exact documented template"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('an installed package without Local runtime refuses every init template before any project writes'"
               }
             ]

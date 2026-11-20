@@ -11,15 +11,25 @@ import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+import type {TestContext} from 'node:test';
+
+type InitSelection = Extract<ReturnType<typeof projectInitArguments>, {directory: string}>;
+type SourceCatalogue = {connections: Record<string, {views: {resource: string; data_classification: string}[]}>};
+type LocalRuntime = {path: string; bytes: number; sha256: string};
+type ProbeResult = ReturnType<NonNullable<Parameters<typeof requireProjectInitSupport>[3]>>;
+type AcceptanceEvent = Omit<ReturnType<typeof import('../packages/native-cli/lib/project-scaffold.mjs').nativeMockAcceptanceObservations>[number]['events'][number], 'pid' | 'seq'>;
+type ExitError = Error & {exitCode?: number};
+
 test('init forwards one explicit operator Host path unchanged to the original Native adoption', () => {
   const selection = projectInitArguments(['init', '--template', 'deal-review-mock',
     '--host-config', './operator/host.json', 'project']);
   assert.deepEqual(selection, {directory: 'project', template: 'deal-review-mock',
     hostConfiguration: './operator/host.json'});
-  assert.equal(projectInitArguments(['init', '--host-config=./selected.json']).hostConfiguration,
+  assert.equal((projectInitArguments(['init', '--host-config=./selected.json']) as InitSelection).hostConfiguration,
     './selected.json');
   assert.deepEqual(projectInitialAdoptionArguments({configuration: '/owned/project/actql.config.json',
-    stateDirectory: '/owned/project/.actql'}, selection.hostConfiguration),
+    stateDirectory: '/owned/project/.actql'}, (selection as InitSelection).hostConfiguration),
   ['--host-config', './operator/host.json', '--mode', 'local', '--config', '/owned/project/actql.config.json',
     '--state-dir', '/owned/project/.actql', 'adopt', '--initialize-signing']);
   for (const args of [['--host-config'], ['--host-config='], ['--host-config', '--force'],
@@ -30,7 +40,7 @@ test('init forwards one explicit operator Host path unchanged to the original Na
 
 test('deal-review fixture declares its three internal Source policies without a global Mock default', () => {
   const files = projectTemplateFiles('deal-review-mock');
-  const catalogue = JSON.parse(files['mock/catalog.json']);
+  const catalogue = JSON.parse(files['mock/catalog.json']) as SourceCatalogue;
   const views = Object.values(catalogue.connections).flatMap(connection => connection.views);
   assert.deepEqual(views.map(view => [view.resource, view.data_classification]),
     [['Opportunity', 'internal'], ['files', 'internal'], ['contents', 'internal']]);
@@ -40,7 +50,7 @@ test('deal-review fixture declares its three internal Source policies without a 
 
 test('churn-risk fixture declares the classification of both original input Sources', () => {
   const files = projectTemplateFiles('churn-risk-mock');
-  const catalogue = JSON.parse(files['mock/catalog.json']);
+  const catalogue = JSON.parse(files['mock/catalog.json']) as SourceCatalogue;
   const views = Object.values(catalogue.connections).flatMap(connection => connection.views);
   assert.deepEqual(views.map(view => [view.resource, view.data_classification]),
     [['Account', 'internal'], ['usage_30d', 'internal']]);
@@ -49,25 +59,25 @@ test('churn-risk fixture declares the classification of both original input Sour
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const launcher = fileURLToPath(new URL('../packages/native-cli/bin/actql.mjs', import.meta.url));
 const installedPlatform = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64'
-  : process.platform === 'linux' && process.arch === 'x64' && process.report.getReport().header.glibcVersionRuntime
+  : process.platform === 'linux' && process.arch === 'x64' && (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime
     ? 'linux-x64-gnu' : undefined;
 const installedTest = {skip: installedPlatform === undefined};
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const scratch = async t => {
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const scratch = async (t: TestContext) => {
   const root = await mkdtemp(join(tmpdir(), 'actql-project-init-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   return root;
 };
-const command = (cwd, args) => spawnSync(process.execPath, [launcher, ...args],
+const command = (cwd: string, args: readonly string[]) => spawnSync(process.execPath, [launcher, ...args],
   {cwd, encoding: 'utf8', timeout: 10_000, maxBuffer: 8192});
 
-async function installedFixture(t, {runtime = false} = {}) {
+async function installedFixture(t: TestContext, {runtime = false} = {}) {
   const root = await scratch(t), cwd = join(root, 'workspace');
   const cli = join(root, 'node_modules/actql');
   const packageName = `@actql/cli-${installedPlatform}`;
   const native = join(root, 'node_modules', packageName), executable = join(native, 'bin/actql-native-client');
   await mkdir(cwd); await mkdir(dirname(executable), {recursive: true});
-  const inputs = nativeCliPackageInputs(repository);
+  const inputs = nativeCliPackageInputs(repository)!;
   for (const {source, member} of inputs.copies) {
     await mkdir(dirname(join(cli, member)), {recursive: true});
     await copyFile(join(repository, source), join(cli, member));
@@ -89,13 +99,13 @@ async function installedFixture(t, {runtime = false} = {}) {
   const sourceSha = 'a'.repeat(40);
   const abi = installedPlatform === 'darwin-arm64' ? {minimumMacOS: '11.0'} : {minimumGlibc: '2.17'};
   const metadata = {version: 'actql-native-cli-artifact/0.1', platform: installedPlatform,
-    sourceSha, binarySha256: digest(binary), binaryBytes: binary.length, abi};
+    sourceSha, binarySha256: digest(binary), binaryBytes: binary.length, abi} as {version: string; platform?: string; sourceSha: string; binarySha256: string; binaryBytes: number; abi: typeof abi; localRuntime?: LocalRuntime};
   const expected = {package: packageName, sourceSha,
-    binarySha256: metadata.binarySha256, binaryBytes: binary.length};
+    binarySha256: metadata.binarySha256, binaryBytes: binary.length} as {package: string; sourceSha: string; binarySha256: string; binaryBytes: number; localRuntimeSha256?: string};
   if (runtime) {
     // Metadata selection alone cannot establish physical/runtime admission.
     // These bounded synthetic members only let the dispatch observer run.
-    const member = async (path, bytes) => {
+    const member = async (path: string, bytes: Buffer) => {
       await mkdir(dirname(join(native, path)), {recursive: true});
       await writeFile(join(native, path), bytes);
       return {path, bytes: bytes.length, sha256: digest(bytes)};
@@ -108,14 +118,14 @@ async function installedFixture(t, {runtime = false} = {}) {
     metadata.localRuntime = await member('local-runtime.json', Buffer.from(JSON.stringify({
       sourceSha, platform: installedPlatform, libraries, assets, licenses: [license],
     })));
-    expected.localRuntimeSha256 = metadata.localRuntime.sha256;
+    expected.localRuntimeSha256 = metadata.localRuntime!.sha256;
   }
   const save = async () => {
     await writeFile(join(native, 'artifact.json'), JSON.stringify(metadata));
-    await writeFile(join(cli, 'platforms.json'), JSON.stringify({[installedPlatform]: expected}));
+    await writeFile(join(cli, 'platforms.json'), JSON.stringify({[installedPlatform!]: expected}));
   };
   await save();
-  const invoke = (args, environment = {}) => spawnSync(process.execPath, [join(cli, 'bin/actql.mjs'), ...args], {
+  const invoke = (args: readonly string[], environment: NodeJS.ProcessEnv = {}) => spawnSync(process.execPath, [join(cli, 'bin/actql.mjs'), ...args], {
     cwd, env: {...process.env, ACTQL_NATIVE_TIMINGS: '0', ACTQL_INIT_FIXTURE_EXIT: '0', ...environment},
     encoding: 'utf8', timeout: 10_000, maxBuffer: 8192,
   });
@@ -351,7 +361,7 @@ test('root README deal-review init selects its exact documented template and dir
   assert.deepEqual(projectInitArguments(args), {directory: 'deal-review', template: 'deal-review-mock'});
 });
 
-const supportReply = value => ({status: 0, signal: null, stderr: '',
+const supportReply = (value?: Record<string, unknown>): ProbeResult => ({status: 0, signal: null, stderr: '',
   stdout: JSON.stringify({version: 'actql-project-init-support/0.1', sourceFree: true, mock: false, ...value})});
 
 test('init implementation query uses only the admitted executable and fixed bounded arguments', () => {
@@ -390,7 +400,7 @@ test('private support wire accepts the Native final LF but refuses duplicate key
     assert.throws(() => {
       requireProjectInitSupport('/admitted/native', {}, undefined, () => ({...supportReply(), stdout}));
       scaffoldProject(join(root, 'absent'));
-    }, e => e.exitCode === 69 && /initialization support is unavailable/.test(e.message));
+    }, e => (e as ExitError).exitCode === 69 && /initialization support is unavailable/.test((e as ExitError).message));
     assert.deepEqual(await readdir(root), []);
   }
 });
@@ -405,7 +415,7 @@ test('unavailable mock bindings preserve absent, empty and occupied project targ
       assert.throws(() => {
         requireProjectInitSupport('/admitted/native', {}, template, () => supportReply());
         scaffoldProject(join(root, target), template);
-      }, e => e.exitCode === 69 && /does not implement/.test(e.message));
+      }, e => (e as ExitError).exitCode === 69 && /does not implement/.test((e as ExitError).message));
     }
   }
   assert.deepEqual((await readdir(root)).sort(), ['empty', 'occupied']);
@@ -416,7 +426,7 @@ test('unavailable mock bindings preserve absent, empty and occupied project targ
 
 test('old, malformed, failed, timed out and oversized Native queries refuse before preparation', async t => {
   const root = await scratch(t);
-  const invalid = [
+  const invalid: ProbeResult[] = [
     {...supportReply(), status: 2}, {...supportReply(), status: null, signal: 'SIGTERM'},
     {...supportReply(), error: Object.assign(Error('timeout'), {code: 'ETIMEDOUT'})},
     {...supportReply(), stdout: 'x'.repeat(4097)}, {...supportReply(), stdout: ''},
@@ -430,7 +440,7 @@ test('old, malformed, failed, timed out and oversized Native queries refuse befo
     assert.throws(() => {
       requireProjectInitSupport('/admitted/native', {}, undefined, () => reply);
       scaffoldProject(join(root, 'absent'));
-    }, e => e.exitCode === 69);
+    }, e => (e as ExitError).exitCode === 69);
     assert.deepEqual(await readdir(root), []);
   }
 });
@@ -480,19 +490,19 @@ test('installed init silences only private query timings and preserves adoption 
     '--state-dir', join(canonicalProject, '.actql'), 'adopt', '--initialize-signing']);
   const envelope = nativeLauncherEnvelope(result.stderr, 'required');
   assert.equal(envelope.native, 'original adoption diagnostics\n');
-  assert.equal(envelope.timing.units, 'nanoseconds');
-  assert(Number.isSafeInteger(envelope.timing.preparation) && envelope.timing.preparation >= 0);
-  assert(Number.isSafeInteger(envelope.timing.child) && envelope.timing.child >= 0);
-  assert.equal(envelope.timing.total, envelope.timing.preparation + envelope.timing.child);
+  assert.equal(envelope.timing!.units, 'nanoseconds');
+  assert(Number.isSafeInteger(envelope.timing!.preparation) && envelope.timing!.preparation >= 0);
+  assert(Number.isSafeInteger(envelope.timing!.child) && envelope.timing!.child >= 0);
+  assert.equal(envelope.timing!.total, envelope.timing!.preparation + envelope.timing!.child);
   assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
   assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
 });
 
-function observation(pid, events = []) {
+function observation(pid: number, events: readonly AcceptanceEvent[] = []) {
   return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
     child_process_counters:false,phase_slots:39,counter_slots:70,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
-    Array.from({length:39},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? {32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'}[tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0,sql_prepares:0,current_calls:0})+'\n').join('') +
-    Array.from({length:70},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    Array.from({length:39},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? ({32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'} as Record<number, string>)[tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0,sql_prepares:0,current_calls:0})+'\n').join('') +
+    Array.from({length:70},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'} as Record<number, string>)[tag] ?? 'private_counter',count:0})+'\n').join('') +
     'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
     events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
