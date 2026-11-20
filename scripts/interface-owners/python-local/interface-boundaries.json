@@ -1,6 +1,6 @@
 {
-  "source": "257930b273709f4fca49384a2d664b111d2a1568",
-  "syntaxProjectionSha256": "3513017f71de7cf211d764b34e2979a40c20db0a75f67fcd7333556e4be1faa2",
+  "source": "ba462059b89b6d7a92b1f87491a552a3df7e611d",
+  "syntaxProjectionSha256": "621c95d17d5f797faaffec5c61ec6d4797c6155ea48ed0b116d97184abac46b1",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -93977,12 +93977,16 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "749d4f38698ce7085787ac7319a89aec636a19168e65a968b697aa13b5fcb339",
+      "sha256": "e948a56f99bb50206254b13d995dc43514bbe5298d50a540f55131dd67132fe5",
       "exports": [],
       "operations": [
         {
           "name": "dispose_journal_decode_rows",
           "declaration": "dispose_journal_decode_rows ( value : Instance , frame : StoredJournalDecodeFrame , keep_selected : Bool , ) - > Int"
+        },
+        {
+          "name": "journal_decode_cell_matches",
+          "declaration": "journal_decode_cell_matches ( cell : StoredJournalRunOriginal , row : @ host . ClientJournalPhysicalRow , ) - > Bool"
         },
         {
           "name": "journal_decode_frame_capacity",
@@ -93995,6 +93999,10 @@
         {
           "name": "journal_decode_index_probe",
           "declaration": "journal_decode_index_probe ( index : FixedArray [ StoredJournalRunOriginal ? ] , key : String , ) - > ( Int , Int )"
+        },
+        {
+          "name": "journal_decode_original_from_list",
+          "declaration": "journal_decode_original_from_list ( rows : StoredJournalRunOriginal ? , row : @ host . ClientJournalPhysicalRow , ) - > StoredJournalRunOriginal ?"
         },
         {
           "name": "journal_decode_row_capacity",
@@ -94037,7 +94045,9 @@
             "journal_inspect_run_with_observation",
             "open_journal_decode_frame",
             "settle_journal_decode_original",
-            "journal_decode_index_probe"
+            "journal_decode_index_probe",
+            "journal_decode_cell_matches",
+            "journal_decode_original_from_list"
           ],
           "exports": [],
           "attributes": {
@@ -94049,6 +94059,10 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "fn journal_decode_index_probe("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_original_from_list("
               }
             ],
             "inputsOutputs": [
@@ -94115,6 +94129,10 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "fn journal_decode_frame_capacity(indexed? : Bool = false)"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "return cursor"
               }
             ],
             "extension": [
