@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {access, mkdtemp, mkdir, readFile, realpath, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {spawnSync} from 'node:child_process';
+import {execFile, spawnSync} from 'node:child_process';
+import {promisify} from 'node:util';
 import {readFileSync, chmodSync} from 'node:fs';
 import {parse} from 'yaml';
-import {assertReleaseProjectCohort, prepareReleaseProjectNode} from './release-project-sequence-install.mjs';
+import {assertReleaseProjectCohort, prepareReleaseProjectNode, runReleaseProjectCli} from './release-project-sequence-install.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 
 const source = 'a'.repeat(40), registry = {url: 'http://127.0.0.1:32123/'};
@@ -15,6 +16,42 @@ const native = {sourceSha: source, cohort: {packageVersion: '0.0.2'}};
 const nodeManifest = () => ({sourceSha: source, cohort: {packageVersion: '0.0.2', packages: ['client-wire', 'sdk', 'local-node', 'node']},
   packages: ['client-wire', 'sdk', 'local-node', 'node'].map(name => ({name: '@actql/' + name,
     version: '0.0.2', file: name + '.tgz', integrity: 'sha512:independent-' + name, files: []}))});
+
+test('RC CLI init creates its own project from the existing parent; later commands use that project', async t => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-rc-cli-cwd-')));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const projects = join(root, 'projects'), project = join(projects, 'fresh-project'), launcher = join(root, 'launcher.mjs');
+  await mkdir(projects);
+  await writeFile(launcher, `import assert from 'node:assert/strict';
+import {access, mkdir, writeFile} from 'node:fs/promises';
+const [command, ...args] = process.argv.slice(2);
+if (command === 'init') {
+  await assert.rejects(access(args[2]), {code: 'ENOENT'});
+  await mkdir(args[2]);
+  await writeFile(args[2] + '/created-by-init', 'original initializer');
+}
+if (command === 'refuse') process.exitCode = 19;
+console.log(JSON.stringify({cwd: process.cwd(), command, args}));
+`);
+  const execute = promisify(execFile), calls = [];
+  const run = async (command, args, cwd) => {
+    calls.push({command, args, cwd});
+    return JSON.parse((await execute(command, args, {cwd, encoding: 'utf8', timeout: 5000})).stdout);
+  };
+  await assert.rejects(access(project), {code: 'ENOENT'});
+  const initArgs = ['init', '--template', 'deal-review-mock', project];
+  assert.deepEqual(await runReleaseProjectCli(run, launcher, initArgs, project),
+    {cwd: projects, command: 'init', args: initArgs.slice(1)});
+  assert.equal(await readFile(join(project, 'created-by-init'), 'utf8'), 'original initializer');
+  assert.deepEqual(await runReleaseProjectCli(run, launcher, ['status', 'original-run'], project),
+    {cwd: project, command: 'status', args: ['original-run']});
+  assert(calls.every(value => value.command === process.execPath && value.args[0] === launcher));
+  await assert.rejects(runReleaseProjectCli(run, launcher, ['refuse'], project), {code: 19});
+  const missing = join(root, 'missing-parent', 'uncreated-project');
+  await assert.rejects(runReleaseProjectCli(run, launcher, ['init', '--template', 'deal-review-mock', missing], missing), {code: 'ENOENT'});
+  await assert.rejects(runReleaseProjectCli(run, launcher, ['status', 'original-run'], missing), {code: 'ENOENT'});
+  await assert.rejects(access(missing), {code: 'ENOENT'});
+});
 
 test('RC sequence option is explicit, paired and cannot enter a formal or foreign consumer', () => {
   assert.equal(nativeMockInstallOptions([], 'darwin').projectSequenceNodeRelease, undefined);

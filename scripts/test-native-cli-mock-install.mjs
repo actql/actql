@@ -21,7 +21,7 @@ import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from 
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
-import {assertReleaseProjectCohort, prepareReleaseProjectNode} from './release-project-sequence-install.mjs';
+import {assertReleaseProjectCohort, prepareReleaseProjectNode, runReleaseProjectCli} from './release-project-sequence-install.mjs';
 import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements, projectCliExpectedExit} from './release-project-sequences.mjs';
 import {runOriginalMockRegressions} from './native-cli-mock-regressions.mjs';
 
@@ -194,7 +194,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
           minimumWrites = requiredProjectReplacements(label.template, (await projectTargetSnapshot(cwd)).bytes);
         }
         let value, primary, failed = false;
-        try {value = await run(process.execPath, [launcher, ...args], cwd);
+        try {value = await runReleaseProjectCli(run, launcher, args, cwd);
           assert.equal(value.code, projectCliExpectedExit(args, label), value.stderr); assert.equal(value.signal, null);
           const groups = nativeMockAcceptanceObservations(nativeLauncherEnvelope(value.stderr, 'required').native);
           assert(groups.length > 0, 'Missing original Native work observation');

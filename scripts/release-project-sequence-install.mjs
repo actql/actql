@@ -2,7 +2,7 @@
 // preparation, not a runtime supplier, serialized trust proof or publication.
 import assert from 'node:assert/strict';
 import {copyFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {constants} from 'node:fs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
 
@@ -12,6 +12,12 @@ export function assertReleaseProjectCohort(native, node) {
   assert.deepEqual(node.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
   assert.deepEqual(node.packages.map(item => item.name).sort(),
     ['@actql/client-wire', '@actql/local-node', '@actql/node', '@actql/sdk']);
+}
+
+export function runReleaseProjectCli(run, launcher, args, project) {
+  // The original initializer creates the project; its cwd must already exist.
+  // All later commands remain in that same independently owned project.
+  return run(process.execPath, [launcher, ...args], args[0] === 'init' ? dirname(project) : project);
 }
 
 export async function prepareReleaseProjectNode({directory, nativeManifest, originalNodeManifest, originalNodeManifestBytes, root, repository,
