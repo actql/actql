@@ -16,7 +16,6 @@ fn materialize_computed_star_receivers(
   Array[(String, @builder.Node)],
 ) raise Abort {
   let receivers : Array[@query.Expression] = []
-  let reserved = physical.copy()
   let mut remaining = max_work
   let spend = fn(count : Int) -> Unit raise Abort {
     if count < 0 || count > remaining {
@@ -55,6 +54,9 @@ fn materialize_computed_star_receivers(
   if receivers.is_empty() {
     return (expanded, [], [])
   }
+  // The ordinary named/no-star path needs no field-width-dependent copy.
+  // Copy only after the original receiver guard selects this constructor.
+  let reserved = physical.copy()
   // Private names must also avoid authored references and output aliases,
   // including a user spelling that happens to match the generated prefix.
   for projection in expanded {

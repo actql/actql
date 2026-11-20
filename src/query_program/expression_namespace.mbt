@@ -34,7 +34,25 @@ fn merge_namespace_views(
   match (left, right) {
     (None, _) => right
     (_, None) => left
-    (Some(a), Some(b)) => Some(Joined(a, b))
+    (Some(a), Some(b)) => {
+      if physical_equal(a, b) {
+        return left
+      }
+      // A collector appends each incoming ORIGINAL view on the right of its
+      // prior accumulator. Search that left spine without a new work vector:
+      // a repeated shared-DAG terminal cannot retain that original again.
+      // Member/element paths stay opaque; no schema/name/value equivalence or
+      // validation/currentness fact is cached or substituted.
+      let mut previous = a
+      while previous is Joined(before, original) {
+        spend(2)
+        if physical_equal(original, b) || physical_equal(before, b) {
+          return left
+        }
+        previous = before
+      }
+      Some(Joined(a, b))
+    }
   }
 }
 

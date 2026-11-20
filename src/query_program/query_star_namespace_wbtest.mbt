@@ -218,3 +218,119 @@ test "computed object occurrence lookup never accepts a foreign projection" {
     _ => fail("the actual occurrence scan must be bounded")
   }
 }
+
+///|
+test "shared namespace DAG does not retain one field join per expanded visit" {
+  let anonymous : NamespaceView = Row([{ name: None, name_view: None, }])
+  let named : NamespaceView = Row([
+    { name: Some({ value: "f0_", quoted: false, }), name_view: None, },
+  ])
+  let a : NamespaceView = Row([
+    {
+      name: Some({ value: "payload", quoted: false, }),
+      name_view: Some(anonymous),
+    },
+  ])
+  let b : NamespaceView = Row([
+    {
+      name: Some({ value: "payload", quoted: false, }),
+      name_view: Some(named),
+    },
+  ])
+  let mut shared : NamespaceView = Joined(a, b)
+  for _ in 0..<7 {
+    shared = Joined(shared, shared)
+  }
+  let (layout, _) = namespace_object_columns(Some(shared), ["payload"], 1000000)
+  let columns = layout.unwrap()
+  assert_eq(columns.length(), 1)
+  match columns[0].name_view {
+    Some(Joined(left, right)) => {
+      assert_true(
+        physical_equal(left, anonymous),
+        msg="repeated terminal visits retained another join chain",
+      )
+      assert_true(physical_equal(right, named))
+    }
+    _ => fail("both original field constraints must survive exactly once")
+  }
+  let query = @query.parse_query(
+    "SELECT payload.f0_ FROM t",
+    mapping_syntax_limits(),
+  ).unwrap()
+  let expression = selected_projections(query)[0].expression.unwrap()
+  try
+    namespace_member(
+      columns[0].name_view,
+      { value: "f0_", quoted: false, },
+      _ => (),
+      expression,
+      @query.expression_root(expression),
+    )
+  catch {
+    Abort(Expression({ issue: @expression.UnknownReference, .. })) => ()
+    _ => fail("wrong original anonymous constraint refusal")
+  } noraise {
+    _ => fail("folding repeated originals cannot discard the anonymous branch")
+  }
+}
+
+///|
+test "ordinary SELECT with no computed receiver returns before receiver work" {
+  let query = @query.parse_query("SELECT n FROM t", mapping_syntax_limits()).unwrap()
+  let original = selected_projections(query)
+  let physical = Array::makei(128, index => "slot" + index.to_string())
+  let mut calls = 0
+  let (result, bindings, derives) = materialize_computed_star_receivers(
+    original,
+    original,
+    physical,
+    _ => {
+      calls += 1
+      raise Abort(InvalidContext)
+    },
+    _ => false,
+    0,
+  )
+  assert_true(physical_equal(result, original))
+  assert_true(bindings.is_empty())
+  assert_true(derives.is_empty())
+  assert_eq(calls, 0)
+  assert_eq(physical.length(), 128)
+}
+
+///|
+test "original namespace fold preserves foreign links and exact remaining Work" {
+  let a : NamespaceView = Row([{ name: None, name_view: None, }])
+  let b : NamespaceView = Row([
+    { name: Some({ value: "f0_", quoted: false, }), name_view: None, },
+  ])
+  let original : NamespaceView = Joined(a, b)
+  let foreign : NamespaceView = Row([{ name: None, name_view: None, }])
+  let mut remaining = 3
+  let spend = fn(amount : Int) -> Unit raise Abort {
+    if amount > remaining {
+      raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+    }
+    remaining -= amount
+  }
+  let folded = merge_namespace_views(Some(original), Some(a), spend).unwrap()
+  assert_true(physical_equal(folded, original))
+  assert_eq(remaining, 0)
+  remaining = 3
+  match merge_namespace_views(Some(original), Some(foreign), spend) {
+    Some(Joined(left, right)) => {
+      assert_true(physical_equal(left, original))
+      assert_true(physical_equal(right, foreign))
+    }
+    _ => fail("structurally equal foreign views cannot replace an original")
+  }
+  assert_eq(remaining, 0)
+  remaining = 2
+  try merge_namespace_views(Some(original), Some(a), spend) catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => ()
+    _ => fail("wrong one-short original-view scan refusal")
+  } noraise {
+    _ => fail("one-short Work cannot traverse or issue the folded result")
+  }
+}
