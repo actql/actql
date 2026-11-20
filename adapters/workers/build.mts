@@ -5,7 +5,7 @@ import {gzipSync} from 'node:zlib';
 import {checkWorkersArtifact, conformanceModules, hostModules,
   finiteConformanceModules, finiteRuntimeModules, finiteRuntimeEntry} from './artifact.mjs';
 
-async function buildProfile(entry, name, allowed) {
+async function buildProfile(entry: string, name: string, allowed: Parameters<typeof checkWorkersArtifact>[2]) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const output = `${root}_build/workers`;
   mkdirSync(output, {recursive:true});
@@ -31,7 +31,7 @@ export const buildFiniteRuntime = () => buildProfile(finiteRuntimeEntry,
   'finite-runtime', finiteRuntimeModules);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  for (const [profile, build] of [['host',buildHost],['finite-runtime',buildFiniteRuntime],['conformance',buildConformance],['finite-conformance',buildFiniteConformance]]) {
+  for (const [profile, build] of [['host',buildHost],['finite-runtime',buildFiniteRuntime],['conformance',buildConformance],['finite-conformance',buildFiniteConformance]] as const) {
     const {bytes, gzipBytes, metafile} = await build();
     console.log(JSON.stringify({profile,bytes,gzipBytes,modules:Object.keys(metafile.inputs)}));
   }

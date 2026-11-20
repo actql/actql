@@ -745,3 +745,17 @@ target/
 /scripts/build-runtime-packages.d.mts
 /scripts/build-runtime-packages.test.mjs
 /scripts/build-runtime-packages.test.d.mts
+
+# Emitted from the authored deferred ABI/package builders and controls.
+/scripts/deferred-function-runtime.mjs
+/scripts/deferred-function-runtime.d.mts
+/scripts/deferred-function-runtime.test.mjs
+/scripts/deferred-function-runtime.test.d.mts
+/scripts/build-run-host-core-package.mjs
+/scripts/build-run-host-core-package.d.mts
+/scripts/build-remote-coordinator-package.mjs
+/scripts/build-remote-coordinator-package.d.mts
+/scripts/build-remote-transfer-package.mjs
+/scripts/build-remote-transfer-package.d.mts
+/adapters/workers/build.mjs
+/adapters/workers/build.d.mts

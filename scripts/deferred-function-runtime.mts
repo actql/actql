@@ -9,7 +9,7 @@ import {buildSync, transformSync} from 'esbuild';
 // this guard is not a compile-time proof of a safe initializer.
 // In particular, the pinned runtime's random hash seed still uses its actual
 // entropy source; it is not replaced with a constant or a Host-side hash.
-export function deferredFunctionRuntime(source, {minify = false} = {}) {
+export function deferredFunctionRuntime(source: string, {minify = false}: {minify?: boolean} = {}) {
   const built = buildSync({entryPoints: [source], bundle: true, minify,
     write: false, metafile: true, format: 'esm', platform: 'neutral',
     target: 'es2022'});

@@ -8,7 +8,12 @@ import {transformSync} from 'esbuild';
 import test from 'node:test';
 import {deferredFunctionRuntime} from './deferred-function-runtime.mjs';
 
-function fixture(t, source, options) {
+import type {TestContext} from 'node:test';
+
+type Runtime = {retain(value: unknown): unknown; restore(value: unknown): unknown;
+  selectedSeed(): unknown; perform(): unknown; observedAttempts(): unknown; value(): unknown};
+
+function fixture(t: TestContext, source: string, options?: Parameters<typeof deferredFunctionRuntime>[1]) {
   const directory = mkdtempSync(join(tmpdir(), 'deferred-function-runtime-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const input = join(directory, 'original.mjs');
@@ -20,19 +25,19 @@ function fixture(t, source, options) {
 
 // An isolated module-evaluation boundary supplies its own restricted Crypto
 // port. The process Crypto object and product entropy source are never patched.
-function sandboxModule(url, crypto) {
+function sandboxModule(url: string, crypto: unknown): Runtime {
   const bundled = transformSync(readFileSync(fileURLToPath(url), 'utf8'), {
     format: 'iife', globalName: '__testedModule', target: 'es2022',
   }).code;
-  return runInNewContext(bundled + '\n__testedModule;', {crypto});
+  return runInNewContext(bundled + '\n__testedModule;', {crypto}) as Runtime;
 }
 
 for (const minify of [false, true]) {
   test(`global import defers entropy and retains one original instance (minify=${minify})`, async t => {
-    let inHandler = false, calls = 0, issuedSeed;
+    let inHandler = false, calls = 0, issuedSeed: number | undefined;
     const processCrypto = globalThis.crypto;
     const forbidden = new Error('Disallowed global entropy');
-    const crypto = Object.freeze({getRandomValues: bytes => {
+    const crypto = Object.freeze({getRandomValues: (bytes: Uint32Array<ArrayBuffer>) => {
       calls++;
       if (!inHandler) throw forbidden;
       processCrypto.getRandomValues(bytes);
@@ -93,8 +98,8 @@ let attempts = 0;
 export function perform() { attempts++; throw originalFailure; }
 export function observedAttempts() { return attempts; }
 `);
-  const runtime = await import(f.output);
-  let outcome;
+  const runtime = await import(f.output) as Runtime;
+  let outcome: unknown;
   try { runtime.perform(); } catch (error) { outcome = error; }
   assert.deepEqual(outcome, {unknown: true});
   assert.equal(runtime.observedAttempts(), 1);
@@ -109,7 +114,7 @@ test('generation rejects external imports; non-function exports fail only after 
   assert.throws(() => deferredFunctionRuntime(input), /Could not resolve|closed synchronous/u);
   let calls = 0;
   const processCrypto = globalThis.crypto;
-  const crypto = Object.freeze({getRandomValues: bytes => { calls++; return processCrypto.getRandomValues(bytes); }});
+  const crypto = Object.freeze({getRandomValues: (bytes: Uint32Array<ArrayBuffer>) => { calls++; return processCrypto.getRandomValues(bytes); }});
   const f = fixture(t, `crypto.getRandomValues(new Uint32Array(1)); export const value = 7;`);
   const runtime = sandboxModule(f.output, crypto);
   assert.equal(calls, 0);
@@ -128,9 +133,9 @@ export function restore(token) { if (!original.has(token)) throw new TypeError('
 `);
   const facade = join(f.directory, 'facade.mjs');
   writeFileSync(facade, `export {retain, restore} from './deferred.mjs';`);
-  const raw = await import(f.output);
-  const named = await import(pathToFileURL(facade).href);
-  const again = await import(f.output);
+  const raw = await import(f.output) as Runtime;
+  const named = await import(pathToFileURL(facade).href) as Runtime;
+  const again = await import(f.output) as Runtime;
   assert.equal(named.retain, raw.retain);
   assert.equal(named.restore, raw.restore);
   assert.equal(again, raw);
