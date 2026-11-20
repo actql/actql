@@ -1,7 +1,10 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "paths": {"elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"]},
+    "paths": {
+      "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
+      "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
+    },
     "types": [
       "node"
     ],
@@ -26,7 +29,8 @@
     "packages/client-wire/**/*.mts",
     "packages/explorer/**/*.mts",
     "packages/explorer-ui/**/*.mts",
-    "packages/explorer-ui/elk-layout-module.d.ts"
+    "packages/explorer-ui/elk-layout-module.d.ts",
+    "packages/explorer-ui/built-component-test-types.d.ts"
   ],
   "exclude": [
     "**/*.typecheck.mts",
