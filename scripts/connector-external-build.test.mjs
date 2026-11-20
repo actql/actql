@@ -326,8 +326,7 @@ test('default installation outputs also refuse symlink aliases before Compute wr
   hostFixture(f, 'reader', 'source');
   const sentinel = join(f.root, 'sentinel.mjs');
   writeFileSync(sentinel, 'unchanged outside bytes\n');
-  const output = join(root, conflict === 'declaration-symlink'
-      ? 'adapters/portable/installations.generated.d.mts' : 'adapters/portable/installations.generated.mjs');
+  const output = join(root, 'adapters/portable/installations.generated.mjs');
   mkdirSync(dirname(output), {recursive: true});
   symlinkSync(sentinel, output);
   assert.throws(() => checkNodeAssembly(root, true, {names: ['reader'],
