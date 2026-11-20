@@ -2,11 +2,25 @@
 // This is not a worker pool or a portable preparation/acceptance authority.
 import assert from 'node:assert/strict';
 import {fork} from 'node:child_process';
+import type {Writable} from 'node:stream';
+
+type CloseStatus = {code: number | null; signal: NodeJS.Signals | null};
+type CampaignFailure = NodeJS.ErrnoException & {stopIssue?: string; stdout?: string; stderr?: string;
+  status?: CloseStatus['code']; signal?: CloseStatus['signal']};
+type IterationOutput = {status: CloseStatus['code']; signal: CloseStatus['signal']; stdout: string; stderr: string} &
+  ({receiptFile: string; error?: never} | {receiptFile?: never; error: CampaignFailure});
+type Pending = {iteration: number; sent: boolean; timer: NodeJS.Timeout; resolve: (result: IterationOutput) => void};
+type CampaignOptions = {script: string; directory: string; count: number; cwd: string;
+  timeoutMs?: number; killGraceMs?: number; env?: NodeJS.ProcessEnv};
+type WorkerMessage = {type: 'ready'} | {type: 'completed'; iteration: number; receiptFile: string};
+type ParentMessage = {type: 'iteration'; iteration: number};
+type Consume = (iteration: number, run: () => string | Promise<string>) => Promise<void>;
+type Waiting = {resolve: () => void; reject: (error: unknown) => void};
 
 const MAX_OUTPUT = 8 * 1024 ** 2;
 
 export function openNativeMockCampaign({script, directory, count, cwd,
-  timeoutMs = 240000, killGraceMs = 5000, env = process.env}) {
+  timeoutMs = 240000, killGraceMs = 5000, env = process.env}: CampaignOptions) {
   assert(Number.isSafeInteger(count) && count > 0 && count <= 30);
   assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0);
   assert(Number.isSafeInteger(killGraceMs) && killGraceMs > 0);
@@ -14,18 +28,19 @@ export function openNativeMockCampaign({script, directory, count, cwd,
     cwd, env: {...env, ACTQL_CI_NATIVE_RELEASE_PHASES: '1'}, execArgv: [],
     detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
-  let ready = false, next = 0, pending, failure, stopping = false, closed, escalation;
-  let stdout = [], stderr = [], outputBytes = 0;
-  let resolveClosed;
-  const closure = new Promise(resolve => {resolveClosed = resolve;});
-  const stop = error => {
+  let ready = false, next = 0, pending: Pending | undefined, failure: CampaignFailure | undefined,
+    stopping = false, closed: CloseStatus | undefined, escalation: NodeJS.Timeout | undefined;
+  let stdout: Buffer[] = [], stderr: Buffer[] = [], outputBytes = 0;
+  let resolveClosed!: (status: CloseStatus) => void;
+  const closure = new Promise<CloseStatus>(resolve => {resolveClosed = resolve;});
+  const stop = (error: CampaignFailure) => {
     failure ??= error;
     if (stopping || closed) return;
     stopping = true;
-    const signal = name => {
-      if (Number.isInteger(child.pid) && child.pid > 0) {
-        try {process.kill(-child.pid, name);}
-        catch (issue) {if (issue.code !== 'ESRCH') failure.stopIssue ??= issue.code;}
+    const signal = (name: NodeJS.Signals) => {
+      if (Number.isInteger(child.pid) && child.pid! > 0) {
+        try {process.kill(-child.pid!, name);}
+        catch (issue) {if ((issue as NodeJS.ErrnoException).code !== 'ESRCH') failure!.stopIssue ??= (issue as NodeJS.ErrnoException).code;}
       }
     };
     // Independent parent timer remains live while synchronous Source checking
@@ -36,23 +51,23 @@ export function openNativeMockCampaign({script, directory, count, cwd,
   };
   const onTerm = () => stop(Object.assign(new Error('Native Mock campaign interrupted'), {code: 'ECANCELED'}));
   process.once('SIGTERM', onTerm); process.once('SIGINT', onTerm);
-  const capture = (target, chunk) => {
+  const capture = (target: Buffer[], chunk: Buffer) => {
     const remaining = MAX_OUTPUT - outputBytes;
     if (remaining > 0) target.push(chunk.subarray(0, remaining));
     outputBytes += chunk.length;
     if (outputBytes > MAX_OUTPUT) stop(Object.assign(new Error('Native Mock campaign output limit exceeded'),
       {code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}));
   };
-  child.stdout.on('data', chunk => capture(stdout, chunk));
-  child.stderr.on('data', chunk => capture(stderr, chunk));
-  child.stdout.once('error', stop); child.stderr.once('error', stop);
+  child.stdout!.on('data', chunk => capture(stdout, chunk));
+  child.stderr!.on('data', chunk => capture(stderr, chunk));
+  child.stdout!.once('error', stop); child.stderr!.once('error', stop);
   const send = () => {
     if (ready && pending && !pending.sent && !failure) {
       pending.sent = true;
       child.send({type: 'iteration', iteration: pending.iteration}, error => {if (error) stop(error);});
     }
   };
-  child.on('message', message => {
+  child.on('message', (message: WorkerMessage) => {
     try {
       assert(message && typeof message === 'object' && !Array.isArray(message));
       if (message.type === 'ready') {
@@ -71,7 +86,7 @@ export function openNativeMockCampaign({script, directory, count, cwd,
         original.resolve({status: 0, signal: null, receiptFile: message.receiptFile,
           stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8')});
       }
-    } catch (error) {stop(error);}
+    } catch (error) {stop(error as CampaignFailure);}
   });
   child.once('error', stop);
   child.once('close', (code, signal) => {
@@ -88,11 +103,11 @@ export function openNativeMockCampaign({script, directory, count, cwd,
     resolveClosed(closed);
   });
   return Object.freeze({
-    async run(iteration) {
+    async run(iteration: number) {
       assert(!pending && !closed && !failure && iteration === next && next < count,
         'Closed, overlapping or replayed Native Mock iteration');
       if (next > 0) {stdout = []; stderr = []; outputBytes = 0;}
-      return new Promise(resolve => {
+      return new Promise<IterationOutput>(resolve => {
         pending = {iteration, resolve, sent: false,
           timer: setTimeout(() => stop(Object.assign(new Error('Original Native Mock iteration timed out'),
             {code: 'ETIMEDOUT'})), timeoutMs)};
@@ -110,10 +125,10 @@ export function openNativeMockCampaign({script, directory, count, cwd,
         // do not reduce it to a generic process-close message in the report.
         failure.stdout ??= Buffer.concat(stdout).toString('utf8');
         failure.stderr ??= Buffer.concat(stderr).toString('utf8');
-        failure.status ??= closed.code; failure.signal ??= closed.signal;
+        failure.status ??= closed!.code; failure.signal ??= closed!.signal;
         throw failure;
       }
-      return closed;
+      return closed!;
     },
   });
 }
@@ -121,15 +136,15 @@ export function openNativeMockCampaign({script, directory, count, cwd,
 // The original fixture alone calls its action and emits completion after the
 // same registry and scratch owners have closed. Parent messages select only an
 // ordered iteration, never manifests, subjects, verifier results or commands.
-export async function serveNativeMockCampaign(count, action) {
+export async function serveNativeMockCampaign(count: number, action: (consume: Consume) => void | Promise<void>) {
   assert.equal(typeof process.send, 'function', 'Native Mock campaign requires its original IPC parent');
-  let next = 0, waiting, queued, busy = false, failure;
-  const fail = error => {
+  let next = 0, waiting: Waiting | undefined, queued: boolean | undefined, busy = false, failure: unknown;
+  const fail = (error: unknown) => {
     failure ??= error;
     if (waiting) {waiting.reject(failure); waiting = undefined;}
     if (process.listenerCount('SIGTERM')) process.emit('SIGTERM');
   };
-  const onMessage = message => {
+  const onMessage = (message: ParentMessage) => {
     try {
       assert(message && typeof message === 'object' && !Array.isArray(message));
       assert.deepEqual(Object.keys(message).sort(), ['iteration', 'type']);
@@ -145,16 +160,16 @@ export async function serveNativeMockCampaign(count, action) {
     // This fixture was forked as its own group. Stop inherited npm/generator
     // children too, while the existing observer stops detached Native groups.
     try {process.kill(-process.pid, 'SIGTERM');}
-    catch (error) {if (error.code !== 'ESRCH') throw error;}
+    catch (error) {if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;}
   };
   process.on('message', onMessage); process.once('disconnect', onDisconnect);
-  const send = message => new Promise((resolve, reject) => process.send(message, error => error ? reject(error) : resolve()));
-  const drain = stream => new Promise((resolve, reject) => stream.write('', error => error ? reject(error) : resolve()));
+  const send = (message: WorkerMessage) => new Promise<void>((resolve, reject) => process.send!(message, error => error ? reject(error) : resolve()));
+  const drain = (stream: Writable) => new Promise<void>((resolve, reject) => stream.write('', error => error ? reject(error) : resolve()));
   try {
     await send({type: 'ready'});
     await action(async (iteration, run) => {
       assert.equal(iteration, next);
-      if (!queued) await new Promise((resolve, reject) => {waiting = {resolve, reject};});
+      if (!queued) await new Promise<void>((resolve, reject) => {waiting = {resolve, reject};});
       queued = false;
       if (failure) throw failure;
       busy = true;

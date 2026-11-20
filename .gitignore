@@ -927,3 +927,5 @@ target/
 /scripts/layout-measurement-support.d.mts
 /scripts/layout-measurement-support.test.mjs
 /scripts/layout-measurement-support.test.d.mts
+/scripts/native-mock-campaign.mjs
+/scripts/native-mock-campaign.d.mts
