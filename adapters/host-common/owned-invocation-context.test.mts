@@ -4,6 +4,10 @@ import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
   './owned-invocation-context.mjs';
 
+// Unchecked views of only the fields observed by these explicit callback ports.
+type ObservedRequest = {bodyBytes?: Buffer; bodyMediaType?: unknown; maxBodyBytes?: unknown; body?: unknown};
+type ObservedCall = {scope: {namespaceId?: unknown}; operations: Map<string, ObservedRequest>; maxRequestBytes?: unknown; useId?: unknown};
+
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
   const journal = {};
@@ -22,9 +26,9 @@ test('owned invocation context snapshots scalar bindings and limits', () => {
   scope.siteGeneration = 5;
   limits.maxBytes = 0;
   credential.resolveSecret = () => {};
-  assert.equal(context.scope.namespaceId, 'first');
-  assert.equal(context.scope.siteGeneration, 4);
-  assert.equal(context.scope.expiresUnixMilliseconds, 2000n);
+  assert.equal((context.scope as typeof scope).namespaceId, 'first');
+  assert.equal((context.scope as typeof scope).siteGeneration, 4);
+  assert.equal((context.scope as typeof scope).expiresUnixMilliseconds, 2000n);
   assert.equal(context.limits.maxBytes, 100);
   assert.equal(context.authorization.grant, grant);
   assert.equal(context.credential.journal, journal);
@@ -47,9 +51,9 @@ test('scope ownership rejects nested caller data instead of retaining it',
 test('scoped invoker owns the call and rejects a foreign operation',
   async () => {
     const scope = {namespaceId: 'namespace-a', operation: 'read'};
-    const calls = [];
-    const callResource = async call => {
-      calls.push(call);
+    const calls: ObservedCall[] = [];
+    const callResource = async (call: unknown) => {
+      calls.push(call as ObservedCall);
       scope.namespaceId = 'namespace-b';
       return {statusCode: 200};
     };
@@ -74,22 +78,22 @@ test('scoped invoker owns the call and rejects a foreign operation',
 
 test('explicit binary invocation snapshots the view and forwards no fabricated JSON body', async () => {
   const original = Buffer.from([88, 0, 255, 192, 13, 10, 89]);
-  let call;
+  let call: ObservedCall | undefined;
   await invokeScopedCredentialOperation({
     authorization: {grant: {}, useId: 'original-content-use', scope: {operation: 'upload'}},
     credential: {journal: {counterOnly: true}}, operation: 'upload', method: 'PUT',
     path: '/upload', bodyBytes: original.subarray(1, 6),
     bodyMediaType: 'application/octet-stream', maxRequestBytes: 5, maxResponseBytes: 128,
-    callResource: async value => { call = value; original.fill(0x77); return {}; },
+    callResource: async (value: unknown) => { call = value as ObservedCall; original.fill(0x77); return {}; },
   });
-  const request = call.operations.get('upload');
-  assert.deepEqual([...request.bodyBytes], [0, 255, 192, 13, 10]);
-  assert.equal(request.bodyBytes.buffer.byteLength, 5);
+  const request = call!.operations.get('upload')!;
+  assert.deepEqual([...request.bodyBytes!], [0, 255, 192, 13, 10]);
+  assert.equal(request.bodyBytes!.buffer.byteLength, 5);
   assert.equal(request.bodyMediaType, 'application/octet-stream');
   assert.equal(request.maxBodyBytes, 5);
   assert.equal(request.body, undefined);
-  assert.equal(call.maxRequestBytes, 5);
-  assert.equal(call.useId, 'original-content-use');
+  assert.equal(call!.maxRequestBytes, 5);
+  assert.equal(call!.useId, 'original-content-use');
 });
 
 test('malformed or one-short binary calls do not reach the physical callback', async () => {
@@ -108,15 +112,15 @@ test('malformed or one-short binary calls do not reach the physical callback', a
 
 test('scoped Source invocation forwards its exact original response custody before a physical late refusal', async () => {
   const primary = new Error('original physical post-response current refusal'), body = Buffer.from('original');
-  let observed, retained = 0;
-  const responseCustody = Object.freeze({retain(value) {assert.equal(this, responseCustody); observed = value; retained++;}});
+  let observed: unknown, retained = 0;
+  const responseCustody = Object.freeze({retain(value: unknown) {assert.equal(this, responseCustody); observed = value; retained++;}});
   await assert.rejects(async () => invokeScopedCredentialOperation({
     authorization: {grant: {}, useId: 'original-source-use', scope: {operation: 'read'}},
     credential: {}, operation: 'read', method: 'GET', path: '/records', maxResponseBytes: 64, responseCustody,
-    callResource(input) {
+    callResource(input: {responseCustody: typeof responseCustody}) {
       assert.strictEqual(input.responseCustody, responseCustody);
       input.responseCustody.retain(Object.freeze({body}));
       throw primary;
     }}), error => error === primary);
-  assert.equal(retained, 1); assert.strictEqual(observed.body, body);
+  assert.equal(retained, 1); assert.strictEqual((observed as {body: Buffer}).body, body);
 });

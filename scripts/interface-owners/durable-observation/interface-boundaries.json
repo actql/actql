@@ -1737,7 +1737,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -1897,7 +1897,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -6765,7 +6765,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -7562,7 +7562,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {

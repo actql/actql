@@ -109,7 +109,7 @@ test('explicit byte request preserves non-UTF8, zero bytes and exactly the selec
   assert.notEqual(request.bodyBytes.buffer, backing.buffer);
   assert.equal(request.target, '/upload?name=e%CC%81%252F.bin');
   assert.equal(request.bodyMediaType, 'multipart/related; boundary="original"');
-  assert.equal(request.body, undefined);
+  assert.equal((request as typeof request & {body?: unknown}).body, undefined);
   assert.ok(Object.isFrozen(request));
   backing.fill(0x33);
   assert.deepEqual([...request.bodyBytes], [0, 255, 192, 128, 13, 10]);
@@ -232,7 +232,7 @@ test('funded query construction keeps the exact encoded demand and all default r
   assert.throws(() => requestTarget('/objects', Array.from({length:33},()=>['a','b']),
     {maxQueryBytes:10000}), {code:'InvalidHttpRequestQuery'});
   assert.throws(() => ownHttpRequest({method:'GET',path:'/objects',query,
-    maxQueryBytes:bound}), {code:'InvalidHttpRequestQuery'}, 'provider DATA cannot select the owner bound');
+    maxQueryBytes:bound} as Parameters<typeof ownHttpRequest>[0]), {code:'InvalidHttpRequestQuery'}, 'provider DATA cannot select the owner bound');
   assert.throws(() => ownHttpRequest({method:'GET',path:'/objects',query,
     headers:[['authorization','x']]}, {maxQueryBytes:bound}), {code:'ReservedHttpRequestHeader'});
   assert.throws(() => requestTarget('/query?original=x', [['a','b']],
@@ -242,11 +242,18 @@ test('funded query construction keeps the exact encoded demand and all default r
 });
 
 test('actual HubSpot managed caller preserves all selected properties through funded HTTP construction', async () => {
-  const {prepareHubSpotManagedSequence} = await import('../connectors/hubspot/site/hubspot-managed-sequence.mjs');
+  type PreparedChild = {prepare(): {request: Parameters<typeof ownHttpRequest>[0] & {query: readonly unknown[]}; project(value: unknown): unknown}};
+  type UncheckedSequencePort = {prepareHubSpotManagedSequence(input: unknown): {
+    read(options: {signal: AbortSignal; readChild(child: PreparedChild): Promise<unknown>; consumeObservation(): Promise<void>; consumePage(rows: unknown): Promise<void>}): Promise<unknown>;
+    retire(): unknown;
+  }};
+  // Only this request-only fixture port is typed; no unconverted provider
+  // implementation, physical response or Common admission is certified here.
+  const {prepareHubSpotManagedSequence} = await import('../connectors/hubspot/site/hubspot-managed-sequence.mjs' as string) as UncheckedSequencePort;
   // Explicit provider decoder/current/response ports; this executes actual
   // protocol request construction, not a physical send or numerical admission.
   const names = Array.from({length:245},(_,index)=>'field_'+String(index).padStart(3,'0')+'_long_property');
-  const observed = [], originalCatalog = {};
+  const observed: string[] = [], originalCatalog = {};
   const moon = {
     hubspotRecheckAccountIdentityJson(){},hubspotProjectProperties(){return {$tag:1,_0:originalCatalog};},
     hubspotRecheckPropertyCatalog(){return {$tag:1};},hubspotPropertyCatalogObjectType(){return 'companies';},
@@ -268,7 +275,7 @@ test('actual HubSpot managed caller preserves all selected properties through fu
       if(prepared.request.query.length){
         assert.throws(()=>ownHttpRequest(prepared.request),{code:'InvalidHttpRequestQuery'});
         const params=new URL('https://example.invalid'+request.target).searchParams;
-        assert.deepEqual(params.get('properties').split(','),names);
+        assert.deepEqual(params.get('properties')!.split(','),names);
         assert.equal(params.get('limit'),'2');assert.equal(params.get('archived'),'false');
         return prepared.project({accepted:true,statusCode:200,body:Buffer.from('{}')});
       }

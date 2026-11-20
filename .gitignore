@@ -552,3 +552,9 @@ target/
 
 /scripts/installation-preparation-binding.test.mjs
 /scripts/installation-preparation-binding.test.d.mts
+
+/adapters/host-common/http-exchange.test.mjs
+/adapters/host-common/http-exchange.test.d.mts
+
+/adapters/host-common/owned-invocation-context.test.mjs
+/adapters/host-common/owned-invocation-context.test.d.mts

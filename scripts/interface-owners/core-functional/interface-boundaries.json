@@ -42763,7 +42763,7 @@
                 "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "test('funded query construction keeps the exact encoded demand and all default refusals'"
               }
             ],

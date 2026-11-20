@@ -6166,7 +6166,7 @@
                 "anchor": "Lost responses retain the same nominal Unknown use."
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "test('funded query construction keeps the exact encoded demand and all default refusals'"
               }
             ],
@@ -6230,7 +6230,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "test('request target encodes ordered query pairs onto an exact path', () => {"
               },
               {
@@ -6246,7 +6246,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -6434,7 +6434,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "test('request target encodes ordered query pairs onto an exact path', () => {"
               },
               {
@@ -6450,7 +6450,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {

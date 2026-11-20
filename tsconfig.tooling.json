@@ -15,6 +15,7 @@
       "DOM.Iterable",
       "ESNext.Array",
       "ES2024.String",
+      "ES2024.ArrayBuffer",
       "DOM.AsyncIterable"
     ],
     "declaration": true
