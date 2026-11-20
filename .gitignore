@@ -825,3 +825,5 @@ target/
 /scripts/release-authority.d.mts
 /scripts/release-channels.mjs
 /scripts/release-channels.d.mts
+/scripts/release-authored-types.test.mjs
+/scripts/release-authored-types.test.d.mts

@@ -13,12 +13,23 @@ import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {stagePackage, unpack} from './package-release.mjs';
 
-const hash = value => createHash('sha256').update(value).digest('hex');
-function fixture(t) {
+import type {BinaryLike} from 'node:crypto';
+import type {TestContext} from 'node:test';
+
+type Cohort = Parameters<typeof stagePackage>[0]['cohort'];
+type PackedItem = Awaited<ReturnType<typeof stagePackage>>;
+type CheckError = {errors?: {text: string}[]};
+type FixtureDeclaration = (ReturnType<typeof javascriptInterface> | ReturnType<typeof typescriptInterface>) &
+  {module: string; sha256: string; role: string; responsibilityFacet: string; owner: string;
+    contracts: {operations: string[]; exports: string[];
+      attributes: Record<string, {path: string; anchor: string}[]>}[]};
+
+const hash = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
+function fixture(t: TestContext) {
   const scratch = mkdtempSync(join(tmpdir(), 'actql-release-authored-types-'));
   t.after(() => rmSync(scratch, {recursive: true, force: true}));
   const repository = join(scratch, 'repository');
-  const put = (path, text) => {
+  const put = (path: string, text: string | Buffer) => {
     mkdirSync(dirname(join(repository, path)), {recursive: true});
     writeFileSync(join(repository, path), text);
   };
@@ -27,7 +38,7 @@ function fixture(t) {
   put('LICENSE', readFileSync(new URL('../LICENSE', import.meta.url)));
   put('owner.md', 'Original source, type boundary, authority, lifetime, Unknown and cleanup');
   const cohortText = readFileSync(new URL('../release/client-cohort.json', import.meta.url), 'utf8');
-  const cohort = JSON.parse(cohortText), declarations = [];
+  const cohort = JSON.parse(cohortText) as Cohort, declarations: FixtureDeclaration[] = [];
   const names = ['index.mjs', 'index.d.ts', 'dormant.d.mts', 'dormant.d.cts'];
   for (const name of cohort.packages) {
     const files = name === 'client-wire' ? names : names.slice(0, 2);
@@ -49,7 +60,7 @@ function fixture(t) {
   }
   const save = () => put('elsewhere/interface-boundaries.json', JSON.stringify(declarations));
   save();
-  const git = (...args) => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
+  const git = (...args: string[]) => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
   git('init', '-q', '--initial-branch=main'); git('add', '.');
   git('-c', 'user.name=ActQL Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '-qm', 'test: original authored type and runtime inputs');
@@ -76,7 +87,7 @@ test('real client-wire Source caller accepts its authored type entrance through 
   const checked = await checkInterfaceOwners(process.cwd(), {manifests: ['packages/client-wire/package.json'],
     authoredEntrances: ['packages/client-wire/index.d.ts']});
   assert(checked.result.primaryComplete);
-  assert(checked.modules.find(value => value.module === 'packages/client-wire/index.d.ts')
+  assert(checked.modules.find(value => value.module === 'packages/client-wire/index.d.ts')!
     .exports.includes('clientSourceFormats'));
   assert.ok(trustedCompilerBindingOutputs(process.cwd(), checked.generatedQualification).length,
     'the same source owner must have actually verified its generated outputs');
@@ -86,19 +97,19 @@ test('member-derived declarations do not exempt a genuine dynamic runtime value 
   const f = fixture(t);
   const text = "const target = new URL('./index.d.ts', import.meta.url); export const load = () => import(target.href);";
   f.put('packages/client-wire/index.mjs', text);
-  const declaration = f.declarations.find(value => value.module === 'packages/client-wire/index.mjs');
+  const declaration = f.declarations.find(value => value.module === 'packages/client-wire/index.mjs')!;
   Object.assign(declaration, javascriptInterface(text), {sha256: hash(text)});
   declaration.contracts[0].operations = ['<module>', ...declaration.operations.map(value => value.name)];
   declaration.contracts[0].exports = declaration.exports; f.save();
   await assert.rejects(checkInterfaceOwners(f.repository, {manifests: ['packages/client-wire/package.json'],
     authoredEntrances: ['packages/client-wire/index.d.ts']}),
-  failure => failure.errors?.some(value => /must be initialized/u.test(value.text)));
+  failure => (failure as CheckError).errors?.some(value => /must be initialized/u.test(value.text)));
 });
 
 test('actual release verifier and installed caller retain type/default entrances and exact member refusal', async t => {
   const f = fixture(t), directory = join(f.scratch, 'release'), development = join(directory, 'development');
   mkdirSync(development, {recursive: true});
-  const packages = [], tarballs = {}, consumer = join(f.scratch, 'consumer');
+  const packages: PackedItem[] = [], tarballs: Record<string, string> = {}, consumer = join(f.scratch, 'consumer');
   mkdirSync(join(consumer, 'node_modules/@actql'), {recursive: true});
   // Tiny synthetic archives exercise the original normal staging/verifier.
   // They are not a product producer or a compiled/runtime acceptance receipt.
