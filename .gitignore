@@ -254,3 +254,8 @@ target/
 # Generated installed decision adapter; supported private behavior is unchanged.
 /packages/provider-ai-sdk/_internal/installed-typesafe-decision.mjs
 /packages/provider-ai-sdk/_internal/installed-typesafe-decision.d.mts
+
+# Public runtime is emitted at its existing entry; index.d.ts remains the
+# canonical public contract selected by package exports and files.
+/packages/provider-ai-sdk/index.mjs
+/packages/provider-ai-sdk/index.d.mts
