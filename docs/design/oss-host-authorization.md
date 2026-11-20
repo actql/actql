@@ -12,6 +12,12 @@ File-current observations, admission construction custody and scope retirement
 keep their existing owners. Host-private context and storage-policy identities
 remain separate domains; their local writer is not an Account admission path.
 
+The DuckDB example Host retains the same admitted configuration for its current
+context, approval-policy identity and resumed dispatch. It reuses only that pure
+original on exact wire/runtime correspondence. A new context still observes the
+file, and changed bytes take Common admission again; neither reuse supplies a
+current permission. A rejected present configuration is not a missing selection.
+
 ## Local Result read authorization
 
 Result identity and the authenticated principal do not replace the current
