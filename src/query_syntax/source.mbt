@@ -74,6 +74,9 @@ struct Tokens {
   mut integer_context_required : Bool
   // Set at the same bounded original Projection construction, not a discovery walk.
   mut anonymous_output_required : Bool
+  // Saturation31 already exceeds every positive Int-sized builder node bound.
+  // This is construction DATA, never a cardinality or language policy limit.
+  mut anonymous_star_growth : Int
 }
 
 ///|
@@ -170,6 +173,7 @@ fn scan_tokens(
       identifiers,
       integer_context_required: false,
       anonymous_output_required: false,
+      anonymous_star_growth: 0,
     })
   } catch {
     LexicalAbort(issue, at) =>

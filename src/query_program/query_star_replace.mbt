@@ -9,6 +9,8 @@ fn expanded_replacement_projections(
   max_work : Int,
   object_columns? : ((@query.Expression) -> Array[String] raise Abort)? = None,
   authored_aliases? : Array[(String, String)] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  expansions_out? : Array[ExpandedStarColumn]? = None,
 ) -> Array[@query.Projection] raise Abort {
   let is_object_star = fn(projection : @query.Projection) -> Bool {
     guard projection.star == Some("*") &&
@@ -40,11 +42,6 @@ fn expanded_replacement_projections(
       raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
     }
     remaining -= count
-  }
-  spend(authored_aliases.length())
-  let authored_names : Map[String, String] = Map([])
-  for mapping in authored_aliases {
-    authored_names[mapping.0] = mapping.1
   }
   for projection in projections {
     spend(1)
@@ -83,7 +80,7 @@ fn expanded_replacement_projections(
       })
       .map(field => (field, field))
     } else {
-      expanded_star_columns(projection, visible, ranges~, authored_aliases~)
+      expanded_star_columns(projection, visible, ranges~, authored_aliases~, column_profiles~, max_work=remaining)
     }
     spend(columns.length())
     for index in 0..<projection.replacements.length() {
@@ -94,18 +91,16 @@ fn expanded_replacement_projections(
           raise Abort(DuplicateOutput)
         }
       }
-      let count = columns
-        .filter(column => {
-          same_name(replacement.name, {
-            value: if object_star {
-              column.0
-            } else {
-              authored_names.get(column.0).unwrap_or(column.0)
-            },
-            quoted: false,
-          })
-        })
-        .length()
+      let mut count = 0
+      for column in columns {
+        let matches = if object_star {
+          same_name(replacement.name, { value: column.0, quoted: false, })
+        } else {
+          spend(column_profiles.map(profiles => profiles.length()).unwrap_or(0))
+          star_column_matches_name(column, replacement.name, column_profiles, authored_aliases)
+        }
+        if matches { count += 1 }
+      }
       if count == 0 {
         raise Abort(UnknownColumn)
       }
@@ -116,6 +111,27 @@ fn expanded_replacement_projections(
     for column in columns {
       if object_star && projection.expression is Some(receiver) {
         spend(@query.expression_node_count(receiver) + 1)
+      }
+      if !object_star && column_profiles is Some(profiles) {
+        spend(profiles.length())
+        if result_column_profile(column_profiles, column.0, column.1) is Some(original) {
+          spend(projection.replacements.length())
+          let replaced = original.name is Some(name) &&
+            projection.replacements.any(replacement => same_name(replacement.name, name))
+          if !replaced {
+            // Copy this actual star occurrence as a star, without synthesizing
+            // a Reference whose storage spelling could gain an implicit alias.
+            // Its retained slot is consulted only by the same expansion owner.
+            guard expansions_out is Some(expanded) else { raise Abort(InvalidContext) }
+            let copied = { ..projection, except_columns: [], replacements: [], }
+            expanded.push({ projection: copied, column, })
+            values.push(copied)
+            continue
+          }
+          let generated = @query.star_column_projection(query, projection, original.name.unwrap().value)
+          values.push({ ..generated, name: original.name, })
+          continue
+        }
       }
       values.push(@query.star_column_projection(query, projection, column.0))
     }

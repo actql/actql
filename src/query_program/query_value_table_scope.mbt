@@ -7,6 +7,9 @@ fn script_input_scope(
   input : Input,
   range : @query.NamePart,
 ) -> JoinChainScope? raise Abort {
+  // A private continuation keeps the same captured AS/SET scope. Namespace
+  // metadata does not turn its hidden retained slots into a fresh public row.
+  if sources.ranges.get(input.name) is Some(scope) { return Some(scope) }
   if script_result_columns(sources, input.name) is Some(original_columns) &&
     original_columns.any(column => column.name is None || column.name_view is Some(_)) {
     // The original Input has already excluded private exact-integer companions.

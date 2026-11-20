@@ -13,6 +13,9 @@ fn resolved_group_key(
   input_visible : Array[(String, String)],
   sql : Bool,
   ranges? : Array[(@query.NamePart, Array[(String, String)])] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  expansions? : Array[ExpandedStarColumn]? = None,
+  max_work? : Int = 2147483646,
 ) -> GroupKeyReference raise Abort {
   let mut root = @query.expression_node(key, @query.expression_root(key)).unwrap()
   while true {
@@ -31,7 +34,7 @@ fn resolved_group_key(
       for projection in projections {
         let columns = match projection.star {
           Some("*") =>
-            expanded_star_columns(projection, input_visible, ranges~).length()
+            expanded_star_columns(projection, input_visible, ranges~, column_profiles~, expansions~, max_work~).length()
           Some(_) => raise Abort(UnsupportedProjection)
           None => 1
         }
@@ -56,6 +59,7 @@ fn resolved_group_key(
               projection,
               input_visible,
               ranges~,
+              column_profiles~, expansions~, max_work~,
             )
             if ordinal <= columns.length() {
               return StarColumn(columns[ordinal - 1])

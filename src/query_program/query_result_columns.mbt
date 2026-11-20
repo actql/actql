@@ -61,15 +61,6 @@ fn scope_named_columns(
 }
 
 ///|
-fn scope_named_ranges(
-  ranges : Array[(@query.NamePart, Array[(String, String)])],
-  profiles : Array[ResultColumn]?,
-) -> Array[(@query.NamePart, Array[(String, String)])] {
-  guard profiles is Some(_) else { return ranges }
-  ranges.map(range => (range.0, scope_named_columns(range.1, profiles)))
-}
-
-///|
 fn projection_result_column(
   projection : @query.Projection,
   label : String,
@@ -256,4 +247,17 @@ fn script_result_columns(sources : ScriptSources, input : String) -> Array[Resul
 fn put_script_result_columns(sources : ScriptSources, input : String, columns : Array[ResultColumn]) -> Unit {
   if sources.result_columns is None { sources.result_columns = Some(Map([])) }
   sources.result_columns.unwrap()[input] = columns
+}
+
+///|
+// A newly evaluated slot has its own namespace. Keep the old vector immutable
+// for captured AS rows and sibling expressions; never update an old slot's view.
+fn retain_column_view(
+  columns : Array[ResultColumn]?,
+  name : @query.NamePart,
+  slot : String,
+  view : NamespaceView?,
+) -> Array[ResultColumn]? {
+  guard view is Some(_) else { return columns }
+  Some(columns.unwrap_or([]) + [{ label: name.value, slot, name: Some(name), name_view: view, }])
 }

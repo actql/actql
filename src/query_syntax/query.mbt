@@ -1600,6 +1600,9 @@ fn QueryParser::projections(
     if projection.star is None && projection_public_name(projection) is None {
       self.source.anonymous_output_required = true
     }
+    if projection.star is Some(_) && self.source.anonymous_star_growth < 31 {
+      self.source.anonymous_star_growth += 1
+    }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
       let (direction, nulls) = self.order_suffix()
@@ -4204,6 +4207,8 @@ fn QueryParser::update_effect_clause(
 ///|
 // The original optional SQL name; display labels never enter this projection.
 pub fn projection_public_name(projection : Projection) -> NamePart? {
+  // A receiver star contributes its fields, never an alias for the receiver.
+  if projection.star is Some(_) { return None }
   match projection.name {
     Some(name) => Some(name)
     None =>
@@ -4224,4 +4229,11 @@ pub fn projection_public_name(projection : Projection) -> NamePart? {
 // One parser-owned fact shared by the nested queries of this document.
 pub fn anonymous_output_context_required(query : Query) -> Bool {
   query.source.anonymous_output_required
+}
+
+///|
+// Bounded growth exponent from actual parser-owned Star projections. Once31
+// is reached, min(2^growth, any positive Int builder bound) is already saturated.
+pub fn anonymous_output_star_growth(query : Query) -> Int {
+  query.source.anonymous_star_growth
 }

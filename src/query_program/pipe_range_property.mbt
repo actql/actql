@@ -122,7 +122,10 @@ fn append_pipe_range_expression(
   append_resolved_range_expression(
     construction,
     expression,
-    path => pipe_expression_slot(path, scope_named_columns(visible, column_profiles), scope_named_ranges(ranges, column_profiles), value_ranges~),
+    path => {
+      if path.length() == 1 && ordinary_range_name(path[0], ranges, value_ranges) { return None }
+      profiled_pipe_slot(path, visible, ranges, column_profiles)
+    },
     name => {
       pipe_name_exists(visible, name) &&
       !ordinary_range_name(name, ranges, value_ranges)

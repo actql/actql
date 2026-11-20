@@ -35,9 +35,9 @@ fn request_query_syntax_data_bytes(
   guard @execution.preparation_representation_cost({
       record_headers: 4L * units,
       reference_slots: 12L * units,
-      // Two retained scalars on the SAME Tokens owner record actual bounded
-      // MOD/DIV Call and anonymous Projection facts before their passes.
-      scalar_words: 20L * units + 2L,
+      // Three retained scalars on the SAME Tokens owner record actual bounded
+      // MOD/DIV Call, anonymous Projection and Star-growth constructor facts.
+      scalar_words: 20L * units + 3L,
       owned_utf16_units: 4L * units,
       owned_wire_bytes: 4L * units,
     })
