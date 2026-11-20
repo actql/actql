@@ -4528,6 +4528,15 @@ loan in both its existing Host inventory and the execution record before the
 binding performs any post-current, settings or fence check. A failed post-check
 keeps that original loan and initiating error; confirmation is not attempted.
 
+An interrupted input constructor may leave its original physical ticket in
+Core custody without returning a named Host loan. That uncertainty remains
+retained during cleanup, but does not prevent the known children and parents
+from reaching their existing close boundaries. The same Core Root then closes
+its pool, including any unnamed buffer, and retires its physical runtime. Only
+that successful close clears the Host's uncertain-ticket marker. A pending or
+thrown child/Root close preserves the same remaining debt; no missing handle,
+constructor exception or process exit is a cleanup acknowledgment.
+
 After the execution children acknowledge, the same record returns physical
 start, start material, publication-binding material, original Journal and rows,
 Run, and its private preparation, in that dependency order. Existing Core
