@@ -1198,6 +1198,7 @@ fn QueryParser::bind_query(
   inner : Query,
   carry_ranges? : Bool = false,
 ) -> Query raise QueryAbort {
+  ignore(self.namespace_query(inner))
   self.node()
   let generated = self.fresh_producer("aql_query_source_")
   let bindings = inner.bindings +
@@ -1212,7 +1213,7 @@ fn QueryParser::bind_query(
   if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: None,
     implicit_source_alias: false,
@@ -1234,7 +1235,7 @@ fn QueryParser::bind_query(
     short_command_effect: None,
     commands: [],
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -1557,6 +1558,7 @@ fn QueryParser::projections(
   window_expressions? : Bool = false,
 ) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
+  let mut stars = 0
   let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
@@ -1600,8 +1602,11 @@ fn QueryParser::projections(
     if projection.star is None && projection_public_name(projection) is None {
       self.source.anonymous_output_required = true
     }
-    if projection.star is Some(_) && self.source.anonymous_star_growth < 31 {
-      self.source.anonymous_star_growth += 1
+    if projection.star is Some(_) {
+      stars += 1
+      if self.source.anonymous_star_growth < 31 {
+        self.source.anonymous_star_growth += 1
+      }
     }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
@@ -1618,6 +1623,14 @@ fn QueryParser::projections(
       break
     }
     ignore(self.advance())
+  }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+    values.length(),
+  )
+  // A single pass-through star does not multiply row width. Multiple stars
+  // and a completed JOIN list contribute their actual multiplicity instead.
+  if stars > 1 {
+    self.namespace_replace_factor(1, stars)
   }
   (values, embedded)
 }
@@ -1780,6 +1793,11 @@ fn QueryParser::range_star_receiver(
       break
     }
   }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(1)
+  self.source.namespace_references = namespace_count_add(
+    self.source.namespace_references,
+    1,
+  )
   Some({
     source: self.source,
     nodes: [{ kind: Reference(names), start, end, }],
@@ -2403,6 +2421,7 @@ fn QueryParser::initial_from(
     }
     let (part, join_ctes) = self.join_part()
     joins.push(part)
+    self.namespace_replace_factor(joins.length(), joins.length() + 1)
     for cte in join_ctes {
       bindings.push(cte)
     }
@@ -2586,7 +2605,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     !resolved.any(operation => operation is Group(_, _, _)) {
     raise QueryAbort("HAVING requires grouping", at)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: None,
     implicit_source_alias,
@@ -2608,7 +2627,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     short_command_effect: None,
     commands: [],
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -2891,11 +2910,13 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     }
     term = { ..term, operations, }
   }
-  if sets.is_empty() {
-    { ..term, operations: term.operations + tail, work: self.work, }
-  } else {
-    { ..term, bindings, sets, final_operations: tail, work: self.work, }
-  }
+  self.namespace_query(
+    if sets.is_empty() {
+      { ..term, operations: term.operations + tail, work: self.work, }
+    } else {
+      { ..term, bindings, sets, final_operations: tail, work: self.work, }
+    },
+  )
 }
 
 ///|
@@ -2914,7 +2935,7 @@ fn QueryParser::pipe(
     operations,
   ) = self.initial_from(allow_graph_marker=true)
   self.pipe_tail(
-    {
+    self.namespace_query({
       source: self.source,
       primary: None,
       implicit_source_alias,
@@ -2936,7 +2957,7 @@ fn QueryParser::pipe(
       short_command_effect: None,
       commands: [],
       work: self.work,
-    },
+    }),
     context~,
   )
 }
@@ -3247,6 +3268,7 @@ fn QueryParser::pipe_tail(
       }
       let (part, join_ctes) = self.join_part()
       joins.push({ ..part, pre_join_filter, })
+      self.namespace_replace_factor(joins.length(), joins.length() + 1)
       for cte in join_ctes {
         bindings.push(cte)
       }
@@ -3309,6 +3331,10 @@ fn QueryParser::pipe_tail(
           },
         )
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       window_operations.push(Extend(values))
       // WINDOW names belong only to this EXTEND, not to a subsequent operator.
       operations.append(
@@ -3357,6 +3383,10 @@ fn QueryParser::pipe_tail(
           ),
         )
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       operations.push(Set(values))
     } else if self.has("DROP") {
       self.keyword("DROP")
@@ -3383,6 +3413,10 @@ fn QueryParser::pipe_tail(
         }
         ignore(self.advance())
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       operations.push(Rename(values))
     } else if self.has("PIVOT") {
       operations.push(Pivot(self.pivot_clause()))
@@ -3603,7 +3637,7 @@ fn QueryParser::pipe_tail(
   if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: input.primary,
     implicit_source_alias: input.implicit_source_alias,
@@ -3625,7 +3659,7 @@ fn QueryParser::pipe_tail(
     short_command_effect,
     commands,
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -4208,7 +4242,9 @@ fn QueryParser::update_effect_clause(
 // The original optional SQL name; display labels never enter this projection.
 pub fn projection_public_name(projection : Projection) -> NamePart? {
   // A receiver star contributes its fields, never an alias for the receiver.
-  if projection.star is Some(_) { return None }
+  if projection.star is Some(_) {
+    return None
+  }
   match projection.name {
     Some(name) => Some(name)
     None =>
@@ -4224,7 +4260,6 @@ pub fn projection_public_name(projection : Projection) -> NamePart? {
   }
 }
 
-
 ///|
 // One parser-owned fact shared by the nested queries of this document.
 pub fn anonymous_output_context_required(query : Query) -> Bool {
@@ -4236,4 +4271,50 @@ pub fn anonymous_output_context_required(query : Query) -> Bool {
 // is reached, min(2^growth, any positive Int builder bound) is already saturated.
 pub fn anonymous_output_star_growth(query : Query) -> Int {
   query.source.anonymous_star_growth
+}
+
+///|
+fn QueryParser::namespace_replace_factor(
+  self : QueryParser,
+  previous : Int,
+  next : Int,
+) -> Unit {
+  if self.source.namespace_field_factor == 2147483647 {
+    return
+  }
+  // The old JOIN-list factor remains an exact divisor until saturation.
+  // Replace J by J+1, rather than multiplying by two for every extra join.
+  self.source.namespace_field_factor = (self.source.namespace_field_factor.to_int64() /
+    previous.to_int64() *
+    next.to_int64())
+    .min(2147483647L)
+    .to_int()
+}
+
+///|
+fn QueryParser::namespace_query(self : QueryParser, query : Query) -> Query {
+  let events = 1L +
+    query.operations.length().to_int64() +
+    query.final_operations.length().to_int64() +
+    query.joins.length().to_int64() +
+    query.sets.length().to_int64() +
+    query.bindings.length().to_int64()
+  self.source.namespace_events = (self.source.namespace_events.to_int64() +
+    events)
+    .min(2147483647L)
+    .to_int()
+  query
+}
+
+///|
+// Construction facts of the SAME parser-owned document. No traversal, schema
+// admission, currentness or caller-selected capacity is hidden in this view.
+pub fn anonymous_namespace_geometry(query : Query) -> (Int, Int, Int, Int, Int) {
+  (
+    query.source.namespace_events,
+    query.source.namespace_seed_fields,
+    query.source.namespace_field_factor,
+    query.source.namespace_added_fields,
+    query.source.namespace_references,
+  )
 }

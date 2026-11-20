@@ -65,6 +65,7 @@ fn QueryParser::pivot_clause(
   }
   self.symbol(41)
   self.symbol(41)
+  self.source.namespace_added_fields = namespace_count_add(self.source.namespace_added_fields, values.length())
   {
     function_name,
     count_star,

@@ -388,6 +388,10 @@ fn ExpressionParser::add(
   if kind is Call(path, _) && integer_context_call_name(path) {
     self.source.integer_context_required = true
   }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(index + 1)
+  if kind is Reference(_) {
+    self.source.namespace_references = namespace_count_add(self.source.namespace_references, 1)
+  }
   self.nodes.push({ kind, start, end, })
   self.depths.push(child_depth + 1)
   index

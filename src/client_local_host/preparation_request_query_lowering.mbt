@@ -79,7 +79,19 @@ fn request_query_lowering_data_bytes(
     is Some(base) else {
     return None
   }
-  @execution.checked_preparation_add_product(base, integer_context, 1L)
+  guard @execution.checked_preparation_add_product(base, integer_context, 1L) is Some(base) &&
+    request_query_namespace_scope_fields_bytes(occurrences.to_int64()) is Some(scope_fields) else { return None }
+  @execution.checked_preparation_add_product(base, scope_fields, 1L)
+}
+
+///|
+// One added optional-reference slot at each of the eighteen existing Scope
+// constructor sites and two ScriptSources sites, at most once per original
+// token occurrence. None is not an erased field or spare baseline capacity.
+// The conditional arrays/records require their separate namespace inventory.
+fn request_query_namespace_scope_fields_bytes(tokens : Int64) -> Int64? {
+  guard @execution.checked_preparation_add_product(0L, tokens, 20L) is Some(references) else { return None }
+  @execution.preparation_representation_cost({ record_headers: 0L, reference_slots: references, scalar_words: 0L, owned_utf16_units: 0L, owned_wire_bytes: 0L, })
 }
 
 ///|
