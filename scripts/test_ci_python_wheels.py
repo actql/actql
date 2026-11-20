@@ -783,107 +783,128 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
 
 
 class TaskRetirementSnapshotTests(unittest.TestCase):
-    """Diagnostic service ports only; no installed runtime or cancellation run."""
+    """Original Python worker/allowance timeline with explicit scalar FFI ports."""
 
     def fixture(self):
         import threading
         sdk = SCRIPTS.parent / 'packages/python-sdk/src'
         sys.path.insert(0, str(sdk))
         try:
-            from actql_sdk._local_core import LocalCore, _Task
-            from actql_sdk._local_product import InstalledLocalHost, _OriginalExecution
+            from actql_sdk._local_core import LocalCore, _Task, _Input
+            from actql_sdk._local_product import (InstalledLocalHost, _OriginalExecution,
+                _OriginalRunReference, _OriginalCancellationStop, LocalProductCleanupPending)
             from actql_sdk._local_work import OriginalLocalWork
         finally:
             sys.path.remove(str(sdk))
         module = load('ci_task_retirement_snapshot', SCRIPTS / 'fixtures/ci-python-installed-run.py')
         core = object.__new__(LocalCore)
         core._identity, core._lock = object(), threading.RLock()
+        core._closed = core._retired = core._closing = core._invoking = False
+        core._ordinary_host, core._host_fuel_phase = True, 'operation'
+        core._host_operation_scope, core._host_operation_id = object(), 1
+        core._host_retained_work = None
         task = _Task(core._identity, 11)
         core._task_loans = {11: task}
         host = object.__new__(InstalledLocalHost)
         host._original, host._core = host, core
         owner = object()
-        original = _OriginalExecution(host, owner, tasks=[task])
-        work = OriginalLocalWork(original, owner=owner)
-        primary = RuntimeError('private-primary-secret')
-        work._future.set_exception(primary)
-        return module, core, host, work, original, task, primary
+        reference = _OriginalRunReference(owner, _Input(core._identity, 1, 1, 0))
+        original = _OriginalExecution(host, owner, reference=reference, tasks=[task])
+        work = OriginalLocalWork(original, owner=original.run, on_exit=core._finish_work_operation)
+        host._physical_work = [work]
+        core._retain_work_operation(work)
+        return module, core, host, work, original, task, _OriginalCancellationStop, LocalProductCleanupPending
 
-    def test_snapshot_keeps_separate_closed_codes_and_same_originals(self):
-        module, core, host, work, original, task, primary = self.fixture()
+    def run_original(self, *, closes=1, outside_lock=False, observation_error=False, unsupported=False):
+        from contextlib import nullcontext
+        module, core, host, work, original, task, stop_type, pending_type = self.fixture()
         calls = []
-        def observe(self, family, operation, handle, *fields):
-            self_test.assertIs(self, core)
-            calls.append((family, operation, handle, fields))
-            return 4 if fields == (6,) else 83 if fields == (7,) else 2
-        self_test = self
-        with patch.object(type(core), '_call', observe):
-            result = module.post_close_task_snapshot(host, work)
-        self.assertEqual(result, {'scope': 'post-close-current-snapshot', 'available': True,
-            'lock_busy': False, 'observation_failed': False, 'refusal_code': None, 'tasks': [
-                {'stage_code': 4, 'execution_issue_code': 2, 'cleanup_issue_code': 83}]})
-        self.assertEqual(calls, [('task', 'progress', 11, (6,)),
-                                ('task', 'progress', 11, (7,)), ('task', 'issue', 11, ())])
-        self.assertIs(core._task_loans[11], task)
-        self.assertIs(original.tasks[0], task)
-        self.assertIs(work._future.exception(timeout=0), primary)
-        self.assertFalse(core._lock._is_owned())
-        self.assertNotIn('private-', json.dumps(result))
-
-    def test_observation_failure_keeps_pending_owner_and_does_not_format_error(self):
-        module, core, host, work, original, task, primary = self.fixture()
+        stop = stop_type(original)
         class OpaqueFailure(BaseException):
             def __str__(self):
-                raise AssertionError('Never format an optional diagnostic cause')
-        with patch.object(type(core), '_call', side_effect=OpaqueFailure()):
-            result = module.post_close_task_snapshot(host, work)
+                raise AssertionError('Never format the optional diagnostic cause')
+        def ffi(self_core, family, operation, handle, *fields):
+            self.assertIs(self_core, core)
+            self.assertEqual(core._host_fuel_phase, 'operation')
+            calls.append((family, operation, handle, fields))
+            if operation == 'close':
+                return -9
+            if observation_error:
+                raise OpaqueFailure()
+            return (-3 if unsupported else 4) if fields == (6,) else 83 if fields == (7,) else 2
+        def execute(self_host, run):
+            self.assertIs(self_host, host)
+            self.assertIs(run, original.run)
+            with nullcontext() if outside_lock else core._lock:
+                for _ in range(closes):
+                    self.assertFalse(core.close_task(task))
+            raise stop
+        with patch.object(type(core), '_call', ffi), patch.object(
+                type(host), '_execute_original_admitted_run', execute), module._TaskRetirementObservation() as observer:
+            work.start()
+            work._thread.join(2)
+            self.assertFalse(work._thread.is_alive())
+        primary = work._future.exception(timeout=0)
+        self.assertIs(type(primary), pending_type)
+        self.assertIs(primary.__context__, stop)
+        self.assertIs(stop.original, original)
+        self.assertIsNone(work._cleanup_error)
+        self.assertIsNone(work._exit_error)
+        self.assertIs(core._task_loans[11], task)
+        self.assertIs(original.tasks[0], task)
+        self.assertIsNone(core._host_fuel_phase)
+        self.assertIsNone(core._host_retained_work)
+        self.assertFalse(core._lock._is_owned())
+        self.assertIsNone(module.sys.getprofile())
+        self.assertIsNone(module.threading.getprofile())
+        return module, core, work, observer, calls, primary
+
+    def test_original_worker_samples_before_scope_exit_and_reports_after_without_entry(self):
+        module, core, work, observer, calls, primary = self.run_original()
+        self.assertEqual(calls, [('task', 'close', 11, ()), ('task', 'progress', 11, (6,)),
+                                ('task', 'progress', 11, (7,)), ('task', 'issue', 11, ())])
+        with patch.object(type(core), '_call', side_effect=AssertionError('No retired-scope entry')) as call:
+            result = observer.snapshot(work)
+        call.assert_not_called()
+        self.assertEqual(result, {'scope': 'post-close-current-snapshot', 'available': True,
+            'observation_failed': False, 'overflow': False, 'profilers_restored': True,
+            'refusal_code': None, 'tasks': [
+                {'stage_code': 4, 'execution_issue_code': 2, 'cleanup_issue_code': 83}]})
+        self.assertIs(work._future.exception(timeout=0), primary)
+        self.assertNotIn('private-', json.dumps(result))
+
+    def test_observer_failure_keeps_original_cancel_pending_and_scope_return(self):
+        _, _, work, observer, calls, primary = self.run_original(observation_error=True)
+        result = observer.snapshot(work)
         self.assertFalse(result['available'])
         self.assertTrue(result['observation_failed'])
         self.assertEqual(result['tasks'], [])
+        self.assertEqual(len(calls), 2)
         self.assertIs(work._future.exception(timeout=0), primary)
-        self.assertIs(core._task_loans[11], task)
-        self.assertIs(original.tasks[0], task)
-        self.assertFalse(core._lock._is_owned())
 
-    def test_foreign_task_and_busy_lock_decline_without_guest_entry(self):
-        import threading
-        module, core, host, work, original, task, primary = self.fixture()
-        entered, release = threading.Event(), threading.Event()
-        def holder():
-            with core._lock:
-                entered.set()
-                release.wait(2)
-        thread = threading.Thread(target=holder)
-        thread.start()
-        try:
-            self.assertTrue(entered.wait(2))
-            with patch.object(type(core), '_call') as call:
-                result = module.post_close_task_snapshot(host, work)
-            self.assertTrue(result['lock_busy'])
-            call.assert_not_called()
-        finally:
-            release.set()
-            thread.join(2)
-        self.assertFalse(thread.is_alive())
-        original.tasks = [type(task)(object(), 11)]
-        with patch.object(type(core), '_call') as call:
-            result = module.post_close_task_snapshot(host, work)
+    def test_absent_outer_retirement_lock_refuses_without_an_observer_entry(self):
+        _, _, work, observer, calls, _ = self.run_original(outside_lock=True)
+        self.assertEqual(calls, [('task', 'close', 11, ())])
+        result = observer.snapshot(work)
         self.assertFalse(result['available'])
-        call.assert_not_called()
-        self.assertIs(core._task_loans[11], task)
-        self.assertIs(work._future.exception(timeout=0), primary)
+        self.assertEqual(result['tasks'], [])
+
+    def test_slot_bound_precedes_any_additional_observer_guest_entry(self):
+        _, _, work, observer, calls, _ = self.run_original(closes=17)
+        result = observer.snapshot(work)
+        self.assertFalse(result['available'])
+        self.assertTrue(result['overflow'])
+        self.assertEqual(len(result['tasks']), 16)
+        self.assertEqual(len(calls), 17 + 3 * 16)
 
     def test_unsupported_snapshot_field_is_refusal_not_available_evidence(self):
-        module, core, host, work, original, task, primary = self.fixture()
-        with patch.object(type(core), '_call', return_value=-3):
-            result = module.post_close_task_snapshot(host, work)
+        _, _, work, observer, _, primary = self.run_original(unsupported=True)
+        result = observer.snapshot(work)
         self.assertFalse(result['available'])
         self.assertEqual(result['refusal_code'], -3)
-        self.assertEqual(result['tasks'], [])
-        self.assertIs(core._task_loans[11], task)
         self.assertIs(work._future.exception(timeout=0), primary)
 
-    def test_only_failed_sync_initial_cancellation_selects_optional_snapshot(self):
+    def test_only_failed_sync_initial_cancellation_selects_optional_observer(self):
         module, *_ = self.fixture()
         primary = RuntimeError('same consumer failure')
         base = ['python-product-installed.py', '--mode', 'local', '--facade', 'sync',
@@ -899,7 +920,10 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
                     module.run_consumer(Path('/external/python-product-installed.py'))
             self.assertIs(caught.exception, primary)
             self.assertIs(report.call_args.args[0], primary)
-            self.assertIs(report.call_args.kwargs['task_retirement'], expected)
+            observed = report.call_args.kwargs['task_retirement']
+            self.assertEqual(type(observed) is module._TaskRetirementObservation, expected)
+            if observed is not None:
+                self.assertTrue(observed.restored)
             run.assert_called_once()
 
 

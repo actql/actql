@@ -3419,10 +3419,15 @@ These scalar observations add no StoredManagedTask field, closure, persistent
 reference, export signature, reservation or allowance. Common reads existing
 bounded inventories and returns integers; Native and NormalNone construction
 retain their existing layouts and quotes. The optional CI caller bounds its
-temporary diagnostic list to16 tasks and the existing64KiB output limit,
-acquires the original Core lock nonblocking only after the same worker Future
-is done, and releases it on every exit. Its evidence does not authorize another
-close, guest advance, fuel refill, outcome or physical acknowledgment. Only the
+temporary diagnostic list to16 samples and the existing64KiB output limit,
+samples only after the original pending close returns on the same worker while
+its outer retirement lock and original operation allowance remain held. It
+refuses guest reentry, creates no operation scope and never refills fuel.
+The worker returns its scope before completing its Future; reporting then reads
+only the bounded saved scalars through a nonowning original-work association.
+The optional profiler restores both original profile hooks on every exit. Its
+evidence does not authorize another close, guest advance, fuel refill, outcome
+or physical acknowledgment. Only the
 failed installed sync cancellation initial case selects this observation;
 observation refusal/failure preserves the exact primary and first close.
 
