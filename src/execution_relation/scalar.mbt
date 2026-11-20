@@ -440,6 +440,39 @@ pub fn binary(
       }
       Ok(membership_result(op, matched, unknown))
     }
+    ExactModulo | IntegerDivide => {
+      if left is Null || right is Null {
+        return Ok(Null)
+      }
+      guard left is Captured(@admitted.Signed64(a)) &&
+        right is Captured(@admitted.Signed64(b)) else {
+        return Err(InvalidOperand)
+      }
+      if b == 0L {
+        return Err(ArithmeticFailure)
+      }
+      // Native/Wasm integer division must never receive the overflowing pair,
+      // even for remainder, whose mathematical result is exactly zero.
+      let minimum = -9223372036854775807L - 1L
+      if a == minimum && b == -1L {
+        return if op == @lower.ExactModulo {
+          Ok(capture(@admitted.signed64_value(0L)))
+        } else {
+          Err(ArithmeticFailure)
+        }
+      }
+      Ok(
+        capture(
+          @admitted.signed64_value(
+            if op == @lower.ExactModulo {
+              a % b
+            } else {
+              a / b
+            },
+          ),
+        ),
+      )
+    }
     Add
     | Subtract
     | Multiply
@@ -491,7 +524,9 @@ pub fn binary(
           } else {
             finite(@math.ln(a) / @math.ln(b))
           }
-        Equal
+        ExactModulo
+        | IntegerDivide
+        | Equal
         | NotEqual
         | IsDistinctFrom
         | Less
@@ -586,6 +621,8 @@ fn binary_comparison_result(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | ExactModulo
+    | IntegerDivide
     | Pow
     | Atan2
     | Log

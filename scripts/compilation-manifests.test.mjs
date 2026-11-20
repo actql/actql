@@ -377,14 +377,15 @@ test('signed-source-zero note preserves productions and the complete original id
   assert.equal(transition.source_tree, '1debbdb7f02cdbcb0136b278328235d32bc4d246');
   const before = transition.before, after = transition.after;
   const previousGrammar = readFileSync('scripts/fixtures/signed-source-zero-grammar/expression-before.ebnf', 'utf8');
-  const currentGrammar = readFileSync('spec/grammar/actql-expression-0.1.ebnf', 'utf8');
+  const currentGrammar = readFileSync('scripts/fixtures/signed-source-zero-grammar/expression-after.ebnf', 'utf8');
   assert.equal(sha(previousGrammar).slice(7), before.grammar_sha256);
   assert.equal(sha(currentGrammar).slice(7), after.grammar_sha256);
   assert.equal(before.grammar_sha256, '703dce737042c4b6e473b1618451f08d4f8fcc6391a6b2dd2e8f62e96722eaeb');
   assert.equal(after.grammar_sha256, '9e23a12f73ea54abb2ef855e26362d26a848c15b6bcb11003329f22168655816');
   const productions = source => source.replace(/\(\*[\s\S]*?\*\)/gu, '');
   assert.equal(productions(currentGrammar), productions(previousGrammar));
-  const currentExpression = read('spec/contracts/actql-expressions.json');
+  const published = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-sql-integer-support-identities.json.gz')));
+  const currentExpression = published.records['spec/contracts/actql-expressions.json'];
   assert.deepEqual(currentExpression, {...before.expression_contract, grammar_sha256: after.grammar_sha256});
   assert.equal(machineCid(before.expression_contract), before.expression_contract_cid);
   assert.equal(machineCid(currentExpression), after.expression_contract_cid);
@@ -429,10 +430,17 @@ test('signed-source-zero note preserves productions and the complete original id
   const expectedEnvironment = structuredClone(previous[environmentPath]);
   expectedEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = after.expression_contract_cid;
   assert.deepEqual(next[environmentPath], expectedEnvironment);
-  assert.deepEqual(next[environmentPath], read(environmentPath));
+  const currentEnvironment = read(environmentPath);
+  const currentDependency = currentEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract;
+  const retainedDependency = next[environmentPath].pushdown_contract_bodies.semantic_dependencies.expression_contract;
+  assert.equal(currentDependency.cid, machineCid(read('spec/contracts/actql-expressions.json')));
+  assert.deepEqual({...currentDependency, cid: retainedDependency.cid}, retainedDependency);
+  const retainedEnvironment = structuredClone(currentEnvironment);
+  retainedEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = retainedDependency.cid;
+  assert.deepEqual(next[environmentPath], retainedEnvironment);
   for (const [name, previousVectors] of Object.entries(before.stage_vectors)) {
     const currentVectors = after.stage_vectors[name];
-    assert.deepEqual(currentVectors, read(`portability/corpus/${name}.json`));
+    assert.deepEqual(currentVectors, published.records[`portability/corpus/${name}.json`]);
     assert.equal(currentVectors.version, previousVectors.version);
     assert.equal(currentVectors.cases.length, previousVectors.cases.length);
     for (let i = 0; i < previousVectors.cases.length; i++) {

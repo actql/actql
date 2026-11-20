@@ -220,6 +220,7 @@ test "query cast syntax preserves explicitly adopted target types" {
       ("CAST(x AS BOOL)", CastType::Boolean),
       ("CAST(x AS STRING)", CastType::String),
       ("CAST(x AS FLOAT64)", CastType::Number),
+      ("CAST(x AS INT64)", CastType::Signed64),
       ("CAST(x AS TIMESTAMP)", CastType::Timestamp),
       ("CAST('1.25' AS DECIMAL(38,2))", CastType::Decimal(38, 2)),
     ] {
@@ -230,8 +231,9 @@ test "query cast syntax preserves explicitly adopted target types" {
   }
   for
     text in [
-      "CAST(x AS INT64)", "CAST(x AS NUMERIC)", "CAST(x AS BIGNUMERIC)", "CAST(x AS DECIMAL(0,0))",
-      "CAST(x AS DECIMAL(39,1))", "CAST(x AS DECIMAL(1,2))", "CAST(x AS DECIMAL(2,1.0))",
+      "CAST(x AS INT128)", "CAST(x AS `INT64`)", "CAST(x AS NUMERIC)", "CAST(x AS BIGNUMERIC)",
+      "CAST(x AS DECIMAL(0,0))", "CAST(x AS DECIMAL(39,1))", "CAST(x AS DECIMAL(1,2))",
+      "CAST(x AS DECIMAL(2,1.0))",
     ] {
     assert_true(parse_expression(text, expression_limits()) is Err(_), msg=text)
   }

@@ -37,6 +37,18 @@ pub fn exact_integer_literal(text : String) -> Int64? {
 // Exact interval-only lexical admission. It shares the selected SQL integer
 // digit grammar without widening the ordinary safe-Number integer helper.
 fn exact_interval_integer(text : String, negative : Bool) -> Int64? {
+  let value = contextual_integer_literal(text, negative)
+  if negative && value == Some(0L) {
+    None
+  } else {
+    value
+  }
+}
+
+///|
+/// Decode the original integer-spelled token for an exact integer signature.
+/// This does not widen ordinary Number literals or inspect runtime row values.
+pub fn contextual_integer_literal(text : String, negative : Bool) -> Int64? {
   let hex = text.has_prefix("0x") || text.has_prefix("0X")
   let start = if hex { 2 } else { 0 }
   let base = if hex { 16UL } else { 10UL }
@@ -55,9 +67,6 @@ fn exact_interval_integer(text : String, negative : Bool) -> Int64? {
       return None
     }
     magnitude = magnitude * base + digit
-  }
-  if negative && magnitude == 0UL {
-    return None
   }
   Some(
     if negative {

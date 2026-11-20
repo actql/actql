@@ -4,6 +4,7 @@
 fn set_output_fields(
   left_fields : Array[String],
   part : @query.SetPart,
+  query : @query.Query,
   right_fields? : Array[String] = [],
 ) -> Array[String] raise Abort {
   if part.inner_by_name {
@@ -12,7 +13,29 @@ fn set_output_fields(
   match part.by_name_columns {
     None => left_fields
     Some(columns) => {
-      if !part.by_name || columns.length() != left_fields.length() {
+      // Validate ON against the original public namespace, including a public
+      // integer projection whose unavailable Number view was omitted. The
+      // syntax wrapper retains that original name; private spelling is never
+      // accepted as an authored column or used to infer a public declaration.
+      let public_fields : Array[String] = []
+      for field in left_fields {
+        if !@query.integer_context_is_companion_column(query, field) {
+          public_fields.push(field)
+        }
+      }
+      for field in left_fields {
+        if @query.integer_context_original_column(query, field)
+          is Some(original) &&
+          !public_fields.any(candidate => {
+            same_name({ value: original, quoted: false, }, {
+              value: candidate,
+              quoted: false,
+            })
+          }) {
+          public_fields.push(original)
+        }
+      }
+      if !part.by_name || columns.length() != public_fields.length() {
         raise Abort(UnsupportedSet)
       }
       let fields : Array[String] = []
@@ -22,7 +45,28 @@ fn set_output_fields(
         }
         fields.push(name.value)
       }
-      // Also rejects missing or ambiguous input columns under field-name rules.
+      // The original strict validator still rejects missing, duplicate and
+      // ambiguous public columns. No subset/extra-name allowance is added.
+      ignore(set_alignment_fields(fields, public_fields, true))
+      // Only after public validation, retain the actual available physical
+      // views. Remove an omitted Number slot, then carry the exact companions
+      // in original physical order through the existing set alignment.
+      for index = fields.length() - 1; index >= 0; index = index - 1 {
+        if !left_fields.any(candidate => {
+            !@query.integer_context_is_companion_column(query, candidate) &&
+            same_name({ value: fields[index], quoted: false, }, {
+              value: candidate,
+              quoted: false,
+            })
+          }) {
+          ignore(fields.remove(index))
+        }
+      }
+      for field in left_fields {
+        if @query.integer_context_is_companion_column(query, field) {
+          fields.push(field)
+        }
+      }
       ignore(set_alignment_fields(fields, left_fields, true))
       fields
     }

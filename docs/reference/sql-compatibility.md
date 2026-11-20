@@ -106,10 +106,11 @@ propagation is not supported.
 | Parameters | `@name`, declared by the Program; never interpolated |
 | Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN`, `LIKE`, `NOT LIKE` |
 | Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
-| Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
+| Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| INT64 \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
+| Exact integers | `CAST(value AS INT64)`, `MOD`, `DIV`; signed 64-bit integers remain distinct from `NUMBER`. Integer/decimal `MOD` and `DIV` preserve exact arithmetic and NULL propagation. |
 | Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep' ORDER BY …)`, filtered aggregates (`… WHERE …` inside the call) |
 | Window functions | `OVER (PARTITION BY … ORDER BY … [ROWS …])` with the supported analytic functions, `QUALIFY`, named `WINDOW` specifications |
 | Vectors | `VECTOR_COSINE_SIMILARITY`, `VECTOR_INNER_PRODUCT`, `VECTOR_L2_DISTANCE`, `VECTOR_CONCAT` |
@@ -186,6 +187,13 @@ are inferred from them. See the [typed quick-query example](../cli.md#quick-quer
 - A column that an external system may omit is distinct from a `NULL` value;
   the checker refuses to read a column that is not guaranteed present.
 
+Exact integer function operands retain integer-spelled SQL lexemes before
+binary64 lowering, including through literal CTE/UNION producers. Their ordinary
+`NUMBER` columns and other consumers retain the existing view; `5.0`, `5e0` and
+declared `NUMBER` columns are not implicitly promoted. Explicit FLOAT64/NUMBER
+to INT64 casts round to nearest with ties away from zero and reject overflow.
+INT64 Result values use canonical decimal strings on the existing wire.
+
 ## Not accepted
 
 These are refused at check time with a named reason. They are either outside
@@ -207,8 +215,8 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
-| `CAST(… AS INT64)`, `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected cast/function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
-| `MOD`, `DIV`, `GENERATE_ARRAY`, `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
+| `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
+| `GENERATE_ARRAY`, `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `ANY_VALUE`, `JSON_VALUE`, `FORMAT`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `FARM_FINGERPRINT`, `CURRENT_DATE`, `LOGICAL_AND`, `LOGICAL_OR` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |

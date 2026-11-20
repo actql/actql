@@ -178,6 +178,7 @@ fn cast_expression_value(
     return Err({ kind: ControlLimit, expression, })
   }
   let converted = match @lower.expression_contract(expression).shape {
+    Signed64 => cast_signed64_value(value)
     Number =>
       match value {
         Number(n) =>

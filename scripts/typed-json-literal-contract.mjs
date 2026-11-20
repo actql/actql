@@ -10,6 +10,11 @@ const closed = properties => ({type:'object', additionalProperties:false,
 export const sourceTypedLiteral = closed({typed_literal:closed({
   type:{const:'json'}, value:{type:'string'},
 })});
+// The exact-integer extension shares the closed source leaf envelope, while
+// JSON's machine payload and all retained pre-extension schemas stay exact.
+export const sourceExactTypedLiteral = closed({typed_literal:closed({
+  type:{enum:['json','int64']}, value:{type:'string'},
+})});
 export const nodeTypedLiteral = closed({op:{const:'typed_literal'},
   body:closed({$json:{}})});
 export const typedJsonWireLaw = {
@@ -91,7 +96,7 @@ function ownedLiteralSchemas(expressions, protocol) {
   return owned;
 }
 
-function updateLiteralSchema({schema, role}, write) {
+function updateLiteralSchema({schema, role}, write, exactInteger) {
   const typed = form => role === 'node'
     ? form.properties?.op?.const === 'typed_literal'
     : isSourceAlternative(form, 'typed_literal');
@@ -101,7 +106,8 @@ function updateLiteralSchema({schema, role}, write) {
       'CellValue must not contain a typed JSON expression alternative');
     return;
   }
-  const expected = role === 'node' ? nodeTypedLiteral : sourceTypedLiteral;
+  const expected = role === 'node' ? nodeTypedLiteral
+    : role === 'source' && exactInteger ? sourceExactTypedLiteral : sourceTypedLiteral;
   const found = schema.oneOf.find(typed);
   if (write) {
     if (found) Object.assign(found, structuredClone(expected));
@@ -114,7 +120,7 @@ export function updateTypedJsonContracts(expressions, protocol, write = false) {
   // Resolve every owned root before any writer mutation, so missing or aliased
   // roots cannot silently skip part of the contract or leave a partial repair.
   for (const owned of ownedLiteralSchemas(expressions, protocol)) {
-    updateLiteralSchema(owned, write);
+    updateLiteralSchema(owned, write, Object.hasOwn(expressions.laws, 'exact_integer_arithmetic'));
   }
   const literalLaw = {...typedJsonLaw, wire_contract_cid: machineCid(typedJsonWireLaw)};
   if (write) {

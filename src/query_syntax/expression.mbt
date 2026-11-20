@@ -19,6 +19,12 @@ pub(all) enum ExpressionKind {
   Null
   Boolean(Bool)
   Number(String)
+  // Compiler-selected from an original integer token, before Number admission.
+  ContextualInteger(Int64?)
+  // A checked syntax-only parallel view of the SAME producer row. Neither
+  // node is parsed from an authored function/identifier spelling.
+  ContextualIntegerReference(Array[NamePart], NamePart)
+  ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])
@@ -52,6 +58,7 @@ pub(all) enum CastType {
   Boolean
   String
   Number
+  Signed64
   Timestamp
   Decimal(Int, Int)
   Array(ArrayElementType)
@@ -96,6 +103,8 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
   let node = expression.nodes[index]
   let kind = match node.kind {
     Reference(parts) => Reference(parts.copy())
+    ContextualIntegerReference(parts, name) =>
+      ContextualIntegerReference(parts.copy(), name)
     Call(parts, args) => Call(parts.copy(), args.copy())
     ArrayConstructor(items, target) => ArrayConstructor(items.copy(), target)
     StructConstructor(fields) => StructConstructor(fields.copy())
@@ -152,6 +161,7 @@ fn expression_subtree(
     }
     match expression.nodes[next].kind {
       Unary(_, child)
+      | ContextualIntegerCompanion(child, _)
       | Parenthesized(child)
       | Cast(child, _)
       | Interval(child, _)
@@ -203,6 +213,8 @@ fn expression_subtree(
         ArrayOffset(left, right, safe) =>
           ArrayOffset(remap[left], remap[right], safe)
         Parenthesized(child) => Parenthesized(remap[child])
+        ContextualIntegerCompanion(child, original) =>
+          ContextualIntegerCompanion(remap[child], original)
         Cast(child, target) => Cast(remap[child], target)
         Interval(child, unit) => Interval(remap[child], unit)
         Property(child, name) => Property(remap[child], name)
@@ -220,6 +232,8 @@ fn expression_subtree(
             remap[otherwise],
           )
         Reference(path) => Reference(path.copy())
+        ContextualIntegerReference(path, name) =>
+          ContextualIntegerReference(path.copy(), name)
         kind => kind
       }
     }
@@ -369,6 +383,11 @@ fn ExpressionParser::add(
     raise ExpressionAbort("Expression depth limit", start)
   }
   let index = self.nodes.length()
+  // This fixed three-character predicate is part of the already bounded Call
+  // constructor, not another source/token/AST discovery traversal.
+  if kind is Call(path, _) && integer_context_call_name(path) {
+    self.source.integer_context_required = true
+  }
   self.nodes.push({ kind, start, end, })
   self.depths.push(child_depth + 1)
   index
@@ -1016,6 +1035,7 @@ fn ExpressionParser::expression(
               "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
               "NUMBER" | "FLOAT64" | "DOUBLE" => CastType::Number
+              "INT64" => CastType::Signed64
               "TIMESTAMP" => CastType::Timestamp
               "ARRAY" => CastType::Array(self.array_element_type())
               "DECIMAL" => {
