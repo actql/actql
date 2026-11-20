@@ -79,9 +79,25 @@ fn materialize_computed_star_receivers(
   let bindings : Array[(String, String)] = []
   let derives : Array[(String, @builder.Node)] = []
   for receiver in receivers {
+    let private_receiver = retained_receiver(receiver)
     let matches : Array[(Int, Int)] = []
     for index in 0..<values.length() {
       spend(1)
+      if private_receiver {
+        // Only this exact generated occurrence owns the checked DATA-key
+        // projection. Authored siblings keep their original receiver and
+        // namespace validation, even when their expression trees are equal.
+        guard object_expansions is Some(originals) else {
+          raise Abort(InvalidContext)
+        }
+        spend(originals.length())
+        if !originals.any(original => {
+            physical_equal(original.projection, expanded[index]) &&
+            physical_equal(original.receiver, receiver)
+          }) {
+          continue
+        }
+      }
       if values[index].expression is Some(expression) &&
         !already_evaluated(expression) &&
         (match

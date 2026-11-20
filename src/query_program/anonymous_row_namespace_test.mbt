@@ -444,6 +444,8 @@ test "computed row stars retain anonymous roles order and nested row views" {
 test "computed row stars never grant generated keys as SQL aliases" {
   for
     source in [
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).*, ((t).f0_) AS bad FROM t", "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) SELECT (r.row).*, ((r.row).f0_) AS bad FROM r",
+      "WITH u AS (SELECT 1, 2 AS n), t AS (SELECT u AS nested, 3 AS z FROM u), s AS (SELECT (t).*, (t).nested AS saved FROM t) SELECT saved.f0_ FROM s",
       "WITH t AS (SELECT 1, 2 AS n) SELECT (t).*, ((t).f0_) AS bad FROM t GROUP BY 1, 2",
       "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2 ORDER BY (t).f0_",
       "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t ORDER BY (t).f0_", "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t ORDER BY f0_",
@@ -466,4 +468,24 @@ test "computed row stars never grant generated keys as SQL aliases" {
   }
   let positive = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT STRUCT(t AS nested) AS row FROM t), s AS (SELECT r.row.* FROM r) SELECT s.nested.n AS n FROM s"
   assert_eq(anonymous_result_fields(anonymous_result_program(positive)), ["n"])
+}
+
+///|
+test "computed row star receiver substitution retains authored sibling checks and nested views" {
+  let source = "WITH t AS (SELECT 1, 2 AS n) SELECT (t).*, ((t).n) AS good FROM t"
+  let program = anonymous_result_program(source)
+  assert_eq(anonymous_result_fields(program), ["f0_", "n", "good"])
+  assert_eq(
+    semantic(program).split("\"derive\":{\"aql_computed_star_").length(),
+    2,
+  )
+  let nested = "WITH u AS (SELECT 1, 2 AS n), t AS (SELECT u AS nested, 3 AS z FROM u), s AS (SELECT (t).*, (t).nested AS saved FROM t) SELECT saved.n AS value FROM s"
+  let program = anonymous_result_program(nested)
+  assert_eq(anonymous_result_fields(program), ["value"])
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the original Values rows remain closed")
+  }
 }
