@@ -6,6 +6,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 
+// Unchecked caught-error views; the original exact code/cause/handle assertions follow.
+type CleanupFailure = {code: string; descriptor: number; directory: fs.Dir;
+  cause: unknown; cleanupCause: unknown};
+
 // Inject failures into operations on real, fresh handles. Every original
 // binding is restored before releasing only this probe's own resources.
 for (const primaryFails of [true, false]) {
@@ -14,17 +18,17 @@ for (const primaryFails of [true, false]) {
     const original = {writeSync: fs.writeSync, closeSync: fs.closeSync};
     const primary = Object.assign(new Error('Write failed'), {code: 'ENOSPC'});
     const cleanup = Object.assign(new Error('Close unconfirmed'), {code: 'EIO'});
-    let descriptor, caught;
+    let descriptor: number | undefined, caught: CleanupFailure | undefined;
     try {
       if (primaryFails) fs.writeSync = () => { throw primary; };
       fs.closeSync = fd => { descriptor = fd; throw cleanup; };
       syncBuiltinESMExports();
-      try { scaffoldProject(join(root, 'project')); } catch (error) { caught = error; }
+      try { scaffoldProject(join(root, 'project')); } catch (error) { caught = error as CleanupFailure; }
       assert.equal(caught?.code, 'ACTQL_E_PROJECT_CLEANUP_PENDING');
-      assert.equal(caught.descriptor, descriptor);
-      assert.equal(caught.cause, primaryFails ? primary : cleanup);
-      assert.equal(caught.cleanupCause, cleanup);
-      assert(fs.fstatSync(caught.descriptor).isFile());
+      assert.equal(caught!.descriptor, descriptor);
+      assert.equal(caught!.cause, primaryFails ? primary : cleanup);
+      assert.equal(caught!.cleanupCause, cleanup);
+      assert(fs.fstatSync(caught!.descriptor).isFile());
       const project = join(root, 'project');
       assert.deepEqual(fs.readdirSync(project), ['actql.config.json']);
       assert.throws(() => scaffoldProject(project), {code: 'ACTQL_E_PROJECT_EXISTS'});
@@ -42,7 +46,7 @@ for (const primaryFails of [true, false]) {
     const opendir = fs.opendirSync;
     const primary = Object.assign(new Error('Read failed'), {code: 'EIO'});
     const cleanup = Object.assign(new Error('Close unconfirmed'), {code: 'EBUSY'});
-    let directory, release, caught;
+    let directory: fs.Dir | undefined, release: (() => void) | undefined, caught: CleanupFailure | undefined;
     try {
       fs.opendirSync = path => {
         directory = opendir(path);
@@ -52,11 +56,11 @@ for (const primaryFails of [true, false]) {
         return directory;
       };
       syncBuiltinESMExports();
-      try { scaffoldProject(join(root, 'project')); } catch (error) { caught = error; }
+      try { scaffoldProject(join(root, 'project')); } catch (error) { caught = error as CleanupFailure; }
       assert.equal(caught?.code, 'ACTQL_E_PROJECT_CLEANUP_PENDING');
-      assert.equal(caught.directory, directory);
-      assert.equal(caught.cause, primaryFails ? primary : cleanup);
-      assert.equal(caught.cleanupCause, cleanup);
+      assert.equal(caught!.directory, directory);
+      assert.equal(caught!.cause, primaryFails ? primary : cleanup);
+      assert.equal(caught!.cleanupCause, cleanup);
       assert.deepEqual(fs.readdirSync(join(root, 'project')), []);
     } finally {
       fs.opendirSync = opendir; syncBuiltinESMExports();
@@ -69,14 +73,14 @@ test('a failed write is returned unchanged after its original descriptor closes 
   const root = fs.mkdtempSync(join(tmpdir(), 'actql-project-write-failure-'));
   const original = {writeSync: fs.writeSync, closeSync: fs.closeSync};
   const primary = Object.assign(new Error('Write failed'), {code: 'ENOSPC'});
-  let descriptor, closes = 0;
+  let descriptor: number | undefined, closes = 0;
   try {
     fs.writeSync = () => { throw primary; };
     fs.closeSync = fd => { descriptor = fd; closes++; original.closeSync(fd); };
     syncBuiltinESMExports();
     assert.throws(() => scaffoldProject(join(root, 'project')), error => error === primary);
     assert.equal(closes, 1);
-    assert.throws(() => fs.fstatSync(descriptor), {code: 'EBADF'});
+    assert.throws(() => fs.fstatSync(descriptor!), {code: 'EBADF'});
     assert.deepEqual(fs.readdirSync(join(root, 'project')), ['actql.config.json']);
   } finally {
     Object.assign(fs, original); syncBuiltinESMExports();
@@ -88,7 +92,7 @@ test('a failed directory read is returned unchanged after its original Dir close
   const root = fs.mkdtempSync(join(tmpdir(), 'actql-project-read-failure-'));
   const opendir = fs.opendirSync;
   const primary = Object.assign(new Error('Read failed'), {code: 'EIO'});
-  let directory, closes = 0;
+  let directory: fs.Dir | undefined, closes = 0;
   try {
     fs.opendirSync = path => {
       directory = opendir(path);
@@ -100,7 +104,7 @@ test('a failed directory read is returned unchanged after its original Dir close
     syncBuiltinESMExports();
     assert.throws(() => scaffoldProject(join(root, 'project')), error => error === primary);
     assert.equal(closes, 1);
-    assert.throws(() => directory.closeSync(), {code: 'ERR_DIR_CLOSED'});
+    assert.throws(() => directory!.closeSync(), {code: 'ERR_DIR_CLOSED'});
     assert.deepEqual(fs.readdirSync(join(root, 'project')), []);
   } finally {
     fs.opendirSync = opendir; syncBuiltinESMExports();

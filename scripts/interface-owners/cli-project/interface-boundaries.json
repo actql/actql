@@ -326,7 +326,7 @@
                 "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
-                "path": "scripts/native-cli-project-cleanup.test.mjs",
+                "path": "scripts/native-cli-project-cleanup.test.mts",
                 "anchor": "// Inject failures into operations on real, fresh handles."
               },
               {

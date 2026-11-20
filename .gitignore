@@ -797,3 +797,7 @@ target/
 /scripts/native-cli-product-member-staging.test.d.mts
 /scripts/native-cli-common-product-members.test.mjs
 /scripts/native-cli-common-product-members.test.d.mts
+
+# Emitted from the authored Native project cleanup controls.
+/scripts/native-cli-project-cleanup.test.mjs
+/scripts/native-cli-project-cleanup.test.d.mts
