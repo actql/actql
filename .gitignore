@@ -250,3 +250,7 @@ target/
 # Generated ordinary configured provider; original Host ports remain canonical.
 /packages/provider-ai-sdk/_internal/normal-openai-chat.mjs
 /packages/provider-ai-sdk/_internal/normal-openai-chat.d.mts
+
+# Generated installed decision adapter; supported private behavior is unchanged.
+/packages/provider-ai-sdk/_internal/installed-typesafe-decision.mjs
+/packages/provider-ai-sdk/_internal/installed-typesafe-decision.d.mts
