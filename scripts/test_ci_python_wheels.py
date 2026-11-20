@@ -100,6 +100,68 @@ class InstalledFuelControlTests(unittest.TestCase):
         self.assertEqual(calls, [1, 19, 257, 19])
 
 
+class RepeatedHostAcceptanceTests(unittest.TestCase):
+    def events(self, phase, pid):
+        data = [{'phase': 'opened', 'mode': phase, 'pid': pid}]
+        result = 'result-complete' if phase == 'warm' else 'saved-result-complete'
+        data += [{'phase': result, 'ordinal': ordinal, 'pid': pid} for ordinal in range(1, 11)]
+        if phase == 'warm':
+            data += [{'phase': 'checkpoint-complete', 'ordinal': ordinal, 'pid': pid}
+                     for ordinal in (1, 3, 10)]
+        return data + [{'phase': phase + '-complete', 'runs': 10, 'pid': pid},
+                       {'phase': 'first-close-attempted', 'mode': phase, 'pid': pid},
+                       {'phase': 'first-close-returned', 'mode': phase, 'pid': pid}]
+
+    def test_same_original_fixture_and_isolated_normal_factory_phases(self):
+        calls, events = [], []
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp)
+            def run(name, args, **options):
+                calls.append((name, args, options))
+                phase = args[-1]
+                self.assertEqual(args[:3], [Path('/consumer/python'), '-I', '-B'])
+                fixture = args[3]
+                self.assertEqual(fixture.read_bytes(),
+                                 (ci.ROOT / 'scripts/fixtures/python-local-repeated-host.py').read_bytes())
+                self.assertNotEqual(options['env']['HOME'], '/prior-home')
+                self.assertEqual(options['env']['PATH'], '/consumer/bin')
+                self.assertEqual(options['cwd'], destination / 'ordinary-repeated-host/workspace')
+                events.extend(self.events(phase, 41 if phase == 'warm' else 42))
+                fixture.with_name('events.jsonl').write_text(''.join(json.dumps(event) + '\n' for event in events))
+                return b''
+            result = ci.accept_installed_repeated_host(run, Path('/consumer/python'), destination,
+                                                       {'HOME': '/prior-home', 'PATH': '/consumer/bin'})
+        self.assertEqual([(name, args[-1], options['timeout']) for name, args, options in calls],
+                         [('installed-ordinary-repeated-warm', 'warm', 900),
+                          ('installed-ordinary-repeated-saved', 'saved', 180)])
+        self.assertEqual(result, {'runs': 10, 'warm_pid': 41, 'saved_pid': 42,
+                                  'original_first_closes_returned': True})
+
+    def test_missing_result_checkpoint_close_or_same_process_cannot_pass(self):
+        warm = self.events('warm', 41)
+        self.assertEqual(ci.require_installed_repeated_host(warm, 'warm', None), 41)
+        for excluded in ('result-complete', 'checkpoint-complete', 'first-close-attempted',
+                         'first-close-returned'):
+            with self.subTest(excluded=excluded), self.assertRaises(ValueError):
+                ci.require_installed_repeated_host(
+                    [event for event in warm if event['phase'] != excluded], 'warm', None)
+        for failure in ('primary-failure', 'first-close-failed'):
+            with self.subTest(failure=failure), self.assertRaises(ValueError):
+                ci.require_installed_repeated_host(warm + [{'phase': failure, 'pid': 41}], 'warm', None)
+        with self.assertRaises(ValueError):
+            ci.require_installed_repeated_host(warm + self.events('saved', 41), 'saved', 41)
+
+    def test_first_actual_failure_stops_without_retry_or_saved_launch(self):
+        failure, calls = RuntimeError('original ordinary failure'), []
+        def run(name, args, **options):
+            calls.append(name)
+            raise failure
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(RuntimeError) as raised:
+            ci.accept_installed_repeated_host(run, Path('/python'), Path(tmp), {})
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(calls, ['installed-ordinary-repeated-warm'])
+
+
 class OrchestrationTests(unittest.TestCase):
     def test_transient_release_rejection_retries_same_pinned_get(self):
         error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)

@@ -250,6 +250,61 @@ def require_installed_fuel_fault(observed, phase: str, previous_pid: int | None)
         raise ValueError('Incomplete installed fuel-stop Saved recovery')
 
 
+def require_installed_repeated_host(events, phase: str, previous_pid: int | None) -> int:
+    """Read only the maintained public consumer's bounded phase/close events."""
+    if (phase not in ('warm', 'saved') or type(events) is not list
+            or not 0 < len(events) <= 256 or any(type(event) is not dict for event in events)):
+        raise ValueError('Incomplete ordinary repeated-Host event record')
+    opened = [event for event in events if event.get('phase') == 'opened' and event.get('mode') == phase]
+    if len(opened) != 1:
+        raise ValueError('Missing unique ordinary owning factory')
+    pid = opened[0].get('pid')
+    if type(pid) is not int or pid <= 0 or pid == previous_pid:
+        raise ValueError('Ordinary Saved requires a distinct consumer process')
+    current = [event for event in events if type(event.get('pid')) is int and event['pid'] == pid]
+    names = [event.get('phase') for event in current]
+    complete = [event for event in current if event.get('phase') == phase + '-complete']
+    result_phase = 'result-complete' if phase == 'warm' else 'saved-result-complete'
+    ordinals = [event.get('ordinal') for event in current if event.get('phase') == result_phase]
+    if (len(complete) != 1 or type(complete[0].get('runs')) is not int or complete[0]['runs'] != 10
+            or any(type(ordinal) is not int for ordinal in ordinals) or ordinals != list(range(1, 11))
+            or names.count('first-close-attempted') != 1 or names.count('first-close-returned') != 1
+            or 'primary-failure' in names or 'first-close-failed' in names
+            or names[-1] != 'first-close-returned'):
+        raise ValueError('Incomplete ordinary Run/Result or original first close')
+    checkpoints = [event.get('ordinal') for event in current
+                   if event.get('phase') == 'checkpoint-complete']
+    if phase == 'warm' and (any(type(ordinal) is not int for ordinal in checkpoints)
+                            or checkpoints != [1, 3, 10]):
+        raise ValueError('Missing original ordinary reread/attach checkpoints')
+    return pid
+
+
+def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: dict[str, str]) -> dict:
+    """The same original public fixture, fresh owning Home and separate Saved."""
+    work = destination / 'ordinary-repeated-host'
+    work.mkdir()
+    fixture = work / 'python-local-repeated-host.py'
+    shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
+    home, temporary, workspace = (work / name for name in ('home', 'tmp', 'workspace'))
+    for directory in (home, temporary, workspace):
+        directory.mkdir()
+    ordinary_env = dict(env, HOME=str(home), TMPDIR=str(temporary))
+    previous_pid = None
+    pids = []
+    for phase, timeout in (('warm', 900), ('saved', 180)):
+        run('installed-ordinary-repeated-' + phase, [consumer, '-I', '-B', fixture, phase],
+            cwd=workspace, env=ordinary_env, timeout=timeout)
+        events = work / 'events.jsonl'
+        if not events.is_file() or events.stat().st_size > 262144:
+            raise ValueError('Missing bounded ordinary repeated-Host events')
+        previous_pid = require_installed_repeated_host(
+            [json.loads(line) for line in events.read_bytes().splitlines()], phase, previous_pid)
+        pids.append(previous_pid)
+    return {'runs': 10, 'warm_pid': pids[0], 'saved_pid': pids[1],
+            'original_first_closes_returned': True}
+
+
 def accept_installed_fuel(run, consumer: Path, destination: Path,
                           source: str, cohort, env: dict[str, str]) -> None:
     """One changed-default regression and one deliberate fail-closed operation.
@@ -407,6 +462,7 @@ def run_acceptance(destination: Path) -> None:
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     accept_installed_cancellation(run, consumer, destination, version, env)
+    repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
@@ -417,6 +473,7 @@ def run_acceptance(destination: Path) -> None:
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
         'context_close': True, 'installed_active_cancellation': True,
+        'ordinary_repeated_host': repeated_host,
         'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
         'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
