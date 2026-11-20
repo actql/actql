@@ -1,3 +1,17 @@
+import type * as Public from './run-observation.js';
+import type {RunReference} from '@actql/sdk';
+import type {WireRunView,WireOwnerObservations} from '@actql/client-wire';
+type Model = Public.RunObservationModel;
+type ObservedOwner = Extract<WireOwnerObservations['owners'][number],{kind:'observed'}>;
+// The generated union has separate present/absent snapshot variants. These
+// optional field views retain the original property checks; the existing
+// full Owner validator establishes vector/snapshot/history correspondence.
+interface SnapshotFields {
+  snapshot?:Extract<ObservedOwner,{snapshot:unknown}>['snapshot'];
+  snapshotProblem?:Extract<ObservedOwner,{snapshotProblem:unknown}>['snapshotProblem'];
+}
+type HistoryOwner = Extract<Model['histories'],{state:'observed'}>['owners'][number];
+
 import {validRunRef, validWireRunViewShape, validOwnerObservations,
   withinResultDescriptionLimits} from '@actql/client-wire';
 import {ExplorerReadError} from './presentation-limits.mjs';
@@ -5,41 +19,41 @@ import {ExplorerReadError} from './presentation-limits.mjs';
 // These are one-page presentation limits, not execution/resource permissions.
 export const runObservationLimits = Object.freeze({maxEntries: 32,
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
-const refuse = () => {throw new ExplorerReadError('ExplorerInvalidRunObservation');};
-const sameRef = (a, b) => ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+const refuse:()=>never = () => {throw new ExplorerReadError('ExplorerInvalidRunObservation');};
+const sameRef = (a:RunReference, b:RunReference) => (['namespaceId', 'authorityScopeCid', 'runDefinitionCid'] as const)
   .every(key => a[key] === b[key]);
-const frozen = value => {
+const frozen = <T,>(value:T):T => {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) frozen(child);
     Object.freeze(value);
   }
   return value;
 };
-const unavailable = () => ({state: 'unavailable', reason: 'not_in_projection'});
-const quantity = item => item.kind === 'unknown'
+const unavailable = ():Model['logicalProgress'] => ({state: 'unavailable', reason: 'not_in_projection'});
+const quantity = (item:WireRunView['quantities'][number]):Model['quantities'][number] => item.kind === 'unknown'
   ? {kind: item.kind, unit: item.unit, reason: item.reason}
   : {kind: item.kind, value: item.value, unit: item.unit,
     scopeCid: item.scope_cid, basisCid: item.basis_cid};
 
-function historyModel(owners, ref) {
+function historyModel(owners:WireOwnerObservations|null, ref:RunReference):Model['histories'] {
   if (owners !== null && !validOwnerObservations(owners, ref, runObservationLimits)) refuse();
-  const histories = owners === null ? {state: 'unavailable', reason: 'capability_unavailable'} : {
+  const histories:Model['histories'] = owners === null ? {state: 'unavailable', reason: 'capability_unavailable'} : {
     state: 'observed', consistency: owners.consistency, ordering: owners.ordering,
     // Preserve each Owner's returned order and its own revision vector. There
     // is no cross-Owner timestamp sort or synthetic complete-history claim.
-    owners: owners.owners.map(item => {
+    owners: owners.owners.map((item):HistoryOwner => {
       if (item.kind === 'unavailable') return {owner: item.owner, state: 'unavailable',
         reason: item.problem?.kind ?? 'not_provided'};
       const vector = owners.revisionVector.find(v => v.owner.kind === item.ownerRef.kind &&
         v.owner.scopeCid === item.ownerRef.scopeCid && v.owner.streamCid === item.ownerRef.streamCid);
       return {owner: item.owner, state: 'observed', ownerRef: {...item.ownerRef},
-        snapshot: item.snapshot === undefined
-          ? {state: 'unavailable', reason: item.snapshotProblem.kind}
-          : {state: 'observed', cid: vector.snapshotCid,
-            ...(item.snapshot.revision === undefined ? {} : {revision: item.snapshot.revision})},
+        snapshot: (item as SnapshotFields).snapshot === undefined
+          ? {state: 'unavailable', reason: (item as SnapshotFields).snapshotProblem!.kind}
+          : {state: 'observed', cid: vector!.snapshotCid!,
+            ...((item as SnapshotFields).snapshot!.revision === undefined ? {} : {revision: (item as SnapshotFields).snapshot!.revision})},
         history: item.history.kind === 'page' ? {
           state: 'page', entries: item.history.entries.map(entry => ({...entry})),
-          head: vector.historyHead === null ? null : {...vector.historyHead},
+          head: vector!.historyHead === null ? null : {...vector!.historyHead!},
           cursorAvailable: item.history.cursor !== undefined,
         } : {state: 'unavailable', reason: item.history.kind},
       };
@@ -50,19 +64,19 @@ function historyModel(owners, ref) {
 
 // A presentation projection of two independent authorized observations. It
 // neither seals a new identity nor joins Owner history to logical steps.
-export function runObservationModel(view, owners, ref) {
+export function runObservationModel(view:WireRunView, owners:WireOwnerObservations|null, ref:RunReference):Model {
   if (!validRunRef(ref) || !withinResultDescriptionLimits(view, runObservationLimits) ||
       !validWireRunViewShape(view) || !sameRef(view.run_ref, ref) ||
       owners !== null && !validOwnerObservations(owners, ref, runObservationLimits)) refuse();
   const state = view.run_state, legacy = state.legacy_state;
-  const resultAvailability = legacy === undefined ? unavailable() : {
+  const resultAvailability:Model['resultAvailability'] = legacy === undefined ? unavailable() : {
     state: 'observed', entries: Object.entries(legacy.result_availability).map(([name, item]) => ({
       name, state: item.state, reason: item.reason, observedAt: item.observed_at,
       ...(item.cause_cid === undefined ? {} : {causeCid: item.cause_cid}),
     })),
   };
   const histories = historyModel(owners, ref);
-  return frozen({runRef: {...ref}, consistency: view.consistency,
+  return frozen<Model>({runRef: {...ref}, consistency: view.consistency,
     observationScope: view.observation_scope,
     run: {id: state.run_id, status: state.status, updatedAt: state.updated_at,
       controlRevision: state.control_revision,
@@ -91,10 +105,10 @@ export function runObservationModel(view, owners, ref) {
 
 // Manual refresh and polling both retain this exact Run reference. No start,
 // wait, cancellation, reconciliation, sample acquisition or payload read occurs.
-export async function readRunObservation(client, ref, ticket) {
+export async function readRunObservation(client:Parameters<typeof Public.readRunObservation>[0], ref:RunReference, ticket:Parameters<typeof Public.readRunObservation>[2]):Promise<Model> {
   if (!validRunRef(ref)) refuse();
   const original = Object.freeze({...ref});
-  const current = async action => {
+  const current = async <T,>(action:()=>T|Promise<T>):Promise<T> => {
     ticket.assertCurrent();
     try {const answer = await action(); ticket.assertCurrent(); return answer;}
     catch (error) {ticket.assertCurrent(); throw error;}
