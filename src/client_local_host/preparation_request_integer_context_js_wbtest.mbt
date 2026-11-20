@@ -6,7 +6,10 @@ test "original integer context has an independent incremental representation bou
   assert_eq(request_integer_context_data_bytes(0L), Some(0L))
   assert_eq(request_integer_context_data_bytes(-1L), None)
   assert_eq(request_integer_context_data_bytes(9223372036854775807L), None)
-  assert_eq(request_integer_context_data_bytes(9223372036854775807L / 100L), None)
+  assert_eq(
+    request_integer_context_data_bytes(9223372036854775807L / 100L),
+    None,
+  )
 }
 
 ///|
