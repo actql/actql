@@ -3790,6 +3790,31 @@ current observation. This adds no cache, permission or lifetime token. Later
 payload acquisition, physical reads, callbacks and delivery keep their existing
 current checks and original failure/cleanup ownership.
 
+The matched installed Local Host and Core use private submission kind 13 for
+Saved Result preparation. The existing ABI signatures and synchronous kind 6
+remain valid. Kind 13 returns `1` from `submission.produce` while the original
+preparation is pending and `0` only after the result wire has been supplied.
+An unavailable or refused turn never supplies a partial wire. The normal wheel
+cohort binds the Host and module that implement this selector together.
+
+The same saved projection keeps the original commit owner, view, and captured
+rows. Each continuation opens a fresh current reader, checks the exact selected
+snapshot and consumed publication rows against their original key, revision and
+bytes, and runs the full cancellation inventory before advancing the existing
+owner. The preparation and observed-commit phases retain the existing limit of
+250000 advances of 256 work units each. A scalar remaining count occupies the
+existing readiness slot. Failure leaves the same preparation for close.
+
+The Host releases the Core lock, current reader and SQLite transaction before
+yielding. Each physical hash turn rechecks the original saved payload row,
+reservation and file and hashes at most one existing bounded chunk. A single
+six-field selection tuple of original references is charged to the same output
+reservation before the first read. No chunk bytes or borrowed reader cross the
+yield. Full digest and EOF verification precede Result evidence and delivery.
+One original Host operation owns the entire preparation allowance. Reader
+cancellation unwinds that operation and closes its existing read loans without
+cancelling a Run. Incomplete close retains the same carrier for later cleanup.
+
 A repeated submit first observes the authenticated original submission under
 the same current Store snapshot. A ready record with the same intent returns
 its existing admission without preparation, dispatch or a new executable Run.

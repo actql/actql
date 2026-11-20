@@ -5943,6 +5943,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/advance_and_read_saved_result",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/advance_publication",
           "parameters": [
             "self",
@@ -8302,7 +8311,7 @@
           ]
         }
       ],
-      "sha256": "e771fbbef9e5b734f7bbdd11bd901234396198b2c559018c0d19801dc1733954",
+      "sha256": "9fd28c46defbcaff1b6659c705d99dd66c910e995ccdb4d2ee726e04e1126317",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14391,7 +14400,8 @@
             "LocalCore/reserve_saved_payload_record",
             "LocalCore/reserve_saved_result_export",
             "LocalCore/validate_saved_payload_binding",
-            "LocalCore/validate_submission_lookup"
+            "LocalCore/validate_submission_lookup",
+            "LocalCore/advance_and_read_saved_result"
           ],
           "exports": [],
           "attributes": {
@@ -53165,6 +53175,14 @@
           "async": false
         },
         {
+          "async": true,
+          "name": "InstalledLocalHost/_open_ordinary_result",
+          "parameters": [
+            "self",
+            "body"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_open_original_payload_area",
           "parameters": [
             "self",
@@ -53560,6 +53578,24 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_read_original_result_projection",
+          "parameters": [
+            "self",
+            "output",
+            "definition",
+            "result_name",
+            "incremental"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_read_original_result_projection/inspect",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_read_original_saved_admission",
           "parameters": [
             "self",
@@ -53628,6 +53664,16 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_reserve_original_result_read",
+          "parameters": [
+            "self",
+            "reference",
+            "result_name",
+            "incremental"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_restore_original_run",
           "parameters": [
             "self",
@@ -53678,13 +53724,6 @@
             "self",
             "reference",
             "result_name"
-          ],
-          "async": false
-        },
-        {
-          "name": "InstalledLocalHost/_retain_original_result_read/inspect",
-          "parameters": [
-            "current"
           ],
           "async": false
         },
@@ -53995,7 +54034,7 @@
           "async": false
         }
       ],
-      "sha256": "f7989916838c20f1d79fd3bc00967777ac4b61949f0890804a4e28acffc16f4c",
+      "sha256": "2bd2c28b5acaa0f180515c190fd13b8e088a8be9421ed82951f9c9ef910a30c3",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54122,7 +54161,8 @@
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
             "_ordinary_core_limits",
-            "_state_directory_option"
+            "_state_directory_option",
+            "InstalledLocalHost/_open_ordinary_result"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -55788,7 +55828,9 @@
             "InstalledLocalHost/_read_original_reference",
             "InstalledLocalHost/_read_original_reference/observe",
             "InstalledLocalHost/_retain_original_result_read",
-            "InstalledLocalHost/_retain_original_result_read/inspect"
+            "InstalledLocalHost/_read_original_result_projection",
+            "InstalledLocalHost/_read_original_result_projection/inspect",
+            "InstalledLocalHost/_reserve_original_result_read"
           ],
           "exports": [
             "OriginalSavedResultRead"
@@ -78599,14 +78641,23 @@
           "name": "OriginalSavedResultRead/_current",
           "parameters": [
             "self",
-            "action"
+            "action",
+            "selection"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_current/confirm",
+          "parameters": [
+            "actual"
           ]
         },
         {
           "async": false,
           "name": "OriginalSavedResultRead/_current/inspect",
           "parameters": [
-            "current"
+            "current",
+            "take_capacity"
           ]
         },
         {
@@ -78615,6 +78666,39 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_ensure_physical_preparation",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_finish_payload",
+          "parameters": [
+            "self",
+            "source",
+            "selection",
+            "name",
+            "format",
+            "attempt_id",
+            "rebind"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_hash_next_original_chunk",
+          "parameters": [
+            "self",
+            "selection"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_hash_next_original_chunk/hash_chunk",
+          "parameters": []
         },
         {
           "async": false,
@@ -78629,36 +78713,48 @@
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/hash_chunk",
+          "name": "OriginalSavedResultRead/_prepare_payload",
+          "parameters": [
+            "self",
+            "source",
+            "metadata"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_prepare_payload/open_area",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/open_area",
+          "name": "OriginalSavedResultRead/_prepare_payload/open_reader",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/open_reader",
+          "name": "OriginalSavedResultRead/_prepare_payload/project_names",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/project_names",
-          "parameters": []
-        },
-        {
-          "async": false,
-          "name": "OriginalSavedResultRead/_prepare/take_capacity",
+          "name": "OriginalSavedResultRead/_prepare_payload/take_capacity",
           "parameters": [
             "capacity"
           ]
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/take_row",
+          "name": "OriginalSavedResultRead/_prepare_payload/take_row",
           "parameters": [
             "row"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_prepare_turn",
+          "parameters": [
+            "self",
+            "scope"
           ]
         },
         {
@@ -78671,6 +78767,17 @@
         {
           "async": false,
           "name": "OriginalSavedResultRead/prepare",
+          "parameters": [
+            "self",
+            "reference",
+            "name",
+            "format",
+            "attempt_id"
+          ]
+        },
+        {
+          "async": true,
+          "name": "OriginalSavedResultRead/prepare_incremental",
           "parameters": [
             "self",
             "reference",
@@ -78698,7 +78805,7 @@
           ]
         }
       ],
-      "sha256": "e94a218ec74a794219d2a4f9185e5cdab64110afbcc6046bf2aa9c80c3462a31",
+      "sha256": "2f78c635a372b17ee332d65ce839792150610c2d497465dce2c82eb1056a77a2",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -78712,16 +78819,23 @@
             "OriginalSavedResultRead/_current/inspect",
             "OriginalSavedResultRead/_ensure_active",
             "OriginalSavedResultRead/_prepare",
-            "OriginalSavedResultRead/_prepare/hash_chunk",
-            "OriginalSavedResultRead/_prepare/open_area",
-            "OriginalSavedResultRead/_prepare/open_reader",
-            "OriginalSavedResultRead/_prepare/project_names",
-            "OriginalSavedResultRead/_prepare/take_capacity",
-            "OriginalSavedResultRead/_prepare/take_row",
             "OriginalSavedResultRead/close",
             "OriginalSavedResultRead/prepare",
             "OriginalSavedResultRead/prepare_lookup",
-            "_original_decimal"
+            "_original_decimal",
+            "OriginalSavedResultRead/_current/confirm",
+            "OriginalSavedResultRead/_ensure_physical_preparation",
+            "OriginalSavedResultRead/_finish_payload",
+            "OriginalSavedResultRead/_hash_next_original_chunk",
+            "OriginalSavedResultRead/_hash_next_original_chunk/hash_chunk",
+            "OriginalSavedResultRead/_prepare_payload",
+            "OriginalSavedResultRead/_prepare_payload/open_area",
+            "OriginalSavedResultRead/_prepare_payload/open_reader",
+            "OriginalSavedResultRead/_prepare_payload/project_names",
+            "OriginalSavedResultRead/_prepare_payload/take_capacity",
+            "OriginalSavedResultRead/_prepare_payload/take_row",
+            "OriginalSavedResultRead/_prepare_turn",
+            "OriginalSavedResultRead/prepare_incremental"
           ],
           "exports": [
             "ByteFence",
@@ -78916,6 +79030,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_response.py",
                 "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_hash_yields_after_one_real_chunk_and_rechecks_row(self):"
               }
             ]
           }
@@ -79930,7 +80052,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "2a00bcad26a5f70e05b1da819e99e3ec789154cdfeeff1387c370357fc7f0503",
+      "sha256": "c7cc884522c4703ac4f803dcb5e30117511dc9ef41abb8b9b1a19df52c79271f",
       "exports": [],
       "operations": [
         {
@@ -80279,20 +80401,48 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "4e588dfe16ea3167f49eaf25bb65bf4ad30cedc95da2e836f2ff9a80024c9a93",
+      "sha256": "843c6b87096d02e1e91166cb28d8be0d583332e6356a034432ea3781285081f2",
       "exports": [],
       "operations": [
         {
+          "name": "advance_saved_result_read",
+          "declaration": "advance_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , rebind : Bool , ) - > Result [ Bool , Int ]"
+        },
+        {
+          "name": "begin_saved_result_commit_observation",
+          "declaration": "begin_saved_result_commit_observation ( retained : StoredSavedResultRead , owner : @ publication . PublicationCommitPreparation , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "begin_saved_result_read",
+          "declaration": "begin_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+        },
+        {
           "name": "close_saved_result_read",
           "declaration": "close_saved_result_read ( record : StoredSubmissionProjection ) - > Int"
+        },
+        {
+          "name": "finish_saved_result_read",
+          "declaration": "finish_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Bytes , Int ]"
         },
         {
           "name": "prepare_saved_result_read",
           "declaration": "prepare_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Bytes , Int ]"
         },
         {
+          "name": "produce_incremental_saved_result",
+          "declaration": "produce_incremental_saved_result ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "reobserve_saved_result_read",
+          "declaration": "reobserve_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredSavedResultRead , incremental ? : Bool"
+        },
+        {
           "name": "saved_result_read_current",
           "declaration": "saved_result_read_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , result_name : String , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "supply_saved_result_read",
+          "declaration": "supply_saved_result_read ( value : Instance , record : StoredSubmissionProjection , wire : Bytes , ) - > Int"
         },
         {
           "name": "validate_saved_result_read",
@@ -80309,7 +80459,14 @@
             "close_saved_result_read",
             "prepare_saved_result_read",
             "saved_result_read_current",
-            "validate_saved_result_read"
+            "validate_saved_result_read",
+            "advance_saved_result_read",
+            "begin_saved_result_commit_observation",
+            "begin_saved_result_read",
+            "finish_saved_result_read",
+            "produce_incremental_saved_result",
+            "reobserve_saved_result_read",
+            "supply_saved_result_read"
           ],
           "exports": [],
           "attributes": {
@@ -80871,7 +81028,7 @@
     },
     {
       "module": "src/client_host_wasm/submission.mbt",
-      "sha256": "891873b7d3cb63e354b76773e0e4a0fed85e586777c6ceeed396ac1da2b93cde",
+      "sha256": "d92861b0a6e856d1ee56cb6a071fa072298821fc4feececcdff9df554f16d6ef",
       "exports": [],
       "operations": [
         {
@@ -80899,6 +81056,10 @@
           "declaration": "retire_submission_output ( nonce : Int64 , handle : Int ) - > Int"
         },
         {
+          "name": "saved_result_projection_kind",
+          "declaration": "saved_result_projection_kind ( kind : Int ) - > Bool"
+        },
+        {
           "name": "submission_projection_length",
           "declaration": "submission_projection_length ( nonce : Int64 , handle : Int ) - > Int"
         }
@@ -80916,7 +81077,8 @@
             "required_number",
             "reserve_submission_projection",
             "retire_submission_output",
-            "submission_projection_length"
+            "submission_projection_length",
+            "saved_result_projection_kind"
           ],
           "exports": [],
           "attributes": {

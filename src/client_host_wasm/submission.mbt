@@ -19,6 +19,16 @@ priv struct StoredSubmissionProjection {
 }
 
 ///|
+// Matched Local Host and Core opt in on the existing private reserve port.
+// Kind 6 retains its original synchronous produce and refusal contract.
+const INCREMENTAL_SAVED_RESULT_KIND : Int = 13
+
+///|
+fn saved_result_projection_kind(kind : Int) -> Bool {
+  kind == 6 || kind == INCREMENTAL_SAVED_RESULT_KIND
+}
+
+///|
 fn required_number(object : @decode.ObjectView, name : String) -> Double? {
   match @decode.required(object, name) {
     Ok(cursor) => @decode.finite_number(cursor).to_option()
@@ -49,7 +59,7 @@ pub fn reserve_submission_projection(
       kind != 3 &&
       kind != 4 &&
       kind != 5 &&
-      kind != 6 &&
+      !saved_result_projection_kind(kind) &&
       kind != 7 &&
       kind != 8 &&
       kind != 9 &&
@@ -73,7 +83,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if kind >= 3 && kind <= 12 {
+      if kind >= 3 && kind <= INCREMENTAL_SAVED_RESULT_KIND {
         1048576
       } else {
         4096
@@ -129,7 +139,9 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 {
     return produce_submission_append(value, record, configuration)
   }
-  if (record.kind >= 4 && record.kind <= 8) || record.kind == 11 {
+  if (record.kind >= 4 && record.kind <= 8) ||
+    record.kind == 11 ||
+    record.kind == INCREMENTAL_SAVED_RESULT_KIND {
     return produce_submission_lookup(value, record, configuration)
   }
   if record.produced {
@@ -240,7 +252,7 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 ||
     record.kind == 4 ||
     record.kind == 5 ||
-    record.kind == 6 ||
+    saved_result_projection_kind(record.kind) ||
     record.kind == 7 ||
     record.kind == 8 ||
     record.kind == 10 ||
@@ -252,7 +264,7 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     }
     let current = if record.kind == 4 ||
       record.kind == 5 ||
-      record.kind == 6 ||
+      saved_result_projection_kind(record.kind) ||
       record.kind == 7 ||
       record.kind == 8 ||
       record.kind == 10 ||
@@ -355,7 +367,7 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
 pub fn begin_submission_cleanup(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(parent) &&
-    parent.kind == 6 else {
+    saved_result_projection_kind(parent.kind) else {
     return -2
   }
   value.closing = true

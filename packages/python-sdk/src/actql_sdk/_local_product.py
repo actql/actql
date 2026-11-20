@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 import httpx
 
 from . import _wire as wire
-from ._local_core import _original_metadata_cleanup, _original_metadata_stopped
+from ._local_core import _INCREMENTAL_SAVED_RESULT_KIND, _original_metadata_cleanup, _original_metadata_stopped
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, LocalInstallationError, LocalComponents
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
@@ -462,9 +462,35 @@ class InstalledLocalHost:
                 await active.wait_stopped()
             else:
                 raise ValueError('Original Local physical invocation is still active')
+        if operation == 'read' and getattr(self._core, '_ordinary_host', False):
+            return await self._open_ordinary_result(body)
         async with self._operation_lock():
             with self._core._host_operation():
                 return self._open_operation_locked(operation, body)
+
+    async def _open_ordinary_result(self, body: dict[str, Any]) -> httpx.Response:
+        # The operation context owns one allowance through all Saved prepare
+        # turns. The lock and the original physical reader end before a yield.
+        saved: OriginalSavedResultRead | None = None
+        try:
+            with ExitStack() as allowance:
+                async with self._operation_lock():
+                    allowance.enter_context(self._core._host_operation())
+                    if self._has_live_original_run_reference(body['ref']):
+                        return self._open_operation_locked('read', body)
+                    saved = OriginalSavedResultRead(self)
+                    self._saved_result_reads.append(saved)
+                return await saved.prepare_incremental(body['ref'], body['resultName'],
+                                                       body['format'], body['attemptId'])
+        except asyncio.CancelledError as primary:
+            if saved is not None:
+                try:
+                    with self._core._host_cleanup():
+                        if saved.close():
+                            self._saved_result_reads.remove(saved)
+                except BaseException as cleanup:
+                    raise primary from cleanup
+            raise
 
     async def _open_operation(self, operation: str, body: dict[str, Any]) -> httpx.Response:
         async with self._operation_lock():
@@ -1956,6 +1982,14 @@ class InstalledLocalHost:
         Return the same bounded, checked metadata with its original output so
         the private caller need not parse it again. The data is not currentness.
         """
+        with self._core._lock:
+            output, definition = self._reserve_original_result_read(reference, result_name, incremental=False)
+            packet = self._read_original_result_projection(output, definition, result_name, incremental=False)
+            assert packet is not None
+            return output, packet
+
+    def _reserve_original_result_read(self, reference: object, result_name: str, *,
+                                      incremental: bool) -> tuple[_Output, str]:
         installation = self._active()
         configuration = self._configuration
         selected = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
@@ -1967,23 +2001,38 @@ class InstalledLocalHost:
         with self._core._lock:
             source = self._copy(wire_bytes({**selected, 'resultName': result_name}))  # type: ignore[no-untyped-call]
             output = self._reserve(lambda: self._core.reserve_submission_projection(
-                configuration.handle, source, 6, cleanup=lambda: True))
+                configuration.handle, source,
+                _INCREMENTAL_SAVED_RESULT_KIND if incremental else 6, cleanup=lambda: True))
             self._projections.append(output)
             self._append_sources[output.ticket] = source
-            packets: list[dict[str, Any]] = []
+            definition = selected['runDefinitionCid']
+            assert isinstance(definition, str)
+            return output, definition
+
+    def _read_original_result_projection(self, output: _Output, definition: str, result_name: str, *,
+                                         incremental: bool) -> dict[str, Any] | None:
+        installation = self._active()
+        with self._core._lock:
+            packets: list[dict[str, Any] | None] = []
             def inspect(current: _Output) -> None:
-                packets.append(_object(self._core.produce_and_read_submission_lookup(output, current), 1048576))
+                raw = (self._core.advance_and_read_saved_result(output, current) if incremental
+                       else self._core.produce_and_read_submission_lookup(output, current))
+                packets.append(None if raw is None else _object(raw, 1048576))
             installation.binding.inspect(inspect)
+            if len(packets) != 1:
+                raise ValueError('Incomplete original saved Local Result projection')
             packet = packets[0]
+            if packet is None:
+                return None
             fields = {'kind', 'resultName', 'runDefinitionCid', 'index', 'manifest',
                       'definition', 'artifact', 'retention', 'binding', 'resultOrdinal', 'bindingOrdinal'}
             if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
                     or packet['kind'] != 'result-originals' or packet['resultName'] != result_name
-                    or packet['runDefinitionCid'] != selected['runDefinitionCid']
+                    or packet['runDefinitionCid'] != definition
                     or any(packet[key] not in tuple(str(i) for i in range(8))
                            for key in ('resultOrdinal', 'bindingOrdinal'))):
                 raise ValueError('Foreign original saved Local Result projection')
-            return output, packet
+            return packet
 
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
@@ -4179,7 +4228,8 @@ class InstalledLocalHost:
 
     def close(self) -> bool:
         self._nominal()
-        if self._state_observing or any(not work.stopped for work in self._physical_work):
+        if (self._state_observing or any(not work.stopped for work in self._physical_work)
+                or any(saved._preparing for saved in self._saved_result_reads)):
             return False
         with self._core._host_cleanup():
             return self._close_originals()

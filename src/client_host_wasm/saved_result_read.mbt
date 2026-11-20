@@ -11,8 +11,13 @@ priv struct StoredSavedResultRead {
   mut owner : @publication.PublicationCommitPreparation?
   mut view : @publication.PublicationCommitReadView?
   mut observed : Bool
-  mut complete : Bool
+  // Positive while a phase can advance, zero only after final encoding,
+  // and negative once an entered advance can no longer continue.
+  mut advances_remaining : Int
 }
+
+///|
+const SAVED_RESULT_ADVANCES_PER_PHASE : Int = 250000
 
 ///|
 fn saved_result_read_current(
@@ -40,12 +45,12 @@ fn saved_result_read_current(
 }
 
 ///|
-fn prepare_saved_result_read(
+fn begin_saved_result_read(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
-) -> Result[Bytes, Int] {
-  guard record.kind == 6 &&
+) -> Result[Unit, Int] {
+  guard saved_result_projection_kind(record.kind) &&
     record.saved_result is None &&
     configuration.sdk is Some(sdk) &&
     configuration.host_current is Some(current_handle) &&
@@ -123,7 +128,7 @@ fn prepare_saved_result_read(
     owner: None,
     view: None,
     observed: false,
-    complete: false,
+    advances_remaining: -1,
   }
   // Retain this carrier before the first publication query or fallible advance.
   record.saved_result = Some(retained)
@@ -161,20 +166,15 @@ fn prepare_saved_result_read(
     Err(_) => return Err(-31)
   }
   retained.owner = Some(owner)
-  let mut done = false
-  for _ in 0..<250000 {
-    match owner.advance(256) {
-      Ok((true, _)) => {
-        done = true
-        break
-      }
-      Ok((false, _)) => ()
-      Err(_) => return Err(-31)
-    }
-  }
-  if !done {
-    return Err(-34)
-  }
+  retained.advances_remaining = SAVED_RESULT_ADVANCES_PER_PHASE
+  Ok(())
+}
+
+///|
+fn begin_saved_result_commit_observation(
+  retained : StoredSavedResultRead,
+  owner : @publication.PublicationCommitPreparation,
+) -> Result[Unit, Int] {
   let view = match owner.finish_view() {
     Ok(value) => value
     Err(_) => return Err(-31)
@@ -196,20 +196,93 @@ fn prepare_saved_result_read(
     return Err(-31)
   }
   retained.observed = true
-  done = false
-  for _ in 0..<250000 {
-    match owner.advance_observed_commit(view, 256) {
-      Ok((true, _)) => {
-        done = true
-        break
-      }
-      Ok((false, _)) => ()
-      Err(_) => return Err(-31)
+  Ok(())
+}
+
+///|
+// The synchronous adapter can drive the same stages inside its original
+// reader. The incremental adapter revalidates every captured original in
+// its fresh reader before submitting one finite quantum.
+fn advance_saved_result_read(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+  rebind : Bool,
+) -> Result[Bool, Int] {
+  guard record.saved_result is Some(retained) &&
+    retained.owner is Some(owner) &&
+    retained.advances_remaining > 0 else {
+    return Err(-33)
+  }
+  let remaining = retained.advances_remaining
+  retained.advances_remaining = -1
+  if rebind {
+    match
+      reobserve_saved_result_read(
+        value,
+        record,
+        configuration,
+        retained,
+        incremental=true,
+      ) {
+      Err(code) => return Err(code)
+      Ok(_) => ()
     }
   }
-  if !done {
+  let result = if retained.observed {
+    guard retained.view is Some(view) else { return Err(-33) }
+    owner.advance_observed_commit(view, 256)
+  } else {
+    owner.advance(256)
+  }
+  let (done, _) = match result {
+    Ok(progress) => progress
+    Err(_) => return Err(-31)
+  }
+  let mut next = remaining - 1
+  if done {
+    if retained.observed {
+      return Ok(true)
+    }
+    match begin_saved_result_commit_observation(retained, owner) {
+      Err(code) => return Err(code)
+      Ok(_) => ()
+    }
+    next = SAVED_RESULT_ADVANCES_PER_PHASE
+  } else if next == 0 {
     return Err(-34)
   }
+  if rebind {
+    match
+      saved_result_read_current(
+        value,
+        record,
+        configuration,
+        retained.result_name,
+      ) {
+      Err(code) => return Err(code)
+      Ok(_) => ()
+    }
+  }
+  retained.advances_remaining = next
+  Ok(false)
+}
+
+///|
+fn finish_saved_result_read(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Result[Bytes, Int] {
+  guard record.saved_result is Some(retained) &&
+    retained.owner is Some(owner) &&
+    retained.view is Some(view) &&
+    retained.finite is Some(finite) &&
+    configuration.sdk is Some(sdk) else {
+    return Err(-33)
+  }
+  let snapshot = retained.snapshot
+  let result_name = retained.result_name
   guard configuration.source_free_result_policy is Some(source_policy) else {
     return Err(-32)
   }
@@ -229,6 +302,7 @@ fn prepare_saved_result_read(
     Err(_) => return Err(-32)
   }
   retained.source = Some(source)
+  let (_, definition) = @local_run.local_sdk_read_source_run_identity(source)
   let materials = match
     owner.observed_result_read_materials(view, result_name, 16) {
     Ok(value) => value
@@ -272,7 +346,7 @@ fn prepare_saved_result_read(
         ("resultName", result_name),
         (
           "runDefinitionCid",
-          @publication.publication_contract_identity(run.definition),
+          @publication.publication_contract_identity(definition),
         ),
         ("index", @publication.publication_contract_json(materials.index)),
         ("manifest", @publication.publication_contract_json(materials.manifest)),
@@ -295,25 +369,84 @@ fn prepare_saved_result_read(
   } catch {
     _ => return Err(-34)
   }
-  match check() {
+  match saved_result_read_current(value, record, configuration, result_name) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  retained.complete = true
+  retained.advances_remaining = 0
   Ok(wire)
 }
 
 ///|
-fn validate_saved_result_read(
+fn prepare_saved_result_read(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+) -> Result[Bytes, Int] {
+  match begin_saved_result_read(value, record, configuration) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  for _ in 0..<(2 * SAVED_RESULT_ADVANCES_PER_PHASE) {
+    match advance_saved_result_read(value, record, configuration, false) {
+      Ok(true) => return finish_saved_result_read(value, record, configuration)
+      Ok(false) => ()
+      Err(code) => return Err(code)
+    }
+  }
+  Err(-34)
+}
+
+///|
+fn supply_saved_result_read(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  wire : Bytes,
+) -> Int {
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, wire),
+  )
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+// Only the matched private selector can return 1 for an unfinished read.
+// No part of the result wire becomes readable until the existing supply succeeds.
+fn produce_incremental_saved_result(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Int {
+  if !record.invoked {
+    record.invoked = true
+    return match begin_saved_result_read(value, record, configuration) {
+      Err(code) => code
+      Ok(_) => 1
+    }
+  }
+  match advance_saved_result_read(value, record, configuration, true) {
+    Err(code) => code
+    Ok(false) => 1
+    Ok(true) =>
+      match finish_saved_result_read(value, record, configuration) {
+        Err(code) => code
+        Ok(wire) => supply_saved_result_read(value, record, wire)
+      }
+  }
+}
+
+///|
+fn reobserve_saved_result_read(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+  retained : StoredSavedResultRead,
+  incremental? : Bool = false,
 ) -> Result[Unit, Int] {
-  guard record.saved_result is Some(retained) &&
-    retained.complete &&
-    retained.owner is Some(owner) &&
-    retained.view is Some(view) &&
-    configuration.host_current is Some(current_handle) &&
+  guard configuration.host_current is Some(current_handle) &&
     value.host_currents.get(current_handle) is Some(current) else {
     return Err(-32)
   }
@@ -329,16 +462,42 @@ fn validate_saved_result_read(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  match
-    observe_submission_lookup(
-      value,
-      record,
-      configuration,
-      original=Some(retained.snapshot),
-    ) {
-    Ok(Some(_)) => ()
-    Ok(None) => return Err(-42)
-    Err(code) => return Err(code)
+  if incremental {
+    // This saved owner already admitted the selected Run, policy and binding
+    // before reading the chain. Rebind that exact nominal snapshot before
+    // advancing; a changed original is a refusal from this operation.
+    let schema = physical_journal_schema(current.physical)
+    if schema != 0 && schema != 1 {
+      return Err(-41)
+    }
+    let read = (table, key) => {
+      physical_journal_row(current.physical, check, 1, table, key)
+    }
+    match
+      @host.reobserve_client_saved_submission_original(retained.snapshot, read) {
+      Err(code) => return Err(code)
+      Ok(None) => return Err(-32)
+      Ok(Some(_)) => ()
+    }
+    let scan = (table, cursor) => {
+      physical_journal_row(current.physical, check, 0, table, cursor)
+    }
+    match submission_cancellation_inventory(scan, read) {
+      Err(code) => return Err(code)
+      Ok(_) => ()
+    }
+  } else {
+    match
+      observe_submission_lookup(
+        value,
+        record,
+        configuration,
+        original=Some(retained.snapshot),
+      ) {
+      Ok(Some(_)) => ()
+      Ok(None) => return Err(-42)
+      Err(code) => return Err(code)
+    }
   }
   for (table, key, revision, body) in retained.fences {
     match physical_journal_row(current.physical, check, 1, table, key) {
@@ -349,11 +508,37 @@ fn validate_saved_result_read(
       _ => return Err(-32)
     }
   }
+  Ok(())
+}
+
+///|
+fn validate_saved_result_read(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Result[Unit, Int] {
+  guard record.saved_result is Some(retained) &&
+    retained.advances_remaining == 0 &&
+    retained.owner is Some(owner) &&
+    retained.view is Some(view) else {
+    return Err(-32)
+  }
+  match
+    reobserve_saved_result_read(
+      value,
+      record,
+      configuration,
+      retained,
+      incremental=record.kind == INCREMENTAL_SAVED_RESULT_KIND,
+    ) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
   if owner.observed_result_read_materials(view, retained.result_name, 16)
     is Err(_) {
     return Err(-32)
   }
-  check()
+  saved_result_read_current(value, record, configuration, retained.result_name)
 }
 
 ///|

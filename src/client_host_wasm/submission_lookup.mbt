@@ -80,7 +80,7 @@ fn observe_submission_lookup(
   // still physically read; foreign/changed identity takes full admission.
   // Nested policies/evidence and all current/cancellation checks remain fresh.
   let identity = record.saved_result.bind(saved => {
-    if saved.complete {
+    if saved.advances_remaining == 0 {
       saved.source.map(@local_run.local_sdk_read_source_run_identity)
     } else {
       None
@@ -90,7 +90,7 @@ fn observe_submission_lookup(
     submission_run_inspection_with_identity(row, identity)
   }
   if record.kind == 5 ||
-    record.kind == 6 ||
+    saved_result_projection_kind(record.kind) ||
     record.kind == 7 ||
     record.kind == 8 ||
     record.kind == 10 ||
@@ -98,7 +98,7 @@ fn observe_submission_lookup(
     record.kind == 12 {
     guard @decode.closed_object(
         cursor,
-        if record.kind == 6 {
+        if saved_result_projection_kind(record.kind) {
           ["namespaceId", "authorityScopeCid", "runDefinitionCid", "resultName"]
         } else if record.kind == 10 {
           [
@@ -505,6 +505,9 @@ fn produce_submission_lookup(
   if (record.kind == 7 || record.kind == 8) && configuration.sdk is None {
     return -32
   }
+  if record.kind == INCREMENTAL_SAVED_RESULT_KIND && !record.produced {
+    return produce_incremental_saved_result(value, record, configuration)
+  }
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
     Err(code) => return code
@@ -525,13 +528,7 @@ fn produce_submission_lookup(
       Ok(value) => value
       Err(code) => return code
     }
-    let result = status(
-      @buffers.supply_buffer_output(value.pool, record.slot, wire),
-    )
-    if result == 0 {
-      record.produced = true
-    }
-    return result
+    return supply_saved_result_read(value, record, wire)
   }
   let snapshot = match observe_submission_lookup(value, record, configuration) {
     Ok(value) => value
@@ -576,14 +573,18 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    ((record.kind >= 4 && record.kind <= 8) || record.kind == 11) &&
+    (
+      (record.kind >= 4 && record.kind <= 8) ||
+      record.kind == 11 ||
+      record.kind == INCREMENTAL_SAVED_RESULT_KIND
+    ) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) else {
     return -2
   }
-  if record.kind == 6 {
+  if saved_result_projection_kind(record.kind) {
     return match validate_saved_result_read(value, record, configuration) {
       Ok(_) => 0
       Err(code) => code

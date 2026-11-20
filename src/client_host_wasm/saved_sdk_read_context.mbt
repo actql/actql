@@ -6,11 +6,11 @@ fn saved_result_export_parent(
   handle : Int,
 ) -> (StoredSubmissionProjection, StoredSavedResultRead)? {
   guard value.submissions.get(handle) is Some(parent) &&
-    parent.kind == 6 &&
+    saved_result_projection_kind(parent.kind) &&
     parent.produced &&
     !parent.output_closed &&
     parent.saved_result is Some(saved) &&
-    saved.complete &&
+    saved.advances_remaining == 0 &&
     saved.source is Some(_) &&
     saved.finite is Some(_) &&
     saved.owner is Some(_) &&
