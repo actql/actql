@@ -88,7 +88,7 @@ fn request_query_lowering_data_bytes(
 // This is added to, not borrowed from, the existing lowerer/writer quote, and
 // is reserved on the SAME Request before any contextual AST construction.
 fn request_integer_context_data_bytes(tokens : Int64) -> Int64? {
-  if tokens < 0L || tokens > 9223372036854775807L / 64L {
+  if tokens < 0L || tokens > 9223372036854775807L / 128L {
     return None
   }
   @execution.preparation_representation_cost({
