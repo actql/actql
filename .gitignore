@@ -50,3 +50,5 @@ target/
 /packages/sdk/internal/client-lifecycle.d.mts
 /packages/sdk/internal/transport-response.mjs
 /packages/sdk/internal/transport-response.d.mts
+/packages/sdk/client-close.test.mjs
+/packages/sdk/client-close.test.d.mts

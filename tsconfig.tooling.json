@@ -7,16 +7,17 @@
     "lib": [
       "ES2022",
       "DOM",
-      "DOM.Iterable"
+      "DOM.Iterable",
+      "ESNext.Array"
     ],
     "declaration": true
   },
   "include": [
     "scripts/**/*.mts",
-    "packages/sdk/internal/**/*.mts"
+    "packages/sdk/**/*.mts"
   ],
   "exclude": [
-    "scripts/fixtures/**/*.typecheck.mts",
+    "**/*.typecheck.mts",
     "**/*.d.mts"
   ]
 }

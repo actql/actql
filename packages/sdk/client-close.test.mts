@@ -1,27 +1,39 @@
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
-import {connectInProcess, connect, explainReadFailure} from './index.mjs';
+import {connectInProcess, connect, explainReadFailure, ClientError} from '@actql/sdk';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'scope', capabilities: [], limits: {
     maxReadWireBytes: 65536, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
     maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
-const deferred = () => {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+const deferred = <T = void,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
   return {promise, resolve, reject};
 };
-async function local(read, release = async () => {}) {
-  const calls = [];
+function readFailure(error: unknown) {
+  const explanation = explainReadFailure(error);
+  assert(explanation, 'The original read must retain its failure explanation');
+  return explanation;
+}
+
+async function local(read: (body: {attemptId: string}, signal: AbortSignal) => unknown,
+  release: () => Promise<void> = async () => {}) {
+  const calls: string[] = [];
   const client = await connectInProcess({mode: 'local', owner: 'local'}, {
     async perform(operation, body, signal) {
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref, durability: 'durable', revision: 1};
-      if (operation === 'read') return read(body, signal);
+      if (operation === 'read') {
+        assert(body && typeof body === 'object' && 'attemptId' in body && typeof body.attemptId === 'string');
+        assert(signal);
+        return read(body as {attemptId: string}, signal);
+      }
       throw new Error(`Unexpected operation ${operation}`);
     }, close: release,
   });
@@ -40,10 +52,11 @@ test('close seals synchronously, coalesces and retries the same private lease', 
   await assert.rejects(f.client.attach(ref), {code: 'ClientClosed'});
   await entered.promise;
   const failed = assert.rejects(first, error => {
+    assert(error instanceof ClientError);
     assert.equal(error.code, 'ClientCleanupPending');
     assert.equal(error.cleanupPending, true);
     assert.equal(error.cause, undefined);
-    assert.equal(error.cleanupHandle, undefined);
+    assert.equal(Reflect.get(error, 'cleanupHandle'), undefined);
     return true;
   });
   finish.resolve(); await failed;
@@ -85,9 +98,10 @@ test('client-initiated close reports original frame cleanup uncertainty after re
   const reader = f.result.rows();
   await reader[Symbol.asyncIterator]().next();
   await assert.rejects(f.client.close(), error => {
+    assert(error instanceof ClientError);
     assert.equal(error.code, 'ResultReadCleanupUnknown');
-    assert.equal(explainReadFailure(error).observation, 'cleanup_unknown');
-    assert.equal(explainReadFailure(error).attemptId, reader.attemptId);
+    assert.equal(readFailure(error).observation, 'cleanup_unknown');
+    assert.equal(readFailure(error).attemptId, reader.attemptId);
     return true;
   });
   assert.equal(releases, 1);
@@ -111,7 +125,7 @@ test('original frame cleanup failure survives a pending Client lease', async () 
   await reader[Symbol.asyncIterator]().next();
   await assert.rejects(f.client.close(), {code: 'ClientCleanupPending'});
   await assert.rejects(f.client.close(), error =>
-    explainReadFailure(error).attemptId === reader.attemptId);
+    readFailure(error).attemptId === reader.attemptId);
   await f.client.close();
   assert.equal(releases, 2);
   assert.equal(returns, 1);
@@ -127,9 +141,10 @@ test('close preserves each original failed reader disposal', async () => {
   const readers = [f.result.rows(), f.result.rows()];
   for (const reader of readers) await reader[Symbol.asyncIterator]().next();
   await assert.rejects(f.client.close(), error => {
+    assert(error instanceof ClientError);
     assert.equal(error.code, 'ResultReadCleanupUnknown');
     assert.ok(error.cleanupError instanceof AggregateError);
-    assert.deepEqual(error.cleanupError.errors.map(failure => explainReadFailure(failure).attemptId),
+    assert.deepEqual(error.cleanupError.errors.map((failure: unknown) => readFailure(failure).attemptId),
       readers.map(reader => reader.attemptId));
     return true;
   });
@@ -156,16 +171,17 @@ test('close returns a paused batch wrapper and discards its buffered next row', 
 });
 
 test('close aborts an opening and retains its original read attempt', async () => {
-  const opened = deferred();
+  const opened = deferred<string>();
   const f = await local((body, signal) => new Promise((_yes, no) => {
     opened.resolve(body.attemptId);
     signal.addEventListener('abort', () => no(signal.reason), {once: true});
   }));
   const reader = f.result.rows(), next = reader[Symbol.asyncIterator]().next();
   const refused = assert.rejects(next, error => {
+    assert(error instanceof ClientError);
     assert.equal(error.attemptId, reader.attemptId);
     assert.equal(error.rowsYielded, 0);
-    assert.equal(explainReadFailure(error).observation, 'read_open_unknown');
+    assert.equal(readFailure(error).observation, 'read_open_unknown');
     return true;
   });
   assert.equal(await opened.promise, reader.attemptId);
@@ -204,9 +220,10 @@ test('close never opens an unused reader and async disposal is the same close', 
 
 test('Remote close waits for response-reader cancellation but sends no Host close', async t => {
   const cancelled = deferred(), finish = deferred();
-  const calls = [];
-  mock.method(globalThis, 'fetch', async (url) => {
-    const operation = url.pathname.split('/').at(-1); calls.push(operation);
+  const calls: string[] = [];
+  mock.method(globalThis, 'fetch', async (url: unknown) => {
+    assert(url instanceof URL);
+    const operation = url.pathname.split('/').at(-1); assert(operation); calls.push(operation);
     if (operation === 'connect') return Response.json({...profile, mode: 'remote', owner: 'remote'});
     if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
     assert.equal(operation, 'read');
@@ -228,7 +245,8 @@ test('Remote close waits for response-reader cancellation but sends no Host clos
 });
 
 test('Remote disposal keeps cancellation uncertainty on the original read without a fabricated retry owner', async t => {
-  mock.method(globalThis, 'fetch', async url => {
+  mock.method(globalThis, 'fetch', async (url: unknown) => {
+    assert(url instanceof URL);
     const operation = url.pathname.split('/').at(-1);
     if (operation === 'connect') return Response.json({...profile, mode: 'remote', owner: 'remote'});
     if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
@@ -243,9 +261,10 @@ test('Remote disposal keeps cancellation uncertainty on the original read withou
   const iterator = reader[Symbol.asyncIterator]();
   await iterator.next();
   let failure;
+  assert(iterator.return);
   await assert.rejects(iterator.return(), error => {failure = error; return true;});
   await client.close(); await client.close();
-  assert.equal(explainReadFailure(failure).observation, 'cleanup_unknown');
-  assert.equal(explainReadFailure(failure).attemptId, reader.attemptId);
-  assert.equal(explainReadFailure(failure).rowsYielded, 1);
+  assert.equal(readFailure(failure).observation, 'cleanup_unknown');
+  assert.equal(readFailure(failure).attemptId, reader.attemptId);
+  assert.equal(readFailure(failure).rowsYielded, 1);
 });
