@@ -1,0 +1,180 @@
+{
+  "id": "harbor_depth",
+  "connector": {
+    "kind": "definition",
+    "path": "connector.json",
+    "sha256": "3957e9ba6141b106fbe91a41b68e8b1406174dda29d7a3581007d7499059616c"
+  },
+  "connection": "harbor_berth_reader",
+  "schema": {
+    "registration": "harbor",
+    "resource": "berths",
+    "fields": [
+      {
+        "name": "slip_code",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "depth",
+        "type": "number",
+        "nullable": false
+      }
+    ]
+  },
+  "seed": {
+    "pages": {
+      "berth_list": {
+        "berths": [
+          {
+            "slip_code": "C-4",
+            "depth": 17
+          },
+          {
+            "slip_code": "A-1",
+            "depth": 6
+          },
+          {
+            "slip_code": "B-7",
+            "depth": 9
+          }
+        ]
+      }
+    },
+    "control": {
+      "harbor_master_note": "Keep Pier D closed"
+    }
+  },
+  "program": {
+    "version": "actql/0.1",
+    "id": "harbor_depth",
+    "params": {
+      "minimum_depth": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "stages": [
+      {
+        "id": "harbor",
+        "inputs": {
+          "berths": {
+            "connector": "harbor_berth_reader",
+            "resource": "berths"
+          }
+        },
+        "steps": [
+          {
+            "from": "berths",
+            "filter": {
+              "gte": [
+                {
+                  "field": "depth"
+                },
+                {
+                  "$param": "minimum_depth"
+                }
+              ]
+            }
+          },
+          {
+            "select": [
+              "slip_code",
+              "depth"
+            ],
+            "as": "selected"
+          },
+          {
+            "sort": [
+              {
+                "field": "slip_code",
+                "dir": "asc",
+                "nulls": "last"
+              }
+            ],
+            "as": "sorted"
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": "sorted",
+            "fields": [
+              "slip_code",
+              "depth"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "rows": {
+        "from": {
+          "stage": "harbor",
+          "result": "rows"
+        }
+      }
+    }
+  },
+  "parameters": {
+    "minimum_depth": 9
+  },
+  "expected": {
+    "rows": [
+      {
+        "slip_code": "B-7",
+        "depth": 9
+      },
+      {
+        "slip_code": "C-4",
+        "depth": 17
+      }
+    ],
+    "before": {
+      "berth_list": {
+        "berths": [
+          {
+            "slip_code": "C-4",
+            "depth": 17
+          },
+          {
+            "slip_code": "A-1",
+            "depth": 6
+          },
+          {
+            "slip_code": "B-7",
+            "depth": 9
+          }
+        ]
+      }
+    },
+    "after": {
+      "berth_list": {
+        "berths": [
+          {
+            "slip_code": "C-4",
+            "depth": 17
+          },
+          {
+            "slip_code": "A-1",
+            "depth": 6
+          },
+          {
+            "slip_code": "B-7",
+            "depth": 9
+          }
+        ]
+      }
+    },
+    "control": {
+      "harbor_master_note": "Keep Pier D closed"
+    }
+  },
+  "protocol": {
+    "exchanges": [
+      {
+        "target": "/v2/berths",
+        "page": "berth_list"
+      }
+    ]
+  }
+}

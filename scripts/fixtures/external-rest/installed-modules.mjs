@@ -77,10 +77,13 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
   const scratch = await mkdtemp(join(await realpath(tmpdir()), 'actql-rest-cohort-inventory-'));
   try {
     const packages = [];
+    let hostPackageVersion;
     for (const pkg of manifest.packages) {
       const directory = await unpack(join(dirname(artifactManifestPath), pkg.file),
         join(scratch, pkg.name.slice('@actql/'.length)));
-      assert.equal(JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')).name, pkg.name);
+      const metadata = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
+      assert.equal(metadata.name, pkg.name);
+      if (pkg.name === '@actql/local-node') hostPackageVersion = metadata.version;
       const files = await inventory(directory);
       const sorted = rows => rows.toSorted((a, b) => a.path.localeCompare(b.path));
       if (pkg.files !== undefined) assert.deepEqual(sorted(files), sorted(pkg.files));
@@ -89,7 +92,7 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
     // Recheck the same archives after inventory construction; no source file,
     // private installation, package lifecycle or product export was executed.
     await verifyExternalRestTarballs(manifest, artifactManifestPath);
-    return {manifest: {...manifest, packages}, artifactManifestPath, originalBindings, offeredTarballs};
+    return {manifest: {...manifest, packages}, artifactManifestPath, originalBindings, offeredTarballs, hostPackageVersion};
   } finally {
     await rm(scratch, {recursive: true, force: true});
   }

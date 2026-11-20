@@ -1,0 +1,98 @@
+{
+  "account_id": "harbor-conformance-operator",
+  "entries": [
+    {
+      "connection": {
+        "any_of": [
+          "actql-remote-host"
+        ]
+      },
+      "entry_id": "original-host-request",
+      "exclusions": [],
+      "operation": {
+        "any_of": [
+          "write"
+        ]
+      },
+      "outcome": "allow",
+      "principal": {
+        "all": true
+      },
+      "resource": {
+        "any_of": [
+          "row-source-acquired"
+        ]
+      }
+    },
+    {
+      "connection": {
+        "any_of": [
+          "actql-remote-host"
+        ]
+      },
+      "entry_id": "same-named-result",
+      "exclusions": [],
+      "operation": {
+        "any_of": [
+          "read"
+        ]
+      },
+      "outcome": "allow",
+      "principal": {
+        "all": true
+      },
+      "resource": {
+        "any_of": [
+          "result/rows"
+        ]
+      }
+    },
+    {
+      "connection": {
+        "any_of": [
+          "actql-remote-host"
+        ]
+      },
+      "entry_id": "same-run-status",
+      "exclusions": [],
+      "operation": {
+        "any_of": [
+          "read"
+        ]
+      },
+      "outcome": "allow",
+      "principal": {
+        "all": true
+      },
+      "resource": {
+        "any_of": [
+          "run"
+        ]
+      }
+    },
+    {
+      "connection": {
+        "any_of": [
+          "harbor:harbor_berth_reader"
+        ]
+      },
+      "entry_id": "harbor-berths-read",
+      "exclusions": [],
+      "operation": {
+        "any_of": [
+          "read"
+        ]
+      },
+      "outcome": "allow",
+      "principal": {
+        "all": true
+      },
+      "resource": {
+        "any_of": [
+          "berths"
+        ]
+      }
+    }
+  ],
+  "version": "actql-execution-account-config/0.1"
+}

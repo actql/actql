@@ -52,9 +52,13 @@ command/time, Core-delta and callback metrics.
 It requires `ACTQL_REST_CONFORMANCE_INPUT` naming an explicit descriptor with
 `kind: "actql-standard-rest-normal/0.1"`, exact source SHA/tree, normal-five
 manifest path/hash, a new output root, an explicit Account input path and one
-positive mode (`paged`, `empty` or `one`). It reuses the unchanged physical
-family/TLS/process helpers recorded in `shared-fixture-source.json`; it creates
-no second Host, issuer or signer. No default installation, state or Run is
+mode (`paged`, `empty`, `one`, `notion-users` or `author`). For author cases,
+set `casePath` and `caseSha256`, and see the [Harbor example](harbor/) and
+[authoring guide](../../../docs/contributing/connector-authoring.md#ordinary-conformance-and-author-effort).
+The physical family/TLS/process helpers originate from the exact files recorded
+in `shared-fixture-source.json`. The local listener also accepts an explicit
+loopback port for an already-packed connector. The fixture uses the existing
+Host, issuer and signer. No default installation, state or Run is
 selected. The supplied custom CA remains explicit and requires real Host
 initialization backing; this caller must stay unexecuted while that input is
 missing.

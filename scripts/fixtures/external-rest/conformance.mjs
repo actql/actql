@@ -57,7 +57,7 @@ async function withFirstClose(client, {outputRoot, stateRoots}, operation) {
   return value;
 }
 
-export async function captureStandardRestRead(client, {publicSdk, program,
+export async function captureStandardRestRead(client, {publicSdk, program, parameters = null, checkProgram = false,
   assertRows, outputRoot, stateRoots}) {
   // Capture the getter from the SAME installed public namespace selected by
   // the consumer, once before any await. Never import a source SDK WeakMap.
@@ -65,7 +65,13 @@ export async function captureStandardRestRead(client, {publicSdk, program,
   return withFirstClose(client, {outputRoot, stateRoots}, async () => {
     assert.equal(typeof getSubmissionInput, 'function');
     assert.equal(typeof assertRows, 'function');
-    const pending = client.startSource(JSON.stringify(program), {format: 'json'});
+    const bindings = parameters === null ? {} : {parameters};
+    if (checkProgram) {
+      const checked = await client.check(program, {kind: 'program', scope: 'bound_input', ...bindings});
+      await save(outputRoot, 'author-program-check.json', checked);
+      assert.equal(checked.report?.verdict, 'verified', 'REST author Program and parameters must pass public Check');
+    }
+    const pending = client.startSource(JSON.stringify(program), {format: 'json', ...bindings});
     // Observe this SAME original pending before even the synchronous getter
     // can throw. This observation neither retries nor classifies acceptance.
     const settled = Promise.resolve(pending).then(value => ({value}),
