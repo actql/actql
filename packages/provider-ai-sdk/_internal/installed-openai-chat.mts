@@ -4,30 +4,64 @@ import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits,fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
 import {openAIChatStaticOriginals} from './openai-chat.mjs';
+import type {OriginalStringLimits, RequestLimits, QuantityCapacity} from '../index.d.ts';
 
-const issue = code => { throw Object.assign(new TypeError(code), {code}); };
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const text = value => typeof value === 'string' && value.length > 0;
-const int = (value, minimum=1) => Number.isSafeInteger(value) &&
-  value>=minimum && value<=2_147_483_647;
+type Preflight = Parameters<typeof createAdmittedOpenAIChatPreflight>[0];
+type Runtime = Preflight['moon'] & Parameters<typeof admitOpenAIOriginalMaterials>[0] & {
+  clientProgramModelResponseProfileTransportMatches(profile: unknown, ...limits: number[]): unknown;
+  [name: string]: unknown;
+};
+// Unchecked views over the existing borrowed originals. Only the unchanged
+// descriptor, frozen-field, Common and same-original checks below admit them.
+interface ReadOriginal {bootstrap: unknown; nodeInstallation: {
+  layout: {response_profile: unknown}; probability: unknown;
+}}
+interface Installation {sdk: {package_name: unknown; version: unknown; interface: unknown; lock_artifact_cid: unknown};
+  endpoint: unknown; http_method: unknown; streaming: unknown; completion_basis: unknown;
+}
+interface RawOriginal {profile: unknown; probability: unknown; installation: Installation}
+interface Configuration {
+  apiKey: string; baseURL: string; modelId: string; modelSelector: string;
+  providerId: string; taskCid: string; promptCid: string; outputSchemaCid: string; promptPayloadWire: string;
+  originalStringLimits: OriginalStringLimits; originalMaterials: unknown;
+  originalReadInstallation: ReadOriginal; originalReadRecipe: ReadOriginal;
+  rawCaptureSelection: RawOriginal; bindingOriginals: Readonly<Record<string, unknown>>;
+  quantityCapacity: QuantityCapacity; projectionLimits: Preflight['projectionLimits'];
+  requestLimits: RequestLimits; responseLimits: NonNullable<Preflight['responseLimits']>;
+  physicalAcquisitionLimits: unknown; fetch: Preflight['fetch'];
+  observeAt: Preflight['observeAt']; observeEgress: (facts: unknown) => unknown;
+}
+type Notification = {notify: NonNullable<Preflight['notify']>};
+type Binder = NonNullable<Preflight['rawCaptureBinder']>;
+interface Entry extends Readonly<Record<string, unknown>> {
+  validatePrompt(task: unknown, selector: unknown, payload: unknown): boolean;
+  physicalPreflight(request: unknown, notification: Notification, retainRawBinder: Binder, admittedProvider: unknown): unknown;
+}
+type Registration = (moon: Runtime) => Readonly<Entry>[];
+
+const issue = (code: string): never => { throw Object.assign(new TypeError(code), {code}); };
+const cid = (value: unknown) => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const text = (value: unknown) => typeof value === 'string' && value.length > 0;
+const int = (value: unknown, minimum=1) => Number.isSafeInteger(value) &&
+  (value as number)>=minimum && (value as number)<=2_147_483_647;
 // Inspect and retain DATA once. A later Proxy property callback must not swap
 // validated selectors or bounds during the copy. This snapshot is not an
 // installation, physical adequacy, capacity or dispatch grant.
-function snapshotData(value, keys, code) {
+function snapshotData(value: unknown, keys: string, code: string): Readonly<Record<string, unknown>> {
   if (value===null || typeof value!=='object' || Array.isArray(value)) issue(code);
-  const names=Reflect.ownKeys(value);
+  const names=Reflect.ownKeys(value as object);
   const expected=keys.split(',');
   if (names.some(name=>typeof name!=='string') || names.length!==expected.length ||
       names.slice().sort().some((name,index)=>name!==expected[index])) issue(code);
   const entries=names.map(name=>{
-    const descriptor=Object.getOwnPropertyDescriptor(value,name);
+    const descriptor=Object.getOwnPropertyDescriptor(value as object,name);
     if (descriptor===undefined || descriptor.enumerable!==true || !('value' in descriptor)) issue(code);
-    return [name,descriptor.value];
+    return [name,descriptor!.value as unknown];
   });
   return Object.freeze(Object.fromEntries(entries));
 }
-const frozen = value => value!==null && typeof value==='object' && Object.isFrozen(value);
-const assertRuntime = moon => {
+const frozen = (value: unknown) => value!==null && typeof value==='object' && Object.isFrozen(value);
+const assertRuntime = (moon: Runtime) => {
   if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
     'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
     'clientProgramInstallAsyncModelProvider',
@@ -44,25 +78,25 @@ const assertRuntime = moon => {
 // supplies already retained declaration originals; opaque Owners are borrowed,
 // never rebuilt from their CIDs. The package exposes this assembler only;
 // complete numerical funding and public execution acceptance remain required.
-export function createInstalledOpenAIChatRegistration(config) {
-  return installedChatRegistration(config, false);
+export function createInstalledOpenAIChatRegistration(config: unknown): Registration {
+  return installedChatRegistration(config as Configuration, false);
 }
 
 // Explicit selected transport, not an ambient fallback or an installed profile.
 // Reuse the same original Host selections, snapshots and common admission.
-export function createInstalledUndiciOpenAIChatRegistration(config) {
-  return installedChatRegistration(config, true);
+export function createInstalledUndiciOpenAIChatRegistration(config: unknown): Registration {
+  return installedChatRegistration(config as Configuration, true);
 }
 
 // Private normal-configuration continuation. The normal factory has already
 // included these same frozen settings in its original contract/configuration
 // bodies under the initial construction Resource. Legacy public low-level
 // registrations accept no unbound timeout field.
-export function createConfiguredUndiciOpenAIChatRegistration(config, transportTimeouts) {
-  return installedChatRegistration(config, true, fixedOriginalTransportTimeouts(transportTimeouts));
+export function createConfiguredUndiciOpenAIChatRegistration(config: unknown, transportTimeouts: unknown): Registration {
+  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts));
 }
 
-function installedChatRegistration(config, originalUndici, transportTimeouts) {
+function installedChatRegistration(config: Configuration, originalUndici: boolean, transportTimeouts?: ReturnType<typeof fixedOriginalTransportTimeouts>): Registration {
   if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
     issue('OpenAIOriginalStringLimitsUnavailable');
   }
@@ -74,14 +108,14 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
       ? keys.replace(',originalReadInstallation',',originalReadRecipe') : keys;
   config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '')
     .replace(',projectionLimits',',physicalAcquisitionLimits,projectionLimits') : selectedKeys,
-    'InvalidInstalledOpenAIChatConfiguration');
+    'InvalidInstalledOpenAIChatConfiguration') as unknown as Configuration;
   // Original primitive UTF-16 code units, not encoded request/header bytes.
   // Refuse before the first input-dependent concatenation, URL, SDK child or
   // encoding. Host acquisition of the supplied originals remains separately
   // owned; this declaration and its snapshot are not physical funding.
   const originalStringLimits=snapshotData(config.originalStringLimits,
     'maxApiKeyCodeUnits,maxBaseURLCodeUnits,maxModelIdCodeUnits',
-    'InvalidInstalledOpenAIChatOriginalStringLimits');
+    'InvalidInstalledOpenAIChatOriginalStringLimits') as unknown as OriginalStringLimits;
   if (!Object.values(originalStringLimits).every(value=>int(value))) {
     issue('InvalidInstalledOpenAIChatOriginalStringLimits');
   }
@@ -98,18 +132,18 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
       physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits),
     } : {})});
   if (materialMode) {
-    let materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
+    let materials: ReturnType<typeof snapshotOpenAIOriginalMaterials> | undefined=snapshotOpenAIOriginalMaterials(config.originalMaterials);
     const {originalMaterials:unused,...source}=config;void unused;
-    let retained=Object.freeze({...source,
+    let retained: Readonly<Configuration> | undefined=Object.freeze({...source,
       projectionLimits:snapshotData(source.projectionLimits,
         'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection'),
       requestLimits:snapshotData(source.requestLimits,
         'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits'),
       responseLimits:fixedInferResponseLimits(source.responseLimits),
-    });
+    }) as unknown as Configuration;
     // The opaque branch below also captures config in this function's scope.
     // Retain only the closed snapshot here, not the caller's original graph.
-    config=undefined;
+    config=undefined as unknown as Configuration;
     let entered = false;
     // One registration callback belongs to one actual Host installation. The
     // actual runtime is received here, never imported or reconstructed by a
@@ -121,8 +155,8 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
       // another Host or allocate another set of reader results from it.
       entered=true;
       try {
-        const originals=admitOpenAIOriginalMaterials(moon,materials);
-        const register=installedChatRegistration({...retained,...originals},originalUndici,transportTimeouts);
+        const originals=admitOpenAIOriginalMaterials(moon,materials!);
+        const register=installedChatRegistration({...retained,...originals} as unknown as Configuration,originalUndici,transportTimeouts);
         return register(moon);
       } finally {
         // Successful entries retain their original duties. A refused reader
@@ -143,7 +177,7 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
       !originalUndici && typeof fetch!=='function') {
     issue('InvalidInstalledOpenAIChatConfiguration');
   }
-  let endpoint;
+  let endpoint!: URL;
   try {endpoint=new URL(`${baseURL}/chat/completions`);}
   catch {issue('InvalidInstalledOpenAIChatEndpoint');}
   if (baseURL.endsWith('/') || endpoint.href!==`${baseURL}/chat/completions` ||
@@ -152,12 +186,12 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
     issue('InvalidInstalledOpenAIChatEndpoint');
   }
   const projectionLimits=snapshotData(config.projectionLimits,
-    'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection');
+    'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection') as unknown as Preflight['projectionLimits'];
   if (!Object.entries(projectionLimits).every(([name,value])=>int(value,name==='maxWork'?0:1))) {
     issue('InvalidInstalledOpenAIChatProjection');
   }
   const requestLimits=snapshotData(config.requestLimits,
-    'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits');
+    'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits') as unknown as RequestLimits;
   if (!Object.values(requestLimits).every(value=>int(value)) || requestLimits.maxHeaders>64) {
     issue('InvalidInstalledOpenAIChatRequestLimits');
   }
@@ -195,7 +229,7 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
   // A missing/mismatched original selection above refuses before constructing
   // even this physical selector. The per-call Client remains later original
   // SDK preparation, after its existing same-Ledger funding and before Entry.
-  let physicalFetch;
+  let physicalFetch: Preflight['fetch'];
   return moon => {
     assertRuntime(moon);
     if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
@@ -217,9 +251,9 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
       // Common has already admitted the exact Task/prompt dependency. This
       // comparator selects the installed interpretation, not a JS evaluator.
-      validatePrompt:(task,selector,payload)=>task===taskCid &&
+      validatePrompt:(task: unknown,selector: unknown,payload: unknown)=>task===taskCid &&
         selector===modelSelector && payload===promptPayloadWire,
-      physicalPreflight(request,notification,retainRawBinder,admittedProvider) {
+      physicalPreflight(request: unknown,notification: Notification,retainRawBinder: Binder,admittedProvider: unknown) {
         if (typeof notification?.notify!=='function' || typeof retainRawBinder!=='function' ||
             admittedProvider===undefined) issue('OpenAIOriginalPhysicalContextUnavailable');
         return createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
@@ -229,7 +263,7 @@ function installedChatRegistration(config, originalUndici, transportTimeouts) {
           quantities:quantities.perAttempt,responseLimits,
           maxRequestBytes:requestLimits.maxBytes,
           maxHeaderBytes:requestLimits.maxHeaderBytes,maxHeaders:requestLimits.maxHeaders,
-          checked(value) {
+          checked(value: unknown) {
             if (runtimeIsOk(value)) return runtimeField(value, 0);
             issue('OpenAIOriginalCommonRefused');
           }}).preflight;

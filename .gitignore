@@ -242,3 +242,7 @@ target/
 /scripts/model-original-materials.test.d.mts
 /scripts/typescript-interface-emit.mjs
 /scripts/typescript-interface-emit.d.mts
+
+# Generated installed Chat registration; authored .mts retains all guards.
+/packages/provider-ai-sdk/_internal/installed-openai-chat.mjs
+/packages/provider-ai-sdk/_internal/installed-openai-chat.d.mts
