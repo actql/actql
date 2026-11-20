@@ -92,3 +92,6 @@ target/
 
 /packages/sdk/internal/plan.mjs
 /packages/sdk/internal/plan.d.mts
+
+/scripts/native-cli-version.mjs
+/scripts/native-cli-version.d.mts
