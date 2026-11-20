@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "51ff074a34f5c33d00a810c7ae6ab818405b0273bfd96ef0095f0a4642ca58d8",
+      "sha256": "c8930173dbca231d0cce50e8ed51c0906420b3224ba76b92fe6e44ff431a93cd",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",

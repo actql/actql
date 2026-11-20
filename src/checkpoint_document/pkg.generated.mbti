@@ -35,6 +35,8 @@ pub fn requirement_max_arity(String) -> Int?
 
 pub fn requirements_valid(String, Array[String]) -> Bool
 
+pub fn review_bytes_match_cid(Bytes, String, Limits) -> Bool
+
 pub fn reviewer_signature_valid(String) -> Bool
 
 pub fn string_array_json(Array[String]) -> Json

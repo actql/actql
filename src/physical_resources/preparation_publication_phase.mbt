@@ -17,6 +17,91 @@ pub fn[P] reserve_preparation_publication_phase(
 }
 
 ///|
+/// End only returned synchronous publication scratch on the SAME live body.
+/// Retained bytes, work, holders and reservation identity are unchanged. The
+/// caller must retain every output and exclude still-live/failed child scratch.
+pub fn[P] reconcile_preparation_publication_execution(
+  holder : PreparationBodyBorrow[P],
+  body : P,
+  execution_bytes : Int64,
+) -> Result[Unit, PreparationCapacityIssue] {
+  (holder.reserve_phase_original)(
+    body,
+    0L,
+    execution_bytes,
+    ReturnedPublicationScratch,
+  )
+}
+
+///|
+fn[I, P] reconcile_original_preparation_publication_execution(
+  borrowed : PreparationCapacityBorrow[I, P],
+  body : P,
+  execution : Int64,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if borrowed.returned {
+    return Err(BorrowReturned)
+  }
+  let owner = borrowed.owner
+  guard borrowed.body is Some(original) &&
+    physical_equal(original, body) &&
+    owner.body is Some(current_body) &&
+    physical_equal(current_body, body) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.phase != Run ||
+    owner.borrowers <= 0 ||
+    (
+      owner.active_phase_work is Some(_) &&
+      !preparation_run_publication_work_returned(owner)
+    ) {
+    return Err(WorkActive)
+  }
+  let token = owner.reservation.reservation
+  if execution < 0L || execution > token.execution {
+    return Err(InvalidExtent)
+  }
+  // One original current callback, while the existing transition latch blocks
+  // grow/retirement/reentry. A consumed selected borrower cannot be replaced
+  // by another live slot before this success-only mutation.
+  owner.phase = Transferring
+  let outcome : Result[Unit, PreparationCapacityIssue] = match
+    reservation_check(owner.ledger, token) {
+    Err(issue) => Err(Resource(issue))
+    Ok(_) =>
+      if borrowed.returned {
+        Err(BorrowReturned)
+      } else if owner.phase != Transferring ||
+        owner.borrowers <= 0 ||
+        !(borrowed.body is Some(original) && physical_equal(original, body)) ||
+        !(owner.body is Some(original) && physical_equal(original, body)) ||
+        !physical_equal(owner.reservation.reservation, token) {
+        Err(ForeignOriginal)
+      } else {
+        match check_imported_child_admission_current(owner.ledger) {
+          Err(issue) => Err(Resource(issue))
+          Ok(_) =>
+            if owner.ledger.original_inventory is Some(inventory) &&
+              inventory.closing {
+              Err(Resource(ClosedReservation))
+            } else {
+              resize_capacity_reservation_current(
+                owner.ledger,
+                owner.reservation,
+                token.retention,
+                execution,
+              ).map_err(issue => PreparationCapacityIssue::Resource(issue))
+            }
+        }
+      }
+  }
+  if owner.phase == Transferring {
+    owner.phase = Run
+  }
+  outcome
+}
+
+///|
 // Closed callers share the same original running body and transition latch.
 // Native preflight acquires backing only; the Journal's later canonical resize
 // remains the sole logical debit. No current proof escapes this boundary.

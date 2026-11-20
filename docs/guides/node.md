@@ -18,7 +18,7 @@ directory, and `sql()` / `aql()` for one-off queries.
 ```ts
 import {open} from '@actql/node';
 
-const db = await open({stateDir: '.actql'});
+const db = await open({stateDir: '.actql-node'});
 try {
   const rows = await db.sql('SELECT @owner AS owner', {owner: 'kim'}, {
     parameterDeclarations: {owner: {type: 'string'}},
@@ -57,7 +57,7 @@ import {connect} from '@actql/node';
 
 const client = await connect({
   mode: 'local',
-  installation: {directory: '.actql'},
+  installation: {directory: '.actql-node'},
   profile: 'mock',                 // omit to use the configured connections
 });
 ```
@@ -67,7 +67,7 @@ For a remote Host:
 ```ts
 const client = await connect({
   mode: 'remote',
-  endpoint: process.env.ACTQL_ENDPOINT,   // actql://host.acme.internal
+  endpoint: process.env.ACTQL_ENDPOINT,   // configured HTTPS Host URL
   token: process.env.ACTQL_TOKEN,
 });
 ```
@@ -76,9 +76,17 @@ const client = await connect({
 credential can be refreshed. An `actql://` connection string selects a remote
 Host as well. Whatever the mode, the rest of the API is the same.
 
-Always close the client, in `finally` or with `await using`. Closing releases
-the connection; it never cancels a Run, answers a Checkpoint or deletes a
-Result.
+Always await client close, in `finally` or with `await using`. For embedded
+Local this closes the owned Host; for a remote client it closes that client's
+connection. Closing is not a Run cancellation or Checkpoint approval operation.
+
+An embedded Local client owns its state directory exclusively until its
+awaited close completes. Use `.actql-node` separately from a CLI project's
+`.actql`; another embedded client or CLI process cannot attach to the running
+Host by opening that path. Reopen persisted state only with a compatible
+Host implementation and configuration. A remote connection addresses an
+already configured Host through its supported transport and authorization;
+it does not open a local directory.
 
 ## Running a Program
 
@@ -157,8 +165,7 @@ if (state.status === 'waiting_checkpoint') {
 ```
 
 The preview is the exact set of changes the approval would cover. Decide from
-code, or hand it to a person and let this process end — the Run waits in the
-Store:
+code, or ask a person while keeping the owning embedded Host open:
 
 ```ts
 if (ckpt.items.length <= 100) {
@@ -166,16 +173,18 @@ if (ckpt.items.length <= 100) {
   const final = await execution.wait({since: state.revision});
 } else {
   await notifyReviewer({runRef: execution.ref, checkpoint: ckpt.id});
-  // Nothing to wait for here. The reviewer approves from the CLI or another
-  // process; a later process attaches to execution.ref and reads the outcome.
+  // This only sends a notification. Keep the owning client open; the
+  // application applies the later decision through that configured client.
 }
 ```
 
 `approve(id)` and `reject(id)` sign the decision with the signer the client is
 configured with and bind it to that preview. Approving continues the same Run;
-rejecting ends it as `cancelled` with nothing sent. The decision can come from
-any process that shares the Store or the Host — a CLI `actql approve`, a web
-app, a Slack bot — the Run does not care which.
+rejecting ends it as `cancelled` with nothing sent. A review UI or bot can
+deliver a decision to this application's configured client. Other clients
+need a supported connection to the same running Host and their own approval
+authorization. The code-started Run to CLI approval handoff remains separate
+interoperability work; sharing a state-directory path does not provide it.
 
 ### Deciding from code
 
@@ -191,7 +200,7 @@ with the Preview before it stops. It answers `'permit'`, `'reject'` or
 
 ```ts
 const client = await connect({
-  mode: 'local', installation: {directory: '.actql'},
+  mode: 'local', installation: {directory: '.actql-node'},
   decide: async (decision) => {
     if (decision.kind !== 'effect_set') return 'permit';          // reads, model calls, the Run itself
     return decision.preview.items.length <= 100 ? 'permit' : 'defer';

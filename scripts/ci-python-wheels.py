@@ -128,6 +128,125 @@ def accept_submission_observation(run, python: Path, module: Path, receipt: Path
     return result
 
 
+def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
+                            destination: Path) -> dict:
+    """Reuse this producer's Core for the existing public lifecycle boundary.
+
+    Each control owns fresh SQLite state. These source SDK/raw ABI checks do
+    not replace the later normal wheel install or promote physical ACK scope.
+    """
+    original = json.loads(receipt.read_text())
+    def unchanged():
+        if (Path(original['module']).resolve() != module.resolve()
+                or original['module_sha256'] != hashlib.sha256(module.read_bytes()).hexdigest()):
+            raise ValueError('Public lifecycle requires the original Core module')
+    unchanged()
+    cases = []
+    controls = (
+        ('cancellation-saved', 'python-local-public-cancellation-abi.py', 'process-state',
+         'public_default_cancel_separate_process_saved_without_reprepare', 300),
+        ('cancellation-precommit', 'python-local-public-cancellation-abi.py', 'precommit-state',
+         'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work', 300),
+        ('state-unknown', 'python-local-public-cancellation-abi.py', 'fault-state',
+         'public_state_commit_reply_loss_original_readback_without_rewrite', 300),
+        ('state-partial-close', 'python-local-public-cancellation-abi.py', 'partial-state',
+         'public_state_partial_input_close_same_original_retirement', 300),
+        ('succeeded-result-saved', 'python-local-public-success-abi.py', None,
+         'public_succeeded_execute_typed_result_same_saved_and_close', 300),
+        ('publication-unknown', 'python-local-public-success-abi.py', 'commit-unknown',
+         'public_commit_reply_loss_original_lookup_same_result_without_reexecution', 300),
+        ('task-drive-mixed', 'python-local-public-success-abi.py', 'task-drive-mixed',
+         'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved', 300),
+        ('cancellation-drive-start', 'python-local-public-cancellation-abi.py', 'drive-start-state',
+         'public_cancel_between_derived_drives_before_first_input_feed', 120),
+    )
+    for name, fixture, selection, expected, timeout in controls:
+        args = [python, ROOT / 'scripts/fixtures' / fixture, module,
+                destination / (name + '-state')]
+        if selection is not None:
+            args.append(selection)
+        observed = json.loads(run(name, args, timeout=timeout))
+        unchanged()
+        if (observed.get('success') is not True or type(observed.get('actualCases')) is not int
+                or observed['actualCases'] != 1 or observed.get('case') != expected
+                or observed.get('module_sha256') != original['module_sha256']):
+            raise ValueError('Incomplete original public lifecycle component')
+        if (fixture == 'python-local-public-success-abi.py'
+                and observed.get('atomic_precommit_writer_exclusion') is not True):
+            raise ValueError('Incomplete original atomic publication component')
+        if (selection == 'commit-unknown'
+                and observed.get('commit_reply_loss_readback_without_reexecution') is not True):
+            raise ValueError('Incomplete original publication recovery component')
+        if selection == 'task-drive-mixed':
+            if (observed.get('core_owned_lifecycle') is not True
+                    or type(observed.get('original_tasks')) is not int or observed['original_tasks'] < 2
+                    or observed.get('monotonic_progress') is not True):
+                raise ValueError('Incomplete original task-drive component')
+            expected = {'initial_quantum': 1, 'initial_drives_per_task': 8,
+                        'continuation_quantum': 256,
+                        'actual_initial_quantum_drives': 8 * observed['original_tasks'],
+                        'observed_phase_transitions': observed['original_tasks']}
+            if any(type(observed.get(key)) is not int or observed[key] != value
+                   for key, value in expected.items()):
+                raise ValueError('Incomplete original task-drive component')
+        cases.append(observed)
+    result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
+              'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',
+              'normal_image_acceptance': False, 'installed_wheel_acceptance': False}
+    with (destination / 'public-lifecycle.json').open('x') as output:
+        json.dump(result, output, indent=2)
+        output.write('\n')
+    return result
+
+
+def accept_installed_cancellation(run, consumer: Path, destination: Path,
+                                  version: str, env: dict[str, str]) -> None:
+    """Use this same normal install for public cancellation and saved reads.
+
+    Each facade owns one fresh public state directory. The consumer refuses a
+    missed active window instead of retrying work or accepting already_terminal.
+    """
+    for facade in ('sync', 'async'):
+        work = destination / (facade + '-cancellation')
+        work.mkdir()
+        previous_pid = None
+        for phase in ('initial', 'resume'):
+            observed = json.loads(run(f'{facade}-cancellation-{phase}',
+                [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                 destination / 'python-product-installed.py',
+                 '--version', version, '--mode', 'local', '--facade', facade,
+                 '--phase', phase, '--case', 'cancellation', '--receipt', work / 'original.json'],
+                cwd=work, env=env, timeout=180))
+            if (observed.get('mode') != 'local' or observed.get('version') != version
+                    or observed.get('case') != 'cancellation' or observed.get('facade') != facade
+                    or observed.get('phase') != phase or type(observed.get('actualCases')) is not int
+                    or observed['actualCases'] != 1 or type(observed.get('pid')) is not int
+                    or observed['pid'] <= 0 or observed['pid'] == previous_pid
+                    or observed.get('reported_physical_stop') not in ('unknown', 'confirmed')):
+                raise ValueError('Incomplete installed cancellation consumer')
+            expected = {'admitted_inflight': phase == 'initial', 'original_cancel_accepted': True,
+                        'cancel_lookup_same': True, 'original_run_reused': phase == 'resume',
+                        'same_host_healthy_after_cancel': phase == 'initial',
+                        'saved_read_only': phase == 'resume', 'first_close': True, 'closed': True}
+            if any(observed.get(key) is not value for key, value in expected.items()):
+                raise ValueError('Incomplete installed cancellation consumer')
+            previous_pid = observed['pid']
+
+
+def require_closed_task_drive(observed) -> None:
+    """Require the existing installed initial case's same-Core call witness."""
+    witness = observed.get('closed_task_drive') if type(observed) is dict else None
+    counts = ('drive_calls', 'drive_returns', 'wasm_entries', 'wasm_returns', 'retained_holder_checks')
+    flags = ('actual_closed_task_drive', 'methods_unchanged', 'profilers_restored')
+    absent = ('per_drive_fuel_observed', 'hash_count_observed')
+    if (type(witness) is not dict or set(witness) != set(counts + flags + absent)
+            or any(witness.get(key) is not True for key in flags)
+            or any(witness.get(key) is not False for key in absent)
+            or any(type(witness.get(key)) is not int or not 0 < witness[key] <= 1024 for key in counts)
+            or len({witness[key] for key in counts}) != 1):
+        raise ValueError('Incomplete installed closed task drive control')
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -180,6 +299,7 @@ def run_acceptance(destination: Path) -> None:
                         '--compiled-source', source, '--module', module, '--link-response', str(module) + '.rsp',
                         '--moon-home', os.environ['MOON_HOME'], '--destination', receipt])
     accept_submission_observation(run, python, module, receipt, destination)
+    accept_public_lifecycle(run, python, module, receipt, destination)
     image = destination / 'image'
     run('image', [python, ROOT / 'scripts/compile-python-local-image.py', '--compile-platform',
                   '--source', source, '--core-receipt', receipt, '--destination', image])
@@ -218,14 +338,17 @@ def run_acceptance(destination: Path) -> None:
         work = destination / facade
         work.mkdir()
         for phase in ('initial', 'resume'):
-            run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+            observed = run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                 destination / 'python-product-installed.py',
                 '--version', version, '--mode', 'local', '--facade', facade, '--phase', phase,
                 '--receipt', work / 'original.json'], cwd=work, env=env, timeout=180)
+            if facade == 'sync' and phase == 'initial':
+                require_closed_task_drive(json.loads(observed))
     health = destination / 'health'
     health.mkdir()
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
+    accept_installed_cancellation(run, consumer, destination, version, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
@@ -234,7 +357,9 @@ def run_acceptance(destination: Path) -> None:
         'cohort_sha256': hashlib.sha256((cohort_directory / 'cohort.json').read_bytes()).hexdigest(),
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
-        'context_close': True, 'physical_release_observed': False,
+        'context_close': True, 'installed_active_cancellation': True,
+        'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
+        'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
 
 

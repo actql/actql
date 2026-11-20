@@ -4,5 +4,7 @@ import {
   "actql/actql/canonical_json" @json,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/source_value" @source,
+  "actql/actql/sha256",
   "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
 }

@@ -62,7 +62,6 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/github/host/installed-github-source.mjs", href: new URL("../connectors/github/host/installed-github-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/github/site/github-comment-create.mjs", href: new URL("../connectors/github/site/github-comment-create.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/github/site/github-issue-graphql-read.mjs", href: new URL("../connectors/github/site/github-issue-graphql-read.mjs", import.meta.url).href}),
-      Object.freeze({path: "adapters/connectors/github/site/github-issue-read.mjs", href: new URL("../connectors/github/site/github-issue-read.mjs", import.meta.url).href}),
       Object.freeze({path: "src/connectors/github/source-views.json", href: new URL("../../src/connectors/github/source-views.json", import.meta.url).href}),
       Object.freeze({path: "src/connectors/github/writes.json", href: new URL("../../src/connectors/github/writes.json", import.meta.url).href}),
     ]),
@@ -184,7 +183,9 @@ export const installedConnectors = Object.freeze([
     revision: "notion/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/notion/host/installed-notion-source.mjs", href: new URL("../connectors/notion/host/installed-notion-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/notion/site/user-list-read-wire.generated.mjs", href: new URL("../connectors/notion/site/user-list-read-wire.generated.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/notion/site/user-list-read.mjs", href: new URL("../connectors/notion/site/user-list-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "src/connectors/notion/user-list-request.json", href: new URL("../../src/connectors/notion/user-list-request.json", import.meta.url).href}),
     ]),
     providerBundle: "connectors/notion/host_node",
     responseHeaders: Object.freeze([]),

@@ -53,6 +53,8 @@ pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Arr
 
 pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]
 
+pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]
+
 pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]
 
 pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]
@@ -121,6 +123,8 @@ pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_pla
 
 pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool
 
+pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool
+
 pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]
@@ -130,6 +134,8 @@ pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, Row
 pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
+
+pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool
 
 pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
@@ -267,6 +273,10 @@ pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourc
 
 pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
+pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]
+
+pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]
+
 pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
@@ -285,9 +295,13 @@ pub fn relation_document_projection_construction_inventory(RelationDocumentProje
 
 pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]
 
+pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?
+
+pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?
 
@@ -453,6 +467,10 @@ pub fn row_original_input_capacity() -> (Int64, Int64)
 
 pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?
 
+pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits
+
+pub fn row_query_acquisition_target_resource(RowAcquisition) -> String
+
 pub fn row_run_attempt(RowRun) -> RowAttempt
 
 pub fn row_run_listing_complete(RowRun) -> Bool
@@ -468,6 +486,26 @@ pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool
 pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSourceCursorIssue]
 
 pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]
+
+pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]
+
+pub fn row_source_get_page_construction_capacity(RowSourceGetRead) -> @execution_relation.ExecutionCapacity?
+
+pub fn row_source_get_page_construction_inventory(RowSourceGetRead) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn row_source_get_page_frame(RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), RowSourceGetReadIssue]
+
+pub fn row_source_get_read_construction_capacity(RowSourceGetReadLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn row_source_get_read_construction_inventory(RowSourceGetReadLimits) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn row_source_get_read_metadata(RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), RowSourceGetReadIssue]
+
+pub fn row_source_get_read_original_wire(RowSourceGetRead) -> Result[String, RowSourceGetReadIssue]
+
+pub fn row_source_get_read_page(RowSourceGetRead, Int, Int, String?) -> Result[RowSourceGetPageRequest, RowSourceGetReadIssue]
+
+pub fn row_source_get_request_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?
 
 pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
@@ -488,6 +526,8 @@ pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) ->
 pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]
 
 pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int
+
+pub fn row_update_mapping_construction_capacity(RowDeclaration, String, String, String) -> @execution_relation.ExecutionCapacity?
 
 pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?
 
@@ -816,6 +856,33 @@ pub(all) enum RowSourceEvidenceIssue {
   InvalidPolicy
   Encoding(@encode_core.EncodeFailure)
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+type RowSourceGetPageRequest
+
+type RowSourceGetRead
+
+pub(all) enum RowSourceGetReadIssue {
+  InvalidLimits
+  InvalidRead
+  InvalidPath
+  InvalidQuery
+  DuplicateParameter
+  InvalidPageSize
+  InvalidHeader
+  InvalidCursor
+  ForeignRead
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowSourceGetReadLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_path_bytes : Int
+  max_query_pairs : Int
+  max_query_value_units : Int
+  max_header_name_bytes : Int
+  max_header_value_bytes : Int
 }
 
 pub(all) enum RowSourceIssue {

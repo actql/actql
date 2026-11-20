@@ -9,6 +9,10 @@ import {createInstalledRowSource} from './installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createRestSourceMetadata} from './rest-source-metadata.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
+import {captureRestSourceRead, restSourceReadConstructionUnits,
+  restSourceRequestConstructionUnits} from './rest-source-request.mjs';
+import {captureRestReadOriginals, restReadOriginalControlUnits, restReadTransportConstructionUnits}
+  from './rest-read-original.mjs';
 import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -30,18 +34,70 @@ function capturePhysicalTargetConstruction(sourceInitialization, moon) {
     // One array, one eight-field target object per resource and its original
     // ordered field values. String payloads are borrowed immutable originals.
     let slots = 1n;
+    const requests = [0n, 0n, 0n, 0n, 0n, 0n];
     for (const source of sources) {
       const view = declared.views.find(view => view.resource === source.resource);
       if (view === undefined) fail('RestSourceReadTargetMismatch');
       slots += 9n + BigInt(view.fields.length);
+      const units = restSourceReadConstructionUnits(source.read, source.pagination.parameter);
+      for (let index = 0; index < units.length; index++) requests[index] += units[index];
     }
+    // Internal two-field wrapper and request vector. Public target DATA stays
+    // byte-for-byte the original eight-field shape. The SAME one initializer
+    // retains both outputs before any page constructor can borrow the request.
+    // The additional Core request-row projector is captured once per source:
+    // one closure with method+namespace captures and one result-record field
+    // (4 value slots), retained alongside the original request snapshot.
+    const wrapper = 4n + 5n * BigInt(sources.length);
     return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
       capacity() {
-        return checked(Reflect.apply(capacity.value, moon, [slots, 0n, 0n, slots, 0n, 0n]));
+        return checked(Reflect.apply(capacity.value, moon, requests.map((units, index) =>
+          units + (index === 0 ? slots + wrapper : index === 3
+            // New method-entry pair3 + map result vector entry1 remain in
+            // constructor workspace alongside the retained closure/field.
+            ? slots + wrapper + 4n * BigInt(sources.length) : 0n))));
       },
       project() {
-        return Object.freeze(sources.map(source => physicalTarget(source.resource,
-          declared.views.find(view => view.resource === source.resource).fields)));
+        return Object.freeze({targets: Object.freeze(sources.map(source => physicalTarget(source.resource,
+          declared.views.find(view => view.resource === source.resource).fields))),
+        requests: Object.freeze(sources.map(source => captureRestSourceRead(
+          {method: 'GET', ...source.read}, source.pagination.parameter)))});
+      },
+    })]);
+  };
+}
+
+// The same initializer also retains the original Core parser/Bytes for the
+// shipped readWire representation. Legacy row-only DATA keeps its existing
+// projector above; Program/Account DATA cannot select a budget or Reader mode.
+function captureCoreTargetConstruction(sourceInitialization, moon, originals) {
+  const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareReadTarget');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+    fail('RestSourceInitializationUnavailable');
+  }
+  return (sources, declared, physicalTarget, policy) => {
+    const units = restReadOriginalControlUnits(sources.length);
+    let targets = 1n;
+    for (const source of sources) {
+      const view = declared.views.find(view => view.resource === source.resource);
+      if (view === undefined) fail('RestSourceReadTargetMismatch');
+      targets += 10n + BigInt(view.fields.length);
+    }
+    units[0] += targets;
+    // Keep own-values vectors for each eight-field target and each fields
+    // Array, plus pending/growth references, alongside the retained target.
+    units[3] += 3n * targets;
+    return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
+      capacity() {return originals.composeConstruction(units, sources.length, index => {
+        const source = sources[index];
+        return originals.quote(source.readWire, source.pagination.parameter, policy);
+      });},
+      project() {
+        const requests = Object.freeze(sources.map(source => originals.project(
+          source.readWire, source.pagination.parameter, policy)));
+        return Object.freeze({targets: Object.freeze(sources.map((source, index) => physicalTarget(
+          source.resource, declared.views.find(view => view.resource === source.resource).fields,
+          requests[index].path))), requests});
       },
     })]);
   };
@@ -49,6 +105,9 @@ function capturePhysicalTargetConstruction(sourceInitialization, moon) {
 
 export function createInstalledRestSource(definition, {decodePage} = {}) {
   const metadata = createRestSourceMetadata(definition), original = metadata.definition;
+  const nativeReads = original.sources.some(source => Object.hasOwn(source, 'readWire'));
+  if (nativeReads && original.sources.some(source => typeof source.readWire !== 'string' ||
+      Object.hasOwn(source, 'read'))) fail('RestSourceReadDeclarationMismatch');
   if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');
   const operation = `${original.registration}:rest:read`;
   function captureDeclarationPreparation(sourceInitialization) {
@@ -85,7 +144,11 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       () => fail('RestSourceInstallationServicesUnavailable'));
     const {moon, installation, sourceInitialization, runtimeBundleCid, resolveSecret} = options;
     const prepare = captureDeclarationPreparation(sourceInitialization);
-    const preparePhysicalTargets = capturePhysicalTargetConstruction(sourceInitialization, moon);
+    const originals = nativeReads ? captureRestReadOriginals(moon) : undefined;
+    const preparePhysicalTargets = nativeReads
+      ? captureCoreTargetConstruction(sourceInitialization, moon, originals)
+      : capturePhysicalTargetConstruction(sourceInitialization, moon);
+    const requestCapacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceConstructionCapacity').value;
     if (typeof resolveSecret !== 'function') fail('RestSourceCredentialMaterialUnavailable');
     const input = await metadata.readInputs(profile, {configurationReader: options.configurationReader});
     const {declaration, declared, environment} = prepare();
@@ -114,19 +177,45 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])),
       maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
       maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows, ...pageBounds});
-    const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
-      columnCount: Math.max(...declared.views.map(view => view.fields.length)), cursorProgress: true});
-    const targets = new Map(original.sources.map(source => [source.resource, source]));
-    const physicalTarget = (resource, fields) => {
-      const source = targets.get(resource), view = declared.views.find(view => view.resource === resource);
+    const physicalTarget = (resource, fields, originalPath) => {
+      const source = original.sources.find(source => source.resource === resource);
+      const view = declared.views.find(view => view.resource === resource);
       if (source === undefined || view === undefined || !Array.isArray(fields) ||
-          new Set(fields).size !== fields.length || fields.some(field => !view.fields.includes(field))) {
+          // The constructor passes this SAME Common-checked original fields
+          // Array. Other callers (including approval targets) still receive
+          // the full duplicate/membership checks; no request Bool selects it.
+          !(originalPath !== undefined && fields === view.fields) &&
+          (new Set(fields).size !== fields.length || fields.some(field => !view.fields.includes(field)))) {
         fail('RestSourceReadTargetMismatch');
       }
       return Object.freeze({connectorRegistration: original.registration, connectorRevision: original.revision,
         catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,
-        origin: original.origin, path: source.read.path, resource, fields: Object.freeze([...fields])});
+        origin: original.origin, path: nativeReads
+          ? originalPath ?? material.requests[original.sources.indexOf(source)].path : source.read.path, resource, fields: Object.freeze([...fields])});
     };
+    let material;
+    if (nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget, policy);
+    const requestUnits = [0n, 0n, 0n, 0n, 0n, 0n];
+    for (const source of original.sources) {
+      const units = nativeReads ? restReadTransportConstructionUnits(material.requests[original.sources.indexOf(source)])
+        : restSourceRequestConstructionUnits(source.read, source.pagination.parameter);
+      // Only one page request is entered at a time on the existing Reader.
+      // All static Source snapshots are retained separately by the initializer.
+      for (let index = 0; index < units.length; index++) {
+        if (units[index] > requestUnits[index]) requestUnits[index] = units[index];
+      }
+    }
+    // Replaces the old three-argument fetch projection, not decode. Two new
+    // primitive args, their call-vector copies, the typed Option and inner
+    // Result overlap add6 workspace slots; all are charged before acquisition.
+    requestUnits[3] += 6n;
+    const requestConstruction = Object.freeze({
+      capacity: nativeReads ? originals.requestCapacity(requestUnits, material.requests)
+        : checked(Reflect.apply(requestCapacity, moon, requestUnits)),
+      maxRequestBytes: policy.maxTargetBytes});
+    const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
+      columnCount: Math.max(...declared.views.map(view => view.fields.length)), cursorProgress: true,
+      requestConstruction});
     const connection = `${original.registration}:${input.installed.connectorId}`;
     const opened = await services('openRowSite', {installation, sourceInitialization,
       accountConfiguration: input.installed.accountConfigurationWire, connection,
@@ -140,8 +229,9 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     const {site, authorization} = opened;
     let providerReader;
     try {
-      const pages = new Map(original.sources.map(source =>
-        [source.resource, restSourcePageReader({moon, source, decodePage})]));
+      if (!nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget);
+      const pages = new Map(original.sources.map((source, index) =>
+        [source.resource, restSourcePageReader({moon, source, decodePage, request: material.requests[index]})]));
       // One original Host factory for the complete installation. Selecting a
       // pure resource adapter creates no second retirement/cleanup wrapper.
       providerReader = services('createSourceReader', {installation, sourceInitialization, implementation, site, operation,
@@ -155,7 +245,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
         environmentWire: environment.wire,
         connectorId: input.installed.connectorId, connectorRegistration: original.registration,
         connectorRevision: original.revision, site, authorization, readOperation: operation,
-        physicalTarget: preparePhysicalTargets(original.sources, declared, physicalTarget),
+        physicalTarget: material.targets,
         bindingCid: cid({connectorId: input.installed.connectorId, connectorRegistration: original.registration,
           connectorRevision: original.revision, originalStringsCid: input.originalStringsCid,
           catalogCid: declared.catalog_cid, runtimeBundleCid, contextCid: authorization.context.contextCid}),

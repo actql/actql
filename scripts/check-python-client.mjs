@@ -29,6 +29,10 @@ export const remotePythonClientTests = Object.freeze([
 // Reviewed Source fixtures: injected Host/Native ports and fresh POSIX/stdlib
 // SQLite state. These do not execute an installed Core or Native component.
 export const sourceLocalPythonClientTests = Object.freeze([
+  'test_local_cancellation_worker_oracle.py',
+  'test_local_cancellation_stop_interest.py',
+  'test_local_wait_readiness.py',
+  'test_local_wait_readback.py',
   'test_local_import.py',
   'test_local_linux_components.py',
   'test_local_public_factory.py',

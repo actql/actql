@@ -407,3 +407,54 @@ test('managed advance diagnostic classification grants no sibling builtin or dyn
     }, 'export {};', modules), /WorkersDynamicDependency/);
   }
 });
+
+test('original dispatch failure DATA has one exact pure Workers dependency closure', async () => {
+  const root = new URL('../../', import.meta.url);
+  const module = 'adapters/host-common/dispatch-failure-observation.mjs';
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  const source = readFileSync(new URL(module, root), 'utf8');
+  const imports = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(node => node.type === 'ImportDeclaration');
+  assert.equal(imports.length, 1);
+  assert.equal(imports[0].source.value, './compiler-binding.generated.mjs');
+  checkPureRuntime(source.slice(0, imports[0].start) + source.slice(imports[0].end));
+  checkPureRuntime(readFileSync(new URL(binding, root), 'utf8'));
+  // Only this two-leaf, write:false browser bundle is needed for the artifact
+  // guard. No formal Common, full Workers runtime or package is rebuilt.
+  const result = await build({absWorkingDir: fileURLToPath(root), entryPoints: [module],
+    bundle: true, platform: 'browser', format: 'esm', metafile: true, write: false});
+  assert.deepEqual(Object.keys(result.metafile.inputs).sort(), [module, binding].sort());
+  assert.deepEqual(result.metafile.inputs[module].imports.map(value => [value.path, value.kind]),
+    [[binding, 'import-statement']]);
+  assert.deepEqual(result.metafile.inputs[binding].imports, []);
+  checkPureRuntime(result.outputFiles[0].text);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.equal(modules.filter(path => path === module).length, 1);
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('original dispatch failure classification grants no sibling Node external or dynamic allowance', () => {
+  const module = 'adapters/host-common/dispatch-failure-observation.mjs';
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  const sibling = 'adapters/host-common/dispatch-failure-observation-unreviewed.mjs';
+  const nodeCaller = 'adapters/host-node/client-dispatch-diagnostic.mjs';
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs', nodeCaller]) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[module]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', [...modules, nodeCaller]), /WorkersDependencyRejected/);
+    }
+    for (const edge of [{path: binding, kind: 'dynamic-import'},
+      {path: binding, kind: 'require-call'},
+      {path: binding, kind: 'import-statement', external: true}]) {
+      assert.throws(() => checkWorkersArtifact({inputs: {[module]: {imports: [edge]}},
+        outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersDynamicDependency|WorkersDependencyRejected/);
+    }
+    assert.throws(() => checkWorkersArtifact({inputs: {[module]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: [{path: binding}]}}}, 'export {};', modules), /WorkersUnresolvedOutputImport/);
+  }
+});

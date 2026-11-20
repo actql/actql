@@ -123,6 +123,21 @@ test "handed off origin accepts completed empty output but not a changed bootstr
 }
 
 ///|
+test "handed off standalone bootstrap growth cannot borrow preparation publication lifetime" {
+  let (ledger, consumer, _) = handed_off_output_fixture()
+  let claim = consumer.claim.unwrap()
+  let before = claim.descriptor.bootstrap_state
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  // Resource-private adversarial mutation only. The public generic grow
+  // refuses bootstrap, and no preparation body owns this standalone census.
+  resize_capacity_reservation(ledger, claim.descriptor.bootstrap, 4L, 3L).unwrap()
+  let usage = ledger_usage(ledger)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  assert_true(claim.descriptor.bootstrap_state == before)
+  assert_eq(ledger_usage(ledger), usage)
+}
+
+///|
 test "handed off output recognition does not admit changed initial snapshot or bypass park" {
   let ledger = resource_park_test_ledger()
   let origin = original_read_test_origin()

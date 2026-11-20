@@ -10,6 +10,8 @@ priv struct LocalCommandResultOriginal {
   policy : @local_host.NativeLocalRunPolicyBinding
   store : @local_store.Store
   scope : String
+  result_names : String
+  result_name : String
 }
 
 ///|
@@ -152,29 +154,6 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     ),
     "Run policy",
   )
-  let selected_read = if delivery.files.is_empty() {
-    capture.bind_result_read_policy_for_run_in_original_read(
-      policy,
-      original.reference(),
-      original.request(),
-      @env.now().to_double(),
-    )
-  } else {
-    if !settings.installation_files.contains("file-read.json") {
-      stop("LocalResultFileOriginalNotSelected")
-    }
-    capture.bind_result_file_read_policy_for_run_in_original_read(
-      policy,
-      original.reference(),
-      original.request(),
-      @env.now().to_double(),
-      "file-read.json",
-    )
-  }
-  let binding = match selected_read {
-    Ok(value) => value
-    Err(issue) => stop(local_read_issue(issue))
-  }
   let reference = local_original_run_reference(original.definition(), scope)
   guard reference is Object(fields) &&
     json_text(fields, "namespaceId") is Some(namespace_id) else {
@@ -264,5 +243,79 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     capture.check_current_in_original_read(),
     "Store current",
   )
-  { owner: self, host, capture, original, binding, policy, store, scope, }
+  let reference_names = match
+    local_result_host_value(
+      capture.lookup_original_result_names_json_in_original_read(
+        settings.principal,
+        settings.connection,
+        original,
+        store,
+        namespace_id,
+      ),
+      "committed Result inventory",
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => stop("LocalResultPublicationUnavailable")
+    Err(issue) => stop(local_saved_state_issue(@local_host.Journal(issue)))
+  }
+  let requested = if delivery.files.is_empty() {
+    optional(child, "result")
+  } else {
+    delivery.files[0].result_name
+  }
+  let result_name = local_result_name(reference_names, requested)
+  // Two additional retained aliases in this SAME existing command record.
+  guard @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 2L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(alias_cost) else {
+    stop("LocalReadOriginalCustodyUnavailable")
+  }
+  command_preparation_result(self.prepare_host_metadata(alias_cost, alias_cost))
+  if !delivery.files.is_empty() &&
+    !settings.installation_files.contains("file-read.json") {
+    stop("LocalResultFileOriginalNotSelected")
+  }
+  let binding_result = capture.bind_requested_original_result_read_in_original_read(
+    policy,
+    original,
+    store,
+    namespace_id,
+    result_name,
+    @env.now().to_double(),
+    (r, e) => {
+      match self.prepare_host_metadata(r, e) {
+        Ok(_) => true
+        Err(issue) => {
+          self.retain_primary(issue)
+          false
+        }
+      }
+    },
+    file_configuration=if delivery.files.is_empty() {
+      None
+    } else {
+      Some("file-read.json")
+    },
+  )
+  let binding = match binding_result {
+    Ok(value) => value
+    Err(issue) => stop(local_read_issue(issue))
+  }
+  {
+    owner: self,
+    host,
+    capture,
+    original,
+    binding,
+    policy,
+    store,
+    scope,
+    result_names: reference_names,
+    result_name,
+  }
 }

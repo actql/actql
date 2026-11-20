@@ -21,25 +21,95 @@ test('normal deadline adds only the actual Common R/E quote and preserves unsele
     let quotes = 0;
     const captured = [], config = options();
     if (enabled) config.transportTimeouts = settings;
-    const moon = {clientProgramInstalledNodeModelDeadlineCapacity() {quotes++; return [456n, 456n];}};
+    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+      clientProgramInstalledNodeModelDeadlineCapacity() {quotes++; return [456n, 456n];}};
     await assert.rejects(createOpenAIChatProvider(config)(moon, context(captured)), error => error === stop);
     assert.equal(quotes, enabled ? 1 : 0);
     if (enabled) {
-      assert.equal(captured[0].physicalLimits.adapter_holding_bytes, 8388608 + 456);
-      assert.equal(captured[0].physicalLimits.adapter_workspace_bytes, 16777216 + 456);
+      assert.equal(captured[0].physicalLimits.adapter_holding_bytes, 8388608 + 100 + 456);
+      assert.equal(captured[0].physicalLimits.adapter_workspace_bytes, 16777216 + 300 + 456);
       assert.equal(captured[0].budget.maxDurationMs, 2000n);
-    } else assert.equal(Object.hasOwn(captured[0], 'physicalLimits'), false);
+    } else {
+      assert.equal(captured[0].physicalLimits.adapter_holding_bytes,8388608+100);
+      assert.equal(captured[0].physicalLimits.adapter_workspace_bytes,16777216+300);
+    }
   }
 });
 
 test('normal deadline missing invalid overflow or over-budget quote refuses before IO', async () => {
   for (const quote of [undefined, [], [1n, 0n], [2147483647n, 2147483647n], [1, 1]]) {
-    const moon = quote === undefined ? {} : {clientProgramInstalledNodeModelDeadlineCapacity() {return quote;}};
+    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+      ...(quote === undefined ? {} : {clientProgramInstalledNodeModelDeadlineCapacity() {return quote;}})};
     const captured = [];
     await assert.rejects(createOpenAIChatProvider({...options(), transportTimeouts: settings})(moon, context(captured)),
-      {code: 'OpenAIProviderDeadlineCapacityUnavailable'});
+      {code: quote?.[0] === 2147483647n ? 'OpenAIProviderRequestCapacityUnavailable' : 'OpenAIProviderDeadlineCapacityUnavailable'});
     assert.equal(captured.length, 0);
   }
   await assert.rejects(createOpenAIChatProvider({...options(), transportTimeouts: {...settings, callMs: 2001}})({}, context([])),
     {code: 'OpenAIProviderTimeoutBudgetExceeded'});
+});
+
+test('SDK profile demand keeps retained wires and serial workspace distinct before any IO',async()=>{
+  const captured=[];let calls=0;
+  const moon={clientProgramInstalledNodeModelSdkV4RequestCapacity(...bounds){
+    assert.deepEqual(bounds,[2,32768,4096,32]);calls++;return [123n,789n];}};
+  const config=options();config.budget.maxRows=2;
+  await assert.rejects(createOpenAIChatProvider(config)(moon,context(captured)),error=>error===stop);
+  assert.equal(calls,1);
+  assert.equal(captured[0].readExecutionBytes-captured[0].readRetainedBytes,666n);
+  assert.equal(captured[0].physicalLimits.adapter_holding_bytes,8388608+123);
+  assert.equal(captured[0].physicalLimits.adapter_workspace_bytes,16777216+789);
+  assert.deepEqual(captured[0].budget,config.budget);
+});
+
+test('missing invalid or overflowing SDK profile quote refuses before secret semantic or Task work',async()=>{
+  for(const quote of [undefined,[],[1n,0n],[2147483647n,2147483647n],[1,1]]){
+    const moon=quote===undefined?{}:{clientProgramInstalledNodeModelSdkV4RequestCapacity(){return quote;}};
+    const captured=[];
+    await assert.rejects(createOpenAIChatProvider(options())(moon,context(captured)),
+      {code:'OpenAIProviderRequestCapacityUnavailable'});
+    assert.equal(captured.length,0);
+  }
+});
+
+// Actual ordinary factory and registration assembler; explicit Common/context
+// ports only. This checks forwarding, not Core admission or physical adequacy.
+test('normal binding profile and original Read recipe consume the same separate SDK R E demand',async()=>{
+  const cid='sha256:'+'a'.repeat(64),profile=Object.freeze({});
+  let contract,taskProfile,quoteCalls=0;
+  const bindingOriginals=Object.freeze(Object.fromEntries(['configuration','configurationContract','installationRevision']
+    .map(name=>[name,Object.freeze({wire:'{}',cid})])));
+  const task={providerId:'fixture',name:'task',taskCid:cid,promptCid:cid,outputSchemaCid:cid,
+    modelSelector:'fixture',promptPayloadWire:'{}'};
+  const selected={tasks:[task],
+    async responseProfileFor(name,project){assert.equal(name,'task');taskProfile=JSON.parse(project());return {profile};},
+    async executionOriginalsFor(name){assert.equal(name,'task');},
+    bindingOriginalsFor(id){assert.equal(id,'fixture');return bindingOriginals;},
+    providerEntries(project){return project();}};
+  const f={...context([]),runtimeIdentity:async()=>cid,artifactIdentity:async()=>cid,
+    readText:async()=> 'fixture-only-never-sent',
+    prepareBindingOriginals:async project=>{contract=JSON.parse(project()[1]);return bindingOriginals;},
+    prepareTasks:async()=>selected,prepareRawPolicies:async()=>Object.freeze({})};
+  const hooks=['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
+    'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
+    'clientProgramInstallAsyncModelProvider','clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
+    'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
+    'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat'];
+  const moon=Object.fromEntries(hooks.map(name=>[name,()=>assert.fail('No Model or physical work')]));
+  moon.clientProgramInstalledNodeModelSdkV4RequestCapacity=(...bounds)=>{
+    assert.deepEqual(bounds,[1,32768,4096,32]);quoteCalls++;return [123n,789n];};
+  moon.clientProgramModelResponseProfileTransportMatches=actual=>{assert.equal(actual,profile);return true;};
+  const entries=await createOpenAIChatProvider(options())(moon,f);
+  assert.equal(quoteCalls,1);assert.equal(entries.length,1);
+  const recipe=entries[0].taskInstallations[0].entry.originalReadRecipe;
+  assert.equal(recipe.modelRetainedBytes,8388608n+123n);
+  assert.equal(recipe.modelExecutionBytes,16777216n+789n);
+  assert.equal(BigInt(contract.read_retained_bytes),recipe.nodeInstallation.layout.retained_bytes);
+  assert.equal(BigInt(contract.read_execution_bytes),recipe.nodeInstallation.layout.execution_bytes);
+  assert.equal(recipe.nodeInstallation.layout.execution_bytes-recipe.nodeInstallation.layout.retained_bytes,666n);
+  assert.equal(BigInt(contract.model_retained_bytes),recipe.modelRetainedBytes);
+  assert.equal(BigInt(contract.model_execution_bytes),recipe.modelExecutionBytes);
+  assert.deepEqual(taskProfile.limits,contract.physical_profile);
+  assert.equal(recipe.nodeInstallation.layout.response_profile,profile);
+  assert.equal(entries[0].taskInstallations[0].entry.bindingOriginals,bindingOriginals);
 });

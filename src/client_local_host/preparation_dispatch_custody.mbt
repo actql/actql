@@ -109,6 +109,7 @@ pub(all) enum ClientEffectUnitPreparationIssue {
   Export(@strategy.CapturedEffectLocalResultExportIssue)
   Artifact(@publication_host.ClientEffectLocalResultArtifactIssue)
   Manifest(@publication_host.ClientEffectLocalManifestIssue)
+  Retention(@publication.PublicationContractIssue)
 }
 
 ///|

@@ -1236,6 +1236,12 @@ pub fn strategy_report_count(run : CapturedDAG) -> Int {
 }
 
 ///|
+/// Read the original search's completeness flag, not a new feasibility check.
+pub fn strategy_report_complete(run : CapturedDAG) -> Bool {
+  run.search_report_complete
+}
+
+///|
 pub fn strategy_report_at(
   run : CapturedDAG,
   index : Int,

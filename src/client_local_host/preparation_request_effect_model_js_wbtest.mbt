@@ -7,9 +7,10 @@ fn expected_request_model_scope_controls(
   holdings : Int,
   delegations : Int,
 ) -> Int64 {
-  let initial = @resources.preparation_inventory_initial_control_slots(6, 0, 0).unwrap()
+  // Same independently counted eight-role ordinary census before Model growth.
+  let initial = @resources.preparation_inventory_initial_control_slots(8, 0, 0).unwrap()
   let selected = @resources.preparation_inventory_initial_control_slots(
-    Int::max(6, reservations),
+    Int::max(8, reservations),
     holdings,
     delegations,
   ).unwrap()

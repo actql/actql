@@ -73,7 +73,7 @@ default; the values are supplied when it runs (`--params` on the CLI, the
 | `to_string(x)` | `CAST(x AS STRING)` | Canonical spelling of a string, number, decimal, boolean, timestamp or date. |
 | `to_number(x)` | `CAST(x AS NUMBER)` | From string or number; fails on text that is not a number. |
 | `to_boolean(x)` | `CAST(x AS BOOLEAN)` | From string or boolean. |
-| `to_timestamp(x)` | `CAST(x AS TIMESTAMP)` | From string or timestamp. |
+| `to_timestamp(x)` | `CAST(x AS TIMESTAMP)` | From timestamp or a [canonical UTC string](sql-compatibility.md#expressions) with a `T` separator, trailing `Z` and 3–9 fractional digits; no redundant fractional zeros beyond three places. |
 | `to_decimal(x)` | `CAST(x AS DECIMAL(P,S))` | Exact; fails rather than rounds. |
 | `try_number`, `try_timestamp`, `try_decimal` | | Same conversions, returning `NULL` instead of failing on bad input. |
 | `quantize(d, scale)` | | Round a decimal to a scale (the only rounding of decimals). |

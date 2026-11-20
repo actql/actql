@@ -1,6 +1,6 @@
 import './native-cli-ci-artifact.test.mjs';
 import assert from 'node:assert/strict';
-import {chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -10,7 +10,7 @@ import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
 import {classifyJob} from './local-checks-policy.mjs';
 import {nativeInstalledIngressSelection} from './test-native-cli-source-free-install.mjs';
-import {nativeFileSourceQueries} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const job = workflow.jobs['native-cli-linux-local'];
@@ -309,7 +309,7 @@ test('mandatory Local installation retains ingress controls on its actual instal
   const selection=nativeInstalledIngressSelection();
   for(const file of ['test-native-local-cli.test.mjs','test-native-file-source-queries.test.mjs'])
     assert.equal(selection.files.filter(path=>path.endsWith('/'+file)).length,1,file);
-  assert.equal(selection.expectedTests,13+nativeFileSourceQueries.length);
+  assert.equal(selection.expectedTests,13+nativeInstalledSourceQueries.length);
   assert(installed.includes('const {files,expectedTests}=nativeInstalledIngressSelection()'));
   assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
   for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY']) {
@@ -339,18 +339,24 @@ test('selected Linux compiler acquisition keeps official signed sources and fini
   assert(compilerCommands.includes('update --error-on=any'));
   assert(compilerCommands.includes('install --yes clang-19'));
   assert(compilerCommands.includes('test -x /usr/bin/clang-19'));
-  assert(!/allow-unauthenticated|AllowInsecure|trusted=yes|apt-key|add-apt-repository|sources\.list|\|\|\s*true/u.test(compilerCommands));
+  assert(compilerCommands.includes('test -s "$ubuntu_sources"'));
+  assert(compilerCommands.includes('Dir::Etc::sourcelist=$ubuntu_sources'));
+  assert(compilerCommands.includes('Dir::Etc::sourceparts=-'));
+  assert(!/allow-unauthenticated|AllowInsecure|trusted=yes|apt-key|add-apt-repository|tee[^\n]*sources\.list|\|\|\s*true/u.test(compilerCommands));
 });
 
 // Exercise only the selected shell control flow. No APT, network, compiler or
-// system repository is invoked; the two absolute paths use private fixtures.
+// system repository is invoked; the absolute paths use private fixtures.
 function compilerAcquisitionControl(failure) {
   const root = mkdtempSync(join(tmpdir(), 'actql-compiler-acquisition-'));
   try {
     const bin = join(root, 'bin'), mirror = join(root, 'apt-mirrors.txt');
+    const sources = join(root, 'ubuntu.sources');
     const compiler = join(root, 'clang-19'), calls = join(root, 'calls');
     mkdirSync(bin);
     writeFileSync(mirror, 'http://azure.archive.ubuntu.com/ubuntu/\n');
+    if (failure !== 'sources') writeFileSync(sources,
+      'Types: deb\nURIs: mirror+file:/etc/apt/apt-mirrors.txt\nSuites: noble noble-updates noble-security\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n');
     const sudo = join(bin, 'sudo');
     writeFileSync(sudo, `#!/bin/bash
 set -euo pipefail
@@ -368,13 +374,15 @@ fi
 `);
     chmodSync(sudo, 0o755);
     const shell = compilerCommands.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
+      .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
-    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 3000,
+    // Bound the fake-command probe without making shell startup a 3s CI target.
+    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
         ACQUISITION_COMPILER: compiler, ACQUISITION_FAILURE: failure}});
     assert.equal(result.error, undefined);assert.equal(result.signal, null);
-    return {status: result.status, mirror: readFileSync(mirror, 'utf8'),
-      calls: readFileSync(calls, 'utf8').trim().split('\n')};
+    return {status: result.status, mirror: readFileSync(mirror, 'utf8'), sources,
+      calls: existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n') : []};
   } finally {rmSync(root, {recursive: true, force: true});}
 }
 
@@ -383,13 +391,13 @@ test('compiler acquisition selects the canonical Ubuntu mirror before update and
   assert.equal(result.status, 0);
   assert.equal(result.mirror, 'https://archive.ubuntu.com/ubuntu/\n');
   assert.deepEqual(result.calls, [
-    'apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update --error-on=any',
-    'apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --yes clang-19',
+    `apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=- update --error-on=any`,
+    `apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=- install --yes clang-19`,
   ]);
 });
 
 test('compiler acquisition fails closed on update, fetch and missing selected executable', () => {
-  for (const [failure, code, calls] of [['update', 100, 1], ['install', 100, 2], ['missing', 1, 2]]) {
+  for (const [failure, code, calls] of [['sources', 1, 0], ['update', 100, 1], ['install', 100, 2], ['missing', 1, 2]]) {
     const result = compilerAcquisitionControl(failure);
     assert.equal(result.status, code, failure);
     assert.equal(result.calls.length, calls, failure);

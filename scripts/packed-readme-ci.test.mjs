@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob} from 'node:fs/promises';
+import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob, lstat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -1078,7 +1078,7 @@ test('independent normal consumers continue after collection and variant failure
   const runReadmeCases = load('runReadmeCases', {verifyNodeBenchmarkPackages, assert, writeFile, join,
     nodeBenchmarkFailure, async mockWorkflowMetrics({template, variant, onMetric}) {
       calls.push({template, variant});
-      const failed = template === 'churn-risk-mock';
+      const failed = template === 'churn-risk-mock' && variant === 'readme';
       await onMetric({samples: [{completed: !failed, verified: !failed}]});
       if (failed) throw variantFailure;
     }});
@@ -1108,7 +1108,7 @@ test('independent normal consumers continue after collection and variant failure
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
-  assert.deepEqual(report.compositions.map(value => value.status), ['passed', 'passed', 'passed']);
+  assert.deepEqual(report.compositions.map(value => value.status), packedCompositionCases.map(() => 'passed'));
   const saved = report.collection.find(value => value.phase === 'saved');
   assert.equal(saved.status, 'unexecuted');
   assert.match(saved.unexecutedReason, /completed original 100000 Result/u);
@@ -1121,6 +1121,8 @@ test('each required Model composition is distinct from README three and cannot p
     {template: 'deal-review-mock', variant: 'two-models-whole'},
     {template: 'deal-review-mock', variant: 'two-models-joined-inputs'},
     {template: 'deal-review-mock', variant: 'two-models-joined-whole'},
+    {template: 'churn-risk-mock', variant: 'terminal-infer'},
+    {template: 'churn-risk-mock', variant: 'terminal-content'},
   ]);
   assert(packedCompositionCases.every(selected => !packedReadmeCases.some(value => value.variant === selected.variant)));
   const scenarios = [{mode: 'passed'}, ...packedCompositionCases.flatMap(({variant}) =>
@@ -1442,6 +1444,7 @@ test('small original Model failure and preclose units run once in Draft lint wit
     'adapters/host-node/acquired-effect-unknown-primary.test.mjs',
     'adapters/host-node/mock-project-effect-public.test.mjs',
     'adapters/host-common/observation.test.mjs',
+    'adapters/host-node/logical-task-observation.test.mjs',
     'adapters/host-common/sqlite-transaction.test.mjs',
     'scripts/owner-fault-mutations.test.mjs'];
   const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Model failure and workflow observation');
@@ -1622,6 +1625,8 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
       const capture = args[1] === 'capture', publication = mode === 'publication-io-failure';
       calls.push([mode, publication ? 'publication-failure' : capture ? 'capture' : 'control']);
       assert.equal((await readFile(join(options.cwd, 'capture-original.mjs'), 'utf8')), workflowSource);
+      assert.equal(await readFile(join(options.cwd, 'mock-project-effect-protocol.fixture.mjs'), 'utf8'),
+        await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs'), 'utf8'));
       if (capture) {
         assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models', 'original-run-control']);
         assert.equal(JSON.parse(await readFile(join(options.cwd, 'model-tasks.json'), 'utf8')).tasks['model-task:deal-review-confirm.v1'],
@@ -3166,4 +3171,55 @@ test('File inventory uses independent per-key bytes across shuffled inputs and m
   assert.equal((await checkTargets(expected, destination)).length, 2);
   await writeFile(join(destination, expected[0].path), expected[1].body);
   await assert.rejects(checkTargets(expected, destination));
+});
+
+// Explicit command-port receipts only. These cases qualify fixture selection
+// and failure retention, never a normal Host, physical write or Saved result.
+test('plural Mock collector selects the existing three-phase shared-file fixture without a Model', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  const metric = await mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, template: 'churn-risk-mock', variant: 'multiple-targets', onMetric() {},
+    async command(executable, args, options) {
+      const phase = args[1];phases.push(phase);
+      assert.deepEqual(args.slice(3), ['churn-risk-mock', 'multiple-targets']);
+      assert.equal(options.timeout, 30_000);
+      const project = options.cwd, program = join(project, 'multiple-targets.program.json');
+      assert.equal(await readFile(join(project, 'mock-multiple-targets.fixture.mjs'), 'utf8'),
+        await readFile(join(repository, 'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs'), 'utf8'));
+      if (phase === 'capture') {
+        const input = JSON.parse(await readFile(program, 'utf8'));
+        assert.equal(input.stages.length, 1);assert.equal(Object.keys(input.stages[0].effects).length, 2);
+        assert.deepEqual(JSON.parse(await readFile(join(project, 'model-tasks.json'), 'utf8')).tasks, {});
+        assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'), 'utf8')).mock.data, './mock/data.json');
+      } else await assert.rejects(readFile(program), {code: 'ENOENT'});
+      const count = {capture: 10, approve: 11, recover: 7}[phase];
+      return {pid: 31000 + phases.length, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: count}, (_, index) => explicitStep(phase, `explicit-plural-${index}`)),
+          {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+            workObservation: {complete: true, sourceAcquisitionStarts: phase === 'capture' ? 2 : 0,
+              modelCallStarts: 0, effectReplacementReturns: phase === 'approve' ? 2 : 0}}]
+          .map(value => JSON.stringify(value)).join('\n')};
+    }});
+  assert.deepEqual(phases, ['capture', 'approve', 'recover']);
+  assert.equal(metric.variant, 'multiple-targets');assert.equal(metric.samples.length, 1);
+  assert.equal(metric.samples[0].verified, true);
+  await assert.rejects(lstat(join(metric.samples[0].stateId, 'node_modules')), {code: 'ENOENT'});
+});
+
+test('plural Mock collector keeps the first original failed child and never starts approval or recovery', async t => {
+  const {root, consumer} = await scratch(t), calls = [], observations = [];
+  const original = Object.assign(new Error('original plural child timeout'), {code: 'ETIMEDOUT'});
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, template: 'churn-risk-mock', variant: 'multiple-targets',
+    onMetric(metric) {observations.push(metric);}, async command(executable, args, options) {
+      calls.push(args[1]);assert.equal(options.timeout, 30_000);
+      assert.deepEqual(args.slice(3), ['churn-risk-mock', 'multiple-targets']);
+      throw original;
+    }}), cause => cause === original);
+  assert.deepEqual(calls, ['capture']);assert.equal(observations.length, 1);
+  const sample = observations[0].samples[0];
+  assert.equal(sample.completed, false);assert.equal(sample.verified, false);
+  assert.equal(sample.phases.length, 1);assert.equal(sample.phases[0].phase, 'capture');
+  assert.equal(sample.phases[0].error.code, 'ETIMEDOUT');
+  await assert.rejects(lstat(join(sample.stateId, 'node_modules')), {code: 'ENOENT'});
 });

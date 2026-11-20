@@ -83,6 +83,11 @@ pub fn prepare_client_source_computation(
   public_primary? : Bool = false,
   publication_environment? : @source_publication.PreparedPublishedQueryEnvironment? = None,
 ) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue] {
+  // This legacy preparation has no same-Request Debug graph construction
+  // reservation. Preserve the intent, but never silently compile Normal.
+  if client_submitted_intent_execution_profile(intent) == Debug {
+    return Err(Pure(DebugProfileUnsupported))
+  }
   try {
     let limits = client_standard_program_preparation_limits()
     let input = source_result(

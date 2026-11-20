@@ -103,3 +103,35 @@ check exact bytes/CIDs, captured inputs/receivers, signature omission, identity
 versus display domains, strict bounds and lightweight Python import. These
 boundaries are separate from normal installation, Host signature admission and
 ordinary funded Checkpoint continuation.
+
+## Review integrity DATA
+
+The pure Common `review_bytes_match_cid` owns the two existing review identity
+forms. Their versions and root self-field come from the registered Model and
+Effect review schemas. The existing generator projects those profiles into the
+small SDK codec; callers delegate rather than selecting a version or removing
+fields themselves. Remote SDK imports require only their existing JSON and
+digest primitives, never a Local Host engine or a sealed Checkpoint issuer.
+
+The complete-byte digest is checked first, preserving legacy review transport
+including non-JSON bytes. The semantic path requires exact canonical UTF-8,
+the original requested self CID and root-only self-field exclusion. Nested
+fields with that name remain in the preimage. Model retains the existing
+identifier-key domain; Effect display DATA preserves exact keys, decomposed
+strings, supplementary scalars and line endings. BOM or whitespace cannot
+become a semantic identity by decoding it away. Unknown versions refuse.
+
+Explicit byte, node and depth limits bound Common parsing and output. SDK
+transport already limits received bytes; the Node caller derives its finite
+structural bound from that extent, and Python retains its existing JSON node
+and depth policy. These are integrity construction bounds, not a new Ledger,
+allocation grant or Run budget. The Node codec copies bounded input bytes
+before its first asynchronous digest so later mutation cannot substitute a
+different original. Python captures the same immutable byte value before
+parsing. Errors return false; they never authorize retrying an approval.
+
+Integrity is DATA only. Host authorization, currentness, retained original
+Checkpoint membership, signatures, cancellation and cleanup remain with their
+original operations. No matching digest supplies any of those facts. Fixed
+preimages and existing public review consumers independently check this
+boundary; successful pure checks do not establish normal Host acceptance.

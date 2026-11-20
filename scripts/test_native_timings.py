@@ -92,9 +92,10 @@ class NativeTimingProtocol(unittest.TestCase):
                         '-Wextra', '-Werror', '-pthread',
                         '-I', str(ROOT / 'src/platform_native/filesystem'),
                         str(ROOT / 'scripts/fixtures/native_timings_protocol.c'),
+                        str(ROOT / 'src/physical_resources/capacity_observation_stub.c'),
                         '-lsqlite3', '-o', str(cls.binary)], check=True, timeout=60)
 
-    def run_protocol(self,mode,selection,acceptance=None):
+    def run_protocol(self,mode,selection,acceptance=None,retain_raw=False):
         env=dict(os.environ);env.pop('ACTQL_NATIVE_TIMINGS',None)
         env.pop('ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS',None)
         if acceptance is not None:env['ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']=acceptance
@@ -104,8 +105,66 @@ class NativeTimingProtocol(unittest.TestCase):
         self.assertEqual(result.stdout,'')
         rows=[]
         for line in result.stderr.splitlines():
-            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END'));rows.append((prefix,json.loads(body)))
-        return rows
+            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END','ACTQL_NATIVE_FILE_CAPACITY'));rows.append((prefix,json.loads(body)))
+        return (rows,result.stderr) if retain_raw else rows
+    def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope(self):
+        for timing, acceptance in ((None,'1'),('1',None),('1','true'),('0','1')):
+            self.assertFalse(any(k=='ACTQL_NATIVE_FILE_CAPACITY' for k,x in
+                                 self.run_protocol('file-capacity',timing,acceptance)))
+        for mode in ('file-capacity','file-capacity-fork'):
+            rows=[x for k,x in self.run_protocol(mode,'1','1') if k=='ACTQL_NATIVE_FILE_CAPACITY']
+            self.assertEqual(rows,[{'phase':12,'scope_ledger_match':True,'compute':True,'requested_execution':80,
+                'task_capacity':50,'limit_execution':400,'reserved_execution':330,
+                'entry_singleton_execution':100,'row_execution':180}])
+        for mode in ('file-capacity-reentry','file-capacity-closed',
+                     'file-capacity-closed-stderr'):
+            self.assertFalse(any(k=='ACTQL_NATIVE_FILE_CAPACITY' for k,x in self.run_protocol(mode,'1','1')))
+
+    def assert_file_capacity_roundtrip(self,mode,expected):
+        rows,raw=self.run_protocol(mode,'1','1',retain_raw=True)
+        self.assertEqual([x for k,x in rows if k=='ACTQL_NATIVE_FILE_CAPACITY'],expected)
+        # Exercise the actual imported tee against the SAME original C bytes,
+        # not a reserialized JSON observation or a Native business actor.
+        module=(ROOT/'scripts/fixtures/native-file-source-queries.mjs').as_uri()
+        code='import{readFileSync}from"node:fs";import{retainNativeFileCapacityStderr}from '+json.dumps(module)+';retainNativeFileCapacityStderr({ACTQL_NATIVE_TIMINGS:"1",ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:"1"},readFileSync(0,"utf8"));'
+        observed=subprocess.run([os.environ.get('ACTQL_TEST_NODE','node'),'--input-type=module','-e',code],input=raw,text=True,capture_output=True,timeout=10)
+        self.assertEqual((observed.returncode,observed.stdout),(0,''))
+        original=''.join(line+'\n' for line in raw.splitlines() if line.startswith('ACTQL_NATIVE_FILE_CAPACITY '))
+        self.assertEqual(observed.stderr,original)
+
+    def test_file_capacity_foreign_success_keeps_same_ledger_refusal(self):
+        self.assert_file_capacity_roundtrip('file-capacity-foreign-success',[
+            {'phase':12,'scope_ledger_match':True,'compute':True,'requested_execution':80,
+             'task_capacity':50,'limit_execution':400,'reserved_execution':330,
+             'entry_singleton_execution':100,'row_execution':180}])
+
+    def test_file_capacity_foreign_refusal_has_actual_issuer_and_no_role_attribution(self):
+        self.assert_file_capacity_roundtrip('file-capacity-foreign',[
+            {'phase':11,'scope_ledger_match':False,'compute':True,'requested_execution':77,
+             'task_capacity':-1,'limit_execution':900,'reserved_execution':850,
+             'entry_singleton_execution':-1,'row_execution':-1}])
+
+    def test_file_capacity_nested_work_declines_before_same_ledger_refusal(self):
+        self.assert_file_capacity_roundtrip('file-capacity-reentry',[])
+
+    def test_file_capacity_window_without_observed_task_is_unmeasured_not_zero(self):
+        rows=[x for k,x in self.run_protocol('file-capacity-window','1','1')
+              if k=='ACTQL_NATIVE_FILE_CAPACITY']
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['phase'],15)
+        self.assertEqual(rows[0]['task_capacity'],-1)
+        self.assertEqual(rows[0]['row_execution'],180)
+
+    def test_file_capacity_standalone_core_has_no_filesystem_link_dependency(self):
+        source=Path(self.temporary.name)/'standalone.c'
+        source.write_text('#include <stdint.h>\n#include <errno.h>\n#include <assert.h>\nextern void actql_resource_capacity_observation(const void*,int32_t,int32_t,int64_t,int64_t,int64_t,int64_t);\nint main(void) { int ledger; errno=EDOM; actql_resource_capacity_observation(&ledger,10,0,1,0,0,0); assert(errno==EDOM); return 0; }\n')
+        binary=Path(self.temporary.name)/'standalone'
+        subprocess.run([os.environ.get('CC','cc'),'-std=c11','-Wall','-Wextra','-Werror',
+            str(source),str(ROOT/'src/physical_resources/capacity_observation_stub.c'),
+            '-o',str(binary)],check=True,timeout=60)
+        result=subprocess.run([str(binary)],capture_output=True,timeout=10)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
+
     def test_acceptance_is_opt_in_bounded_metadata_with_owned_original_identity(self):
         for selection in (None,'0','true','01'):
             rows=self.run_protocol('acceptance','1',selection)

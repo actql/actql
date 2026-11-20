@@ -5,6 +5,7 @@ struct NativeLocalPackagedRuntime {
   mut manifest : @host.ClientNativeLocalRuntime?
   mut assets : @host.ClientLocalProductAssets?
   mut installed_contracts : @local.ClientInstalledSequenceContracts?
+  mut query_contracts : (String, String)?
   roots : Array[@filesystem.Root]
   directories : Array[@filesystem.NativeDirectoryObservation]
   witnesses : Array[@filesystem.NativeFileObservation]
@@ -173,6 +174,7 @@ fn local_runtime_empty(
     manifest: None,
     assets: None,
     installed_contracts: None,
+    query_contracts: None,
     roots: [],
     directories: [],
     witnesses: [],
@@ -581,6 +583,12 @@ fn local_runtime_capture(
     }
     runtime.assets = Some(assets)
     runtime.installed_contracts = Some(installed_contracts)
+    runtime.query_contracts = match
+      (bodies.get("query"), bodies.get("query-evidence")) {
+      (Some(query), Some(evidence)) => Some((query, evidence))
+      (None, None) => None
+      _ => local_runtime_stop(InvalidManifest)
+    }
     runtime.ready = true
     match runtime.local_runtime_check_originals() {
       Ok(_) => Ok(runtime)
@@ -823,6 +831,21 @@ pub fn NativeLocalPackagedRuntime::installed_assets(
 }
 
 ///|
+/// Optional original Query protocol members of this SAME physical Runtime.
+/// No default body or repository lookup substitutes for a missing old profile.
+/// The strings remain borrowed immutable DATA, not Source/Account authority.
+pub fn NativeLocalPackagedRuntime::query_contract_assets(
+  self : NativeLocalPackagedRuntime,
+) -> Result[(String, String)?, NativeLocalPackagedRuntimeIssue] {
+  match local_runtime_read_begin(self) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let result = self.local_runtime_require_live().map(_ => self.query_contracts)
+  local_runtime_read_finish(self, result)
+}
+
+///|
 pub fn NativeLocalPackagedRuntime::library_paths(
   self : NativeLocalPackagedRuntime,
 ) -> Result[(String, String), NativeLocalPackagedRuntimeIssue] {
@@ -908,6 +931,7 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self.manifest = None
   self.assets = None
   self.installed_contracts = None
+  self.query_contracts = None
   self.selection = None
   self.product = None
   self.sqlite = ""

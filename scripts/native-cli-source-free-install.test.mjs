@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {nativeFileSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
+import {spawnSync} from 'node:child_process';
+import {nativeFileSourceQueries, nativeReadonlyMockQueries, nativeInstalledSourceQueries, observeNativeFileSourceQuery,
+  nativeFileSourceQueryEnvironment, retainNativeFileCapacityStderr} from './fixtures/native-file-source-queries.mjs';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
 import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
+  withInstalledFileCapacityObservations,
   observeNativeNumericScale, verifyNativeNumericRows, prepareNativeNumericOperator,
   observeNativeNumericOperatorScale, nativeResourceShapeFixtures, verifyNativeResourceRows,
   observeNativeResourceOperatorShapes, requireNativeSourceFreeWorkCounts, observeNativeSourceFreeCommand}
@@ -853,7 +856,7 @@ async function fileQueryHarness(t, {name='projection', rows=[{trend:'flat'},{tre
   stop, changeInput=false, throwOriginal=false, runnable=true}={}) {
   const parent=await mkdtemp(join(tmpdir(),'actql-file-query-harness-'));
   t.after(()=>rm(parent,{recursive:true,force:true}));
-  const fixture=nativeFileSourceQueries.find(value=>value.name===name),calls=[];
+  const fixture=nativeInstalledSourceQueries.find(value=>value.name===name),calls=[];
   const originalError=new Error('original CLI port failure');
   const data=JSON.stringify({snowflake:{usage_30d:{rows:[
     {account_id:'001Acme',active_users:4,trend:'down'},
@@ -934,4 +937,76 @@ test('original File query failure and changed input retain the same primary sepa
   await assert.rejects(actor.observe(),error=>error instanceof AggregateError&&
     error.errors[0]===actor.originalError&&error.errors.length===2);
   assert.equal(actor.calls.filter(value=>value.args[0]==='sql').length,1);
+});
+
+// Explicit CLI ports verify only fixture transport/full-row oracles. They do
+// not simulate a Native reader or qualify the unbuilt Source continuation.
+test('read-only Mock Query fixtures retain full rows and one original submission',async t=>{
+  for(const fixture of nativeReadonlyMockQueries){
+    const actor=await fileQueryHarness(t,{name:fixture.name,rows:fixture.rows});
+    const result=await actor.observe();
+    assert.deepEqual(result.rows,fixture.rows);
+    assert.deepEqual(actor.calls.map(call=>call.args[0]),['init','check','sql']);
+    assert.equal(actor.calls.filter(call=>call.args[0]==='sql').length,1);
+  }
+});
+
+
+test('installed File capacity metadata scope preserves original return failure and environment', async () => {
+  for (const original of [{}, {ACTQL_NATIVE_TIMINGS: '0', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: 'false'}]) {
+    const environment = {...original, PATH: '/unchanged', ACTQL_NATIVE_MAX_EXECUTION_BYTES: 'hostile'};
+    const before = {...environment};
+    const primary = new Error('original installed child failure');
+    await assert.rejects(withInstalledFileCapacityObservations(environment, () => {
+      assert.deepEqual(environment, {...before, ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1'});
+      throw primary;
+    }), error => error === primary);
+    assert.deepEqual(environment, before);
+    assert.equal(await withInstalledFileCapacityObservations(environment, () => 17), 17);
+    assert.deepEqual(environment, before);
+  }
+});
+
+test('installed File capacity raw forwarding excludes private text and unselected children', () => {
+  const original = {ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1',
+    PATH: '/foreign', HOME: '/foreign', ACTQL_NATIVE_MAX_EXECUTION_BYTES: '999999',
+    NODE_OPTIONS: '--import=foreign', LD_PRELOAD: '/foreign'};
+  const base = {PATH: '/empty', HOME: '/fresh-home', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'};
+  const numeric = 'ACTQL_NATIVE_FILE_CAPACITY {"phase":12,"scope_ledger_match":true,"compute":true,"requested_execution":80,"task_capacity":50,"limit_execution":400,"reserved_execution":330,"entry_singleton_execution":100,"row_execution":180}\n';
+  const raw = 'private original error control text\n' + numeric + 'original typed refusal\n';
+  for (const fixture of nativeInstalledSourceQueries) for (const args of [['init'], ['check'], ['sql']]) {
+    const environment = nativeFileSourceQueryEnvironment({fixture, args, emptyPath:base.PATH,
+      home:base.HOME, environment:original});
+    const selected = fixture.name === 'readonly-filter' && args[0] === 'sql';
+    assert.deepEqual(environment, selected ? {...base, ACTQL_NATIVE_TIMINGS:'1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1'} : base);
+    const retained=[];
+    retainNativeFileCapacityStderr(environment, raw, body => retained.push(body));
+    assert.deepEqual(retained, selected ? [numeric] : []);
+    assert.doesNotThrow(() => retainNativeFileCapacityStderr(environment, raw, () => {throw new Error('closed diagnostic writer');}));
+  }
+  const diagnostic = {ACTQL_NATIVE_TIMINGS:'1',ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1'};
+  const helper = new URL('./fixtures/native-file-source-queries.mjs',import.meta.url).href;
+  const observed = spawnSync(process.execPath,['--input-type=module','-e',
+    `import{retainNativeFileCapacityStderr}from ${JSON.stringify(helper)};retainNativeFileCapacityStderr(${JSON.stringify(diagnostic)},${JSON.stringify(raw)});`],
+    {encoding:'utf8',timeout:5000,maxBuffer:65536});
+  assert.ifError(observed.error);assert.equal(observed.signal,null);assert.equal(observed.status,0);
+  assert.equal(observed.stdout,'');assert.equal(observed.stderr,numeric);
+  for(const unmeasured of [numeric.slice(0,-1),numeric+numeric,numeric.replace('\"phase\":12','\"privatePayload\":12')]) {
+    const retained=[];retainNativeFileCapacityStderr(diagnostic,unmeasured,body=>retained.push(body));
+    assert.deepEqual(retained,[]);
+  }
+  const foreign = numeric.replace('"scope_ledger_match":true','"scope_ledger_match":false')
+    .replace('"task_capacity":50','"task_capacity":-1')
+    .replace('"entry_singleton_execution":100','"entry_singleton_execution":-1')
+    .replace('"row_execution":180','"row_execution":-1');
+  const retained=[];retainNativeFileCapacityStderr(diagnostic,foreign,body=>retained.push(body));
+  assert.deepEqual(retained,[foreign]);
+  for(const invalid of [numeric.replace('"scope_ledger_match":true,',''),
+    numeric.replace('"scope_ledger_match":true','"scope_ledger_match":false'),
+    foreign.replace('"row_execution":-1','"row_execution":0')]) {
+    const rejected=[];retainNativeFileCapacityStderr(diagnostic,invalid,body=>rejected.push(body));assert.deepEqual(rejected,[]);
+  }
+  const fixture = nativeReadonlyMockQueries.find(value => value.name === 'readonly-filter');
+  for (const environment of [{}, {ACTQL_NATIVE_TIMINGS:'1'}, {ACTQL_NATIVE_TIMINGS:'1',ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'true'}])
+    assert.deepEqual(nativeFileSourceQueryEnvironment({fixture,args:['sql'],emptyPath:base.PATH,home:base.HOME,environment}),base);
 });

@@ -877,7 +877,7 @@ pub fn NativeLocalHostConnection::bind_run_policy_profile_for_read(
     Err(issue) => return Err(issue)
   }
   let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
-  let selection = match admit_native_local_read_selection(wire) {
+  let selection = match admit_native_local_read_purpose(wire) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }

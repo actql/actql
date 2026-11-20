@@ -20,6 +20,7 @@ class LocalProductAssemblyTests(unittest.TestCase):
         # drive transport only; they do not prove actual Account admission.
         core, calls = installation_fixture.OriginalLocalInstallationTests().core()
         core._retired = False
+        core._invoking = False
         core._store = core._linker = core._module = core._engine = None
         core._native_observers = {}
         core._native_loans = {}

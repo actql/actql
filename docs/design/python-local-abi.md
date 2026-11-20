@@ -80,6 +80,21 @@ same submitted ready row as its original Run admission. The accepted Run/control
 revision remains separate. Historical marker absence remains unavailable; it is
 never interpreted as a new zero counter during lookup or restoration.
 
+The same Common saved-state Owner also admits unpublished metadata. Its private
+envelope retains `manifest: null` instead of fabricating a successful Manifest;
+the existing succeeded envelope and all its bytes remain unchanged. The closed
+RunState still carries its real observation revision, original Run identity and
+bounded unavailable/not-published Result entries. A Manifest getter therefore
+returns an optional original, and Native Result/availability consumers require
+the actual Manifest before reading Store-backed Result material.
+
+Unpublished metadata uses the same original-row CAS, exact successor readback,
+clock-independent observation key and terminal-outcome immutability. These
+constructors validate DATA; they do not establish cancellation, physical stop or
+cleanup. A live caller must obtain those observations from its same managed
+execution and physical Owners before selecting a terminal state. Restoring the
+saved metadata neither reconstructs executable work nor issues a replacement Run.
+
 The Wasm SDK observation port uses the original complete stored publication,
 current Run-read authority and current Sealed payload/reader bindings. The
 retention Owner independently selects availability. These observations create no
@@ -3270,6 +3285,227 @@ acknowledgments. Explicit diagnostic factory limits remain independent.
 
 ### Ordinary Host operation fuel
 
+#### Original cancellation and unpublished state observations
+
+Cancellation append and lookup share the existing Common journal encoding,
+complete census and original Run controller with Native. Python supplies the
+actual SQLite snapshot and atomic write observations. It does not select a
+cancellation outcome, reinterpret an uncertain commit as failure, or issue a
+replacement Run. A lost commit reply retains the same candidate and original
+cause for exact successor readback; lookup never repeats that write.
+
+An unpublished RunState uses the existing Common observation Owner with no
+Manifest. Its observation revision and saved control revision are independent.
+The physical publication observation retains both present rows and confirmed
+absence through the same current snapshot. Actual execution retirement comes
+from the original CapturedDAG and its child cleanup, never an empty Python
+worker list. A saved cancellation may become terminal only after those actual
+stop and retirement observations. The completed publication path retains its
+original Manifest, bytes and permissions.
+
+The state candidate remains retained until the original metadata CAS has been
+read back and both its projection and input have retired. Metadata confirmation
+is not physical execution or business acknowledgment. A partial input close
+keeps the same original input after its output has retired; a copied output
+cannot complete that cleanup. An uncertain write cannot be replaced by a fresh
+state preparation. Cold status reads only the saved originals, with no prepare,
+lowering, dispatch or authorization renewal.
+
+#### Confirmed cancellation stop interest
+
+The existing cancellation projection exposes stop interest only after its same
+original candidate has been confirmed. Core binds the projection to the same
+nominal Run, configuration, Request and Definition, rechecks current authority,
+and freshly reads its exact Run and cancellation rows. An accepted original
+retained through uncertain-COMMIT readback is eligible too. No-plan,
+already-requested and already-terminal records select no stop; pending, absent
+or foreign originals retain their existing refusals. The observation performs
+two point reads at this control boundary, not namespace inventories per quantum.
+
+Python dispatches that observation to the same retained physical invocation
+before closing the projection. Confirmation, dispatch and the next normal
+task-drive gate hold the same Core lock. A control handoff releases that lock
+before waiting and rechecks the original invocation after reacquiring it. No
+stale outside-lock flag authorizes another quantum. The gate selects the
+already-entered physical worker with its original thread, Host, Run and owner
+checks; it does not search unrelated work history. No thread join occurs while
+holding the Core/Store locks.
+
+A pending cancellation projection retains the bounded original cancellation
+locator captured with it. Lookup may confirm, dispatch and consume that pending
+projection only when its Run reference, cancellation id and expected revision
+match that same locator. An unrelated lookup returns its own checked view and
+leaves the pending original untouched. The locator is routing DATA only: the
+same Core projection, nominal Run and fresh current/row checks still decide
+stop interest. Failed projection close retains that association and its original
+cleanup duty; no lookup resends the cancellation write.
+
+Stop interest is neither permission to work nor a cancellation outcome. The
+private invocation signal only selects existing Compute sealing and original
+child retirement. Other Core refusals, including `-35`, remain errors; original
+cleanup failures and pending loans remain retained. Only the existing Common
+unpublished-state Owner, with its actual stop and cleanup observations, can
+report terminal cancellation. Closing the projection or observing a completed
+Python Future supplies no such acknowledgment.
+
+Managed task custody records successful settlement only after the original
+operation returns success. Later close still observes actual physical stop and
+the original cleanup port, but does not repeat settlement after that execution
+has already retired. Failed settlement retains its original task and first
+cleanup issue; completed DATA alone is neither stop nor cleanup acknowledgment.
+
+The original publisher Request and final Commit stages reobserve the same saved
+SDK start claim. Final validation runs in the existing `BEGIN IMMEDIATE` write
+transaction, through that transaction's original namespace reader. The Core and
+Store locks span projection, final current/claim validation and physical COMMIT;
+another SQLite writer cannot change the saved claim between validation and that
+commit. Pure publication projections do not acquire a hidden journal reader.
+ReturnCommitted and original pending-confirmation lookup retain their separate
+read path and cannot authorize a replacement write.
+
+After a post-task refusal, the worker seals its same Compute and uses the same
+physical publication-child close sequence as whole-Host cleanup. Selection uses
+the original Run/publication objects, never equal serialized DATA. Result and
+task loans retire only after their actual children return. An already-begun
+publication write instead keeps its original Compute, projection, publisher and
+first failure for lookup; cleanup does not turn uncertainty into a new write,
+false failure or acknowledgment.
+
+An admitted background invocation retains its original operation allowance and
+observation generation after the submitting coroutine returns or is cancelled.
+Same-Run control calls borrow that exact allowance under the same Core lock;
+they do not start a replacement operation or replenish fuel. Nominal worker
+custody and the independently retained original Run reference locate this path.
+The existing Account and complete journal validators still authorize each call.
+
+If the trusted fresh CPython thread constructor rejects creation before any
+child identity exists, the same worker returns only its retained operation
+scope. It preserves the original startup failure and does not refill fuel or
+acknowledge task cleanup. A failed atomic handoff removes its uninvoked Host
+entry. If a child exists, or creation is uncertain, the same physical Future,
+Core and allowance remain retained; a caller-visible startup error does not
+prevent an already-admitted Run from executing. Actual worker exit still
+returns that custody, and no startup path retries or issues another Run.
+
+Managed task driving returns its physical reader and Core lock after each bounded
+quantum. A saved cancellation invalidates the original start claim before any
+later normal quantum. The worker retires the same task operations on refusal;
+physical stop, original execution settlement and cleanup remain separate checks.
+Only an advancing original finite cleanup cursor permits further local cleanup
+steps. An external or unchanged pending cursor retains the original task without
+spinning, replacing the primary cause or acquiring another operation allowance.
+
+Private ABI88 task progress field5 also returns its existing `-1` sentinel for
+a valid, nonpending reserved task that has no provider operations. Reservation
+or a refused start can leave this original state. It means there is no local
+provider continuation, not that the task stopped or released its resources.
+The same close operation still checks dependent-task and Result pins and alone
+acknowledges task retirement. Missing or pending originals retain `-33`; field4
+and normal advance/current/cancellation checks are unchanged.
+
+Private task progress fields6/7 are optional failure diagnostics under the same
+instance/task/nonpending lookup. They are a **post-close current snapshot**,
+never an authenticated last-close arm. Field6 observes existing stored state:
+`0` not closing, `1` a Result-export pin, `2` a dependent-task pin, `3` no
+operations, `4` unsettled operations with the stop-versus-settle reason
+unlocalized, and `5` settled operations still retained. It invokes no operation,
+current callback or cleanup refresh. A missing or pending original remains
+`-33`. Field7 separately projects the retained typed cleanup issue through the
+same closed `71..83` classifier as the Managed branch of task issue (`0` when
+absent); task issue continues to project only the original execution issue.
+Neither getter clears, formats or replaces either original cause.
+
+These scalar observations add no StoredManagedTask field, closure, persistent
+reference, export signature, reservation or allowance. Common reads existing
+bounded inventories and returns integers; Native and NormalNone construction
+retain their existing layouts and quotes. The optional CI caller bounds its
+temporary diagnostic list to16 samples and the existing64KiB output limit,
+samples only after the original pending close returns on the same worker while
+its outer retirement lock and original operation allowance remain held. It
+refuses guest reentry, creates no operation scope and never refills fuel.
+The worker returns its scope before completing its Future; reporting then reads
+only the bounded saved scalars through a nonowning original-work association.
+The optional profiler restores both original profile hooks on every exit. Its
+evidence does not authorize another close, guest advance, fuel refill, outcome
+or physical acknowledgment. Only the
+failed installed sync cancellation initial case selects this observation;
+observation refusal/failure preserves the exact primary and first close.
+
+Result export and publication preparation use the same bounded read-step owner.
+Each feed or advance keeps its existing 256-work quantum and original cursor,
+but ends its current frame and Store reader before releasing the Core lock.
+Chunk and publication loans are retained before fallible production or
+post-current checks. Their explicit return uses the same token; a declined
+return leaves cleanup pending. Payload CAS, final validation, physical COMMIT
+and uncertain-write lookup retain their existing atomic boundaries.
+
+Asynchronous operation entrances wait for that original reentrant lock using a
+nonblocking attempt followed by a cancellable one-millisecond suspension. No
+executor acquires a thread-owned lock on the caller's behalf, and no callback
+queue or replacement operation is created. After acquisition the same thread
+checks the live Host and performs the synchronous operation body; every exit,
+including a `BaseException`, releases the lock before any further await. The
+same-Run operation allowance and original-reference selection rules are
+unchanged. This gives lock waiters an event-loop suspension, not a fairness,
+wall-clock latency or performance guarantee for arbitrary foreign callbacks.
+
+Unlocking alone does not give a polling control waiter a turn before a worker
+immediately reacquires the lock. The same physical `OriginalLocalWork` therefore
+owns one Condition and a scalar registered-waiter count beside its existing
+Thread/Future. These fixed thread-coordination objects use the existing trusted
+Host overhead; they contain no per-request list, command log, grant or row DATA.
+An asynchronous control attempt registers scheduling interest before waiting
+for Core. Reference, Account, original-work scope and journal validation still
+run under the existing Core owner; registration grants none of them.
+
+After a successful bounded read step, only that original worker checks the
+Condition, outside Core, reader and Store locks. It waits while registered
+control attempts remain. Withdrawal and the test/wait use the same Condition;
+withdrawal before entry sees zero, and withdrawal after waiting notifies the
+worker. Every control exit, including cancellation before Core acquisition and
+`BaseException` after it, withdraws its count in `finally` after releasing Core.
+There is no worker sleep when no control is waiting and no event-loop callback
+queue. Host close continues to observe the actual worker; a pending turn or
+notification is neither physical stop nor cleanup ACK. This finite handoff is
+for these existing safe points, not a durable Run scheduler or global latency
+guarantee. Failed producer steps retain their original exception and existing
+cleanup path; they do not wait while holding a reader or any parent lock.
+
+#### Common-owned bounded task driving
+
+The private ABI 88 `actql_task_drive` entry derives one next action from the
+existing retained managed task. It reuses the original activation, input feed,
+execution advance, finalization and completion operations. There is no second
+phase variable, scheduler, task Owner or instruction allowance. One call performs
+at most one bounded work action; startup and phase-entry checks do not run a
+second work quantum. Completed output stays on the same task until its original
+Result and cleanup loans retire.
+
+Python asks for that continuation under a fresh original reader and returns the
+reader and Core lock before asking again. It no longer chooses the lifecycle
+sequence. Waiting and settlement remain on their original Common progress record.
+The scalar result exposes the physical pause boundary; this Python profile keeps
+its explicit unavailable-port refusal instead of spinning, inventing a resume or
+publishing a Run outcome. Closing, cancellation and failed retirement keep the
+same task, first failure, finite operation fuel and physical cleanup duties.
+
+During pre-publication Result selection, the same local Result array retains
+each original before the reader's post-current check. If that check or a later
+constructor fails, cleanup seals the original Compute, returns only those
+selected exports, then retires their original tasks. A declined or throwing
+child close retains its child and producer custody and never replaces the
+initiating failure. The existing array and allowance are reused; no separate
+registry, owner or successful-publication retirement is introduced. Once a
+publication pins those exports, its existing child and reader lifetimes still
+govern their later close.
+
+Native continues through its existing Common guarded runner. Node's asynchronous
+pause, snapshot and carrier callbacks remain distinct physical integration points;
+the Wasm entry is not a replacement Node scheduler or a requirement to execute
+Native through Wasm. The private signature/version change requires matching
+generated Python/C declarations and an actual matching Core. Package versions,
+Client wire fields and the frozen excluded Rust projection are unchanged.
+
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
 outer Host operation has a finite 32,000,000,000-instruction allowance so that
@@ -3431,6 +3667,24 @@ Temporary SQL encoding, the bounded reader admission closures and invocation
 metadata are included in the original current transfer allowance. The original
 publisher port and its bound callbacks are included in its own allowance. SQLite
 and other workspace reservations remain separate.
+
+#### Synchronous cleanup and other-thread quanta
+
+The existing Core lock encloses the complete synchronous cleanup frame, from
+its depth/fuel observation through the original close and final depth return.
+A retained worker cannot enter an ordinary quantum while another thread has
+only marked cleanup interest but has not entered its close body. Actual cleanup
+still selects full checks, and callback reentry still poisons the original
+invocation. This does not turn a pending close, completed Future or waiter
+cancellation into physical stop, nor refresh the retained operation's fuel.
+
+No await, worker join or future wait belongs inside that frame. The four
+production close callers enter synchronous originals that already serialize
+their Core work; Host close observes stopped workers without waiting for them
+under the lock. The SDK chunk generator's asynchronous finalizer merely returns
+its reading flag outside the cleanup frame. Its actual payload/Store/parent
+retirement remains the separate synchronous close, including Unknown and
+pending-child retention.
 
 ### Original observation data within one Host operation
 
@@ -3971,3 +4225,359 @@ not be promoted to installed-image, durable approval, Saved or normal acceptance
 The diagnostic ABI cases use real Wasmtime VM/Root/buffers with explicit
 physical-reader stop and cleanup ports; those ports are not a provider's live
 reader or physical-stop proof.
+
+### Immutable SDK Run row validation
+
+The existing Run may retain one result of its exact pure journal-row decoder and
+SDK structural validator. This is codec DATA under the same Run, not a saved
+inventory, current Account, publication grant or physical-start acknowledgement.
+Every task/start/material boundary still performs fresh physical reads and
+current/authorization checks, including cancellation inspection. Namespace
+admission, initial start confirmation, cold recovery and legacy lookup retain
+their complete inventories. An already confirmed live SDK continuation uses
+the narrower original-row boundary below; it does not claim an inventory audit.
+Reuse requires the same selected Run key, physical revision and complete row
+bytes. Changed, foreign or missing observations use the original full validation
+or refusal; a previous successful result never supplies a missing physical row.
+
+The nominal decoder result can also avoid re-admitting those identical bytes in
+nested saved-row/publication validators. Their original Plan/preparation,
+submitted-row, revision, monotonic flag, policy, current and publication-binding
+checks still execute. Construction observers retain their complete invocation;
+when one is selected, the decoder performs its original parse and handoff rather
+than claiming that an older constructor ran. Other callers retain the unchanged
+full decoder by default. No public reference, wire field, ABI number or permission
+is added by this pure retention token.
+
+The same existing Root Ledger reserves row/text/record retention and bounded
+parser/encoder scratch before the cell is constructed. The selected decoder's
+existing byte/node/depth bounds determine that geometry; they do not grant more
+capacity. Only one cell is retained. Replacement first disposes the old pure cell
+and settles its token. A failed constructor keeps its reservation reachable;
+success releases temporary scratch while retaining the immutable result's charge.
+The original Run close refuses while its existing children remain and then
+settles this cell before returning the original input borrow. It does not
+acknowledge physical work, cancel a Run, clear a trap or reset fuel.
+
+### One-read outer Run decoding
+
+One original journal inspection may retain pure outer Run decoder tuples for
+identical physical namespace, key, revision and complete bytes. This storage
+belongs to its existing journal child and expires with that read frame. It is
+not a saved inventory, current Account, grant, COMMIT acknowledgement or permission
+to issue work. Every physical scan/read, original relationship and mutable
+current/Account/cancellation gate still executes. The SDK Policy, evidence and
+unsupported-Effect validator also runs on every tuple reuse. A different frame,
+transaction, row or decoder purpose cannot consume the retained tuple.
+
+The existing Root Ledger admits the actual cold request/Definition and row
+constructor geometry, linked-cell storage and distinct fresh selected-row copy
+before retention. The logical geometry is shared with the Native codec;
+Native raw allocation/layout bounds remain target-specific. Extra outer-decoder
+retention capacity is optional: unavailable capacity takes the original complete
+outer decoder path, without raising a cap, granting an allowance or trusting a
+record count. This does not fund the nested evidence constructors described below.
+No Array/Map backing is inferred from the journal's maximum record count.
+
+All unrelated frame cells and temporary construction capacity retire on exit.
+The selected tuple may back the returned saved observation, so its original
+reservation moves to the same journal child's outcome before other cells are
+released. That backing survives until the child's original close. It cannot be
+reused by another inspection. Errors, traps and failed settlement keep the exact
+pending tokens reachable under that child, and preserve the initiating failure.
+Close first projects any successful observation to debt-only state in a separate
+function-return boundary, so no successful payload still aliases backing when
+settlement begins. If interruption occurs after trusted settlement but before
+unlink, only that exact opaque token's same-Ledger `ClosedReservation` together
+with its actual spent state permits disposal to continue. A foreign token,
+false coverage result or another refusal is not acknowledgement. Row debt
+retires while the frame's controller reservation remains open. A second helper
+return then drops the frame, retaining only its exact capacity token and original
+error before that controller token is settled. A completed controller settlement
+therefore cannot leave a reachable frame over a pending physical close. Buffer
+close still requires the original physical cleanup; pending close retains only
+the scalar initiating error, without successful payload or decoder frame.
+No new public wire, ABI export, resource Owner or physical cleanup ACK is issued.
+
+### Same-frame typed observation originals
+
+The same row cell may additionally retain the actual prepared-invocation and
+Run-authorization values restored from its original observation envelope. These
+are immutable metadata, not a saved Allow/current decision or a validation result.
+Only the identical live frame, physical namespace, key, revision and complete row
+bytes can reuse them. The SDK validator still checks local policy first, then
+the unsupported Checkpoint/Effect guard, original Definition correspondence and
+publication policy. Physical reads, Request/Plan relationships, Activation,
+Account, inventory, cancellation and current checks remain with their original
+callers; none is supplied by this cell.
+
+A present envelope without retained originals requires its constructor peak on
+the SAME row reservation. The `run_publication` admission inventory composes the
+nonpreserving Source grammar, Canonical normalization and complete/self-CID
+canonical forests, shape validation, hash/text writers, both serializer stacks
+and fixed carriers. The Host adds the preserving envelope, BOTH full child peaks,
+the bounded actual-backing measurement workspace and its original slot/closure/
+error carriers. These quantities coexist with the original parent, input/output
+and frame holdings; they do not borrow unused outer-row scratch or another Root.
+Missing cell, missing quote or refused growth carries a resource refusal through
+the fresh SDK prefix and stops at the original observation-constructor stage,
+before calling the constructor. No-envelope and already-retained hits need no
+new constructor peak. A standalone quote fitting a profile does not establish
+that a complete Host's simultaneous holdings can be admitted.
+
+Both actual evidence values remain covered while their canonical arrays and
+spare backing are measured. Successful inspection retains that measured backing
+under the same cell/token; the constructor helper returns before scratch shrinks.
+An error after evidence construction keeps its original error and funded debt
+reachable for cleanup. At frame disposal, a separate drop helper removes every
+selected and foreign nested metadata alias and returns before any shrink or
+settlement. The selected outer tuple may retain its existing saved-observation
+backing, but nested metadata cannot escape into that outcome or another read.
+The original physical cleanup and token-only pending-close rules above remain.
+
+### Live SDK continuation currentness
+
+Only the same live Instance/Run/Plan with its original physical-start claim may
+use the continuation boundary. It follows the already retained publication and
+submitted-row handles rather than searching unrelated in-instance materials.
+Every protected task selection and lifecycle step freshly reads the complete
+original Submission, Run and task-material rows through the original current
+Store ticket. The original Plan/preparation, task material, request/intent,
+publication binding, claim key, exact successor revision and complete claim body
+must still match. A cancelled, changed, foreign or missing target refuses; it
+never falls through to Append, preparation, another start or resend.
+
+Host/settings/epoch/Account and reader currentness remain checked around each
+physical transfer and before returning, with fresh Activation authorization.
+Their existing adoption scans are distinct from the unrelated Run/task/Effect/
+cancellation census. No previous successful current result becomes permission.
+The cold/restored branch continues through the original complete inventory path.
+
+This split adds no retained reference, cache, callback or reservation owner.
+Transient reference decoding remains inside the existing submission input and
+material allowance. The same Run's pure row decoder original still requires its
+existing charged reservation before construction or reuse, and remains subject
+to the original child-first cleanup. A failed or pending operation keeps its
+original cause and cleanup duty; refusal is not physical-stop acknowledgement.
+
+
+### Fresh task-material validation
+
+Each task-material read still observes the original four bounded physical chunk
+positions in the same caller-owned transaction. Missing, foreign, revised,
+malformed, extra or noncanonical chunks refuse through the existing error path.
+The unchanged logical bound is 262144 bytes and each physical row is bounded at
+131072 bytes. Raw UTF8 bytes, including decomposed text and line endings, remain
+the SHA256 preimage; neither normalization nor another CID domain is introduced.
+
+For full validation within one fresh read, the reader encodes the assembled wire once, computes
+its CID once and constructs the canonical chunks from that same byte vector.
+Its private result passes those already checked chunks to the enclosing complete
+inventory instead of reconstructing them. A later reader starts again from its
+own physical observations. Full table scans, cancellation inspection, nested Run
+validation and current callbacks remain mandatory. No inventory, physical row,
+authority or earlier successful read is reused across calls.
+
+The existing material and Run construction purposes cover these synchronous
+values. The private tuple carries references to the already constructed wire and
+chunks; it adds no retained cell, capacity reservation or asynchronous owner.
+The byte vector and checked chunk array remain confined to the existing read and
+inventory call. Redundant encodings, hashes and chunk reconstructions are removed;
+no input limit, fuel, execution quantum or admitted capacity is increased. The
+original before-construction callbacks and physical current fences still run,
+and constructor refusal prevents subsequent material reads. Public signatures,
+wire bodies, error precedence and cleanup obligations are unchanged.
+
+
+### Same Run task-material original
+
+The original material capture keeps exactly one record with its existing five
+fields: Plan, wire, CID, canonical chunks and publication-policy originals.
+The shared codec owns that same generic record; Local Run uses a type alias,
+without a wrapper, new Run field, retained callback or second cache. Its original
+material/Run purposes, constructor backing and cleanup lifetime remain the same.
+The synchronous policy callback runs after the original extent, hash and chunk
+checks and is never retained. This move adds no resident record or reference
+slots to the original shape and increases no capacity, input bound or fuel.
+
+The generic codec records pure wire correspondence only. Its owner parameter
+does not certify arbitrary Plan/wire DATA. The Local Run capture still generates
+the wire from its exact admitted Plan, and every existing Plan/preparation,
+policy, submitted-row and reference relationship check remains mandatory.
+The Wasm caller selects only its same Run's produced, non-closing kind-6 material
+through the existing nominal rows and preparation checks. Closing or missing
+material cannot provide an earlier successful original.
+
+Every valid reobservation still performs all four fresh physical chunk reads,
+including their original current/error callbacks. It checks each key, revision,
+extent and UTF8 body, and compares the full assembled wire, CID and ordered chunk
+layout to that original. Only a complete match skips another hash and canonical
+chunk reconstruction. Changed, foreign or absent originals fall through the
+same full validator; they do not replace or renew the captured value. Complete
+inventories, cancellation inspection, resource constructors and subsequent
+relation checks still execute. An exact match is never cached inventory,
+authorization, currentness or physical cleanup acknowledgement.
+
+The checked chunk array stays private to the Common reader/inventory call.
+The submitted-intent append decision also forwards that same optional original
+into its early `Retained` read, before the append-only callback can be reached.
+The compatibility entrance supplies no original and keeps the complete cold
+reader. This connection adds no resident field, allowance or scalar ABI export.
+Public chunk projection retains its original copy behavior. No borrowed memory
+or original escapes its existing synchronous owner. Existing material child
+checks and Run cleanup still control retirement and input-borrow return; a
+pure material match neither starts execution nor closes a trapped instance.
+
+The same worker handoff also follows each original payload copy, physical
+sealing, reader, publication-candidate and Store-observation continuation in the
+explicit start driver. Their existing bounded methods and current/SQLite scopes
+return before the worker checks scheduling interest. The original return value,
+reader/cursor, pending write and full-chain observation stay with their existing
+Owner; no handoff is a close, commit, cancellation or publication acknowledgement.
+Physical I/O and indivisible CAS/COMMIT are not interrupted, and this supplies no
+wall-clock latency bound or fairness promise between unrelated workers.
+
+## Original Run reference routing
+
+The existing retained reference vector is ordered by private canonical bytes
+from its original Core-issued ref DATA and searched by binary probes. It stores the same two-reference record
+and already-accounted sealed `_Input`, without another Map, retained key copy, receipt,
+permission cache or state cache. The existing `canonical_bytes(data_keys=True)`
+replaces the private routing copy/lookup encoding; public `wire_bytes` and the
+original admission remain unchanged. Field order is not reference identity and
+no reference values or identity preimages are rewritten. Core accepts only immutable `bytes` for such
+inputs; the output payload writer requires an exact `_Output`. Supported input
+fill/seal operations do not replace the held Python payload. Registration is
+the only insertion path, and removal preserves order before those source loans
+retire. This invariant concerns supported private methods, not arbitrary Python
+mutation of internal dictionaries.
+
+A probe validates the original input loan. A hit routes only to the same Run;
+the original saved admission, current Account/Store frame and Core ownership
+checks still decide availability. A miss retains the existing saved-reference
+path and never authorizes new preparation or execution. Same-Run reference
+changes and ambiguous references still refuse. Run/input cleanup order remains
+chronological; only the routing aliases are sorted. Registration retains its
+existing linear membership check. Physical-work, saved-admission and projection
+history scans and full resource retirement are separate; this is not an overall
+Host constant-time or memory-retirement claim. The logical growing vector and
+bounded request bytes are unchanged; binary loop/call controls use existing
+fixed Host overhead, without a larger policy or another reservation.
+
+## Successful execution-child retirement
+
+One fixed slotted invoke callable replaces the existing partial/bound-method
+envelope on the same `OriginalLocalWork`. It retains the original Run, existing
+task and Result lists, Compute, preflight, publisher, publication and one
+existing Run-state custody record. No array is copied and no new Run state,
+permission, Ledger or handle domain is issued. Constructors retain each
+original before their post-current or other fallible handoff. Fixed callable
+fields and call frames use the existing trusted Host control overhead;
+variable input and output bodies retain their actual original reservations.
+
+Immutable input copies created by that physical worker, or selected explicitly
+by the existing same-Run public reader, bind the callable in their existing
+cleanup callback at construction. This association selects only original
+in-memory transport for later return; it supplies no physical worker stop or
+current permission. Unrelated inputs are not selected by ticket order or a
+history interval. Result readers and response Buffers keep their existing
+independent ownership.
+
+Retirement requires actual original Thread termination, returned Host operation
+custody, no retained invocation/exit/cleanup failure, and the existing Core
+confirmation of that same Run's SDK saved-state update. Future completion,
+COMMIT, a Python success flag or a caller's cancellation is insufficient. The
+same nominal Run-state output remains charged while Thread stop or a Result
+reader is pending. Repeated ordinary observations reuse that output and perform
+one original confirmation per observation; they do not prepare another update
+or retry its Store write. Actual current/refusal/Unknown leaves the live route
+and existing children retained.
+
+An invocation, exit or cleanup failure excludes that same physical worker from
+success-only child retirement. After the original Core confirmation and reader
+handoff succeed, its SDK state transport follows the prior immediate return
+path instead of remaining live solely for a retirement it cannot take. Both
+output and input still require their real close acknowledgments; a declined or
+thrown return retains the original state custody for whole-Host cleanup. This
+returns no Run, publication or failed worker, changes no saved state, and does
+not acknowledge an uncertain physical write. The next original admission/read
+observation does not inherit an otherwise unnecessary full state output.
+
+After the original current/Store frame has returned and no selected reader is
+active, remove only the original live-reference routing alias. Later public
+operations use the existing independent Saved readers, never a manufactured
+restoration entry or cached read grant. Existing Core close decisions then
+retire the same state output, publication/read children, Result exports, tasks,
+publisher/preflight/invocation and Compute. Only acknowledged originals leave
+their existing inventories. Task cleanup advances only its existing bounded
+continuation, and a pending or thrown return retains the same callable and
+remaining loans for cleanup-only retry. It does not restore the live route,
+replace the initiating failure, refresh consumed work, join a Thread while
+holding a lock, or infer physical ACK from an absent child.
+
+For a fresh private Host submission, the same inert callable begins immediately
+after the original Run reservation. Four fixed reference slots retain its
+observed submission, rows input, physical start and start material before their
+fallible callbacks. The first two are retained during acceptance; the worker
+retains the latter two. The admitted reference is bound only after the existing
+acceptance and registration, before creating its runnable physical Work. A
+partial constructor still leaves every loan on the existing Host inventories;
+an uninvoked worker is not added early as a substitute cleanup owner.
+The physical-start consume callback retains the constructor's same returned
+loan in both its existing Host inventory and the execution record before the
+binding performs any post-current, settings or fence check. A failed post-check
+keeps that original loan and initiating error; confirmation is not attempted.
+
+After the execution children acknowledge, the same record returns physical
+start, start material, publication-binding material, original Journal and rows,
+Run, and its private preparation, in that dependency order. Existing Core
+guards decide each return, including settling the Run's original row capacity.
+Only then may the original submission and its inputs return. Each field or
+inventory alias clears after the corresponding acknowledgment; a retry skips
+already returned nominal handles and retains the same remaining debt and first
+failure. The record and stopped Work remain until the selected parent returns
+complete. No pending write or unpublished-state holder is discarded to force
+that completion, and consumed work/attempts are not refreshed.
+
+Only the preparation created by this private fresh-submission factory is
+selected. A shared preparation borrower, restored Run or pending write blocks
+success retirement. Environment, configuration, installation and other explicit
+holders keep their independent owners. Inputs outside the recorded construction
+set are not globally pruned. Fully bounded long-lived Host history, ordinary
+physical acceptance and separately retained recovery/read operations require
+their own evidence; this finite selected set establishes none of them alone.
+
+#### Local wait readiness
+
+Physical Work termination is not a stable Run observation. Only after the
+existing Common Run-read supplier and its post-current verification return
+may a Local wait select the original worker, exit and cleanup causes without
+formatting or replacing them. Saved admission/Activation or nominal publication
+binding alone is not Run-read authority. Only Common's exact
+observation accepted by the unchanged generated `valid_run_wait` predicate may
+be attached as a wait response, including saved and published observations.
+Status retains its separate nonstable observation route.
+
+There is no generic unpublished cleanup wakeup supplier in this assembly. A
+valid nonstable observation therefore refuses the unavailable wait condition
+in one finite turn; it does not imply terminal state or start a polling loop.
+Original metadata CAS/Unknown and partial-close custody remain with the same
+Host owners. The observation releases its Core/current scopes before any
+await; coroutine cancellation does not cancel the physical worker or Run.
+Explicit Host cleanup remains available for the same retained originals.
+
+A lost publication COMMIT reply is not an irrevocable Run failure. The existing
+pending-publication exception guard retains at most one fixed four-reference
+association on the original Execution: projection, publisher, exact reply-loss
+exception and exact cleanup marker that only blocked on that pending write.
+This is cause/custody correlation, not a resolution, read grant or ACK cache.
+
+Only after the same published-state supplier completes full original
+Core/Store index readback and protected Run-read/post-current checks may a wait
+use that committed observation without rethrowing those two correlated objects.
+The same Store, projection, publisher, Future exception and blocker identities
+must still match. An action name, disappearance of pending state, error type or
+`succeeded` DATA alone is insufficient. Unpublished observations, unfinished or
+denied readback, independent exit errors and different cleanup causes retain
+their refusal. The Future, exceptions and actual child/parent cleanup loans are
+not cleared or acknowledged by delivering this observation.

@@ -5,22 +5,39 @@ import {fail} from './errors.mjs';
 import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape,
   validWirePlanViewShape} from '@actql/client-wire';
 
-export function createPlan(connection, exchange, responseValue) {
+export function createPlan(connection, exchange, responseValue, withStaticPreparation, sourcePreparation) {
   const selected = {wire: connection};
   return {
-    plan: async (input, options = {}) => {
+    plan: (input, originalOptions) => withStaticPreparation(
+      typeof input === 'string' ? 'aql' : 'program', input, originalOptions, async producer => {
+      const options = originalOptions === undefined ? {} : originalOptions;
       const kind = options.kind ?? (typeof input === 'string' ? 'aql' : 'program');
-      const body = snapshotClientRequest({kind,
+      const original = {kind,
         input: kind === 'aql' ? {text: input, format: options.format ?? 'aql-text',
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})} : input,
         parameters: options.parameters ?? null,
         maxWireBytes: options.maxWireBytes ?? 65536,
-        maxNodes: options.maxNodes ?? 10000, maxDepth: options.maxDepth ?? 64});
+        maxNodes: options.maxNodes ?? 10000, maxDepth: options.maxDepth ?? 64};
+      let captured;
+      const snapshot = (value, observe) => {
+        if (value !== original || captured !== undefined) fail('InvalidHostSourceSnapshot');
+        return captured = snapshotClientRequest(value, observe);
+      };
+      if (producer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(producer.receipt);
+      const value = producer === undefined ? snapshot(original)
+        : sourcePreparation.captureSourceSnapshot(producer.receipt, original, snapshot);
+      if (captured === undefined || value !== captured) fail('InvalidHostSourceSnapshot');
+      if (producer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(producer.receipt);
+      const body = freezeInput(captured);
+      if (producer !== undefined) {
+        sourcePreparation.bindSourceSnapshot(producer.receipt, body);
+        producer.body = body;
+      }
       if (!validClientBody('plan', {connection: selected.wire, ...body})) {
         fail('InvalidClientPlanRequest');
       }
-      const response = await exchange('plan', body, options.signal);
+      const response = await exchange('plan', body, options.signal, undefined, undefined, producer);
       const view = captureResponse(await responseValue(response));
       const effectful = validWireEffectfulStaticPlanViewShape(view);
       if (!effectful && !validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
@@ -31,6 +48,6 @@ export function createPlan(connection, exchange, responseValue) {
           effectful && map.program_definition_cid !== view.program_definition_cid ||
           await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
       return freezeInput(view);
-    },
+    }),
   };
 }

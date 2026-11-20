@@ -7,6 +7,10 @@ import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestCh
   prepareInstalledPhysicalWritePlanRecipe, captureInstalledEffectPlanRecipe}
   from './installed-effect-plan.mjs';
 
+// Recipe composition, replacement charging and versioned partial updates use
+// actual Catalog/Common/file controls in installed-project-mock.actual.test.mjs.
+// Do not reconstruct the private recipe or send method to fake their dependencies.
+
 function ownedFixture() {
   const token = {}, prepared = {}, request = {}, parent = {}, plan = {};
   let entered = 0, completed = 0, retired = 0, aliases = false, refined = 0;
@@ -78,89 +82,6 @@ test('ordinary constructors still refuse a Promise instead of borrowing the owne
   const f = ownedFixture(), child = prepareInstalledEffectRequestChild({...f.options, construct: () => Promise.resolve({})});
   await assert.rejects(child.prepare(), {code: 'InstalledEffectConstructorNotSynchronous'});
   assert.equal(f.counts().completed, 0); f.aliases(); assert.equal(child.release(), true);
-});
-
-test('Mock file recipe composes actual file decode into request and physical windows without changing policy', () => {
-  const text = readFileSync(new URL('../local-node/installed-mock-row-effect.mjs', import.meta.url), 'utf8');
-  const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const node = ast.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'mockFileEffectPlanRecipe');
-  assert(node);
-  const limits = {maxFileBytes: 1048576, maxNodes: 16384, maxDepth: 32, maxRows: 100,
-    maxResponseBytes: 65536};
-  const decode = {}, native = [], composed = [], policy = {};
-  const moon = {
-    clientProgramInstalledSourceConstructionCapacity(...geometry) {const value = {geometry}; native.push(value); return {$tag: 1, _0: value};},
-    clientProgramInstalledFileEffectConstructionCapacity(provider, bytes, nodes, depth) {
-      assert.deepEqual(provider.geometry, Array(6).fill(0n));
-      assert.deepEqual([bytes, nodes, depth], [1048576, 16384, 32]); return {$tag: 1, _0: decode};
-    },
-    clientProgramComposeInstalledSourceConstructionCapacity(provider, originals) {
-      assert.deepEqual(originals, [decode]); const result = {provider, originals}; composed.push(result); return {$tag: 1, _0: result};
-    },
-  };
-  const run = Function('targetLimits', 'checked', 'installedRowEffectConstructionLimits', 'prepareInstalledPhysicalWritePlanRecipe',
-    'return ('+text.slice(node.start, node.end)+');')(limits, checked,
-    value => {assert.deepEqual(value, {maxRows: 100}); return policy;}, value => value);
-  const one = run(moon, {sources: [{physical: [{}]}]}, 'file.update');
-  const two = run(moon, {sources: [{physical: [{}]}, {physical: [{}]}]}, 'file.update');
-  for (const recipe of [one, two]) {
-    assert.strictEqual(recipe.physicalConstruction, decode); assert.strictEqual(recipe.inputLimits, policy);
-    assert(composed.includes(recipe.requestConstruction));
-    assert.deepEqual(recipe.construction.retained, {nodes: 0n, text: 0n, wire: 0n});
-    assert.equal(recipe.construction.workspace.wire, 2n * 1048576n);
-    assert.equal(recipe.limits.maxTransferBytes, 2 * 1048576);
-  }
-  assert(two.construction.workspace.nodes > one.construction.workspace.nodes);
-  assert(two.construction.workspace.text > one.construction.workspace.text);
-  assert.equal(two.limits.maxRequestBytes, one.limits.maxRequestBytes);
-  assert.equal(native.length, 4, 'one zero decoder base and one actual request workspace per recipe');
-});
-
-function sendFixture({pending = false} = {}) {
-  const text = readFileSync(new URL('../local-node/installed-mock-row-effect.mjs', import.meta.url), 'utf8');
-  const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const driver = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'mockRowEffectDriver');
-  const declaration = driver.body.body.flatMap(node => node.declarations ?? []).find(node => node.id.name === 'driver');
-  const send = declaration.init.arguments[0].properties.find(node => node.key.name === 'send');
-  const retire = driver.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retireChild');
-  const events = [], charges = [], request = {}, runOriginal = {}, selected = {}, member = {}, record = {
-    target: 'original-target', version: 'original-version', value: {field: 'new'}, before: {field: 'old'}};
-  let physical, options, closed = false;
-  const child = {async prepare() {
-    assert.strictEqual(physical, child, 'same physical child is retained before preparation or file I/O');
-    events.push('prepare'); options.authorize();
-    assert.deepEqual(options.replace(new Uint8Array(3)), new Uint8Array(5));
-  }, async release() {events.push('release'); if (!pending) closed = true; return {pending: !closed};},
-  async retry() {events.push('retry'); closed = true; return {pending: false};}, status: () => ({pending: !closed})};
-  const fail = code => {throw Object.assign(new Error(code), {code});};
-  const ports = {memberCurrent: actual => assert.strictEqual(actual, member),
-    description: actual => assert.strictEqual(actual, selected), runCurrent: actual => assert.strictEqual(actual, runOriginal),
-    own: actual => {assert.strictEqual(actual, request); return {record, cid: 'original-request'};},
-    file: {updateChild(actual) {options = actual; return child;}},
-    admit: () => ({selected: {}}), observe: () => ({versionCid: record.version, before: record.before}),
-    wire: JSON.stringify, call: () => ({$tag: 1, _0: new Uint8Array(5)}), checked, work: 16777216,
-    consume: () => ({useCid: 'original-use'}), current() {}, fail};
-  const invoke = Function(...Object.keys(ports), text.slice(retire.start, retire.end)+
-    ';return ({'+text.slice(send.start, send.end)+'}).send;')(...Object.values(ports));
-  return {run: () => invoke({member, request, current: selected, runOriginal,
-    physicalOperation: {retainPhysicalChild(actual) {assert.equal(physical, undefined); physical = actual; events.push('retain');},
-      chargeBytes(value) {charges.push(value);}}}), events, charges, child};
-}
-
-test('actual Mock send retains its original physical child before preparation and charges file and replacement bytes', async () => {
-  const f = sendFixture(); const result = await f.run();
-  assert.deepEqual(f.events, ['retain', 'prepare', 'release']); assert.deepEqual(f.charges, [3n, 5n]);
-  assert.equal(result.observation.statusCode, 200);
-});
-
-test('actual Mock send keeps failed physical release pending and retries that same child', async () => {
-  const f = sendFixture({pending: true}); let issue;
-  try {await f.run();} catch (cause) {issue = cause;}
-  assert.equal(issue?.code, 'MockFileCleanupPending'); assert.equal(issue.cleanupPending, true);
-  assert.equal(issue.cleanupHandle.status().pending, true);
-  assert.deepEqual(await issue.cleanupHandle.retry(), {pending: false});
-  assert.equal(issue.cleanupHandle.status().pending, false);
-  assert.deepEqual(f.events, ['retain', 'prepare', 'release', 'retry']);
 });
 
 test('non-HTTP target phases have distinct original constructor slots and reject aliasing another role', () => {

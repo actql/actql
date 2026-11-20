@@ -7,6 +7,7 @@ import {promisify} from 'node:util';
 import {mkdir, mkdtemp, readFile, writeFile, lstat, unlink} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {sharedRecordUpdateSelections, recordUpdateFixtureState} from './record-approval/cases.mjs';
 
 const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR;
 const variant = process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined;
@@ -25,8 +26,10 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   const project = join(root, 'project'), home = join(root, 'home'), state = join(project, '.actql');
   await mkdir(project); await mkdir(home);
   t.diagnostic(`Retained ${connector} mock original root: ${root}`);
-  const selection = {recordId: connector === 'salesforce' ? '001MockSelected' : '9007199254740993',
-    previousName: 'Before shared mock approval', nextName: 'After shared mock approval',
+  const selection = {...(connector === 'salesforce' || variant !== undefined
+    ? {recordId: connector === 'salesforce' ? '001MockSelected' : '9007199254740993',
+    previousName: 'Before shared mock approval', nextName: 'After shared mock approval'}
+    : sharedRecordUpdateSelections[connector]),
     ...(variant === undefined ? {} : {variant})};
   const fixture = variant === 'binary-source' ? 'binary-source-mock-project.mjs' : 'mock-project.mjs';
   const {mockProjectFiles} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url));
@@ -36,9 +39,15 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
     await writeFile(path, body, privateFile);
   }
   const initial = JSON.parse(files['mock/data.json']), changed = structuredClone(initial);
-  const [resource, field] = {salesforce: ['Account', 'Name'], hubspot: ['companies', 'name'],
-    kintone: ['inquiries', 'Subject']}[connector];
+  const [resource, idField, field] = {salesforce: ['Account', 'Id', 'Name'], hubspot: ['companies', 'id', 'name'],
+    kintone: ['inquiries', '$id', 'Subject']}[connector];
   changed[connector][resource].rows[0][field] = selection.nextName;
+  if (connector !== 'salesforce' && variant === undefined) {
+    const expected = recordUpdateFixtureState(selection);
+    const rows = state => [state.target, state.control].map(value => ({[idField]: value.id, [field]: value.name}));
+    assert.deepEqual(initial[connector][resource].rows, rows(expected.before));
+    assert.deepEqual(changed[connector][resource].rows, rows(expected.after));
+  }
   const configuration = join(root, 'configuration.json'), prefix = join(root, 'receipt');
   await writeFile(configuration, JSON.stringify({selection,
     connect: {mode: 'local', profile: 'mock', installation: {directory: state}}}), privateFile);

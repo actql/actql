@@ -219,18 +219,30 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   let original_work_issue = 16L + 8L * 3L
   let returned_code = 16L + 8L + 8L
   let original_error_association = 8L * 2L
+  // The pre-Run Model/Content view owns one header. Its authoring reference
+  // coexists with the Core Request's program_authoring slot, the manager's
+  // authoringContextOriginal and the Task admission's original reference.
+  // These fixed aliases are prepaid here; the selected authoring body and
+  // its measuring/writer construction keep their separate domain quote.
+  let original_authoring_aliases = 16L + 8L * 4L
   // One frozen original code/category pair record, coheld with its error,
   // returned Some and nominal association. Both literals are borrowed.
   let original_problem_category = 16L + 8L * 2L
   // Existing query diagnostic's pipeline-issue Some and name Some, including
   // both tags. The borrowed original name is not copied into public DATA.
   let original_parameter_projection = 16L * 2L + 8L * 2L + 8L * 2L
+  // The base expansion above predates the seventh logical-observation role.
+  // Count BOTH it and the eighth original explanation holder independently:
+  // each Map entry/growth4H/11R/13W plus three scalar order words.
+  let original_observation_holders = 2L * (16L * 4L + 8L * 11L + 8L * 16L)
   original_controls +
   original_work_issue +
   returned_code +
   original_error_association +
+  original_authoring_aliases +
   original_problem_category +
-  original_parameter_projection
+  original_parameter_projection +
+  original_observation_holders
 }
 
 ///|
@@ -243,6 +255,7 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 3L, 72L)
   assert_eq(16L + 8L * 2L + 8L, 40L)
+  assert_eq(16L + 8L * 4L, 48L)
   assert_eq(execution, 0L)
   assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
 }

@@ -1,10 +1,12 @@
 """Opaque port caller identities/order; no physical Core/product acceptance."""
+from threading import RLock
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_storage import LocalStorageError
+from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalStartDriverTests(unittest.TestCase):
@@ -12,8 +14,10 @@ class LocalStartDriverTests(unittest.TestCase):
         host = object.__new__(InstalledLocalHost)
         run, compute, preflight, publisher, publication, projection = [object() for _ in range(6)]
         host._active = Mock()
+        host._core = SimpleNamespace(_lock=RLock(), _host_retained_work=None)
         host._runs = SimpleNamespace(_run=Mock())
         host._source_free_computes = []
+        host._physical_work = []
         records = [object(), object()]
         held = [SimpleNamespace(record=record, row=object(), capacity=object()) for record in records]
         host._payloads = held
@@ -49,7 +53,7 @@ class LocalStartDriverTests(unittest.TestCase):
         host._runs._run.assert_called_once_with(run)
         host._configure_original_compute.assert_called_once_with(run)
         host._prepare_original_publication.assert_called_once_with(compute)
-        host._execute_original_tasks.assert_called_once_with(compute, preflight, publisher)
+        host._execute_original_tasks.assert_called_once_with(compute, preflight, publisher, retained_tasks=[])
         host._prepare_original_payload.assert_any_call(publication, 0)
         host._prepare_original_payload.assert_any_call(publication, 1)
         host._store_original_commit.assert_called_once_with(projection, facts,
@@ -60,6 +64,62 @@ class LocalStartDriverTests(unittest.TestCase):
         self.assertLess(names.index('advance_original_payload_reader'), names.index('prepare_original_commit_candidate'))
         self.assertLess(names.index('store_original_commit'), names.index('prepare_original_store_observation'))
         self.assertFalse(any('ack' in name or 'run_state' in name or 'cancel' in name for name in names))
+
+    def test_each_postpublication_continuation_hands_off_after_its_original_return(self):
+        host, ports, values = self.fixture()
+        run = values[0]
+        work = OriginalLocalWork(lambda: None, on_exit=lambda _: None, owner=run)
+        host._core._host_retained_work = (work,)
+        observed = []
+
+        def handoff():
+            self.assertFalse(host._core._lock._is_owned(),
+                'A worker cannot hand control over while retaining Core')
+            observed.append(ports.mock_calls[-1][0])
+
+        work._yield_to_control = handoff
+        host._execute_original_admitted_run(run)
+        self.assertEqual(observed, [
+            *(['advance_original_payload_copy'] * 2
+              + ['advance_original_payload_sealing'] * 2
+              + ['advance_original_payload_reader'] * 2) * 2,
+            *(['advance_original_commit_candidate'] * 2),
+            *(['advance_original_store_observation'] * 2),
+        ])
+        self.assertIs(host._core._host_retained_work[0], work)
+        host._store_original_commit.assert_called_once()
+
+    def test_handoff_cannot_select_foreign_work_or_replace_original_return(self):
+        host, _, values = self.fixture()
+        run, value = values[0], object()
+        foreign = OriginalLocalWork(lambda: None, owner=object())
+        foreign._yield_to_control = Mock()
+        for retained in [None, (foreign,)]:
+            host._core._host_retained_work = retained
+            self.assertIs(host._handoff_original_step(run, value), value)
+        foreign._yield_to_control.assert_not_called()
+        original = OriginalLocalWork(lambda: None, owner=run)
+        original._yield_to_control = Mock()
+        host._core._host_retained_work = (original,)
+        self.assertIs(host._handoff_original_step(run, value), value)
+        original._yield_to_control.assert_called_once_with()
+
+    def test_failed_continuation_keeps_primary_without_handoff_or_retry(self):
+        host, _, values = self.fixture()
+        run, held = values[0], values[6]
+        original = OriginalLocalWork(lambda: None, owner=run)
+        original._yield_to_control = Mock()
+        host._core._host_retained_work = (original,)
+        failure = LocalStorageError('Original payload continuation refused')
+        host._advance_original_payload_copy.side_effect = failure
+        with self.assertRaises(LocalStorageError) as failed:
+            host._execute_original_admitted_run(run)
+        self.assertIs(failed.exception, failure)
+        host._advance_original_payload_copy.assert_called_once_with(held[0])
+        host._advance_original_payload_sealing.assert_not_called()
+        host._store_original_commit.assert_not_called()
+        original._yield_to_control.assert_not_called()
+        self.assertIs(host._payloads, held)
 
     def test_store_unknown_is_preserved_without_retry_new_observation_or_cleanup(self):
         host, ports, values = self.fixture()

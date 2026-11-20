@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "de1918d6dbac8bd582c66a2c2cd290aa1ad4cc70d90440397fe66b4da7e0d859",
+      "sha256": "434c8ec9b2b6cd0029ad5b926480226b7ad45031774d66de3a966e6f550d2fa5",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -4645,7 +4645,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fab1899039c0bfa82cb229c19b208344064264ad6c1a5fb13f394f3073ddd0f8",
+      "sha256": "15e31dfda636cdfd72af9830d64b847390aee284e5d7953b559978959ef51901",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -4813,14 +4813,14 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
+            "checkpointAnswerMatches",
             "contentCid/contentCid",
             "hex/hex/hex",
             "reviewBytesMatchCid",
             "signature",
             "signedAnswer",
             "signedAnswer/signedAnswer",
-            "signedAnswerFromAdmittedSummary",
-            "checkpointAnswerMatches"
+            "signedAnswerFromAdmittedSummary"
           ],
           "exports": [
             "bytesCid",
@@ -4849,6 +4849,10 @@
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## SDK consumers"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "inputsOutputs": [
@@ -4867,6 +4871,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "identity": [
@@ -4887,12 +4895,16 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "ownership": [
@@ -4911,6 +4923,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "synchronization": [
@@ -4929,6 +4945,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "failure": [
@@ -4947,6 +4967,10 @@
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
                 "anchor": "fail('ContinuationEvidenceRetired')"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "cancellation": [
@@ -4965,6 +4989,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and cleanup custody remain with their existing Owners."
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "resources": [
@@ -4991,6 +5019,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "extension": [
@@ -5007,8 +5039,12 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "verification": [
@@ -5031,6 +5067,22 @@
               {
                 "path": "packages/sdk/checkpoint-candidate-boundary.test.mjs",
                 "anchor": "test('fabricated noncanonical original identities refuse before application signing'"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }
@@ -5695,7 +5747,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "9041dd7cef0b0adbedf14554f910379787d8590962d43e49c27f488a8fd59a9d",
+      "sha256": "198420765f0189f785b372061999a117662034805f58148549720fef7d115346",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6123,6 +6175,13 @@
             "options?: {signal?: AbortSignal; cancelId?: string;\n    expectedRevision?: number; attemptId?: string}"
           ],
           "result": "Promise<WireCancellationAttempt>"
+        },
+        {
+          "name": "Execution/explain",
+          "parameters": [
+            "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
+          ],
+          "result": "Promise<WireRunExplanationView>"
         },
         {
           "name": "Execution/inspect",
@@ -7286,6 +7345,74 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/explain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
               }
             ]
           }
@@ -9021,7 +9148,7 @@
     {
       "module": "packages/sdk/internal/client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "262c901e1543da6842d0e58f4ac19cbe4418a255a355c67d8f196a884ea299e7",
+      "sha256": "6e6eac93c89ae8874046881be18dac9b1eb4fc71e56967cd9eda75f6e249df9e",
       "exports": [
         "connectSelected"
       ],
@@ -9941,7 +10068,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fda04146bc4163f6bcb37a6293b32e66dd1153137e496733cb0a86f1a45129b3",
+      "sha256": "a68b8a5dd91e0e74647f45335d02c8f415e4bf96064b8b56fb2a3f97839bc4d9",
       "exports": [
         "createPlan"
       ],
@@ -9951,7 +10078,9 @@
           "parameters": [
             "connection",
             "exchange",
-            "responseValue"
+            "responseValue",
+            "withStaticPreparation",
+            "sourcePreparation"
           ],
           "async": false
         },
@@ -9959,9 +10088,24 @@
           "name": "createPlan/createPlan",
           "parameters": [
             "input",
-            "options"
+            "originalOptions"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPlan/createPlan/createPlan",
+          "parameters": [
+            "producer"
           ],
           "async": true
+        },
+        {
+          "name": "createPlan/createPlan/createPlan/snapshot/snapshot",
+          "parameters": [
+            "value",
+            "observe"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -9980,7 +10124,9 @@
           "operations": [
             "<module>",
             "createPlan",
-            "createPlan/createPlan"
+            "createPlan/createPlan",
+            "createPlan/createPlan/createPlan",
+            "createPlan/createPlan/createPlan/snapshot/snapshot"
           ],
           "exports": [
             "createPlan"
@@ -9990,12 +10136,20 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
@@ -10006,6 +10160,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -10016,6 +10174,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
@@ -10026,6 +10188,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -10036,6 +10202,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -10046,6 +10216,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -10056,6 +10230,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -10066,12 +10244,20 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/index.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }
@@ -11455,7 +11641,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94e98e2b5c45f8d21311dd2af45b17490f3c8b953d3629344fbad21b64290025",
+      "sha256": "2557211ad27fcfffb663aee301de59800117f2bb490599e2ecaeeae0b6848541",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11538,12 +11724,22 @@
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#4",
           "parameters": [
-            "signal"
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
           ],
           "async": true
         },
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#5",
+          "parameters": [
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
           "parameters": [
             "until",
             "since",
@@ -11552,7 +11748,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
           "parameters": [
             "signal",
             "cancelId",
@@ -11562,7 +11758,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
           "parameters": [
             "reference",
             "signal"
@@ -11570,7 +11766,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#9",
           "parameters": [
             "signal"
           ],
@@ -11947,13 +12143,81 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/handle#9"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a505d8640f144253db4dfffe16c15f035dac82b7b585d502e1b9ea65079e808",
+      "sha256": "141ac746366c178bc072c3e752ea80ca27c18234f09c7c99a6049d38b9910ef0",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -12014,9 +12278,10 @@
         {
           "name": "createSubmissionOperations/createSubmissionOperations",
           "parameters": [
-            "text",
-            "parameters",
-            "options"
+            "kind",
+            "input",
+            "options",
+            "read"
           ],
           "async": false
         },
@@ -12054,13 +12319,22 @@
         {
           "name": "createSubmissionOperations/createSubmissionOperations#3",
           "parameters": [
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/createSubmissionOperations#4",
+          "parameters": [
             "submissionRef",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#4",
+          "name": "createSubmissionOperations/createSubmissionOperations#5",
           "parameters": [
             "program",
             "options"
@@ -12068,7 +12342,7 @@
           "async": false
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#5",
+          "name": "createSubmissionOperations/createSubmissionOperations#6",
           "parameters": [
             "ref",
             "signal"
@@ -12076,7 +12350,7 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#6",
+          "name": "createSubmissionOperations/createSubmissionOperations#7",
           "parameters": [
             "requestId",
             "signal"
@@ -12084,14 +12358,14 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#7",
+          "name": "createSubmissionOperations/createSubmissionOperations#8",
           "parameters": [
             "observationOrTarget"
           ],
           "async": false
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#8",
+          "name": "createSubmissionOperations/createSubmissionOperations#9",
           "parameters": [
             "requestId",
             "signal"
@@ -12425,7 +12699,8 @@
             "recoveryData/recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData#2",
             "submissionNotSent/submissionNotSent",
-            "submissionUnknown/submissionUnknown"
+            "submissionUnknown/submissionUnknown",
+            "createSubmissionOperations/createSubmissionOperations#9"
           ],
           "exports": [
             "RequestHeld",
@@ -12457,6 +12732,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
@@ -12475,6 +12754,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "beforeResultRead"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
@@ -12505,6 +12788,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -12535,6 +12822,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Its public snapshot shares those exact input and parameter"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
@@ -12557,6 +12848,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -12583,6 +12878,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -12605,6 +12904,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "query read refuses changed current original after await without sending a read"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -12635,6 +12938,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// The body is already SDK-deep-frozen."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -12653,6 +12960,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
@@ -12695,6 +13006,10 @@
               {
                 "path": "packages/sdk/source-preparation-submission.test.mjs",
                 "anchor": "external shallow freeze cannot skip deep protection of mutable descendants"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }
@@ -14392,7 +14707,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ca6c69f8339c5f287e60615c3553a5535f1b99241386df1d9d2afd308fd0c49",
+      "sha256": "de72c35f813850d645dadad5f3bce00057b15f59f4fa68cd0d26cbb0f766ce54",
       "exports": [
         "sourceQuery"
       ],
@@ -15141,7 +15456,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "5af0d6376c84b5ef8ed05bb054497a9a5c8adeef0d95d0475f0c96dc4429ac0f",
+      "sha256": "81ced88517b5078c1d36616beda88211f435c3e4119cb21364aaab2694ab3c96",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
@@ -15222,6 +15537,29 @@
             "approvalSignature"
           ],
           "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "parameters": [
+            "raw",
+            "expected",
+            "selectedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
+          "parameters": [
+            "item"
+          ],
+          "async": false
         },
         {
           "name": "document/document",
@@ -15369,6 +15707,9 @@
             "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
             "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
             "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
             "document/document",
             "document/document/document",
             "document/document#2",
@@ -15395,54 +15736,90 @@
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "verification": [
@@ -15453,11 +15830,343 @@
               {
                 "path": "src/checkpoint_document/answer_vectors_test.mbt",
                 "anchor": "test "
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }
         }
       ]
+    },
+    {
+      "module": "packages/local-node/connector-authoring.mjs",
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "Existing Common finite GET admission through the same shipped Node package; returns original wire DATA only, no Host or permission issuer",
+      "exports": [
+        "validateRestReadDeclaration"
+      ],
+      "operations": [
+        {
+          "name": "validateRestReadDeclaration",
+          "parameters": [
+            "readWire",
+            "cursorParameter"
+          ],
+          "async": false
+        },
+        {
+          "name": "validator/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "validateRestReadDeclaration",
+            "validator/methods/methods"
+          ],
+          "exports": [
+            "validateRestReadDeclaration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "f4b036f7d7b6484376175913e9727cbcab7c3e016415e1487ef6499e0657a4a9",
+      "imports": [
+        "./adapters/host-common/compiler-binding.generated.mjs",
+        "./adapters/host-common/http-exchange.mjs",
+        "@actql/local-node/runtime",
+        "node:module"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "packages/local-node/connector-authoring.d.ts",
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "Existing shipped Node pure author entry and Common DATA-only admission contract; no independent runtime or permission issuer",
+      "exports": [
+        "validateRestReadDeclaration"
+      ],
+      "operations": [
+        {
+          "name": "validateRestReadDeclaration",
+          "parameters": [
+            "readWire: string",
+            "cursorParameter?: string"
+          ],
+          "result": "string"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "validateRestReadDeclaration"
+          ],
+          "exports": [
+            "validateRestReadDeclaration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "b54912b832f554c137b9191ca91cfe07f06922530eb2e2c58ba3319267943040",
+      "imports": [],
+      "compilerFields": []
     }
   ]
 }

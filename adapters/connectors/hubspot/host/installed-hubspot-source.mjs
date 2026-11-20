@@ -9,7 +9,6 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 
-import {invocationScopeFields} from '../../../host-common/owned-invocation-context.mjs';
 import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {prepareHubSpotManagedSequence} from '../site/hubspot-managed-sequence.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION,
@@ -339,7 +338,7 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
           Object.freeze({operation: HUBSPOT_PROPERTIES_READ_OPERATION,
             resource: installed.metadataResources.properties, maxUses: limits.maxRequests}),
         ])})})});
-  const {site, authorization} = await construction.openRowSite({
+  const {authorization} = await construction.openRowSite({
     profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
     accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
     runAcquisitionLimits: implementation.runAcquisitionLimits,
@@ -353,35 +352,9 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     if (catalog === undefined || input.responseBorrow === undefined || input.originalAuthorization === undefined) {
       fail('ForeignHubSpotReadPreparation');
     }
-    const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);
-    const grants = new Map();
-    const authorizeMetadata = async (operation, index, signal) => {
-      const resource = operation === HUBSPOT_ACCOUNT_DETAILS_OPERATION ? installed.metadataResources.account
-        : operation === HUBSPOT_PROPERTIES_READ_OPERATION ? installed.metadataResources.properties
-        : fail('ForeignHubSpotReadOperation');
-      let original = grants.get(operation);
-      if (original === undefined) {
-        const verifyCurrent = async () => {
-          signal.throwIfAborted();
-          const decision = await authorization.authorize('acquisition', {connection, resource, operation: 'read'},
-            {subjectCid: cid({binding: target(input.resource, input.columns), operation}), signal});
-          signal.throwIfAborted();
-          if (decision?.action !== 'dispatch') fail('HubSpotMetadataReadDenied');
-          return decision;
-        };
-        const decision = await verifyCurrent();
-        const grant = site.issueReadGrant({operation, decision, resource,
-          runInvocationCid: scope.runInvocationCid, dispatchRequestCid: scope.dispatchRequestCid,
-          maxUses: limits.maxRequests});
-        original = Object.freeze({grant, verifyCurrent});grants.set(operation, original);
-      } else await original.verifyCurrent();
-      return Object.freeze({originalAuthorization: original.grant,
-        authorization: Object.freeze({...original.grant, useId: `${scope.runInvocationCid}-metadata-${index}`}),
-        verifyCurrent: original.verifyCurrent});
-    };
     return prepareHubSpotManagedSequence({moon: provider, originalPortalId: installed.portalId,
       originalCatalog: catalog, objectType, properties: input.columns.filter(name => name !== 'id'), limits,
-      authorizeMetadata, responseCapacity: capacityFor});
+      responseCapacity: capacityFor});
   }});
   if (providerReader.capacity !== implementation.capacity) fail('HubSpotManagedImplementationMismatch');
   return await construction.createRowSource({readOperation: HUBSPOT_OBJECT_LIST_OPERATION,

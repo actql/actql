@@ -1,0 +1,60 @@
+{
+  "source": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "6b2aa1c8bc3f876e159e1f9726482044621716ad307a1fa0c5a5df182d9df8d9",
+  "bytes": 13055,
+  "qualification": "Finite current JS package-configuration review only; no compiler, runtime, artifact or cache-reuse authority. Complete immediate source bytes/modes/membership and transitive literal imports remain original inputs.",
+  "previousRevision": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+  "previousSha256": "6c3f796557c52242f7702c3cb66380d91eecd95f7531f0a1d8e5fb1c08c7cd03",
+  "previousBytes": 12991,
+  "previousReview": "docs/reviews/2026-11-19-session-local-current-fixture-selectors-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "preparation_request_whole_source_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "source": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+      "path": "src/client_local_host/preparation_request_whole_source_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "a5fe75d0de3d8b93989931ed4050d304ed9d2e31a7b8143491157fcf86ed9a2d",
+      "bytes": 12548,
+      "meaning": "Uses the existing JS-only original provider/registration helpers; the same-Compute case preserves distinct stage/input occurrence coordinates.",
+      "jsFixtureDependencies": [
+        "installed_capture_provider_source_js_wbtest.mbt",
+        "preparation_program_check_source_js_wbtest.mbt"
+      ]
+    }
+  ],
+  "fixtureDependencies": [
+    {
+      "source": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+      "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "8f8e7255eacd3e05278b484b1fbdd8e1daa33c2494bb7c0f9db397346a9a4ca4",
+      "bytes": 11433
+    },
+    {
+      "source": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+      "path": "src/client_local_host/preparation_program_check_source_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "cc20d62f13900646da41b5682d2a4d2e65e4e1dcc6711346a02a879116ffa5c8",
+      "bytes": 10116
+    },
+    {
+      "source": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+      "path": "src/client_local_host/resident_source_query_regression_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "e023ae53dc44bb72b199e3146e2d5709430262c66a9678d4127fa42e44e60040",
+      "bytes": 28452
+    }
+  ],
+  "meaning": "Only the original Whole Request whitebox fixture is selected for JS. Removing that selector reconstructs the previous complete descriptor. Its provider/registration helpers already have JS selectors; the resident Query constants remain portable. Imports, aliases, hooks, linker options and every prior selector remain byte-exact.",
+  "refusalPolicy": "Only the exact current descriptor, JS target and reviewed toolchain are admitted. Changed or omitted selectors/imports/options, foreign path/target/toolchain and all prior descriptors retain refusal/full fallback. Source body and immediate membership changes remain distinct original proof inputs."
+}

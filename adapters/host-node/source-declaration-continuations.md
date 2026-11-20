@@ -82,6 +82,23 @@ retained in the same material. Mapping construction uses the existing reserved
 Mapping/Environment geometry before calling Common. These continuations do not
 fund a prior dynamic declaration or file read retroactively.
 
+The installed UPDATE path obtains its constructor quantity from the actual
+MoonBit Mapping/decoder/schema owner before invoking the existing constructor.
+It includes the preserving source/writes parsers, every sibling declaration
+check, the selected complete contract, canonical trees and writer/hash overlap,
+returned metadata and Host projections. Borrowed declaration/export/Environment
+strings are not a second restore per Mapping. Each returned Mapping keeps its
+own retained quantity on the same Source material. Only after that synchronous
+constructor and its original current fences return may the existing retained
+projection release its scratch allowance. A failure keeps the full quantity.
+
+The complete Mapping vector remains owned before the next member is attempted.
+The existing staged Environment constructor runs after all Mapping returns and
+overlaps every retained result, rather than adding a whole Environment to each
+Mapping's retained debit. This is a logical representation allowance, not a
+heap/RSS or physical retirement claim. CREATE and mixed legacy continuations
+retain their existing selection and quotation; no provider name chooses funding.
+
 ## Extension
 
 Additional write operations require their own closed Common continuation and

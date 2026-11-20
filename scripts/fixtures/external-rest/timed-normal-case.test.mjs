@@ -34,7 +34,16 @@ for (const requestKind of ['values', 'source']) {
 test(`W1 timed ${requestKind} keeps original invocation time through normal Result and cold Saved`, async t => {
   const originalSelection = await read(selectedInput);
   const selected = {...originalSelection, outputRoot: originalSelection.outputRoot + '-timed-' + requestKind};
+  const selectedLogicalObservation = Object.hasOwn(selected, 'logicalObservation');
+  if (selectedLogicalObservation) assert.equal(selected.logicalObservation, true);
+  const selectedExecutionProfile = Object.hasOwn(selected, 'executionProfile');
+  if (selectedExecutionProfile) {
+    assert.equal(selected.executionProfile, 'debug');
+    assert.equal(requestKind, 'values', 'Only the admitted Values Debug profile is selected');
+  }
   assert.deepEqual(Object.keys(selected).sort(), ['kind', 'sourceSha', 'sourceTree', 'manifestPath',
+    ...(selectedLogicalObservation ? ['logicalObservation'] : []),
+    ...(selectedExecutionProfile ? ['executionProfile'] : []),
     'manifestSha256', 'outputRoot', 'accountConfigurationPath', 'mode'].sort());
   assert.equal(selected.kind, 'actql-standard-rest-normal/0.1');
   assert.equal(selected.mode, 'paged', 'The timed Source oracle retains all three authored rows');
@@ -125,6 +134,8 @@ test(`W1 timed ${requestKind} keeps original invocation time through normal Resu
     }
     const descriptor = join(output, 'consumer.json'), resultRoot = join(output, 'public');
     await save(descriptor, {requestKind, consumerRoot: consumer,
+      ...(selectedLogicalObservation && requestKind === 'values' ? {logicalObservation: true} : {}),
+      ...(selectedExecutionProfile ? {executionProfile: selected.executionProfile} : {}),
       ...(requestKind === 'source' ? {connectorPackage: '@actql-connectors/acme', connectorId: 'rest-acme',
         fixtureSecretPath: family.providerTokenPath} : {}),
       outputRoot: resultRoot, mode: selected.mode,

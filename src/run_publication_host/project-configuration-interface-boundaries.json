@@ -368,7 +368,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
-      "sha256": "24b1ff8fc5daef8335d95210e75c744070052c8f6e1511224dce16f75ff3837a",
+      "sha256": "fbcef71f68652e0ccb689d1aa0a3ca8565e7de17c7bf332ab389cc8e9272737d",
       "exports": [],
       "operations": [
         {
@@ -390,6 +390,10 @@
         {
           "name": "client_project_catalog_original_wire",
           "declaration": "client_project_catalog_original_wire ( value : @ publication_host . ClientProjectCatalog , ) - > String"
+        },
+        {
+          "name": "client_project_catalog_relation_declaration_input",
+          "declaration": "client_project_catalog_relation_declaration_input ( catalog : @ publication_host . ClientProjectCatalog , index : Int , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_project_configuration_admit",
@@ -648,12 +652,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_project_catalog_relation_declaration_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/client_project_configuration_bridge.mbt",
-      "sha256": "964961bbbdbd97fc21896b7df3197a29dfdc508444ebdb847c3805026a3aad20",
+      "sha256": "8d747760377920aa141a0b0748421f1fb77419ca0d99414f16932c27e066efba",
       "exports": [],
       "operations": [
         {
@@ -675,6 +747,10 @@
         {
           "name": "client_project_catalog_original_wire",
           "declaration": "client_project_catalog_original_wire ( value : @ publication_host . ClientProjectCatalog , ) - > String"
+        },
+        {
+          "name": "client_project_catalog_relation_declaration_input",
+          "declaration": "client_project_catalog_relation_declaration_input ( catalog : @ publication_host . ClientProjectCatalog , index : Int , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_project_configuration_admit",
@@ -930,6 +1006,408 @@
               {
                 "path": "src/run_publication_host/project-configuration-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_project_catalog_relation_declaration_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_project_admission_construction_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "db1bf734e4938b43885927252f82f551ae9b26a0494441b85db2e0189b806707",
+      "role": "generated-binding",
+      "owner": "Existing Project metadata and initialization construction bridge Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_admission_capacity",
+          "declaration": "client_project_admission_capacity ( inventory : @ execution . PreparationRepresentationUnits ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_catalog_admission_construction_capacity",
+          "declaration": "client_project_catalog_admission_construction_capacity ( wire : String , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_catalog_relation_declaration_construction_capacity",
+          "declaration": "client_project_catalog_relation_declaration_construction_capacity ( catalog : @ publication_host . ClientProjectCatalog , index : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_connections_admission_construction_capacity",
+          "declaration": "client_project_connections_admission_construction_capacity ( wire : String , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_project_admission_capacity",
+            "client_project_catalog_admission_construction_capacity",
+            "client_project_catalog_relation_declaration_construction_capacity",
+            "client_project_connections_admission_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_project_admission_construction_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "70220d49e184c3d9a3f2dcc6285fe3bf4709719859c362202fe89391a5ca25c2",
+      "role": "generated-binding",
+      "owner": "Existing Project metadata and initialization construction bridge Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_admission_capacity",
+          "declaration": "client_project_admission_capacity ( inventory : @ execution . PreparationRepresentationUnits ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_catalog_admission_construction_capacity",
+          "declaration": "client_project_catalog_admission_construction_capacity ( wire : String , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_catalog_relation_declaration_construction_capacity",
+          "declaration": "client_project_catalog_relation_declaration_construction_capacity ( catalog : @ publication_host . ClientProjectCatalog , index : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_project_connections_admission_construction_capacity",
+          "declaration": "client_project_connections_admission_construction_capacity ( wire : String , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_project_admission_capacity",
+            "client_project_catalog_admission_construction_capacity",
+            "client_project_catalog_relation_declaration_construction_capacity",
+            "client_project_connections_admission_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "## Original catalogue Relation projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
           }

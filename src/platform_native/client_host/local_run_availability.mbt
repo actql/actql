@@ -408,7 +408,9 @@ fn NativeLocalHostConnection::refresh_original_run_availability(
   // authenticated state already says not_published; do not turn this into a
   // Store observation, grant Result access, or advance an observation counter.
   guard prior.original is Some(prior_original) else { return Ok(prior) }
-  let manifest = prior_original.original_manifest()
+  guard prior_original.original_manifest() is Some(manifest) else {
+    return Ok(prior)
+  }
   let binding = match run_observation_store_binding(store, namespace_id) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))

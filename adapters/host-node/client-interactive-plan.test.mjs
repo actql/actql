@@ -12,6 +12,7 @@ import {installNodeClientProgramPreparation} from './client-program-preparation.
 import {validClientBody, prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
 import {mapBody, planCid, cid} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 
 // This fixed semantic mock proves routing, not a compiler-issued public view.
 const mockView = () => ({version: 'actql-plan-view/0.1', compiled_plan_cid: planCid,
@@ -30,6 +31,109 @@ const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
 const request = {connection, kind: 'program', input: {stages: []}, parameters: null,
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+
+test('public static plan admits its original snapshot before options and returns the same read producer', async t => {
+  const events = [], receipt = {}, admitted = new WeakSet();
+  let captured, bound, finished = 0;
+  const preparation = {
+    beforeSourceSnapshot(kind, input, options, originalConnection) {
+      events.push('admit');
+      assert.equal(kind, 'aql'); assert.equal(input, 'SELECT 1 AS n');
+      assert.equal(originalConnection.owner, 'local');
+      return receipt;
+    },
+    assertSourceSnapshotCurrent(value) {assert.strictEqual(value, receipt);},
+    captureSourceSnapshot(value, original, snapshot) {
+      assert.strictEqual(value, receipt); events.push('snapshot');
+      captured = snapshot(original); return captured;
+    },
+    bindSourceSnapshot(value, body) {
+      assert.strictEqual(value, receipt); assert.strictEqual(body, captured);
+      assert.equal(Object.isFrozen(body), true); bound = body;
+    },
+    bindSourceRequest(value, body, actual) {
+      assert.strictEqual(value, receipt); assert.strictEqual(body, bound);
+      admitted.add(actual);
+    },
+    finishSourceProducer(value, terminal) {
+      assert.strictEqual(value, receipt); assert.equal(terminal, 'returned');
+      finished++; events.push('return');
+    },
+    publishSourceSnapshot() {assert.fail('Static reads have no submission publication');},
+    intentCid() {assert.fail('Static reads issue no intent');},
+  };
+  const ingress = createNodeInProcessClientHost({authenticate: () => 'plan-test',
+    authorizeConnection: () => true, negotiate: () => profile('local'),
+    maxRowBytes: 1024,
+    bindOwnedRequest(parent, derived) {
+      assert.equal(admitted.has(parent), true);
+      admitted.add(derived);
+    },
+    plan(actual) {
+      assert.equal(admitted.has(actual), true, 'The original must precede funded preparation');
+      events.push('plan'); return mockView();
+    }, submit() {assert.fail('Static reads create no Run');}});
+  const client = await connectInProcess({mode: 'local', owner: 'local'},
+    Object.freeze({...ingress, [sourcePreparationPort]: Object.freeze(preparation)}));
+  t.after(() => client.close());
+  const options = {get format() {events.push('option'); return 'sql';}};
+  assert.deepEqual(await client.plan('SELECT 1 AS n', options), mockView());
+  assert.equal(events[0], 'admit'); assert.equal(finished, 1);
+  assert.equal(events.indexOf('snapshot') < events.indexOf('plan'), true);
+  assert.equal(events.at(-1), 'return');
+});
+
+test('static plan admission and pending return preserve original failure and cleanup responsibility', async () => {
+  const primary = new Error('original static reader failure');
+  const cleanup = new Error('original static return failure');
+  for (const mode of ['admission', 'read', 'return']) {
+    const receipt = {}, events = [];
+    let optionsRead = 0, returns = 0;
+    const preparation = {
+      beforeSourceSnapshot() {
+        events.push('admit'); if (mode === 'admission') throw primary;
+        return receipt;
+      },
+      assertSourceSnapshotCurrent(value) {assert.strictEqual(value, receipt);},
+      captureSourceSnapshot(value, original, snapshot) {
+        assert.strictEqual(value, receipt); return snapshot(original);
+      },
+      bindSourceSnapshot() {}, bindSourceRequest() {},
+      finishSourceProducer(value, terminal) {
+        assert.strictEqual(value, receipt); returns++; events.push('return');
+        assert.equal(terminal, mode === 'read' ? 'failed' : 'returned');
+        if (returns === 1) throw cleanup;
+      },
+      intentCid() {assert.fail('No intent for a read');},
+      publishSourceSnapshot() {assert.fail('No submission publication');},
+    };
+    const port = {[sourcePreparationPort]: preparation,
+      async perform(operation) {
+        if (operation === 'connect') return profile('local');
+        assert.equal(operation, 'plan'); events.push('read');
+        if (mode === 'read') throw primary;
+        return mockView();
+      },
+      close() {events.push('close');},
+    };
+    const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
+    try {
+      await assert.rejects(client.plan('SELECT 1 AS n', {
+        get format() {optionsRead++; return 'sql';},
+      }), error => {
+        if (mode === 'admission') return error === primary;
+        if (mode === 'read') return error.code === 'ClientTransportUnknown' && error.cause === primary;
+        return error.code === 'ClientCleanupPending' && error.cause === cleanup &&
+          error.cleanupPending === true && !Object.hasOwn(error, 'execution');
+      });
+      assert.equal(optionsRead, mode === 'admission' ? 0 : 1);
+      assert.equal(returns, mode === 'admission' ? 0 : 1);
+      assert.equal(events.includes('read'), mode !== 'admission');
+    } finally {await client.close();}
+    assert.equal(returns, mode === 'admission' ? 0 : 2);
+    assert.equal(events.at(-1), 'close');
+  }
+});
 
 for (const deferred of [false, true]) {
   test(`static plan keeps its original pending request through funded preparation (${deferred ? 'deferred' : 'direct'})`, async t => {
@@ -147,7 +251,11 @@ for (const mode of ['local', 'http-loopback']) {
           maxRowBytes: 1024}));
     } else {
       server = createServer(createClientHttpHandler({...operations,
-        authenticate: () => 'plan-test', loopbackHttp: true}));
+        authenticate: () => 'plan-test', loopbackHttp: true,
+        // Explicit request-lifetime ports for this fixed wire mock only.
+        // The ordinary installed Request owns real Resource admission.
+        prepareRequest: (_operation, body) => ({body,
+          bindRequest() {}, beforeReply() {}, finish() {}})}));
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
       client = await connect({mode: 'local', owner: 'local', token: 'fixture',
         endpoint: `http://127.0.0.1:${server.address().port}/`});
@@ -178,4 +286,23 @@ test('static Effect service rejects a component-only response and post-read curr
   await assert.rejects(service(request), {message: 'InvalidClientHostPlanView'});
   componentOnly = false;
   await assert.rejects(service(request), {code: 'ClientConnectionDenied'});
+});
+
+test('installed static service reads its held original and never re-enters raw preparation or compilation', async () => {
+  let current = true, reads = 0;
+  const unreachable = () => assert.fail('No second preparation/compiler for an original read');
+  const prepare = Object.assign(unreachable, {assertOwned: unreachable, kindOf: unreachable});
+  const service = installClientStaticPlan({moon: {clientProgramRequiresTaskCompilation: unreachable},
+    control: {readCheckedClientStaticPlan: unreachable}, prepare,
+    authorize: () => current,
+    async readOriginal(actual) {assert.strictEqual(actual, request); reads++; return JSON.stringify(mockView());}});
+  assert.deepEqual(await service(request), mockView()); assert.equal(reads, 1);
+  current = false;
+  await assert.rejects(service(request), {code: 'ClientConnectionDenied'});
+  assert.equal(reads, 1);
+  current = true;
+  const revoked = installClientStaticPlan({moon: {clientProgramRequiresTaskCompilation: unreachable},
+    control: {readCheckedClientStaticPlan: unreachable}, prepare, authorize: () => current,
+    async readOriginal() {current = false; return JSON.stringify(mockView());}});
+  await assert.rejects(revoked(request), {code: 'ClientConnectionDenied'});
 });

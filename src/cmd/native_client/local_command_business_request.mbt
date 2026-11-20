@@ -259,29 +259,38 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
     business.request_run is None else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  let query_contracts = match self.original.runtime {
+    Some(runtime) =>
+      runtime
+      .query_contract_assets()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    None => stop("PackagedLocalRuntimeChanged")
+  }
   self.original.with_business_request(self.capture, () => {
     let limits = @local_values.request_program_compilation_limits(parent, input).unwrap_or_else(() => {
         stop("LocalCompilerLimitsUnavailable")
       },
     )
     let run = match self.file_source {
-      Some((declaration, row)) => {
+      Some(Project(original)) => {
         guard @local_host.native_client_submitted_preparation(self.preparation)
           is Computation(prepared) &&
           business.file_capacity is None else {
           stop("LocalBusinessOriginalUnavailable")
         }
-        let capacity = prepare_local_native_whole_file_request_module(
+        let (capacity, sources) = prepare_local_native_file_request_module(
+          self.original,
           parent,
           input,
           prepared,
           request,
-          declaration._retained_declaration,
-          row,
+          original,
           self.installed_contracts,
           self.assets,
+          query_contracts,
         )
-        business.file_capacity = Some(capacity)
+        business.file_capacity = capacity
+        self.file_source = Some(sources)
         if business.request_body is Some(holder) {
           @local_host.return_native_client_submitted_request_body(holder).unwrap_or_else(() => {
               stop("LocalRequestBodyReturnPending")
@@ -295,6 +304,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
           },
         )
       }
+      Some(Whole(_, _) | Query(_) | WholeSet(_)) =>
+        stop("LocalBusinessOriginalUnavailable")
       None => {
         @local_values.prepare_request_program_module_body(
           parent,

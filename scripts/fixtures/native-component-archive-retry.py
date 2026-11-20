@@ -38,12 +38,20 @@ class DownloadControls(unittest.TestCase):
         return io.BytesIO(PAYLOADS[URLS.index(url)])
 
     def run_command(self, open_url, *, clock=lambda: 100.0, sleep=None):
+        def original_request(request, **kwargs):
+            self.assertIsInstance(request, urllib.request.Request)
+            self.assertEqual(request.get_method(), 'GET')
+            self.assertTrue(request.get_header('User-agent').startswith('ActQL-component-input/'))
+            self.assertIn('https://github.com/actql/actql', request.get_header('User-agent'))
+            self.assertIsNone(request.get_header('Authorization'))
+            self.assertIsNone(request.data)
+            return open_url(request.full_url, **kwargs)
         # Only this isolated fixture process changes its private working directory.
         previous = Path.cwd()
         os.chdir(self.root)
         try:
             with patch.dict(os.environ, {'RUNNER_TEMP': str(self.root / 'runner')}), \
-                    patch.object(urllib.request, 'urlopen', side_effect=open_url) as opened, \
+                    patch.object(urllib.request, 'urlopen', side_effect=original_request) as opened, \
                     patch.object(time, 'monotonic', side_effect=clock), \
                     patch.object(time, 'sleep', side_effect=sleep) as slept:
                 self.opened, self.slept = opened, slept
@@ -58,7 +66,7 @@ class DownloadControls(unittest.TestCase):
     def test_success_keeps_same_three_urls_pins_and_exclusive_outputs(self):
         self.run_command(self.response)
         self.assert_originals()
-        self.assertEqual([call.args[0] for call in self.opened.call_args_list], URLS)
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list], URLS)
         self.assertTrue(all(0 < call.kwargs['timeout'] <= 60 for call in self.opened.call_args_list))
         self.slept.assert_not_called()
 
@@ -71,7 +79,7 @@ class DownloadControls(unittest.TestCase):
             return self.response(url, **args)
         self.run_command(opened)
         self.assert_originals()
-        self.assertEqual([call.args[0] for call in self.opened.call_args_list], [URLS[0], *URLS])
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list], [URLS[0], *URLS])
         self.slept.assert_called_once_with(1)
 
     def test_partial_read_timeout_discards_bytes_and_closes_before_retry(self):
@@ -97,18 +105,23 @@ class DownloadControls(unittest.TestCase):
             self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failures[self.opened.call_count - 1]))
         self.assertIs(observed.exception, failures[-1])
         self.assertEqual(self.opened.call_count, 3)
-        self.assertEqual([call.args[0] for call in self.opened.call_args_list], [URLS[0]] * 3)
+        self.assertEqual([call.args[0].full_url for call in self.opened.call_args_list], [URLS[0]] * 3)
         self.assertEqual([call.args[0] for call in self.slept.call_args_list], [1, 2])
         self.assertEqual(list(self.output.iterdir()), [])
 
     def test_permanent_http_refusal_is_not_a_transport_retry(self):
-        failure = urllib.error.HTTPError(URLS[0], 404, 'original missing', {}, None)
-        with self.assertRaises(urllib.error.HTTPError) as observed:
-            self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failure))
-        self.assertIs(observed.exception, failure)
-        self.assertEqual(self.opened.call_count, 1)
-        self.slept.assert_not_called()
-        self.assertEqual(list(self.output.iterdir()), [])
+        for status in (403, 404):
+            with self.subTest(status=status):
+                failure = urllib.error.HTTPError(URLS[0], status, 'original refused', {}, None)
+                with self.assertRaises(urllib.error.HTTPError) as observed:
+                    self.run_command(lambda *_args, **_kwargs: (_ for _ in ()).throw(failure))
+                self.assertIs(observed.exception, failure)
+                self.assertIn('sqlite.zip', '\n'.join(failure.__notes__))
+                self.assertIn(URLS[0], '\n'.join(failure.__notes__))
+                self.assertEqual(self.opened.call_count, 1)
+                self.slept.assert_not_called()
+                self.assertEqual(list(self.output.iterdir()), [])
+                self.output.rmdir()
 
     def test_integrity_or_extent_mismatch_never_retries_or_writes(self):
         # The SHA pin is independently authored above; a same-length wrong body

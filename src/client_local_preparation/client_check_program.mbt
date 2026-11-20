@@ -415,9 +415,12 @@ fn check_program_findings(
             @host.client_standard_effect_computation_limits(),
           ) {
           Ok(_) => return Report
-          // Keep the limitation on any failed static closure. It must never
-          // turn an unclosed Command or Mapping into a verified report.
-          Err(_) => ()
+          Err(issue) =>
+            match check_static_effect_type_issue(findings, issue) {
+              Some(stop) => return stop
+              // Keep other unclosed Command/Mapping obligations unresolved.
+              None => ()
+            }
         }
       }
       check_program_diagnostic(
@@ -624,4 +627,156 @@ fn check_program_public_text(
     return None
   }
   @decode.text(value).to_option()
+}
+
+///|
+/// Bounded report DATA from the SAME completed static Effect call. The
+/// Request retains the candidate, publication and actual result through this
+/// writer. This does not parse/check/compile again or issue an Effect permit.
+pub fn client_program_project_original_static_effect_check(
+  candidate : @checked.EffectComputationCandidate,
+  result : Result[
+    @checked.EffectProgramStaticCandidate,
+    @host.ClientEffectComputationIssue,
+  ],
+  environment : @checked.CheckEnvironment,
+  publication : @publication.PreparedPublishedQueryEnvironment,
+  visible_publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+) -> String {
+  let findings : Array[CheckFinding] = []
+  if !physical_equal(
+      @checked.effect_computation_environment(candidate),
+      @checked.checking_environment_wire(environment),
+    ) {
+    return check_failed_json("check_context_invalid", correlation_ref)
+  }
+  if result is Ok(complete) &&
+    !physical_equal(
+      @checked.effect_program_static_checked_computation(complete),
+      @checked.effect_computation_checked_program(candidate),
+    ) {
+    return check_failed_json("check_context_invalid", correlation_ref)
+  }
+  let matched = @publication.prepared_published_query_environment_publication_matches(
+    publication, environment, visible_publication,
+  )
+  let update = if matched {
+    match
+      @publication.prepared_published_effect_parts(publication, environment) {
+      Ok((update, _, _, _)) => update
+      Err(_) =>
+        return check_failed_json("check_context_invalid", correlation_ref)
+    }
+  } else {
+    None
+  }
+  let headers = @checked.effect_computation_headers(candidate)
+  let mut issue_visible = false
+  for index in 0..<@syntax.effect_header_count(headers) {
+    let header = @syntax.effect_header_at(headers, index).unwrap()
+    if @syntax.effect_header_kind(header) != "update" {
+      // This header retains its original Program stage, not a lowered Query
+      // position. Only authored structured input may expose that effects node.
+      findings.push(
+        ProgramLimit(
+          "implementation_limit",
+          if input_kind == "program" {
+            Some(
+              "/stages/" +
+              @syntax.effect_header_stage(header).to_string() +
+              "/effects",
+            )
+          } else {
+            None
+          },
+        ),
+      )
+      continue
+    }
+    let visible = match update {
+      None => false
+      Some(update) => {
+        let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
+        let target = @decode.text(@decode.lookup(body, "target").unwrap()).unwrap()
+        match
+          @query.resolve_concrete_update_target_binding(
+            update,
+            target,
+            @syntax.effect_header_contract_ref(header),
+            1000000,
+          ) {
+          Ok(_) => true
+          Err(WorkLimit) => {
+            findings.push(Limit("analysis_budget_exhausted"))
+            false
+          }
+          Err(_) => false
+        }
+      }
+    }
+    if !visible {
+      findings.push(Unresolved("source_resolution"))
+      continue
+    }
+    // A private sibling cannot erase an independently visible typed failure,
+    // but a hidden Mapping cannot disclose its expected fields or types.
+    let location = match result {
+      Err(Static(MappingLiterals(issue))) =>
+        Some(
+          (
+            @effect_results.effect_mapping_literal_issue_stage(issue),
+            @effect_results.effect_mapping_literal_issue_effect(issue),
+          ),
+        )
+      Err(Static(MappingRules(issue))) =>
+        Some(
+          (
+            @effect_results.effect_mapping_rule_issue_stage(issue),
+            @effect_results.effect_mapping_rule_issue_effect(issue),
+          ),
+        )
+      _ => None
+    }
+    if location ==
+      Some(
+        (@syntax.effect_header_stage(header), @syntax.effect_header_id(header)),
+      ) {
+      issue_visible = true
+    }
+  }
+  let stop = match result {
+    Ok(_) => Report
+    Err(issue) if issue_visible =>
+      match check_static_effect_type_issue(findings, issue) {
+        Some(stop) => stop
+        None => {
+          findings.push(Limit("implementation_limit"))
+          Report
+        }
+      }
+    Err(_) => {
+      findings.push(Limit("implementation_limit"))
+      Report
+    }
+  }
+  check_outcome_json(findings, stop, context_ref, correlation_ref, {
+    scope: BoundInput,
+    structured_program: input_kind == "program",
+    program_pointer: None,
+    source_revision: input_revision,
+    source_bytes: input_bytes,
+    declarations_revision,
+    declarations_bytes,
+    parameters_revision,
+    parameters_bytes,
+  })
 }

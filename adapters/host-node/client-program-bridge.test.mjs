@@ -28,7 +28,7 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {fundedClientPreparation, openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {fundedClientPreparation, openFundedClientPreparation, fundedAuthoringContextOriginalFixture} from './funded-client-preparation.fixture.mjs';
 import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
 import {createNodeHostEntry, completeCapturedEffectRun, recoverAdmittedEffectRun,
   runCapturedEffectComputation,
@@ -626,8 +626,11 @@ test('checked acquired source and downstream task emit their input ports',
           logicalInput: opened.logicalInput, authorityScopeCid,
           effectiveDataPolicyCid: dataPolicyCid,
         }), {code: 'MoonBitHostFailure'});
+        const publicationOriginal = Object.freeze({kind: 'installed_run', value: publicationPreparation,
+          authoringContext: fundedAuthoringContextOriginalFixture(moon, prepared)});
         const admitted = acquiredTaskRunAdmission({moon, control,
           publicationPreparation, compilationOriginal, requestIdentity: captureRequestIdentity,
+          publicationOriginal,
           preparedProgram: prepared, document, format: 'json',
           parameters: JSON.parse(parameters),
           environmentWire: canonicalText(environmentBody),
@@ -635,7 +638,7 @@ test('checked acquired source and downstream task emit their input ports',
           namespaceId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
         const storeAuthorityCid = cid('7');
         let plan;
-        try { plan = acquiredTaskPublicationPlan({moon, control,
+        try { plan = acquiredTaskPublicationPlan({moon, control, publicationOriginal,
           acquired: admitted, preparedProgram: prepared, captured: opened,
           sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire, publicationLimits), authorityScopeCid,
           effectiveDataPolicyCid: publicationDataPolicyCid,

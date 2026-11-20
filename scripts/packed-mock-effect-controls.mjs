@@ -67,6 +67,7 @@ async function runControl({prepared, root, repository, command, record}) {
   for (const [source, target] of [
     ['adapters/host-node/fixtures/mock-project-effect-public.mjs', 'capture-original.mjs'],
     ['adapters/host-node/fixtures/work-observation.fixture.mjs', 'work-observation.fixture.mjs'],
+    ['adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs', 'mock-project-effect-protocol.fixture.mjs'],
     ['scripts/fixtures/mock-project-effect-control-capture.mjs', 'capture.mjs'],
     ['scripts/fixtures/mock-project-effect-cancel-public.mjs', 'control.mjs'],
     ['scripts/fixtures/record-approval/scoped-fds.fixture.mjs', 'record-approval/scoped-fds.fixture.mjs'],

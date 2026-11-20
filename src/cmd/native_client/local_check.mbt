@@ -178,6 +178,7 @@ fn local_check_received(original : String?) -> Json {
 fn LocalCheckContext::reference(
   self : LocalCheckContext,
   input : LocalCheckInput,
+  visible_publication? : String? = None,
 ) -> String raise ClientStop {
   let (reason, outcome) = @preparation.client_program_check_reporting_schema_cids()
   let compiler = @json.parse(
@@ -206,6 +207,19 @@ fn LocalCheckContext::reference(
     ("visible_aliases", Json::array([])),
     ("parameters", local_check_received(input.parameters)),
   ])
+  if visible_publication is Some(wire) {
+    guard local_project_mock_json(wire) is Object(publication) &&
+      publication.get("aliases") is Some(aliases) else {
+      stop("LocalCheckContextUnavailable")
+    }
+    // Bind only disclosed members. The private full Environment CID must not
+    // distinguish an absent target from a protected registration.
+    fields["visible_aliases"] = aliases
+    if publication.get("updateTargets") is Some(Array(targets)) &&
+      !targets.is_empty() {
+      fields["visible_update_targets"] = Json::array(targets)
+    }
+  }
   match input.format {
     @frontend.Json =>
       fields["program"] = local_check_received(Some(input.document))

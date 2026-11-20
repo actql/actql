@@ -4,6 +4,7 @@
 pub(all) enum ClientInferRunMaterialsBridgeIssue {
   Manifests(@publication_host.ClientCompilationManifestIssue)
   Materials(@publication_host.ClientTaskRunMaterialsIssue)
+  Recovery(@client_local_host.ClientRequestModelRecoveryMaterialsIssue)
 }
 
 ///|
@@ -58,6 +59,56 @@ pub fn client_program_admit_infer_run_materials(
     manifests,
     client_effect_original_limits(),
   ).map_err(issue => Materials(issue))
+}
+
+///|
+/// Installed cold restoration uses its SAME physical Request reservation.
+/// Both returned members are originals from that one funded material Read.
+#export_name("clientProgramAdmitRequestInferRunMaterials")
+pub fn client_program_admit_request_infer_run_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  wire : String,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+) -> Result[
+  (
+    @publication_host.ClientTaskRunMaterials,
+    @publication_host.ClientAuthoringContextPreparation,
+  ),
+  ClientInferRunMaterialsBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Err(issue) => return Err(Manifests(issue))
+    Ok(value) => value
+  }
+  @client_local_host.admit_request_model_recovery_materials(
+    parent,
+    input,
+    request,
+    definition,
+    wire,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    manifests,
+    client_effect_original_limits(),
+  ).map_err(issue => Recovery(issue))
 }
 
 ///|
@@ -160,5 +211,22 @@ pub fn client_program_compiled_infer_originals(
         @publication_host.client_infer_plan_graph_execution_contract(graph),
       )
     }),
+  )
+}
+
+///|
+/// Normal installed capture must enter the same Request's funded constructor.
+/// The old standalone codec remains a separate explicit component route.
+#export_name("clientProgramIssueRequestInferRunMaterials")
+pub fn client_program_issue_request_infer_run_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[String, @client_local_host.ClientRequestProgramPlanIssue] {
+  @client_local_host.issue_request_model_run_materials(
+    parent, input, compiled, definition,
   )
 }

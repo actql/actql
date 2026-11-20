@@ -1,4 +1,90 @@
 ///|
+// Mechanical public catalogue projection through the existing canonical Owner.
+// The caller retains the original Json and funds these constructors before
+// entry. Encoder bounds are not capacity, permission or Source admission.
+fn relation_declaration_projection_wire(
+  value : Json,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RowHostIssue] {
+  try {
+    let canonical = @identity.from_json(
+      value,
+      max_nodes,
+      max_depth,
+      max_bytes,
+      data_keys=true,
+    )
+    Ok(@identity.stringify_value(canonical, max_bytes, max_nodes, max_depth))
+  } catch {
+    _ => Err(InvalidSpecification)
+  }
+}
+
+///|
+/// Translate only the public catalogue's schema/facts/request fields to the
+/// EXISTING Relation restore input. Unknown fields remain for its strict
+/// admission; private destination names cannot be injected by public DATA.
+/// This does not install an environment, select a physical source or issue any
+/// authority. All hosts use the same original declaration/restore Owner.
+pub fn project_relation_declaration_input(
+  entry : Json,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RowHostIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidSpecification)
+  }
+  guard entry is Object(fields) && fields.get("views") is Some(Array(views)) else {
+    return Err(InvalidSpecification)
+  }
+  let saved = []
+  for view in views {
+    guard view is Object(fields) else { return Err(InvalidSpecification) }
+    let projected : Map[String, Json] = Map([])
+    for key, value in fields {
+      if key == "schema" {
+        let wire = match
+          relation_declaration_projection_wire(
+            value, max_bytes, max_nodes, max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        projected["schema_wire"] = Json::string(wire)
+        projected["schema_cid"] = Json::string(
+          "sha256:" + @sha.hex(@utf8.encode(wire)),
+        )
+      } else if ["request_schema", "facts", "acquisition", "resource_identity"].contains(
+          key,
+        ) {
+        let wire = match
+          relation_declaration_projection_wire(
+            value, max_bytes, max_nodes, max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        projected[key + "_wire"] = Json::string(wire)
+      } else if key.has_suffix("_wire") || key == "schema_cid" {
+        projected["public_input_field:" + key] = value
+      } else {
+        projected[key] = value
+      }
+    }
+    saved.push(Json::object(projected))
+  }
+  relation_declaration_projection_wire(
+    Json::object(Map([("views", Json::array(saved))])),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// A complete saved Relation schema, not observed rows or physical type names.
 pub(all) struct RowRelationViewSpec {
   resource : String

@@ -165,6 +165,29 @@ test "status normalization leaves original reference and other command shapes un
 }
 
 ///|
+test "status without an original selector reports usage before project or Host initialization" {
+  for
+    argv in [
+      ["status"],
+      ["status", "--json"],
+      ["status", "--watch"],
+      ["--mode", "local", "--config", "MUST-NOT-OPEN.json", "status"],
+    ] {
+    let issue = try {
+      ignore(command().parse(argv=argv[:], env=Map([])))
+      fail("status requires an original selector before command execution")
+    } catch {
+      error => error.to_string()
+    }
+    assert_true(issue.contains("required arguments were not provided"))
+    assert_true(issue.contains("Usage: actql status"))
+    assert_true(issue.contains("--run-id"))
+    assert_true(issue.contains("--ref-file"))
+    assert_false(issue.contains("NativeLocalSignatureUnavailable"))
+  }
+}
+
+///|
 test "public status does not interpret a dash-prefixed original ID as an input file" {
   let parsed = command().parse(
     argv=["--mode", "local", "status", "--", "--original-run"],

@@ -75,6 +75,10 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestSourceComputation')==='function' &&
     typeof own(moon,'clientProgramFinishRequestComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestProgramNormalization')==='function' &&
+    typeof own(moon,'clientProgramRequestProgramNormalizationIssueCode')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestProgramAuthoringContext')==='function' &&
+    typeof own(moon,'clientProgramRequestProgramAuthoringContextIssueCode')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestPolicySubjects')==='function' &&
     typeof own(moon,'clientProgramReadRequestPolicySubject')==='function' &&
     typeof own(moon,'clientProgramBindRequestPolicySubject')==='function' &&
@@ -217,6 +221,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
       state.contentPlan = state.contentCompilation = state.contentGraph = undefined;
     }
     state.effectMaterials=undefined;
+    state.authoringContextOriginal=undefined;
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory
     // borrower as well. Core consumes each holder before attempting owner
@@ -231,6 +236,9 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
     }
   }
   if(state.parent!==undefined) {
+    // Core still retains the same failed/unadopted construction. Cut this
+    // redundant publication alias before its parent can consume settlement.
+    state.authoringContextOriginal=undefined;
     checked(moon.clientProgramAbortRequestPreparation(state.parent));
     state.parent=state.admission=undefined;
   } else if(state.admission!==undefined) {

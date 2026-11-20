@@ -17,7 +17,8 @@ import {installedSourceFor as selectInstalledSource} from './installed-source.mj
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validSubmissionLookup, validCheckOutcome, snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
-import {checkedRequestProgramPreparation, installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, installNodeClientProgramPreparation,
+  retainPreparedSubmissionFailure} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -1138,12 +1139,12 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
     prepareInvocation() {assert.fail('The original refusal precedes invocation preparation');}});
   const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections', 'prepareOrdinaryManagedRun',
     'sourceProfile', 'sourceFreeRequestIdentities', 'prepareSubmit', 'installedSourceFor', 'journal', 'namespaceId', 'control',
-    'missingModelExecutionRefusals', 'prepareEffectInferSelection',
+    'missingModelExecutionRefusals', 'prepareEffectInferSelection', 'retainPreparedSubmissionFailure', 'diagnostic',
     ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
       '\nreturn admitPreparedSubmission;')(preparation, runtime, requestOf, inferSelections, prepareOrdinaryManagedRun,
     sourceProfile, sourceFreeRequestIdentities, prepareSubmit, installedSourceFor,
     {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {}, missingModelExecutionRefusals,
-    prepareEffectInferSelection);
+    prepareEffectInferSelection, retainPreparedSubmissionFailure, undefined);
   return {callback, error, prepared, requested, record, originalInstallation,
     adapter, sourceProfile, prepareSubmit, inferSelections, runtime, setDefinition(value) {existingDefinition = value;},
     replaceAdapter(value) {selectedAdapter = value;},

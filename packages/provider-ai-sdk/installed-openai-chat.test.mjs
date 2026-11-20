@@ -49,6 +49,7 @@ function configuration() {
 
 function runtime(config) {
   const request={},provider={},entry={},cursor={};
+  const originalModelId=config.modelId;
   let physicalCall;
   const transportBounds=[config.requestLimits.maxBytes,config.responseLimits.maxBytes,
     config.responseLimits.maxChunkBytes,config.responseLimits.maxChunks,config.responseLimits.maxHeaderBytes];
@@ -62,6 +63,14 @@ function runtime(config) {
       return {$tag:1,_0:counts.steps<2?undefined:{_0:corpus.prompt.payload.instructions,_1:wire,
         _2:JSON.stringify(corpus.schema),_3:corpus.task.contract_cid,_4:corpus.prompt.self_cid,
         _5:corpus.task.output_schema_cid,_6:'fixture-chat'}};},
+    clientProgramFinishOpenAIChatSdkV4Projection(c,model,bytes){
+      assert.equal(c,cursor);assert.equal(model,originalModelId);assert.equal(bytes,transportBounds[0]);
+      return {$tag:1,_0:{_0:corpus.prompt.payload.instructions,_1:wire,_2:JSON.stringify(corpus.schema),
+        _3:corpus.task.contract_cid,_4:corpus.prompt.self_cid,_5:corpus.task.output_schema_cid,_6:'fixture-chat',
+        _7:JSON.stringify({model,temperature:0.25,top_p:0.875,max_tokens:16,
+          messages:[{role:'system',content:corpus.prompt.payload.instructions},{role:'user',content:wire}],
+          response_format:{type:'json_schema',json_schema:{schema:corpus.schema,strict:true,name:'actql_output'}}})}};
+    },
     clientProgramRetireOpenAIChatProjection(c){assert.equal(c,cursor);counts.retired++;},
     clientProgramModelRequestGeneration(r){assert.equal(r,request);counts.generation++;
       return {_0:'fixture-chat',_1:0.25,_2:0.875,_3:16n,_4:undefined};},
@@ -419,7 +428,8 @@ test('installation getter extra input and unavailable runtime do not install or 
 
 test('each missing consuming runtime hook rejects registration rather than failing after preparation',()=>{
   for(const hook of ['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-    'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
+    'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
+    'clientProgramInstallAsyncModelProvider',
     'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat',

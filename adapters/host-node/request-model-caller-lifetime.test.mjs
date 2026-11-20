@@ -7,6 +7,7 @@ import {installLocalPreparationRegistry} from './local-preparation-registry.mjs'
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {retainPreparedSubmissionFailure} from './client-program-preparation.mjs';
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
@@ -767,6 +768,7 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   };
   findAdmission(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(admission);
   const failures = new WeakMap(), admissionPorts = {...ports,
+    retainPreparedSubmissionFailure, diagnostic: undefined,
     requestOf: () => ({requested: request, acquisitionCount: acquisitions, effectful: false}),
     journal: {resolveDefinition: () => saved ? {physicalStartReserved: true} : undefined}, namespaceId: 'fixture',
     prepareInstalledRequestModelRun: construct, admissionFailures: failures,

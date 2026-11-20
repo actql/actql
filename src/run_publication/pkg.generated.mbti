@@ -585,6 +585,8 @@ pub fn generated_content_reference_wire(GeneratedContentReference) -> String
 
 pub fn grow_durable_result_row_frame_buffer(DurableResultRowFrames, Int) -> Result[Unit, DurableResultRowFrameIssue]
 
+pub fn initial_result_retention_construction_geometry(String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, PublicationContractIssue]
+
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
 pub fn install_publication_publisher_port(PublicationContract, PublicationContract, String, () -> Bool, (PublicationPublisherAuthorization) -> Bool) -> Result[PublicationPublisherPort, PublicationPublisherIssue]
@@ -662,6 +664,8 @@ pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContrac
 pub fn issue_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
+
+pub fn issue_initial_result_retention(String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -967,6 +971,8 @@ pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObserv
 
 pub fn public_index_entry_construction_geometry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, PublicationCommitIssuanceIssue]
 
+pub fn public_index_manifest_has_original_result(PublicationContract, PublicationContract, String) -> Result[Bool, DeliveryIssuanceIssue]
+
 pub fn public_index_manifest_result_names_json(PublicationContract, PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn public_index_run_observation_cids(PublicationContract) -> Result[(String, String), DeliveryIssuanceIssue]
@@ -1173,6 +1179,8 @@ pub fn run_definition_namespace(PublicationContract) -> String?
 
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn run_evidence_admission_construction_inventory(Int, Int, Int) -> RunEvidenceAdmissionConstruction?
+
 pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
 
 pub fn run_evidence_value_fits(RunEvidenceValue, Int, Int, Int) -> Bool
@@ -1212,6 +1220,8 @@ pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Resu
 pub fn saved_compiled_plan_matches_definition(PublicationContract, PublicationContract, String?) -> Bool
 
 pub fn saved_compiled_plan_validation_construction(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn saved_run_definition_validation_construction(Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
@@ -1290,6 +1300,8 @@ pub fn validate_local_result_artifact_evidence(String, PublicationContract, Resu
 pub fn validate_original_interactive_run_evidence(PublicationContract, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunControlReadIssue]
 
 pub fn validate_original_succeeded_run_state(PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
+pub fn validate_original_unpublished_run_state(PublicationContract, String, Int, Int, Int) -> Result[RunOutcomeStatus, PublicationContractIssue]
 
 pub fn validate_prepared_effectful_computation_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
@@ -2506,6 +2518,16 @@ pub(all) enum RunControlReadIssue {
   ControlReadContract(PublicationContractIssue)
   RunStateVersionUnsupported
   LegacyProjectionMismatch(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RunEvidenceAdmissionConstruction {
+  retained : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunEvidenceChainIssue {

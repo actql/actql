@@ -39,6 +39,8 @@ struct CapturedTaskBoundaryHooks {
   mut reads : CapturedTaskBoundary?
   mut admitting_read : Bool
   mut closing : Bool
+  mut control : CapturedTaskControl?
+  mut admitting_control : Bool
 }
 
 ///|
@@ -75,6 +77,7 @@ pub(all) enum CapturedTaskBoundaryIssue {
   StaleBoundary
   ReadReturned
   ReadInProgress
+  SetupInUse
   Resource(@resources.LedgerIssue)
 } derive(Eq, Debug)
 
@@ -139,10 +142,11 @@ fn retire_captured_boundary_setup(
 }
 
 ///|
-/// Explicit Debug setup, before Compute work. Original graph and strategy
+/// Explicit bounded original-key setup, before Compute work. Original graph and strategy
 /// facts are checked before and after the SAME Run's actual admission. This
 /// grants no observation/control permission or public Host capability. The
 /// selected Host still admits its pre-Source strategy construction separately.
+/// Read-only metadata does not split the graph or select a Debug strategy.
 pub fn prepare_captured_task_boundary_hooks(
   run : CapturedDAG,
   graph : CheckedDAG,
@@ -241,6 +245,8 @@ pub fn prepare_captured_task_boundary_hooks(
     reads: None,
     admitting_read: false,
     closing: false,
+    control: None,
+    admitting_control: false,
   }
   run.activation = Observed(hooks)
   Ok(hooks)
@@ -272,6 +278,7 @@ fn record_captured_task_boundary_commit(run : CapturedDAG, task : Int) -> Unit {
       generation: run.generation,
       strategy_revision: run.revisions,
     })
+    commit_captured_task_control(run, hooks, task)
   }
 }
 
@@ -297,7 +304,7 @@ fn captured_boundary_record_current(
   }
   match phase {
     Before =>
-      next_captured_task(run) == Some(task) &&
+      next_captured_task_ungated(run) == Some(task) &&
       captured_task_activation_granted(run, task)
     Settled | OutputEmitted =>
       run.done[task] && run.outputs[task] is Some(_) && run.lifetimes[task].live
@@ -539,7 +546,17 @@ fn refresh_captured_task_boundary_cleanup(run : CapturedDAG) -> Unit {
         (original.returning == 2 || !original.delivered) {
         return_captured_task_boundary(boundary) |> ignore
       }
+      if hooks.closing {
+        retire_captured_task_control(hooks)
+        if hooks.control is Some(control) &&
+          original_control_cleanup_issue(control) is Some(issue) &&
+          hooks.original is Some(setup) {
+          setup.cleanup_issue = Some(issue)
+        }
+      }
       if hooks.closing &&
+        !hooks.admitting_control &&
+        hooks.control is None &&
         !hooks.admitting_read &&
         hooks.reads is None &&
         hooks.original is Some(original) {
@@ -611,4 +628,29 @@ pub fn captured_task_boundary_hooks(
     Observed(hooks) => Some(hooks)
     _ => None
   }
+}
+
+///|
+/// Dispose this installed holder only after stop and its actual setup/read
+/// returns. This is not a Run-stop or physical-parent acknowledgement. The
+/// metadata consumer drops its remaining holder alias before returning its
+/// own parent loan; Normal's existing inline activation slot remains unchanged.
+pub fn release_captured_task_boundary_hooks(
+  run : CapturedDAG,
+) -> Result[Unit, CapturedTaskBoundaryIssue] {
+  if run.stopped && run.activation is Unarmed {
+    return Ok(())
+  }
+  guard run.activation is Observed(hooks) else { return Err(SetupInUse) }
+  if !run.stopped ||
+    !hooks.closing ||
+    hooks.admitting_read ||
+    hooks.admitting_control ||
+    hooks.control is Some(_) ||
+    hooks.original is Some(_) ||
+    hooks.reads is Some(_) {
+    return Err(SetupInUse)
+  }
+  run.activation = Unarmed
+  Ok(())
 }

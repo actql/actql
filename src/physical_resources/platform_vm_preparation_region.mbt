@@ -115,6 +115,15 @@ fn acquire_imported_child_window_current(
     return Err(RetentionLimit)
   }
   if execution > ledger.limits.execution_bytes {
+    capacity_observation(
+      ledger,
+      15,
+      -1,
+      execution,
+      0L,
+      ledger.limits.execution_bytes,
+      ledger.usage.reserved_execution_bytes,
+    )
     return Err(ExecutionLimit)
   }
   guard origin.acquire_window is Some(acquire) else {
@@ -123,7 +132,20 @@ fn acquire_imported_child_window_current(
   let before = ledger.usage
   origin.acquiring_window = true
   let result = match acquire(retained, execution) {
-    Err(issue) => Err(issue)
+    Err(issue) => {
+      if issue is ExecutionLimit {
+        capacity_observation(
+          ledger,
+          16,
+          -1,
+          execution,
+          0L,
+          ledger.limits.execution_bytes,
+          ledger.usage.reserved_execution_bytes,
+        )
+      }
+      Err(issue)
+    }
     Ok(_) =>
       match refresh_imported_child_current(origin) {
         Err(issue) => Err(issue)
@@ -141,6 +163,15 @@ fn acquire_imported_child_window_current(
           } else if retained > ledger.limits.retained_bytes {
             Err(RetentionLimit)
           } else if execution > ledger.limits.execution_bytes {
+            capacity_observation(
+              ledger,
+              15,
+              -1,
+              execution,
+              0L,
+              ledger.limits.execution_bytes,
+              ledger.usage.reserved_execution_bytes,
+            )
             Err(ExecutionLimit)
           } else if retained > window.val || execution > window.val - retained {
             Err(RetentionLimit)

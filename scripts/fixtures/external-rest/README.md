@@ -96,6 +96,17 @@ facts must be recorded by the same installed Host conformance caller.
 
 ## Source checks and platform scope
 
+The existing timed Values case may additionally select `logicalObservation: true`
+in its input descriptor. It uses the normal installed
+`@actql/local-node/observation` export and the existing compute/task selection;
+it adds no Debug, Sample or control admission. The authored Program, rows,
+first close, scoped-FD and separate-process original Saved checks are unchanged.
+After first close, the caller records delivered metadata and compares complete
+logical keys with that same Run's retained Facts. An actual unprojected boundary
+stays explicit and is not a logical completion claim. Missing delivery is not
+success. Saved must produce no new Compute event. Without this optional input,
+the previous normal case retains its original selection.
+
 The generic distribution command selects `preparation.test.mjs` only. Its
 preflight cases use synthetic package/digest and provider DATA without importing
 normal software or creating a Host, keys or TLS server. The separate
@@ -151,3 +162,14 @@ that source/preflight coverage cannot establish these ordinary lifetimes.
 Publishing caller sources does not supply matching runtime artifacts, qualify
 current-main ordinary execution, or make the fixture's diagnostic tag a new
 stable public error contract.
+
+The current timed Values caller additionally reads `Execution.explain` on that
+same original Run after the existing full Result and status assertions. It
+requires projected structural Facts and the independently authored `id`/`label`
+schema, without row literals or cardinality, then compares the complete original
+view in the existing separate-process Saved child. The original Program,
+Account, invocation/row oracles, ref-before-wait capture, first-all-before-status,
+first close and scoped descriptor checks remain the same. The Source branch does
+not acquire this additional expectation. This caller revision must not run on an
+older normal artifact lacking the actual funded first-capture/read supplier;
+preparing or testing its DATA oracles establishes no installed acceptance.

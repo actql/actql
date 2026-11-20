@@ -19,13 +19,19 @@ let sequence_demand_scalar_delta_bytes : Int64 = @execution.preparation_represen
 pub fn[I, P] compile_program_check_preparation(
   owner : ClientProgramCheckPreparation[I, P],
   limits : @publication_host.ClientProgramPreparationLimits,
+  execution_profile? : @publication_host.ClientExecutionProfile = Normal,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientProgramCheckPreparationIssue,
 ] {
   guard owner.effect_limits is None &&
     !owner.busy &&
-    (owner.phase == SemanticCheckComplete || owner.phase == CompilationQuoted) &&
+    (
+      owner.phase == SemanticCheckComplete ||
+      owner.phase == CompilationQuoted ||
+      owner.phase == DebugCompilationInspecting ||
+      owner.phase is DebugCompilationQuoted(_)
+    ) &&
     owner.input is Some(input) &&
     owner.check_outcome is Some(@checked.Checked(checked)) &&
     owner.check_data is Some(data) else {
@@ -37,10 +43,21 @@ pub fn[I, P] compile_program_check_preparation(
     !physical_equal(original, limits) {
     return Err(ChangedInputs)
   }
+  if owner.phase != SemanticCheckComplete &&
+    (
+      (execution_profile == Normal && owner.phase != CompilationQuoted) ||
+      (execution_profile == Debug && owner.phase == CompilationQuoted)
+    ) {
+    return Err(ChangedInputs)
+  }
   owner.busy = true
-  let result = compile_program_check_preparation_owned(
-    owner, input, checked, data, limits,
-  )
+  let result = if execution_profile == Debug {
+    compile_debug_program_check_preparation_owned(
+      owner, input, checked, data, limits,
+    )
+  } else {
+    compile_program_check_preparation_owned(owner, input, checked, data, limits)
+  }
   owner.busy = false
   result
 }
@@ -103,6 +120,66 @@ fn[I, P] compile_program_check_preparation_owned(
 }
 
 ///|
+fn[I, P] compile_debug_program_check_preparation_owned(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  checked : @checked.CheckedProgram,
+  data : @checked.ParsedCheckDataEstimate,
+  limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.PreparedClientProgram,
+  ClientProgramCheckPreparationIssue,
+] {
+  let (work, graph_work) = match
+    begin_debug_program_compilation_work(owner, input, checked, data, limits) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let calls = Ref(0L)
+  let (result, known) = @publication_host.observe_prepare_checked_effect_free_client_program(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+    max_tasks=limits.max_tasks,
+    max_graph_work=graph_work,
+    values_max_rows=limits.values_max_rows,
+    calls_out=Some(calls),
+    execution_profile=Debug,
+  )
+  owner._observed_program_compile_calls += calls.val
+  owner.compilation_known_work += known
+  let charged = @resources.spend_preparation_phase_work_continuation64(
+    work, known,
+  )
+  match @resources.finish_preparation_phase_work_continuation64(work) {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
+    Ok(_) => owner.topology_work = None
+  }
+  match charged {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
+    Ok(_) => ()
+  }
+  match result {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      Err(Compilation(issue))
+    }
+    Ok(prepared) => {
+      owner.compiled_program = Some(prepared)
+      owner.phase = CompilationComplete
+      Ok(prepared)
+    }
+  }
+}
+
+///|
 fn[I, P] begin_program_compilation_work(
   owner : ClientProgramCheckPreparation[I, P],
   input : I,
@@ -113,6 +190,41 @@ fn[I, P] begin_program_compilation_work(
   @resources.PreparationPhaseWork64,
   ClientProgramCheckPreparationIssue,
 ] {
+  match reserve_program_compilation_quote(owner, input, checked, data, limits) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Bounded by the SAME original lowering limits in every Stage. Binding and
+  // graph retain their existing separate finite limits; their unavailable
+  // consumed-work observation is not invented from a configured maximum.
+  let stages = @checked.unit_count(checked).to_int64()
+  let maximum = if limits.lowering.max_work < 0 {
+    0L
+  } else {
+    stages * limits.lowering.max_work.to_int64()
+  }
+  let work = match
+    @resources.begin_preparation_phase_work64(
+      owner.capacity,
+      input,
+      @resources.LowerAndGraph,
+      maximum,
+    ) {
+    Err(issue) => return Err(Work(issue))
+    Ok(value) => value
+  }
+  owner.work = Some(work)
+  Ok(work)
+}
+
+///|
+fn[I, P] reserve_program_compilation_quote(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  checked : @checked.CheckedProgram,
+  data : @checked.ParsedCheckDataEstimate,
+  limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[Unit, ClientProgramCheckPreparationIssue] {
   if owner.phase == SemanticCheckComplete {
     guard program_check_data_extent_cost(data) is Some(bytes) else {
       return Err(Overflow)
@@ -158,27 +270,161 @@ fn[I, P] begin_program_compilation_work(
     Err(issue) => return Err(Capacity(issue))
     Ok(_) => ()
   }
-  // Bounded by the SAME original lowering limits in every Stage. Binding and
-  // graph retain their existing separate finite limits; their unavailable
-  // consumed-work observation is not invented from a configured maximum.
-  let stages = @checked.unit_count(checked).to_int64()
-  let maximum = if limits.lowering.max_work < 0 {
-    0L
-  } else {
-    stages * limits.lowering.max_work.to_int64()
+  Ok(())
+}
+
+///|
+// The original staged work receipt returns after observation, before resize,
+// then resumes without resetting its spent work. The existing topology slot
+// keeps that same graph-phase duty through a declined grow and owner clear.
+fn[I, P] begin_debug_program_compilation_work(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  checked : @checked.CheckedProgram,
+  data : @checked.ParsedCheckDataEstimate,
+  limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  (@resources.PreparationPhaseWorkContinuation64, Int),
+  ClientProgramCheckPreparationIssue,
+] {
+  if limits.max_graph_work < 0 || limits.max_tasks < 0 {
+    return Err(Compilation(Graph(InvalidLimits)))
   }
+  if owner.phase is DebugCompilationQuoted(remaining) {
+    guard owner.topology_work is Some(work) else { return Err(WrongPhase) }
+    let (r, e) = owner.compilation_quote.unwrap()
+    match
+      @resources.reserve_working_preparation_phase(owner.capacity, input, r, e) {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(_) => ()
+    }
+    match @resources.resume_preparation_phase_work_continuation64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => return Ok((work, remaining))
+    }
+  }
+  if owner.topology_work is Some(_) {
+    return Err(WrongPhase)
+  }
+  match reserve_program_compilation_quote(owner, input, checked, data, limits) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  owner.phase = DebugCompilationInspecting
+  let (r, e) = owner.compilation_quote.unwrap()
+  let controls = @publication_host.client_debug_graph_quotation_control_bytes()
+  // Inline arithmetic precedes new observer objects. Refusal retains the old
+  // quote and selected scalar phase, not an unbacked replacement packet.
+  if r > 9223372036854775807L - controls || e > 9223372036854775807L - controls {
+    return Err(Overflow)
+  }
+  match
+    @resources.reserve_working_preparation_phase(
+      owner.capacity,
+      input,
+      r + controls,
+      e + controls,
+    ) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(_) => ()
+  }
+  owner.compilation_quote = Some((r + controls, e + controls))
+  let maximum = @checked.unit_count(checked).to_int64() *
+    Int::max(0, limits.lowering.max_work).to_int64() +
+    limits.max_graph_work.to_int64()
   let work = match
-    @resources.begin_preparation_phase_work64(
+    @resources.begin_preparation_phase_work_continuation64(
       owner.capacity,
       input,
       @resources.LowerAndGraph,
       maximum,
     ) {
-    Err(issue) => return Err(Work(issue))
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
     Ok(value) => value
   }
-  owner.work = Some(work)
-  Ok(work)
+  owner.topology_work = Some(work)
+  let observed = Ref(0L)
+  let measured = @publication_host.measure_client_debug_graph_construction(
+    checked,
+    limits.max_tasks,
+    limits.max_graph_work,
+    observed,
+  )
+  owner.compilation_known_work += observed.val
+  match
+    @resources.spend_preparation_phase_work_continuation64(work, observed.val) {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      match finish_debug_compilation_observation(owner, work) {
+        Err(cleanup) => return Err(cleanup)
+        Ok(_) => return Err(Work(issue))
+      }
+    }
+    Ok(_) => ()
+  }
+  let (bytes, remaining) = match measured {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      match finish_debug_compilation_observation(owner, work) {
+        Err(cleanup) => return Err(cleanup)
+        Ok(_) => return Err(Compilation(issue))
+      }
+    }
+    Ok(value) => value
+  }
+  let (r, e) = owner.compilation_quote.unwrap()
+  if r > 9223372036854775807L - bytes || e > 9223372036854775807L - bytes {
+    owner.phase = CompilationFailed
+    match finish_debug_compilation_observation(owner, work) {
+      Err(cleanup) => return Err(cleanup)
+      Ok(_) => return Err(Overflow)
+    }
+  }
+  // The observer has returned. Only its SAME pending work token may cross
+  // this capacity grow; neither a new phase nor a callback Boolean can do so.
+  match @resources.return_preparation_phase_work_continuation64(work) {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
+    Ok(_) => ()
+  }
+  owner.compilation_quote = Some((r + bytes, e + bytes))
+  owner.phase = DebugCompilationQuoted(remaining)
+  match
+    @resources.reserve_working_preparation_phase(
+      owner.capacity,
+      input,
+      r + bytes,
+      e + bytes,
+    ) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(_) => ()
+  }
+  match @resources.resume_preparation_phase_work_continuation64(work) {
+    Err(issue) => Err(Work(issue))
+    Ok(_) => Ok((work, remaining))
+  }
+}
+
+///|
+fn[I, P] finish_debug_compilation_observation(
+  owner : ClientProgramCheckPreparation[I, P],
+  work : @resources.PreparationPhaseWorkContinuation64,
+) -> Result[Unit, ClientProgramCheckPreparationIssue] {
+  match @resources.finish_preparation_phase_work_continuation64(work) {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      Err(Work(issue))
+    }
+    Ok(_) => {
+      owner.topology_work = None
+      Ok(())
+    }
+  }
 }
 
 ///|

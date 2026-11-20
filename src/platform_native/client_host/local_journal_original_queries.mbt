@@ -343,6 +343,7 @@ fn NativeLocalJournalReadQueries::operation_access(
       }
     },
     grow_capacity: (
+      key_scoped,
       table,
       key,
       previous,
@@ -354,16 +355,24 @@ fn NativeLocalJournalReadQueries::operation_access(
       (self.invalidate_snapshot)(Some(table))
       self
       .query(() => {
-        grow_journal_capacity_in_transaction(
-          self.database,
-          table,
-          key,
-          previous,
-          bytes,
-          objects,
-          max_bytes,
-          max_objects,
-        )
+        // The four original protocol callers select key scope. This private
+        // dispatch bit is fixed by Source, never submitted policy or a grant.
+        if key_scoped {
+          self.database.grow_key_capacity_in_transaction(
+            table, key, previous, bytes, objects, max_bytes, max_objects,
+          )
+        } else {
+          grow_journal_capacity_in_transaction(
+            self.database,
+            table,
+            key,
+            previous,
+            bytes,
+            objects,
+            max_bytes,
+            max_objects,
+          )
+        }
       })
       .unwrap_or(Err(@sqlite.Busy))
     },

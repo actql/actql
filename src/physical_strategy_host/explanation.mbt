@@ -333,29 +333,42 @@ fn emit_strategy_assessment(
   @encode.key(w, "rejection")
   match assessment.rejection {
     None => @encode.null_value(w)
-    Some(issue) =>
-      @encode.string_value(
-        w,
-        match issue {
-          InvalidLimits => "invalid_limits"
-          PlanningLimit => "planning_limit"
-          AttemptLimit => "attempt_limit"
-          HoldingLimit => "holding_limit"
-          TransferLimit => "transfer_limit"
-          RetentionLimit => "retention_limit"
-          ExecutionLimit => "execution_limit"
-          TokenLimit => "token_limit"
-          CostLimit => "cost_limit"
-          DurationLimit => "duration_limit"
-          ForeignOwner => "foreign_owner"
-          ClosedReservation => "closed_reservation"
-          ClosedHolding => "closed_holding"
-          ResourceParked => "resource_parked"
-          ChildFundingUnavailable => "child_funding_unavailable"
-          InvalidCharge => "invalid_charge"
-          IdentityOverflow => "identity_overflow"
-        },
-      )
+    Some(issue) => @encode.string_value(w, strategy_rejection_code(issue))
   }
   @encode.end_object(w)
+}
+
+///|
+/// The same closed original Ledger refusal used by strategy explanation.
+/// Reading this DATA never repeats admission or changes an assessment.
+pub fn strategy_assessment_rejection_code(
+  assessment : StrategyAssessment,
+) -> String? {
+  match assessment.rejection {
+    None => None
+    Some(issue) => Some(strategy_rejection_code(issue))
+  }
+}
+
+///|
+fn strategy_rejection_code(issue : @resources.LedgerIssue) -> String {
+  match issue {
+    InvalidLimits => "invalid_limits"
+    PlanningLimit => "planning_limit"
+    AttemptLimit => "attempt_limit"
+    HoldingLimit => "holding_limit"
+    TransferLimit => "transfer_limit"
+    RetentionLimit => "retention_limit"
+    ExecutionLimit => "execution_limit"
+    TokenLimit => "token_limit"
+    CostLimit => "cost_limit"
+    DurationLimit => "duration_limit"
+    ForeignOwner => "foreign_owner"
+    ClosedReservation => "closed_reservation"
+    ClosedHolding => "closed_holding"
+    ResourceParked => "resource_parked"
+    ChildFundingUnavailable => "child_funding_unavailable"
+    InvalidCharge => "invalid_charge"
+    IdentityOverflow => "identity_overflow"
+  }
 }

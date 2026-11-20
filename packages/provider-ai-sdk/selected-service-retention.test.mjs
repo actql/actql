@@ -75,10 +75,10 @@ test('first selected M1 schema retains four distinct constructions and retires o
         return stringify(value,...rest);
       };
       handle=prepareAdmittedOpenAIChatRequest({moon:{
-        clientProgramProjectOpenAIChatRequest(p,r){
+        clientProgramProjectOpenAIChatSdkV4Request(p,r){
           assert.strictEqual(p,provider);assert.strictEqual(r,request);
           return {$tag:1,_0:{_0:instructions,_1:inputWire,_2:schemaWire,
-            _3:'task',_4:'prompt',_5:'schema',_6:'selected-chat'}};
+            _3:'task',_4:'prompt',_5:'schema',_6:'selected-chat',_7:stringify(expected)}};
         },
         clientProgramModelRequestGeneration(r){
           assert.strictEqual(r,request);generationReads++;
@@ -93,9 +93,9 @@ test('first selected M1 schema retains four distinct constructions and retires o
       assert.deepEqual(pollSdkPreparation(handle),{kind:'ready'});
     } finally {JSON.parse=parse;JSON.stringify=stringify;}
     assert.equal(generationReads,1);
-    assert.equal(parsedSchemas.length,2);assert.equal(parsedRequests.length,1);
+    assert.equal(parsedSchemas.length,1);assert.equal(parsedRequests.length,2);
     assert.equal(sdkRequests.length,1);
-    const input=parsedSchemas[0],comparison=parsedSchemas[1];
+    const input=parsedSchemas[0],comparison=parsedRequests[1].response_format.json_schema.schema;
     const checked=parsedRequests[0].response_format.json_schema.schema;
     const normalized=sdkRequests[0].response_format.json_schema.schema;
     const trees=[input,normalized,checked,comparison];

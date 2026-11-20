@@ -59,6 +59,9 @@ async function fixture(t, extendMoon) {
       assert.equal(value, unit);assert.equal(original, input);events.push('continue');return ok(capacity);
     },
     clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
+    // Existing semantic fixture: keep its whole opaque quantity retained.
+    // This exercises service staging, not Core arithmetic or a budget refund.
+    clientProgramInstalledSourceRetainedConstructionCapacity: value => ok(value),
     clientProgramComposeInstalledSourceConstructionCapacity: (original, selected) => ok({original, selected: [...selected]}),
     clientProgramReserveInstalledSourceConstruction(value, original) {
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve:' + state.phase);
@@ -302,12 +305,13 @@ test('component retirement joins an actual Effect constructor before retiring it
 
 // Exercise real inventory/service ownership with explicit Common semantic ports.
 // These fixtures verify staging and original custody, not Core admission laws.
-async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformedEntry = false, refuseEntry = false} = {}) {
+async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformedEntry = false, refuseEntry = false, refuseProjection = false, plainOnly = false} = {}) {
   let latestQuote;
   const exports = new Map(), restoreCalls = [];
   const f = await fixture(t, ({moon, state, events, nativeOriginals}) => {
     state.nativeQuotes = 0;state.nativeRestores = 0;state.nativeExports = 0;
-    state.entryQuotes = 0;state.entryWire = undefined;
+    state.entryQuotes = 0;state.entryWire = undefined;state.commonProjects = 0;
+    let commonQuote;
     let entryQuantity;
     moon.clientProgramInstalledSourceConstructionCapacity = (...values) => {
       if (entryQuantity !== undefined && values.every((value, index) => value === entryQuantity[index])) {
@@ -320,7 +324,7 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
       clientProjectCatalogAdmissionConstructionCapacity: () => Object.freeze({fixture: 'catalog-admission-quantity'}),
       clientProjectCatalogAdmit(original) {
         assert.equal(events.at(-1), 'reserve:' + state.phase);
-        return ok(JSON.parse(original));
+        state.catalogOriginal = JSON.parse(original);return ok(state.catalogOriginal);
       },
       clientProjectCatalogCount: original => Object.keys(original.connections).length,
       clientProjectCatalogName: (original, index) => Object.keys(original.connections)[index],
@@ -329,6 +333,33 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
         const {retained, workspace} = declaredProjectCatalogJsonParseConstructionGeometry(wire);
         entryQuantity = [retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire];
         state.entryWire = wire;return wire;
+      },
+      clientProjectCatalogRelationDeclarationConstructionCapacity(original, index) {
+        assert.equal(original, state.catalogOriginal);
+        state.phase = 'common-input';
+        if (refuseProjection) state.refuse = state.phase;
+        commonQuote = {original, index};return Object.freeze({fixture: 'common-projection-quantity'});
+      },
+      clientProjectCatalogRelationDeclarationInput(original, index) {
+        assert.equal(original, state.catalogOriginal);
+        assert.deepEqual(commonQuote, {original, index});
+        assert.equal(events.at(-1), 'reserve:' + state.phase);
+        state.commonProjects++;
+        // Explicit semantic-port fixture DATA, not the production Common
+        // implementation or evidence of its quantity/ABI. Real Common cases
+        // live in declared-project-catalog.actual.test.mjs.
+        const entry = original.connections[Object.keys(original.connections)[index]];
+        const views = entry.views.map(view => {
+          const schema = canonicalJson(view.schema, {dataKeys: true});
+          const saved = {resource: view.resource, resource_kind: view.resource_kind,
+            schema_wire: schema, schema_cid: 'sha256:' + createHash('sha256').update(schema).digest('hex')};
+          for (const name of ['request_schema', 'facts', 'acquisition', 'resource_identity']) {
+            if (Object.hasOwn(view, name)) saved[name + '_wire'] = canonicalJson(view[name], {dataKeys: true});
+          }
+          if (Object.hasOwn(view, 'data_classification')) saved.data_classification = view.data_classification;
+          return saved;
+        });
+        return ok(canonicalJson({views}, {dataKeys: true}));
       },
       clientProgramRelationRestoreConstructionCapacity(connector, registration, revision, wire,
         resources, kinds, schemas, requests, facts, acquisitions, identities) {
@@ -362,6 +393,10 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
         exports.set(declaration, 1);state.nativeExports++;return nativeOriginals.get(declaration);
       },
       clientProgramRelationUpdateMapping: unused,
+      clientProgramRowSourceUpdateMappingConstructionCapacity(declaration) {
+        assert(nativeOriginals.has(declaration));
+        return ok(Object.freeze({fixture: 'same-original-update-mapping-quantity'}));
+      },
       clientProgramRowSourcePrepareUpdateMapping(declaration, wire, resource, sources) {
         assert(nativeOriginals.has(declaration));assert.equal(events.at(-1), 'reserve:' + state.phase);
         assert.deepEqual(JSON.parse(wire), {writes: [{resource: 'records', primary_identity: 'id',
@@ -395,6 +430,13 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
       writes: [{resource: 'records', primary_identity: 'id', writable_fields: ['label'],
         permission: 'write', observe_permission: 'read', approval: 'required', aliases: ['CRM.Record']}]},
   }};
+  if (plainOnly) {
+    catalog.connections.crm_secondary = {
+      views: [{resource: 'records', resource_kind: 'record', schema: {id: string, label: string}}],
+      query_aliases: [{name: 'secondary.records', resource: 'records'}],
+      data: [{resource: 'records', items_path: ['secondary'], key_path: ['keys'], primary_identity: 'id'}],
+    };
+  }
   const originalWire = JSON.stringify(catalog);
   await writeFile(join(f.root, 'catalog.json'), originalWire);
   return {...f, exports, restoreCalls, originalWire, load: () => loadDeclaredProjectCatalog(f.moon, {
@@ -418,6 +460,7 @@ test('component catalog stages actual connection members before constructors and
   assert.notEqual(files.physical[0].declaration, files.declaration);
   assert.equal(records.physical[0].declaration, records.declaration);
   assert.equal(f.state.nativeRestores, 4);assert.equal(f.state.nativeExports, 4);
+  assert.equal(f.state.commonProjects, 2, 'one projection per actual original connection');
   assert.deepEqual(f.restoreCalls.map(value => [value.connector, value.registration]), [
     ['crm_secondary', 'declared_file'], ['crm_secondary', 'declared_file_data'],
     ['crm_secondary', 'declared_file'], ['crm_primary', 'declared_file']]);
@@ -549,4 +592,38 @@ test('catalog entrypoints reject changing inventory accessors without invoking t
   }
   assert.equal(gets, 0);assert.equal(f.state.nativeRestores, 0);
   await f.inventory.fail(new Error('accessor refusal complete'));
+});
+
+
+test('component catalog reserves SAME Common projection before its constructor and retains refusal cleanup', async t => {
+  const f = await catalogFixture(t, {refuseProjection: true});
+  await assert.rejects(f.load(), error => error === f.refusal);
+  assert.equal(f.state.commonProjects, 0);
+  assert.equal(f.state.nativeRestores, 0);
+  assert.equal(f.state.nativeExports, 0);
+  assert.equal(f.retire(), false);
+  await f.inventory.fail(f.refusal);
+  assert.equal(f.retire(), true);
+  assert.equal(f.state.takes, 1);
+  assert.equal(f.state.sourceCloses + f.state.effectCloses, 0);
+});
+
+
+test('component catalog Common projection retains two ordinary original declarations under one installation', async t => {
+  const f = await catalogFixture(t, {plainOnly: true}), result = await f.load();
+  const [secondary, primary] = result.sources;
+  assert.equal(secondary.catalogue.connection, 'crm_secondary');
+  assert.equal(primary.catalogue.connection, 'crm_primary');
+  assert.equal(secondary.sourceMember, await f.begin(1));
+  assert.equal(primary.sourceMember, await f.begin(0));
+  assert.notEqual(secondary.declaration, primary.declaration);
+  assert.equal(primary.sourcePrepared.declaration, primary.effectPrepared.declaration);
+  assert.equal(f.state.commonProjects, 2);
+  assert.equal(f.state.nativeRestores, 2);
+  assert.equal(f.state.nativeExports, 2);
+  assert.equal(f.state.mappings, 1);
+  assert.equal(f.state.takes, 1);
+  await f.inventory.fail(new Error('finished original catalogue projection component'));
+  assert.equal(f.retire(), true);
+  assert.equal(f.state.sourceCloses + f.state.effectCloses, 0, 'metadata completion is not a physical Site ACK');
 });

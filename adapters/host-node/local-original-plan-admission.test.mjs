@@ -3,10 +3,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {sourceFreeValuesPlan, sourceFreeTaskPlan, acquiredTaskRunAdmission,
-  sourceFreeValuesAdmissionEvidence,sourceFreePlanOriginal} from './local-values-plan.mjs';
+  sourceFreeValuesAdmissionEvidence,sourceFreePlanOriginal,sourceFreePlanExplanation} from './local-values-plan.mjs';
 import {restoreInferTaskRunAdmission, selectRestoredInferOccurrence} from './local-values-plan.mjs';
 import {definition,evidence} from './fixtures/original-plan-journal.mjs';
 const cid='sha256:'+'a'.repeat(64);
+
+test('pure Local admission forwards its original Facts loan through the same nominal Plan selection',()=>{
+  for(const make of [sourceFreeValuesPlan,sourceFreeTaskPlan]){
+    const prepared={},ticket={},explanation={};
+    const compiled={admission:{},compiledPlan:{identity:cid},
+      preparedEvidence:{wire:evidence.prepared},authorization:{wire:evidence.authorization}};
+    const control={prepareCheckedClientCompiledRun:()=>compiled,
+      defineCheckedClientCompiledRun:()=>definition,
+      issueCheckedClientCompiledInvocation:()=>({observation:{},invocation:{}}),
+      seal:()=>({identity:cid}),sealRunEvidence:()=>({}),compiledRunResultTransformation:()=>undefined,
+      captureOriginalClientRunPlan(actual,original,run,limits,loan){
+        assert.equal(actual,compiled);assert.equal(original,prepared);assert.equal(run,definition);
+        assert.equal(loan,explanation);return ticket;
+      }};
+    const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),
+      clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
+    const plan=make({moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},
+      originalExplanationPreparation:explanation,authorityScopeCid:cid,namespaceId:'local',storeAuthorityCid:cid,
+      now:()=> '2026-10-12T00:00:00.000Z'});
+    assert.equal(sourceFreePlanOriginal(plan),ticket);
+    assert.equal(sourceFreePlanExplanation(plan),ticket);
+    assert.equal(sourceFreePlanExplanation({...plan}),undefined);
+    assert.equal(Object.hasOwn(plan,'originalExplanation'),false,'closed publication body is unchanged');
+  }
+});
 for (const kind of ['values','source-free-tasks','acquired-tasks']) {
   test(`normal Local ${kind} captures the original opaque compiler plan once`,()=>{
     let compiles=0,captures=0;const prepared={},ticket={};
@@ -15,12 +40,15 @@ for (const kind of ['values','source-free-tasks','acquired-tasks']) {
     const control={prepareCheckedClientCompiledRun(actual){assert.equal(actual,prepared);compiles++;return compiled;},
       defineCheckedClientCompiledRun(actual){assert.equal(actual,compiled);return definition;},
       issueCheckedClientCompiledInvocation(){return {observation:{},invocation:{}};},
-      seal(){return {identity:cid};},sealRunEvidence(){return {};},compiledRunResultTransformation(){return undefined;},
+      seal(){return {identity:cid};},sealRunEvidence(){return {};},
+      preparedClientNormalizationEvidence(actual){assert.strictEqual(actual,prepared);return {};},
+      preparedClientAuthoringContextEvidence(actual, original){assert.strictEqual(actual,prepared);assert.ok(original);return {};},
+      compiledRunResultTransformation(){return undefined;},
       captureOriginalClientRunPlan(actual,original,run,limits){captures++;
         assert.equal(actual,compiled);assert.equal(original,prepared);assert.equal(run,definition);
         assert.deepEqual(limits,{maxWireBytes:1000000,maxNodes:100000,maxDepth:64});return ticket;}};
     const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},authorityScopeCid:cid,
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{},authoringContext:{}},authorityScopeCid:cid,
       namespaceId:'local',storeAuthorityCid:cid,now:()=> '2026-10-12T00:00:00.000Z'};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;
     const plan=make(options);assert.equal(sourceFreePlanOriginal(plan),ticket);
@@ -54,11 +82,14 @@ for(const kind of ['values','source-free-tasks','acquired-tasks']){
         return {...definition,wire:options.retainedDefinitionWire??JSON.stringify({
           ...JSON.parse(definition.wire),created_at:options.createdAt,valid_until:options.validUntil})};},
       issueCheckedClientCompiledInvocation(){return {observation:{},invocation:{}};},
-      seal(){return {identity:cid};},sealRunEvidence(){return {};},compiledRunResultTransformation(){return undefined;},
+      seal(){return {identity:cid};},sealRunEvidence(){return {};},
+      preparedClientNormalizationEvidence(actual){assert.strictEqual(actual,prepared);return {};},
+      preparedClientAuthoringContextEvidence(actual, original){assert.strictEqual(actual,prepared);assert.ok(original);return {};},
+      compiledRunResultTransformation(){return undefined;},
       captureOriginalClientRunPlan(){return ticket;},
     };
     const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},requestIdentity:request,
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{},authoringContext:{}},requestIdentity:request,
       authorityScopeCid:cid,namespaceId:'local',storeAuthorityCid:cid,
       now:()=>new Date().toISOString()};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;
@@ -85,7 +116,8 @@ for(const kind of ['values','source-free-tasks','acquired-tasks']){
 
 test('saved Infer admission restores query time from its original definition without a clock sample',()=>{
   const prepared={},request={},graph={},context={},queryPreparation={};
-  const compiled={kind:'infer'},restored={compiled,graph,runDefinition:definition};let restores=0;
+  const authoringContextOriginal = Object.freeze({});
+  const compiled={kind:'infer'},restored={compiled,graph,runDefinition:definition,authoringContextOriginal};let restores=0;
   const control={
     checkRestoredClientInferRunOwner(value,owner){assert.strictEqual(value,restored);assert.strictEqual(owner,prepared);},
     checkedClientCompiledInferOriginal(value,owner,run){assert.strictEqual(value,compiled);
@@ -98,6 +130,7 @@ test('saved Infer admission restores query time from its original definition wit
   };
   const actual=restoreInferTaskRunAdmission({control,preparedProgram:prepared,restored,requestIdentity:request});
   assert.equal(restores,1);assert.strictEqual(actual.queryTime,context);
+  assert.strictEqual(actual.authoringContextOriginal,authoringContextOriginal);
   assert.strictEqual(actual.runDefinition,definition);assert.strictEqual(actual.inferGraph,graph);
   assert.throws(()=>restoreInferTaskRunAdmission({control,preparedProgram:prepared,restored}),
     {message:'OriginalClientQueryRequestRequired'});

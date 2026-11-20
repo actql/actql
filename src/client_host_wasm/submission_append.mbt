@@ -1,4 +1,35 @@
 ///|
+// Select only the existing original captured under this SAME Run/Plan and
+// preparation. No cell, array copy, current proof or authority is constructed.
+fn sdk_task_materials_original(
+  value : Instance,
+  run : Int,
+) -> @local_run.LocalRunTaskMaterialsOriginal? {
+  guard value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+    value.preparations.get(value.runs[run].preparation)
+    is Some({ submitted: Some(preparation), .. }) else {
+    return None
+  }
+  for material in value.materials.values() {
+    if material.run == run &&
+      material.kind == 6 &&
+      material.produced &&
+      !material.closing &&
+      material.submission is Some(submission) &&
+      submission.rows is Some(rows) &&
+      submission.task_materials is Some(captured) {
+      match
+        @local_run.local_submitted_run_task_materials(rows, plan, preparation) {
+        Ok(Some(original)) if physical_equal(original, captured) =>
+          return Some(original)
+        _ => ()
+      }
+    }
+  }
+  None
+}
+
+///|
 /// The same original typed Host/Account fence, never a submitted Bool grant.
 fn submission_append_current(
   value : Instance,
@@ -41,6 +72,45 @@ fn submission_run_inspection_with_identity(
     @publication.PublicationContract,
   )?,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
+  submission_run_row_original_with_identity(row, retained_identity).map(record => {
+    request: record.request,
+    definition: record.definition,
+    checkpoint: None,
+    task_materials_cid: record.task_materials_cid,
+  })
+}
+
+///|
+// Use the SAME complete original row validator. No second decode learns the
+// cancellation flag from an unvalidated or independently supplied summary.
+fn submission_cancellation_run_inspection(
+  row : @host.ClientJournalPhysicalRow,
+) -> Result[@host.ClientCancellationRunJournalInspection, Int] {
+  submission_run_row_original_with_identity(row, None).map(record => {
+    request: record.request,
+    definition: record.definition,
+    cancellation_requested: record.cancellation_requested,
+  })
+}
+
+///|
+fn submission_cancellation_inventory(
+  scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+) -> Result[Unit, Int] {
+  @host.inspect_client_cancellation_journal_inventory(
+    1024, scan, read, submission_cancellation_run_inspection, -31,
+  ).map(_ => ())
+}
+
+///|
+fn submission_run_row_original_with_identity(
+  row : @host.ClientJournalPhysicalRow,
+  retained_identity : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?,
+) -> Result[@host.ClientRunJournalEncoding, Int] {
   let decoded = match retained_identity {
     None =>
       @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -51,6 +121,20 @@ fn submission_run_inspection_with_identity(
         definition,
       )
   }
+  validate_sdk_run_row_decoded(decoded)
+}
+
+///|
+fn validate_sdk_run_row_decoded(
+  decoded : Result[
+    (@host.ClientRunJournalEncoding, String?, String?),
+    @host.ClientJournalDecodingIssue,
+  ],
+  observation_original? : @host.ClientRunObservationOriginals? = None,
+  retain_observation? : ((@host.ClientRunObservationOriginals) -> Unit)? = None,
+  observation_construction_issue? : Int = 0,
+  before_observation? : (() -> Unit)? = None,
+) -> Result[@host.ClientRunJournalEncoding, Int] {
   let (record, local_policy, observation_originals) = match decoded {
     Ok(value) => value
     Err(_) => return Err(-31)
@@ -67,27 +151,55 @@ fn submission_run_inspection_with_identity(
   if record.checkpoint is Some(_) || record.effect_material_originals is Some(_) {
     return Err(-42)
   }
-  if observation_originals is Some(wire) &&
-    @host.restore_client_run_observation_originals_wire(
-      record.definition,
-      wire,
-      131072,
-      8192,
-      64,
-    )
-    is Err(_) {
-    return Err(-31)
+  if observation_originals is Some(wire) {
+    let original = match observation_original {
+      Some(original) => {
+        // Only SAME-frame exact-row metadata can enter this private port.
+        // The original Definition correspondence is still checked EVERY hit.
+        if @publication.validate_original_interactive_run_evidence(
+            record.definition,
+            original.prepared(),
+            original.authorization(),
+          )
+          is Err(_) {
+          return Err(-31)
+        }
+        original
+      }
+      None => {
+        // The closed journal caller carries only its actual reservation
+        // refusal here. Existing Policy/unsupported checks ran first; no
+        // constructor or test observer may run after that funding refusal.
+        if observation_construction_issue != 0 {
+          return Err(observation_construction_issue)
+        }
+        if before_observation is Some(observe) {
+          observe()
+        }
+        match
+          @host.restore_client_run_observation_originals_wire(
+            record.definition,
+            wire,
+            131072,
+            8192,
+            64,
+          ) {
+          Ok(original) => original
+          Err(_) => return Err(-31)
+        }
+      }
+    }
+    // This synchronous handoff carries the actual constructor's typed DATA,
+    // never a validation Bool/Unit, current decision, callback or permission.
+    if retain_observation is Some(retain) {
+      retain(original)
+    }
   }
   if record.publication_policy_originals is Some(wire) &&
     @host.read_client_run_policy_originals(wire) is Err(_) {
     return Err(-31)
   }
-  Ok({
-    request: record.request,
-    definition: record.definition,
-    checkpoint: None,
-    task_materials_cid: record.task_materials_cid,
-  })
+  Ok(record)
 }
 
 ///|
@@ -99,6 +211,7 @@ fn observe_submission_append(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+  original_run? : Int? = None,
 ) -> Result[@host.ClientSubmittedJournalAppendPlan, Int] {
   match submission_append_current(value, record, configuration) {
     Ok(_) => ()
@@ -141,26 +254,48 @@ fn observe_submission_append(
   let read = (table, key) => {
     physical_journal_row(current.physical, check, 1, table, key)
   }
+  let inspect_run = row => {
+    let decoded = match original_run {
+      None => submission_append_run_inspection(row)
+      Some(run) => sdk_run_row_inspection(value, run, row)
+    }
+    decoded
+  }
+  let inspect_cancellation = row => {
+    match original_run {
+      None => submission_cancellation_run_inspection(row)
+      Some(run) =>
+        sdk_run_row_original(value, run, row).map(record => {
+          request: record.request,
+          definition: record.definition,
+          cancellation_requested: record.cancellation_requested,
+        })
+    }
+  }
+  let task_original = original_run.bind(run => {
+    sdk_task_materials_original(value, run)
+  })
   // Keep the original complete inventory and unsupported Effect distinction.
   // No missing row, partial scan or outer count substitutes for these checks.
   match
-    @host.inspect_client_run_journal_inventory(
+    @host.inspect_client_run_journal_inventory_with_task_original(
       1024,
       scan,
       read,
-      submission_append_run_inspection,
+      inspect_run,
       () => {
-        @host.inspect_client_empty_cancellation_inventory(
-          1024, scan, read, -31, -42,
-        )
+        @host.inspect_client_cancellation_journal_inventory(
+          1024, scan, read, inspect_cancellation, -31,
+        ).map(_ => ())
       },
       -31,
+      task_original,
     ) {
     Ok(_) => ()
     Err(code) => return Err(code)
   }
   let plan = match
-    @host.prepare_client_submitted_journal_append(
+    @host.prepare_client_submitted_journal_append_with_task_original(
       reference,
       intent,
       validity,
@@ -173,11 +308,12 @@ fn observe_submission_append(
           Ok(value) => value
           Err(_) => return Err(-31)
         }
-        let observed = @host.read_client_saved_submission(
+        let observed = @host.read_client_saved_submission_with_task_original(
           original.reference,
           read,
-          submission_append_run_inspection,
+          inspect_run,
           -31,
+          task_original,
         )
         match observed {
           Ok(Some(snapshot)) if @host.client_saved_submission_row(snapshot).body ==
@@ -188,8 +324,9 @@ fn observe_submission_append(
           _ => Err(-31)
         }
       },
-      submission_append_run_inspection,
+      inspect_run,
       -31,
+      task_original,
     ) {
     Ok(value) => value
     Err(@host.Observation(code)) => return Err(code)
@@ -288,13 +425,27 @@ pub fn validate_submission_append(
 ) -> Int {
   if selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
+    record.kind == 12 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return sdk_unpublished_state_current(value, record, configuration, false)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 10 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return validate_cancellation_append(value, record, configuration)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
     record.kind == 9 &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) {
     return validate_submission_preparation_failure(value, record, configuration)
   }
   if selected(nonce).bind(value => value.submissions.get(handle))
-    is Some({ kind: 4 | 5 | 6 | 7 | 8, .. }) {
+    is Some({ kind: 4 | 5 | 6 | 7 | 8 | 11, .. }) {
     return validate_submission_lookup(nonce, handle, current)
   }
   guard selected(nonce) is Some(value) &&

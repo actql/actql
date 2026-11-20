@@ -6,13 +6,20 @@ independent of the Client wire contract and package versions. A generated
 signature is a declaration, not evidence that a compiled module or Host has
 been admitted.
 
+The current refactoring scope is the shared MoonBit boundary and the existing
+JS/Python/Native callers. A new Rust Host or SDK is not a prerequisite. The
+Rust implementation descriptions below record retained implementation material;
+they do not require new Rust work or an active Rust CI lane.
+
 ## Declaration authority and language projections
 
 `scripts/generate-local-wasm-abi.py` reads the original MoonBit declarations
-into a language-neutral model. It derives the Python binding, private C image
-compiler header, private typed Rust binding and
-`spec/contracts/core-wasm-abi.generated.json` from that
-same model. `--check` checks every derived output without modifying it. A Host
+into a language-neutral model. Its default outputs are the Python binding,
+private C image compiler header and
+`spec/contracts/core-wasm-abi.generated.json`. The retained private Rust binding
+is selected explicitly with `--rust`, from the same model. `--check` checks
+the selected outputs without modifying them; `--check --rust` also retains
+strict refusal for a stale Rust projection. A Host
 binding must not recover the common contract by parsing another Host language's
 output, or maintain a separate signature list.
 

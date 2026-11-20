@@ -466,14 +466,33 @@ test('isolated production copy distinguishes explicit default aliases from impli
 });
 
 test('target metadata keeps the actual manifest production and test imports distinct', () => {
-  const source = readFileSync(new URL('../src/physical_resources/moon.pkg', import.meta.url), 'utf8');
-  assert.deepEqual(packageImports(source), [
-    {path: 'actql/actql/capacity_arithmetic', alias: 'preparation_counts', scope: 'production'},
-    {path: 'actql/actql/encode_core', alias: 'encode', scope: 'production'},
-    {path: 'actql/actql/decode_core', alias: 'decode', scope: 'production'},
+  // Use an actual reviewed portable Core entrance. physical_resources now owns
+  // Native stubs and is explicitly outside this target-only inspection subset.
+  const source = readFileSync(new URL('../src/execution_relation/moon.pkg', import.meta.url), 'utf8');
+  const selected = new Set(['actql/actql/decode_shape', 'actql/actql/capacity_arithmetic',
+    'actql/actql/run_publication_host', 'actql/actql/physical_strategy_host', 'moonbitlang/core/env']);
+  assert.deepEqual(packageImports(source).filter(entry => selected.has(entry.path)), [
     {path: 'actql/actql/decode_shape', alias: 'shape', scope: 'production'},
-    {path: 'actql/actql/source_value', alias: 'source', scope: 'wbtest'},
+    {path: 'actql/actql/capacity_arithmetic', alias: 'preparation_counts', scope: 'production'},
+    {path: 'actql/actql/run_publication_host', alias: 'client_host', scope: 'wbtest'},
+    {path: 'actql/actql/physical_strategy_host', alias: 'strategy', scope: 'wbtest'},
+    {path: 'moonbitlang/core/env', alias: 'env', scope: 'wbtest'},
   ]);
+});
+
+test('portable metadata still rejects actual host-custody Native stub options', t => {
+  const source = readFileSync(new URL('../src/physical_resources/moon.pkg', import.meta.url), 'utf8');
+  // Dependency inspection must not silently discard an unsupported build/FFI
+  // clause, and the portable copier cannot erase it to manufacture admission.
+  assert.throws(() => packageImports(source), /UnknownManifestSyntax/);
+  const f = fixture(t);
+  f.put('root', 'moon.pkg', manifest + 'import {"actql/actql/physical_resources"}');
+  f.put('physical_resources', 'moon.pkg', source);
+  f.put('physical_resources', 'main.mbt', 'pub fn identity() -> Int { 1 }');
+  assert.throws(f.check, /HostCustodyCoreDependency: physical_resources/);
+  const isolated = join(f.root, 'not-materialized');
+  assert.throws(() => copyProductionCore(f.root, isolated, ['root']), /HostCustodyCoreDependency/);
+  assert.equal(existsSync(isolated), false);
 });
 
 test('target metadata remains compiler DATA in the isolated production copy', t => {

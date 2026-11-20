@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {computePhysicalCapacity} from '../../connectors/duckdb/node/physical-capacity.mjs';
 import {readFileSync} from 'node:fs';
 import {checked} from '../../host-common/runtime-result.mjs';
+import {fundedAuthoringContextOriginalFixture} from '../funded-client-preparation.fixture.mjs';
 const read = path => readFileSync(new URL('../../../'+path, import.meta.url), 'utf8');
 const aoa = JSON.parse(read('spec/contracts/actql-aoa.json'));
 const contracts = ['REL.values', 'ACTQL.expression_fragment/0.1', 'REL.derive.ordered']
@@ -12,7 +13,8 @@ const registry = read('spec/dependencies/aoa-pipeline-registry.json');
 export function publicationOriginalFixture(moon, prepared, retainedOutput = false) {
   assert.equal(typeof retainedOutput, 'boolean');
   const original = checked(moon.clientPrepareInstalledSequenceContracts(registry, ...contracts));
-  return Object.freeze({kind: 'preparation',
+  const authoringContext = fundedAuthoringContextOriginalFixture(moon, prepared);
+  return Object.freeze({kind: 'preparation', authoringContext,
     value: checked(moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
       prepared, original, ...contracts, retainedOutput))});
 }

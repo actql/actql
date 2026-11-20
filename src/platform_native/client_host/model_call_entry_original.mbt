@@ -243,13 +243,13 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
           usage.reserved_objects >= count.to_int64() * 2L {
           return Err(CustodyLost)
         }
-        // This is the existing installation's finite journal byte census, not
-        // Model attempts, a memory grant or an extra user-configurable limit.
+        // This is the selected invocation scope's finite journal byte bound,
+        // not a namespace-wide history ceiling, memory grant or extra limit.
         // Each checked single-attempt Slot has one Entry and one eventual
         // settlement row. They share this SAME byte/object census; a later
         // Slot cannot start before the preceding settlement was saved.
         match
-          grow_client_journal_capacity(
+          grow_client_journal_key_capacity(
             host.database,
             table,
             scope,

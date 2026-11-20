@@ -44,6 +44,8 @@ function fixture({entryFailure,constructFailure,retainFailure,retainEarlyPlan=fa
   const content=installNodeContentRun({moon,preparedRunRequired:true,assertRunCurrent(){},retainPreparation:keep,
     registry:'{}',values:'{}',ownerPrincipal:'fixture',
     prepareKeyedManagedRun:(p,r,g,recipe,preparation)=>prepare(p,r,g,recipe,preparation,true),borrowKeyedManagedLedger:()=>assert.fail('No physical Ledger'),
+    prepareSerializationOutputDemand:(_p,_c,_s,generation,_reference,_contract,output,identitySlots)=>
+      ({generationLimits:generation,outputLimits:output,identitySlots,workspace:{retainedBytes:0n,executionBytes:0n}}),
     prepareSerializationManagedRun:(p,r,plan,limits,workspace,preparation)=>prepare(p,r,plan.serializationGraph,undefined,preparation,false),
     core:{contentGenerationControl:{workspaceCapacity:()=>({retainedBytes:0n,executionBytes:0n}),
       prefixCapacity:()=>assert.fail('No prefix reconstruction before Request constructor'),requestPrefixCapacity:()=>({retainedBytes:1n,executionBytes:1n})},

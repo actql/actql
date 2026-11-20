@@ -55,7 +55,13 @@ fn sdk_saved_original_snapshot(
     is Some({ submitted: Some(preparation), .. }) else {
     return Err(-2)
   }
-  let saved = match observe_submission_append(value, observation, current) {
+  let saved = match
+    observe_submission_append(
+      value,
+      observation,
+      current,
+      original_run=Some(run),
+    ) {
     Ok(@host.Retained(saved)) => saved
     Ok(@host.Append(_)) => return Err(-35)
     Err(code) => return Err(code)
@@ -79,6 +85,7 @@ fn sdk_saved_original_snapshot(
           submission.key,
           submission.revision,
           submission.body,
+          row_original=sdk_run_row_codec_original(value, run),
         )
         is Err(_) {
         return Err(-31)
@@ -137,7 +144,10 @@ fn sdk_start_original_row(
     Err(code) => return Err(code)
   }
   let (encoding, policy, observation_originals) = match
-    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
+    @host.decode_client_run_journal_row_with_observation_originals(
+      row.body,
+      original=sdk_run_row_codec_original(value, run),
+    ) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
@@ -154,7 +164,10 @@ fn sdk_start_original_row(
       material.sdk_publication is Some({ original: Some(original), .. }) {
       match
         @local_run.validate_local_run_publication_binding_original(
-          original, row, submission,
+          original,
+          row,
+          submission,
+          row_original=sdk_run_row_codec_original(value, run),
         ) {
         Ok(_) =>
           return Ok((row, encoding, policy, observation_originals, handle))
@@ -174,7 +187,10 @@ fn sdk_start_original_row(
         Ok(@local_run.Retained(original)) =>
           match
             @local_run.validate_local_run_publication_binding_original(
-              original, row, submission,
+              original,
+              row,
+              submission,
+              row_original=sdk_run_row_codec_original(value, run),
             ) {
             Ok(_) =>
               Ok((row, encoding, policy, observation_originals, rows_material))
@@ -366,6 +382,14 @@ fn confirm_sdk_start_step(
     row.body != step.body {
     return -35
   }
+  sdk_start_activation_current(current, plan)
+}
+
+///|
+fn sdk_start_activation_current(
+  current : StoredRunConfiguration,
+  plan : @local_run.LocalRunPlan,
+) -> Int {
   let permit = match
     @authorization.bind_dispatch_authorization(
       current.account,
@@ -388,6 +412,160 @@ fn confirm_sdk_start_step(
     return -32
   }
   0
+}
+
+///|
+// Fresh currentness of one already-confirmed live start, not namespace
+// admission/recovery or a retained permission. Only exact point reads enter
+// this boundary; missing originals never fall through to append or restart.
+fn validate_live_sdk_started_run_current(
+  value : Instance,
+  step_handle : Int,
+  plan : @local_run.LocalRunPlan,
+) -> Int {
+  guard value.materials.get(step_handle)
+    is Some(
+      {
+        run,
+        kind: 8,
+        produced: true,
+        closing: false,
+        sdk_start: Some(step),
+        ..
+      }
+    ) &&
+    step.start is Some(_) &&
+    value.runs.get(run) is Some(record) &&
+    record.restoration is None &&
+    record.outcome is Some(Ok(original_plan)) &&
+    physical_equal(original_plan, plan) &&
+    value.run_configurations.get(record.configuration) is Some(current) &&
+    current.sdk is Some(_) &&
+    current.host_current is Some(current_handle) &&
+    value.host_currents.get(current_handle) is Some(scope) &&
+    record.sdk_submission is Some(submitted_handle) &&
+    value.submissions.get(submitted_handle) is Some(submitted) &&
+    value.preparations.get(record.preparation)
+    is Some({ submitted: Some(preparation), .. }) &&
+    value.materials.get(step.publication_material)
+    is Some(
+      {
+        run: publication_run,
+        kind: 9,
+        produced: true,
+        closing: false,
+        sdk_publication: Some(binding),
+        ..
+      }
+    ) &&
+    publication_run == run &&
+    binding.original is Some(publication) &&
+    value.materials.get(binding.rows_material)
+    is Some(
+      {
+        run: rows_run,
+        kind: 6,
+        produced: true,
+        closing: false,
+        submission: Some({ rows: Some(rows), task_materials, .. }),
+        ..
+      }
+    ) &&
+    rows_run == run else {
+    return -2
+  }
+  let task_original = match
+    @local_run.local_submitted_run_task_materials(rows, plan, preparation) {
+    Ok(original) => original
+    Err(_) => return -35
+  }
+  match (task_original, task_materials) {
+    (None, None) => ()
+    (Some(original), Some(retained)) if physical_equal(original, retained) => ()
+    _ => return -35
+  }
+  match submission_append_current(value, submitted, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  let borrow = match submitted.borrow {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  guard input_cursor(value, borrow.slot) is Some(cursor) &&
+    @decode.closed_object(cursor, ["reference", "intent", "now"]) is Ok(object) &&
+    required_text(object, "reference") is Some(reference_wire) &&
+    @host.admit_client_submission_reference_record(reference_wire)
+    is Ok(reference) &&
+    @host.client_submission_epoch_token_authority_scope_cid(
+      @host.client_submission_reference_record_epoch(reference),
+    ) ==
+    current.authority_scope_cid else {
+    return -31
+  }
+  let check = () => submission_append_current(value, submitted, current)
+  let read = (table, key) => {
+    physical_journal_row(scope.physical, check, 1, table, key)
+  }
+  let snapshot = match
+    @host.read_client_saved_submission_with_task_original(
+      reference,
+      read,
+      row => sdk_run_row_inspection(value, run, row),
+      -31,
+      task_original,
+    ) {
+    Ok(Some(snapshot)) => snapshot
+    Ok(None) => return -35
+    Err(code) => return code
+  }
+  guard @host.client_saved_submission_run_row(snapshot) is Some(row) else {
+    return -35
+  }
+  let submission = @host.client_saved_submission_row(snapshot)
+  match
+    @local_run.validate_local_saved_submitted_rows(
+      rows,
+      plan,
+      preparation,
+      row.key,
+      row.revision,
+      row.body,
+      submission.key,
+      submission.revision,
+      submission.body,
+      row_original=sdk_run_row_codec_original(value, run),
+    ) {
+    Ok(_) => ()
+    Err(_) => return -31
+  }
+  match
+    @local_run.validate_local_run_publication_binding_original(
+      publication,
+      row,
+      submission,
+      row_original=sdk_run_row_codec_original(value, run),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return sdk_publication_binding_issue(issue)
+  }
+  if row.key != step.row.key ||
+    row.revision != step.row.revision + 1L ||
+    row.body != step.body {
+    return -35
+  }
+  match check() {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  let code = sdk_start_activation_current(current, plan)
+  if code != 0 {
+    return code
+  }
+  match check() {
+    Ok(_) => 0
+    Err(code) => code
+  }
 }
 
 ///|

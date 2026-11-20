@@ -6,10 +6,13 @@ import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
-import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
+import {installFinitePageSource} from '../../../host-node/installed-finite-page-source.mjs';
 import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
-import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
+import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION,NOTION_USER_LIST_REQUEST} from '../site/user-list-read.mjs';
+import {captureRestReadOriginals,restReadOriginalControlUnits,restReadTransportConstructionUnits}
+  from '../../../host-node/rest-read-original.mjs';
+import {notionUserListReadWire} from '../site/user-list-read-wire.generated.mjs';
 
 export const INSTALLED_NOTION_SOURCE_VERSION='actql-installed-notion-source/0.1';
 export const INSTALLED_NOTION_SITE_VERSION='actql-installed-notion-site/0.1';
@@ -89,11 +92,18 @@ function captureProvider(provider){
 export async function loadInstalledNotionSource(profile,{moon,providerMoon,runtimeBundleCid,
   resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
   if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
+    !moon||typeof moon!=='object'||nodeTypes.isProxy(moon)||
     installation===undefined)fail('NotionSourceInitializationUnavailable');
   const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
   if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
     nodeTypes.isAsyncFunction(constructor.value))fail('NotionSourceInitializationUnavailable');
   const prepareDeclaration=constructor.value;
+  const originals=captureRestReadOriginals(moon);
+  const targetConstructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareReadTarget');
+  if(!targetConstructor||!Object.hasOwn(targetConstructor,'value')||typeof targetConstructor.value!=='function'||
+      nodeTypes.isAsyncFunction(targetConstructor.value)) {
+    fail('NotionSourceInitializationUnavailable');
+  }
   const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
     new Error('InstalledNotionSourceServicesUnavailable'),{code:'InstalledNotionSourceServicesUnavailable'}));
   if(configurationReader===undefined||configurationReader===null)fail('InstalledNotionConfigurationReaderUnavailable');
@@ -105,14 +115,21 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     installation,sourceInitialization,metadataResponses:0,originUnits:siteProfile.apiOrigin.length});
   if(limits.maxDeclarationBytes>implementationProfile.maxDeclarationBytes||
     limits.maxDeclarationNodes>implementationProfile.maxDeclarationNodes)fail('InstalledNotionImplementationBoundsExceeded');
-  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
-    limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
-    columnCount:provider.notionUserListColumnNames().length});
   const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
     limits.maxDeclarationNodes,limits.maxDepth));
   const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
     [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
       facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
+  const request=Reflect.apply(targetConstructor.value,sourceInitialization,[Object.freeze({
+    capacity(){return originals.composeConstruction(restReadOriginalControlUnits(1),1,()=>originals.quote(
+      notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits));},
+    project(){return originals.project(notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits);},
+  })]);
+  const requestConstruction=Object.freeze({capacity:originals.requestCapacity(
+    restReadTransportConstructionUnits(request),[request]),maxRequestBytes:limits.maxTargetBytes});
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
+    limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
+    columnCount:provider.notionUserListColumnNames().length,requestConstruction});
   const connection=`notion:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:'actql-installed-notion-user-target/0.1',
     apiOrigin:siteProfile.apiOrigin,resource:selected,fields:Object.freeze([...fields])});
@@ -120,21 +137,18 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     Array.isArray(value?.fields)&&new Set(value.fields).size===value.fields.length&&
     value.fields.every(name=>declared.views[0].fields.includes(name))&&
     canonicalJson(value)===canonicalJson(target(selected,value.fields));
-  let opened,providerReader;
-  try{
-    opened=await services('openRowSite',{installation,sourceInitialization,
+  return installFinitePageSource(services,{installation,sourceInitialization,
       profile:Object.freeze({...siteProfile,resourceOrigin:siteProfile.apiOrigin}),
       accountConfiguration:installed.accountConfigurationWire,connection,ca,admitsApprovalTarget,
-      responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits});
-    const{authorization,site}=opened;
-    providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site,
-      operation:NOTION_USER_LIST_OPERATION,
-      preparePageReader({resource:selected,columns},applySynchronousProjection){
-        if(selected!==resource)fail('UndeclaredNotionResource');
-        return prepareNotionUserListPages({moon:provider,names:columns,limits},applySynchronousProjection);
-      }});
-    if(providerReader.capacity!==implementation.capacity)fail('InstalledNotionReaderImplementationMismatch');
-    return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,environment,sourceInitialization,
+      responseHeaders:[],resolveSecret,runAcquisitionLimits:implementation.runAcquisitionLimits},
+    implementation,NOTION_USER_LIST_OPERATION,
+    function preparePageReader({resource:selected,columns},applySynchronousProjection){
+      if(selected!==resource)fail('UndeclaredNotionResource');
+      return prepareNotionUserListPages({moon:provider,names:columns,limits,request},applySynchronousProjection);
+    },
+    'InstalledNotionReaderImplementationMismatch',
+    function publish({authorization,site},providerReader){
+      return createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,environment,sourceInitialization,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
       authorization,site,readOperation:NOTION_USER_LIST_OPERATION,physicalTarget:target,
       bindingCid:cid({version:'actql-installed-notion-user-binding/0.1',connectorId:installed.connectorId,
@@ -142,6 +156,5 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
         runtimeBundleCid,...binding,site:siteProfile}),
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
       providerReader});
-  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
-    {sourceReader:providerReader,sourceProfile:opened?.site});}
+    });
 }

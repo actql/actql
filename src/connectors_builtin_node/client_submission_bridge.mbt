@@ -1,4 +1,12 @@
 ///|
+#export_name("clientSubmittedIntentRequestsDebug")
+pub fn client_submitted_intent_requests_debug(
+  value : @publication_host.ClientSubmittedIntent,
+) -> Bool {
+  @publication_host.client_submitted_intent_execution_profile(value) == Debug
+}
+
+///|
 #export_name("clientSubmittedIntentRequestsReadOnly")
 pub fn client_submitted_intent_requests_read_only(
   value : @publication_host.ClientSubmittedIntent,

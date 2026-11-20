@@ -36,6 +36,9 @@ options(
   targets: {
     "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ],
     "non_sdk_source_restore_wbtest.mbt": [ "release" ],
+    "managed_task_current_wbtest.mbt": [ "release" ],
+    "sdk_row_original_wbtest.mbt": [ "release" ],
+    "journal_decode_originals_wbtest.mbt": [ "release" ],
   },
   link: {
     "wasm": {
@@ -91,6 +94,7 @@ options(
         "prepare_managed_task_finalization:actql_task_prepare_finalization",
         "advance_managed_task_finalization:actql_task_advance_finalization",
         "complete_managed_task:actql_task_complete",
+        "advance_managed_task_lifecycle:actql_task_drive",
         "managed_task_inputs_ready:actql_task_inputs_ready",
         "managed_task_issue:actql_task_issue",
         "managed_task_assessment:actql_task_assessment",
@@ -314,6 +318,7 @@ options(
         "close_submission_projection:actql_submission_close",
         "begin_submission_cleanup:actql_submission_begin_cleanup",
         "validate_submission_append:actql_submission_validate_append",
+        "observe_cancellation_stop_interest:actql_submission_cancellation_stop_interest",
         "host_abi_version:actql_host_abi_version",
         "reserve_workspace:actql_workspace_reserve",
         "close_workspace:actql_workspace_close",

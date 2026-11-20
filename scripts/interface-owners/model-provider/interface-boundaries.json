@@ -5,7 +5,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d3fa40204c96bab9469c62ed63d0acefef3a397d3674ded0aabcf55840c7277e",
+      "sha256": "26ab57490b0e3a5b278848d4d593048bf423cba9ed6545b41e59e52fe6d2c6b5",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
         "createInstalledOpenAIChatRegistration",
@@ -172,28 +172,28 @@
             "<module>",
             "assertRuntime/assertRuntime/assertRuntime",
             "cid/cid",
+            "createConfiguredUndiciOpenAIChatRegistration",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
             "installedChatRegistration/installedChatRegistration",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
-            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
             "installedChatRegistration/installedChatRegistration#2",
             "installedChatRegistration/installedChatRegistration#3",
             "installedChatRegistration/installedChatRegistration#4",
             "installedChatRegistration/installedChatRegistration#5",
             "installedChatRegistration/installedChatRegistration#6",
             "installedChatRegistration/installedChatRegistration#7",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
             "snapshotData/entries/entries",
             "snapshotData/snapshotData",
             "snapshotData/snapshotData#2",
-            "text/text",
-            "createConfiguredUndiciOpenAIChatRegistration"
+            "text/text"
           ],
           "exports": [
+            "createConfiguredUndiciOpenAIChatRegistration",
             "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "createConfiguredUndiciOpenAIChatRegistration"
+            "createInstalledUndiciOpenAIChatRegistration"
           ],
           "attributes": {
             "responsibility": [
@@ -1371,7 +1371,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "af362d739dbd630a487643f90c80976aced1f8667a3bab68ee269eeeb3fe5c63",
+      "sha256": "7089c8acf0aca6821cff605d3ab3f882bc2f855ad22fe1df4369429703ecc2ea",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1420,6 +1420,13 @@
           "async": false
         },
         {
+          "name": "originalExpectedBodyVerifier/originalExpectedBodyVerifier",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareAdmittedOpenAIChatRequest",
           "parameters": [
             "moon",
@@ -1453,21 +1460,6 @@
             "verifyRequest"
           ],
           "async": false
-        },
-        {
-          "name": "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareProjectedOriginal/init:verifyRequest/init:verifyRequest",
-          "parameters": [
-            "body",
-            "generation"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -1488,10 +1480,9 @@
             "createAdmittedOpenAIChatPreflight/createAdmittedOpenAIChatPreflight",
             "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
             "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
+            "originalExpectedBodyVerifier/originalExpectedBodyVerifier",
             "prepareAdmittedOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
-            "prepareProjectedOriginal/init:verifyRequest/init:verifyRequest"
+            "prepareOriginalOpenAIChatRequest"
           ],
           "exports": [
             "createAdmittedOpenAIChatPreflight",
@@ -1509,6 +1500,10 @@
               {
                 "path": "adapters/host-common/model-original-materials.mjs.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
+              },
+              {
+                "path": "src/model_execution/http_chat_projection.mbt",
+                "anchor": "OpenAISdkV4"
               }
             ],
             "identity": [
@@ -1561,6 +1556,10 @@
               {
                 "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
                 "anchor": "projectionLimits"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "installed_node_model_sdk_v4_request_capacity"
               }
             ],
             "extension": [
@@ -1585,6 +1584,14 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "anchor": "normal binding profile and original Read recipe"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
+                "anchor": "SDK expected wires remain per row"
               }
             ]
           }

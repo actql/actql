@@ -231,3 +231,97 @@ pub fn client_serialization_input_row_bound(
     target_step=Some(input),
   ).map(bound => bound.0)
 }
+
+///|
+/// DATA demand of the same checked input. Preserve every caller ceiling and
+/// the complete input schema, including fields not selected for byte output.
+/// This neither reserves capacity nor authorizes generation or publication.
+fn client_serialization_output_limits(
+  component : @publication_host.ClientSerializationPlanGraph,
+  generation_rows : Int,
+  limits : ClientSerializationWorkspaceLimits,
+) -> ClientSerializationWorkspaceLimits? {
+  if generation_rows < 0 ||
+    limits.generation_bytes < 0 ||
+    limits.identity_slots < 0 {
+    return None
+  }
+  let output = limits.export_limits
+  let rows = Int::min(
+    Int::min(output.max_rows, component.max_rows),
+    generation_rows,
+  )
+  let bytes = Int::min(limits.generation_bytes, component.max_bytes)
+  if rows < 0 || bytes < 0 {
+    return None
+  }
+  let fields = client_serialization_json_leaf_field_count(component)
+  if fields < 0 {
+    return Some({ ..limits, generation_bytes: bytes, })
+  }
+  let n = rows.to_int64()
+  let f = fields.to_int64()
+  guard @execution.checked_preparation_add_product(1L, f, 2L)
+    is Some(value_fields) &&
+    @execution.checked_preparation_add_product(1L, value_fields, n)
+    is Some(value_nodes) &&
+    @execution.checked_preparation_add_product(1L, f + 1L, n)
+    is Some(wire_nodes) &&
+    @execution.checked_preparation_add_product(wire_nodes, 3L, 1L)
+    is Some(logical_nodes) &&
+    value_nodes <= 2147483647L &&
+    logical_nodes <= 2147483647L else {
+    return None
+  }
+  let value_nodes = Int::min(output.values.max_nodes, value_nodes.to_int())
+  let wire_nodes = Int::min(output.payload_wire.max_nodes, wire_nodes.to_int())
+  let logical_nodes = Int::min(
+    output.logical_wire.max_nodes,
+    logical_nodes.to_int(),
+  )
+  let columns = Int::min(output.payload_wire.max_columns, fields)
+  guard @execution.checked_preparation_add_product(
+      0L,
+      wire_nodes.to_int64(),
+      2L,
+    )
+    is Some(slots) &&
+    @execution.checked_preparation_add_product(
+      slots,
+      logical_nodes.to_int64(),
+      1L,
+    )
+    is Some(slots) &&
+    @execution.checked_preparation_add_product(slots, columns.to_int64(), 8L)
+    is Some(slots) &&
+    @execution.checked_preparation_add_product(
+      slots,
+      output.values.max_depth.to_int64(),
+      2L,
+    )
+    is Some(slots) &&
+    @execution.checked_preparation_add_product(slots, 4L, 1L) is Some(slots) &&
+    slots <= 2147483647L else {
+    return None
+  }
+  Some({
+    ..limits,
+    generation_bytes: bytes,
+    identity_slots: Int::min(limits.identity_slots, slots.to_int()),
+    export_limits: {
+      ..output,
+      max_rows: rows,
+      values: { ..output.values, max_nodes: value_nodes, },
+      payload_wire: {
+        ..output.payload_wire,
+        max_nodes: wire_nodes,
+        max_columns: columns,
+      },
+      logical_wire: {
+        ..output.logical_wire,
+        max_nodes: logical_nodes,
+        max_columns: Int::min(output.logical_wire.max_columns, fields),
+      },
+    },
+  })
+}

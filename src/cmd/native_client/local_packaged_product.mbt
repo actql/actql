@@ -312,6 +312,9 @@ fn execute_native_local_packaged_with_parent(
       local_utc_now(),
       runtime.assets,
       runtime.manifest,
+      query_contracts=runtime.physical
+        .query_contract_assets()
+        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged")),
     ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
     let originals = local_product_model_policy_originals(
       originals,

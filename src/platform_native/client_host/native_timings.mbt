@@ -38,3 +38,17 @@ fn native_acceptance_identity(
 ///|
 // Read-only diagnostic snapshot; -1 is unavailable, never zero work or current.
 extern "C" fn native_timing_counter_value(tag : Int) -> Int64 = "actql_native_timing_counter_value"
+
+///|
+// Lexical original File Work scope. This borrowed identity never leaves the
+// private recorder, never becomes a root, and is cleared by the caller defer.
+#borrow(ledger)
+extern "C" fn native_file_capacity_observation(
+  ledger : @resources.Ledger,
+  kind : Int,
+  serial : Int,
+  requested : Int64,
+  capacity : Int64,
+  limit : Int64,
+  reserved : Int64,
+) -> Unit = "actql_resource_capacity_observation"

@@ -523,7 +523,16 @@ test('Host collection retains original command bodies and their actual build pre
   for (const prerequisite of retained[0].trim().split(/\s+/u)) {
     assert(sharedBuild.includes(prerequisite), `Missing shared Host build prerequisite: ${prerequisite}`);
   }
-  assert.equal(step('Test bounded retained storage and process lifecycle').run, retained[1]);
+  const retainedArguments = retained[1].trim().split(/\s+/u);
+  const storageArguments = step('Test bounded retained storage and process lifecycle').run.trim().split(/\s+/u);
+  assert.deepEqual(storageArguments.slice(0, 2), ['node', '--test']);
+  assert(storageArguments.slice(2).every(argument => argument.endsWith('.test.mjs')),
+    'Run each selected whole test file without name/skip filters');
+  for (const file of new Set([...retainedArguments.slice(2),
+    'adapters/host-node/client-original-plan-control.test.mjs',
+    'adapters/host-node/dispatch-failure-observation.test.mjs'])) {
+    assert.equal(storageArguments.filter(argument => argument === file).length, 1, file);
+  }
   assert.equal(step('Test prepared holder cleanup owner').run, retained[2]);
   assert.equal(step('Test portable publication control with the durable Store').run, publication[1]);
   assert.equal(step('Test original publication owned extents').run, publication[2]);
@@ -1580,8 +1589,10 @@ test('large CI plans launch both original portable Core step command sequences',
     fs.appendFileSync(process.env.CALLS, JSON.stringify({
       command: require('node:path').basename(process.argv[1]), args: process.argv.slice(2),
       revision: plan.sourceRevision, paths: plan.selection.paths.length}) + '\\n');\n`;
+  const recordingPort = recorder + `
+    if (process.env.FAIL_CASE && process.argv.at(-1) === process.env.FAIL_CASE) process.exit(23);\n`;
   for (const command of ['moon', 'node']) {
-    writeFileSync(join(root, 'bin', command), recorder, {mode: 0o755});
+    writeFileSync(join(root, 'bin', command), recordingPort, {mode: 0o755});
   }
   writeFileSync(join(root, 'bin/getconf'), '#!/bin/sh\nprintf "2\\n"\n', {mode: 0o755});
   const step = jobs['core-common'].steps.find(step => step.name === 'Test common core');
@@ -1597,7 +1608,34 @@ test('large CI plans launch both original portable Core step command sequences',
     assert.equal(child.status, 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
-    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node']);
+    if (target === 'js') assert(observed.every(entry => entry.command === 'moon'));
+    // The Wasm branch below checks each actual required case/argument and
+    // producer prerequisite; an old number of node calls is not its contract.
+    if (target === 'wasm') {
+      assert.deepEqual(observed[1].args, ['test', '--target', 'wasm', '--release', '--build-only',
+        '--deny-warn', '-j', '2', 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
+      const requiredCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
+        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt'];
+      assert.deepEqual(observed.slice(2).map(entry => entry.args), requiredCases.map(name => [
+        'scripts/test-python-local-metadata-wasm.mjs',
+        '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',
+        '_build/wasm/release/test/client_host_wasm/__whitebox_test_info.json', name]));
+      for (const failedCase of requiredCases) {
+        const failedCalls = join(root, `wasm-failed-${failedCase}.jsonl`);
+        const failed = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
+          env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
+            PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: failedCalls,
+            FAIL_CASE: failedCase}});
+        assert.equal(failed.status, 23, failed.stderr);
+        const actual = readFileSync(failedCalls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+        // Preserve each original prerequisite and stop at the actual failed
+        // case; later required cases must never run after an earlier failure.
+        const failedIndex = observed.findIndex(entry => entry.command === 'node' &&
+          entry.args.at(-1) === failedCase);
+        assert(failedIndex >= 0);
+        assert.deepEqual(actual, observed.slice(0, failedIndex + 1));
+      }
+    }
     assert(observed.every(entry => entry.revision === head && entry.paths === selection.paths.length));
     assert.equal(readFileSync(join(root, 'plan.json'), 'utf8'), original + '\n');
   }
@@ -1818,6 +1856,59 @@ test('automatic main integration remains full without cumulative evidence', () =
   }
 });
 
+test('REST demand controls have one prepared public package owner without narrowing CI admission', () => {
+  const file = 'adapters/host-node/rest-source-initial-material.test.mjs';
+  const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert.equal(scripts['test:remote-site-runtime'].split(/\s+/u).includes(file), false);
+  const recipes = scripts['check:distribution-client'].split(' && ')
+    .filter(command => command.split(/\s+/u).includes(file));
+  assert.equal(recipes.length, 1);
+  assert.equal(recipes[0].split(/\s+/u).filter(argument => argument === file).length, 1);
+  const steps = jobs['client-distribution'].steps;
+  const owners = steps.filter(step => step.name === 'Test source-backed distribution contracts');
+  assert.equal(owners.length, 1);
+  const [owner] = owners;
+  // The original local command and CI's split command need not contain every
+  // identical peer test. Require this whole module's real Node entrance once.
+  const arguments_ = owner.run.trim().split(/\s+/u);
+  assert.deepEqual(arguments_.slice(0, 2), ['node', '--test']);
+  assert.equal(arguments_.filter(argument => argument === file).length, 1);
+  assert(!arguments_.some(argument => /^--test-(?:name|skip|only)/u.test(argument)));
+  assert.equal(owner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(owner['continue-on-error'], undefined);
+  assert(jobs['client-distribution'].needs.includes('client-packages'));
+  const runtime = steps.findIndex(step => step.run === 'node scripts/build-runtime-packages.mjs local-node run-host-core');
+  const adapters = steps.findIndex(step => step.run === 'node scripts/build-local-node-adapters.mjs');
+  const prepared = steps.findIndex(step => step.id === 'distribution-preparation');
+  assert(runtime >= 0 && runtime < adapters && adapters < prepared && prepared < steps.indexOf(owner));
+  assert.equal(Object.values(jobs).flatMap(job => job.steps ?? [])
+    .filter(step => step.run?.split(/\s+/u).includes(file)).length, 1);
+
+  for (const options of [{draft: false}, {draft: false, focusedTests: {}, focusedChanges: {}},
+    {draft: true}, {draft: true, focusedTests: {}, focusedChanges: {}}, {event: 'push'}]) {
+    const selection = selectTargets([file], options);
+    const full = options.draft !== true;
+    assert.equal(selection.profile, full ? 'full' : 'draft');
+    assert.equal(gateJobRequired(selection, 'client-distribution'), full);
+    // The prior Host owner and new prepared owner retain the SAME runtime
+    // applicability. Draft preparation is not silently promoted to acceptance.
+    assert.equal(gateJobRequired(selection, 'host'), full);
+    for (const name of ['host', 'client-distribution']) {
+      // Read the existing workflow's profile entrance; do not reinterpret
+      // GitHub expression syntax as a second JavaScript condition engine.
+      assert(jobs[name].if.includes("needs.select-targets.outputs.profile == 'full'"));
+    }
+    if (full) {
+      verifyGate(plan(selection), results(selection), {...context, event: selection.event});
+      for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+        assert.throws(() => verifyGate(plan(selection),
+          {...results(selection), 'client-distribution': {result}},
+          {...context, event: selection.event}));
+      }
+    }
+  }
+});
+
 test('distribution isolates pinned provider tests with their required GC recipe', () => {
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   // client-ci executes this same recipe to check type-gate ordering and refusal.
@@ -1878,6 +1969,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
   "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
   "adapters/host-node/acquired-direct-publication.test.mjs",
+  "adapters/host-node/original-retention-rebinding.test.mjs",
   "adapters/host-node/source-keyed-adoption-original.test.mjs",
   "adapters/host-node/local-file-keyed-effect-current.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
@@ -1898,6 +1990,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   for (const file of ['adapters/host-node/acquired-effect-keyed-prefix.test.mjs',
     'adapters/host-node/acquired-effect-keyed-publication.test.mjs',
     'adapters/host-node/acquired-direct-publication.test.mjs',
+    'adapters/host-node/original-retention-rebinding.test.mjs',
     'adapters/host-node/source-keyed-adoption-original.test.mjs',
     'adapters/host-node/local-file-keyed-effect-current.test.mjs']) {
     assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === file).length, 1);
@@ -2035,14 +2128,19 @@ test('normal wheel platforms reject foreign machines and keep independent same-p
 });
 
 test('Python original observation fixture selects its same-source wheel consumer on draft', () => {
-  const path = 'scripts/fixtures/python-local-submission-observation-abi.py';
-  readFileSync(new URL('../' + path, import.meta.url));
-  const selection = selectTargets([path], {draft: true});
-  assert.equal(pythonWheelAcceptanceRequired(selection), true);
-  for (const outcome of ['failure', 'cancelled', 'skipped']) {
-    const needs = results(selection);
-    needs['python-wheels'].result = outcome;
-    assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+  for (const path of ['scripts/fixtures/python-local-submission-observation-abi.py',
+    'scripts/fixtures/python-local-public-cancellation-abi.py',
+    'scripts/fixtures/python-local-saved-state-abi.py',
+    'scripts/fixtures/python-local-public-success-abi.py',
+    'scripts/fixtures/python_local_task_drive_trace.py']) {
+    readFileSync(new URL('../' + path, import.meta.url));
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(pythonWheelAcceptanceRequired(selection), true);
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const needs = results(selection);
+      needs['python-wheels'].result = outcome;
+      assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+    }
   }
 });
 

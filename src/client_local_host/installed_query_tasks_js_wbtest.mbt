@@ -1,0 +1,844 @@
+///|
+let installed_query_tasks_document : String =
+  #|{"version":"actql/0.1","id":"same-original-query-join","stages":[{"id":"left","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"right","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"joined","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
+
+///|
+// Actual Request/check/Query acquisitions and managed RowRun originals. The
+// existing explicit component admission is not a physical Native/Account grant.
+priv struct InstalledQueryTasksFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  owner : ClientInstalledManagedRun
+  plan : ClientInstalledManagedCapturePlan
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue]
+  captures : Array[@row_source_host.RowSourceCapture]
+  controls : @resources.CapacityReservation
+  ledger : @resources.Ledger
+  verify_hooks : Array[Ref[(() -> Unit)?]]
+  provider_pages : Array[Ref[Bytes?]]
+}
+
+///|
+fn installed_query_tasks_fixture(
+  request_protocols? : Bool = false,
+  original_filter? : Bool = false,
+  retained_provider? : Bool = false,
+  compiled_body? : Bool = false,
+) -> InstalledQueryTasksFixture raise {
+  let declaration = if original_filter {
+    let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 10,
+      max_fields: 100,
+    }).unwrap()
+    let (name, original) = @row_source_host.mock_churn_risk_query_alias_at(
+      catalogue, 1,
+    ).unwrap()
+    assert_eq(name, "snowflake.usage_30d")
+    original
+  } else {
+    pure_provider_declaration()
+  }
+  let environment = pure_provider_environment(
+    declaration,
+    numeric_profile_cid=if original_filter {
+      Some(
+        "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+      )
+    } else {
+      None
+    },
+  )
+  let (parent, prepared, input) = if original_filter {
+    let view = declaration.views[0]
+    let wire : Json = {
+      "environmentCid": Json::string(
+        @checked.checking_environment_cid(environment),
+      ),
+      "aliases": [
+        {
+          "name": "snowflake.usage_30d",
+          "sourceRef": Json::string(view.source_ref),
+          "sourceViewContractCid": Json::string(view.view_cid),
+          "schemaContractCid": Json::string(view.carrier_schema_cid),
+        },
+      ],
+    }
+    let publication = @source_publication.prepare_published_query_environment(
+      environment,
+      wire.stringify(),
+    ).unwrap()
+    let captured : Json = {
+      "format": "sql",
+      "text": "SELECT account_id, trend FROM snowflake.usage_30d WHERE trend = 'down'",
+    }
+    let captured = captured.stringify()
+    let (parent, input) = native_driver_parent(captured)
+    assert_true(
+      prepare_request_native_source_computation(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ).unwrap()
+      is Pure,
+    )
+    (parent, parent.compiled_program.unwrap(), input)
+  } else {
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=installed_query_tasks_document,
+      environment=Some(environment),
+    )
+    guard finish_program_check_preparation(child).unwrap()
+      is @checked.Checked(_) else {
+      fail("original Query fixture must check")
+    }
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        continue_request_program_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+    (parent, prepared, input)
+  }
+  reserve_request_program_plan(parent, input).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "same-original-query-join",
+  ).unwrap()
+  let count = if original_filter { 1 } else { 2 }
+  let assets = @publication_host.client_local_product_assets()
+  let (registry, values, fragment, ordered) = if original_filter {
+    (assets.registry, assets.values, Some(assets.fragment), assets.ordered)
+  } else {
+    (
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    )
+  }
+  let contracts = prepare_installed_sequence_contracts(
+    registry, values, fragment, ordered,
+  ).unwrap()
+  let original_protocols = if request_protocols || original_filter {
+    let (protocols, direct) = admit_request_query_acquisition_contracts(
+      parent, input, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_direct_acquisition_occurrence_count(direct),
+      count,
+    )
+    assert_true(
+      @publication_host.client_direct_acquisition_occurrences_match_program(
+        direct, prepared,
+      ),
+    )
+    Some(protocols)
+  } else {
+    None
+  }
+  let acquisitions = Array::makei(count, stage => {
+    let requirement = prepare_local_query_requirement(
+      prepared, stage, 0, contracts, values, fragment, ordered,
+    ).unwrap()
+    match original_protocols {
+      None =>
+        @row_source_host.prepare_row_acquisition(
+          declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+        ).unwrap()
+      Some(protocols) =>
+        @row_source_host.prepare_declared_row_acquisition_with_contracts(
+          @row_source_host.prepare_row_source(requirement, declaration).unwrap(),
+          declaration.connector_registration,
+          protocols,
+        ).unwrap()
+    }
+  })
+  // Reuse the existing trusted-declared JSON reader fixture's recipe. This
+  // is a component supplier declaration, not Native file or transport proof.
+  let provider = if retained_provider {
+    Some(
+      installed_json_source_reader_capacity(
+        [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4],
+        declaration.views[0].fields.length(),
+        3,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  let factory = _ => []
+  let plan = prepare_installed_managed_capture_plan(
+    prepared,
+    request,
+    acquisitions.map(acquisition => {
+      match provider {
+        Some(original) =>
+          installed_provider_row_capture_capacity(acquisition, Some(original)).unwrap()
+        None => installed_row_capture_capacity(acquisition).unwrap()
+      }
+    }),
+    Array::make(count, 4096L),
+    Array::make(count, 4096L),
+    contracts,
+    values,
+    fragment,
+    ordered,
+    retained_output=!original_filter,
+    provider_factory=factory,
+    runtime_admission=true,
+  ).unwrap()
+  if compiled_body {
+    prepare_request_capture_module_body(
+      parent,
+      input,
+      plan,
+      manifests=request_program_module_manifests(),
+      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+      provider_factory=factory,
+    ).unwrap()
+    assert_true(plan.compilation is Some(_))
+  } else {
+    complete_request_capture_preparation(parent, input, plan).unwrap()
+  }
+  let owner = begin_request_capture_managed_run(parent, request).unwrap()
+  let captures = []
+  let provider_pages : Array[Ref[Bytes?]] = []
+  let verify_hooks : Array[Ref[(() -> Unit)?]] = Array::makei(count, _ => {
+    Ref(None)
+  })
+  for index in 0..<count {
+    let (read, _, acquisition, _) = begin_installed_managed_capture_source_read(
+      owner, prepared, request, declaration, index,
+    ).unwrap()
+    assert_true(physical_equal(acquisition, acquisitions[index]))
+    let hook = verify_hooks[index]
+    let verify = _ => {
+      if hook.val is Some(call) {
+        hook.val = None
+        call()
+      }
+      true
+    }
+    let source = (match provider {
+      Some(original) =>
+        start_installed_source_read_provider_rows(
+          read,
+          acquisition,
+          Some(original),
+          "query-original-" + index.to_string(),
+          verify,
+          4096L,
+          4096L,
+        )
+      None =>
+        start_installed_source_read_rows(
+          read,
+          acquisition,
+          "query-original-" + index.to_string(),
+          verify,
+          4096L,
+          4096L,
+        )
+    }).unwrap()
+    @row_source_host.begin_row_run(source, 4096, 3, 3).unwrap()
+    let page = @utf8.encode(
+      if original_filter {
+        // Schema-directed int64 wire after Native's document projection.
+        // This page is scan DATA, not a fabricated filtered output.
+        "[{\"account_id\":\"001Acme\",\"active_users\":\"4\",\"trend\":\"down\"},{\"account_id\":\"001Globex\",\"active_users\":\"12\",\"trend\":\"flat\"}]"
+      } else if index == 0 {
+        "[{\"id\":1},{\"id\":2}]"
+      } else {
+        "[{\"id\":2},{\"id\":3}]"
+      },
+    )
+    if retained_provider {
+      let original_page : Ref[Bytes?] = Ref(Some(page))
+      provider_pages.push(original_page)
+      let responses = @row_source_host.borrow_row_run_responses(
+        source, acquisition,
+      ).unwrap()
+      // This observer witnesses only release of this component's actual
+      // in-memory page root, never Native file/Reader/physical stop.
+      @row_source_host.bind_row_run_response_borrow_cleanup(responses, () => {
+        original_page.val is None
+      }).unwrap()
+    }
+    @row_source_host.accept_row_run_page(source, page).unwrap() |> ignore
+    @row_source_host.finish_row_run(source).unwrap()
+    let before_capture = @resources.ledger_usage(parent.ledger)
+    @row_source_host.begin_row_capture(source).unwrap()
+    let mut complete = false
+    for _ in 0..<1000 {
+      if @row_source_host.advance_row_capture(source, 1).unwrap().0 {
+        complete = true
+        break
+      }
+    }
+    assert_true(complete)
+    captures.push(@row_source_host.capture_row_run(source).unwrap())
+    if retained_provider {
+      let after_capture = @resources.ledger_usage(parent.ledger)
+      // The declared provider's original Row token must coexist with the
+      // suffix. Completed acquisition does not retire its remaining debt.
+      assert_eq(
+        after_capture.live_reservations,
+        before_capture.live_reservations,
+      )
+      assert_eq(
+        after_capture.reserved_execution_bytes,
+        before_capture.reserved_execution_bytes,
+      )
+    }
+  }
+  let (setup, _, _) = open_installed_managed_capture_host(
+    owner,
+    prepared,
+    request,
+    captures.map(capture => {
+      @row_source_host.row_capture_source(capture).unwrap()
+    }),
+  ).unwrap()
+  let capacity = installed_captured_local_tasks_control_capacity(plan.graph).unwrap()
+  let controls = @resources.reserve_capacity(
+    parent.ledger,
+    @execution.execution_capacity_retained_bytes(capacity),
+    @execution.execution_capacity_execution_bytes(capacity),
+  ).unwrap()
+  {
+    parent,
+    owner,
+    plan,
+    setup,
+    captures,
+    controls,
+    ledger: parent.ledger,
+    verify_hooks,
+    provider_pages,
+  }
+}
+
+///|
+fn close_installed_query_tasks_fixture(
+  value : InstalledQueryTasksFixture,
+) -> Unit raise {
+  assert_true(physical_equal(value.parent.ledger, value.ledger))
+  @resources.settle_capacity(value.ledger, value.controls).unwrap()
+  for original in value.provider_pages {
+    original.val = None
+  }
+  for index = value.owner.reads.length() - 1; index >= 0; index = index - 1 {
+    retire_installed_source_read(value.owner.reads[index].unwrap()).unwrap()
+  }
+  retire_installed_managed_run(value.owner).unwrap()
+  let usage = @resources.ledger_usage(value.ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.held_bytes, 0L)
+}
+
+///|
+test "installed plural Query continuation joins SAME original captures exactly once" {
+  let value = installed_query_tasks_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  assert_eq(@strategy.next_captured_task(run), Some(2))
+  let execution = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts + 1)
+  assert_true(@strategy.captured_task_completed(run, 2))
+  assert_true(execution.close())
+  assert_true(
+    value.captures.all(capture => {
+      @row_source_host.row_capture_source(capture) is Ok(_)
+    }),
+  )
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed plural Query continuation refuses reordered missing and foreign originals before compute" {
+  for variant in ["reordered", "missing", "request", "current"] {
+    let value = installed_query_tasks_fixture()
+    let captures = match variant {
+      "reordered" => [value.captures[1], value.captures[0]]
+      "missing" => [value.captures[0]]
+      _ => value.captures
+    }
+    let request = if variant == "request" {
+      @publication_host.prepare_source_free_client_request_identity(
+        value.plan.prepared,
+        "sha256:" + "a".repeat(64),
+        "same-original-query-join",
+      ).unwrap()
+    } else {
+      value.plan.request
+    }
+    let before = @resources.ledger_usage(value.ledger)
+    let failure = execute_installed_captured_local_tasks_guarded(
+      value.owner,
+      value.plan.prepared,
+      request,
+      value.setup,
+      captures,
+      1,
+      10000,
+      () => variant != "current",
+    ).unwrap_err()
+    assert_true(
+      local_values_execution_failure_issue(failure) is UnsupportedGraph ||
+      local_values_execution_failure_issue(failure) is Fenced,
+    )
+    assert_true(retry_local_values_execution_failure_cleanup(failure))
+    assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+    close_installed_query_tasks_fixture(value)
+  }
+}
+
+///|
+test "installed plural Query continuation control quote is exact and one-short refuses both dimensions" {
+  let value = installed_query_tasks_fixture()
+  let quote = installed_captured_local_tasks_control_capacity(value.plan.graph).unwrap()
+  // Independent original vector: task loop H16+12t+2p/R32+16t+4p/W8+4t+p;
+  // two seven-reference guards/options H4/R16/W2; RowRun predicates borrow.
+  // Exact reference snapshot uses the independent array vector H2/R(9+2n)/W2.
+  let tasks = @strategy.graph_task_count(value.plan.graph).to_int64()
+  let ports = @strategy.graph_data_count(value.plan.graph).to_int64()
+  let expected = @execution.preparation_representation_cost({
+    record_headers: 16L + 12L * tasks + 2L * ports + 4L + 2L,
+    reference_slots: 32L + 16L * tasks + 4L * ports + 16L + 9L + 4L,
+    scalar_words: 8L + 4L * tasks + ports + 2L + 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(quote), expected)
+  assert_eq(@execution.execution_capacity_execution_bytes(quote), expected)
+  for missing in ["none", "retained", "execution"] {
+    let ledger = @resources.create_ledger({
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: expected - (if missing == "retained" { 1L } else { 0L }),
+      execution_bytes: expected - (if missing == "execution" { 1L } else { 0L }),
+    }).unwrap()
+    match @resources.reserve_capacity(ledger, expected, expected) {
+      Ok(reservation) => {
+        assert_eq(missing, "none")
+        @resources.settle_capacity(ledger, reservation).unwrap()
+      }
+      Err(_) => assert_true(missing != "none")
+    }
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed plural Query continuation retains its finite input snapshot across callback mutation" {
+  let value = installed_query_tasks_fixture()
+  let checks = Ref(0)
+  let execution = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => {
+      checks.val += 1
+      value.captures.clear()
+      true
+    },
+  ).unwrap()
+  assert_true(checks.val > 0)
+  assert_eq(value.captures.length(), 0)
+  assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
+  assert_true(execution.close())
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed plural Query continuation fences earlier reader retirement from a later Source callback" {
+  let value = installed_query_tasks_fixture()
+  let retired = Ref(false)
+  value.verify_hooks[1].val = Some(() => {
+    retire_installed_source_read(value.owner.reads[0].unwrap()).unwrap()
+    retired.val = true
+  })
+  let before = @resources.ledger_usage(value.ledger)
+  let failure = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap_err()
+  assert_true(retired.val)
+  assert_true(local_values_execution_failure_issue(failure) is UnsupportedGraph)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed plural Query continuation fences earlier DAG port retirement from a later Source callback" {
+  let value = installed_query_tasks_fixture()
+  let dag = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  let row_run = value.owner.reads[0].unwrap().run.unwrap()
+  let retired = Ref(false)
+  let row_live = Ref(false)
+  value.verify_hooks[1].val = Some(() => {
+    @strategy.close_captured_task_output(dag, 0)
+    retired.val = true
+    row_live.val = @row_source_host.check_row_query_capture_run(
+      value.captures[0],
+      row_run,
+    )
+  })
+  let before = @resources.ledger_usage(value.ledger)
+  let current = installed_captured_local_tasks_current(
+    value.owner,
+    value.plan,
+    value.plan.prepared,
+    value.plan.request,
+    dag,
+    value.captures,
+  )
+  assert_true(retired.val)
+  assert_true(row_live.val)
+  assert_false(current)
+  value.verify_hooks[1].val = None
+  let failure = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap_err()
+  assert_true(retired.val)
+  assert_true(row_live.val)
+  assert_true(local_values_execution_failure_issue(failure) is UnsupportedGraph)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed plural Query continuation refuses duplicate capture custody before compute" {
+  let value = installed_query_tasks_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let failure = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    [value.captures[0], value.captures[0]],
+    1,
+    10000,
+    () => true,
+  ).unwrap_err()
+  assert_true(local_values_execution_failure_issue(failure) is UnsupportedGraph)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed filtered SQL read keeps its actual checked acquisition route" {
+  let prepared = set_output_expression_prepared(
+    text="SELECT id FROM records WHERE id > 1",
+  )
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "actual-filtered-read-route",
+  ).unwrap()
+  let route = select_installed_source_input(prepared, request, 0, 0).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  println(
+    "actual-filtered-read-route=" +
+    @debug.to_string(
+      (
+        @strategy.graph_task_count(graph),
+        @strategy.graph_captured_prefix(graph),
+        @strategy.graph_result_task(graph, 0),
+        route is @sourceviews.QueryRoute(_),
+      ),
+    ),
+  )
+  assert_true(route is @sourceviews.QueryRoute(_))
+  assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 1)
+  assert_true(@strategy.graph_result_count(graph) == 1)
+}
+
+///|
+// Node-admitted common driver diagnostic only. Query scan/capture and the
+// receiving LocalDispatch/FixedCompute suffix retain their actual originals;
+// no Native file, Account, physical cleanup or installed CLI is simulated.
+fn installed_original_filter_driver_case(
+  retained_provider : Bool,
+  compiled_body? : Bool = false,
+) -> Unit raise {
+  let value = installed_query_tasks_fixture(
+    original_filter=true,
+    retained_provider~,
+    compiled_body~,
+  )
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  assert_eq(@strategy.graph_captured_prefix(value.plan.graph), 1)
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  let result = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  )
+  match result {
+    Ok(execution) => {
+      let rows = execution.rows().unwrap()
+      assert_eq(rows, ["{\"account_id\":\"001Acme\",\"trend\":\"down\"}"])
+      assert_true(execution.close())
+      close_installed_query_tasks_fixture(value)
+    }
+    Err(failure) => {
+      // Retain the actual closed typed cause from this original attempt.
+      let original = local_values_execution_failure_issue(failure)
+      let cleaned = retry_local_values_execution_failure_cleanup(failure)
+      if cleaned {
+        close_installed_query_tasks_fixture(value)
+      }
+      let cause = match original {
+        Driver(Configuration(original))
+        | Driver(Preparation(Candidate(original)))
+        | Driver(Preparation(Execution(original)))
+        | Driver(Execution(Compute(original))) =>
+          match original {
+            UnsupportedInputShape => "FixedCompute.UnsupportedInputShape"
+            InputUnavailable => "FixedCompute.InputUnavailable"
+            ForeignPreparation => "FixedCompute.ForeignPreparation"
+            ForeignRequest(_) => "FixedCompute.ForeignRequest"
+            ForeignCapability(_) => "FixedCompute.ForeignCapability"
+            CapabilityClosed => "FixedCompute.CapabilityClosed"
+            ComputeUnsupported => "FixedCompute.ComputeUnsupported"
+            NotSelected => "FixedCompute.NotSelected"
+            InvalidLimits => "FixedCompute.InvalidLimits"
+            CapacityContract => "FixedCompute.CapacityContract"
+            CommonInputRows => "FixedCompute.CommonInputRows"
+            CommonFragmentUnsupported =>
+              "FixedCompute.CommonFragmentUnsupported"
+            LogicalIdentityUnsupported =>
+              "FixedCompute.LogicalIdentityUnsupported"
+            PlanningLimit => "FixedCompute.PlanningLimit"
+            NegativeQuantity => "FixedCompute.NegativeQuantity"
+            ControlWorkLimit => "FixedCompute.ControlWorkLimit"
+            Execution(_) => "FixedCompute.Execution"
+            Cost(_) => "FixedCompute.Cost"
+            Guard(_) => "FixedCompute.Guard"
+          }
+        Driver(Preparation(_)) => "Driver.Preparation"
+        Driver(Execution(_)) => "Driver.Execution"
+        Driver(ExecutionCapacityRefusal(_, _, _, _)) =>
+          "Driver.ExecutionCapacityRefusal"
+        Driver(_) => "Driver.Unclassified"
+        _ => "LocalExecution.Unclassified"
+      }
+      fail("original filter Local driver: " + cause)
+    }
+  }
+}
+
+///|
+test "installed original readonly filter executes SAME Query capture and Local driver" {
+  installed_original_filter_driver_case(false)
+}
+
+///|
+test "installed original readonly filter retains declared provider beside Local driver" {
+  installed_original_filter_driver_case(true)
+}
+
+///|
+test "installed original readonly filter retains compiled body and provider beside Local driver" {
+  installed_original_filter_driver_case(true, compiled_body=true)
+}
+
+///|
+test "installed Query protocols are admitted on SAME Request before complete finite captures" {
+  let value = installed_query_tasks_fixture(request_protocols=true)
+  let before = @resources.ledger_usage(value.ledger)
+  let execution = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts + 1)
+  assert_true(execution.close())
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed Query port-only cleanup preserves original Source custody until caller retirement" {
+  let value = installed_query_tasks_fixture()
+  let row = value.owner.reads[0].unwrap().run.unwrap()
+  let before = @resources.ledger_usage(value.ledger)
+  assert_true(
+    retire_installed_query_capture_ports(
+      value.owner,
+      value.plan.prepared,
+      value.plan.request,
+    ),
+  )
+  assert_true(
+    @row_source_host.check_row_query_capture_run(value.captures[0], row),
+  )
+  assert_true(@row_source_host.row_capture_source(value.captures[0]) is Ok(_))
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  // Source holding and native physical cleanup are separate from DAG ports.
+  assert_true(@resources.ledger_usage(value.ledger).held_bytes > 0L)
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed Query protocol constructor refuses one-short before contract admission on each axis" {
+  for axis in 0..<2 {
+    for shortage in [0L, 1L] {
+      let declaration = pure_provider_declaration()
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=installed_query_tasks_document,
+        environment=Some(pure_provider_environment(declaration)),
+      )
+      guard finish_program_check_preparation(child).unwrap()
+        is @checked.Checked(_) else {
+        fail("checked original required")
+      }
+      let prepared = compile_program_check_preparation(
+        child,
+        @publication_host.client_standard_program_preparation_limits(),
+      ).unwrap()
+      continue_request_program_preparation(parent, input).unwrap() |> ignore
+      reserve_request_program_plan(parent, input).unwrap()
+      // Select the SAME checked direct Query shape. No occurrence/contract
+      // is reconstructed from scalar coordinates or copied wire metadata.
+      let direct = installed_direct_occurrences_owned(Pure(prepared)).unwrap()
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) ==
+        0 {
+        abort_request_preparation_after_cleanup(parent).unwrap()
+        fail("direct Query fixture required")
+      }
+      let bytes = request_query_acquisition_constructor_bytes(
+        prepared, direct, "{}", "{}",
+      ).unwrap()
+      let limits = @resources.ledger_limits(parent.ledger)
+      let usage = @resources.ledger_usage(parent.ledger)
+      let available = if axis == 0 {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes
+      }
+      assert_true(available >= bytes)
+      let blocker = @resources.reserve_capacity(
+        parent.ledger,
+        if axis == 0 {
+          available - bytes + shortage
+        } else {
+          0L
+        },
+        if axis == 1 {
+          available - bytes + shortage
+        } else {
+          0L
+        },
+      ).unwrap()
+      let result = admit_request_query_acquisition_contracts(
+        parent, input, "{}", "{}",
+      )
+      if shortage == 0L {
+        assert_true(result is Err(ModelSource(InvalidContracts)))
+      } else {
+        assert_true(result is Err(Preparation(Capacity(_))))
+      }
+      @resources.settle_capacity(parent.ledger, blocker).unwrap()
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
+}
+
+///|
+test "installed JOIN SQL read keeps the complete checked direct acquisition prefix" {
+  let prepared = set_output_expression_prepared(
+    text="SELECT l.id FROM records l JOIN records r ON l.id = r.id",
+  )
+  let graph = @publication_host.prepared_client_graph(prepared)
+  // The public selector's second argument is work, not an item count.
+  // Use the SAME installed bounded selector as the actual Native caller.
+  let direct = installed_direct_occurrences_owned(Pure(prepared)).unwrap()
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  assert_true(count > 0)
+  // Repeated aliases of one logical Source may share a capture. The actual
+  // checked prefix, not SQL alias count, determines the original inventory.
+  assert_eq(count, @strategy.graph_captured_prefix(graph))
+  guard @strategy.graph_result_task(graph, 0) is Some(result) else {
+    fail("original Result task required")
+  }
+  assert_true(result >= @strategy.graph_captured_prefix(graph))
+  for index in 0..<count {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((_, _, task)) else {
+      fail("original direct occurrence required")
+    }
+    assert_eq(task, index)
+  }
+}

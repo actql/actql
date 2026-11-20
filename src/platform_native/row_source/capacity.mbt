@@ -156,6 +156,10 @@ fn file_capture_metadata_capacity(
     // five bounded quote walks documented by the caller preflight inventory,
     // now inside the retained reader before its charged-response grow. Their
     // cursor/array/result backing must precede that Resource callback too.
+    // The completed Query's returned-only recipe uses the same four Value
+    // phase walks but omits the full projection's extra nested-contract walk
+    // and constructor controls. Source's borrowed String extent is scalar
+    // arithmetic/composition, not another schema walk or retained graph.
     let n = response_quote_nodes.unwrap_or(limits.page.max_nodes).to_int64()
     @execution.preparation_representation_cost({
       record_headers: 600L + 11L * n,

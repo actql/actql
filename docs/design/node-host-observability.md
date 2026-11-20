@@ -134,6 +134,53 @@ Unavailable measurements stay unavailable; no exporter derives logical work or
 usage from spans. Duration selection controls optional metric instruments, not
 the truthful timestamps of the finite span being represented.
 
+The compute-and-task selection may also receive bounded read-only logical
+boundary metadata. `logical_boundary_observed` carries
+`actql.logical_step.key`, the canonical original Core `logical_step_key` JSON
+String, and `actql.logical_boundary.phase` (`before`, `settled`, or
+`output_emitted`). The adapter preserves that String; it does not parse,
+recanonicalize or derive a logical key from `actql.task.ordinal`. The physical
+task ordinal remains separate. Actual `NotProjected` produces
+`logical_boundary_unavailable` with
+`actql.logical_boundary.reason=not_projected`, without a logical key or invented
+Done state. Attribute exclusion cannot turn a partial key into an observed
+boundary; it suppresses that record instead.
+
+The supplier first reserves construction/retention through the same Request
+and Plan parent and checks current Run/Plan-read and egress authorization before
+and after reading retained originals. Selection, copied-shape admission, equal
+identities and record delivery do not provide those grants or backing. The
+existing event-record shape remains unchanged. This observation does not split
+a fused graph, retain rows, admit Debug/control/Sample or pause execution;
+unsupported fused boundaries stay explicitly unprojected.
+
+The installed source-free Compute consumer prepares its optional metadata loan
+before opening work, and attaches only that admitted Run's original captured
+Compute. Original Plan construction uses its existing read profile; the
+small closed logical-key/event envelope has separate encoding bounds. Event
+size cannot redefine Plan validity or increase the original Resource budget.
+The existing Local-read Owner's immediate path consumes only Common's actual
+Allow. Delegate is unavailable without invoking an answer callback, Checkpoint
+or task wait; existing public asynchronous Run/Result reads keep their path. Before an Account callback, each read reserves its complete concurrent
+construction and queue/delivery overlap through the same preparation parent.
+An authorization decline returns that pre-read loan without projecting a fact.
+Current Run/Plan-read and egress checks surround the original projection and run
+again before asynchronous delivery. The immediate path observes current
+Account/Common every time, using the same bounded read DATA tuple and no
+cached allowed decision across a callback or queue boundary. A currentness/encoding/cleanup failure is
+not an unavailable logical boundary. The existing task owner still authorizes
+and commits work; these reads introduce no scheduler or graph split.
+
+The existing queue retains the original record loan until the actual delivery
+callback settles or that queued record is discarded. It drops copied payload
+aliases before returning the token. A delivery timeout, constructor refusal,
+Run completion or Host close cannot acknowledge an outstanding delivery loan.
+Failed returns remain on the same queue item for return-only retry, without
+redelivery. The dispatch owner returns its original metadata holder before
+retiring Request preparation, and a pending return keeps that same preparation
+owned. Unselected observations add no logical holder, Run field or async task
+boundary; explicit Debug strategy/control and Samples remain separate.
+
 At the original Model acquired-evidence boundary, MoonBit may project a
 technical failure kind from the same returned Result. The JS bridge forwards
 that DATA with the already-read task, Unit and step through `dispatch_failed`;

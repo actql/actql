@@ -1,3 +1,31 @@
+// Namespace-growth diagnostic retained for the existing namespace-limited
+// primitive; normal Model/keyed callers now use their own original key scope.
+
+///|
+fn grow_client_journal_capacity(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  previous : @sqlite.NativeCapacityUsage,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None =>
+      grow_journal_capacity_in_transaction(
+        database, table_name, key, previous, bytes, objects, max_bytes, max_objects,
+      )
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.grow_capacity)(
+        false, table_name, key, previous, bytes, objects, max_bytes, max_objects,
+      )
+    _ => Err(@sqlite.Collision)
+  }
+}
+
 ///|
 // Real SQLite routing diagnostics. These callbacks are not an installed
 // physical pair or evidence of a supplied business execution.
@@ -35,6 +63,7 @@ fn journal_test_operation_access(
       )
     },
     grow_capacity: (
+      key_scoped,
       table,
       key,
       previous,
@@ -44,9 +73,15 @@ fn journal_test_operation_access(
       max_objects,
     ) => {
       calls.push("grow:" + table + ":" + key)
-      grow_journal_capacity_in_transaction(
-        database, table, key, previous, bytes, objects, max_bytes, max_objects,
-      )
+      if key_scoped {
+        database.grow_key_capacity_in_transaction(
+          table, key, previous, bytes, objects, max_bytes, max_objects,
+        )
+      } else {
+        grow_journal_capacity_in_transaction(
+          database, table, key, previous, bytes, objects, max_bytes, max_objects,
+        )
+      }
     },
     insert: (table, key, body) => {
       calls.push("insert:" + table + ":" + key)

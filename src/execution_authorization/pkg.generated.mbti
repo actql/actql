@@ -78,6 +78,12 @@ pub fn is_known_local_mock_profile(BootstrapProfile) -> Bool
 
 pub fn local_mock_account_configuration(LocalMockAccountSubjects) -> Result[String, LocalMockProfileIssue]
 
+pub fn local_mock_account_configuration_prepared(LocalMockAccountSubjects, Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalMockProfileIssue]?
+
+pub fn local_mock_account_construction_before_signing(LocalMockAccountSubjects, Array[(String, String)], Int) -> AccountConfigurationConstruction?
+
+pub fn local_mock_control_connection_prepared(String, BootstrapProfile?, String?, Array[(String, String)], Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalMockProfileIssue]?
+
 pub fn local_mock_profile_body() -> String
 
 pub fn local_mock_profile_identity() -> BootstrapProfile
@@ -97,6 +103,8 @@ pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, bou
 pub fn runtime_action_error_code(RuntimeAction) -> String?
 
 pub fn runtime_action_for(AccountOutcome) -> RuntimeAction?
+
+pub fn validate_local_mock_inventory_prepared(String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[Unit, LocalMockProfileIssue]?
 
 // Errors
 
@@ -314,6 +322,7 @@ pub(all) struct LocalMockAccountSubjects {
 
 pub(all) enum LocalMockProfileIssue {
   InvalidSubjects
+  DuplicateUpdateTarget
   Configuration(ConfigurationIssue)
 } derive(Eq, @debug.Debug)
 

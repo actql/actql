@@ -1,0 +1,278 @@
+// Finite RC-only business cases. The installed caller owns artifacts, process
+// bounds and scratch; these same imported assertions run with explicit test ports.
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile, stat} from 'node:fs/promises';
+import {join} from 'node:path';
+import {mockTemplates, expectedChanges} from './native-cli-mock-scenario.mjs';
+import {assertProjectStaticCheckControls} from './release-project-node-action.mjs';
+
+const cid = /^sha256:[0-9a-f]{64}$/u;
+export const releaseProjectFamilies = Object.freeze([
+  'native-while-waiting', 'native-after-approve', 'native-after-reject',
+  'node-sequential',
+]);
+
+// Independent expectations from the authored Catalog, ModelTask and SELECT.
+// These are not learned from a first Result or emitted by the product compiler.
+const text = {type: 'string', nullable: false};
+const modelResult = fields => ({type: 'object', nullable: false, additional_properties: false, fields: {
+  input_key: {type: 'object', nullable: false, additional_properties: false, fields: {id: text}},
+  outcome: text,
+  value: {type: 'object', nullable: false, additional_properties: false, fields},
+}});
+const expectedColumns = {
+  'churn-risk-mock': [
+    {name: 'id', contract: text}, {name: 'notes', contract: text},
+    {name: 'active_users', contract: {type: 'int64', nullable: false}},
+    {name: 'trend', contract: text},
+    {name: 'risk', contract: modelResult({
+      level: {...text, enum: ['low', 'medium', 'high']}, reason: text,
+    })},
+  ],
+  'deal-review-mock': [
+    {name: 'id', contract: text}, {name: 'StageName', contract: text},
+    {name: 'NextStep', contract: {type: 'string', nullable: true}},
+    {name: 'notes', contract: {type: 'content_ref', nullable: false, media_type: 'text/plain'}},
+    {name: 'review', contract: modelResult({changed: {type: 'boolean', nullable: false},
+      stage: text, next_step: text})},
+  ],
+};
+
+export function assertProjectResultDescription(template, description, ref) {
+  assert(expectedColumns[template], 'Unknown authored template');
+  assert.equal(description.resultName, 'updates');
+  assert.deepEqual(description.ref, ref);
+  assert.deepEqual(description.columns, expectedColumns[template], 'Complete ordered original Result contracts');
+  for (const field of ['programDefinitionCid', 'resultDefinitionCid', 'resultArtifactCid', 'resultSchemaCid'])
+    assert(cid.test(description[field]), field);
+}
+
+export async function projectTargetSnapshot(project) {
+  const path = join(project, 'mock/data.json'), info = await stat(path, {bigint: true});
+  return {bytes: await readFile(path, 'utf8'), dev: String(info.dev), ino: String(info.ino),
+    mtimeNs: String(info.mtimeNs), size: String(info.size)};
+}
+
+export function assertTemplateStatic(check, plan) {
+  assert.equal(check.outcome, 'completed');
+  assert.equal(check.report?.verdict, 'verified');
+  assert.equal(check.report.runnable?.verdict, 'yes');
+  assert.deepEqual(check.report.runnable.reasons, []);
+  assert.equal(plan.version, 'actql-effectful-static-plan-view/0.1');
+  assert.equal(plan.observation, 'static'); assert.equal(plan.provider_io, 0);
+  const steps = plan.computation?.plan_view?.logical_map?.steps;
+  assert(Array.isArray(steps));
+  for (const operator of ['join', 'infer']) assert(steps.some(step => step.operator === operator), operator);
+  assert.equal(plan.effect_set?.members.length, 1);
+  assert.equal(plan.effect_set.members[0].effect_kind, 'update');
+  assert.deepEqual(plan.effect_set.members[0].input, {kind: 'result', result_name: 'updates'});
+}
+
+export function requiredProjectReplacements(template, beforeBytes) {
+  const change = expectedChanges[template];
+  assert(change && typeof beforeBytes === 'string', 'Original template and before DATA required');
+  const data = JSON.parse(beforeBytes);
+  return change.rows.filter(update => {
+    const before = data.salesforce[change.resource].rows.find(row => row.id === update.id);
+    assert(before, 'Original selected target row missing');
+    return Object.entries(update).some(([field, value]) => before[field] !== value);
+  }).length;
+}
+
+export function assertProjectNodeWork(work, request, rows, template) {
+  assert.equal(work?.complete, true, 'Missing or lost observation cannot prove zero/reused work');
+  const starts = request.kind === 'start';
+  const expected = {sourceAcquisitionStarts: starts ? 2 : 0, modelCallStarts: starts ? rows : 0};
+  for (const [field, value] of Object.entries(expected)) {
+    assert.equal(work[field], value, field);
+    if (work.totals) assert.equal(work.totals[field], value, 'No hidden other-Run work: ' + field);
+  }
+  // Only the same captured before DATA can prove a later same-value no-op.
+  // Initial/partly changed targets still require their actual replacements;
+  // terminal outcome and complete target/Result checks remain independent.
+  const approved = request.decision === 'approved';
+  if (approved) assert.equal(rows, expectedChanges[template]?.rows.length);
+  const minimum = approved ? requiredProjectReplacements(template, request.beforeBytes) : 0;
+  assert(Number.isSafeInteger(work.effectReplacementReturns) && work.effectReplacementReturns >= minimum &&
+    work.effectReplacementReturns <= (approved ? rows : 0));
+  if (work.totals) assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
+}
+
+function originalRun(state, ref) {
+  assert.equal(state.version, 'actql-run-state/0.1');
+  assert.equal(state.status, 'waiting_checkpoint'); assert(typeof state.run_id === 'string' && state.run_id.length);
+  assert(typeof state.checkpoint?.checkpoint_id === 'string' && state.checkpoint.checkpoint_id.length);
+  assert(cid.test(state.checkpoint.checkpoint_cid));
+  assert(ref && typeof ref.namespaceId === 'string' && ref.namespaceId.length && cid.test(ref.authorityScopeCid) && cid.test(ref.runDefinitionCid));
+  return {ref, runId: state.run_id, checkpointId: state.checkpoint.checkpoint_id,
+    checkpointCid: state.checkpoint.checkpoint_cid};
+}
+
+export function assertProjectSequenceRows(template, rows, before) {
+  const change = expectedChanges[template], source = JSON.parse(before.bytes);
+  assert.equal(rows.length, change.rows.length);
+  assert.deepEqual(rows.map(row => row.id).sort(), change.rows.map(row => row.id).sort());
+  const columns = template === 'churn-risk-mock' ? ['id', 'notes', 'active_users', 'trend', 'risk']
+    : ['id', 'StageName', 'NextStep', 'notes', 'review'];
+  for (const [index, update] of change.rows.entries()) {
+    const row = rows.find(value => value.id === update.id);
+    assert.deepEqual(Object.keys(row).sort(), [...columns].sort(), 'Complete authored Result field set');
+    assert.equal(row[change.model]?.outcome, 'ok');
+    assert.deepEqual(row[change.model].value, change.answers[index]);
+    const original = source.salesforce[change.resource].rows.find(value => value.id === update.id);
+    assert(original);
+    if (template === 'churn-risk-mock') {
+      const usage = source.snowflake.usage_30d.rows.find(value => value.account_id === update.id);
+      assert.equal(row.notes, original.description); assert.equal(row.active_users, usage.active_users);
+      assert.equal(row.trend, usage.trend);
+    } else {
+      assert.equal(row.StageName, original.StageName); assert.equal(row.NextStep, original.NextStep);
+      const notes = source.drive.files.rows.find(value => value.name === original.name);
+      assert(notes && row.notes?.$actql_ref === 'content');
+      assert.equal(row.notes.media_type, 'text/plain');
+      assert.equal(row.notes.metadata?.content_cid, 'sha256:' + createHash('sha256').update(notes.content_utf8).digest('hex'));
+      assert.equal(row.notes.metadata.size_bytes, Buffer.byteLength(notes.content_utf8));
+      assert.equal(row.notes.metadata.truncated, false);
+    }
+  }
+  return columns;
+}
+
+function expectedTarget(template, before) {
+  const data = JSON.parse(before.bytes), change = expectedChanges[template];
+  for (const update of change.rows) {
+    const original = data.salesforce[change.resource].rows.find(row => row.id === update.id);
+    assert(original); Object.assign(original, update);
+  }
+  return data;
+}
+
+export async function runReleaseProjectSequences({root, cli, node, snapshot = projectTargetSnapshot, persist}) {
+  const cases = [], failures = [];
+  for (const template of mockTemplates) for (const family of releaseProjectFamilies) {
+    const project = join(root, template + '-' + family), record = {template, family, project, complete: false, runs: [], phases: []};
+    cases.push(record);
+    let phase = 'init';
+    const cliCommand = async (args, ordinal = 0) => {
+      phase = args[0]; const value = await cli(args, project, {template, family, ordinal, phase, surface: 'cli'});
+      record.phases.push({ordinal, phase, surface: 'cli', pid: value.pid});
+      assert.equal(value.signal, null); assert.equal(value.code, 0, value.stderr);
+      return value;
+    };
+    const nodeCommand = async (request, ordinal = 0) => {
+      phase = request.kind;
+      const value = await node(request, project, {template, family, ordinal, phase, surface: 'node'});
+      assert.deepEqual(value.firstClose, {attempted: true, returned: true});
+      assertProjectNodeWork(value.workObservation, request, expectedChanges[template].rows.length, template);
+      assert(Number.isSafeInteger(value.pid) && value.pid > 0);
+      assert(!record.phases.some(row => row.surface === 'node' && row.pid === value.pid), 'Use a new Node process for each phase');
+      record.phases.push({ordinal, phase, surface: 'node', pid: value.pid}); return value;
+    };
+    const state = (value, original, status) => {
+      assert.equal(value.version, 'actql-run-state/0.1'); assert.equal(value.run_id, original.runId);
+      assert.equal(value.status, status);
+      if (status === 'waiting_checkpoint') {
+        assert.equal(value.checkpoint?.checkpoint_id, original.checkpointId);
+        assert.equal(value.checkpoint?.checkpoint_cid, original.checkpointCid);
+      }
+    };
+    const inspect = async (original, surface, status, ordinal) => {
+      const before = await snapshot(project);
+      const value = surface === 'cli' ? JSON.parse((await cliCommand(['status', original.runId, '--json'], ordinal)).stdout)
+        : (await nodeCommand({kind: 'status', original}, ordinal)).state;
+      state(value, original, status); assert.deepEqual(await snapshot(project), before, 'Status must not write');
+    };
+    const readResult = async (run, surface) => {
+      const before = await snapshot(project), ordinal = record.runs.indexOf(run) + 1;
+      let rows, description;
+      if (surface === 'cli') {
+        const value = await cliCommand(['result', run.original.runId, '--result', 'updates', '--format', 'jsonl'], ordinal);
+        rows = value.stdout.trim().split('\n').map(line => JSON.parse(line));
+        if (run.cliResult !== undefined) assert.equal(value.stdout, run.cliResult, 'Original CLI Saved Result bytes');
+        else run.cliResult = value.stdout;
+      } else {
+        const value = await nodeCommand({kind: 'result', original: run.original}, ordinal);
+        state(value.state, run.original, 'succeeded'); rows = value.rows; description = value.description;
+        assertProjectResultDescription(template, description, run.original.ref);
+      }
+      assertProjectSequenceRows(template, rows, run.before);
+      if (description) {
+        if (run.description) assert.deepEqual(description, run.description, 'Original Result schema/artifact on reread');
+        else run.description = description;
+      }
+      if (run.rows) assert.deepEqual(rows, run.rows, 'Same original rows across reads and surfaces');
+      else run.rows = rows;
+      assert.deepEqual(await snapshot(project), before, 'Result read must not replace target');
+    };
+    try {
+      await cliCommand(['init', '--template', template, project]);
+      const program = `${template.slice(0, -5)}.aql`;
+      if (family === 'native-while-waiting') {
+        const before = await snapshot(project);
+        const check = JSON.parse((await cliCommand(['check', program, '--json'])).stdout);
+        const plan = JSON.parse((await cliCommand(['explain', program, '--json'])).stdout);
+        assertTemplateStatic(check, plan);
+        assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');
+      } else if (family === 'node-sequential') {
+        const before = await snapshot(project);
+        const observed = await nodeCommand({kind: 'static', program});
+        assertTemplateStatic(observed.check, observed.plan);
+        assertProjectStaticCheckControls(observed.staticChecks);
+        assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');
+      }
+      const population = family === 'exclusive-cli-node-roundtrip' ? 2 : 3;
+      for (let ordinal = 1; ordinal <= population; ordinal++) {
+        const before = await snapshot(project);
+        const surface = family === 'node-sequential' || family === 'exclusive-cli-node-roundtrip' && ordinal === 2 ? 'node' : 'cli';
+        const decision = family === 'native-while-waiting' ? null
+          : family === 'native-after-reject' || family === 'node-sequential' && ordinal === 2 ? 'rejected' : 'approved';
+        const immediate = family === 'node-sequential';
+        let original;
+        if (surface === 'cli') {
+          const waiting = JSON.parse((await cliCommand(['run', program, '--stop-before', 'commit', '--json'], ordinal)).stdout);
+          const view = JSON.parse((await cliCommand(['explain', '--run', waiting.run_id, '--json'], ordinal)).stdout);
+          assert.equal(view.version, 'actql-run-plan-view/0.1'); original = originalRun(waiting, view.run_ref);
+          assert.deepEqual(await snapshot(project), before, 'Run must wait without writing');
+        } else {
+          const value = await nodeCommand({kind: 'start', program, beforeBytes: before.bytes,
+            ...(immediate ? {decision} : {})}, ordinal);
+          original = value.original;
+          state(value.state, original, immediate ? decision === 'approved' ? 'succeeded' : 'cancelled' : 'waiting_checkpoint');
+          if (!immediate) assert.deepEqual(await snapshot(project), before, 'Run must wait without writing');
+        }
+        assert(!record.runs.some(run => run.original.runId === original.runId || run.original.checkpointId === original.checkpointId),
+          'Run2/3 must be new original submissions');
+        const run = {original, before, decision}; record.runs.push(run);
+        if (!decision) {
+          for (const pending of record.runs) await inspect(pending.original, 'cli', 'waiting_checkpoint', ordinal);
+          continue;
+        }
+        if (!immediate) {
+          const resolver = family === 'exclusive-cli-node-roundtrip' ? surface === 'cli' ? 'node' : 'cli' : 'cli';
+          if (resolver === 'cli') await cliCommand([decision === 'approved' ? 'approve' : 'reject', original.checkpointId,
+            ...(decision === 'approved' ? ['--wait'] : []), '--json'], ordinal);
+          else await nodeCommand({kind: 'resolve', original, decision, beforeBytes: before.bytes}, ordinal);
+          await inspect(original, resolver, decision === 'approved' ? 'succeeded' : 'cancelled', ordinal);
+        }
+        assert.deepEqual(JSON.parse((await snapshot(project)).bytes), decision === 'approved' ? expectedTarget(template, before) : JSON.parse(before.bytes),
+          'Complete target must preserve every nonupdated field');
+        if (decision === 'approved') {
+          await readResult(run, surface); await readResult(run, surface);
+          if (family === 'exclusive-cli-node-roundtrip') await readResult(run, surface === 'cli' ? 'node' : 'cli');
+        }
+      }
+      if (family === 'native-while-waiting') for (const [index, run] of record.runs.entries()) {
+        await cliCommand(['reject', run.original.checkpointId, '--json'], index + 1);
+        await inspect(run.original, 'cli', 'cancelled', index + 1);
+        assert.deepEqual(await snapshot(project), run.before, 'Rejected pending Runs must not write');
+      }
+      for (const run of record.runs) if (run.decision === 'approved') await readResult(run,
+        family === 'node-sequential' || family === 'exclusive-cli-node-roundtrip' ? 'node' : 'cli');
+      record.complete = true;
+    } catch (cause) {record.failedPhase = phase; failures.push(cause);}
+    try {await persist(record);} catch (cause) {record.complete = false; failures.push(cause);}
+  }
+  if (failures.length) throw new AggregateError(failures, 'ReleaseProjectSequencesFailed', {cause: failures[0]});
+  return cases;
+}

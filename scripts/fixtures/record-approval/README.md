@@ -9,6 +9,15 @@ read Program, a case adapter, a declared-data mock project and a public consumer
 entry. Use the same Program files for mock and installed-provider verification;
 do not rewrite a Program to hide an unsupported provider operation.
 
+For the original HubSpot and kintone record-update cases, `cases.mjs` also owns
+the finite shared fixture selections and before/after/control DATA. The packed
+Mock and HTTP fixtures consume the same selected record, unchanged control and
+names. Provider envelopes, HubSpot markers/pre-write comparison and kintone
+revision conditions remain separate. Existing standalone three-field Mock
+selections retain their original control defaults; existing Whole/binary/three-
+Source variants retain their original selections. Shared fixture DATA does not
+establish that either installed consumer executed or qualify live behavior.
+
 Copy `record-approval` and the selected sibling fixture directory into an
 external normal installation of the five Client packages. The consumer owns a
 fresh project, installation directory and receipt prefix. Its configuration is:
@@ -56,6 +65,13 @@ Recovery reads that original named Result before status, with no new submission
 or approval. Receipt binding includes both Program digests, parameters and the
 independent expected values. Receipts are created exclusively; retain a failed
 attempt and use new state for a distinct attempt.
+
+The original capture wait, approval status and post-approval wait replies retain
+their bounded public status/diagnostic before the success assertions. An actual
+`needs_reconciliation` reply stays Unknown and fails this success-only case;
+it does not permit a Result read, another submission or another approval. A
+thrown wait keeps its original exception and creates no wait-observation
+receipt. These receipts are diagnostic DATA, not execution or recovery authority.
 
 Without `signer`, approval uses the existing default Local signer. A configured
 operator can supply `signer: {keyId, reviewerId, privateKeyPath}` for the existing
@@ -146,3 +162,64 @@ Keep install output, original inputs, state and receipts on failure or success.
 Run on the producer's actual supported platform; a Linux native asset does not
 qualify Darwin. This source connection alone is not hosted CI or real-account
 acceptance. The existing three-path release/closed-installation entry is retained.
+
+
+## Applied update with a lost reply
+
+Each provider fixture exposes `writeRequest` from its actual existing write
+route. `recordUpdateReplyLossFaults(provider)` snapshots that finite method and
+pathname into the existing HTTPS fixture's one-shot `apply-then-lose-reply`
+fault. An explicitly selected installed fault consumer may supply this array as
+`fixture.faults`; the default successful workflow retains an empty fault list.
+No fault chooses a credential, egress grant, claim, Run status or retry policy.
+
+The shared real-TLS component sends one synthetic protocol request, observes
+connection reset without a response, and independently checks one actual fixture
+mutation plus the unchanged control row. HubSpot retains its dispatch marker and
+pre-write comparison meaning; kintone retains its original conditional revision
+and exact String identifiers. Neither gains the other's atomicity guarantee.
+The ordinary runner and these direct controls call the same thin
+`openRecordApprovalExchange` fixture entry; the existing shared server,
+certificates and route assertions are reused unchanged.
+
+This TLS component closes only the transport fixture/oracle seam. A single
+test-driver request is not proof of product no-resend, and observed backend
+mutation is not a public Result, success receipt or cleanup ACK.
+
+The existing ordinary `--approval` and `--kintone-approval` entries can now select
+this one fault using the trusted fixture-only environment variable
+`ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION`. It is a bounded JSON object with
+exactly `approveStatus` and `lookupStatus`; each is `succeeded` or
+`needs_reconciliation`. Choose each expectation from the actual selected
+provider capability/source contract before the attempt, independently of the
+returned state. These inputs cannot be supplied by the Program and grant no
+approval, permission, reconciliation or send. They are snapshotted into the
+original Program/oracle binding and must remain exact across all three processes.
+No variable means the unchanged successful Saved-first case. An incompatible
+selection refuses; this is not a product outcome whitelist.
+
+In the loss case, capture still seals and independently reviews the original
+Checkpoint before any write. Approval retains its returned committed resolution
+separately from the actual post-approval Run state. An expected Unknown creates
+no successful `approved` receipt and reads no Result. A fresh process attaches
+only that SAME original reference and performs one status lookup. It never
+submits, approves, resumes or manually reconciles another operation. A Result is
+read and checked against the original independent oracle only after actual
+`succeeded`; an expected Unknown remains unresolved. A thrown or unexpected
+reply stays failed and keeps its original observation/primary cause, with
+first-close failure preserved separately.
+
+The parent observes the real provider target and entire unchanged control after
+every phase, consumes exactly one selected loss fault, and counts actual write
+requests (including rejected duplicate attempts). Capability-specific reads
+during a lookup are allowed; another write is not. HubSpot's marker and prewrite
+comparison do not become kintone's conditional revision, and a changed revision
+or matching value alone is never converted by this fixture into a known outcome.
+Existing default lifecycle, package/installed-byte checks, three original
+30-second child bounds, first-close and alive scoped-FD observations remain.
+
+The consumer flow is source/component-qualified only until the selected exact
+normal installation actually executes it. Client-double controls, raw TLS
+controls and the ordinary Host case remain distinct. This source does not prove
+either provider's ordinary lost-reply outcome, Saved success or physical stop,
+and it never reopens an old failed business state.

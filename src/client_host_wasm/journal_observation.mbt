@@ -53,7 +53,7 @@ priv struct StoredJournalObservation {
   slot : @buffers.BufferSlot
   mut invoked : Bool
   mut closing : Bool
-  mut outcome : Result[@local_run.LocalSavedSubmissionObservation, Int]?
+  mut outcome : StoredJournalObservationOutcome?
   mut admission_produced : Bool
 }
 
@@ -294,6 +294,18 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
   let read = (table_name, key) => {
     journal_query_row(value, child, plan, 1, table_name, key)
   }
+  let frame = open_journal_decode_frame(
+    value,
+    handle,
+    child,
+    @host.client_request_scope_cid(@local_run.local_run_request(plan)),
+  )
+  let inspect_run = row => {
+    match frame {
+      None => submission_append_run_inspection(row)
+      Some(frame) => journal_decode_run_inspection(value, child, frame, row)
+    }
+  }
   let outcome = @local_run.inspect_local_saved_submission(
     rows,
     plan,
@@ -301,12 +313,8 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
     1024,
     scan,
     read,
-    submission_append_run_inspection,
-    () => {
-      @host.inspect_client_empty_cancellation_inventory(
-        1024, scan, read, -31, -42,
-      )
-    },
+    inspect_run,
+    () => submission_cancellation_inventory(scan, read),
     -31,
   ).map_err(issue => {
     match issue {
@@ -316,14 +324,59 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
       Rows(_) => -31
     }
   })
-  match journal_current(value, child, plan) {
-    Ok(_) => ()
-    Err(code) => {
-      child.outcome = Some(Err(code))
-      return code
+  let outcome = match journal_current(value, child, plan) {
+    Ok(_) => outcome
+    Err(code) => Err(code)
+  }
+  let keep_selected = outcome is Ok(_)
+  let retained_frame = match frame {
+    None => None
+    Some(frame) => {
+      let code = dispose_journal_decode_rows(value, frame, keep_selected)
+      if code != 0 {
+        // The original inspection failure stays primary; all exact pending
+        // tokens remain reachable under this child's normal cleanup.
+        let outcome = match outcome {
+          Err(original) => Err(original)
+          Ok(_) => Err(code)
+        }
+        child.outcome = Some(Observed(outcome, Some(frame)))
+        return match outcome {
+          Ok(_) => 0
+          Err(code) => code
+        }
+      }
+      if frame.selected is Some(_) {
+        // All foreign cells have retired; the selected pure result and its
+        // distinct fresh row copy now belong to this SAME child's outcome.
+        guard journal_decode_frame_capacity() is Some(retention) &&
+          @resources.shrink_capacity_reservation(
+            value.root,
+            frame.capacity,
+            retention,
+            0L,
+          )
+          is Ok(_) else {
+          child.outcome = Some(Observed(Err(-4), Some(frame)))
+          return -4
+        }
+        Some(frame)
+      } else {
+        match @resources.settle_capacity(value.root, frame.capacity) {
+          Err(_) => {
+            let failure = match outcome {
+              Err(original) => original
+              Ok(_) => -4
+            }
+            child.outcome = Some(Observed(Err(failure), Some(frame)))
+            return failure
+          }
+          Ok(_) => None
+        }
+      }
     }
   }
-  child.outcome = Some(outcome)
+  child.outcome = Some(Observed(outcome, retained_frame))
   match outcome {
     Ok(_) => 0
     Err(code) => code
@@ -339,7 +392,7 @@ pub fn journal_observation_revision(
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     !child.closing &&
-    child.outcome is Some(Ok(observed)) &&
+    child.outcome is Some(Observed(Ok(observed), _)) &&
     value.materials.get(child.material) is Some(material) &&
     material.submission is Some({ rows: Some(rows), .. }) &&
     value.runs.get(material.run) is Some(record) &&
@@ -369,7 +422,7 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     !child.closing &&
-    child.outcome is Some(Ok(observed)) &&
+    child.outcome is Some(Observed(Ok(observed), _)) &&
     value.materials.get(child.material) is Some(material) &&
     material.submission is Some({ rows: Some(rows), .. }) &&
     value.runs.get(material.run) is Some(record) &&
@@ -407,15 +460,98 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+// A close debt contains NO successful T payload. The same function is used
+// for the actual saved observation; returning ends its temporary payload loan
+// before the caller may settle selected backing. It grants no operation.
+fn[T] journal_close_payload(
+  observed : Result[T, Int],
+  frame : StoredJournalDecodeFrame,
+) -> StoredJournalObservationOutcome {
+  frame.active = false
+  match observed {
+    Err(issue) => frame.issue = issue
+    Ok(_) => ()
+  }
+  Decoding(frame)
+}
+
+///|
+fn begin_journal_observation_close(child : StoredJournalObservation) -> Unit {
+  child.closing = true
+  match child.outcome {
+    Some(Observed(observed, Some(frame))) =>
+      child.outcome = Some(journal_close_payload(observed, frame))
+    Some(Observed(Ok(_), None)) => child.outcome = None
+    Some(Decoding(frame)) => frame.active = false
+    _ => ()
+  }
+  // No successful snapshot remains in the child, or in this helper's stack
+  // after return. Exact pending tokens/original error remain in the frame.
+}
+
+///|
+// Drop the actual frame while its SAME controller token still covers it.
+// No frame reference escapes this helper's return; pending close then owns
+// only the existing token/scalar debt phase, never an unfunded controller.
+fn prepare_journal_observation_close(
+  value : Instance,
+  child : StoredJournalObservation,
+) -> Int {
+  begin_journal_observation_close(child)
+  match child.outcome {
+    Some(Decoding(frame)) => {
+      let code = dispose_journal_decode_rows(value, frame, false)
+      if code != 0 {
+        return code
+      }
+      child.outcome = Some(ReservingDecode(frame.capacity, frame.issue))
+      0
+    }
+    Some(Observed(_, Some(_))) => -4
+    _ => 0
+  }
+}
+
+///|
+fn settle_journal_observation_close_capacity(
+  value : Instance,
+  child : StoredJournalObservation,
+) -> Int {
+  match child.outcome {
+    Some(ReservingDecode(capacity, issue)) => {
+      let code = settle_journal_decode_original(value, capacity)
+      if code != 0 {
+        return code
+      }
+      child.outcome = if issue == 0 {
+        None
+      } else {
+        Some(Observed(Err(issue), None))
+      }
+      0
+    }
+    _ => 0
+  }
+}
+
+///|
 pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) else {
     return -2
   }
-  child.closing = true
-  child.outcome = None
+  let prepared = prepare_journal_observation_close(value, child)
+  if prepared != 0 {
+    return prepared
+  }
+  // The prior helper returned with NO successful payload or frame loan.
+  let cleanup = settle_journal_observation_close_capacity(value, child)
+  if cleanup != 0 {
+    return cleanup
+  }
   let result = status(@buffers.close_buffer(value.pool, child.slot))
   if result == 0 {
+    child.outcome = None
     value.journal_observations.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

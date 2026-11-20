@@ -193,12 +193,16 @@ fn prepare_effect_computation_input_owned(
 /// no ordinary CheckedProgram is upgraded into an Effect closure by identity.
 pub fn finish_parsed_effect_check_registry(
   prepared : ParsedCheckRegistry,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[EffectComputationCandidate, EffectComputationIssue] {
   if !prepared.available {
     return Err(Phase(AlreadyConsumed))
   }
   guard prepared.prelude.original.effect_headers is Some(headers) else {
     return Err(MissingEffects)
+  }
+  if calls_out is Some(calls) {
+    calls.val += 1L
   }
   prepared.available = false
   let checked = construct_after_parsed_check_registry(prepared) catch {
@@ -226,9 +230,10 @@ pub fn effect_computation_supplied(
 /// Observe only the original remaining Budget; rejected prefixes remain partial.
 pub fn observe_finish_parsed_effect_check_registry(
   prepared : ParsedCheckRegistry,
+  calls_out? : Ref[Int64]? = None,
 ) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool) {
   let before = environment_start_budget(prepared.start).work
-  let result = finish_parsed_effect_check_registry(prepared)
+  let result = finish_parsed_effect_check_registry(prepared, calls_out~)
   let known = Int::max(
     0,
     before - environment_start_budget(prepared.start).work,

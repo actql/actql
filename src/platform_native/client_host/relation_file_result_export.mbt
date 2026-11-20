@@ -28,7 +28,8 @@ pub fn NativeClientRelationFileWork::prepare_result_export(
       }
       (rows, entries)
     }
-    WholeFileExecution(rows, entries, _) => (rows, entries)
+    WholeFileExecution(rows, entries, _)
+    | ManagedSourceFileExecution(rows, entries, _) => (rows, entries)
   }
   let output_bridge = match
     self.execution.prepare_result_export(

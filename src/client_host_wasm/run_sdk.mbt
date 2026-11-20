@@ -73,11 +73,7 @@ fn sdk_run_append_candidate(
       scan,
       read,
       submission_append_run_inspection,
-      () => {
-        @host.inspect_client_empty_cancellation_inventory(
-          1024, scan, read, -31, -42,
-        )
-      },
+      () => submission_cancellation_inventory(scan, read),
       -31,
       local_policy_original=Some(original),
       run_observation_originals=Some(observation),

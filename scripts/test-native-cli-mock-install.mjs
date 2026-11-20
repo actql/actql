@@ -18,10 +18,26 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
+import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {verifyPackageRelease} from './package-release.mjs';
+import {assertReleaseProjectCohort, prepareReleaseProjectNode} from './release-project-sequence-install.mjs';
+import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements} from './release-project-sequences.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+export function nativeMockInstallOptions(extra, platform) {
+  const selected = extra.indexOf('--release-project-sequences');
+  assert(selected < 0 || selected === extra.length - 2 && typeof extra[selected + 1] === 'string' && extra[selected + 1].length,
+    'RC sequence selection requires exactly its Node RC directory');
+  const options = nativeApprovalObservationOptions(selected < 0 ? extra : extra.slice(0, selected), platform);
+  if (selected >= 0) {
+    assert.equal(platform, 'darwin', 'The additional RC profile is the reported Mac consumer');
+    options.projectSequenceNodeRelease = extra[selected + 1];
+  }
+  return options;
+}
 export async function runNativeCliMockInstall(input, {measureResources = false, diagnoseSyscalls = false,
-  releaseAdmission} = {}) {
+  releaseAdmission, projectSequenceNodeRelease} = {}) {
   assert(input, 'Native mock acceptance requires its fixed release directory');
   const syscallTool = diagnoseSyscalls ? {
     path: '/usr/bin/strace',
@@ -44,9 +60,22 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     assert(expectedArtifact?.localRuntime, 'Mock acceptance requires the packaged Local runtime');
     return {source, glibc, platform, expectedArtifact};
   });
+  let nodeDirectory, nodeManifest, nodeManifestBytes;
+  if (projectSequenceNodeRelease !== undefined) {
+    assert.equal(typeof projectSequenceNodeRelease, 'string'); assert(projectSequenceNodeRelease.length);
+    assert.equal(platform, 'darwin-arm64', 'The additional RC cases select the reported Mac platform');
+    assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Use actual Node24, not a relabelled Node22 receipt');
+    assert(!diagnoseSyscalls && releaseAdmission === undefined, 'RC sequences are separate from formal/diagnostic campaigns');
+    nodeDirectory = resolve(projectSequenceNodeRelease);
+    nodeManifestBytes = await readFile(join(nodeDirectory, 'release.json'));
+    nodeManifest = await verifyPackageRelease(nodeDirectory);
+    assert.deepEqual(JSON.parse(nodeManifestBytes), nodeManifest);
+    assertReleaseProjectCohort(manifest, nodeManifest);
+  }
   const scratch = await observe('scratch-creation', () => createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-mock-install-',
     label: 'Native mock public workflow external installation'}));
-  const registry = await observe('registry-open', () => openReleaseTestRegistry([{directory, manifest}]));
+  const registry = await observe('registry-open', () => openReleaseTestRegistry([{directory, manifest},
+    ...(nodeManifest ? [{directory: nodeDirectory, manifest: nodeManifest}] : [])]));
   const root = scratch.path, prefix = join(root, 'global'), records = [], scenarios = [];
   // No inherited account, provider key, Host selection, library override, SDK or
   // private runtime path may rescue a missing installed Native implementation.
@@ -72,7 +101,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         : await execute(observed.command, observed.args, options);
       result = {...captured, code: 0, signal: null};
     } catch (error) {
-      result = {code: error.code ?? null, signal: error.signal ?? null,
+      result = {code: error.code ?? null, signal: error.signal ?? null, pid: error.pid ?? null,
         killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? '',
         ...(error.exitCode !== undefined ? {childExitCode: error.exitCode} : {})};
     }
@@ -127,6 +156,10 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       assert.equal(createHash('sha256').update(binary).digest('hex'), manifest.platforms[platform].binarySha256);
       return {platformRoot, artifact, binary};
     });
+    const preparedNode = nodeManifest ? await prepareReleaseProjectNode({directory: nodeDirectory,
+      nativeManifest: manifest, originalNodeManifest: nodeManifest, originalNodeManifestBytes: nodeManifestBytes,
+      root, repository, registry, run,
+      verifySource: () => assert.deepEqual(checkoutState(repository), source)}) : undefined;
     env.PATH = join(root, 'empty-path');
     env.ACTQL_NATIVE_TIMINGS = '1';
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
@@ -141,6 +174,40 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       approval.phases = approvalPhases(approval, {requireCompleted: false});
       assertApprovalCallCounts(approval.validationCalls, approval.acceptance.writes.length);
     }
+    let projectSequences;
+    if (preparedNode) {
+      const verify = async () => {
+        assert.deepEqual(await verifyNativeCliRelease(directory), manifest);
+        assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);
+        assert.deepEqual(checkoutState(repository), source);
+        await preparedNode.verify();
+      };
+      const cli = async (args, cwd, label) => {
+        await verify();
+        const change = expectedChanges[label.template];
+        let minimumWrites = change.rows.length;
+        if (args[0] === 'approve') {
+          minimumWrites = requiredProjectReplacements(label.template, (await projectTargetSnapshot(cwd)).bytes);
+        }
+        let value, primary, failed = false;
+        try {value = await run(process.execPath, [launcher, ...args], cwd);
+          assert.equal(value.code, 0, value.stderr); assert.equal(value.signal, null);
+          const groups = nativeMockAcceptanceObservations(nativeLauncherEnvelope(value.stderr, 'required').native);
+          assert(groups.length > 0, 'Missing original Native work observation');
+          value.acceptance = requireNativeMockWork(args, groups, change.rows.length, {minimumWrites});
+        } catch (cause) {primary = cause; failed = true;}
+        try {await verify();} catch (cause) {if (!failed) {primary = cause; failed = true;}}
+        if (failed) throw primary;
+        return value;
+      };
+      projectSequences = await observe('release-project-sequences', () => runReleaseProjectSequences({
+        root: preparedNode.projects, cli, node: preparedNode.node,
+        persist: value => writeFile(join(preparedNode.cases, `${value.template}-${value.family}.json`),
+          JSON.stringify(value) + '\n', {flag: 'wx', mode: 0o600}),
+      }));
+      assert(projectSequences.length && projectSequences.every(value => value.complete));
+      await verify();
+    }
     await observe('installed-integrity', async () => {
       assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);
       assert.deepEqual(checkoutState(repository), source);
@@ -152,10 +219,14 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       publicRegistryPublication: 'not-tested', harnessPhases, scenarios, records,
+      ...(projectSequences ? {projectSequences, nodeSourceSha: nodeManifest.sourceSha,
+        nodePackages: nodeManifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
         diagnostic: {purpose: 'native-approval-syscall-summary', tool: syscallTool,
           qualification: 'one instrumented workflow; not formal latency or a replacement for failed samples'}} : {}),
-      unverified: ['live providers', 'crash or power-loss fault injection', 'other platforms']};
+      unverified: ['live providers', 'crash or power-loss fault injection', 'other platforms',
+        ...(projectSequences ? ['whole OS FD census and physical-stop ACK for additional sequence cases',
+          'CLI static provider_io is its public projection; independent no-I/O component evidence remains separate'] : [])]};
 
   } catch (error) {primary = error; failed = true;}
   finally {
@@ -186,8 +257,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         () => runNativeCliMockInstall(input, {measureResources: true, releaseAdmission: admission}));
     }));
   } else {
-    const options = nativeApprovalObservationOptions(extra, process.platform);
-    assert(input, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources] [--diagnose-approval-syscalls]');
+    const options = nativeMockInstallOptions(extra, process.platform);
+    assert(input, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources] [--diagnose-approval-syscalls] [--release-project-sequences <Node-RC>]');
     await runNativeCliMockInstall(input, options);
   }
 }

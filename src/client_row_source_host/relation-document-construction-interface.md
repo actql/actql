@@ -31,6 +31,15 @@
   refusal peaks to be described before admission, not an arbitrary byte factor.
   Native restore and Host JSON projection are separate constructors with their
   own existing-owner funding; this inventory does not implicitly cover them.
+  The read-only `relation_document_projection_retained_inventory` cut keeps the
+  same checked Value geometry but excludes retired constructor temporaries.
+  It explicitly adds Source's borrowed String headers/decoded UTF16 bodies,
+  which the Value phase does not own, and retains owned Decimal output. Its
+  supplied text bound is implementation DATA, not a Source observation. It
+  refuses writable use and never substitutes for a retained target document.
+  The original full construction peak, Row/input/export backing and actual
+  transport/current/cleanup observations remain required; quoting alone returns
+  no workspace and issues no physical ACK.
 - Verification: relation_document_construction_wbtest.mbt checks exact summed
   composition, unsupported nested contracts, invalid/overflowing bounds,
   cumulative mapping geometry, long integer refusal and original metadata

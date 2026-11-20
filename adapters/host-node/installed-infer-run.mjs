@@ -200,9 +200,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
         prepareAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
         now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
-        originalPreparation: original});
+        originalPreparation: original, managedPublication: model.managed});
     }
-    let directRequestModel, restoredRequestModel;
+    let directRequestModel, restoredRequestModel, managedPublication;
     const configuredModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
       selected.occurrence !== undefined && selected.components === undefined &&
       selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) <= 1;
@@ -214,8 +214,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             typeof prepareOriginalModelRun !== 'function') {
           throw new TypeError('InvalidInstalledRequestModelPreparation');
         }
+        const model = prepareOriginalModelRun(preparedProgram, plan, selected);
+        managedPublication = model.managed;
         originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected,
-          prepareOriginalModelRun(preparedProgram, plan, selected), acquiredInfer);
+          model, acquiredInfer);
       } else if (sourceFree && originalPreparation === undefined &&
           typeof prepareOriginalMockRun === 'function') {
         originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
@@ -226,6 +228,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             : configuredModel ? acquiredInfer?.captured === undefined : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
+      if (selected.localMock) managedPublication = originalPreparation.managedPublication;
       if (!sourceFree) {
         if (preparationHolder === undefined || originalPreparation.selection !== selected ||
             typeof originalPreparation.component?.bindOriginal !== 'function' ||
@@ -246,7 +249,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
           modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
           namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-          registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+          registry, values, fragment, ordered, computeConfigurations, originalPreparation, managedPublication});
       }
     }
     if (selected.restoredRun !== undefined) {
@@ -334,6 +337,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (originalInstallation !== undefined && prepareOriginalModelRun !== undefined) {
       if (typeof prepareOriginalModelRun !== 'function') throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
       requestModel = prepareOriginalModelRun(preparedProgram, plan, selected);
+      managedPublication = requestModel?.managed;
       if (requestModel === null || typeof requestModel !== 'object' ||
           requestModel.prepared !== preparedProgram || requestModel.control !== control ||
           requestModel.compiled !== plan.compiled || requestModel.runDefinition !== plan.runDefinition ||
@@ -849,7 +853,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         assertCurrent: () => {assertCurrent?.(); assertOriginalRuntime();}, modelController,
         inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-        registry, values, fragment, ordered, computeConfigurations, originalPreparation: original});
+        registry, values, fragment, ordered, computeConfigurations, originalPreparation: original, managedPublication: model.managed});
     }
     if (restoredInput?.capturedContent !== undefined) {
       if (typeof prepareKeyedRecovery !== 'function' || typeof runContent?.recoverKeyed !== 'function') {
@@ -939,7 +943,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       publicationFor: ({issuance, modelEvidence}) => inferTaskPublicationPlan({
         moon, control, preparedProgram, admitted: plan, operation, issuance,
         modelEvidence, namespaceId, sourceEvidence: sources,
-        authorityScopeCid, storeAuthorityCid, now})});
+        authorityScopeCid, storeAuthorityCid, now, managedPublication,
+        assertCurrent() {
+          assertCurrent?.(); assertOriginalRuntime();
+          if (directRequestModel !== undefined) {
+            directRequestModel.assertRuntimeCurrent();
+            if (!control.checkedClientInferOriginalReadScopeLive(plan.compiled, plan.runDefinition,
+                selected.graph, directRequestModel.scope)) throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+          }
+        }})});
     beginPhysicalWork();
     // The deferred original component binds this SAME Run during its one-shot
     // open. Ordinary operations still bind here before their first advance.

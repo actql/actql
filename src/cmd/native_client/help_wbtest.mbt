@@ -34,3 +34,30 @@ test "CLI argument errors include useful command-specific help" {
     assert_true(help.contains(description))
   }
 }
+
+///|
+test "Native help lists the launcher init entrance without entering project adoption" {
+  let help = command().render_help()
+  assert_true(help.contains("\n  init"))
+  assert_true(help.contains("Create a project through the actql launcher"))
+  // Command::parse deliberately exits successfully for help requests on Native.
+  // Its argument-error path renders the same original contextual help without
+  // terminating this test driver. Public help exit belongs to child consumers.
+  for
+    argv in [
+      ["init", "--unknown-help-test"],
+      ["--mode", "local", "init", "--unknown-help-test"],
+      ["init", "--mode", "local", "--unknown-help-test"],
+    ] {
+    let usage = try {
+      ignore(command().parse(argv=argv[:], env=Map([])))
+      fail("an unknown init option must not return an executable command")
+    } catch {
+      error => error.to_string()
+    }
+    assert_true(usage.contains("--unknown-help-test"))
+    assert_true(usage.contains("Usage: actql init"))
+    assert_true(usage.contains("Create a project through the actql launcher"))
+    assert_false(usage.contains("NativeLocalSignatureUnavailable"))
+  }
+}

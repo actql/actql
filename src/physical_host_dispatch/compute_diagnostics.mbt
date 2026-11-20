@@ -7,6 +7,22 @@ pub(all) enum ComputeDiagnosticsIssue {
 }
 
 ///|
+/// The existing failed policy's original task, retained before its driver
+/// stopped. No task is inferred from a stopped DAG or a caller's error shape.
+/// Preserve its actual typed issue as well. A failed estimate need not have
+/// reached search, so a previous strategy report is not this failure's report.
+pub fn[C, E] compute_host_original_estimate_failure(
+  host : ComputeHost[C, E],
+) -> (Int, AdaptiveEstimateIssue[E])? {
+  guard host.estimates is Some(policy) &&
+    policy.failure is Some(issue) &&
+    policy.seen is Some((task, _, _)) else {
+    return None
+  }
+  Some((task, issue))
+}
+
+///|
 /// Read-only explanation from the fixed installation. Labels and reasons are
 /// opaque diagnostics, never capability matching, dispatch or success evidence.
 /// The inspection allowance bounds registration visits and returned entries.

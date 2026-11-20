@@ -1,4 +1,4 @@
-import {dispatchFailureSnapshot, publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
+import {dispatchFailureSnapshot, dispatchFailureCodeSite, publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
@@ -14,6 +14,7 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
+import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
@@ -25,68 +26,6 @@ import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observ
 const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 
-
-// Resolve only the engine's own lazy Error stack. The managed cleanup wrapper
-// retains its original failure in one inert own slot; prefer that original
-// site without walking a cause chain or changing the cleanup owner. An
-// observer receives locations, never the exception, message or capabilities.
-function dispatchFailureCodeSite(error, errorType, formatter) {
-  try {
-    if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
-    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
-    if (primary !== undefined) {
-      if (!Object.hasOwn(primary, 'value') || primary.value === error) return undefined;
-      error = primary.value;
-      if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
-    }
-    if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
-    const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
-    if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
-        currentFormatter?.value !== formatter) return undefined;
-    const heading = {};
-    const code = Object.getOwnPropertyDescriptor(error, 'code');
-    if (!code || !Object.hasOwn(code, 'value') || typeof code.value !== 'string' ||
-        code.value.length < 1 || code.value.length > 96 ||
-        !/^[A-Za-z][A-Za-z0-9_]*$/u.test(code.value)) return undefined;
-    for (const key of ['name', 'message']) {
-      const own = Object.getOwnPropertyDescriptor(error, key);
-      const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
-      if (key === 'message' && own === undefined) return undefined;
-      if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
-          inherited === undefined || !Object.hasOwn(inherited, 'value')) return undefined;
-      heading[key] = own?.value ?? inherited.value;
-    }
-    // Only a bounded code used verbatim as its own inert message is a safe
-    // heading. Arbitrary exception text is neither resolved nor copied.
-    if (heading.name !== 'Error' || heading.message !== code.value) return undefined;
-    const field = Object.getOwnPropertyDescriptor(error, 'stack');
-    if (field === undefined) return undefined;
-    let stack;
-    if (Object.hasOwn(field, 'value')) stack = field.value;
-    else {
-      const native = Object.getOwnPropertyDescriptor(new errorType(), 'stack');
-      if (typeof native?.get !== 'function' || field.get !== native.get || field.set !== native.set) return undefined;
-      stack = native.get.call(error);
-    }
-    if (typeof stack !== 'string') return undefined;
-    const header = heading.name === '' ? heading.message : heading.message === ''
-      ? heading.name : `${heading.name}: ${heading.message}`;
-    if (!stack.startsWith(`${header}\n`)) return undefined;
-    const sites = [];
-    for (const line of stack.slice(header.length + 1, header.length + 16385).split('\n').slice(0, 16)) {
-      // Drop function names and absolute installation/state prefixes. These
-      // are optional source locations, not artifact or provenance evidence.
-      const site = /^\s+at [^\n]*\/((?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):([1-9][0-9]{0,8}):([1-9][0-9]{0,8})\)?$/u.exec(line);
-      if (site !== null && !site[1].split('/').includes('..')) {
-        sites.push(`${site[1]}:${site[2]}:${site[3]}`);
-        if (sites.length === 8) break;
-      }
-    }
-    if (sites.length !== 0) return Object.freeze({phase: 'dispatch', kind: 'code_site',
-      message: sites.join('\n').slice(0, 2048)});
-  } catch { /* Optional diagnostics cannot replace a failure or its cleanup. */ }
-  return undefined;
-}
 
 // This message extends the existing failed Run observation, not its status,
 // authority or cleanup evidence. Never format arbitrary exception text.
@@ -271,11 +210,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation, preparationCustody, beforePublication,
+  observation, preparationCustody, beforePublication, authorizeLogicalObservation,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
+  const capturedRun = moon?.strategyHostRun;
   const diagnostic = diagnosticObserver(observed);
   const diagnosticErrorType = Error;
   const diagnosticStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
@@ -295,7 +235,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const operation = ref => current(ref)?.promise;
   const failureMessage = ref => {
     const entry = current(ref);
-    return entry === undefined ? undefined : publicBudgetFailureMessage(entry.primaryFailure);
+    return entry === undefined ? undefined : publicBudgetFailureMessage(
+      entry.primaryFailure, control?.executionFailureExplanation);
   };
 
   async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
@@ -475,7 +416,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   function retainBudgetFailureObservation(entry) {
-    const message = publicBudgetFailureMessage(entry.primaryFailure);
+    const message = publicBudgetFailureMessage(entry.primaryFailure,
+      control?.executionFailureExplanation);
     if (message === undefined || !entry.stopObserved) return;
     const frame = journal.lookupRunDefinition(entry.ref, moon, control);
     if (frame?.physicalCloseConfirmed !== true || frame.observedTerminalOutcome !== 'failed') return;
@@ -683,6 +625,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       unresolvedCleanup: false, sourceCapture: undefined};
     if (preparationLease !== undefined) {
       entry.retirePreparation = () => {
+        // A settled Run is not an observation-delivery ACK. The same original
+        // Request stays owned while any queue/callback still holds its loan.
+        if (entry.logicalObservation !== undefined) {
+          entry.logicalObservation.close();
+          entry.logicalObservation = undefined;
+        }
         // The complete retirement predicate has settled callbacks, physical
         // custody and acquisition release. No later drain needs these raw
         // aliases; discard them before the private owner returns its charge.
@@ -727,7 +675,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (beforeDispatch !== undefined) await beforeDispatch(claim.ref);
       if (entry.abort.signal.aborted) return;
       if (held.plan === undefined) {
-        held.plan = planFor(submission, accepted.runDefinition.wire);
+        held.plan = planFor(submission, accepted.runDefinition.wire, requested);
       }
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramAcquisitionCount(preparedProgram) > 0;
@@ -1017,6 +965,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
             throw new Error('InstalledManagedComputeHostUnavailable');
           }
+          if (!generatingContent && preparationLease !== undefined &&
+              typeof capturedRun === 'function' && typeof authorizeLogicalObservation === 'function') {
+            const logical = prepareInstalledLogicalObservation(moon, control,
+              held.managedRun, sourceFreePlanExecutionOwner(held.plan), held.plan.runDefinition, observation);
+            if (logical !== undefined) entry.logicalObservation = logical;
+          }
           // This opaque Run already owns the original operational Ledger.
           // Missing/foreign/parked originals cannot fall back to accounting.
           setup = checked(moon.clientProgramOpenInstalledManagedSourceFreeHost(
@@ -1034,6 +988,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // Retain before the reservation/fault boundary: cancellation can
         // arrive there before runPublished transfers execution custody.
         entry.pendingSetup = setup;
+        if (entry.logicalObservation !== undefined) {
+          entry.logicalObservation.attach(Reflect.apply(capturedRun, moon, [setup]),
+            accepted.ref, actual, operation => authorizeLogicalObservation(operation, connection),
+            control.runDefinitionRunId(accepted.runDefinition));
+        }
       }
       // The resumed admission and physical start reservation are adjacent.
       if (gate !== undefined) {
@@ -1353,7 +1312,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
-          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})), entry.preparationHostBorrow,
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs}),
+          entry.logicalObservation === undefined ? undefined
+            : (phase, task) => entry.logicalObservation.project(phase, task)), entry.preparationHostBorrow,
         entry.preparationHostBorrow === undefined ? undefined : () => {
           if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
           return beforePublication(preparedProgram);

@@ -12,7 +12,7 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView} from
+  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -144,6 +144,8 @@ export type SubmissionInput = Readonly<{
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
+  /** Original first-Plan selection; absent on unchanged Normal input. */
+  executionProfile?: 'debug';
   connection: Readonly<WireConnection>;
   lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
 }>;
@@ -478,6 +480,8 @@ export type QueryOptions = SubmissionIdentityOptions & Readonly<{
   signal?: AbortSignal;
   result?: string;
   parameterDeclarations?: Record<string, unknown>;
+  /** Select real operation boundaries before the original Plan; no Sample/control grant. */
+  executionProfile?: 'debug';
 }>;
 
 export type ReadOptions = {
@@ -546,6 +550,10 @@ export interface Execution {
   /** Saved original compiler map; unavailable legacy evidence is not recompiled. */
   plan(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunPlanView>;
+  /** Retained compiler-original structural facts; absent evidence is never rebuilt.
+   * The signal cancels this read only, not the execution. */
+  explain(options?: {signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationView>;
   /** Read-only Owner-local projection; omitted pending facts remain unknown. */
   inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;
@@ -580,6 +588,8 @@ export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   stopBefore?: 'commit';
   /** Retained read-only continuation choice; never an Account grant. */
   readOnly?: true;
+  /** Explicit first-Plan physical strategy; omission preserves Normal. */
+  executionProfile?: 'debug';
   signal?: AbortSignal;
 }>;
 

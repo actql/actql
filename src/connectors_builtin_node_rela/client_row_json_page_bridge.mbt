@@ -32,6 +32,29 @@ pub fn client_program_row_source_cursor_remaining_rows(
 }
 
 ///|
+/// Primitive presence DATA is converted here to the original typed Option;
+/// the Host never constructs or decodes the compiler's Option representation.
+#export_name("clientProgramRowSourceCursorRequestRows")
+pub fn client_program_row_source_cursor_request_rows(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  page_size_present : Bool,
+  page_size : Int,
+) -> Result[Int, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.row_source_cursor_request_rows(
+    progress,
+    page_index,
+    row_count,
+    if page_size_present {
+      Some(page_size)
+    } else {
+      None
+    },
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceAdvanceCursorProgress")
 pub fn client_program_row_source_advance_cursor_progress(
   progress : @client_row_source_host.RowSourceCursorProgress,
@@ -198,5 +221,187 @@ pub fn client_program_row_source_accept_charged_projected_page(
 ) -> Result[Int, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.accept_charged_row_run_projected_page(
     run, charge, page,
+  )
+}
+
+///|
+fn get_read_bridge_limits(
+  limits : Array[Int],
+) -> @client_row_source_host.RowSourceGetReadLimits? {
+  if limits.length() != 8 {
+    return None
+  }
+  Some({
+    max_bytes: limits[0],
+    max_nodes: limits[1],
+    max_depth: limits[2],
+    max_path_bytes: limits[3],
+    max_query_pairs: limits[4],
+    max_query_value_units: limits[5],
+    max_header_name_bytes: limits[6],
+    max_header_value_bytes: limits[7],
+  })
+}
+
+///|
+/// The same shipped standard codec bounds for a DATA-only author tool. HTTP
+/// shape bounds come from the unchanged Host exchange contract. This creates
+/// no Source, caller Resource/profile choice, reservation or read grant.
+#export_name("clientProgramRowSourceGetReadAuthorLimits")
+pub fn client_program_row_source_get_read_author_limits(
+  query_pairs : Int,
+  query_units : Int,
+  header_name_bytes : Int,
+  header_value_bytes : Int,
+) -> Array[Int]? {
+  if query_pairs < 0 ||
+    query_units < 1 ||
+    header_name_bytes < 1 ||
+    header_value_bytes < 1 {
+    return None
+  }
+  guard @client_local_host.installed_json_source_reader_profile(0, 0)
+    is Some(profile) else {
+    return None
+  }
+  Some([
+    profile[20],
+    profile[21],
+    profile[3],
+    profile[10],
+    query_pairs,
+    query_units,
+    header_name_bytes,
+    header_value_bytes,
+  ])
+}
+
+///|
+#export_name("clientProgramRowSourceAdmitGetRead")
+pub fn client_program_row_source_admit_get_read(
+  wire : Bytes,
+  cursor_present : Bool,
+  cursor_parameter : String,
+  limits : Array[Int],
+) -> Result[
+  @client_row_source_host.RowSourceGetRead,
+  @client_row_source_host.RowSourceGetReadIssue,
+] {
+  guard get_read_bridge_limits(limits) is Some(limits) else {
+    return Err(@client_row_source_host.InvalidLimits)
+  }
+  @client_row_source_host.admit_row_source_get_read(
+    wire,
+    if cursor_present {
+      Some(cursor_parameter)
+    } else {
+      None
+    },
+    limits,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceGetReadWire")
+pub fn client_program_row_source_get_read_wire(
+  read : @client_row_source_host.RowSourceGetRead,
+) -> Result[String, @client_row_source_host.RowSourceGetReadIssue] {
+  @client_row_source_host.row_source_get_read_original_wire(read)
+}
+
+///|
+#export_name("clientProgramRowSourceGetReadPage")
+pub fn client_program_row_source_get_read_page(
+  read : @client_row_source_host.RowSourceGetRead,
+  remaining_rows : Int,
+  page_hint : Int,
+  cursor_present : Bool,
+  cursor : String,
+) -> Result[
+  @client_row_source_host.RowSourceGetPageRequest,
+  @client_row_source_host.RowSourceGetReadIssue,
+] {
+  @client_row_source_host.row_source_get_read_page(
+    read,
+    remaining_rows,
+    page_hint,
+    if cursor_present {
+      Some(cursor)
+    } else {
+      None
+    },
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceGetPageFrame")
+pub fn client_program_row_source_get_page_frame(
+  page : @client_row_source_host.RowSourceGetPageRequest,
+) -> Result[
+  (String, String, Array[Array[String]], Array[Array[String]]),
+  @client_row_source_host.RowSourceGetReadIssue,
+] {
+  @client_row_source_host.row_source_get_page_frame(page)
+}
+
+///|
+#export_name("clientProgramRowSourceGetReadCapacity")
+pub fn client_program_row_source_get_read_capacity(
+  limits : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  guard get_read_bridge_limits(limits) is Some(limits) else { return None }
+  @client_row_source_host.row_source_get_read_construction_capacity(limits)
+}
+
+///|
+#export_name("clientProgramRowSourceGetPageCapacity")
+pub fn client_program_row_source_get_page_capacity(
+  read : @client_row_source_host.RowSourceGetRead,
+) -> @execution.ExecutionCapacity? {
+  @client_row_source_host.row_source_get_page_construction_capacity(read)
+}
+
+///|
+#export_name("clientProgramRowSourceGetReadIssueCode")
+pub fn client_program_row_source_get_read_issue_code(
+  issue : @client_row_source_host.RowSourceGetReadIssue,
+) -> String {
+  match issue {
+    InvalidLimits => "InvalidLimits"
+    InvalidRead => "InvalidRead"
+    InvalidPath => "InvalidPath"
+    InvalidQuery => "InvalidQuery"
+    DuplicateParameter => "DuplicateParameter"
+    InvalidPageSize => "InvalidPageSize"
+    InvalidHeader => "InvalidHeader"
+    InvalidCursor => "InvalidCursor"
+    ForeignRead => "ForeignRead"
+  }
+}
+
+///|
+#export_name("clientProgramRowSourceGetReadMetadata")
+pub fn client_program_row_source_get_read_metadata(
+  read : @client_row_source_host.RowSourceGetRead,
+) -> Result[
+  (String, Bool, Int, Int, Int),
+  @client_row_source_host.RowSourceGetReadIssue,
+] {
+  @client_row_source_host.row_source_get_read_metadata(read)
+}
+
+///|
+#export_name("clientProgramRowSourceGetRequestCapacity")
+pub fn client_program_row_source_get_request_capacity(
+  transport : @execution.ExecutionCapacity,
+  pages : Array[@execution.ExecutionCapacity?],
+) -> @execution.ExecutionCapacity? {
+  let selected = []
+  for page in pages {
+    guard page is Some(page) else { return None }
+    selected.push(page)
+  }
+  @client_row_source_host.row_source_get_request_construction_capacity(
+    transport, selected,
   )
 }

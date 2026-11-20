@@ -3,6 +3,7 @@ import {prepareNativeResidentPortableCore} from './native-resident-portable-prep
 import {nativeHttpSourceCoverage, prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
+import {nativeCoreSourceCompilerEnvironment} from './native-core-source-release.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
@@ -1448,7 +1449,9 @@ verification: try {
       JSON.stringify(args), String(expectedTests)], {
       cwd: new URL('../', import.meta.url), stdio: 'inherit',
       // Same original Source-package environment as the full Native HTTP loop.
-      env: {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+      env: {...nativeCoreSourceCompilerEnvironment(args,
+        fileURLToPath(new URL('../', import.meta.url)), root, testEnvironment),
+        ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
@@ -1467,7 +1470,7 @@ verification: try {
     // harness. Each original case runs once in its own process/Store namespace.
     const selected = [
       ['resident-review-local', 'local_client_source_wbtest.mbt',
-        'Native Local original sole-view completion is refused before acquisition or durable start claim'],
+        'Native Local original sole-view completion retains its journal through Source Result and cleanup'],
       ['resident-review-provider', 'acquisition_runtime_wbtest.mbt',
         'Effect original holders retain physical Provider review and Checkpoint without reacquisition'],
       ['resident-review-checkpoint', 'acquisition_runtime_wbtest.mbt',

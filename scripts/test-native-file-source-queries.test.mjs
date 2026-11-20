@@ -7,7 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {nativeFileSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries, observeNativeFileSourceQuery,
+  nativeFileSourceQueryEnvironment, retainNativeFileCapacityStderr} from './fixtures/native-file-source-queries.mjs';
 
 const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
 const binary = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
@@ -23,14 +24,14 @@ after(async () => {
   scratch.passed();
 });
 
-for (const fixture of nativeFileSourceQueries) test(`Native installed File Source ${fixture.name}`, async () => {
+for (const fixture of nativeInstalledSourceQueries) test(`Native installed File Source ${fixture.name}`, async () => {
   const home = join(scratch.path, fixture.name + '-home');
   await mkdir(home, {mode: 0o700});
   let ordinal = 0;
   const cli = async (args, cwd) => {
     const startedAt = new Date().toISOString();
-    const result = spawnSync(process.execPath, [launcher, ...args], {cwd,
-      env: {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'},
+    const environment = nativeFileSourceQueryEnvironment({fixture, args, emptyPath, home, environment: process.env});
+    const result = spawnSync(process.execPath, [launcher, ...args], {cwd, env: environment,
       timeout: 30_000, maxBuffer: 1024 * 1024, encoding: 'utf8'});
     const name = fixture.name + '-' + ordinal++;
     // Preserve the original result before any assertion, including timeouts,
@@ -40,6 +41,7 @@ for (const fixture of nativeFileSourceQueries) test(`Native installed File Sourc
     await writeFile(join(scratch.path, name + '.json'), JSON.stringify({args, cwd, startedAt,
       endedAt: new Date().toISOString(), status: result.status, signal: result.signal,
       error: result.error?.code}, null, 2) + '\n', {flag: 'wx'});
+    retainNativeFileCapacityStderr(environment, result.stderr);
     return result;
   };
   const observed = await observeNativeFileSourceQuery({parent: scratch.path, fixture, cli});

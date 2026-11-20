@@ -44,7 +44,7 @@ fn interactive_geometry_text(
   w : @encode.Writer,
   key : String,
   value : String,
-) -> Unit raise {
+) -> Unit raise @encode.EncodeFailure {
   @encode.key(w, key)
   @encode.string_value(w, value)
 }
@@ -54,7 +54,7 @@ fn interactive_geometry_number(
   w : @encode.Writer,
   key : String,
   value : Int,
-) -> Unit raise {
+) -> Unit raise @encode.EncodeFailure {
   @encode.key(w, key)
   @encode.number_value(w, value.to_double())
 }
@@ -75,7 +75,7 @@ fn interactive_geometry_step_key(
   stage : Int,
   occurrence : Int,
   input_only : Bool,
-) -> Unit raise {
+) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(w)
   interactive_geometry_text(w, "version", "actql-logical-step-key/0.1")
   interactive_geometry_text(w, "compiled_plan_cid", interactive_geometry_cid)
@@ -236,9 +236,33 @@ pub fn measure_client_compiled_run_static_plan_view(
   if !client_compiled_run_matches(compiled, prepared) {
     return Err(ForeignCompilation)
   }
-  match compiled.compilation {
-    Effects(_) => return Err(UnsupportedCompilation)
-    _ => ()
+  measure_client_pure_compilation_static_plan_view(
+    compiled.compilation,
+    prepared,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed~,
+    before_carrier_measurement~,
+  )
+}
+
+///|
+/// Measure the Request's retained original compiler before body completion.
+/// This supplies no Run/admission identity and allocates no compiled wrapper;
+/// the existing Request owner must back measurement and subsequent projection.
+pub fn measure_client_pure_compilation_static_plan_view(
+  compilation : ClientRunCompilation,
+  prepared : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  inspect_installed? : Bool = false,
+  before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
+) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
+  match client_pure_compilation_original_plan(prepared, compilation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   measure_client_static_plan_view(
     prepared,

@@ -285,6 +285,17 @@ pub fn prepared_installed_managed_capture_acquisition(
 }
 
 ///|
+/// Borrow the exact complete-input capacity stored in this original Plan.
+/// This accessor performs no selection/current observation and issues no
+/// read, execution, cleanup or resource authority.
+pub fn prepared_installed_managed_whole_source_capacity(
+  original : ClientInstalledManagedCapturePlan,
+  occurrence : Int,
+) -> ClientInstalledWholeSourceCapacity? {
+  original.whole_sources.get(occurrence)
+}
+
+///|
 fn prepare_retained_installed_capture_ledger(
   value : ClientInstalledManagedRun,
   plan : ClientInstalledManagedCapturePlan,

@@ -1,4 +1,49 @@
 ///|
+test "original submitted Debug intent selects its first same-Request compiler and keeps Normal omission" {
+  let limits = @publication_host.client_standard_program_preparation_limits()
+  for debug in [false, true] {
+    let intent = "{\"kind\":\"program\",\"input\":" +
+      debug_original_values_document +
+      ",\"parameters\":null" +
+      (if debug { ",\"executionProfile\":\"debug\"}" } else { "}" })
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=debug_original_values_document,
+      intent_wire=Some(intent),
+      computation_limits=Some(
+        (limits, @publication_host.client_standard_effect_computation_limits()),
+      ),
+    )
+    let original = request_submitted_intent_original(parent, input).unwrap()
+    let original_source = parent.held_program.unwrap()
+    let checks = child._observed_semantic_check_calls
+    finish_request_computation_preparation(parent, input).unwrap()
+    let prepared = parent.compiled_program.unwrap()
+    let graph = @publication_host.prepared_client_graph(prepared)
+    assert_eq(@strategy.graph_task_count(graph), if debug { 3 } else { 1 })
+    assert_true(physical_equal(parent.held_program.unwrap(), original_source))
+    assert_true(
+      physical_equal(
+        request_submitted_intent_original(parent, input).unwrap(),
+        original,
+      ),
+    )
+    assert_eq(child._observed_semantic_check_calls, checks + 1L)
+    assert_eq(child._observed_program_compile_calls, 1L)
+    assert_true(child.phase == Transferred && child.topology_work is None)
+    assert_eq(
+      @publication_host.client_submitted_intent_execution_profile(original),
+      if debug {
+        Debug
+      } else {
+        Normal
+      },
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "normal Request terminal selects the original Pure inventory and consumes checker compiler once" {
   let limits = @publication_host.client_standard_program_preparation_limits()
   let (parent, child, _, input) = registration_parent_fixture(

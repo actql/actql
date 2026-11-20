@@ -1,6 +1,7 @@
 // Synthetic provider DATA only. Revision comparison and exactly one UPDATE
 // are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
+import {recordUpdateFixtureState} from '../record-approval/cases.mjs';
 import {form} from '../../../adapters/connectors/kintone/test/kintone-update-form.fixture.mjs';
 
 export function kintoneApprovalProvider({recordId, controlId, previousName, nextName}) {
@@ -11,8 +12,9 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
   assert.notEqual(recordId, controlId);
   assert.notEqual(previousName, nextName);
   const revision = '9007199254740994', nextRevision = '9007199254740995';
-  const target = {id: recordId, name: previousName, revision};
-  const control = {id: controlId, name: 'Untouched control', revision};
+  const {before} = recordUpdateFixtureState({recordId, controlId, previousName, nextName});
+  const target = {...before.target, revision};
+  const control = {...before.control, revision};
   const fields = ['$id', '$revision', 'Computed', 'Subject', 'Tags'];
   const record = value => ({$id: {type: '__ID__', value: value.id},
     $revision: {type: '__REVISION__', value: value.revision},
@@ -32,6 +34,14 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
       throw error;
     }
   }});
+  const writeRoute = route('PUT', '/k/v1/records.json', exchange => {
+    assert.equal(exchange.headers['x-http-method-override'], undefined);
+    assert.deepEqual(JSON.parse(exchange.body), {app: '12', records: [{id: recordId, revision,
+      record: {Subject: {value: nextName}}}], upsert: false});
+    assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
+    writes++; target.name = nextName; target.revision = nextRevision;
+    return {records: [{id: recordId, revision: nextRevision}]};
+  });
   const routes = [
     route('POST', '/k/v1/app/form/fields.json', exchange => {
       assert.equal(exchange.headers['x-http-method-override'], 'GET');
@@ -50,16 +60,9 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
       assert.equal(body.query, `$id > ${controlId} order by $id asc limit 2`);
       return {records: [], totalCount: null};
     }),
-    route('PUT', '/k/v1/records.json', exchange => {
-      assert.equal(exchange.headers['x-http-method-override'], undefined);
-      assert.deepEqual(JSON.parse(exchange.body), {app: '12', records: [{id: recordId, revision,
-        record: {Subject: {value: nextName}}}], upsert: false});
-      assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-      writes++; target.name = nextName; target.revision = nextRevision;
-      return {records: [{id: recordId, revision: nextRevision}]};
-    }),
+    writeRoute,
   ];
-  return {routes, form: structuredClone(form), snapshot: () => ({writes,
+  return {routes, writeRequest: Object.freeze({method: writeRoute.method, pathname: writeRoute.pathname}), form: structuredClone(form), snapshot: () => ({writes,
     target: structuredClone(target), control: structuredClone(control),
     requests: structuredClone(requests), failures: structuredClone(failures)})};
 }

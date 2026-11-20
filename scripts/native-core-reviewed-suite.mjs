@@ -19,6 +19,7 @@ const packageName = 'actql/actql/platform_native/row_source';
 export const reviewedNativeCoreNames = Object.freeze([
   'Native transport quote rejects each invalid layout fact and overflow',
   'relation file preflight quotes the same complete constructor overlap without acquisition',
+  'completed Native Query keeps its full original typed projection and initial peak',
   'relation file preflight rejects equivalent declaration foreign requirement and wrong resource',
   'relation file resource-only preflight preserves mapping and selection refusals',
   'Source caller preparation inventory matches independent constructor vectors',

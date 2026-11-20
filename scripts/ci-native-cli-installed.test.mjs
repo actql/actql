@@ -1,6 +1,10 @@
 // Scheduling/input guards only. Real package acceptance runs in its own job.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, readFile, writeFile, mkdir, rm} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {EventEmitter} from 'node:events';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
@@ -9,9 +13,77 @@ import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthoriz
   from './ci-native-cli-installed.mjs';
 import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
 import {admitNativeReleaseCohort} from './native-cli-release.mjs';
+import {runSharedHostSourceAcceptance} from './fixtures/shared-host-source-acceptance.mjs';
+import {runSharedHostSourceFixture} from './fixtures/shared-host-source-cancel.mjs';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+test('shared Source fault selection refuses an unsupported case before software or state acquisition', async () => {
+  await assert.rejects(runSharedHostSourceAcceptance({scenario: 'replay-after-crash'}),
+    /Unsupported shared Source acceptance scenario/u);
+});
+
+// Actual imported fixture lifetime with inert constructor/listener ports.
+// No Client, TLS socket, Core, normal package or provider operation is run.
+test('shared Source lifecycle closes the acquired Host when certificate setup fails', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-shared-source-setup-'));
+  let closes = 0, listeners = 0;
+  try {
+    await assert.rejects(runSharedHostSourceFixture({outputRoot: root,
+      certificate: join(root, 'absent-certificate'), privateKey: join(root, 'absent-key')}, {
+      openHost: async () => ({handler() {}, async close() {closes++; return {
+        storeCleanupPending: false, pendingRetention: [], authorizationCleanupPending: false,
+        diagnosticDeliveryPending: false};}}),
+      serverFactory() {listeners++; assert.fail('No listener may precede certificate read');},
+    }), error => error.code === 'ENOENT');
+    assert.equal(closes, 1); assert.equal(listeners, 0);
+    const report = JSON.parse(await readFile(join(root, 'shared-source-cancel-result.json'), 'utf8'));
+    assert.equal(report.passed, false); assert.equal(report.failure.code, 'ENOENT');
+    assert.equal(report.hostCloseReturned, true); assert.equal(report.hostCloseReturn.pendingRetentionCount, 0);
+  } finally {await rm(root, {recursive: true, force: true});}
+});
+
+test('shared Source lifecycle evidence failures cannot skip drains or remaining closes or replace primary', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-shared-source-cleanup-'));
+  const events = [], drains = [], listenerFailure = {code: 'fixture-listener-close'};
+  let created = 0, closes = 0;
+  const allSettled = Promise.allSettled;
+  t.mock.method(Promise, 'allSettled', function(values) {
+    drains.push(values.length); return Reflect.apply(allSettled, this, [values]);
+  });
+  try {
+    // Inert bytes, not a TLS identity/key or an installed state directory.
+    await writeFile(join(root, 'certificate'), 'inert-certificate');
+    await writeFile(join(root, 'key'), 'inert-key');
+    await mkdir(join(root, 'connection.json'));
+    await mkdir(join(root, 'fixture-release-all.json'));
+    await assert.rejects(runSharedHostSourceFixture({outputRoot: root,
+      certificate: join(root, 'certificate'), privateKey: join(root, 'key')}, {
+      openHost: async () => ({handler() {}, async close() {events.push('host'); closes++; throw undefined;}}),
+      serverFactory() {
+        const index = created++, server = new EventEmitter();
+        server.listen = (_port, _address, callback) => {events.push('listen' + index); callback();};
+        server.close = callback => {events.push('close' + index); callback(index === 1 ? listenerFailure : undefined);};
+        return server;
+      },
+    }), error => {
+      assert(error instanceof AggregateError);
+      assert.equal(error.errors[0].code, 'EEXIST'); // Original connection save.
+      assert.equal(error.errors[1].code, 'EEXIST'); // Release/evidence save.
+      assert.equal(error.errors[2], listenerFailure);
+      assert.equal(error.errors[3], undefined); // Preserve rejection presence.
+      assert.equal(error.errors.length, 4);
+      return true;
+    });
+    assert.deepEqual(drains, [2, 0]); // Actual setup then existing flight drain.
+    assert.deepEqual(events, ['listen0', 'listen1', 'close1', 'close0', 'host']);
+    assert.equal(closes, 1);
+    const report = JSON.parse(await readFile(join(root, 'shared-source-cancel-result.json'), 'utf8'));
+    assert.equal(report.passed, false); assert.equal(report.failure.code, 'EEXIST');
+    assert.equal(report.hostCloseReturned, false);
+  } finally {await rm(root, {recursive: true, force: true});}
+});
+
 test('ordinary Native CLI installed acceptance is required by the final full CI gate', () => {
   const job = jobs['native-cli-installed'];
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);

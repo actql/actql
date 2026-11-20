@@ -326,6 +326,13 @@ fn graphql_repository_json(repository : @catalog.GraphqlRepository) -> Json {
 }
 
 ///|
+/// Scalar validation over borrowed names, with no request or allocation.
+#export_name("githubRepositoryAccessValid")
+pub fn github_repository_access_valid(owner : String, name : String) -> Bool {
+  @catalog.repository_access_valid(owner, name)
+}
+
+///|
 /// The publication lookup body for `owner/name`: the fixed query only.
 #export_name("githubRepositoryRequest")
 pub fn github_repository_request(owner : String, name : String) -> String {

@@ -83,3 +83,82 @@ test "Native preparation diagnostics use closed cleanup labels for real nested f
   }
   local_command_diagnostic_reset()
 }
+
+///|
+test "File entry Read refusal tags borrow the actual constructor without physical DATA" {
+  let cases : Array[(@initial_arena.InstalledArenaOriginalReadIssue, String)] = [
+    (Domain(Bootstrap(Physical(-847))), "DomainBootstrapPhysical"),
+    (Child(Unknown), "Child"),
+    (Read(CleanupPending), "Read"),
+    (Buffer(Capacity), "Buffer"),
+  ]
+  for (original, tag) in cases {
+    local_command_diagnostic_reset()
+    let refusal : Result[Unit, LocalCommandPreparationIssue] = Err(
+      CommandRead(original),
+    )
+    let message = try {
+      command_preparation_result(refusal, stage=Some("file-entry-read"))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(
+      message,
+      "LocalCommandPreparationUnavailable:file-entry-read:read:" + tag,
+    )
+    assert_false(message.contains("847"))
+    assert_eq(command_preparation_cleanup_kind(CommandRead(original)), "read")
+    assert_eq(command_preparation_cleanup_cause(CommandRead(original)), tag)
+  }
+  guard cases[0].0 is Domain(Bootstrap(Physical(code))) else {
+    fail("projection must not replace the same original typed cause")
+  }
+  assert_eq(code, -847)
+  local_command_diagnostic_reset()
+}
+
+///|
+test "File Read Domain projection keeps backing and resource refusals distinct" {
+  let cases : Array[(@initial_bootstrap.NativeBackedExecutionIssue, String)] = [
+    (Bootstrap(Unavailable), "DomainBootstrapUnavailable"),
+    (Bootstrap(Physical(-847)), "DomainBootstrapPhysical"),
+    (
+      Bootstrap(Resource(RetentionLimit)),
+      "DomainBootstrapResourceRetentionLimit",
+    ),
+    (Accounting(InvalidExtent), "DomainAccountingInvalidExtent"),
+    (Accounting(ReadUseAlreadyIssued), "DomainAccountingReadUseAlreadyIssued"),
+    (
+      Accounting(Resource(RetentionLimit)),
+      "DomainAccountingResourceRetentionLimit",
+    ),
+    (
+      Accounting(Resource(ExecutionLimit)),
+      "DomainAccountingResourceExecutionLimit",
+    ),
+  ]
+  for (original, tag) in cases {
+    let issue = CommandRead(@initial_arena.Domain(original))
+    local_command_diagnostic_reset()
+    let result : Result[Unit, LocalCommandPreparationIssue] = Err(issue)
+    let message = try {
+      command_preparation_result(result, stage=Some("file-entry-read"))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(
+      message,
+      "LocalCommandPreparationUnavailable:file-entry-read:read:" + tag,
+    )
+    assert_false(message.contains("847"))
+    assert_true(message.length() < 160)
+    assert_eq(command_preparation_cleanup_kind(issue), "read")
+  }
+  guard cases[1].0 is Bootstrap(Physical(original_code)) else {
+    fail("the same original physical refusal must remain typed")
+  }
+  assert_eq(original_code, -847)
+  local_command_diagnostic_reset()
+}

@@ -9,7 +9,33 @@ import {loadExternalRestModules, resolveExternalRestModules, verifyExternalRestT
 import * as normalCohort from './installed-modules.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {externalRestProvider} from './provider.fixture.mjs';
+import {notionUsersProvider,notionUsersProgram} from './notion-users.fixture.mjs';
 import {installedFamilyProviderRoute} from './fixture-source/adapters/host-node/fixtures/installed-family-scenario.fixture.mjs';
+import {resolveInstalledCompletionModules} from './timed-installed-context.fixture.mjs';
+import {createTimedLogicalObservation, assertTimedLogicalObservation} from './logical-observation.fixture.mjs';
+
+test('Notion normal fixture refuses wrong query and unobserved version before claiming its wire oracle', () => {
+  const provider=notionUsersProvider();
+  assert.throws(()=>provider.handle({method:'GET',target:'/v1/users?page_size=100'}));
+  assert.deepEqual(provider.requests(),[]);
+  const first=JSON.parse(provider.handle({method:'GET',target:'/v1/users?page_size=2'}).body);
+  assert.equal(first.object,'list');assert.equal(first.has_more,true);
+  assert.equal(first.next_cursor,'next e\u0301+東京');
+  const second=JSON.parse(provider.handle({method:'GET',
+    target:'/v1/users?page_size=1&start_cursor=next%20e%CC%81%2B%E6%9D%B1%E4%BA%AC'}).body);
+  assert.equal(second.has_more,false);assert.equal(second.next_cursor,null);
+  assert.throws(()=>provider.assertRequests([{authorized:true,headers:{}},{authorized:true,headers:{}}]));
+  provider.assertRequests([{authorized:true,headers:{'notion-version':'2026-03-11'}},
+    {authorized:true,headers:{'notion-version':'2026-03-11'}}]);
+  assert.equal(notionUsersProgram('notion-users').stages[0].inputs.users.resource,'users');
+});
+
+test('Notion normal built-in resolution is explicit and never substitutes an external package', async t => {
+  const f=await fixture(t);
+  const selected=await resolveExternalRestModules({consumerRoot:f.consumerRoot,builtin:'notion'});
+  assert.equal(selected.connector,undefined);assert(selected.node.includes('/node_modules/@actql/node/'));
+  await assert.rejects(resolveExternalRestModules({consumerRoot:f.consumerRoot,builtin:'notion',connectorPackage:'@actql-connectors/acme'}));
+});
 
 async function fixture(t) {
   const root = await mkdtemp(join(await realpath(tmpdir()), 'actql-rest-module-resolution-'));
@@ -27,6 +53,84 @@ async function fixture(t) {
   for (const name of ['@actql/node', '@actql/local-node', '@actql/sdk', '@actql-connectors/acme']) await put(name);
   return {root, consumerRoot, modules, put};
 }
+
+// Authored caller-oracle DATA, not Core issuance or ordinary runtime evidence.
+function logicalMetadataOriginals() {
+  const ref = {namespaceId: 'authored', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+  const key = {version: 'actql-logical-step-key/0.1', stage_ordinal: 0,
+    occurrence: {kind: 'operation', operation_ordinal: 2},
+    compiled_plan_cid: `sha256:${'c'.repeat(64)}`, self_cid: `sha256:${'d'.repeat(64)}`};
+  const explanation = {run_ref: ref, explanation: {state: 'projected', facts: {steps: [{key}]}}};
+  const record = (event, extra = {}) => ({operation: 'compute', event, attributes: {
+    'actql.operation': 'compute', 'actql.event': event, 'actql.observation.version': 'actql-observation/0.1',
+    'actql.run.definition_cid': ref.runDefinitionCid, 'actql.run.id': 'authored-run',
+    'actql.task.ordinal': 17, ...extra}});
+  const snapshot = {status: {closed: true, cleanupPending: false}, records: [
+    record('task_completed'), record('logical_boundary_observed', {
+      'actql.logical_step.key': JSON.stringify(key), 'actql.logical_boundary.phase': 'settled'}),
+    record('logical_boundary_unavailable', {'actql.logical_boundary.reason': 'not_projected'}),
+  ]};
+  return {ref, explanation, snapshot};
+}
+
+test('timed logical observation oracle preserves full original keys and explicit unprojected boundaries', () => {
+  const {snapshot, explanation, ref} = logicalMetadataOriginals();
+  assert.deepEqual(assertTimedLogicalObservation(snapshot, explanation, ref, 'authored-run', 'read'), {
+    phase: 'read', deliveredBoundaries: 2, projected: 1, notProjected: 1,
+    logicalCompletionClaimed: false, internalRequestIdentityObserved: false, newSampleOrControl: false});
+  assert.equal(assertTimedLogicalObservation({...snapshot, records: []}, explanation,
+    ref, 'authored-run', 'saved').deliveredBoundaries, 0);
+  for (const mutate of [
+    value => {value.records = [];},
+    value => {value.status.closed = false;},
+    value => {value.status.cleanupPending = true;},
+    value => {value.records[1].attributes['actql.run.definition_cid'] = 'foreign';},
+    value => {value.records[1].attributes['actql.logical_step.key'] = JSON.stringify({
+      ...JSON.parse(value.records[1].attributes['actql.logical_step.key']), stage_ordinal: 9});},
+    value => {value.records[1].attributes['source.body'] = 'must not disclose';},
+    value => {value.records[2].attributes['actql.logical_step.key'] = '{}';},
+  ]) {
+    const changed = structuredClone(snapshot); mutate(changed);
+    assert.throws(() => assertTimedLogicalObservation(changed, explanation, ref, 'authored-run', 'read'));
+  }
+  assert.throws(() => assertTimedLogicalObservation(snapshot, explanation, ref, 'authored-run', 'saved'));
+});
+
+test('timed logical observation recorder copies bounded DATA without retaining delivery originals', () => {
+  let options;
+  const selected = createTimedLogicalObservation(value => {
+    options = value; return {status: () => ({closed: true, cleanupPending: false})};
+  });
+  assert.deepEqual(options.include, ['compute']);
+  assert.deepEqual(options.correlation, {include: ['run', 'task']});
+  const record = {event: 'authored', attributes: {field: 'original'}};
+  options.deliver(record); record.attributes.field = 'changed';
+  assert.equal(selected.snapshot().records[0].attributes.field, 'original');
+  options.deliver({oversized: 'x'.repeat(4097)});
+  assert.equal(selected.snapshot().records.length, 1);
+  assert.equal(selected.snapshot().failure.message, 'LogicalObservationFixtureByteLimit');
+});
+
+test('timed observation resolves only the selected installed public namespace without importing it', async t => {
+  const missing = await fixture(t);
+  assert.equal(Object.hasOwn(await resolveInstalledCompletionModules(missing.consumerRoot), 'observation'), false);
+  await assert.rejects(resolveInstalledCompletionModules(missing.consumerRoot, {observation: true}),
+    {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+  // A distinct synthetic installation avoids Node's package-metadata cache;
+  // the ordinary collector never rewrites an installed package's exports.
+  const f = await fixture(t), host = join(f.modules, '@actql/local-node');
+  await writeFile(join(host, 'package.json'), JSON.stringify({name: '@actql/local-node',
+    type: 'module', exports: {'.': './index.mjs', './observation': './observation.mjs'}}));
+  await writeFile(join(host, 'observation.mjs'), 'throw new Error("Source preflight must not import product");\n');
+  const original = await resolveInstalledCompletionModules(f.consumerRoot);
+  const selected = await resolveInstalledCompletionModules(f.consumerRoot, {observation: true});
+  assert.deepEqual(selected, {...original, observation: join(host, 'observation.mjs')});
+  await rename(join(host, 'observation.mjs'), join(f.root, 'outside.mjs'));
+  await symlink(join(f.root, 'outside.mjs'), join(host, 'observation.mjs'));
+  await assert.rejects(resolveInstalledCompletionModules(f.consumerRoot, {observation: true}),
+    /CompletionWorkspaceAliasRefused/);
+});
 
 async function selectedBlobs(t) {
   const root = await mkdtemp(join(await realpath(tmpdir()), 'actql-rest-tar-preflight-'));

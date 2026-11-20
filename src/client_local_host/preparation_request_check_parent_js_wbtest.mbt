@@ -79,16 +79,16 @@ test "request Check parent keeps the exact Source Program and later child on one
   assert_eq(child.base_retained, before.reserved_retention_bytes)
   assert_eq(child.base_execution, before.reserved_execution_bytes)
   let after = @resources.ledger_usage(parent.ledger)
-  // Independent quote controls1288H637R2577W plus driver36H60R57W.
-  // The driver includes the one original Source target-tuple reference.
-  assert_eq(16L * 1328L + 8L * 699L + 8L * 2643L, 47984L)
+  // Existing controls1328H699R2643W plus the static Effect packet5H7R4W.
+  // Both retain the same original Source target-tuple reference.
+  assert_eq(16L * 1333L + 8L * 706L + 8L * 2647L, 48152L)
   assert_eq(
     after.reserved_retention_bytes,
-    before.reserved_retention_bytes + 47984L,
+    before.reserved_retention_bytes + 48152L,
   )
   assert_eq(
     after.reserved_execution_bytes,
-    before.reserved_execution_bytes + 47984L,
+    before.reserved_execution_bytes + 48152L,
   )
   assert_true(
     prepare_request_program_check_preparation(
@@ -129,14 +129,14 @@ test "request Check parent failed grow retains its exact taken Program and origi
     let blocker = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.reserved_retention_bytes - 47984L + 1L
+        limits.retained_bytes - before.reserved_retention_bytes - 48152L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.reserved_execution_bytes - 47984L + 1L
+        limits.execution_bytes - before.reserved_execution_bytes - 48152L + 1L
       },
     ).unwrap()
     let held = @resources.ledger_usage(parent.ledger)

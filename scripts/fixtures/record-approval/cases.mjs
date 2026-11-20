@@ -8,6 +8,27 @@ const select = value => {
   return value;
 };
 
+// Authored normal-fixture DATA shared by the logical Mock and the provider's
+// HTTP fixture. This does not select a runtime, Account, revision or grant.
+export const sharedRecordUpdateSelections = Object.freeze({
+  hubspot: Object.freeze({recordId: '9007199254740993', controlId: '9007199254740994',
+    previousName: 'Before HubSpot approval', nextName: 'After HubSpot approval'}),
+  kintone: Object.freeze({recordId: '9007199254740993', controlId: '9007199254740994',
+    previousName: 'Before kintone approval', nextName: 'After kintone approval'}),
+});
+
+export function recordUpdateFixtureState(selected) {
+  const {recordId, previousName, nextName} = select(selected), {controlId} = selected;
+  if (typeof controlId !== 'string' || !controlId || controlId === recordId) {
+    throw new TypeError('InvalidRecordApprovalControl');
+  }
+  const control = Object.freeze({id: controlId, name: 'Untouched control'});
+  return Object.freeze({
+    before: Object.freeze({target: Object.freeze({id: recordId, name: previousName}), control}),
+    after: Object.freeze({target: Object.freeze({id: recordId, name: nextName}), control}),
+  });
+}
+
 export function salesforceUpdateCase(programs, selected) {
   const {recordId, previousName, nextName} = select(selected);
   return {name: 'salesforce-account-update',
@@ -56,4 +77,19 @@ export function kintoneUpdateCase(programs, selected) {
       beforeRows: [{id: recordId, Subject: previousName}], afterRows: [{id: recordId, Subject: nextName}]},
     review: {target: 'connector://kintone/inquiries', identity: recordId,
       before: {Subject: previousName}, changes: {Subject: nextName}}};
+}
+
+
+// Existing shared HTTPS fixture fault DATA only. A provider owns the exact
+// write route; this does not issue a request, classify Run state or grant send.
+export function recordUpdateReplyLossFaults(provider) {
+  const {method, pathname} = provider?.writeRequest ?? {};
+  if (typeof method !== 'string' || !/^[A-Z]{3,16}$/u.test(method) ||
+      typeof pathname !== 'string' || !pathname.startsWith('/') ||
+      pathname.startsWith('//') || pathname.length > 4096 || !pathname.isWellFormed() ||
+      pathname.includes('?') || pathname.includes('#') ||
+      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92))) {
+    throw new TypeError('InvalidRecordApprovalWriteRoute');
+  }
+  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1})]);
 }

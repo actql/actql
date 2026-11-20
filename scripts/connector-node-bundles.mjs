@@ -11,6 +11,7 @@ export {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 import {readHostBundles, generateInstallations, moduleSpecifier} from './connector-host-bundles.mjs';
 import {projectCoreLedger} from './generate-ledger-transport-contract.mjs';
+import {generateNotionUserListReadWire} from './notion-user-list-read-wire.mjs';
 export {checkHostBundle, readHostBundles, generateInstallations} from './connector-host-bundles.mjs';
 
 // The Core record owns both field order and primitive width. This is only
@@ -95,6 +96,10 @@ for (let index = 0; index < outputs.length; index++) {
 }
 const installations = withInstallations
   ? readHostBundles(root, {names: options.names, buildInputs}) : [];
+if (buildInputs === undefined && installations.some(entry =>
+    entry.assets.includes('src/connectors/notion/user-list-request.json'))) {
+  generateNotionUserListReadWire(root, write);
+}
 const installationSource = withInstallations
   ? generateInstallations(installations, installationOutput, root) : undefined;
 const externalModuleSpecifier = path => moduleSpecifier(output, path);

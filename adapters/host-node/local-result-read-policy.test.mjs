@@ -45,7 +45,8 @@ async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false, r
   };
   const resultReadLimits = original('resultReadLimits', {moon, localResourceResultReadLimits, requestMemory});
   const limits = (await original('negotiate', {mode: 'local', workspaceId: undefined,
-    authorityScopeCid: 'scope', hostConnection: () => false, resultReadLimits})({connection: {}})).limits;
+    authorityScopeCid: 'scope', hostConnection: () => false, resultReadLimits,
+    preparation: undefined, moon})({connection: {}})).limits;
   let allowed = !deny, opened = 0, stopped = 0, closed = 0, produced = 0, bytes = 0;
   const authority = original('resultAuthority', {
     installResultAccessAuthority: value => value,

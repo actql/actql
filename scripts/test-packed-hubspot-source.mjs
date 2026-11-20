@@ -12,6 +12,7 @@ import {runFocusedTests} from './test-execution.mjs';
 import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
 import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
+import {installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
 
 // Reuse the original consumer and its normal admission unchanged. The outer
 // command receipt exists before installation, including failed preparation.
@@ -84,6 +85,9 @@ const mockConnector = wholeMock || threeSourceMock || binarySourceMock ? 'hubspo
 const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
   : selection === '--kintone-approval' ? 'kintone' : undefined);
 const approval = approvalConnector !== undefined;
+const replyLossExpectation = installedRecordReplyLossExpectation();
+assert(replyLossExpectation === undefined || approval && mockConnector === undefined,
+  'Applied reply loss is an explicit installed provider fixture selection');
 if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
@@ -189,9 +193,13 @@ const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.r
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
-const receipt = {fixtureVariant: binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
+const receipt = {fixtureVariant: replyLossExpectation !== undefined ? 'applied-write-reply-loss'
+  : binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
+  ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
   qualification: mockConnector
   ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
+  : replyLossExpectation !== undefined
+  ? 'Selected installed Local capture, one signed approval and one applied TLS write with lost reply, followed by same-original public lookup without another write. Explicit per-capability outcome expectations; Unknown is not success or physical cleanup ACK.'
   : approval
   ? 'Actual installed Local capture, signed approval, exactly one synthetic TLS provider UPDATE and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.'
   : 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',

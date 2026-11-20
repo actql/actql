@@ -25,8 +25,9 @@ machine to a server changes the configuration, not the Program.
 
 ## A Local Host in a project
 
-The CLI and the embedded Node and Python Hosts read `actql.config.json`,
-searched from the current directory upward. Paths are relative to the file.
+A CLI project uses `actql.config.json`, searched from the current directory
+upward. Paths are relative to the file. Embedded clients select their own
+Local installation; a matching path alone does not connect them to this Host.
 
 ```json
 {
@@ -88,10 +89,20 @@ Host manages.
 - Retention is a Host setting. Runs and their evidence are kept for the
   configured period; nothing is kept forever by default.
 
-Two processes that point at the same `state_dir` share the same Host state.
-The Store coordinates them with leases and fencing: one process drives a Run
-at a time, and a stale process cannot overwrite a newer state. Opening the
-directory again later lets you look up and attach to the Runs it holds.
+A local state directory has one owning Host at a time. Its exclusion remains
+held until the owning Journal and Store acknowledge close. Await that Local
+client's close before reopening with a compatible Host and configuration.
+Leases and fencing protect ownership; they do not make a second embedded
+Host or CLI process a client of the first one.
+
+For separate examples, keep the CLI project's `.actql` and the embedded Node
+application's `.actql-node` independent. Current Local ownership does not
+establish CLI/SDK persistence compatibility, and selecting a directory does
+not convert its format. Connecting multiple clients to one already configured
+Host requires its supported transport and authorization, rather than direct
+directory access. The
+code-started Run to CLI approval workflow remains separate interoperability
+work, tracked in [#3641](https://github.com/actql/actql/issues/3641).
 
 ## Connections and credentials
 

@@ -65,6 +65,17 @@ class LocalSubmissionAppendTests(unittest.TestCase):
                     current().read('client_submitted_intents', REQUEST, lambda row: rows.append(row))
                     if rows[0] is None:
                         outputs[args[0]] = b'{"kind":"missing"}'
+                        if 'intent' in fields:
+                            # Current first-admission observation includes the
+                            # independently checked original intent identity.
+                            self.assertEqual(json.loads(fields['intent']), json.loads(INTENT))
+                            preimage = json.dumps({'intent': json.loads(INTENT),
+                                'version': 'actql-submitted-intent/0.1'}, ensure_ascii=False,
+                                sort_keys=True, separators=(',', ':')).encode()
+                            identity = 'sha256:' + hashlib.sha256(preimage).hexdigest()
+                            self.assertEqual(fields['intentCid'], identity)
+                            outputs[args[0]] = json.dumps({'kind': 'missing',
+                                'observation': 'missing', 'expectedIntentCid': identity}).encode()
                     else:
                         self.assertEqual(rows[0][1].payload, PREPARING)
                         original = json.loads(INTENT)

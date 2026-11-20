@@ -59,6 +59,44 @@ pub fn source_input_local_tasks_control_capacity(
 }
 
 ///|
+/// SAME loop control plus checked finite Query-prefix guards. No Source row,
+/// reader, provider or String is copied. One exact finite reference snapshot
+/// prevents caller-array mutation across callbacks; use the shared array extent.
+/// Each current/live closure borrows seven originals (2H/14R); the optional
+/// live and private Plan argument add 2H/2R/2W. Prefix RowRun correspondence
+/// predicates borrow original references and return Bool without new products.
+/// The outer caller reserves this complete control before entering the loop.
+pub fn installed_captured_local_tasks_control_capacity(
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  let first = @strategy.graph_captured_prefix(graph).to_int64()
+  if first <= 0L ||
+    first >= @strategy.graph_task_count(graph).to_int64() ||
+    @strategy.graph_program_has_effects(graph) {
+    return None
+  }
+  guard local_tasks_control_capacity(graph) is Some(base) &&
+    @execution.preparation_array_representation(1L, first, false)
+    is Some(snapshot) &&
+    @execution.compose_preparation_representation([
+      {
+        record_headers: 4L,
+        reference_slots: 16L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      snapshot,
+    ])
+    is Some(guards) &&
+    @execution.preparation_representation_cost(guards) is Some(guards) &&
+    @execution.execution_capacity(guards, guards) is Some(guards) else {
+    return None
+  }
+  @execution.add_execution_capacity(base, guards)
+}
+
+///|
 fn local_tasks_control_capacity(
   graph : @strategy.CheckedDAG,
 ) -> @execution.ExecutionCapacity? {

@@ -135,6 +135,7 @@ fn local_compilation_failure_tags(
       emit(12, local_compilation_effect_materials_tag(cause))
       15L
     }
+    InferMaterials(_) => 16L
   }
   emit(11, 6000L + family)
 }

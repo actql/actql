@@ -29,7 +29,8 @@ function snapshotData(value, keys, code) {
 const frozen = value => value!==null && typeof value==='object' && Object.isFrozen(value);
 const assertRuntime = moon => {
   if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-    'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
+    'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
+    'clientProgramInstallAsyncModelProvider',
     'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',

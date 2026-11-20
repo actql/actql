@@ -713,6 +713,25 @@ pub fn installed_json_source_reader_capacity_with_request(
 }
 
 ///|
+/// The SAME portable cursor reader plus its original closed request DATA.
+/// Both components remain held through the existing acquisition; this is not
+/// sequential peak reuse, a new allowance, or permission to construct/send.
+/// Preserve the legacy Set reader's request entry above unchanged.
+pub fn installed_json_cursor_source_reader_capacity_with_request(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  request : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  guard request is Some(request) &&
+    installed_json_cursor_source_reader_capacity(limits, columns, secret_bytes)
+    is Some(reader) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, request)
+}
+
+///|
 /// The fixed preserving Source decoder keeps the SAME common Reader/response/
 /// projection inventory. Only its absent normalization constructor is omitted.
 /// The installing caller must actually use preserving parsing and exact-key

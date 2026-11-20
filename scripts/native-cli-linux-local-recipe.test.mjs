@@ -76,6 +76,9 @@ function fixture(t, platform = 'linux-x64-gnu') {
   put(join(sourceRoot, 'spec/contracts/actql-aoa.json'), wire({pipeline_registry_file: 'spec/registry.json',
     execution_contracts: {'REL.values': {}, 'ACTQL.expression_fragment/0.1': {}, 'REL.derive.ordered': {}}}));
   put(join(sourceRoot, 'spec/registry.json'), wire({})); put(join(sourceRoot, 'spec/local-check-environment.json'), wire({}));
+  for (const name of ['actql-query-acquisition.json', 'actql-query-process-evidence.json']) {
+    put(join(sourceRoot, 'spec/contracts', name), readFileSync(new URL(`../spec/contracts/${name}`, import.meta.url)));
+  }
   const execute = (tool, args) => {
     if (tool === 'git') return args[0] === 'rev-parse' ? sourceSha + '\n' : '';
     if (!linux) {
@@ -96,7 +99,8 @@ test('Linux recipe preserves originals, both Crypto notices and current default 
   const f = fixture(t), {recipe, path} = assembleNativeLinuxLocalRecipe(f.options, f.execute);
   assert.deepEqual(JSON.parse(readFileSync(path)), recipe);
   assert.equal(recipe.platform, 'linux-x64-gnu'); assert.equal(recipe.sourceSha, sourceSha);
-  assert.deepEqual(recipe.assets.map(item => item.role), ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy']);
+  assert.deepEqual(recipe.assets.map(item => item.role), ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy',
+    'query', 'query-evidence']);
   assert.deepEqual(readFileSync(recipe.licenses[0].original.path), f.notice);
   assert.deepEqual(readFileSync(recipe.licenses[1].original.path), Buffer.concat([f.copyright, Buffer.from('\n\n'), f.cryptoNotice]));
   assert.deepEqual(readFileSync(join(f.options.outputDirectory, 'sqlite-process-producer.json')), readFileSync(f.sqliteReceipt));

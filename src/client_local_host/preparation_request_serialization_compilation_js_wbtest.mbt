@@ -25,11 +25,11 @@ struct RequestSerializationPlanFixture {
 ///|
 fn request_serialization_plan_fixture(
   current? : () -> Bool = () => true,
+  text? : String = request_serialization_document,
+  max_bytes? : Int = 128,
+  max_rows? : Int = 2,
 ) -> RequestSerializationPlanFixture raise {
-  let (parent, child, _, input) = registration_parent_fixture(
-    text=request_serialization_document,
-    current~,
-  )
+  let (parent, child, _, input) = registration_parent_fixture(text~, current~)
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
     fail("authored terminal Serialization check")
   }
@@ -53,8 +53,8 @@ fn request_serialization_plan_fixture(
     0,
     1,
     policy,
-    2,
-    128,
+    max_rows,
+    max_bytes,
     3,
     @publication_host.client_standard_values_sequence_limits(),
     100000,

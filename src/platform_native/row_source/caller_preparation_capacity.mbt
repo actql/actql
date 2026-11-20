@@ -87,7 +87,27 @@ pub fn native_relation_file_caller_preparation_evaluation_inventory(
       None => 0L
       Some(path) => path.length().to_int64()
     })
-  // Mapping inventory evaluation H600/R198/S1402; Source input validation
+  native_relation_file_caller_evaluation_units(paths)
+}
+
+///|
+// Maximum implemented shape: sixteen items-path and sixteen key-path slots.
+// This is constructor DATA only, not a Source capacity/profile admission.
+pub fn native_relation_file_caller_evaluation_maximum_inventory() -> @execution.PreparationRepresentationUnits {
+  native_relation_file_caller_evaluation_units(32L)
+}
+
+///|
+fn native_relation_file_caller_evaluation_units(
+  paths : Int64,
+) -> @execution.PreparationRepresentationUnits {
+  // Mapping inventory evaluation: the mutually exclusive None branch is
+  // H600/R198/S1402; a prepared provider's caller Some and five-scalar
+  // returned mapping units are H2/R1/S6. Its correspondence checks borrow
+  // existing fields/paths and allocate no containers or current/IO results.
+  // Their componentwise maximum remains H600/R198/S1402 on this SAME Read
+  // evaluator frame, before later Work growth; this is not unused payload.
+  // Source input validation
   // H(14+2K)/R(12+2K)/S(24+4K); Controls record H1/S5;
   // two-part grow-array H3/R19/S2; composition H17/R1/S36.
   {

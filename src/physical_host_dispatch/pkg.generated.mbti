@@ -47,6 +47,8 @@ pub fn[C, E] compute_host_max_entries(ComputeHost[C, E]) -> Int
 
 pub fn[C, E] compute_host_offline_policy_position(ComputeHost[C, E]) -> Result[Int?, AdaptiveEstimateIssue[E]]
 
+pub fn[C, E] compute_host_original_estimate_failure(ComputeHost[C, E]) -> (Int, AdaptiveEstimateIssue[E])?
+
 pub fn[C, E] compute_host_policy_candidates(ComputeHost[C, E]) -> @physical_strategy_host.PolicyCandidateSet?
 
 pub fn[C, E] compute_host_policy_search_diagnostics(ComputeHost[C, E]) -> @physical_strategy_host.StrategySearchDiagnostics?

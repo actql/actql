@@ -14,6 +14,46 @@ fn cursor_progress_test_page(wire : String) -> RowSourceProjectedJsonPage {
 }
 
 ///|
+test "portable request rows join the same cursor without narrowing response admission" {
+  let progress = prepare_row_source_cursor_progress(3, 5, 3, 32).unwrap()
+  assert_eq(row_source_cursor_request_rows(progress, 0, 0, Some(1)).unwrap(), 1)
+  assert_eq(
+    row_source_cursor_request_rows(progress, 0, 0, Some(100)).unwrap(),
+    3,
+  )
+  assert_eq(row_source_cursor_request_rows(progress, 0, 0, None).unwrap(), 3)
+  assert_true(
+    row_source_cursor_request_rows(progress, 0, 0, Some(0))
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    row_source_cursor_request_rows(progress, 1, 0, Some(0))
+    is Err(ProgressMismatch),
+  )
+  // Request size is a hint, not a new response bound. The original checked
+  // page ceiling remains3; provider pages still enter the original Owner.
+  assert_eq(row_source_cursor_remaining_rows(progress, 0, 0).unwrap(), 3)
+  let first = cursor_progress_test_page("{\"items\":[{},{},{}],\"next\":\"\"}")
+  assert_false(
+    advance_row_source_cursor_progress(progress, 0, 0, first, first).unwrap(),
+  )
+  assert_eq(row_source_cursor_next(progress).unwrap(), "")
+  assert_eq(
+    row_source_cursor_request_rows(progress, 1, 3, Some(100)).unwrap(),
+    2,
+  )
+  assert_eq(row_source_cursor_request_rows(progress, 1, 3, Some(1)).unwrap(), 1)
+  assert_eq(row_source_cursor_remaining_rows(progress, 1, 3).unwrap(), 2)
+  let last = cursor_progress_test_page("{\"items\":[{},{}]}")
+  assert_true(
+    advance_row_source_cursor_progress(progress, 1, 3, last, last).unwrap(),
+  )
+  assert_true(
+    row_source_cursor_request_rows(progress, 2, 5, Some(1)) is Err(Completed),
+  )
+}
+
+///|
 test "portable cursor progress preserves empty and Unicode cursors until exact EOF" {
   let progress = prepare_row_source_cursor_progress(3, 3, 2, 2).unwrap()
   assert_false(row_source_cursor_has_next(progress))

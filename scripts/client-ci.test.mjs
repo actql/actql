@@ -118,6 +118,66 @@ test('shared Host preparation builds its original Common and signing checkpoint 
   }
 });
 
+test('catalogue compiled projection requires the same prepared Host namespace and one bounded selection', () => {
+  const file = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  const steps = jobs.host.steps;
+  const selected = steps.filter(step => step.run?.split(/\s+/u).includes(file));
+  assert.equal(selected.length, 1);
+  const [gate] = selected, preparation = steps.find(step => step.id === 'host-runtime-preparation');
+  assert(steps.indexOf(preparation) < steps.indexOf(gate));
+  assert.notEqual(gate['continue-on-error'], true);
+  const namespace = '${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+  const checkNamespace = env => {
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, namespace);
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME);
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, env.ACTQL_METADATA_COMMON_RUNTIME);
+  };
+  checkNamespace(gate.env);
+  for (const runtime of [undefined, '', '/foreign/installed-mock.js'])
+    assert.throws(() => checkNamespace({...gate.env, ACTQL_TEST_PROJECT_PROFILE_RUNTIME: runtime}));
+  const expression = gate.if.slice(3, -3)
+    .replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, name) => `steps[${JSON.stringify(name)}]`);
+  for (const outcome of ['success', 'failure', 'cancelled', 'skipped']) for (const cancelled of [false, true])
+    assert.equal(runInNewContext(expression, {cancelled: () => cancelled,
+      steps: {'host-runtime-preparation': {outcome}}}), outcome === 'success' && !cancelled);
+  const command = gate.run.split('\n').find(line => line.includes(file));
+  const args = command.match(/'[^']*'|\S+/gu).map(value => value.replace(/^'|'$/gu, ''));
+  assert.equal(args.filter(arg => arg === file).length, 1);
+  assert(args.includes('scripts/local-checks.mjs') && args.includes('test') && args.includes('node'));
+  assert.equal(args[args.indexOf('--test-name-pattern') + 1], '^declared catalogue Common projection binds');
+  const seconds = Number(args[args.indexOf('--timeout-seconds') + 1]);
+  const grace = Number(args[args.indexOf('--kill-grace-seconds') + 1]);
+  assert(Number.isFinite(seconds) && seconds > 0 && Number.isFinite(grace) && grace > 0);
+  assert(seconds + grace <= jobs.host['timeout-minutes'] * 60);
+  assert.equal(steps.filter(step => step.run?.includes('moon build') &&
+    step.run.includes('src/connectors_builtin_node')).length, 1);
+});
+
+test('catalogue compiled projection cannot hide a preceding or selected consumer failure', t => {
+  const file = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  const gate = jobs.host.steps.find(step => step.run?.split(/\s+/u).includes(file));
+  const directory = mkdtempSync(join(tmpdir(), 'actql-catalogue-common-ci-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  const calls = join(directory, 'calls.jsonl');
+  writeFileSync(join(bin, 'node'), '#!' + process.execPath + '\n' +
+    'const fs = require("node:fs"), args = process.argv.slice(2);\n' +
+    'const role = args.includes(' + JSON.stringify(file) + ') ? "catalogue" : ' +
+      'args.includes("scripts/ci-rest-actual-common.mjs") ? "rest" : "model";\n' +
+    'fs.appendFileSync(process.env.CALLS, JSON.stringify({role, runtime:process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME})+"\\n");\n' +
+    'process.exit(role === process.env.FAIL_ROLE ? 73 : 0);\n', {mode: 0o755});
+  for (const failed of ['', 'model', 'rest', 'catalogue']) {
+    writeFileSync(calls, '');
+    const result = run(gate.run, {PATH: bin + ':' + process.env.PATH, CALLS: calls, FAIL_ROLE: failed,
+      ACTQL_TEST_PROJECT_PROFILE_RUNTIME: '/original/host/connectors_builtin_node.js'});
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);
+    assert.equal(result.status, failed ? 73 : 0, result.stderr);
+    const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(observed.map(row => row.role), failed === 'model' ? ['model'] :
+      failed === 'rest' ? ['model', 'rest'] : ['model', 'rest', 'catalogue']);
+    assert(observed.every(row => row.runtime === '/original/host/connectors_builtin_node.js'));
+  }
+});
+
 test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
   const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
   const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));
@@ -193,8 +253,21 @@ for (const status of [0, 73]) test(`REST compiled-boundary runner preserves ${st
   const [{kind, args, options}] = calls;
   assert.equal(kind, 'node');
   assert.equal(args.filter(arg => arg === 'adapters/host-node/rest-source-page-typed.test.mjs').length, 1);
-  assert.equal(args[args.indexOf('--test-name-pattern') + 1], '^REST actual Common');
-  assert.equal(options.expectedTests, 2);
+  const pattern = args[args.indexOf('--test-name-pattern') + 1];
+  assert.equal(pattern, '^REST actual (?:Common|checked GET capacity preserves original reference Options$)');
+  const source = parseJavaScript(readFileSync(join(root, 'adapters/host-node/rest-source-page-typed.test.mjs'), 'utf8'),
+    {ecmaVersion: 'latest', sourceType: 'module'});
+  const selected = source.body.flatMap(node => {
+    const call = node.type === 'ExpressionStatement' ? node.expression : undefined;
+    return call?.type === 'CallExpression' && call.callee.type === 'Identifier' && call.callee.name === 'test' &&
+      typeof call.arguments[0]?.value === 'string' ? [call.arguments[0].value] : [];
+  }).filter(name => new RegExp(pattern, 'u').test(name));
+  assert.deepEqual(selected, [
+    'REST actual checked GET capacity preserves original reference Options',
+    'REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
+    'REST actual Common cursor capacity uses the original domain representation',
+  ]);
+  assert.equal(options.expectedTests, selected.length);
   assert(options.timeout > 0 && options.timeout <= 120000);
   assert.equal(options.cwd, root);assert.equal(options.env, env);
 });
@@ -224,17 +297,33 @@ test('Host REST controls reuse the Model Common build and cannot run after the p
   const directory = mkdtempSync(join(tmpdir(), 'actql-rest-common-ci-')), bin = join(directory, 'bin');
   t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
   const callsPath = join(directory, 'calls.txt');
-  writeFileSync(join(bin, 'node'), '#!/bin/sh\n' +
-    'printf "%s\\n" "$1" >> "$ACTQL_CI_CALLS"\n' +
-    'if [ "$1" = "scripts/local-checks.mjs" ]; then exit "$ACTQL_CI_MODEL_STATUS"; fi\n', {mode: 0o755});
-  for (const status of [0, 73]) {
+  writeFileSync(join(bin, 'node'), `#!${process.execPath}\n` +
+    "const {appendFileSync} = require('node:fs');\n" +
+    "const args = process.argv.slice(2);\n" +
+    "appendFileSync(process.env.ACTQL_CI_CALLS, JSON.stringify(args) + '\\n');\n" +
+    "if (args.includes(process.env.ACTQL_CI_FAIL_INPUT)) process.exit(73);\n", {mode: 0o755});
+  const modelFile = 'adapters/host-node/installed-project-model-task-funding.actual.test.mjs';
+  const restScript = 'scripts/ci-rest-actual-common.mjs';
+  const catalogueFile = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  for (const failedInput of ['', modelFile, restScript, catalogueFile]) {
     writeFileSync(callsPath, '');
     const result = run(gate.run, {PATH: bin + ':' + process.env.PATH,
-      ACTQL_CI_CALLS: callsPath, ACTQL_CI_MODEL_STATUS: String(status)});
-    assert.equal(result.status, status, result.stderr);
-    const calls = readFileSync(callsPath, 'utf8').trim().split('\n');
-    assert.equal(calls.filter(value => value === 'scripts/local-checks.mjs').length, 1);
-    assert.equal(calls.filter(value => value === 'scripts/ci-rest-actual-common.mjs').length, status === 0 ? 1 : 0);
+      ACTQL_CI_CALLS: callsPath, ACTQL_CI_FAIL_INPUT: failedInput});
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);
+    assert.equal(result.status, failedInput ? 73 : 0, result.stderr);
+    const calls = readFileSync(callsPath, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    const selected = input => calls.filter(args => args.includes(input));
+    assert.equal(selected(modelFile).length, 1);
+    assert.equal(selected(restScript).length, failedInput === modelFile ? 0 : 1);
+    assert.equal(selected(catalogueFile).length,
+      failedInput === modelFile || failedInput === restScript ? 0 : 1);
+    assert.equal(selected(modelFile)[0][0], 'scripts/local-checks.mjs');
+    assert.equal(calls[0], selected(modelFile)[0]);
+    if (selected(restScript).length) assert.equal(calls[1], selected(restScript)[0]);
+    if (selected(catalogueFile).length) {
+      assert.equal(selected(catalogueFile)[0][0], 'scripts/local-checks.mjs');
+      assert.equal(calls.at(-1), selected(catalogueFile)[0]);
+    }
   }
 });
 
@@ -282,6 +371,42 @@ test('packed INFER dispatch evidence retains only original code and tags without
   assert.equal(project({code: 'not a typed code', primaryCode: 'x'.repeat(129),
     issueTag: -1, nestedIssueTag: 65536}), undefined);
   assert.equal(reads, 0);
+});
+
+test('packed INFER dispatch evidence retains only existing bounded relative code sites', () => {
+  const message = 'adapters/host-common/runtime-result.mjs:8:25\n' +
+    'adapters/host-common/runtime-core.mjs:2448:29';
+  const primary = {phase: 'dispatch', kind: 'code_site', message};
+  let reads = 0;
+  Object.defineProperty(primary, 'error', {get() {reads++; throw Error('opaque');}});
+  const result = inferDispatchFailureData({code: 'MoonBitHostFailure', primaryDiagnostic: primary});
+  assert.deepEqual(result, {code: 'MoonBitHostFailure',
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message}});
+  assert(Object.isFrozen(result.primaryDiagnostic));
+  assert.notEqual(result.primaryDiagnostic, primary);
+  for (const invalid of ['/private/state/secret:1:1', 'adapters/../secret.mjs:1:1',
+    'Error: private message', 'adapters/module.mjs:1:1\n'.repeat(9), 'x'.repeat(2049)]) {
+    assert.deepEqual(inferDispatchFailureData({code: 'MoonBitHostFailure',
+      primaryDiagnostic: {...primary, message: invalid}}), {code: 'MoonBitHostFailure'});
+  }
+  const accessor = {phase: 'dispatch', kind: 'code_site'};
+  Object.defineProperty(accessor, 'message', {get() {reads++; throw Error('opaque');}});
+  assert.deepEqual(inferDispatchFailureData({code: 'MoonBitHostFailure',
+    primaryDiagnostic: accessor}), {code: 'MoonBitHostFailure'});
+  assert.equal(reads, 0);
+});
+
+test('packed INFER dispatch evidence preserves an existing original component issue as scalar DATA', () => {
+  const primary = {code: 'MoonBitHostFailure', phase: 'original_infer_component',
+    kind: 'call_scope.foreign_owner', task: 0, unit: 1, step: 2, secret: 'not copied'};
+  const result = inferDispatchFailureData({primaryDiagnostic: primary});
+  assert.deepEqual(result, {primaryDiagnostic: {code: 'MoonBitHostFailure',
+    phase: 'original_infer_component', kind: 'call_scope.foreign_owner', task: 0, unit: 1, step: 2}});
+  assert(Object.isFrozen(result.primaryDiagnostic));
+  for (const change of [{phase: 'future_owner'}, {kind: 'unrelated_issue'},
+    {task: -1}, {unit: 2147483648}, {step: undefined}]) {
+    assert.equal(inferDispatchFailureData({primaryDiagnostic: {...primary, ...change}}), undefined);
+  }
 });
 
 test('packed INFER terminal failure context excludes Run references rows and opaque values', () => {
@@ -752,6 +877,48 @@ test('Client preparation exposes runtime adapters and wire freshness as separate
   }
 });
 
+test('normal distribution executes all original Explanation consumers once after preparation', t => {
+  const files = ['client-run-explanation-https.test.mjs', 'client-run-explanation-sdk.test.mjs',
+    'client-original-explanation-journal.test.mjs', 'client-run-explanation.test.mjs']
+    .map(file => `adapters/host-node/${file}`);
+  const recipe = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ');
+  const job = jobs['client-distribution'];
+  let consumer;
+  for (const file of files) {
+    readFileSync(new URL('../' + file, import.meta.url));
+    assert.equal(recipe.filter(command => command.split(/\s+/u).includes(file)).length, 1, file);
+    const owners = Object.entries(jobs).flatMap(([name, value]) => (value.steps ?? [])
+      .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({name, step})));
+    assert.equal(owners.length, 1, file);
+    assert.equal(owners[0].name, 'client-distribution');
+    consumer ??= owners[0].step;
+    assert.equal(owners[0].step, consumer);
+    assert.equal(consumer.run.split(/\s+/u).filter(value => value === file).length, 1, file);
+  }
+  const prerequisite = job.steps.find(step => step.id === 'distribution-preparation');
+  assert(prerequisite && job.steps.indexOf(prerequisite) < job.steps.indexOf(consumer));
+  assert.equal(consumer.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(consumer['continue-on-error'], undefined);
+  assert.deepEqual(consumer.env, prerequisite.env);
+  const directory = mkdtempSync(join(tmpdir(), 'actql-explanation-ci-command-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  writeFileSync(join(directory, 'node'),
+    '#!/bin/sh\nprintf "%s\\n" "$@" > "$ACTQL_EXPLANATION_ARGS"\nexit "$ACTQL_EXPLANATION_STATUS"\n', {mode: 0o755});
+  const argumentsFile = join(directory, 'args.txt');
+  for (const status of [0, 73]) {
+    const actual = spawnSync('/bin/sh', ['-c', consumer.run], {cwd: root, encoding: 'utf8', timeout: 3000,
+      env: {...process.env, PATH: directory, ACTQL_EXPLANATION_ARGS: argumentsFile,
+        ACTQL_EXPLANATION_STATUS: String(status)}});
+    assert.equal(actual.error, undefined); assert.equal(actual.signal, null);
+    assert.equal(actual.status, status, actual.stderr);
+    const args = readFileSync(argumentsFile, 'utf8').trim().split('\n');
+    assert(args.includes('--test'));
+    assert(!args.some(arg => /^--test-(?:name|skip)-pattern/u.test(arg)));
+    for (const file of files) assert.equal(args.filter(arg => arg === file).length, 1, file);
+  }
+});
+
 test('source-response custody has one same-environment normal Client owner', () => {
   const file = 'adapters/host-common/source-response-custody.test.mjs';
   assert(!runs('client-distribution').some(command => command.split(/\s+/u).includes(file)));
@@ -883,6 +1050,13 @@ test('Client lanes cover local acceptance without positional command snapshots',
     return count === 1 ? [] : [`${count} owners: ${key}`];
   });
   assert.deepEqual(gaps, [], 'Missing or duplicated local acceptance across Client, lint and Host');
+  const contentFile = 'adapters/host-common/content-output-demand.test.mjs';
+  const callerJob = jobs['client-distribution-callers'];
+  const contentOwner = callerJob.steps.find(step => step.run?.split(/\s+/u).includes(contentFile));
+  assert(contentOwner, 'Content demand keeps its prepared caller owner');
+  assert.equal(contentOwner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(contentOwner['continue-on-error'], undefined);
+  assert(callerJob.steps.findIndex(step => step.id === 'distribution-preparation') < callerJob.steps.indexOf(contentOwner));
   const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert.deepEqual(hooks['postcheck:distribution-client'].split(' && '),
@@ -1014,7 +1188,8 @@ test('ordinary Local assets reuse tarballs while cold and external builds stay s
   assert(assets.includes(".resolve('@actql/local-node/runtime')"));
   assert(assets.includes("'adapters/host-node/installed-project-mock.actual.test.mjs'"));
   assert(assets.includes('ACTQL_TEST_PROJECT_COMMON_RUNTIME: installedCommon'));
-  assert(assets.includes('expectedTests: 9'));
+  assert(assets.includes('requireAllPassed: true'));
+  assert(!assets.includes('--test-name-pattern'), 'the installed Mock consumer selects the whole file');
   assert(assets.indexOf("run(process.execPath, ['smoke.mjs'], root)") <
     assets.indexOf('const installedCommon'));
   assert(assets.indexOf('const installedCommon') < assets.indexOf('scratch.passed()'));

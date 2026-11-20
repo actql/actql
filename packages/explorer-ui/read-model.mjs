@@ -1,4 +1,5 @@
 import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
+import {validWireRunExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -390,6 +391,10 @@ async function originalRunPlan(client, ref, ticket) {
   const original = Object.freeze({...ref});
   if (!validRunRef(original)) refuse('ExplorerInvalidRunPlan');
   const run = await currentRead(ticket, () => client.attach(original));
+  return {original, view: await originalRunPlanOnExecution(run, original, ticket)};
+}
+
+async function originalRunPlanOnExecution(run, original, ticket) {
   const view = await currentRead(ticket, () => {
     if (typeof run.plan !== 'function') refuse('ExplorerCapabilityUnavailable');
     return run.plan(projectionLimits);
@@ -400,13 +405,60 @@ async function originalRunPlan(client, ref, ticket) {
       view.run_ref.runDefinitionCid !== original.runDefinitionCid) {
     refuse('ExplorerInvalidRunPlan');
   }
-  return {original, view};
+  ticket.assertCurrent();
+  return view;
 }
 
 export async function readExistingRunPlan(client, ref, ticket) {
   const {original, view} = await originalRunPlan(client, ref, ticket);
   ticket.assertCurrent();
   return freeze({runRef: original, plan: planReadModel(view.plan_view)});
+}
+
+// Only the existing public Execution read may supply these retained originals.
+// Missing legacy Facts remain its authorized NotProjected result; neither Plan
+// nor static compilation is a fallback for this separate disclosure operation.
+export async function readExistingRunExplanation(client, ref, ticket) {
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
+  const run = await currentRead(ticket, () => client.attach(original));
+  return originalRunExplanationOnExecution(run, original, ticket);
+}
+
+async function originalRunExplanationOnExecution(run, original, ticket) {
+  const explain = run.explain;
+  ticket.assertCurrent();
+  if (typeof explain !== 'function') refuse('ExplorerCapabilityUnavailable');
+  const view = await currentRead(ticket, () => Reflect.apply(explain, run, [projectionLimits]));
+  if (!withinResultDescriptionLimits(view, projectionLimits) ||
+      !validWireRunExplanationViewShape(view) ||
+      view.run_ref.namespaceId !== original.namespaceId ||
+      view.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+      view.run_ref.runDefinitionCid !== original.runDefinitionCid) refuse('ExplorerInvalidExplanation');
+  ticket.assertCurrent();
+  return freeze(view);
+}
+
+// A private presentation composition of two existing public reads. It does
+// not change either closed wire family or recover originals from UI cards.
+export async function readExistingRunPresentation(client, ref, options, ticket) {
+  const locale = options?.locale ?? 'en';
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
+  const run = await currentRead(ticket, () => client.attach(original));
+  const explanation = await originalRunExplanationOnExecution(run, original, ticket);
+  if (explanation.explanation.state === 'not_projected') {
+    ticket.assertCurrent();
+    return freeze({runRef: original, plan: null, explanation: explanation.explanation});
+  }
+  const view = await originalRunPlanOnExecution(run, original, ticket);
+  // This original renderer checks the actual map/key/port anchors, and the
+  // parameter binding where declared Effects supply it. IDs grant nothing.
+  const story = explanationStoryModel(view.plan_view, explanation.explanation.facts, {locale});
+  const plan = planReadModel(view.plan_view);
+  ticket.assertCurrent();
+  return freeze({runRef: original, plan, explanation: {state: 'projected', story}});
 }
 
 // Capture presentation options before the first asynchronous read, then use

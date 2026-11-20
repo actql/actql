@@ -1,0 +1,31 @@
+{
+  "source": "24bf383caf9ad31fe921410ee6da2cd30ee4cb47",
+  "path": "src/platform_native/sqlite/moon.pkg",
+  "mode": "100644",
+  "sha256": "a0daf570148be64164de728248ed8f4b3df02262b9d4873cd04e2445c3b40281",
+  "bytes": 2103,
+  "qualification": "Finite current JS input-closure review of one Native-only test selector. No Native compiler, SQLite execution or cache-reuse authority.",
+  "previousRevision": "bddee734fca915cfca815562d1407ceb73d0e087",
+  "previousSha256": "c28caf8bc62627196f85a4c1fd729a19a02f08c7ed2bd66f7c0316ede17b4e5f",
+  "previousBytes": 2044,
+  "rule": "literal-native-options-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "key_capacity_growth_native_wbtest.mbt",
+      "targets": [
+        "native"
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "source": "24bf383caf9ad31fe921410ee6da2cd30ee4cb47",
+      "path": "src/platform_native/sqlite/key_capacity_growth_native_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "3b252662bd0e4e210890fd11ce6efdf2c352c2ad711842233789d3e8bfb199ca",
+      "bytes": 7556
+    }
+  ],
+  "meaning": "The actual SQLite transaction regression uses existing_database_fixture and native database methods. That existing fixture is already Native-only. Removing the sole added selector reconstructs the previous complete descriptor, including its paired Native/unsupported body-extent predicates. Imports, aliases, native compiler/link/stub settings and all other options are byte-exact. Every source remains bound even where JS does not execute it.",
+  "refusalPolicy": "Exact JS input identity only; Native/foreign targets, toolchains, changed options/imports/predicates/source membership and previous digests remain current-refused. Historical reviews are unchanged."
+}

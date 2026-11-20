@@ -19,7 +19,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
   faultInjection, assertRunCurrent, preparedRunRequired = false,
   prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun,
-  prepareModelManagedRun, retainPreparation}) {
+  prepareModelManagedRun, retainPreparation, prepareSerializationOutputDemand}) {
   const control = core.contentGenerationControl;
   const publications = core.publicationControl;
   const bodies = {registry, values, fragment, ordered};
@@ -112,14 +112,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     const {task, step} = plan.serializationGraph;
     let selectedOutputLimits = localOutputLimits, selectedIdentitySlots = identitySlots;
-    let selectedGenerationLimits;
-    if (!intermediate) {
-      const compiledLimits = publications.checkedClientSerializationGenerationLimits(
-        plan.compiled, plan.serializationGraph);
-      selectedGenerationLimits = Object.freeze({...generationLimits,
-        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
-        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
-    }
+    let selectedGenerationLimits = generationLimits;
     const definition = JSON.parse(plan.runDefinition.wire);
     const key = {namespaceId, authorityScopeCid, runDefinitionCid: plan.runDefinition.identity};
     let retired = false;
@@ -142,7 +135,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           typeof control.startRequestAcquiredPrefix !== 'function')) {
         throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
       }
-      if (intermediate) {
+      {
         if (original.generationLimits === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
         selectedGenerationLimits = original.generationLimits;
         selectedOutputLimits = original.outputLimits;
@@ -153,6 +146,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       managed = original.managed; capacity = original.capacity;
       if (acquiredContent !== undefined) ledger = acquiredContent.ledger;
     } else if (preparedRunRequired) {
+      const compiledLimits = publications.checkedClientSerializationGenerationLimits(plan.compiled, plan.serializationGraph);
+      selectedGenerationLimits = Object.freeze({...generationLimits,
+        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
+        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
       const original = preparedKeyedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
           original.failed || original.managed === undefined || original.managed.closed ||
@@ -168,6 +165,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       capacity = control.requestKeyedPrefixCapacity(selectedKeyed);
       ledger = acquiredContent.ledger;
     } else {
+      const compiledLimits = publications.checkedClientSerializationGenerationLimits(plan.compiled, plan.serializationGraph);
+      selectedGenerationLimits = Object.freeze({...generationLimits,
+        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
+        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
       capacity = control.prefixCapacity(preparedProgram, task, step, bodies, prefixLimits, workspace, source);
       // The source-free case already selected its same Request above. This
       // remaining explicit acquired route borrows its original Source Ledger.
@@ -337,7 +338,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
       publication = serializationTaskPublicationPlan({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
-        namespaceId, storeAuthorityCid, now,
+        namespaceId, storeAuthorityCid, now, managedPublication: managed, assertCurrent: assertRunCurrent,
         sourceEvidence: acquiredContent === undefined ? [] :
           [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean)});
       const execution = serializationPublicationExecution({moon, core, compiled: plan.compiled,
@@ -350,6 +351,23 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw error;
     }
   };
+  function selectOriginalOutputDemand(prepared, original) {
+    if (typeof prepareSerializationOutputDemand !== 'function') {
+      throw new TypeError('InstalledContentRunPreparationUnavailable');
+    }
+    const selected = prepareSerializationOutputDemand(prepared, original.plan.compiled, original.plan.serializationGraph,
+      generationLimits, referenceLimits, localContractLimits, localOutputLimits, identitySlots);
+    assertRunCurrent();
+    if (preparedRuns.get(prepared) !== original || original.retired || original.prepared !== prepared) {
+      throw new TypeError('ForeignInstalledContentRun');
+    }
+    // These fixed fields are constructed only after their same-Request debit.
+    // Execution consumes this exact selection; it never recalculates a quota.
+    original.generationLimits = selected.generationLimits;
+    original.outputLimits = selected.outputLimits;
+    original.identitySlots = selected.identitySlots;
+    original.workspace = selected.workspace;
+  }
   const run = options => execute(options);
   // The ordinary trusted Host prepares this exact checked Run before durable
   // admission. This Ledger expresses managed limits; platform allocation is
@@ -382,7 +400,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       retainOriginalPreparation(preparedProgram, original);
       // Retain the SAME Host bag before current/requirements projections.
       // The Request constructor owns the provider and original compilation.
-      original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, workspace, original);
+      selectOriginalOutputDemand(preparedProgram, original);
+      original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original);
       if (original.managed === undefined || original.managed.value === undefined ||
           original.managed.serialization === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
       original.capacity = control.requestPrefixCapacity(original.managed.serialization);
@@ -422,47 +441,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     preparedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);
-      const compiledLimits = publications.checkedClientSerializationGenerationLimits(
-        plan.compiled, plan.serializationGraph);
-      assertRunCurrent();
-      if (preparedRuns.get(preparedProgram) !== original || original.retired ||
-          original.plan !== plan || original.request !== request || original.model !== model) {
-        throw new TypeError('ForeignInstalledContentRun');
-      }
-      // Select once from the same nominal compilation before constructing the
-      // workspace. Execution uses this retained bound and cannot reissue it.
-      original.generationLimits = Object.freeze({...generationLimits,
-        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
-        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
-      // Only the SAME checked JSON-leaf input permits a closed row/column
-      // node bound. This never constrains the preceding prefix's input rows,
-      // and recursive/opaque inputs keep their original separate profile.
-      const rows = original.generationLimits.maxRows;
-      const fields = compiledLimits.jsonLeafFields;
-      const wireNodes = fields === undefined ? undefined : 1 + rows * (1 + fields);
-      const valueNodes = fields === undefined ? undefined : 1 + rows * (1 + 2 * fields);
-      if (fields !== undefined && (!Number.isSafeInteger(fields) || fields < 0 ||
-          !Number.isSafeInteger(wireNodes) || !Number.isSafeInteger(valueNodes))) {
-        throw new TypeError('InvalidInstalledContentInputShape');
-      }
-      original.outputLimits = fields === undefined ? localOutputLimits : Object.freeze({...localOutputLimits,
-        maxRows: rows, maxValueNodes: Math.min(localOutputLimits.maxValueNodes, valueNodes),
-        maxWireNodes: Math.min(localOutputLimits.maxWireNodes, wireNodes),
-        maxLogicalWireNodes: Math.min(localOutputLimits.maxLogicalWireNodes, wireNodes + 3),
-        maxColumns: Math.min(localOutputLimits.maxColumns, fields)});
-      // Three existing writer quotas, column summaries and the live stepped
-      // measure/key continuation are distinct. No row-sized JSON copy exists.
-      original.identitySlots = fields === undefined ? identitySlots
-        : 2 * original.outputLimits.maxWireNodes + original.outputLimits.maxLogicalWireNodes +
-          8 * original.outputLimits.maxColumns + 2 * original.outputLimits.maxValueDepth + 4;
-      original.workspace = control.workspaceCapacity({generation: original.generationLimits,
-        reference: referenceLimits, contract: localContractLimits,
-        output: original.outputLimits, identitySlots: original.identitySlots});
-      assertRunCurrent();
-      if (preparedRuns.get(preparedProgram) !== original || original.retired ||
-          original.plan !== plan || original.request !== request || original.model !== model) {
-        throw new TypeError('ForeignInstalledContentRun');
-      }
+      selectOriginalOutputDemand(preparedProgram, original);
       model.contentPreparation = original;
       original.managed = prepareModelManagedRun(preparedProgram, request, model);
       if (original.managed?.value === undefined || original.managed.serialization === undefined) {

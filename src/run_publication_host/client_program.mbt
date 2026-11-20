@@ -24,6 +24,9 @@ pub(all) enum ClientProgramPreparationIssue {
   Lowering(@lower.Issue)
   Binding(@lower.BindingIssue)
   Graph(@strategy.GraphIssue)
+  DebugGraph(@strategy.DebugTaskGraphIssue)
+  DebugProfileUnsupported
+  DebugGraphConstructionOverflow
 }
 
 ///|
@@ -2316,6 +2319,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
   calls_out? : Ref[Int64]? = None,
+  execution_profile? : ClientExecutionProfile = Normal,
 ) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
   let work = Ref(0L)
   let result = prepare_checked_effect_free_client_program_owned(
@@ -2328,6 +2332,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
     values_max_rows~,
     lowering_work_out=Some(work),
     calls_out~,
+    execution_profile~,
   )
   (result, work.val)
 }
@@ -2343,6 +2348,7 @@ fn prepare_checked_effect_free_client_program_owned(
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
   calls_out? : Ref[Int64]? = None,
+  execution_profile? : ClientExecutionProfile = Normal,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   // The checker already refused nonempty Effects on its Pure path. Read its
   // retained classification instead of copying/scanning every Stage again.
@@ -2364,6 +2370,7 @@ fn prepare_checked_effect_free_client_program_owned(
     values_max_rows~,
     lowering_work_out~,
     calls_out~,
+    execution_profile~,
   )
 }
 
@@ -2378,6 +2385,7 @@ fn compile_effect_free_checked_client_program(
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
   calls_out? : Ref[Int64]? = None,
+  execution_profile? : ClientExecutionProfile = Normal,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   if calls_out is Some(observed) {
     observed.val += 1L
@@ -2406,52 +2414,66 @@ fn compile_effect_free_checked_client_program(
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
-  match
-    @strategy.prepare_checked_dag(
-      checked,
-      owners,
-      max_tasks,
-      max_graph_work,
-      captured_prefix=client_program_acquisition_prefix(checked),
-      source_free_root=owners.length() > 0 &&
-        @pipeline.starts_with_selected_local_generator(
-          @lower.pipeline(@lower.bound_preparation(owners[0])),
-        ),
-    ) {
-    Ok(graph) => {
-      if values_max_rows is Some(max_rows) &&
-        !client_values_row_limit_supported(graph, max_rows) {
-        return Err(ValuesProfileUnsupported)
-      }
-      Ok({
-        graph,
-        sequence_preparation_demand,
-        check_environment_cid: @environment.cid(
-          @checked.checked_environment(checked),
-        ),
-        source: @checked.checked_source_program(checked),
-        local_normalization: None,
-        full_sequences: [],
-        task_pipeline_inputs: [],
-        compiler_contracts: None,
-        // The default covers authored inlet demand and checked closed outputs.
-        // An explicit installed row setting selects its first bound. The owned capacity
-        // plan still independently admits the actual execution resources.
-        local_values_max_rows: match values_max_rows {
-          Some(max_rows) => max_rows
-          None =>
-            Int::max(
-              client_standard_values_sequence_limits().max_rows,
-              Int::max(
-                sequence_preparation_demand.authored_literal_rows,
-                client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
-              ),
-            )
-        },
-      })
+  let graph = if execution_profile == Debug {
+    match
+      @strategy.prepare_checked_debug_dag(
+        checked,
+        owners,
+        max_tasks,
+        max_graph_work,
+        captured_prefix=client_program_acquisition_prefix(checked),
+        source_free_root=true,
+      ) {
+      Ok(graph) => graph
+      Err(issue) => return Err(DebugGraph(issue))
     }
-    Err(issue) => Err(Graph(issue))
+  } else {
+    match
+      @strategy.prepare_checked_dag(
+        checked,
+        owners,
+        max_tasks,
+        max_graph_work,
+        captured_prefix=client_program_acquisition_prefix(checked),
+        source_free_root=owners.length() > 0 &&
+          @pipeline.starts_with_selected_local_generator(
+            @lower.pipeline(@lower.bound_preparation(owners[0])),
+          ),
+      ) {
+      Ok(graph) => graph
+      Err(issue) => return Err(Graph(issue))
+    }
   }
+  if values_max_rows is Some(max_rows) &&
+    !client_values_row_limit_supported(graph, max_rows) {
+    return Err(ValuesProfileUnsupported)
+  }
+  Ok({
+    graph,
+    sequence_preparation_demand,
+    check_environment_cid: @environment.cid(
+      @checked.checked_environment(checked),
+    ),
+    source: @checked.checked_source_program(checked),
+    local_normalization: None,
+    full_sequences: [],
+    task_pipeline_inputs: [],
+    compiler_contracts: None,
+    // The default covers authored inlet demand and checked closed outputs.
+    // An explicit installed row setting selects its first bound. The owned capacity
+    // plan still independently admits the actual execution resources.
+    local_values_max_rows: match values_max_rows {
+      Some(max_rows) => max_rows
+      None =>
+        Int::max(
+          client_standard_values_sequence_limits().max_rows,
+          Int::max(
+            sequence_preparation_demand.authored_literal_rows,
+            client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
+          ),
+        )
+    },
+  })
 }
 
 ///|

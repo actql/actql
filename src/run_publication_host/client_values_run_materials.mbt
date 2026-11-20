@@ -32,6 +32,7 @@ pub(all) enum ClientValuesRunMaterialsIssue {
   MaterialsConstructionRefused(String)
   /// A funded original projection failed at this exact encoding boundary.
   MaterialsEncoding(String, @encode.EncodeFailure)
+  MaterialsNormalization(ClientLocalNormalizationIssue)
 }
 
 ///|
@@ -157,6 +158,11 @@ fn issue_client_run_materials_input(
     prepared_client_identity(prepared) else {
     return Err(MaterialsRunMismatch)
   }
+  let normalization_wire = match
+    client_run_materials_normalization_wire(prepared) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   encode_client_run_materials_body(
     admission,
     definition,
@@ -164,6 +170,7 @@ fn issue_client_run_materials_input(
     environment_wire,
     program,
     parameters_wire,
+    normalization_wire~,
     infer_input~,
     infer_inputs_wire~,
   )
@@ -668,6 +675,7 @@ fn read_client_run_materials_input(
   limits : ClientValuesRunMaterialsLimits,
   allow_infer? : Bool = false,
   numeric_profile_cid? : String? = None,
+  restore_normalization? : ((PreparedClientProgram, String) -> Bool)? = None,
 ) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(
@@ -681,9 +689,6 @@ fn read_client_run_materials_input(
   }
   if body.infer_native_read_profile is Some(_) {
     return Err(MaterialsEvidence("infer_native_read_profile"))
-  }
-  if body.normalization_wire is Some(_) {
-    return Err(MaterialsEvidence("normalization_journal"))
   }
   if body.target_selections_wire is Some(_) {
     return Err(MaterialsEvidence("effect_target_selections"))
@@ -708,6 +713,47 @@ fn read_client_run_materials_input(
     Ok(value) => value
     Err(issue) => return Err(MaterialsProgram(issue))
   }
+  if body.normalization_wire is Some(wire) {
+    match restore_normalization {
+      Some(restore) =>
+        if !restore(prepared, wire) {
+          return Err(
+            MaterialsConstructionRefused("local_normalization_original"),
+          )
+        }
+      None => {
+        let (audit, _) = observe_prepare_client_local_normalization(prepared, {
+          max_work: limits.preparation.checking.compilation.work,
+          max_wire_bytes: limits.max_evidence_bytes,
+          max_nodes: limits.max_evidence_nodes,
+          max_depth: limits.max_evidence_depth,
+        })
+        let audit = match audit {
+          Err(issue) => return Err(MaterialsNormalization(issue))
+          Ok(value) => value
+        }
+        match admit_prepared_client_local_normalization(audit, wire) {
+          Err(issue) => return Err(MaterialsNormalization(issue))
+          Ok(_) => ()
+        }
+      }
+    }
+  }
+  if body.normalization_wire is Some(wire) {
+    guard prepared_client_local_normalization_original(prepared)
+      is Some(original) else {
+      return Err(MaterialsNormalization(ForeignPreparation))
+    }
+    let evidence = match
+      prepared_client_local_normalization_evidence(prepared, original) {
+      Err(issue) => return Err(MaterialsNormalization(issue))
+      Ok(value) => value
+    }
+    if @publication.run_evidence_value_json(evidence) != wire {
+      return Err(MaterialsNormalization(SubstitutedJournal))
+    }
+  }
+
   Ok({
     prepared,
     materials_wire: materials,
@@ -847,4 +893,25 @@ fn admit_client_values_run_materials_input(
     Ok(_) => Ok({ prepared, compilation, admission, run_definition, })
     Err(issue) => Err(MaterialsBinding(issue))
   }
+}
+
+///|
+// Borrow the exact retained journal. Absence stays absent; this projection
+// never audits, normalizes or seals a replacement.
+fn client_run_materials_normalization_wire(
+  prepared : PreparedClientProgram,
+) -> Result[String?, ClientValuesRunMaterialsIssue] {
+  Ok(
+    match prepared_client_local_normalization_original(prepared) {
+      None => None
+      Some(original) => {
+        let evidence = match
+          prepared_client_local_normalization_evidence(prepared, original) {
+          Err(issue) => return Err(MaterialsNormalization(issue))
+          Ok(value) => value
+        }
+        Some(@publication.run_evidence_value_json(evidence))
+      }
+    },
+  )
 }

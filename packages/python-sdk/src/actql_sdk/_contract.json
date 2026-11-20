@@ -176,6 +176,13 @@
       "maxWireBytes",
       "maxNodes",
       "maxDepth"
+    ],
+    "run-explanation": [
+      "connection",
+      "ref",
+      "maxWireBytes",
+      "maxNodes",
+      "maxDepth"
     ]
   },
   "request_optional_fields": {
@@ -193,6 +200,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "submit-intent": {
@@ -201,6 +211,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "submit-named-intent": {
@@ -209,6 +222,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "restart-intent": {
@@ -217,6 +233,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     }
   },
@@ -1612,6 +1631,9 @@
         },
         "readOnly": {
           "const": true
+        },
+        "executionProfile": {
+          "const": "debug"
         }
       }
     },

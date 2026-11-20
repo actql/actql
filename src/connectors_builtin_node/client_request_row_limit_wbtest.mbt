@@ -2,6 +2,7 @@
 fn request_row_limit_fixture(
   rows : Int,
   max_rows : Int,
+  filtered? : Bool = false,
 ) -> (
   @client_local_host.ClientRequestPreparation[
     ClientLocalPreparationInputOriginal,
@@ -20,9 +21,19 @@ fn request_row_limit_fixture(
   let values = Array::makei(rows, n => "{\"id\":" + n.to_string() + "}").join(
     ",",
   )
+  let filter_step = if filtered {
+    ",{\"from\":\"v\",\"filter\":\"id >= 1\",\"as\":\"filtered\"}"
+  } else {
+    ""
+  }
+  let result_from = if filtered { "filtered" } else { "v" }
   let document = "{\"version\":\"actql/0.1\",\"id\":\"selected-row-limit\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
     values +
-    "]},\"as\":\"v\"}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"id\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
+    "]},\"as\":\"v\"}" +
+    filter_step +
+    "],\"results\":{\"rows\":{\"from\":\"" +
+    result_from +
+    "\",\"fields\":[\"id\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"s\",\"result\":\"rows\"}}}}"
   let (parent, receipt) = request_diagnostic_test_parent()
   client_program_prepare_request_native_computation(
     parent,
@@ -39,6 +50,14 @@ fn request_row_limit_fixture(
     ).unwrap(),
     "effect_free",
   )
+  if filtered {
+    // The normal manager retains normalization and authoring before its first
+    // Plan inventory borrow. Keep those originals on this SAME Request too.
+    client_program_prepare_request_program_normalization(parent, receipt).unwrap()
+    |> ignore
+    client_program_prepare_request_program_authoring_context(parent, receipt).unwrap()
+    |> ignore
+  }
   let holder = client_program_borrow_request_program_plan_input(parent, receipt).unwrap()
   let prepared = client_program_preparation_borrow_read(holder).unwrap()
   assert_eq(client_program_values_max_rows(prepared), max_rows)
@@ -124,6 +143,78 @@ test "selected Request one-row-short ceiling retains original typed Plan refusal
   assert_true(client_program_preparation_borrow_retirement_started(holder))
   assert_true(client_program_preparation_borrow_return(holder).unwrap())
   client_program_abort_request_preparation(parent).unwrap()
+}
+
+///|
+test "filtered Request one-row-short compilation keeps exact ValuesLimit and original cleanup" {
+  // Three authored input rows still exceed the explicit two-row ceiling,
+  // even though this filter would leave two output rows. This is the same
+  // input-policy shape as the original 101/100 public refusal.
+  let (parent, receipt, holder, prepared) = request_row_limit_fixture(
+    3,
+    2,
+    filtered=true,
+  )
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = @client_local_host.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  // The Journal explanation path compiles this SAME Request before module
+  // construction. The default installed retained-output setting is false.
+  let refusal = client_program_prepare_request_program_compilation(
+    parent, receipt, contracts, false,
+  ).map(_ => ())
+  let exact_leaf = refusal
+    is Err(
+      Preparation(
+        Construction(
+          Graph(
+            Fragment(AoA(Pipeline(Sequence(ValuesFailure(0, ValuesLimit)))))
+          )
+        )
+      )
+    )
+  let category = client_program_request_program_module_issue_code(refusal)
+  let same_original = physical_equal(
+    client_program_preparation_borrow_read(holder).unwrap(),
+    prepared,
+  )
+  let retained_row_limit = client_program_values_max_rows(prepared)
+  // Retire the SAME partial module/parent before an assertion can fail.
+  let held_abort = client_program_abort_request_preparation(parent)
+  let retiring = client_program_preparation_borrow_retirement_started(holder)
+  let returned = client_program_preparation_borrow_return(holder).unwrap()
+  client_program_abort_request_preparation(parent).unwrap()
+  let reached = match refusal {
+    Err(Preparation(Construction(Graph(Fragment(AoA(Pipeline(issue))))))) =>
+      match issue {
+        Sequence(ValuesFailure(step, ValuesLimit)) =>
+          "construction-values-limit-step-" + step.to_string()
+        Sequence(ValuesFailure(_, _)) => "construction-other-values-failure"
+        Sequence(SequenceLimit) => "construction-sequence-limit"
+        Sequence(_) => "construction-other-sequence-failure"
+        MissingTask => "construction-missing-task"
+        NotSingleValues => "construction-not-single-values"
+        Encoding => "construction-pipeline-encoding"
+      }
+    Err(Preparation(Construction(Graph(Fragment(AoA(_)))))) =>
+      "construction-other-aoa-failure"
+    Err(Preparation(Construction(_))) => "construction-other-failure"
+    Err(Preparation(Installed(_))) => "installed-failure"
+    Err(Preparation(_)) => "other-preparation-failure"
+    Err(_) => "other-bridge-failure"
+    Ok(_) => "unexpected-success"
+  }
+  assert_true(exact_leaf, msg=reached)
+  assert_true(same_original)
+  assert_eq(retained_row_limit, 2)
+  assert_true(held_abort is Err(_))
+  assert_true(retiring)
+  assert_true(returned)
+  assert_eq(category, Some("values_profile_unsupported"))
 }
 
 ///|

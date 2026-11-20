@@ -13,6 +13,8 @@ import {composeInstalledSourceEnvironment} from '../host-node/installed-funded-e
 import {contentCid} from '../host-node/local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
 import {retireNodeInferOriginalRead} from '../host-node/infer-operation.mjs';
+import {declaredProjectWritableRuntimeConstructionGeometry}
+  from '../host-node/declared-project-catalog-construction.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const mockRealization = 'installed-multi-acquired';
@@ -111,16 +113,15 @@ async function prepareProjectMockDeclarations(moon, project, profile,
     connections: connectionOriginal.connections,
     assertCurrent: current, openFile, installationInventory});
   let sources = catalog.sources;
-  const targets = sources.flatMap(source => source.writes.map(write => ({source, write})));
-  if (targets.length > 1) fail('InstalledMockCatalogueUnavailable');
-  let writable = targets[0];
+  let writables = catalog.writables;
+  let writable = writables.length === 1 ? writables[0] : undefined;
   let mappingWire = writable?.write.mappingWire;
   current();
   let originals = Object.freeze({physicalKind: 'declared-json-document',
     project: projectOriginal, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
     dataFile: locators.dataFile, dataPath: resolve(project.directory, locators.dataFile),
-    sources, mappingWire, writable, catalog});
+    sources, mappingWire, writable, writables, catalog});
   let retired = false, view;
   function same(runtime, receiver) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
@@ -135,15 +136,45 @@ async function prepareProjectMockDeclarations(moon, project, profile,
       }
       return originals;
     },
+    async constructWritableRuntime(runtime, phase, source, projectImplementation) {
+      same(runtime, this);
+      if (retired || typeof projectImplementation !== 'function' || installationInventory === undefined) {
+        fail('InstalledMockImplementationConstructionUnavailable');
+      }
+      current();
+      let value;
+      try {
+      const result = installationInventory.prepareMetadataInput(Object.freeze({
+        capacity() {
+          const {retained, workspace} = declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, source);
+          return checked(moon.clientProgramInstalledSourceConstructionCapacity(
+            retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
+        }, project() {
+          // Retain the actual physical owner BEFORE the reader's completion or
+          // following current fence can fail. Never recreate it for cleanup.
+          value = projectImplementation();
+          return value;
+        },
+      }));
+      current();
+      return result;
+      } catch (cause) {
+        if (value?.file !== undefined) {
+          throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: {close: value.file.close}});
+        }
+        throw cause;
+      }
+    },
     retire(runtime) {
       same(runtime, this);
       if (retired) return;
       // Managed references only, after the actual Source parent's close. This
       // cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs.
       retired = true;
-      originals = sources = mappingWire = writable = catalog = connections = connectionOriginal = undefined;
+      originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;
       projectOriginal = selection = project = profile = profilePorts = ports = undefined;
       assertCurrent = openFile = undefined;
+      installationInventory = undefined;
     },
   });
   return view;
@@ -238,7 +269,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         records.delete(record.prepared);
         for (const key of Object.keys(model)) model[key] = undefined;
         model.closed = true;
-        record.prepared = record.request = record.original = record.value = record.model = record.failure = undefined;
+        record.prepared = record.request = record.original = record.value = record.model = record.managed = record.failure = undefined;
         record.reads.length = 0; record.aliasesReleased = true; record.retired = true;
       }};
     record = {prepared, request, model, requestOwned: true, effectful: false, original: undefined,
@@ -248,6 +279,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       // The original Host owns module/Scope/partial failure on this Request.
       // Local retains this SAME model carrier before either can be issued.
       const run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
+      // The mutable Host record owns the real Run and cuts its heavyweight
+      // fields at retirement. Do not copy its opaque Run into another owner.
+      record.managed = run;
       record.original = run.original; record.value = run.value; record.preparationFunded = true;
       sameRun(prepared);
       return record.value;
@@ -262,8 +296,30 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       if (model.closed || typeof model.publicationCapacity !== 'function') fail('HostResultPublicationUnavailable');
       return model.publicationCapacity();
     };
+    const managed = run.managed, scope = model.scope, selection = model.selection,
+      component = model.component, budget = model.budget, graph = model.graph,
+      control = model.control, publication = model.publicationCapacity;
+    const publicationCurrent = () => {
+      if (managed !== undefined && Object.hasOwn(managed, 'failure')) throw managed.failure;
+      if (closing || run.retired || model.closed || model.scopeFinished || !run.requestOwned ||
+          run.model !== model || run.managed !== managed || managed === undefined || managed.closed ||
+          managed.retiringModel || managed.retiringContent || managed.model !== model || managed.runtime !== moon ||
+          managed.prepared !== prepared || managed.request !== run.request || managed.value !== run.value ||
+          run.value === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
+          model.scope !== scope || model.control !== control || model.publicationCapacity !== publication ||
+          model.selection !== selection || selection?.graph !== graph ||
+          model.graph !== graph || model.component !== component || model.budget !== budget) {
+        fail('ForeignInstalledModelPreparation');
+      }
+    };
     return Object.freeze({control: model.control, compiled: model.compiled, selection: model.selection,
-      component: model.component,
+      component: model.component, managedPublication: managed,
+      assertRuntimeCurrent() {
+        // Closed/failed originals refuse before retained installation hooks.
+        publicationCurrent();
+        if (sameRun(prepared) !== run) fail('ForeignInstalledModelPreparation');
+        publicationCurrent();
+      },
       runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,

@@ -261,3 +261,21 @@ test('recovery material reservation binds the same native Definition used by lat
     parent, input, f.request, {...f.definition}, 1, wireAt, 2), /Foreign/u);
   assert.equal(reservations, 1);
 });
+
+test('installed Infer capture requires the same Request material constructor without standalone fallback', () => {
+  const f = fixture(), parent = {}, input = {};
+  let calls = 0;
+  f.moon.clientProgramIssueRequestInferRunMaterials = (p, i, compiled, definition) => {
+    assert.strictEqual(p, parent); assert.strictEqual(i, input);
+    assert.strictEqual(compiled, f.raw); assert.strictEqual(definition, f.definitionToken);
+    calls++; return {$tag: 1, _0: 'original-materials'};
+  };
+  const capture = () => f.control.captureOriginalClientInferRun(f.compiled, f.prepared,
+    f.definition, f.request, undefined, undefined, {parent, input});
+  capture();
+  assert.equal(calls, 1);
+  assert.equal(f.counts().issues, 0);
+  delete f.moon.clientProgramIssueRequestInferRunMaterials;
+  assert.throws(capture, /Missing Client original Infer material reservation/u);
+  assert.equal(f.counts().issues, 0);
+});

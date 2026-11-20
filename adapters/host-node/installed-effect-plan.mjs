@@ -162,7 +162,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
 // extents describe returned/workspace DATA, never policy, grants or a Plan.
 // Common alone composes the native quantities, control codec and operation slots.
 export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits, limits, construction,
-  requestConstruction, physicalConstruction, targetReadOperation}) {
+  requestConstruction, physicalConstruction, targetReadOperation, footprintCapacity}) {
   if (typeof operation !== 'string' || !operation || !operation.isWellFormed() ||
       !construction || nodeTypes.isProxy(construction) || !Object.isFrozen(construction)) {
     fail('InstalledPhysicalWriteConstructionUnavailable');
@@ -259,17 +259,25 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
       return Object.freeze({phase, operationIndex});
     }));
   }
+  const memberOperations = [Object.freeze({operation: captureOperation, extent: capture}),
+    Object.freeze({operation: captureOperation, extent: recoveryExtent})];
+  let footprintConstruction;
+  if (footprintCapacity !== undefined) {
+    const name = operation + '.footprint';
+    footprintConstruction = Object.freeze({operationIndex: memberOperations.length});
+    memberOperations.push(Object.freeze({operation: name, extent: extent(name, footprintCapacity, 0n, false)}));
+  }
   return captureInstalledEffectPlanRecipe(Object.freeze({
-    memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture}),
-      Object.freeze({operation: captureOperation, extent: recoveryExtent})]),
+    memberOperations: Object.freeze(memberOperations),
     rowOperations: Object.freeze(rowOperations),
     ...(ownedReadOperations === undefined ? {} : {ownedReadOperations}),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
     recoveryConstruction: Object.freeze({operationIndex: 1, inputExtent: recoveryInputExtent}),
+    ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
     requestConstruction: Object.freeze({operationIndex: 0}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
-  }), rowOperations.length + 2);
+  }), rowOperations.length + memberOperations.length);
 }
 
 // The selected Host supplies original typed extents from its actual implementation

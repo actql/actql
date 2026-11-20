@@ -350,6 +350,7 @@ pub fn client_program_effect_model_unit_result_export_issue_kind(
     Err(Pin(_)) => Some("pin")
     Err(Artifact(_)) => Some("artifact")
     Err(Manifest(_)) => Some("manifest")
+    Err(Retention(_)) => Some("retention")
     Err(Export(issue)) =>
       Some(
         match issue {
@@ -416,6 +417,7 @@ pub fn client_program_effect_model_unit_result_artifact_issue_kind(
     Err(Pin(_)) => Some("pin")
     Err(Export(_)) => Some("export")
     Err(Manifest(_)) => Some("manifest")
+    Err(Retention(_)) => Some("retention")
   }
 }
 

@@ -397,12 +397,15 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan'].includes(operation)) {
+  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan', 'run-explanation'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
     snapshotted = true;
   }
+  // The structural read's original ref cannot change during awaited Host
+  // authentication/authorization. This is its already-captured private copy.
+  if (operation === 'run-explanation') Object.freeze(body.ref);
   if (retainSnapshot === true) {
     if (!snapshotted) {
       try { body = snapshotClientRequest(body); }
@@ -456,12 +459,13 @@ export function validClientBody(operation, body) {
       requestId: body.submissionRef.nonce, kind: body.kind,
       input: body.input, parameters: body.parameters,
       ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-      ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}) &&
+      ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
+      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})}) &&
       (body.parameters === null || typeof body.parameters === 'object' &&
         !Array.isArray(body.parameters));
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
-  if (operation === 'inspect-run' || operation === 'run-plan') {
+  if (operation === 'inspect-run' || operation === 'run-plan' || operation === 'run-explanation') {
     return validRunRef(body.ref) &&
       Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
       Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&

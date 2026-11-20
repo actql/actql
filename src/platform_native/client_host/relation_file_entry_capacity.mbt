@@ -60,56 +60,16 @@ fn native_relation_file_entry_read_control_capacity(
   let source = @row_file.native_relation_file_caller_preparation_evaluation_inventory(
     selection,
   )
-  guard @execution.preparation_representation_cost({
-      record_headers: 12L +
-      26L +
-      5L +
-      3L +
-      11L +
-      4L +
-      22L +
-      5L +
-      key_records +
-      source.record_headers +
-      6L +
-      16L +
-      16L +
-      9L +
-      diagnostic,
-      reference_slots: 2L +
-      20L +
-      12L +
-      3L +
-      29L +
-      7L +
-      13L +
-      2L +
-      19L +
-      3L * selection.items_path.length().to_int64() +
-      key_fields +
-      source.reference_slots +
-      25L +
-      12L +
-      11L +
-      diagnostic,
-      scalar_words: 25L +
-      60L +
-      8L +
-      3L +
-      11L +
-      3L +
-      59L +
-      2L +
-      key_tag +
-      source.scalar_words +
-      12L +
-      12L +
-      11L +
-      6L +
-      diagnostic,
-      owned_utf16_units: 237L,
-      owned_wire_bytes: 0L,
-    })
+  guard @execution.preparation_representation_cost(
+      native_relation_file_entry_read_control_units(
+        selection.items_path.length().to_int64(),
+        key_fields,
+        key_records,
+        key_tag,
+        source,
+        diagnostic,
+      ),
+    )
     is Some(bytes) else {
     return None
   }
@@ -211,4 +171,67 @@ pub fn native_relation_whole_file_entry_read_capacity(
     return None
   }
   @execution.execution_capacity(r, e)
+}
+
+///|
+// Shared constructor counts for the logical quote and Native placement.
+// This helper introduces no second tariff or physical/accounting Owner.
+fn native_relation_file_entry_read_control_units(
+  items : Int64,
+  key_fields : Int64,
+  key_records : Int64,
+  key_tag : Int64,
+  source : @execution.PreparationRepresentationUnits,
+  diagnostic : Int64,
+) -> @execution.PreparationRepresentationUnits {
+  {
+    record_headers: 12L +
+    26L +
+    5L +
+    3L +
+    11L +
+    4L +
+    22L +
+    5L +
+    key_records +
+    source.record_headers +
+    6L +
+    16L +
+    16L +
+    9L +
+    diagnostic,
+    reference_slots: 2L +
+    20L +
+    12L +
+    3L +
+    29L +
+    7L +
+    13L +
+    2L +
+    19L +
+    3L * items +
+    key_fields +
+    source.reference_slots +
+    25L +
+    12L +
+    11L +
+    diagnostic,
+    scalar_words: 25L +
+    60L +
+    8L +
+    3L +
+    11L +
+    3L +
+    59L +
+    2L +
+    key_tag +
+    source.scalar_words +
+    12L +
+    12L +
+    11L +
+    6L +
+    diagnostic,
+    owned_utf16_units: 237L,
+    owned_wire_bytes: 0L,
+  }
 }

@@ -187,3 +187,84 @@ test "submitted read-only choice is true-only original data with absent compatib
     )
   }
 }
+
+///|
+test "submitted Debug profile preserves every original continuation choice and identity" {
+  // Independent canonical preimages include the same closed original choices.
+  let cases = [
+    (
+      "{\"input\":{},\"kind\":\"program\",\"parameters\":null}", "sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44",
+    ),
+    (
+      "{\"input\":{},\"kind\":\"program\",\"parameters\":null,\"stopBefore\":\"commit\"}",
+      "sha256:4f9c3ae04162c1dba9cdc083c925ac8898e23d8f1b9da298ced13d3d62886d07",
+    ),
+    (
+      "{\"input\":{},\"kind\":\"program\",\"parameters\":null,\"readOnly\":true}",
+      "sha256:2b7e2e13949315aa9877b748f60fd0b922f8271d663808af2fabd61c12745719",
+    ),
+    (
+      "{\"input\":{},\"kind\":\"program\",\"parameters\":null,\"readOnly\":true,\"stopBefore\":\"commit\"}",
+      "sha256:6fc7f2fe17d41a4046ce88ef910a9ecc5882cd2d9a9306a7bffdf2e33a8682e8",
+    ),
+    (
+      "{\"executionProfile\":\"debug\",\"input\":{},\"kind\":\"program\",\"parameters\":null}",
+      "sha256:ee4ef9588ad0ec98796f9ac103e26564ad13cb1c31a787795b5df14f484bf573",
+    ),
+    (
+      "{\"executionProfile\":\"debug\",\"input\":{},\"kind\":\"program\",\"parameters\":null,\"stopBefore\":\"commit\"}",
+      "sha256:92a88cc96424fc036b9b940f34c44896203ddb2e609168af059f552688c452d8",
+    ),
+    (
+      "{\"executionProfile\":\"debug\",\"input\":{},\"kind\":\"program\",\"parameters\":null,\"readOnly\":true}",
+      "sha256:536e441bf1aaa6d43e61eedb01a8c044125b1d510112be9870f54a85712f80fc",
+    ),
+    (
+      "{\"executionProfile\":\"debug\",\"input\":{},\"kind\":\"program\",\"parameters\":null,\"readOnly\":true,\"stopBefore\":\"commit\"}",
+      "sha256:5870db08d088ad47d0d434982a7ae6f2b7e0724cf3406e8f2dbd125724c2c4d9",
+    ),
+  ]
+  for index in 0..<cases.length() {
+    let (wire, cid) = cases[index]
+    let original = prepare_client_submitted_intent(wire, 4096, 128, 16).unwrap()
+    assert_eq(client_submitted_intent_wire(original), wire)
+    assert_eq(client_submitted_intent_cid(original), cid)
+    assert_eq(
+      client_submitted_intent_requests_commit_stop(original),
+      (index & 1) != 0,
+    )
+    assert_eq(
+      client_submitted_intent_requests_read_only(original),
+      (index & 2) != 0,
+    )
+    assert_eq(
+      client_submitted_intent_execution_profile(original),
+      if (index & 4) != 0 {
+        Debug
+      } else {
+        Normal
+      },
+    )
+    let changed = prepare_client_submitted_intent(
+      cases[if index < 4 { index + 4 } else { index - 4 }].0,
+      4096,
+      128,
+      16,
+    ).unwrap()
+    for phase in ["preparing", "held", "ready", "preparation_failed"] {
+      assert_true(
+        observe_client_submitted_intent(original, Some((changed, phase)))
+        is Ok(SubmissionConflict),
+      )
+    }
+  }
+  for choice in ["null", "false", "1", "\"normal\"", "\"\"", "{}", "[]"] {
+    let wire = "{\"kind\":\"program\",\"input\":{},\"parameters\":null,\"executionProfile\":" +
+      choice +
+      "}"
+    assert_true(
+      prepare_client_submitted_intent(wire, 4096, 128, 16)
+      is Err(InvalidEnvelope),
+    )
+  }
+}

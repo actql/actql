@@ -10,7 +10,8 @@ import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {installedEffectIdentity, loadInstalledEffect as loadEffect,
   publishInstalledEffectProfile} from './installed-effect.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
-import {installedUpdateTargets} from './installed-effect-inventory.mjs';
+import {installedUpdateTargets, installedUpdateTargetDisclosure} from './installed-effect-inventory.mjs';
+import {installNodeClientCheck} from './client-check.mjs';
 import {installedInventoryComponent} from './fixtures/installed-inventory-component.fixture.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
@@ -126,7 +127,7 @@ async function fixture(t, installations = {main: adapter()}, ownerMoon = moon) {
             body: canonicalJson(mapping)})),
           site: {issueReadGrant: unavailable, issueEffectGrant: unavailable,
             close() { if (!siteClosed) {siteClosed = true; counts.closes++;} return true; }},
-          authorization: {authorize: unavailable},
+          authorization: selected.authorization ?? {authorize: unavailable},
           driver,
         });
         originalRows.add(row);
@@ -256,6 +257,85 @@ async function pluralOriginalOwnerFixture(t, count, physicalRuntimes) {
   const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
   return {...f, installed, physicalMoon, names, prepared, compilation, control, limits, originals};
 }
+
+async function staticTargetCheck(t, {action = 'dispatch', afterRead, current} = {}) {
+  const decisions = [];
+  const authorization = Object.freeze({
+    assertConfigurationCurrent() { current?.(); },
+    async authorize(boundary, tuple, options) {
+      decisions.push({boundary, tuple, options});
+      await afterRead?.();
+      if (action === 'throw') throw new Error('PrivateMetadataUnavailable');
+      return {action};
+    },
+  });
+  const f = await fixture(t, {main: {...adapter(), authorization}});
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  t.after(() => installed.close());
+  const environment = admitted(installed.environmentWire);
+  const publication = sourceAliasPublication(moon, environment, [], [],
+    {updateTargets: installed.queryUpdateTargets});
+  const disclosure = installedUpdateTargetDisclosure(installed, publication.updateTargets,
+    'fixture', () => current?.());
+  const check = installNodeClientCheck({moon, environment, publication,
+    updateTargetDisclosure: disclosure, contextKey: Buffer.alloc(32, 7)});
+  return {...f, installed, publication, disclosure, decisions,
+    check: (assignment, signal) => check({principalId: 'fixture', kind: 'text', scope: 'bound_input',
+      input: {format: 'aql-text', text: "SELECT 'id' AS id, 'Ada' AS name |> RESULT updates " +
+        `|> EFFECT UPDATE crm.Account FROM RESULT updates ID id SET (Name = ${assignment})`},
+      parameters: null, signal})};
+}
+
+test('static UPDATE disclosure reaches the actual Common checker without provider or Effect work', async t => {
+  const f = await staticTargetCheck(t);
+  const legal = await f.check('name');
+  assert.equal(legal.report?.verdict, 'verified', JSON.stringify(legal));
+  const wrongType = await f.check('1');
+  assert.equal(wrongType.report?.verdict, 'invalid', JSON.stringify(wrongType));
+  assert.equal(wrongType.report.requirements.length, 0);
+  assert.equal(f.decisions.length, 2);
+  for (const {boundary, tuple, options} of f.decisions) {
+    assert.equal(boundary, 'acquisition');
+    assert.deepEqual(tuple, {connection: 'fixture', resource: 'account', operation: 'read'});
+    assert.equal(options.subjectCid, f.publication.updateTargets[0].installationOwnerCid);
+    assert.equal(options.allowDeferral, false);
+  }
+  assert.equal(f.counts.prepares, 0); assert.equal(f.counts.credentials, 0);
+});
+
+test('static UPDATE disclosure keeps denied and unavailable originals protected', async t => {
+  for (const action of ['deny', 'waiting', 'failure', 'unsupported', 'throw']) {
+    const f = await staticTargetCheck(t, {action});
+    const report = await f.check('name');
+    assert.equal(report.report?.verdict, 'undetermined', JSON.stringify(report));
+    assert.equal(f.decisions.length, 1);
+    assert.equal(f.counts.prepares, 0); assert.equal(f.counts.credentials, 0);
+  }
+});
+
+test('static UPDATE disclosure preserves original ownership, currentness and cancellation', async t => {
+  let live = true;
+  const f = await staticTargetCheck(t, {current() {if (!live) throw Error('MetadataRetired');}});
+  const request = {principalId: 'fixture'};
+  assert.deepEqual(await f.disclosure.visibleFor(request), f.publication.updateTargets);
+  assert.deepEqual(await f.disclosure.visibleFor({principalId: 'foreign'}), []);
+  const copied = installedUpdateTargetDisclosure({...f.installed}, f.publication.updateTargets,
+    'fixture', () => {});
+  assert.deepEqual(await copied.visibleFor(request), []);
+  live = false;
+  await assert.rejects(f.disclosure.visibleFor(request), /MetadataRetired/u);
+  const controller = new AbortController();
+  const cancelled = await staticTargetCheck(t, {afterRead() {controller.abort();}});
+  await assert.rejects(cancelled.disclosure.visibleFor({...request, signal: controller.signal}),
+    {name: 'AbortError'});
+  let generation = 0;
+  const changed = await staticTargetCheck(t, {afterRead() {generation++;},
+    current() {if (generation) throw Error('MetadataChanged');}});
+  await assert.rejects(changed.disclosure.visibleFor(request), /MetadataChanged/u);
+  for (const selected of [f, cancelled, changed]) {
+    assert.equal(selected.counts.prepares, 0); assert.equal(selected.counts.credentials, 0);
+  }
+});
 
 test('plural current issues each actual physical owner once per fresh observation for all logical members', async t => {
   const f = await pluralOriginalOwnerFixture(t, 17);

@@ -52,7 +52,7 @@ fn command_preparation_cleanup_cause(
       }
     CommandRead(cause) =>
       match cause {
-        Domain(_) => "Domain"
+        Domain(original) => command_read_domain_cause(original)
         Child(_) => "Child"
         Read(_) => "Read"
         Buffer(_) => "Buffer"
@@ -384,6 +384,39 @@ fn command_preparation_cleanup_cause(
             InvalidBootstrap => "ReadInvalidBootstrap"
             Resource(_) => "ReadResource"
           }
+      }
+    CommandBusinessQueryPlan(cause) =>
+      match cause {
+        Preparation(Capacity(_)) => "QueryPlanCapacity"
+        Preparation(ForeignOriginal) => "QueryPlanForeignOriginal"
+        Preparation(Policy) => "QueryPlanPolicy"
+        ModelSource(InvalidContracts) => "QueryContracts"
+        _ => "QueryPlanPreparation"
+      }
+    CommandBusinessQueryRequirement(cause) =>
+      match cause {
+        Sequences => "QuerySequences"
+        MissingStage => "QueryMissingStage"
+        Requirement(_) => "QueryRequirement"
+      }
+    CommandBusinessQueryRow(cause) =>
+      match cause {
+        ForeignDeclaration => "QueryForeignDeclaration"
+        InvalidContracts => "QueryContracts"
+        Source(_) => "QuerySourceSelection"
+        SourceEvidence(_) => "QuerySourceEvidence"
+        Physical(_) => "QuerySourceCapacity"
+        _ => "QuerySourcePreparation"
+      }
+    CommandBusinessQueryCapture(cause) =>
+      match cause {
+        ForeignOriginal => "QueryCaptureForeignOriginal"
+        InsufficientCapacity => "QueryCaptureCapacity"
+        MetadataCapacityUnavailable => "QueryCaptureMetadataCapacity"
+        Resource(_) | Ledger(_) | Preparation(_) => "QueryCaptureResource"
+        Sequence(_) => "QueryCaptureSequence"
+        CleanupPending => "QueryCaptureCleanupPending"
+        _ => "QueryCapturePlan"
       }
     CommandBusinessModelGraph(cause) =>
       match cause {

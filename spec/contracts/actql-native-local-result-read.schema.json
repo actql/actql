@@ -25,11 +25,9 @@
             "enabled",
             "principal",
             "connection",
-            "result_names",
             "formats",
             "purpose",
             "sink",
-            "data_policy_cids",
             "max_bytes",
             "max_uses"
           ],
@@ -129,6 +127,21 @@
               "minLength": 1,
               "maxLength": 128,
               "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            },
+            "result_selection": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "requested_original_result"
+                }
+              }
+            },
+            "accepted_run_policy": {
+              "const": true
             }
           },
           "oneOf": [
@@ -173,6 +186,82 @@
                   "expires_at"
                 ]
               }
+            }
+          ],
+          "allOf": [
+            {
+              "oneOf": [
+                {
+                  "required": [
+                    "result_names"
+                  ],
+                  "not": {
+                    "required": [
+                      "result_selection"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "result_selection",
+                    "run_policy_profile_cid",
+                    "run_file",
+                    "retention_file",
+                    "store_file"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "result_names"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "expires_at"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "oneOf": [
+                {
+                  "required": [
+                    "data_policy_cids"
+                  ],
+                  "not": {
+                    "required": [
+                      "accepted_run_policy"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "accepted_run_policy",
+                    "run_policy_profile_cid",
+                    "run_file",
+                    "retention_file",
+                    "store_file"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "data_policy_cids"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "expires_at"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

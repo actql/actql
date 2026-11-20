@@ -1294,3 +1294,29 @@ file/frame, resource, work, deadline, cancellation and physical-close rules
 remain applicable; none is enlarged by the new profile. Saved admission still
 validates the complete reference graph, current reference custody and authority.
 Missing or foreign attempt evidence continues to refuse publication.
+
+## Explicit first-Plan Debug execution profile
+
+Observation delivery and structural Explanation Facts describe an original Run;
+they do not choose its physical strategy. Normal can fuse multiple logical
+operations, so physical completion alone cannot represent each operation's
+execution boundary. The existing submission/query options therefore admit the
+closed optional `executionProfile: 'debug'` choice before the first Plan. Its
+absence preserves the original Normal packet and intent CID. The same original
+intent, named/restart conflict rules and checked compiler own the selection;
+there is no post-compilation graph swap, new Run or second scheduler.
+
+The selected strategy is funded before construction by the existing Request
+capacity, including simultaneous original/expanded graphs and actual wrappers.
+A smaller internal intent selection word does not supply spare Debug funding.
+The initial Node implementation is limited to its genuinely admitted source-free
+Pure Values path. Other paths report an implementation capability boundary
+before selected construction or Provider execution; they do not reinterpret the
+language, silently choose Normal or invent logical keys for fused work.
+
+The extensible Host capability string is conditional on the actual compiled
+supplier and owner admission. Existing closed control outputs remain unchanged.
+Account/current/egress, Sample and control permissions stay separate. Saved
+reads consume original retained metadata and do not compile, reacquire or repair
+missing Facts. This is an additive initial 0.1 optional choice, with unchanged
+normal defaults, identity domain and old absent-field representations.

@@ -124,7 +124,8 @@ fn prepare_local_submitted_run_rows_original(
     ) {
     return Err(ForeignPreparation)
   }
-  if task_materials is Some(original) && !physical_equal(original.plan, plan) {
+  if task_materials is Some(original) &&
+    !physical_equal(@host.client_task_materials_original_plan(original), plan) {
     return Err(ForeignPreparation)
   }
   match
@@ -192,10 +193,12 @@ fn prepare_local_submitted_run_rows_original(
         cancellation_requested: false,
         publication_binding: None,
         publication_policy_originals: task_materials.map(value => {
-          value.publication_policy_originals
+          @host.client_task_materials_original_policy(value)
         }),
         effect_material_originals: None,
-        task_materials_cid: task_materials.map(value => value.cid),
+        task_materials_cid: task_materials.map(value => {
+          @host.client_task_materials_original_cid(value)
+        }),
         checkpoint: None,
       },
       local_run_policy_originals=local_policy_original,
@@ -283,10 +286,24 @@ pub fn validate_local_saved_submitted_rows(
   submission_key : String,
   submission_revision : Int64,
   submission_body : Bytes,
+  row_original? : @host.ClientRunJournalRowOriginal? = None,
 ) -> Result[Unit, LocalSubmittedRunRowsIssue] {
   local_saved_submitted_row_originals(
-    value, plan, preparation, run_key, run_revision, run_body, submission_key, submission_revision,
+    value,
+    plan,
+    preparation,
+    run_key,
+    run_revision,
+    run_body,
+    submission_key,
+    submission_revision,
     submission_body,
+    decode_run=bytes => {
+      @host.decode_client_run_journal_row_with_observation_originals(
+        bytes,
+        original=row_original,
+      )
+    },
   ).map(_ => ())
 }
 
@@ -330,12 +347,15 @@ fn local_saved_submitted_row_originals(
   // finite Policy packet is immutable, including its initial issued_at.
   if saved_policy != value.local_policy_original ||
     saved_observation != value.observation_originals ||
-    run.task_materials_cid != value.task_materials.map(original => original.cid) {
+    run.task_materials_cid !=
+    value.task_materials.map(original => {
+      @host.client_task_materials_original_cid(original)
+    }) {
     return Err(CustodyLost)
   }
   if value.task_materials is Some(original) &&
     run.publication_policy_originals !=
-    Some(original.publication_policy_originals) {
+    Some(@host.client_task_materials_original_policy(original)) {
     return Err(CustodyLost)
   }
   let submitted = match

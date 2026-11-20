@@ -65,6 +65,15 @@ fn reserve_capacity_current(
   }
   if execution_bytes >
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
+    capacity_observation(
+      ledger,
+      14,
+      serial,
+      execution_bytes,
+      0L,
+      ledger.limits.execution_bytes,
+      usage.reserved_execution_bytes,
+    )
     return Err(ExecutionLimit)
   }
   let retained = usage.held_bytes +
@@ -106,6 +115,7 @@ fn reserve_capacity_current(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
+  capacity_observation(ledger, 3, serial, 0L, execution_bytes, 0L, 0L)
   record_original_reservation(ledger, reservation)
   Ok({ reservation, })
 }
@@ -375,6 +385,7 @@ fn resize_reservation_bytes_current(
   }
   token.retention = retained
   token.execution = execution
+  capacity_observation(ledger, 4, token.serial, 0L, execution, 0L, 0L)
   Ok(())
 }
 
@@ -406,6 +417,15 @@ fn back_reservation_bytes_current(
   }
   if execution_delta >
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
+    capacity_observation(
+      ledger,
+      11,
+      token.serial,
+      execution_delta,
+      token.execution,
+      ledger.limits.execution_bytes,
+      usage.reserved_execution_bytes,
+    )
     return Err(ExecutionLimit)
   }
   match

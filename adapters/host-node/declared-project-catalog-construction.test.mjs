@@ -411,3 +411,35 @@ test('final immutable entry overload uses actual data count and original mapping
   assert.ok(q.nodes < finalGeometry(JSON.stringify(entry), '{}', mappings, 2).nodes);
   assert.deepEqual(q, finalGeometry(entry, '{}', ['{}'], 2));
 });
+
+import {declaredProjectCatalogEntryHostConstructionGeometry as hostOnlyGeometry,
+  declaredProjectCatalogSavedInputArraysConstructionGeometry as arraysOnlyGeometry}
+  from './declared-project-catalog-construction.mjs';
+
+test('Common catalogue projection leaves only actual Host metadata descriptors in JS geometry', () => {
+  const entry = deepFreeze(sample('日本語😀\\"\n'));
+  const q = hostOnlyGeometry(entry), old = entryProjectionGeometry(entry);
+  assert.equal(q.bounds.views, 1n);
+  assert.equal(q.retained.text, 0n);
+  assert.equal(q.workspace.wire, 0n, 'SHA/UTF8 belongs to the separately quoted Common projection');
+  assert.ok(q.retained.nodes > 0n && q.workspace.nodes > 0n);
+  assert.ok(old.retained.text > q.retained.text);
+  assert.throws(() => hostOnlyGeometry(new Proxy(entry, {get() {assert.fail('no getter');}})));
+});
+
+test('Common catalogue exact returned wire is borrowed by funded restore arrays without another serialization', () => {
+  const views = deepFreeze([{resource: 'records', resource_kind: 'record',
+    schema_wire: '{"id":{"nullable":false,"type":"string"}}',
+    schema_cid: 'sha256:' + '0'.repeat(64), facts_wire: '{"x":"雪"}'}]);
+  const parse = JSON.parse, stringify = JSON.stringify;
+  JSON.parse = JSON.stringify = () => {throw new Error('array quote must not parse/serialize');};
+  try {
+    const q = arraysOnlyGeometry(views);
+    assert.equal(q.bounds.views, 1n);
+    assert.equal(q.retained.text, 0n);
+    assert.equal(q.workspace.text, 0n);
+    assert.equal(q.retained.nodes, 24n); // wrapper10 + seven arrays(1+one item)
+    assert.equal(q.workspace.nodes, 80n); // existing freeze/control overlap3*24+8
+    assert.throws(() => arraysOnlyGeometry(views.slice()), /InvalidDeclaredProjectCatalogConstructionGeometry/u);
+  } finally {JSON.parse = parse; JSON.stringify = stringify;}
+});

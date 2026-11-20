@@ -10,7 +10,9 @@ import {withInstalledFamilyFirstClose, assertFamilyReadState,
   installedFamilyResultOnOriginal} from './fixture-source/adapters/host-node/fixtures/installed-family-read.fixture.mjs';
 import {loadExternalRestModules} from './installed-modules.mjs';
 import {resolveInstalledCompletionModules} from './timed-installed-context.fixture.mjs';
-import {timedValuesProgram, timedSourceProgram, assertTimedRows, wallObservation} from './timed-inputs.fixture.mjs';
+import {createTimedLogicalObservation, assertTimedLogicalObservation} from './logical-observation.fixture.mjs';
+import {timedValuesProgram, timedSourceProgram, assertTimedRows, wallObservation,
+  assertTimedValuesExplanation} from './timed-inputs.fixture.mjs';
 
 const [configurationPath, phase] = process.argv.slice(2);
 assert(configurationPath && ['read', 'saved'].includes(phase));
@@ -24,13 +26,21 @@ const scalarFailure = cause => ({name: String(cause?.name ?? 'Error'),
   message: String(cause?.message ?? cause), ...(typeof cause?.code === 'string' ? {code: cause.code} : {})});
 const report = {requestKind, phase, counters: {installedResolutionAttempts: 0, publicStart: 0,
   publicStartSource: 0, publicAttach: 0, publicWait: 0, publicStatus: 0, publicResultAll: 0,
-  publicClose: 0, secretResolutions: 0}, firstCloseAcknowledged: false,
+  publicClose: 0, publicExplain: 0, secretResolutions: 0}, firstCloseAcknowledged: false,
   compilerInvocations: {observable: false, value: null},
   internalModuleInitializationCount: {observable: false, value: null},
   generatedInstallationLoadBoundary: {required: requestKind === 'source', observed: false},
   performanceAcceptance: false};
-let client, primary, observation, countedClose;
+let client, primary, observation, countedClose, logicalObservation, originalExplanation, originalRef, originalRunId;
 try {
+  if (Object.hasOwn(configuration, 'executionProfile')) {
+    assert.equal(configuration.executionProfile, 'debug');
+    assert.equal(requestKind, 'values');
+  }
+  if (Object.hasOwn(configuration, 'logicalObservation')) {
+    assert.equal(configuration.logicalObservation, true);
+    assert.equal(requestKind, 'values', 'LogicalMetadataSelectionIsSourceFreeOnly');
+  }
   let connect, publicSdk, connectorTable, productModules, loadedInstallationExports;
   report.counters.installedResolutionAttempts++;
   if (requestKind === 'source') {
@@ -40,10 +50,16 @@ try {
     report.generatedInstallationLoadBoundary = {required: true, observed: true,
       loadedInstallationExports, initializationCount: 'UNOBSERVABLE'};
   } else {
-    const modules = await resolveInstalledCompletionModules(resolve(configuration.consumerRoot));
+    const modules = await resolveInstalledCompletionModules(resolve(configuration.consumerRoot),
+      {observation: configuration.logicalObservation === true});
     publicSdk = createRequire(modules.node)('@actql/sdk');
     ({connect} = await import(pathToFileURL(modules.node).href));
     productModules = modules;
+    if (modules.observation !== undefined) {
+      const {createHostObservationConnection} = await import(pathToFileURL(modules.observation).href);
+      assert.equal(typeof createHostObservationConnection, 'function');
+      logicalObservation = createTimedLogicalObservation(createHostObservationConnection);
+    }
     assert(!Object.hasOwn(configuration.installation, 'sourceProfilePath'));
     assert(!Object.hasOwn(configuration.installation, 'sourceProfilePaths'));
   }
@@ -65,11 +81,14 @@ try {
     original = {reference: JSON.parse(await readFile(join(root, 'original-reference.json'), 'utf8')),
       rows: JSON.parse(await readFile(join(root, 'original-rows.json'), 'utf8')),
       state: JSON.parse(await readFile(join(root, 'original-state.json'), 'utf8'))};
+    if (requestKind === 'values') original.explanation =
+      JSON.parse(await readFile(join(root, 'original-explanation.json'), 'utf8'));
     assertFamilyReadState(original.state);
   }
   try {
     client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation: {
       ...configuration.installation,
+      ...(logicalObservation === undefined ? {} : {observation: logicalObservation.connection}),
       ...(requestKind === 'source' ? {connectorTable, async resolveSourceSecret() {
         report.counters.secretResolutions++;
         return readFile(configuration.fixtureSecretPath, 'utf8');
@@ -97,7 +116,11 @@ try {
     if (phase === 'read') {
       const program = requestKind === 'values' ? timedValuesProgram() : timedSourceProgram(configuration.connectorId);
       let pending;
-      if (requestKind === 'values') {report.counters.publicStart++; pending = client.start(program);}
+      if (requestKind === 'values') {
+        report.counters.publicStart++;
+        pending = Object.hasOwn(configuration, 'executionProfile')
+          ? client.start(program, {executionProfile: configuration.executionProfile}) : client.start(program);
+      }
       else {report.counters.publicStartSource++; pending = client.startSource(JSON.stringify(program), {format: 'json'});}
       const settled = Promise.resolve(pending).then(value => ({value}), cause => ({failed: true, cause}));
       let input;
@@ -135,12 +158,32 @@ try {
     else assertFamilyReadState(state);
     report.physicalStop = state.control?.physical_stop ?? 'UNOBSERVABLE';
     assert.equal(report.physicalStop, 'confirmed', 'ActualPublicPhysicalStopNotConfirmed');
+    if (requestKind === 'values') {
+      // This is a read of the SAME first admitted Run, after its full Result
+      // and current status. No extra submission, compile or repair entrance.
+      // Keep Saved's original first-all-before-status order unchanged above.
+      report.counters.publicExplain++;
+      const explanation = await execution.explain({maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
+      await save(phase === 'read' ? 'original-explanation.json' : 'saved-explanation.json', explanation);
+      report.structuralExplanation = assertTimedValuesExplanation(explanation,
+        execution.ref, original?.explanation);
+      originalExplanation = explanation; originalRef = execution.ref; originalRunId = state.run_id;
+    }
   });
+  if (logicalObservation !== undefined) {
+    // Read only after the SAME first close has drained/returned its actual
+    // deliveries. No sleep, manual flush, callback ACK or second close.
+    const snapshot = logicalObservation.snapshot();
+    await save('logical-observation.json', snapshot);
+    report.logicalObservation = assertTimedLogicalObservation(snapshot,
+      originalExplanation, originalRef, originalRunId, phase);
+  }
   assert.equal(report.counters.publicStart, phase === 'read' && requestKind === 'values' ? 1 : 0);
   assert.equal(report.counters.publicStartSource, phase === 'read' && requestKind === 'source' ? 1 : 0);
   assert.equal(report.counters.publicAttach, phase === 'saved' ? 1 : 0);
   assert.equal(report.counters.publicWait, phase === 'read' ? 1 : 0);
   assert.equal(report.counters.publicStatus, 1); assert.equal(report.counters.publicResultAll, 1);
+  assert.equal(report.counters.publicExplain, requestKind === 'values' ? 1 : 0);
   assert.equal(report.counters.publicClose, 1);
   if (phase === 'saved' || requestKind === 'values') assert.equal(report.counters.secretResolutions, 0);
   report.passed = true;
@@ -159,6 +202,13 @@ try {
     ? 'After initialization/fixture failure, no public close ACK'
     : 'After the original first public close attempt; ACK recorded separately';
   report.fdAfterFirstClose = observeOwnScopedStateFds(configuration.stateRoots);
+  if (logicalObservation !== undefined && report.logicalObservation === undefined) {
+    try {await save('logical-observation-on-failure.json', logicalObservation.snapshot());}
+    catch (cause) {
+      report.logicalObservationPersistenceFailure = scalarFailure(cause);
+      primary ??= cause;
+    }
+  }
   if (!primary && (!report.firstCloseAcknowledged || !report.fdAfterFirstClose.scopedStateFd0)) {
     primary = new Error('ActualOriginalCloseOrScopedPhysicalReleaseNotConfirmed');
     report.passed = false; report.primary = scalarFailure(primary);

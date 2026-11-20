@@ -384,13 +384,9 @@ pub fn export_local_run_materials(
 /// Read-only projection of this same nominal Plan's existing materials and
 /// publication policy. The physical Host saves all chunks with first ready
 /// acceptance; this value grants no durable custody or permission to start.
-pub struct LocalRunTaskMaterialsOriginal {
-  plan : LocalRunPlan
-  wire : String
-  cid : String
-  chunks : Array[(String, String)]
-  publication_policy_originals : String
-}
+pub type LocalRunTaskMaterialsOriginal = @host.ClientTaskMaterialsOriginal[
+  LocalRunPlan,
+]
 
 ///|
 pub fn capture_local_run_task_materials_original(
@@ -406,48 +402,39 @@ pub fn capture_local_run_task_materials_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let cid = match @host.client_task_material_original_cid(wire) {
-    Ok(value) => value
-    Err(issue) => return Err(OriginalEncoding(issue))
-  }
-  let chunks = match
-    @host.client_task_material_original_chunks(
-      @host.client_request_scope_cid(plan.request),
-      wire,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(OriginalEncoding(issue))
-  }
-  let publication_policy_originals = match
-    @host.issue_client_run_policy_originals(
-      plan.prepared,
-      compiled=plan.compiled,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(PolicyOriginals(issue))
-  }
-  Ok({ plan, wire, cid, chunks, publication_policy_originals, })
+  @host.capture_client_task_materials_original(
+    plan,
+    @host.client_request_scope_cid(plan.request),
+    wire,
+    () => {
+      @host.issue_client_run_policy_originals(
+        plan.prepared,
+        compiled=plan.compiled,
+      ).map_err(issue => PolicyOriginals(issue))
+    },
+    issue => OriginalEncoding(issue),
+  )
 }
 
 ///|
 pub fn local_run_task_materials_original_cid(
   original : LocalRunTaskMaterialsOriginal,
 ) -> String {
-  original.cid
+  @host.client_task_materials_original_cid(original)
 }
 
 ///|
 pub fn local_run_task_materials_original_chunks(
   original : LocalRunTaskMaterialsOriginal,
 ) -> Array[(String, String)] {
-  original.chunks.copy()
+  @host.client_task_materials_original_chunks(original)
 }
 
 ///|
 pub fn local_run_task_materials_original_policy(
   original : LocalRunTaskMaterialsOriginal,
 ) -> String {
-  original.publication_policy_originals
+  @host.client_task_materials_original_policy(original)
 }
 
 ///|

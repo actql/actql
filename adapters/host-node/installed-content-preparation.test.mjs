@@ -43,6 +43,11 @@ function fixture(keyed = false) {
     }},
   }, registry: '{}', values: '{}', ownerPrincipal: 'fixture', preparedRunRequired: true,
   assertRunCurrent: current, retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},
+  prepareSerializationOutputDemand(program, actual, graph, generation, _reference, _contract, output, identitySlots) {
+    assert.equal(program, preparedProgram); assert.equal(actual, compiled); assert.equal(graph, plan.serializationGraph);
+    return {generationLimits: generation, outputLimits: output, identitySlots,
+      workspace: Object.freeze({retainedBytes: 3n, executionBytes: 5n})};
+  },
   prepareSerializationManagedRun(program, identity, selected, limits) {
     assert.equal(program, preparedProgram); assert.equal(identity, request); assert.equal(selected, plan);
     assert.equal(limits.maxWork, 1000000); managedPreparations++;
@@ -53,7 +58,8 @@ function fixture(keyed = false) {
     assert.equal(graph, plan.serializationGraph);
     assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
     assert.equal(recipe.task, 0); assert.equal(recipe.step, 1);
-    assert.equal(recipe.prefixRetainedBytes, 13n); assert.equal(recipe.prefixExecutionBytes, 19n);
+    assert.equal(recipe.prefixLimits.maxRows, 10000); assert.equal(recipe.prefixLimits.maxWork, 1000000);
+    assert.deepEqual(recipe.workspace, {retainedBytes:3n,executionBytes:5n});
     assert.strictEqual(recipe.keyedAcquisition, acquisition);
     assert.equal(Object.isFrozen(recipe), true);
     retainedRecipe = recipe; keyedPreparations++;
@@ -81,7 +87,7 @@ test('ordinary keyed Content borrows its admitted original Run without a standal
   const f = fixture(true); f.compile();
   f.run.prepareManagedKeyedRun(f); f.run.prepareManagedKeyedRun(f);
   assert.strictEqual(f.run.prepareKeyedLedger({...f, capturedContent: true}), f.ledger);
-  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 1});
   assert.throws(() => f.run.prepareManagedKeyedRun({...f, request: {}}), {message: 'ForeignInstalledContentRun'});
   assert.throws(() => f.run.prepareKeyedLedger({...f, plan: {...f.plan}, capturedContent: true}),
@@ -95,7 +101,7 @@ test('ordinary keyed Content reuses a checked request projection without reissui
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
   assert.throws(() => f.run.prepareManagedKeyedRun({...f,
     request: {...f.request, intent: 'sha256:' + 'c'.repeat(64)}}), {message: 'ForeignInstalledContentRun'});
-  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
 });
 
 test('ordinary keyed Content refuses a foreign selection before admission and never replaces its original', () => {
@@ -128,7 +134,7 @@ test('ordinary keyed Content retains the original preparation failure without re
   f.failKeyed(undefined);
   assert.throws(() => f.compile(), error => error === failure);
   assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
-  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
 });
 
 test('ordinary Content prepares the same checked Run once and refuses a copied plan', () => {

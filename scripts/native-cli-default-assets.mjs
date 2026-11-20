@@ -34,6 +34,8 @@ export function nativeLocalDefaultAssets(sourceRoot = root) {
     ['fragment', json(aoa.execution_contracts['ACTQL.expression_fragment/0.1'])],
     ['ordered', json(aoa.execution_contracts['REL.derive.ordered'])],
     ['result-policy', Buffer.from(policy)],
+    ['query', json(JSON.parse(read('spec/contracts/actql-query-acquisition.json')))],
+    ['query-evidence', json(JSON.parse(read('spec/contracts/actql-query-process-evidence.json')))],
   ]);
   for (const [role, bytes] of assets) {
     assert(bytes.length > 0 && bytes.length <= 65536, `Bounded original required: ${role}`);

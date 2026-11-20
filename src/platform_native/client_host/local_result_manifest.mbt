@@ -28,6 +28,7 @@ fn NativeLocalHostConnection::lookup_original_result_names_json_with_operations(
   namespace_id : String,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  requested_name? : String? = None,
 ) -> Result[String?, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   let authority = match
@@ -117,13 +118,26 @@ fn NativeLocalHostConnection::lookup_original_result_names_json_with_operations(
         Ok(value) => value
         Err(issue) => return Err(PublicationObservation(issue))
       }
-      match
-        @publication.public_index_manifest_result_names_json(
-          index, manifest, 65536, 8192, 64,
-        ) {
-        Ok(value) => Some(value)
-        Err(issue) =>
-          return Err(PublicationObservation(DeliveryIssuance(issue)))
+      match requested_name {
+        None =>
+          match
+            @publication.public_index_manifest_result_names_json(
+              index, manifest, 65536, 8192, 64,
+            ) {
+            Ok(value) => Some(value)
+            Err(issue) =>
+              return Err(PublicationObservation(DeliveryIssuance(issue)))
+          }
+        Some(name) =>
+          match
+            @publication.public_index_manifest_has_original_result(
+              index, manifest, name,
+            ) {
+            Ok(true) => Some(name)
+            Ok(false) => None
+            Err(issue) =>
+              return Err(PublicationObservation(DeliveryIssuance(issue)))
+          }
       }
     }
   }

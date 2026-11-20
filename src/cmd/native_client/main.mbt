@@ -911,6 +911,13 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      // Project creation belongs to the installed Node launcher. Native
+      // advertises that public entrance but never adopts an empty init call.
+      @argparse.Command(
+        "init",
+        about="Create a project through the actql launcher",
+        arg_required_else_help=true,
+      ),
       @argparse.Command(
         "project-init-support",
         about="Report project binding implementation availability",
@@ -1449,6 +1456,11 @@ fn command() -> @argparse.Command {
       @argparse.Command(
         "status",
         about="Show a Run state or watch for changes",
+        groups=[
+          @argparse.ArgGroup("run-reference", required=true, args=[
+            "run", "run-id", "ref-file", "submission-ref-file",
+          ]),
+        ],
         flags=[
           @argparse.FlagArg(
             "json",

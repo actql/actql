@@ -33,6 +33,94 @@ fn command_diagnostic_fixture(
 }
 
 ///|
+test "Preparation stage tags retain the same original failure across Read return" {
+  let cases : Array[(@local_host.NativeClientSubmittedPreparationIssue, String)] = [
+    (
+      Preparation(Computation(EffectNotSupported("PRIVATE_SOURCE"))),
+      "Preparation:Computation",
+    ),
+    (
+      Preparation(EffectComputation(RequestValuePolicyConstruction)),
+      "Preparation:EffectComputation",
+    ),
+    (RequestPreparation(WrongPhase), "RequestPreparation"),
+  ]
+  for (original, tag) in cases {
+    local_command_diagnostic_reset()
+    let stopped = try {
+      local_stop_submitted_preparation(original)
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    let returned = command_preparation_read_return_issue(
+      Some(Err(stopped)),
+      CommandAdoption(@local_host.OriginalResourceScopePending),
+    )
+    guard returned is CommandApplication(retained) else {
+      fail(
+        "the failed return must preserve the same primary application failure",
+      )
+    }
+    assert_eq(retained, stopped)
+    let (code, message) = local_command_primary_diagnostic(retained)
+    assert_eq(code, "ACTQL_E_PREPARATION_FAILED")
+    assert_eq(
+      message,
+      "The original preparation could not be completed. [" + tag + "]",
+    )
+    assert_true(message.length() < 160)
+    let wire = local_command_failure_text(retained, true)
+    guard @json.parse(wire) is Object(fields) else {
+      fail("the original public diagnostic must remain an object")
+    }
+    assert_eq(fields.length(), 2)
+    assert_eq(fields.get("code"), Some(Json::string(code)))
+    assert_eq(fields.get("message"), Some(Json::string(message)))
+    assert_false(wire.contains("PRIVATE_SOURCE"))
+    assert_false(wire.contains("OriginalResourceScopePending"))
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
+// This independently bounds every selected nullary presentation variant. It
+// does not fabricate the read-only Request/normalization error constructors.
+test "Closed preparation stages fit the unchanged diagnostic writer envelope" {
+  for
+    kind in [
+      PreparationFailed,
+      PreparationFailedFrontend,
+      PreparationFailedCheck,
+      PreparationFailedComputation,
+      PreparationFailedEffectComputation,
+      PreparationFailedRequest,
+      PreparationFailedRequestPreparation,
+      PreparationFailedNormalizationPreparation,
+      PreparationFailedNormalization,
+    ] {
+    local_command_diagnostic_reset()
+    command_preparation_diagnostic.val = kind
+    let (code, message) = local_command_primary_diagnostic("PRIVATE_IGNORED")
+    assert_eq(code, "ACTQL_E_PREPARATION_FAILED")
+    assert_true(
+      message.has_prefix("The original preparation could not be completed."),
+    )
+    assert_true(message.length() < 160)
+    let wire = local_command_failure_text("PRIVATE_IGNORED", true)
+    assert_true(@utf8.encode(wire).length() < 4096)
+    assert_false(wire.contains("PRIVATE_IGNORED"))
+    assert_false(wire.contains("…"))
+    guard @json.parse(wire) is Object(fields) else {
+      fail("the unchanged writer must retain the complete fixed message")
+    }
+    assert_eq(fields.length(), 2)
+    assert_eq(fields.get("message"), Some(Json::string(message)))
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
 test "runtime requirements diagnostics preserve actual phase and proven dimension" {
   let cases : Array[
     (@local_values.ClientLocalRequirementsIssue, String, String),
@@ -382,6 +470,150 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     local_file_work_preparation_message(Configuration),
     "LocalSourceWorkEntryUnavailable",
   )
+  let primary : @local_host.NativeClientSourceWorkIssue? = Some(
+    Preparation(
+      PublicationInvocation(
+        @publication.RunEvidenceReferenceMismatch("SYNTHETIC_PRIVATE_SOURCE"),
+      ),
+    ),
+  )
+  let cases : Array[(@local_host.NativeClientSourceWorkIssue?, String)] = [
+    (None, "LocalSourcePublicationEvidenceUnavailable"),
+    (
+      Some(InputLogical(ForeignPrepared)),
+      "LocalSourcePublicationEvidenceUnavailable:logical-foreign-prepared",
+    ),
+    (
+      Some(
+        Preparation(
+          PublicationInvocation(
+            @publication.RunEvidenceReferenceMismatch("source_coverage"),
+          ),
+        ),
+      ),
+      "LocalSourcePublicationEvidenceUnavailable:preparation-source-coverage",
+    ),
+    (
+      Some(
+        InstalledRun(
+          Resource(
+            @initial_resources.Resource(@initial_resources.InvalidLimits),
+          ),
+        ),
+      ),
+      "LocalSourcePublicationEvidenceUnavailable:body-invalid-limits",
+    ),
+    (primary, "LocalSourcePublicationEvidenceUnavailable:preparation-reference"),
+  ]
+  for (original, expected) in cases {
+    let message = local_file_publication_failure_message(original)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_eq(local_file_publication_failure_message(original), message)
+  }
+  assert_true(
+    primary
+    is Some(
+      Preparation(
+        PublicationInvocation(
+          @publication.RunEvidenceReferenceMismatch(original)
+        )
+      )
+    ) &&
+    original == "SYNTHETIC_PRIVATE_SOURCE",
+  )
+  let open_cases : Array[(@local_host.NativeClientSourceWorkIssue, String)] = [
+    (Configuration, "LocalOriginalSourceWorkUnavailable:configuration"),
+    (OriginalRunNotCurrent, "LocalOriginalSourceWorkUnavailable:current"),
+    (
+      LocalExecution(UnsupportedGraph),
+      "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph",
+    ),
+    (
+      LocalExecution(Driver(Configuration(ForeignPreparation))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-preparation",
+    ),
+    (
+      LocalExecution(Driver(Configuration(ForeignRequest(987654321)))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-request",
+    ),
+    (
+      LocalExecution(
+        Driver(Configuration(Guard(Execution(Rows(987654321, RowLimit))))),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-limit",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          ExecutionCapacityRefusal(
+            @initial_resources.RetentionLimit,
+            987654321L,
+            987654321L,
+            987654321L,
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-retention",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          Configuration(Execution(Rows(987654321, Comparison(InvalidOperand)))),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-invalid-operand",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          Configuration(
+            Execution(Rows(987654321, Aggregation(ArithmeticFailure))),
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-arithmetic-failure",
+    ),
+    (
+      RelationFile(Resource(@initial_resources.RetentionLimit)),
+      "LocalOriginalSourceWorkUnavailable:source-retention",
+    ),
+    (
+      Preparation(
+        PublicationInvocation(
+          @publication.RunEvidenceReferenceMismatch("SYNTHETIC_PRIVATE_SOURCE"),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable",
+    ),
+  ]
+  for (original, expected) in open_cases {
+    let message = local_file_open_failure_message(original)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
+    assert_eq(local_file_open_failure_message(original), message)
+  }
+  let evaluation_cases : Array[(@execution.EvalIssueKind, String)] = [
+    (
+      MissingValue,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-missing-value",
+    ),
+    (
+      QueryEvaluationTimeUnavailable,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-query-time-unavailable",
+    ),
+    (
+      Scalar(ComparisonDomainNotImplemented),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-comparison-domain-unimplemented",
+    ),
+  ]
+  for (kind, expected) in evaluation_cases {
+    let message = local_file_evaluation_kind_failure_message(kind)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
+  }
 }
 
 ///|

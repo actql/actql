@@ -252,13 +252,26 @@ test "fixed Request control envelope preserves original upper bound through the 
     16L +
     8L * 3L +
     8L +
+    // Original authoring view1H plus the four original proof references.
+    16L +
+    8L * 4L +
     // Same nominal error's frozen code/category record, both literals borrowed.
     16L +
     8L * 2L +
     // Existing typed query-issue and original-name Some carriers, no copied name.
     16L * 2L +
     8L * 2L +
-    8L * 2L
+    8L * 2L +
+    // Seventh simultaneous original holder: one common Map entry/link and
+    // growth backing4H/11R/13W plus three scalar order words.
+    16L * 4L +
+    8L * 11L +
+    8L * 16L +
+    // Eighth original explanation holder coexists after its payload ACK:
+    // same Map/order census4H/11R/16W, no separate admission or Ledger.
+    16L * 4L +
+    8L * 11L +
+    8L * 16L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
@@ -437,6 +450,19 @@ test "selected small parent refuses actual fixed controls and overflow without a
     is Err(Capacity(Resource(RetentionLimit))),
   )
   @resources.cleanup_node_preparation_admission(initial).unwrap()
+  let limits = client_local_preparation_initial_limits(
+    policy,
+    retained_bytes=Some(controls),
+    execution_bytes=Some(67108864L),
+  ).unwrap()
+  let initial = request_parent_fixture(input, initial_limits=Some(limits))
+  let exact = begin_request_preparation(initial, input, policy).unwrap()
+  assert_eq(
+    @resources.ledger_usage(exact.ledger).reserved_retention_bytes,
+    controls,
+  )
+  abort_request_preparation_after_cleanup(exact).unwrap()
+  assert_eq(@resources.ledger_usage(exact.ledger).live_reservations, 0)
   let limits = client_local_preparation_initial_limits(
     policy,
     retained_bytes=Some(67108864L),

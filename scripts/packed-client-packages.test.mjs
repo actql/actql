@@ -16,6 +16,7 @@ import {packClientPackages, packedClientPackage, pinnedDuckDBPackage, acquireRun
   './packed-client-packages.mjs';
 import {packedFixtureSupport, packedReadOpeningFixtureInputs, rewritePackedFixtureSource}
   from './packed-fixture-support.mjs';
+import './packed-composition-child.test.mjs';
 
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,

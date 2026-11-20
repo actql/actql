@@ -126,6 +126,13 @@ row's key and identifies the operation in the Preview and the status.
 
 ## Setup
 
+Repository access `owner` and `repo` values are Text with 1–100 ASCII letters,
+digits, dots, underscores or hyphens. The complete names `.` and `..` are
+refused. These names are neither normalized nor coerced from numbers, arrays or
+other JSON values. Source, Effect and explicit publication use the same
+Connector Catalog rule before credentials are opened; validation grants no
+access and does not replace the published repository's stable identity checks.
+
 ```json
 "github": {
   "connector": "github",

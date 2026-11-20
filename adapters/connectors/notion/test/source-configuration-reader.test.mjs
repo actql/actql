@@ -10,6 +10,7 @@ import {types} from 'node:util';
 import {parse} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {captureRestReadOriginals} from '../../../host-node/rest-read-original.mjs';
 
 const sources = Object.fromEntries(await Promise.all(['notion', 'slack'].map(async role => [role,
   await readFile(new URL(`../../${role}/host/installed-${role}-source.mjs`, import.meta.url), 'utf8')])));
@@ -68,7 +69,7 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
       [code.slice(declaration.start, declaration.end)] : [];
   }).join('\n');
   const ports = {createHash, isAbsolute, types, nodeTypes: types, canonicalJson, checked,
-    captureInstalledSourceServices, installedJsonSourceReaderLimitNames: readerLimits,
+    captureInstalledSourceServices, captureRestReadOriginals, installedJsonSourceReaderLimitNames: readerLimits,
     readSourceProfileJson(path) {
       directJson++; assert(allowDirect, 'original supplied JSON reader was ignored');
       assert.equal(path, profile.siteProfilePath); return site;
@@ -89,7 +90,10 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
     'slackUserListColumnNames', 'slackChannelListColumnNames', 'slackMessageColumnNames'].map(name =>
     [name, () => name === 'notionUserListColumnNames' ? ['id'] : (() => {throw stop;})()]));
   const installation = Object.freeze({original: role});
-  const sourceInitialization = Object.freeze({prepareDeclaration() {assert.fail('no declaration before schema');}});
+  const sourceInitialization = Object.freeze({
+    prepareDeclaration() {assert.fail('no declaration before schema');},
+    prepareReadTarget() {assert.fail('no target construction before schema');},
+  });
   const installationServices = {
     sourceReaderImplementationProfile(input) {
       assert.equal(this, installationServices); assert.equal(input.installation, installation);
@@ -117,7 +121,13 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
         clientProgramInstalledSlackSourceReaderCapacity() {
           assert.fail('no runtime capacity before provider declaration');
         },
-      })} : {}),
+      })} : {moon: Object.freeze(Object.fromEntries([
+        'clientProgramRowSourceAdmitGetRead', 'clientProgramRowSourceGetReadMetadata',
+        'clientProgramRowSourceGetReadCapacity', 'clientProgramRowSourceGetPageCapacity',
+        'clientProgramRowSourceGetReadPage', 'clientProgramRowSourceGetPageFrame',
+        'clientProgramRowSourceGetReadIssueCode', 'clientProgramInstalledSourceConstructionCapacity',
+        'clientProgramComposeInstalledSourceConstructionCapacity', 'clientProgramRowSourceGetRequestCapacity',
+      ].map(name => [name, () => assert.fail('no runtime capacity before provider declaration')])))}),
       resolveSecret() {assert.fail('no secret lookup');}, installationServices,
       ...(legacy ? {} : {configurationReader: reader}), providerMoon: provider});},
   };

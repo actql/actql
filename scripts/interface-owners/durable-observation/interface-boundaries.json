@@ -367,7 +367,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cfbc37fb551abe62594d4c11c7c8a7eb8b81dd72c14a50ef57400412e80f2ab4",
+      "sha256": "1e799e24cb0d74bf6ac99ad8b7beb63edd15b99a06e6bebdb512b6f7c38baca4",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -544,6 +544,13 @@
           "async": false
         },
         {
+          "name": "installHostObservation/emit/emit/emit#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
           "parameters": [],
           "async": false
@@ -592,6 +599,15 @@
           "async": false
         },
         {
+          "name": "installHostObservation/projection/init:logicalBoundary/init:logicalBoundary",
+          "parameters": [
+            "detail",
+            "boundary",
+            "custody"
+          ],
+          "async": false
+        },
+        {
           "name": "installHostObservation/projection/projection",
           "parameters": [],
           "async": false
@@ -603,9 +619,7 @@
         },
         {
           "name": "installHostObservation/projection/projection#3",
-          "parameters": [
-            "operation"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -615,6 +629,18 @@
         },
         {
           "name": "installHostObservation/projection/projection#5",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#7",
           "parameters": [],
           "async": false
         },
@@ -631,6 +657,13 @@
         {
           "name": "installHostObservation/pump/pump/pump/pump#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/releaseDropped/releaseDropped",
+          "parameters": [
+            "custody"
+          ],
           "async": false
         },
         {
@@ -1293,112 +1326,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const resolveRunIdentity = (context, ref, terminal = false) => {"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const id = runId?.(ref);"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "the complete namespace, authority-scope and Run-definition tuple in that same"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "operation and installation. The bounded holder contains copied identity values,"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const original = context?.owner === contextOwner ? context : undefined;"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "to resolve its metadata is counted before the final row aggregate closes; the"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "id = resolveRunIdentity(context, rows.ref, true);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "Missing and failed lookups are not positive facts; a new operation resolves its"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "if (typeof id !== 'string' || id.length > 128) return undefined;"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "Retirement drops these identity aliases without acknowledging physical cleanup."
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "context.runIdentities = undefined;"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "operation and installation. The bounded holder contains copied identity values,"
-              },
-              {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "Math.min(config.selected.requestRecords, config.selected.segmentRecords)) throw runIdentityLimit;"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/node-host-observability.md",
-                "anchor": "not permission, currentness, a prepared Run or a durable observation cache."
-              },
-              {
-                "path": "adapters/host-common/observation.test.mjs",
-                "anchor": "test('foreign Run identity projections do not borrow the current installation context'"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/observation.test.mjs",
-                "anchor": "test('Run identity lookup contributes its actual row before the final selected-row record closes'"
-              },
-              {
-                "path": "adapters/host-common/observation.test.mjs",
-                "anchor": "test('positive Run identity is reused only inside the same original operation and exact Run tuple'"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "<module>"
           ],
@@ -1470,6 +1397,78 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostObservation/emit/emit/emit#2",
+            "installHostObservation/projection/init:logicalBoundary/init:logicalBoundary",
+            "installHostObservation/projection/projection#6",
+            "installHostObservation/projection/projection#7",
+            "installHostObservation/releaseDropped/releaseDropped"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
               }
             ]
           }
@@ -2200,16 +2199,27 @@
     {
       "module": "adapters/host-common/task-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1377573482113b997718e99ae4c4ec05787a4dba80c4eb2a351232a3e9ca698b",
+      "sha256": "a0ac9f3d0775b5ebe216ecaf6d04e666c826e4a68d76b71cb9ac2dd3e1237f5c",
       "exports": [
         "installTaskObservation",
+        "projectTaskLogicalObservation",
         "projectTaskObservation"
       ],
       "operations": [
         {
           "name": "installTaskObservation",
           "parameters": [
-            "project"
+            "project",
+            "logicalBoundary"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectTaskLogicalObservation",
+          "parameters": [
+            "observer",
+            "phase",
+            "task"
           ],
           "async": false
         },
@@ -2265,6 +2275,10 @@
               {
                 "path": "adapters/host-common/task-observation.mjs",
                 "anchor": "try { project"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
               }
             ],
             "failure": [
@@ -2273,13 +2287,20 @@
                 "anchor": "Optional projection never changes"
               }
             ],
-            "cancellation": {
-              "notApplicable": "Synchronous optional projection creates no cancellable operation, physical reader, task stop, or release authority."
-            },
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
             "resources": [
               {
                 "path": "adapters/host-common/task-observation.mjs",
                 "anchor": "new WeakMap()"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
               }
             ],
             "extension": [
@@ -2330,6 +2351,10 @@
               {
                 "path": "adapters/host-common/task-observation.mjs",
                 "anchor": "try { project"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
               }
             ],
             "failure": [
@@ -2338,13 +2363,20 @@
                 "anchor": "Optional projection never changes"
               }
             ],
-            "cancellation": {
-              "notApplicable": "Synchronous optional projection creates no cancellable operation, physical reader, task stop, or release authority."
-            },
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
             "resources": [
               {
                 "path": "adapters/host-common/task-observation.mjs",
                 "anchor": "new WeakMap()"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
               }
             ],
             "extension": [
@@ -2357,6 +2389,84 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "queue overflow and delivery failure"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "projectTaskLogicalObservation"
+          ],
+          "exports": [
+            "projectTaskLogicalObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
               }
             ]
           }
@@ -8864,6 +8974,217 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/logical-task-observation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "24fa6acdd6cc9be1957843e251a0fd2f3a70f5d4c3e1a7cfbb6645bd93ae759e",
+      "exports": [
+        "prepareInstalledLogicalObservation"
+      ],
+      "operations": [
+        {
+          "name": "createOwnedObservation/init:attach/init:attach",
+          "parameters": [
+            "captured",
+            "selectedRef",
+            "principal",
+            "authorizeRead",
+            "acceptedRunId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOwnedObservation/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOwnedObservation/init:project/init:project",
+          "parameters": [
+            "selectedPhase",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOwnedObservation/init:project/init:project/current/current",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOwnedObservation/init:project/init:project/custody/init:current/init:current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOwnedObservation/init:project/init:project/custody/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledLogicalObservation",
+          "parameters": [
+            "moon",
+            "control",
+            "managedRun",
+            "executionOwner",
+            "definition",
+            "observation"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Run/Request and observation Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOwnedObservation/init:attach/init:attach",
+            "createOwnedObservation/init:close/init:close",
+            "createOwnedObservation/init:project/init:project",
+            "createOwnedObservation/init:project/init:project/custody/init:current/init:current",
+            "createOwnedObservation/init:project/init:project/custody/init:release/init:release",
+            "prepareInstalledLogicalObservation"
+          ],
+          "exports": [
+            "prepareInstalledLogicalObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createOwnedObservation/init:project/init:project/current/current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -315,6 +315,135 @@ export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
     text: 0n, wire: 0n}, {sourceCount: sources, mappingCount});
 }
 
+/** One whole-project writable inventory. Logical targets borrow their exact
+ * source/write/physical descriptors; no fixture bytes or names are copied.
+ * Keep array growth and both sort workspaces before the first target record.
+ * This is the existing Source-initialization allowance, not maxMembers or a
+ * new installed-target quota. */
+export function declaredProjectWritableInventoryConstructionGeometry(sources) {
+  if (!Array.isArray(sources) || nodeTypes.isProxy(sources)) invalidGeometry();
+  let targets = 0n;
+  let fields = 0n;
+  for (const source of sources) {
+    const writes = immutableList(ownData(source, 'writes'));
+    targets += BigInt(writes.length);
+    for (const write of writes) {
+      const physical = ownData(source, 'physical').find(value => value.resource === ownData(write, 'resource'));
+      if (physical === undefined) invalidGeometry();
+      for (const key in physical.schema) if (Object.hasOwn(physical.schema, key)) fields++;
+    }
+  }
+  if (targets > 2147483647n) invalidGeometry();
+  // Five borrowed target fields, their original schema-name vector and the
+  // retained outer vector. No Mapping/declaration/physical owner is copied.
+  // The peak also covers growth old/new backing and stable-sort slots.
+  return stage({nodes: 16n + 8n * targets + fields, text: 0n, wire: 0n},
+    {nodes: 32n + 4n * targets + fields, text: 0n, wire: 0n}, {targets});
+}
+
+/** Closed Mock implementation metadata, charged to the existing whole-project
+ * initialization Read. Fixed controls bound file/run registries and captured
+ * function environments; each Source is loaded once, never once per target.
+ * Mapping/name/row DATA and per-Run children have their separate original
+ * constructor/physical recipes. These are logical Host allowances, not RSS. */
+// Workspace of one synchronous exact-row footprint callback. The original
+// requests and Catalog paths are borrowed. Each request's already-enforced
+// canonical wire limit bounds its selector token; do not expand that escaped
+// bound a second time. All returned CID Strings coexist, but only one target
+// canonical writer/hash Buffer is live at a time. This is a logical lifetime
+// cut, not a GC or physical-memory acknowledgement.
+export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes) {
+  if (!Number.isSafeInteger(maxRows) || maxRows < 1 ||
+      !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1) invalidGeometry();
+  let pathItems = 0n, pathUnits = 0n;
+  for (const target of writables) {
+    const physical = target.physical;
+    let units = stringUnits(physical.primaryIdentity);
+    const count = BigInt(physical.itemsPath.length + physical.keyPath.length);
+    for (const part of physical.itemsPath) units += stringUnits(part);
+    for (const part of physical.keyPath) units += stringUnits(part);
+    if (count > pathItems) pathItems = count;
+    if (units > pathUnits) pathUnits = units;
+  }
+  const rows = BigInt(maxRows);
+  const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;
+  // Four-field preimage/keys/pairs, two path vectors and their canonical
+  // traversal/sort cohorts, scheme metadata, selectors and returned CID vector.
+  // Six complete UTF16 writer/output cohorts conservatively overlap, plus all
+  // 71-unit CIDs. Existing parent capture retains the completed Preview forest.
+  return stage({nodes: 0n, text: 0n, wire: 0n},
+    {nodes: 128n + 24n * pathItems + 8n * rows,
+      text: 12n * wireBytes + 142n * rows + 4096n,
+      wire: wireBytes + 128n}, {pathItems, pathUnits, rows, wireBytes});
+}
+
+export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected) {
+  if (phase === 'root') {
+    let connections = 0n;
+    for (const source of sources) if (source.writes.length !== 0) connections++;
+    return stage({nodes: 192n + connections, text: 0n, wire: 0n},
+      {nodes: 128n + 2n * connections, text: 0n, wire: 0n}, {connections});
+  }
+  if (!sources.includes(selected) || selected.writes.length === 0) invalidGeometry();
+  let targets = 0n, aliases = 0n;
+  for (const target of writables) if (target.source === selected) {
+    targets++;aliases += BigInt(target.write.aliases.length);
+  }
+  if (phase === 'source') {
+    const pluralFootprint = writables.length > 1;
+    const operation = stringUnits(ownData(selected.writes[0], 'permission'));
+    const read = stringUnits(ownData(selected.writes[0], 'observe_permission'));
+    // The physical recipe owns capture/request names and its three target
+    // read phase names. Their input names are borrowed; concatenated results
+    // and the builder's preceding prefix coexist separately.
+    const operationUnits = 2n * operation + 3n * read + 80n + (pluralFootprint ? operation + 10n : 0n);
+    // The selected physical recipe has 2 member + 5 row operations and 3
+    // owned target-read slots. Plural selection adds one member extent/role.
+    // Legacy normalization inspects 18 records/arrays with 46 properties;
+    // the added operation record, role and member-array index add 3/9.
+    // Each descriptor is a record plus value/writable/enumerable/configurable.
+    // Keep BOTH raw and normalized recipe records until this call returns.
+    // These are quantities in the existing Source allowance, not VM/RSS sizes.
+    const descriptorCalls = 18n + (pluralFootprint ? 3n : 0n);
+    const descriptorProperties = 46n + (pluralFootprint ? 9n : 0n);
+    const descriptorRecords = descriptorCalls + 5n * descriptorProperties;
+    const descriptorNamesAndKeys = 2n * (descriptorCalls + descriptorProperties) + 14n + 9n;
+    const descriptorCallbacks = 4n * descriptorCalls + 15n;
+    // Two Set controls, the three-slot index seed, and the 3 phase + 6 index
+    // entries. Keep their entry and old/new construction slots together.
+    const validationSets = 2n + 4n + 3n * (3n + 6n + (pluralFootprint ? 1n : 0n));
+    const rawRecipeOverlap = 66n + (pluralFootprint ? 16n : 0n);
+    // Provider input: dimension/phase vectors, selected/inner arrays, 8
+    // property descriptors, both phase-key vectors, root keys and limit
+    // vocabulary. Include its callbacks and raw zero/workspace constructors.
+    const providerValidation = 4n + 3n + 15n + 10n + 8n + 30n + 3n + 6n + 19n + 15n;
+    // Three six-argument capacity vectors, two one-item composition arrays,
+    // three 15-argument quotes and their optional request-capacity arrays.
+    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n + (pluralFootprint ? 13n : 0n);
+    // Numeric array-key Strings created by the 2+5 operation-index maps.
+    const indexStrings = 7n + (pluralFootprint ? 1n : 0n);
+    const recipeWorkspace = descriptorRecords + descriptorNamesAndKeys + descriptorCallbacks +
+      validationSets + rawRecipeOverlap + providerValidation + nativeArgumentVectors + indexStrings;
+    // The real codec adds one record, one method and its borrowed Catalog/
+    // Common links. Plural selection additionally owns one typed footprint
+    // capacity/extent/role and its argument/cohort controls, never a new owner.
+    const codec = 16n, footprint = pluralFootprint ? 32n : 0n;
+    return stage({nodes: 768n + 2n * targets + codec + footprint, text: 2n * operationUnits, wire: 0n},
+      {nodes: recipeWorkspace + 2n * targets, text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
+      {targets, descriptorCalls, descriptorProperties});
+  }
+  if (phase !== 'aliases') invalidGeometry();
+  const parsed = sourceJsonWireGeometry(selected.effectPrepared.environment.wire);
+  const canonical = canonicalConstruction(parsed);
+  // installedUpdateTargets validates the real full Environment, its owned
+  // contracts and manifest hashes. Keep both parse forests, their String
+  // backing and canonical/hash overlap, not just the final alias vector.
+  return stage({nodes: 16n + 8n * aliases, text: 142n * aliases, wire: 0n},
+    {nodes: 32n + 8n * aliases + 3n * parsed.nodes + 2n * canonical.nodes,
+      text: 4n * parsed.units + 2n * canonical.text,
+      wire: 3n * canonical.outputUnits + 128n * parsed.nodes}, {targets, aliases});
+}
+
 const mappingWriteTemplate = '{"resource":"","primary_identity":"","update":{"fields":[],"permission":"","approval":""}}';
 const mappingEnvelope = '{"writes":[]}';
 
@@ -496,6 +625,32 @@ export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozen
     text: canonical.text + 2n * 135n * count,
     wire: 3n * hashUnits + 128n * count,
   }, {views: count, savedBodyUnits: bodyUnits});
+}
+
+/** Host catalogue validation and physical/alias descriptors only. The new
+ * Common projector owns every schema/CID/body wire. Original parsed subtrees
+ * remain borrowed from the separately funded JSON parse; no saved-view body
+ * or old JS canonical/hash constructor is claimed as still live here. */
+export function declaredProjectCatalogEntryHostConstructionGeometry(frozenEntry) {
+  const input = immutableJsonShape(frozenEntry);
+  const raw = frozenEntry !== null && typeof frozenEntry === 'object'
+    ? ownData(frozenEntry, 'views') : undefined;
+  const count = Array.isArray(raw) && raw.length <= 128 ? BigInt(raw.length) : 0n;
+  const retained = {nodes: 12n + 5n * input.nodes + count, text: 0n, wire: 0n};
+  return stage(retained, {
+    // Object.keys/closed vocabularies, alias/data/write spreads, duplicate
+    // Sets, publicViews Map and recursive freezing of these bounded outputs.
+    nodes: 20n * input.nodes + 40n * count + 3n * retained.nodes + 16n,
+    text: 0n, wire: 0n,
+  }, {views: count});
+}
+
+/** The exact already-returned Common wire is borrowed. This stage allocates
+ * only the seven restore argument arrays, wrapper and freeze traversal. */
+export function declaredProjectCatalogSavedInputArraysConstructionGeometry(frozenSavedViews) {
+  const views = immutableList(frozenSavedViews), count = BigInt(views.length);
+  const retained = {nodes: 10n + 7n * (1n + count), text: 0n, wire: 0n};
+  return stage(retained, {nodes: 3n * retained.nodes + 8n, text: 0n, wire: 0n}, {views: count});
 }
 
 /** Exact already-owned detached Strings, no re-escaping bound from an earlier

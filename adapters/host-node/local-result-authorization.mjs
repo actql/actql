@@ -24,12 +24,14 @@ export function createLocalReadAuthorizations({moon, authorization,
   // The existing owned public request is the lifetime of this memo. No
   // outcome survives into another operation, even for identical wire/tuples.
   const operations = new WeakMap();
-  const authorize = async (facts, operation, resource) => {
+  const authorize = (facts, operation, resource, interactive = true) => {
     if (facts.principalId !== principalId || facts.indexKey?.namespaceId !== namespaceId ||
         facts.indexKey?.authorityScopeCid !== authorityScopeCid ||
         resource === undefined) return false;
     const scope = {connection, resource, operation: 'read'};
-    const sameOperation = operation !== null && typeof operation === 'object' &&
+    // Immediate metadata never consumes or installs an async read's allowed
+    // memo. Observe current Account/Common at EACH actual boundary instead.
+    const sameOperation = interactive && operation !== null && typeof operation === 'object' &&
       Object.isFrozen(operation) && operation.principalId === facts.principalId &&
       operation.resultName === facts.resultName && operation.purpose === facts.purpose &&
       operation.indexKey?.namespaceId === facts.indexKey.namespaceId &&
@@ -40,7 +42,11 @@ export function createLocalReadAuthorizations({moon, authorization,
     const callbackState = observeCallbacks?.();
     const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;
     if (!Number.isSafeInteger(sinkCallbackCount) || sinkCallbackCount < 0) return false;
-    const retained = sameOperation ? operations.get(operation) : undefined;
+    // A metadata read and a Result read can share an original Run tuple,
+    // but never the permission's outcome. Keep the selected resource in the
+    // owned operation memo even when a caller presents the same operation.
+    const candidate = sameOperation ? operations.get(operation) : undefined;
+    const retained = candidate?.resource === resource ? candidate : undefined;
     if (retained !== undefined && retained.account === retainedAccount &&
         callbackState?.active !== true && retained.callbackState === callbackState &&
         retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;
@@ -62,9 +68,18 @@ export function createLocalReadAuthorizations({moon, authorization,
     const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(evaluation));
     if (outcome.outcome !== 'delegate') {
       const allowed = outcome.outcome === 'allow';
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
+      if (sameOperation) operations.set(operation, {allowed, account, resource, sinkCallbackCount, callbackState});
       return allowed;
     }
+    // Optional task metadata may consume only an immediate original decision.
+    // Delegate remains unavailable; this path cannot ask an application or
+    // pause Compute while waiting for a metadata-only authorization answer.
+    if (!interactive) return undefined;
+    return authorizeDelegated(facts, operation, scope, sameOperation, account,
+      resource, sinkCallbackCount, callbackState);
+  };
+  const authorizeDelegated = async (facts, operation, scope, sameOperation,
+    account, resource, sinkCallbackCount, callbackState) => {
     // An immediate configured answer still belongs to the existing gate.
     // A read cannot synthesize a Checkpoint/claim or treat Delegate as Allow.
     const gate = await createLocalAuthorizationGate({...authorization,
@@ -76,16 +91,24 @@ export function createLocalReadAuthorizations({moon, authorization,
       const allowed = decision.action === 'dispatch';
       // The application's answer and its post-callback current check have
       // completed. Internal consumption does not call that application again.
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
+      if (sameOperation) operations.set(operation, {allowed, account, resource, sinkCallbackCount, callbackState});
       return allowed;
     } finally { gate.close(); }
+  };
+  // Preserve the original async contract, including a rejection for a
+  // synchronous Account/current failure, without another per-read state bag.
+  const promised = (facts, operation, resource) => {
+    try {return Promise.resolve(authorize(facts, operation, resource));}
+    catch (cause) {return Promise.reject(cause);}
   };
   return Object.freeze({
     result(facts, operation) {
       const resource = typeof facts.resultName === 'string' && facts.resultName.length > 0
         ? `result/${facts.resultName}` : undefined;
-      return authorize(facts, operation, resource);
+      return promised(facts, operation, resource);
     },
-    run(facts) {return authorize(facts, undefined, 'run');},
+    run(facts, operation) {return promised(facts, operation, 'run');},
+    // Internal installed metadata consumer, never a public permission field.
+    runImmediate(facts, operation) {return authorize(facts, operation, 'run', false);},
   });
 }

@@ -8,6 +8,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
 import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
+import {createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 const moon=await import(process.env.ACTQL_TEST_COMMON_RUNTIME??new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
 const control=runtimeCore(moon).publicationControl;
@@ -52,6 +53,106 @@ function publishRunning(f,frame){
     resultNames:['answer'],dispatchReserved:true,preDispatchFailureConfirmed:false,cancelledBeforeStart:false,
     observedTerminalOutcome:'none',executionUnknown:false});
   return JSON.parse(f.journal.publishRunState(frame,state,f.requestControl,f.publicationControl));
+}
+
+test('signing stop comparison accepts only the same Journal original physical-close progression', async t => {
+  const f = await fixture(t);
+  const before = f.journal.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl);
+  f.journal.markPhysicalClose(f.ref, null, before);
+  const after = f.journal.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl, before);
+  assert.equal(after.revision, before.revision + 1);
+  assert.equal(before.physicalCloseConfirmed, false); assert.equal(after.physicalCloseConfirmed, true);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, after), true);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, before), false);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(after, before), false);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose({...before}, after), false);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, {...after}), false);
+  const other = openClientRequestJournal(f.path); f.journals.add(other);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before,
+    other.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl)), false);
+  for (const [request, publication] of [[{...f.requestControl}, f.publicationControl],
+    [f.requestControl, {...f.publicationControl}]]) {
+    assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before,
+      f.journal.lookupRunDefinition(f.ref, request, publication)), false);
+  }
+});
+
+for (const [name, sql, parameters] of [
+  ['same revision', 'UPDATE client_requests SET physical_close_confirmed=1', []],
+  ['skipped revision', 'UPDATE client_requests SET physical_close_confirmed=1, revision=revision+2', []],
+  ['revision without stop', 'UPDATE client_requests SET revision=revision+1', []],
+  ['cancellation', 'UPDATE client_requests SET physical_close_confirmed=1, revision=revision+1, cancellation_requested=1', []],
+  ['terminal outcome', "UPDATE client_requests SET physical_close_confirmed=1, revision=revision+1, observed_terminal_outcome='failed'", []],
+  ['lookup lifetime', 'UPDATE client_requests SET physical_close_confirmed=1, revision=revision+1, lookup_expires_at=?', ['2099-02-01T00:00:00.000Z']],
+  ['state publication', 'UPDATE client_requests SET physical_close_confirmed=1, revision=revision+1, state_revision=state_revision+1', []],
+]) {
+  test(`signing stop comparison refuses ${name} drift beside the original stop`, async t => {
+    const f = await fixture(t);
+    const before = f.journal.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl);
+    const writer = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    try {writer.prepare(sql).run(...parameters);} finally {writer.close();}
+    const after = f.journal.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl, before);
+    assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, after), false);
+  });
+}
+
+for (const cancellation of [false, true]) {
+  test(cancellation ? 'actual signing reader refuses cancellation during retained recovery'
+    : 'actual signing reader holds recovery while its original Journal records the physical stop', async t => {
+  const f = await fixture(t), materials = {}, preview = {}, original = {}, managed = {};
+  const recoveries = new Set(), events = [];
+  let enter, release, stale;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const stopped = new Promise(resolve => {release = resolve;});
+  const publication = Object.freeze({...f.publicationControl,
+    effectComputationPreviewSemanticCid(value) {assert.strictEqual(value, preview); return cid('7');}});
+  const recovered = {materials, requestIdentity: {}, computation: {preview, invocation: {}},
+    originalSubmittedIntent: {referenceWire: 'original-submission', assertCurrent() {events.push('original-current');}},
+    assertUpdateSelectionCurrent() {events.push('selection-current');}};
+  const read = createLocalSigningOriginalReader({namespaceId: f.ref.namespaceId,
+    authorityScopeCid: f.ref.authorityScopeCid, moon: f.requestControl, control: publication, journal: f.journal,
+    async restoreEffectManagedPreparation(ref) {
+      assert.deepEqual(ref, f.ref); events.push('restore'); enter(); await stopped;
+      return {managedEffect: managed, original};
+    },
+    async recoverEffectCapture(ref, signal, parent, retain, binding) {
+      assert.deepEqual(ref, f.ref); assert.strictEqual(parent, managed); assert.strictEqual(binding, original);
+      events.push('recover'); return recovered;
+    },
+    localSigningRecoveries: recoveries, assertCurrent() {events.push('host-current');},
+    async releaseLocalSigningRecovery(value) {
+      assert.strictEqual(value, recovered); assert(recoveries.has(value));
+      events.push('release'); recoveries.delete(value);
+    },
+    clientOperationError: code => Object.assign(new Error(code), {code})});
+  const answer = read({runDefinitionCid: f.ref.runDefinitionCid, requiredArtifact: {cid: cid('7')}}, undefined,
+    async frame => {
+      assert.strictEqual(frame.materials, materials); assert(recoveries.has(recovered));
+      stale = frame.assertCurrent; frame.assertCurrent(); await Promise.resolve(); frame.assertCurrent();
+      events.push('consume'); return 'original-consumed';
+    });
+  await entered;
+  assert.deepEqual(events, ['restore']);
+  const beforeStop = f.journal.lookupRunDefinition(f.ref, f.requestControl, publication);
+  assert.equal(beforeStop.physicalCloseConfirmed, false);
+  f.journal.markPhysicalClose(f.ref, null, beforeStop);
+  if (cancellation) f.journal.requestCancellation(f.ref,
+    {currentAuthorization: true, publicationCommitted: false}, f.requestControl, publication);
+  release();
+  if (cancellation) await assert.rejects(answer, {code: 'LocalSigningOriginalConflict'});
+  else assert.equal(await answer, 'original-consumed');
+  assert.equal(events.filter(value => value === 'restore').length, 1);
+  assert.equal(events.filter(value => value === 'recover').length, 1);
+  if (cancellation) {
+    assert.equal(events.includes('consume'), false); assert.equal(stale, undefined);
+    assert.equal(events.at(-1), 'release');
+  } else {
+    assert.deepEqual(events.slice(-2), ['consume', 'release']);
+    assert.throws(stale, {code: 'LocalSigningOriginalConflict'});
+  }
+  assert.equal(recoveries.size, 0);
+  assert.equal(events.filter(value => value === 'release').length, 1);
+  });
 }
 
 test('stop state-only comparison accepts actual observation frames without promoting copies or foreign controls',async t=>{

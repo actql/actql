@@ -13,6 +13,7 @@ fn registration_parent_fixture(
     @publication_host.ClientEffectComputationLimits,
   )? = None,
   initial_limits? : @resources.LedgerLimits? = None,
+  intent_wire? : String? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -25,6 +26,22 @@ fn registration_parent_fixture(
     input,
     client_local_resource_policy(),
   ).unwrap()
+  if intent_wire is Some(original) {
+    reserve_request_snapshot(
+      parent,
+      input,
+      original.length().to_int64(),
+      original.length().to_int64(),
+    ).unwrap()
+    prepare_request_submitted_intent(
+      parent,
+      input,
+      request_native_test_value(original),
+      native_json_reader,
+    ).unwrap()
+    |> ignore
+    finish_request_submitted_intent(parent, input).unwrap()
+  }
   request_check_source(parent, input, text~) |> ignore
   let limits = @publication_host.client_standard_program_preparation_limits().checking
   let selected_environment = match environment {

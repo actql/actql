@@ -170,6 +170,25 @@ reference; a file name, returned JSON envelope or equal CID cannot stand in for
 that authority. Source reads, Content custody, Plan funding and terminal cleanup
 remain with their existing owners.
 
+### Public relation catalogue input
+
+`project_relation_declaration_input` mechanically projects an original public
+catalogue entry into the existing `restore_relation_row_declaration` input.
+It canonically encodes `schema`, `request_schema`, `facts`, `acquisition` and
+`resource_identity`, and derives the schema CID through the same canonical JSON
+and SHA256 owners. It does not parse a second schema or install an environment.
+Unknown view fields remain in the restore input for its strict refusal; public
+`schema_cid` and `*_wire` fields cannot inject private restore destinations.
+
+The caller retains the original entry and funds the existing construction
+overlap before calling. The supplied positive byte/node/depth ceilings bound
+encoding, not capacity, Source permission or a physical read. Native delegates
+to this same function with its unchanged 4,000,000-byte, 400,000-node and
+64-depth ceilings and existing construction quote. Declaration restoration,
+original connection/current checks, Request funding, RowRun capture and physical
+cleanup remain separate existing duties. The projection issues only wire DATA;
+equal wire does not replace a retained original declaration or acquisition.
+
 ## Original JSON page envelopes
 
 `project_row_source_json_page` validates one complete original UTF-8 document
@@ -202,6 +221,21 @@ only its actual row count. A transform cannot substitute continuation or erase
 an empty cursor. Page, row and UTF-8 cursor bounds are checked before advancing;
 failed checks consume no progress. EOF may exactly fill the final page/row
 ceiling, but a further cursor cannot request work beyond either ceiling.
+
+`row_source_cursor_request_rows` joins the same original progress and selects
+the outgoing declared page-size hint. An absent hint returns the original
+remaining-row ceiling; a positive hint is capped by that ceiling. It neither
+advances progress nor narrows the independent response/parse bound. A provider
+page still obeys the original row contract even when its request hint was
+smaller. The Node adapter forwards that typed result rather than repricing or
+reimplementing this decision. The captured additional method/field and its
+constructor vectors belong to the same Source reservation; the two extra call
+arguments and typed Option/Result overlap belong to the same request quantity.
+
+The portable typed caller can execute on JS and Wasm without giving either
+backend HTTP, credential or physical-stop authority. This does not create a
+Wasm HTTP Host profile. Fixed query/header capture and transport encoding remain
+separate from this request-size decision and are not full portable-family proof.
 
 This is bounded semantic DATA, not another reader or Resource owner. It retains
 at most `max_pages - 1` cursor strings, each under `max_cursor_bytes`, and no
@@ -345,3 +379,88 @@ ClientInstalledWholeSourceCapacity, checks that Source's nominal acquisition and
 liveness, then forwards the actual checked input width. Constructor max_columns
 and saved counts are not width evidence; a foreign equal-schema capacity refuses.
 The legacy unbound identity APIs keep their original defaults.
+
+## Original finite GET request DATA
+
+`RowSourceGetRead` retains the original preserving parser, its own input copy,
+checked path/query/version header and declared page-size/cursor meaning in the
+same namespace. It is pure DATA without a Source permission, Ledger, current
+observation or physical resource. The author entry returns only the original
+wire. The installed Source quotes and reserves the complete parse/target
+construction before admission and keeps this original through Source retirement.
+
+`row_source_get_read_page` derives one request from that original, remaining
+rows, current hint and an optional exact cursor. Its detached tuple vectors may
+be mutated by a consumer without changing the original read or a checked page.
+Empty/decomposed-Unicode cursors, literal order and version bytes are preserved.
+A copied/foreign read, duplicate/colliding parameter, transport header, unsafe
+path or invalid limit refuses before request construction. Provider response
+semantics and full row admission remain with their existing owners.
+
+The construction inventories compose shared preserving-parser, decoder/issue,
+collection-growth and representation units. They fund original input+copy and
+invalid-prefix overlap; quantities issue no reservation or authority. The same
+Reader combines one active request/frame peak with its still-live Host transport
+quantity, rather than summing unrelated per-source page attempts or dropping
+Host encoding. Native Options/tuples/Arrays use the actual canonical bridge;
+opaque quantities do not acquire record fields merely from numeric positions.
+
+### Original catalogue wire construction
+
+`project_relation_declaration_wire_input` adapts the same retained public entry
+wire through the existing Json parser to `project_relation_declaration_input`.
+The Node bridge obtains that wire from the same original `ClientProjectCatalog`
+and exact entry index; a JavaScript object is never cast to MoonBit Json.
+`relation_public_projection_construction_inventory` is a domain recipe for this
+fixed constructor, not another parser, tariff, Owner, capacity grant or policy.
+The caller must reserve it on its existing initialization parent before entry.
+
+The borrowed wire scan reports actual UTF8 bytes, UTF16 units U, conservative
+outside-string structural nodes N and open-container depth D. Punctuation and
+escapes inside quoted Text contribute only to its separate text/writer extent,
+not AST nodes. Disjoint public body emissions are bounded by 6U+25N (JSON escapes
+and finite Double spelling).
+The returned wrapper includes those bodies escaped once more, original opaque
+keys/values, exact generated destination/CID spelling and original view slots.
+Its encoder ceilings derive from this observed geometry, including D+3, rather
+than importing a Native writer policy. Existing catalogue admission and later
+Relation restoration retain their own unchanged semantic limits.
+
+The recipe composes existing raw-Json, canonical forest, text-writer, checked
+collection/Map growth and representation arithmetic. It separately includes
+all per-body traversal/writer controls, projected Json wrappers, fixed SHA256
+state/word/block/digit/output arrays, UTF8 backing, digest, hex/CID Strings,
+final canonical tree/writer/output and one actual Host `{wire}` carrier.
+Data-key text is borrowed without NFC conversion. Conservative failure-prefix
+peaks are co-held; no previous reservation is refunded or treated as spare.
+This is logical representation funding, not a backend heap/RSS measurement.
+
+The Node loader still needs saved-view Strings for its existing restore quote's
+seven parallel arrays and for separately owned File-profile derivation. It funds
+that actual JS parse/freeze and the array holders separately. The exact returned
+wire is passed directly to the initial restore; it is not serialized again.
+The old JS schema/CID/canonical-body constructors are removed from this path's
+Host recipe, while alias/data/write/File checks and their holdings remain.
+Later native restores, Request/RowRun charge, Source evidence, currentness and
+physical cleanup keep their original owners and require their own backing.
+
+The Query capture/Compute observer accepts only an actual task in that DAG's
+checked captured prefix. It keeps QueryObservation/Direct provenance, the
+original opaque Source, same Ledger/holding/reservation and callback-return
+custody checks. `check_row_query_capture_run` is a callback-free necessary
+nominal RowRun/captured-observation check, not transport or Account currentness,
+permission, transfer, or physical-stop acknowledgement. A managed plural caller
+must additionally bind every slot to its original Plan acquisition/read and DAG
+input; a single capture/holding cannot stand in for another original task.
+`check_row_capture_compute_original` checks that SAME live DAG port and original
+Row physical custody without calling a Source verifier. The complete inventory
+is checked again after all Source callbacks: a later verifier can retire an
+earlier DAG port while its independent RowRun remains live. Availability and
+Account/current checks remain separate; this predicate creates no pin or grant.
+
+The Query acquisition's original completion limits and logical target are
+available as immutable DATA through `row_query_acquisition_completion_limits`
+and `row_query_acquisition_target_resource`. They neither re-derive an
+acquisition nor supply a Result's possibly smaller bounds. Native publication
+uses those same input limits; its original Account/current check still admits
+the exact logical target, independently of this callback-free observation.

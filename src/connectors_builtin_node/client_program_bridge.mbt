@@ -344,6 +344,14 @@ pub fn client_program_preparation_issue_code(
               Lowering(_) => "lowering_rejected"
               Binding(_) => "binding_rejected"
               Graph(_) => "graph_rejected"
+              DebugGraph(
+                BoundaryUnavailable(_, _)
+                | InputBoundaryUnavailable(_, _)
+              ) => "debug_profile_unsupported"
+              DebugGraph(_) => "debug_graph_rejected"
+              DebugProfileUnsupported => "debug_profile_unsupported"
+              DebugGraphConstructionOverflow =>
+                "debug_graph_construction_overflow"
             }
         },
       )

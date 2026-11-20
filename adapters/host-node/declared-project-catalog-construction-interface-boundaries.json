@@ -3,13 +3,14 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "f215db3c0343e54051fa914834d789ea02df433730b27bd5639ce72cc5cf9148",
+      "sha256": "b78dcdeba10881e6a32902b1628bec08566839df5e7aa3becbc4610a88381344",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
       "exports": [
         "declaredFileReadProfileBindingConstructionGeometry",
         "declaredProjectCatalogEntryConstructionGeometry",
+        "declaredProjectCatalogEntryHostConstructionGeometry",
         "declaredProjectCatalogEntryProjectionConstructionGeometry",
         "declaredProjectCatalogFileFactsConstructionGeometry",
         "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
@@ -17,8 +18,12 @@
         "declaredProjectCatalogJsonParseConstructionGeometry",
         "declaredProjectCatalogMappingInputsConstructionGeometry",
         "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+        "declaredProjectCatalogSavedInputArraysConstructionGeometry",
         "declaredProjectCatalogSavedInputConstructionGeometry",
-        "declaredProjectCatalogScopeConstructionGeometry"
+        "declaredProjectCatalogScopeConstructionGeometry",
+        "declaredProjectMockFootprintConstructionGeometry",
+        "declaredProjectWritableInventoryConstructionGeometry",
+        "declaredProjectWritableRuntimeConstructionGeometry"
       ],
       "operations": [
         {
@@ -32,6 +37,13 @@
           "name": "declaredProjectCatalogEntryConstructionGeometry",
           "parameters": [
             "entryWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogEntryHostConstructionGeometry",
+          "parameters": [
+            "frozenEntry"
           ],
           "async": false
         },
@@ -95,6 +107,13 @@
           "async": false
         },
         {
+          "name": "declaredProjectCatalogSavedInputArraysConstructionGeometry",
+          "parameters": [
+            "frozenSavedViews"
+          ],
+          "async": false
+        },
+        {
           "name": "declaredProjectCatalogSavedInputConstructionGeometry",
           "parameters": [
             "frozenSavedViews"
@@ -108,6 +127,39 @@
             "providerNamespace",
             "resolvedDataPath",
             "originalCatalogWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectMockFootprintConstructionGeometry",
+          "parameters": [
+            "writables",
+            "maxRows",
+            "maxRequestBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectWritableInventoryConstructionGeometry",
+          "parameters": [
+            "sources"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectWritableInventoryConstructionGeometry/physical/physical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectWritableRuntimeConstructionGeometry",
+          "parameters": [
+            "sources",
+            "writables",
+            "phase",
+            "selected"
           ],
           "async": false
         }
@@ -140,6 +192,205 @@
             "declaredProjectCatalogSavedInputConstructionGeometry",
             "declaredProjectCatalogScopeConstructionGeometry",
             "declaredFileReadProfileBindingConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "declaredProjectWritableInventoryConstructionGeometry",
+            "declaredProjectWritableInventoryConstructionGeometry/physical/physical",
+            "declaredProjectWritableRuntimeConstructionGeometry",
+            "declaredProjectMockFootprintConstructionGeometry"
+          ],
+          "exports": [
+            "declaredProjectWritableInventoryConstructionGeometry",
+            "declaredProjectWritableRuntimeConstructionGeometry",
+            "declaredProjectMockFootprintConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "export function declaredProjectWritableInventoryConstructionGeometry(sources)"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected)"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "Plural Mock UPDATE footprints use the existing exact-target family within the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "whole Preview and recovery JSON forests."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "The plural footprint constructor selects one additional nonphysical,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "still refuse through the existing Common conflict check."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "same capture child and physical cleanup duties."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "installationInventory.prepareMetadataInput"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "const fields = Object.getOwnPropertyDescriptors(value);"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "canonical writer/hash workspace: four-field preimage/key/pair/sort cohorts,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "Other physical operations require an explicit supported contract and tests."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "Mock writable constructor inventory quantities retain original phase identity"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "Mock physical recipe construction inventories its actual selected descriptor normalization"
+              },
+              {
+                "path": "src/client_local_host/mock_file_footprint_quantity_js_wbtest.mbt",
+                "anchor": "test \"Mock exact footprint one-short shared reservation refuses before production\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "declaredProjectCatalogEntryHostConstructionGeometry",
+            "declaredProjectCatalogSavedInputArraysConstructionGeometry"
+          ],
+          "exports": [
+            "declaredProjectCatalogEntryHostConstructionGeometry",
+            "declaredProjectCatalogSavedInputArraysConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [

@@ -175,6 +175,17 @@ pub fn[I] project_request_check_outcome(
   original_document? : String? = None,
   document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
+  if terminal is Preparation(ProgramCheck(EffectCompilation(issue))) &&
+    owner.program_check is Some(child) &&
+    child.static_effect_check is Some(selected) &&
+    selected.result is Some(Err(original)) &&
+    physical_equal(original, issue) {
+    return project_request_static_effect_observation(
+      owner, input, visible_publication, context_ref, input_kind, input_revision,
+      input_bytes, declarations_revision, declarations_bytes, parameters_revision,
+      parameters_bytes, correlation_ref,
+    )
+  }
   if terminal is Preparation(ProgramJson(Syntax(issue))) {
     return project_request_structural_check_observation(
       owner, input, issue, visible_publication, context_ref, input_kind, input_revision,
@@ -376,6 +387,15 @@ pub fn[I] project_request_completed_check_outcome(
   original_document? : String? = None,
   document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
+  if owner.program_check is Some(child) &&
+    child.static_effect_check is Some(selected) &&
+    selected.result is Some(Ok(_)) {
+    return project_request_static_effect_observation(
+      owner, input, visible_publication, context_ref, input_kind, input_revision,
+      input_bytes, declarations_revision, declarations_bytes, parameters_revision,
+      parameters_bytes, correlation_ref,
+    )
+  }
   guard owner.program_check is Some(child) &&
     child.check_outcome is Some(original) else {
     return Ok(None)
@@ -629,6 +649,167 @@ fn[I] project_request_semantic_check_observation(
             original_parameters~,
             original_document~,
             document_format~,
+          ),
+        ),
+      )
+    },
+    () => {
+      child.busy = false
+      if owner.phase == Selecting {
+        owner.phase = ProgramCheck
+      }
+    },
+  )
+}
+
+///|
+// Same original check output lifetime for the retained static Effect result.
+// Only the typed writer below may project it; no parser/checker/compiler runs.
+fn[I] project_request_static_effect_observation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+) -> Result[String?, ClientRequestPreparationIssue] {
+  guard owner.phase == ProgramCheck &&
+    owner.input is Some(held) &&
+    physical_equal(held, input) &&
+    owner.program_check is Some(child) &&
+    !child.busy &&
+    child.work is None &&
+    child.policy_subject_work is None &&
+    child.phase == CompilationQuoted &&
+    child.arguments is Some(arguments) &&
+    child.effect_candidate is Some(candidate) &&
+    child.static_effect_check is Some(selected) &&
+    selected.result is Some(result) &&
+    owner.held_program is Some(program) &&
+    physical_equal(program, arguments.program) &&
+    physical_equal(
+      program,
+      @checked.checked_source_program(
+        @checked.effect_computation_checked_program(candidate),
+      ),
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  if !["program", "text"].contains(input_kind) ||
+    !request_check_observation_reference(context_ref, "ctx:") ||
+    !request_check_observation_reference(input_revision, "rev:") ||
+    !request_check_observation_reference(correlation_ref, "corr:", digits=32) ||
+    input_bytes < 0 ||
+    declarations_bytes < 0 ||
+    parameters_bytes < 0 ||
+    declarations_revision
+    .map(value => !request_check_observation_reference(value, "rev:"))
+    .unwrap_or(false) ||
+    parameters_revision
+    .map(value => !request_check_observation_reference(value, "rev:"))
+    .unwrap_or(false) {
+    return Err(Policy)
+  }
+  if (owner.query_syntax is Some(_)) != (input_kind == "text") ||
+    (arguments.supplied is Some(_)) != (parameters_revision is Some(_)) ||
+    (parameters_revision is None && parameters_bytes != 0) ||
+    (declarations_revision is None && declarations_bytes != 0) ||
+    (
+      input_kind == "program" &&
+      (owner.native_query_declarations is Some(_) || declarations_bytes != 0)
+    ) ||
+    (
+      input_kind == "text" &&
+      (owner.native_query_declarations is Some(_)) !=
+      (declarations_revision is Some(_))
+    ) {
+    return Err(ForeignOriginal)
+  }
+  let count = @syntax.effect_header_count(
+    @checked.effect_computation_headers(candidate),
+  ).to_int64()
+  // One fixed control bound per ACTUAL header: Header/cursor/read Results,
+  // two selection Options, the resolved triple and refusal/loop alternatives.
+  // They borrow all Strings/Mapping/Program bodies; no text or Graph is copied.
+  guard @execution.preparation_representation_cost({
+      record_headers: 12L * count,
+      reference_slots: 16L * count,
+      scalar_words: 16L * count,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    // A resolution WorkLimit adds its budget finding and the protected
+    // obligation. Both can coexist for every original header.
+    request_check_observation_inventory_bytes(publication, 2L * count + 4L, 0L)
+    is Some(output) &&
+    @execution.checked_preparation_add_product(output, controls, 1L)
+    is Some(bytes) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  child.busy = true
+  preparation_module_call(
+    () => {
+      let (r, e) = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      match
+        @resources.reserve_working_preparation_phase(
+          owner.capacity,
+          input,
+          r,
+          e,
+        ) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(_) => ()
+      }
+      guard owner.phase == Selecting &&
+        child.busy &&
+        child.phase == CompilationQuoted &&
+        owner.input is Some(current_input) &&
+        physical_equal(current_input, input) &&
+        owner.program_check is Some(current_child) &&
+        physical_equal(current_child, child) &&
+        child.arguments is Some(current_arguments) &&
+        physical_equal(current_arguments, arguments) &&
+        child.effect_candidate is Some(current_candidate) &&
+        physical_equal(current_candidate, candidate) &&
+        child.static_effect_check is Some(current_selected) &&
+        physical_equal(current_selected, selected) &&
+        selected.result is Some(current_result) &&
+        physical_equal(current_result, result) else {
+        return Err(ForeignOriginal)
+      }
+      Ok(
+        Some(
+          @local_preparation.client_program_project_original_static_effect_check(
+            candidate,
+            result,
+            arguments.environment,
+            selected.publication,
+            publication,
+            context_ref,
+            input_kind,
+            input_revision,
+            input_bytes,
+            declarations_revision,
+            declarations_bytes,
+            parameters_revision,
+            parameters_bytes,
+            correlation_ref,
           ),
         ),
       )

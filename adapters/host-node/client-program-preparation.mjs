@@ -4,6 +4,11 @@ import {validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError, runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {types as nodeTypes} from 'node:util';
+import {dispatchFailureSnapshot, dispatchFailureCodeSite} from './client-dispatch-diagnostic.mjs';
+
+const preparationErrorType = Error;
+const preparationStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
 
 const issueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -13,6 +18,11 @@ const issueCodes = Object.freeze({
   program_syntax: 'ClientProgramInvalidInput',
   effect_not_supported: 'ClientProgramUnsupported',
   values_profile_unsupported: 'ClientProgramUnsupported',
+  debug_profile_unsupported: 'ClientProgramUnsupported',
+  debug_graph_construction_overflow: 'ClientProgramAnalysisLimit',
+  // Only explicit capability/extent variants above prove a preparation
+  // refusal. A foreign or invalid selected graph remains an actual failure.
+  debug_graph_rejected: 'ClientProgramPreparationFailure',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
   ClientProgramParameterUndeclared: 'ClientProgramInvalidInput',
@@ -68,6 +78,15 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 // Only this projection owns these immutable facts. A copied/mutable error
 // property or a lookalike Host exception cannot issue a capacity diagnostic.
 const capacityRefusals = new WeakMap();
+const originalLimitCodes = new Set([
+  'ClientProgramRuntimeFragmentWorkLimit',
+  'ClientProgramNormalizationWorkLimit',
+  'ClientProgramNormalizationRetentionLimit',
+  'ClientProgramNormalizationExecutionLimit',
+  'ClientProgramAuthoringWorkLimit',
+  'ClientProgramAuthoringRetentionLimit',
+  'ClientProgramAuthoringExecutionLimit',
+]);
 function originalPreparationRefusal(error) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? capacityRefusals.get(error) : undefined;
@@ -83,6 +102,30 @@ export function requestProgramPreparationProblemCode(error) {
 export function requestProgramPreparationRefusalCode(error) {
   return originalPreparationRefusal(error)?.refusalCode;
 }
+// Preserve the existing failed-admission association BEFORE optional delivery.
+// Diagnostics carry only existing original projections, never the thrown
+// object/cause or a new acceptance/refusal classification. This always throws
+// the SAME primary, including undefined; cleanup remains with its caller.
+export function retainPreparedSubmissionFailure(failures, submission, error, requested, sourceRefusal, observe) {
+  failures.set(submission, Object.freeze({error, requested,
+    prepared: submission.preparedProgram, sourceRefusal}));
+  if (observe !== undefined) try {
+    let primaryDiagnostic;
+    if (!nodeTypes.isProxy(error) && nodeTypes.isNativeError(error)) {
+      primaryDiagnostic = dispatchFailureSnapshot(error)?.primaryDiagnostic ??
+        dispatchFailureCodeSite(error, preparationErrorType, preparationStackFormatter);
+    }
+    const capacity = requestProgramCapacityRefusal(error);
+    // This phase spelling describes this optional catch observation only;
+    // it does not issue a durable submission phase or prove nonacceptance.
+    observe('preparation_failed', Object.freeze({boundary: 'request_admission',
+      available: primaryDiagnostic !== undefined || capacity !== undefined,
+      ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
+      ...(capacity === undefined ? {} : {capacity})}));
+  } catch { /* The original failure and awaited cleanup must remain primary. */ }
+  throw error;
+}
+
 function projectCapacityRefusal(moon, result) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
   if (typeof project !== 'function') fail('InvalidHostRuntimeResult');
@@ -125,7 +168,7 @@ export function checkedRequestProgramPreparation(moon, result,
   projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
     const category = projectIssue.call(moon, result);
-    if (category === 'ClientProgramRuntimeFragmentWorkLimit') {
+    if (originalLimitCodes.has(category)) {
       // Keep the existing trusted submit-refusal code. Only the same typed
       // result may supply its reached Core cause on the open Problem surface.
       const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),

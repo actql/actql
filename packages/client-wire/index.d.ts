@@ -100,6 +100,7 @@ export type WireClientBodyByOperation = Readonly<{
   submit: WireBodyBase & Readonly<{
     requestId: string;
     parameters: unknown;
+    executionProfile?: 'debug';
   }> & (Readonly<{kind: 'aql'; input: Readonly<{
     text: string;
     format: ClientSourceFormat;
@@ -114,12 +115,13 @@ export type WireClientBodyByOperation = Readonly<{
     unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
   'run-plan': WireClientBodyByOperation['inspect-run'];
+  'run-explanation': WireClientBodyByOperation['inspect-run'];
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;
     maxDepth: number;
   }>;
-  plan: Omit<WireClientBodyByOperation['submit'], 'requestId' | 'parameters'> & Readonly<{
+  plan: Omit<WireClientBodyByOperation['submit'], 'requestId' | 'parameters' | 'executionProfile'> & Readonly<{
     parameters: Record<string, unknown> | null;
     maxWireBytes: number; maxNodes: number; maxDepth: number}>;
   check: WireBodyBase & (Readonly<{

@@ -436,7 +436,11 @@ class BindingCliTests(unittest.TestCase):
         frozen = WASM.RUST_OUTPUT.read_bytes()
         rust.write_bytes(frozen)
         result = self.cli(root, '--check', '--rust')
-        self.assertEqual(result.returncode, 0, result.stderr)
+        # The excluded Rust mirror deliberately stays at its earlier ABI.
+        # Advancing the neutral task ABI must not silently retag or regenerate
+        # that frozen product. Explicit checking honestly refuses the mismatch.
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Rust Core Wasm ABI binding is stale', result.stderr)
         self.assertEqual(rust.read_bytes(), frozen)
         before = [p.read_bytes() for p in neutrals]
         for missing in (False, True):

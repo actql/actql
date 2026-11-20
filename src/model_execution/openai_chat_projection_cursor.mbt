@@ -219,3 +219,58 @@ pub fn advance_openai_chat_projection(
     _ => openai_projection_fail(cursor, Limit)
   }
 }
+
+///|
+/// Finish the pinned SDK-v4 profile on the SAME completed projection child.
+/// The caller must fund expected-wire/SDK/compare overlap before starting this
+/// child. Completion (including refusal) retires it before any SDK Promise.
+/// Seven original materials remain byte-identical; the eighth is expected DATA.
+pub fn finish_openai_chat_sdk_v4_projection(
+  cursor : OpenAIChatProjection,
+  model_id : String,
+  max_request_bytes : Int,
+) -> Result[
+  (String, String, String, String, String, String, String, String),
+  OpenAIChatProjectionIssue,
+] {
+  let value = match cursor.phase {
+    Ready(value) => value
+    Failed(issue) => return Err(issue)
+    _ => return Err(ForeignRequest)
+  }
+  guard cursor.request is Some(request) else {
+    retire_openai_chat_projection(cursor)
+    return Err(ForeignRequest)
+  }
+  // A JSON.stringify body within max_request_bytes has at most that many
+  // UTF-16 units. Canonical escaping takes at most six bytes per unit. The
+  // 18 envelope nodes (including optional seed) and three outer schema levels
+  // are additional to the unchanged projection limits, never taken from them.
+  if model_id.is_empty() ||
+    max_request_bytes < 1 ||
+    max_request_bytes > 357913941 ||
+    cursor.max_nodes > 2147483629 ||
+    cursor.max_depth > 2147483644 {
+    retire_openai_chat_projection(cursor)
+    return Err(Unsupported)
+  }
+  let result = emit_chat_request_profile(
+    OpenAISdkV4,
+    request,
+    value,
+    model_id,
+    max_request_bytes * 6,
+    cursor.max_nodes + 18,
+    cursor.max_depth + 3,
+    cursor.max_frames,
+    cursor.max_work - cursor.work,
+  )
+  // A terminal codec cannot be used to acquire another work budget, nor keep
+  // borrowing Request/schema construction storage while the SDK starts.
+  retire_openai_chat_projection(cursor)
+  match result {
+    Ok(wire) =>
+      Ok((value.0, value.1, value.2, value.3, value.4, value.5, value.6, wire))
+    Err(issue) => Err(issue)
+  }
+}

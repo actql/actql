@@ -79,7 +79,7 @@ existing durable claim and physical target serialization, never a profile label.
 ## Failure
 
 Missing inventory, foreign preparation, an absent prepared member, mismatched
-Mapping or physical descriptor, multiple writable targets, unauthorized reads,
+Mapping or physical descriptor, overlapping logical targets, unauthorized reads,
 changed sibling bytes and invalid typed projections refuse. A failed initial
 preparation calls inventory failure on that same original material. Source
 installation retains partial adapter cleanup via the existing Host failure
@@ -114,13 +114,53 @@ Effect file target limits bound original bytes, rows, nodes, depth, work and
 response. These limits are not retrospective funding, GC/RSS evidence, or
 permission to omit sibling projections from native memory accounting.
 
+Plural Mock UPDATE footprints use the existing exact-target family within the
+unchanged physical file binding. Each object CID binds the original physical
+`items_path`, `key_path`, `primary_identity` and selector. The shared scheme is
+`mock-file-row-update` with those four identity fields. Resource aliases,
+Mapping names, proposed values and row versions cannot disguise the same
+physical row as independent. Duplicate selectors and intersecting footprints
+still refuse through the existing Common conflict check. The original
+single-target path retains its opaque footprint and preimages.
+
+The same installed file owner and lock serve every admitted collection. Under
+that lock the writer re-admits the latest whole document and updates only the
+selected original row spans. A prior legitimate disjoint update is preserved,
+including all untouched/control records. A changed selected-row version or
+before image refuses; unrelated latest bytes are preserved rather than claimed
+to be an external-change refusal. Existing in-flight file/path checks remain.
+Neither a footprint nor a successful codec projection authorizes dispatch.
+
+The plural footprint constructor selects one additional nonphysical,
+zero-transfer member extent in the same Effect Plan. Its retained quantity is
+zero: the existing member capture is retained before proposal export and stays
+charged until the route and request aliases actually retire
+(`installed-row-effect.mjs` captureStage and `retireRequestAliases`). Its
+`installed_physical_write_recipe_capacities` capture-fixed quantity owns the
+whole Preview and recovery JSON forests. The footprint's returned CID vector
+and strings belong to that same eventual Preview forest; they are not released
+when the synchronous footprint workspace completes. Failed prefixes retain the
+same capture child and physical cleanup duties.
+
+`declaredProjectMockFootprintConstructionGeometry` adds only the synchronous
+canonical writer/hash workspace: four-field preimage/key/pair/sort cohorts,
+both original path vectors, one active target writer/UTF-8 Buffer and all
+returned CIDs. Six complete UTF-16 output cohorts conservatively overlap;
+the request's existing escaped wire bound is counted once, and Catalog path
+strings use their checked worst-case escape expansion. The existing shared
+capacity constructor prices these quantities. Source construction funds the
+additional codec record/method and plural capacity/extent/role before allocation.
+This is a logical Host allowance, not backend/RSS measurement, spare capacity,
+a new reservation Owner or a larger policy cap.
+
 ## Extension
 
 New collections and sample data are expressed through the declared catalog,
 physical paths, typed schemas, Mapping descriptors and fixture file. No scenario
 names, fixed field pairs or connector-specific branching belong in these runtime
-modules. Additional writable targets or operations require an explicit supported
-contract and tests; this boundary currently selects at most one update target.
+modules. This boundary admits finite disjoint UPDATE collections in the same
+file, each with its exact Mapping, authorization, current and recovery identity.
+Other physical operations require an explicit supported contract and tests.
 Live-provider installation and authorization are not inferred from mock success.
 
 ## Verification

@@ -24,6 +24,10 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const moon = {
     clientProgramPrepareRequestNativeComputation(owner, receipt) {same(owner, receipt); calls.push('check');},
     clientProgramFinishRequestComputation(owner, receipt) {same(owner, receipt); calls.push('compile'); return 'effect_free';},
+    clientProgramPrepareRequestProgramNormalization(owner, receipt) {same(owner, receipt);},
+    clientProgramRequestProgramNormalizationIssueCode() {},
+    clientProgramPrepareRequestProgramAuthoringContext(owner, receipt) {same(owner, receipt);return {};},
+    clientProgramRequestProgramAuthoringContextIssueCode() {},
     clientProgramBorrowRequestProgramPlanInput(owner, receipt) {same(owner, receipt); calls.push('inventory'); return inventory;},
     clientProgramPreparationBorrowRead(holder) {
       assert(holder === inventory || holder === selected);

@@ -26,6 +26,12 @@ architecture and minimum OS before staging. Other intended platforms remain
 unverified by this recipe. The universal library's other slice does not add
 an advertised Python profile.
 
+Both Local profiles use the selected Python interpreter's standard `sqlite3`
+module for durable Host storage. Its linked SQLite library must support
+[STRICT tables](https://sqlite.org/stricttables.html), available since SQLite
+3.37.0. The Python version and glibc floor alone do not establish that capability.
+This storage dependency is separate from the selected DuckDB query engine.
+
 ## Linux component profile
 
 The candidate `linux-x64` profile uses x86-64 GNU/Linux and the existing

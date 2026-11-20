@@ -95,7 +95,8 @@ test "Mock profile retains exact finite subjects beyond old Source and Task coun
   let original = admit_account_configuration_json(
     local_mock_account_configuration(subjects).unwrap(),
   ).unwrap()
-  assert_eq(original.entry_count(), 197)
+  // Two fixed entries: Run control and own-domain Result read.
+  assert_eq(original.entry_count(), 196)
   for (connection, resource) in subjects.sources {
     assert_true(
       evaluate_account(
@@ -144,13 +145,21 @@ test "standard profile counts every emitted entry against the existing Account o
 }
 
 ///|
-test "Mock profile counts request signer and both update entries before construction" {
+test "Mock profile counts request signer and update delegation before construction" {
   let subjects = {
-    ..profile_inventory_mock(MAX_ENTRIES - 7 - 65, 65),
+    // Run control, Result read, request, signer and one update delegate.
+    ..profile_inventory_mock(MAX_ENTRIES - 5 - 65, 65),
     request_target: Some(("local-host", "realization")),
     update_target: Some(("source-0", "records")),
     signing_key_resource: Some("reviewer-key"),
   }
+  let one_short = admit_account_configuration_json(
+    local_mock_account_configuration({
+      ..subjects,
+      model_tasks: Array::makei(64, profile_inventory_task),
+    }).unwrap(),
+  ).unwrap()
+  assert_eq(one_short.entry_count(), MAX_ENTRIES - 1)
   let original = admit_account_configuration_json(
     local_mock_account_configuration(subjects).unwrap(),
   ).unwrap()

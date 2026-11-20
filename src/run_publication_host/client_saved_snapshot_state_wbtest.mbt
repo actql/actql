@@ -63,12 +63,15 @@ test "saved snapshot retains one restored state and its same original Manifest" 
   assert_true(physical_equal(first, second))
   assert_true(physical_equal(first, snapshot.state_original.unwrap()))
   assert_true(
-    physical_equal(first.original_manifest(), second.original_manifest()),
+    physical_equal(
+      first.original_manifest().unwrap(),
+      second.original_manifest().unwrap(),
+    ),
   )
   assert_eq(first.wire(), client_saved_manifest_envelope)
   assert_eq(first.state_wire(), client_saved_manifest_state)
   assert_eq(
-    @publication.publication_contract_json(first.original_manifest()),
+    @publication.publication_contract_json(first.original_manifest().unwrap()),
     client_saved_manifest_manifest,
   )
   assert_eq(client_saved_submission_row(snapshot).body, @utf8.encode(body))

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './github-repository-validation.test.mjs';
 import {readFileSync} from 'node:fs';
 import {types} from 'node:util';
 import {parse} from 'acorn';

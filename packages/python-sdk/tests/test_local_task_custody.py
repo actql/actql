@@ -7,6 +7,45 @@ from actql_sdk._local_core import LocalCore, LocalCoreError, _Compute
 
 
 class TaskCustodyTests(unittest.TestCase):
+    def test_derived_drive_keeps_same_original_for_completion_pause_and_refusal(self):
+        for code in (0, 1, 2, 3, -35, 9):
+            with self.subTest(code=code):
+                core, compute, calls, _ = self.bridge()
+                task = core.reserve_task(compute, 13)
+                original = core._call
+                def call(family, name, *args):
+                    original(family, name, *args)
+                    self.assertEqual((family, name, args), ('task', 'drive', (19, 1)))
+                    return code
+                core._call = call
+                if code in (0, 1):
+                    self.assertIs(core.drive_task(task, 1), code == 1)
+                else:
+                    with self.assertRaises(LocalCoreError) as failed:
+                        core.drive_task(task, 1)
+                    self.assertEqual(failed.exception.code, -7 if code in (2, 3) else
+                                     -33 if code >= 0 else code)
+                self.assertIs(core._task_loans[19], task)
+                self.assertIs(core._compute_loans[17], compute)
+                self.assertEqual(calls[-1], ('task', 'drive', (19, 1)))
+                self.assertEqual(len(calls), 2)  # Reserve, then one original ABI call.
+
+    def test_derived_drive_refuses_foreign_original_and_invalid_quantum_before_io(self):
+        core, compute, calls, _ = self.bridge()
+        task = core.reserve_task(compute, 13)
+        baseline = len(calls)
+        foreign, _, _, _ = self.bridge()
+        for value, quantum in ((copy.copy(task), 1), (task, True), (task, 0), (task, 2**31)):
+            with self.assertRaises(ValueError):
+                core.drive_task(value, quantum)
+        with self.assertRaises(ValueError):
+            foreign.drive_task(task, 1)
+        core._closing = True
+        with self.assertRaises(RuntimeError):
+            core.drive_task(task, 1)
+        self.assertEqual(len(calls), baseline)
+        self.assertIs(core._task_loans[19], task)
+
     def bridge(self):
         core = LocalCore.__new__(LocalCore)
         core._lock = RLock()

@@ -47,7 +47,7 @@ import {prepareCompletedEffectFreeRunPublication} from
   './run-publication-preflight.mjs';
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
   './authorization-gate.mjs';
-import {projectTaskObservation} from './task-observation.mjs';
+import {projectTaskObservation, projectTaskLogicalObservation} from './task-observation.mjs';
 import {ledgerUsageSnapshotHasPendingResources} from './runtime-core.mjs';
 
 export class StrategyHostError extends Error {
@@ -400,7 +400,7 @@ function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, sit
 // snapshotted; they never supply this runtime or these admission callbacks.
 export async function runInstalledStrategy({
   setup,
-  runtime: {core, contributions, sitePolicy,
+  runtime: {core, contributions, sitePolicy, observeFailure,
     authorization = missingAuthorizationGate()},
   control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
   publication: {beforeCompute} = {},
@@ -791,7 +791,7 @@ export async function runInstalledStrategy({
           throw new StrategyHostError(code);
         }
       }
-      const task = managed ? managed.task : core.next(setup);
+      const task = managed ? managed.task : core.next(setup, observeFailure);
       if (task == null) break;
       const index = managed ? task.task : core.task(task);
       const entry = managed ? managed.entry : installed.get(core.registration(task));
@@ -870,6 +870,7 @@ export async function runInstalledStrategy({
       await authorizeActivation(siteCandidate.site, entry, index);
       // Activation has returned; no callback occurs inside its commit.
       projectTaskObservation(taskObservation, 'task_started', index);
+      projectTaskLogicalObservation(taskObservation, 'before', index);
       let plannerObserverMilliseconds;
       if (observeTaskStart) {
         const observationStarted = performance.now();
@@ -1100,6 +1101,7 @@ export async function runInstalledStrategy({
       }));
       projectTaskObservation(taskObservation, 'task_completed', index,
         completed.at(-1).taskElapsedMilliseconds);
+      projectTaskLogicalObservation(taskObservation, 'settled', index);
       if (observeCompletion) {
         const output = result?.completed ?? core.output(setup, index);
         if (output == null) throw new StrategyHostError('MissingCompletedOutput');
@@ -1396,6 +1398,14 @@ export async function runInstalledStrategy({
         closeFailed = true;
         rememberOwnedReleaseFailure(error, owner);
       };
+      // Successful output remains usable until this owner closes. Stop the
+      // completed original DAG before returning outputs and observation loans;
+      // finishing Compute alone does not close its retained boundary hooks.
+      // A checkpoint wait keeps its existing dispatch-stop/resume semantics.
+      if (runFinished) {
+        try { core.stop(setup); }
+        catch (error) { releaseFailed(error, core); }
+      }
       try {
         const result = transfers.close();
         if (result != null && typeof result.then === 'function') {

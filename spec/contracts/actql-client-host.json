@@ -11,19 +11,23 @@
     },
     "submit": {
       "stopBefore": {"const": "commit"},
-      "readOnly": {"const": true}
+      "readOnly": {"const": true},
+      "executionProfile": {"const": "debug"}
     },
     "submit-intent": {
       "stopBefore": {"const": "commit"},
-      "readOnly": {"const": true}
+      "readOnly": {"const": true},
+      "executionProfile": {"const": "debug"}
     },
     "submit-named-intent": {
       "stopBefore": {"const": "commit"},
-      "readOnly": {"const": true}
+      "readOnly": {"const": true},
+      "executionProfile": {"const": "debug"}
     },
     "restart-intent": {
       "stopBefore": {"const": "commit"},
-      "readOnly": {"const": true}
+      "readOnly": {"const": true},
+      "executionProfile": {"const": "debug"}
     }
   },
   "operations": {
@@ -197,6 +201,13 @@
       "maxWireBytes"
     ],
     "run-plan": [
+      "connection",
+      "ref",
+      "maxWireBytes",
+      "maxNodes",
+      "maxDepth"
+    ],
+    "run-explanation": [
       "connection",
       "ref",
       "maxWireBytes",
@@ -1573,7 +1584,8 @@
           {"const": null}, {"type": "object", "additionalProperties": true}
         ]},
         "stopBefore": {"const": "commit"},
-        "readOnly": {"const": true}
+        "readOnly": {"const": true},
+        "executionProfile": {"const": "debug"}
       }
     },
     "installed_effect_continuation": {

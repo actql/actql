@@ -132,6 +132,34 @@ fn[E] read_client_saved_submission_row(
   ])? = None,
   expected_reference? : ClientSubmissionReferenceRecord? = None,
 ) -> Result[ClientSavedSubmissionSnapshot, E] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  read_client_saved_submission_row_with_task_original(
+    row,
+    read,
+    validate_run,
+    custody_lost,
+    original,
+    before_construction~,
+    expected_reference~,
+  )
+}
+
+///|
+fn[Plan, E] read_client_saved_submission_row_with_task_original(
+  row : ClientJournalPhysicalRow,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
+  expected_reference? : ClientSubmissionReferenceRecord? = None,
+) -> Result[ClientSavedSubmissionSnapshot, E] {
   let record = match
     decode_client_submitted_journal_row(row.body, before_construction~) {
     Ok(value) => value
@@ -203,7 +231,13 @@ fn[E] read_client_saved_submission_row(
         None => None
         Some(cid) =>
           match
-            read_client_task_material_original(row.key, cid, read, custody_lost) {
+            read_client_task_material_with_original(
+              row.key,
+              cid,
+              read,
+              custody_lost,
+              task_original,
+            ) {
             Ok(wire) => Some(wire)
             Err(issue) => return Err(issue)
           }
@@ -238,6 +272,34 @@ pub fn[E] read_client_saved_submission(
     ClientJournalDecodingIssue,
   ])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  read_client_saved_submission_with_task_original(
+    reference,
+    read,
+    validate_run,
+    custody_lost,
+    original,
+    before_construction~,
+  )
+}
+
+///|
+/// Same saved-row read with an already retained pure material original. All
+/// nested Run/binding/construction callbacks and physical reads still execute.
+pub fn[Plan, E] read_client_saved_submission_with_task_original(
+  reference : ClientSubmissionReferenceRecord,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
+) -> Result[ClientSavedSubmissionSnapshot?, E] {
   let key = client_submission_reference_record_request_id(reference)
   let row = match read("client_submitted_intents", key) {
     Ok(Some(value)) if value.key == key => value
@@ -246,11 +308,12 @@ pub fn[E] read_client_saved_submission(
     _ => return Err(custody_lost)
   }
   let snapshot = match
-    read_client_saved_submission_row(
+    read_client_saved_submission_row_with_task_original(
       row,
       read,
       validate_run,
       custody_lost,
+      task_original,
       expected_reference=Some(reference),
       before_construction~,
     ) {

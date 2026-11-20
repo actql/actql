@@ -1,6 +1,7 @@
 // Standard composition entry. Callers cannot replace the runtime, installed
 // implementation factories, verification or SQL through execution options.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
+import {sourceFreePlanOriginal} from './local-values-plan.mjs';
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -61,11 +62,15 @@ async function runCapturedStrategyTarget({
   // Seal the activation requirement before any contribution is installed.
   core.requireActivation(setup);
   const installed = await install(moon, setup, checked, configurations, signal);
+  const originalPlan = publication === undefined ? undefined : sourceFreePlanOriginal(publication.plan);
+  const observeFailure = core.publicationControl.originalClientDispatchFailureAvailable(originalPlan)
+    ? host => core.publicationControl.observeOriginalClientDispatchFailure(originalPlan, host)
+    : undefined;
   signal?.throwIfAborted();
   return runInstalledStrategy({
     setup,
     runtime: {core, contributions: installed,
-      sitePolicy: configurations.executionSitePolicy, authorization},
+      sitePolicy: configurations.executionSitePolicy, authorization, observeFailure},
     control: {signal, observeCompletion,
       observeTaskStart: taskStartObserver(observer), taskObservation},
     publication: {

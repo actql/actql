@@ -136,7 +136,7 @@ npm install @actql/node
 import {readFile} from 'node:fs/promises';
 import {connect} from '@actql/node';
 
-const client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
+const client = await connect({mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
 try {
   const source = await readFile('deal-review.aql', 'utf8');
   const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
@@ -147,9 +147,14 @@ try {
 }
 ```
 
-This stops at a Checkpoint just like the CLI example, and a Run started from
-code can be approved from the CLI by its Run ID. `.actql` holds the
-application's durable state; keep it out of version control. See
+This starts a separate Run in the application's own `.actql-node` directory.
+The snippet observes the Checkpoint and then closes its embedded Host; it
+does not demonstrate approval. To handle review in this application, keep
+its Host open and use the configured client. The CLI example uses its own
+`.actql` state;
+pointing the CLI at the application's directory does not connect it to that
+Host or provide an approval handoff. Keep both state directories out of
+version control. See
 [TypeScript and Node](docs/guides/node.md). Python packaging is not part of
 this Initial Developer Preview.
 

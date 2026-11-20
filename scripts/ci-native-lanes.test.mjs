@@ -363,7 +363,31 @@ test('every original Native command and environment has one same-VM execution ow
       const matches = cases.filter(step => step.name === expected.name);
       assert.equal(matches.length, 1, expected.name);
       assert.equal(createHash('sha256').update(matches[0].run).digest('hex'), expected.commandSha256, expected.name);
-      assert.deepEqual(matches[0].env ?? {}, expected.env, expected.name);
+      const checkEnvironment = environment => {
+        const retained = {...environment};
+        if (family === 'native' && http.steps.includes(matches[0]) && matches[0].id === 'native-http') {
+          const key = 'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION';
+          const producers = http.steps.filter(step => step.run?.includes('prepareNativeResidentPortableRuntime('));
+          const releases = http.steps.filter(step => step.run?.includes('node scripts/native-core-source-release.mjs'));
+          assert.equal(producers.length, 1); assert.equal(releases.length, 1);
+          assert.equal(typeof retained[key], 'string'); assert(retained[key].length > 0);
+          assert.equal(retained[key], releases[0].env[key], 'Both original Source profiles require the same preparation');
+          assert(http.steps.indexOf(producers[0]) < http.steps.indexOf(matches[0]));
+          assert(http.steps.indexOf(matches[0]) < http.steps.indexOf(releases[0]));
+          // This separately admitted shared receipt extends the original
+          // environment; every old binding and every other key stays exact.
+          delete retained[key];
+        }
+        assert.deepEqual(retained, expected.env, expected.name);
+      };
+      checkEnvironment(matches[0].env ?? {});
+      assert.throws(() => checkEnvironment({...matches[0].env, ACTQL_UNREVIEWED_ENVIRONMENT: 'foreign'}));
+      for (const key of Object.keys(expected.env))
+        assert.throws(() => checkEnvironment({...matches[0].env, [key]: 'foreign'}));
+      if (family === 'native' && http.steps.includes(matches[0]) && matches[0].id === 'native-http') {
+        const key = 'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION';
+        assert.throws(() => checkEnvironment({...matches[0].env, [key]: '/foreign/preparation.json'}));
+      }
     }
   }
 });

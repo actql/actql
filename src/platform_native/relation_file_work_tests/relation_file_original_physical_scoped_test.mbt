@@ -252,8 +252,21 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
   // Source decoding, maxima, account and physical partitions are unchanged.
   let selection = relation_original_selection("/fixture")
   let fixture_limits = relation_original_limits()
+  // Single(source) adds one variant header, one borrowed capture reference
+  // and one tag word to the old Work vectors. Source and Read stay unchanged.
+  let single_source_tag = 16L + 8L + 8L
+  // The publication-refusal closure borrows the SAME Work once. This is one
+  // central-tariff reference slot, not physical backing or a larger policy.
+  let publication_failure_borrow = 8L
   for
-    (page, path_count, key_count, source_bytes, work_bytes, read_bytes) in [
+    (
+      page,
+      path_count,
+      key_count,
+      source_bytes,
+      work_without_source_tag,
+      read_bytes,
+    ) in [
       (
         @rows.RowPageLimits::{
           max_bytes: 1,
@@ -318,8 +331,14 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
     let read = @client.native_relation_file_entry_read_capacity(
       selected, limits,
     ).unwrap()
-    assert_eq(@execution.execution_capacity_retained_bytes(work), work_bytes)
-    assert_eq(@execution.execution_capacity_execution_bytes(work), work_bytes)
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(work),
+      work_without_source_tag + single_source_tag + publication_failure_borrow,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(work),
+      work_without_source_tag + single_source_tag + publication_failure_borrow,
+    )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)
   }

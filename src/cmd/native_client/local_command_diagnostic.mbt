@@ -15,6 +15,14 @@ priv enum LocalCommandDiagnosticKind {
   PreparationLimit
   InputRequired
   PreparationFailed
+  PreparationFailedFrontend
+  PreparationFailedCheck
+  PreparationFailedComputation
+  PreparationFailedEffectComputation
+  PreparationFailedRequest
+  PreparationFailedRequestPreparation
+  PreparationFailedNormalizationPreparation
+  PreparationFailedNormalization
   ReadOnlyEffect
   RunObservationFailed
   JournalMaintenanceFailed
@@ -85,7 +93,7 @@ fn local_check_diagnostic_kind(
     UnsupportedImplementation => UnsupportedPreparation
     CompileLimit => PreparationLimit
     MissingInput => InputRequired
-    UnclassifiedFailure => PreparationFailed
+    UnclassifiedFailure => PreparationFailedCheck
   }
 }
 
@@ -98,7 +106,7 @@ fn local_frontend_diagnostic_kind(
     QuerySyntax({ issue: Limit(_) | Source(InputLimit), .. }) =>
       PreparationLimit
     InvalidFormat | WrongQueryForm | QuerySyntax(_) => ProgramInvalid
-    _ => PreparationFailed
+    _ => PreparationFailedFrontend
   }
 }
 
@@ -121,7 +129,8 @@ fn local_native_preparation_diagnostic_kind(
     }
     Computation(Syntax(_)) => ProgramInvalid
     Computation(Binding(_)) => ParameterBinding
-    Computation(_) | EffectComputation(_) => PreparationFailed
+    Computation(_) => PreparationFailedComputation
+    EffectComputation(_) => PreparationFailedEffectComputation
   }
 }
 
@@ -145,11 +154,12 @@ fn[T] local_stop_submitted_preparation(
           local_check_diagnostic_kind(
             @checked.input_requests_diagnostic(requests),
           )
-        @checked.Checked(_) => PreparationFailed
+        @checked.Checked(_) => PreparationFailedRequest
       }
     Request(QuerySyntax(Frontend(issue))) =>
       local_frontend_diagnostic_kind(issue)
-    Request(_) | RequestPreparation(_) => PreparationFailed
+    Request(_) => PreparationFailedRequest
+    RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
     RequestNormalization(_) => PreparationFailed
   }
@@ -236,6 +246,41 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     PreparationFailed =>
       (
         "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed.",
+      )
+    // Complete static messages keep the original public prefix and consume
+    // the existing 256-scalar/4096-byte presentation bounds. These nullary
+    // cases reuse the same diagnostic slot: no retained payload or new root.
+    PreparationFailedFrontend =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [Frontend]",
+      )
+    PreparationFailedCheck =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [Check:UnclassifiedFailure]",
+      )
+    PreparationFailedComputation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [Preparation:Computation]",
+      )
+    PreparationFailedEffectComputation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [Preparation:EffectComputation]",
+      )
+    PreparationFailedRequest =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [Request]",
+      )
+    PreparationFailedRequestPreparation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestPreparation]",
+      )
+    PreparationFailedNormalizationPreparation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestNormalization:Preparation]",
+      )
+    PreparationFailedNormalization =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestNormalization:Normalization]",
       )
     ReadOnlyEffect =>
       ("ACTQL_E_READ_ONLY_EFFECT", "The read-only request contains an Effect.")
@@ -360,7 +405,8 @@ fn[T] local_stop_normalization(
     | Normalization(Evidence(RunEvidenceInvalidLimits)) => ConfigurationInvalid
     Normalization(CommonInventory(UnsupportedRequirement | CompletionObserved)) =>
       UnsupportedPreparation
-    _ => PreparationFailed
+    Preparation(_) => PreparationFailedNormalizationPreparation
+    Normalization(_) => PreparationFailedNormalization
   }
   stop("LocalOriginalNormalizationNotInstalled")
 }

@@ -6,6 +6,7 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
+import {prepareAcquiredEffectSourceUnits, localContractLimits} from './local-values-plan.mjs';
 
 function beforeInstallation({failClose = false, retainedBytes = 0n, abort = false} = {}) {
   const setup = {};
@@ -474,19 +475,29 @@ for (const units of [[0, 0], [0, 0, 2]]) {
 // context. These explicit ports exercise the actual consumer, not a provider.
 test('combined upstream Source Unit publication remains available when later Models exist', () => {
   const managedRun = {}, sourcePlan = {}, sourceHost = {}, issuedModel = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const retentionSelection = Object.freeze({availableUntil:'available',deleteBy:'delete',metadataDeleteBy:'metadata'});
   const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input',
     occurrence: {stage: 0}, identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}},
     sourceEvidence: {slot}}));
   const model = {unit: 1}, calls = [];
   const acquired = {prepared: {}, requestIdentity: {}, compilation: {}, admission: {}, definition: {},
-    runDefinition: {wire: '{"created_at":"2026-11-12T00:00:00.000Z"}'}, compiledPlan: {identity: 'same-plan'}};
+    runDefinition: {wire: '{"created_at":"2026-11-12T00:00:00.000Z"}'}, compiledPlan: {identity: 'same-plan'},
+    selectRetention() {assert.strictEqual(this,acquired);return retentionSelection;}};
   acquired.moon = {clientProgramEffectPublicationDataPolicyCid: () => 'original-policy',
     clientProgramEffectDefinitionCid: () => 'original-definition', clientProgramEffectCompilationResultNames: () => ['joined'],
     clientProgramCapturedSourceLogicalCid: identity => 'logical-' + identity.slot,
     clientProgramCapturedSourceSchemaCid: () => 'original-schema',
     clientProgramCapturedSourceDependencyBodies: identity => ['rows-' + identity.slot, 'schema'],
     clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
-  acquired.control = {bindCheckedInstalledEffectModelInvocation(parent, prepared, request, plan, host,
+  acquired.control = {
+    issueInstalledEffectInitialRetention(parent, prepared, request, plan, policy, selection, limits) {
+      assert.strictEqual(this,acquired.control);
+      assert.strictEqual(parent,managedRun);assert.strictEqual(prepared,acquired.prepared);
+      assert.strictEqual(request,acquired.requestIdentity);assert.strictEqual(plan,sourcePlan);
+      assert.equal(policy,'original-policy');assert.strictEqual(selection,retentionSelection);
+      assert.strictEqual(limits,localContractLimits);calls.push('initial-retention');return retention;
+    },
+    bindCheckedInstalledEffectModelInvocation(parent, prepared, request, plan, host,
       compilation, admission, definition, issued) {
       assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
       assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(plan, sourcePlan); assert.strictEqual(host, sourceHost);
@@ -507,11 +518,15 @@ test('combined upstream Source Unit publication remains available when later Mod
       calls.push('combined-0'); return combined;
     }};
   const run = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {
-    limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
-    checked: value => value.ok, buildLocalPublicationPlan: () => ({plan: {}, retention, retentionDependencies: []}),
+    limits: localContractLimits, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
+    checked: value => value.ok, buildLocalPublicationPlan(options) {
+      assert.strictEqual(options.originalRetention,retention);
+      assert.strictEqual(options.retentionSelection,retentionSelection);
+      return {plan: {}, retention, retentionDependencies: []};
+    },
   });
   const plan = run({acquired, sources, sourcePlan, managedRun, sourceHost, issuedModel, modelOriginals: [model]});
-  assert.deepEqual(calls, ['complete-model', 'original-source-units', 'combined-0']);
+  assert.deepEqual(calls, ['complete-model', 'original-source-units', 'initial-retention', 'combined-0']);
   assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
   assert.strictEqual(plan.localEvidenceContext.modelOriginalByUnit[1], model);
   assert.equal(plan.localEvidenceContext.acquisitionDependencies.length, 4);
@@ -522,6 +537,7 @@ test('combined upstream Source Unit publication remains available when later Mod
 
 test('upstream Source Unit preparation retains original bodies before Models and final publication reuses them', () => {
   const managedRun = {}, sourcePlan = {}, sourceHost = {}, issuedModel = {}, request = {}, inputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const retentionSelection = Object.freeze({availableUntil:'available',deleteBy:'delete',metadataDeleteBy:'metadata'});
   const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input', occurrence: {stage: 0},
     identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}}, sourceEvidence: {slot}}));
   const calls = [];
@@ -533,10 +549,15 @@ test('upstream Source Unit preparation retains original bodies before Models and
     clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
   const acquired = {moon, prepared: {}, requestIdentity: request, compilation: {}, admission: {}, definition: {},
     runDefinition: {wire: '{"created_at":"2026-11-12T00:00:00.000Z"}'}, compiledPlan: {identity: 'same-plan'},
-    selectRetention: () => Object.freeze({availableUntil: 'available', deleteBy: 'delete', metadataDeleteBy: 'metadata'})};
+    selectRetention() {assert.strictEqual(this,acquired);return retentionSelection;}};
   acquired.control = {
-    seal(kind, wire) {assert.equal(kind, 'result_retention_policy'); assert.equal(JSON.parse(wire).effective_data_policy_cid, 'original-policy');
-      calls.push('retention'); return retention;},
+    issueInstalledEffectInitialRetention(run, prepared, actualRequest, plan, policy, selection, limits) {
+      assert.strictEqual(this,acquired.control);
+      assert.strictEqual(run,managedRun);assert.strictEqual(prepared,acquired.prepared);
+      assert.strictEqual(actualRequest,request);assert.strictEqual(plan,sourcePlan);
+      assert.equal(policy,'original-policy');assert.strictEqual(selection,retentionSelection);
+      assert.strictEqual(limits,localContractLimits);calls.push('retention');return retention;
+    },
     prepareCheckedInstalledEffectSourceUnits(plan, prepared, actualRequest, compilation, admission, definition, actualSources) {
       assert.strictEqual(plan, sourcePlan); assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(actualRequest, request);
       assert.strictEqual(actualSources, sources); calls.push('source-inputs'); return inputs;
@@ -556,13 +577,7 @@ test('upstream Source Unit preparation retains original bodies before Models and
       calls.push('completed-models'); return {observation: {}, invocation: {}, owner: {}};
     },
   };
-  const issueRetention = composedSourceFunction('./local-values-plan.mjs', 'issueLocalResultRetention', {
-    retentionDependencies: [{cid: 'retention'}, {cid: 'metadata'}, {cid: 'clock'}], limits: {},
-  });
-  const prepare = composedSourceFunction('./local-values-plan.mjs', 'prepareAcquiredEffectSourceUnits', {
-    issueLocalResultRetention: issueRetention, limits: {},
-  });
-  const original = prepare({acquired, sources, sourcePlan, managedRun, modelUnits: [1, 2]});
+  const original = prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan, managedRun, modelUnits: [1, 2]});
   assert.deepEqual(calls, ['retention', 'source-inputs', 'before-model-unit']);
   assert.strictEqual(original.byUnit.get(0).value, combined);
   const publish = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {

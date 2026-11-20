@@ -282,13 +282,23 @@ fn LocalProjectMockDeclarations::bind_runtime(
 }
 
 ///|
-fn LocalProjectMockDeclarations::update_aliases(self : Self) -> Array[Json] {
+fn LocalProjectMockDeclarations::update_aliases(
+  self : Self,
+  visible? : ((LocalProjectMockSourceDeclaration, String) -> Bool)? = None,
+) -> Array[Json] {
   let result : Array[Json] = []
   if self.closing || self.retired || self.model_failure is Some(_) {
     return result
   }
   if self.write_installations is Some(installations) {
     for installation in installations {
+      if visible is Some(disclose) &&
+        !disclose(
+          installation._retained_source,
+          installation.write.mapping.resource,
+        ) {
+        continue
+      }
       for name in installation.write.aliases {
         result.push({
           "name": Json::string(name),

@@ -109,6 +109,13 @@ not a fallback for a missing managed constructor. Account identity, initial and
 final property Catalog checks and complete page projection remain provider
 rules. Metadata resources require their own fresh Account decisions and
 original grants; a data grant cannot authorize either metadata resource.
+The existing child-authorization owner consumes the declared metadata Resource
+and binds its decision to the same original parent target plus operation. It
+retains each original grant/current callback through the Reader's physical
+child cleanup; the protocol supplies request/projection DATA rather than a
+second grant cache. Explicitly supplied original child authorizations remain
+supported. A refused metadata decision uses the shared
+`ExecutionAuthorizationDenied` failure, with its original decision retained.
 
 The generic Reader owns physical response custody, charge-before-decode,
 current/cancellation fences and cleanup-bound RowRun retirement. The private

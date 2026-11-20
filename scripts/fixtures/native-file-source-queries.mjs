@@ -1,5 +1,6 @@
 // Original issue3609 query shapes. These inputs do not simulate a Native reader.
 import assert from 'node:assert/strict';
+import {writeSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {canonicalText} from '../check-canonical-json.mjs';
@@ -22,6 +23,51 @@ export const nativeFileSourceQueries = Object.freeze([
   {name: 'average', sql: "SELECT AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", rows: [{average: 8}]},
   {name: 'combined-control', sql: "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", rows: [{total: 16, average: 8}]},
 ]);
+// Existing read-only Mock contract: a legal WHERE and two original logical
+// JOIN occurrences in the SAME physical file. Native execution is required;
+// these independent full-row oracles are not planning/metadata acceptance.
+export const nativeReadonlyMockQueries = Object.freeze([
+  {name: 'readonly-filter', sql: "SELECT account_id, trend FROM snowflake.usage_30d WHERE trend = 'down'",
+    rows: [{account_id: '001Acme', trend: 'down'}]},
+  {name: 'readonly-join', sql: 'SELECT u.account_id, a.name AS account_name, u.trend FROM snowflake.usage_30d u JOIN salesforce.accounts a ON u.account_id = a.id',
+    rows: [{account_id: '001Acme', account_name: 'Acme Corp', trend: 'down'},
+      {account_id: '001Globex', account_name: 'Globex Inc', trend: 'flat'}]},
+]);
+export const nativeInstalledSourceQueries = Object.freeze([
+  ...nativeFileSourceQueries, ...nativeReadonlyMockQueries,
+]);
+// Preserve the original hermetic command environment. These two metadata
+// flags cannot choose a runtime, change a quote or reconfigure execution.
+export function nativeFileSourceQueryEnvironment({fixture, args, emptyPath, home, environment}) {
+  const child = {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'};
+  if (fixture.name === 'readonly-filter' && args[0] === 'sql' &&
+    environment.ACTQL_NATIVE_TIMINGS === '1' &&
+    environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS === '1')
+    Object.assign(child, {ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1'});
+  return child;
+}
+
+// The complete original stderr remains in the existing case-owned file.
+// Tee only one complete closed numeric row into the installed owner's command
+// record, never arbitrary diagnostics/payloads/IDs. Missing/duplicate/truncated
+// rows, false foreign Role attribution or failed writes stay unmeasured and
+// cannot replace the primary. Scope match is observation DATA, never permission.
+export function retainNativeFileCapacityStderr(environment, stderr, write = body => writeSync(2, body)) {
+  if (environment.ACTQL_NATIVE_TIMINGS !== '1' ||
+    environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS !== '1' || typeof stderr !== 'string') return;
+  const natural = '(?:0|[1-9][0-9]{0,18})', observed = `(?:-1|${natural})`;
+  const row = new RegExp('^ACTQL_NATIVE_FILE_CAPACITY \\{"phase":1[0-6],"scope_ledger_match":(true|false),"compute":(?:true|false),' +
+    `"requested_execution":${natural},"task_capacity":${observed},` +
+    `"limit_execution":${natural},"reserved_execution":${natural},` +
+    `"entry_singleton_execution":${observed},"row_execution":${observed}\\}\\n`, 'gmu');
+  const matches = [...stderr.matchAll(row)];
+  if (matches.length === 1 && (matches[0][1] === 'true' ||
+    matches[0][0].includes('"task_capacity":-1,') &&
+    matches[0][0].includes('"entry_singleton_execution":-1,"row_execution":-1}'))) {
+    try { write(matches[0][0]); } catch { /* Diagnostic loss is not execution failure. */ }
+  }
+}
+
 const multiset = rows => rows.map(canonicalText).sort();
 const requireSuccess = result => {
   assert.ifError(result.error);
@@ -31,7 +77,7 @@ const requireSuccess = result => {
 };
 
 export async function observeNativeFileSourceQuery({parent, fixture, cli}) {
-  assert(nativeFileSourceQueries.includes(fixture), 'Select an original File query');
+  assert(nativeInstalledSourceQueries.includes(fixture), 'Select an original installed Source query');
   const project = join(parent, fixture.name);
   requireSuccess(await cli(['init', '--template', 'churn-risk-mock', project], parent));
   const path = join(project, 'mock/data.json'), original = await readFile(path);

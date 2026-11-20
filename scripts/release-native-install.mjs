@@ -9,6 +9,15 @@ import {admitInstalledNativeArtifact, requireNativePackageVersion} from './nativ
 import {admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+export function nativeCliReleaseInstallSelection(args) {
+  assert(Array.isArray(args) && (args.length === 2 || args.length === 3) &&
+    args.every(value => typeof value === 'string' && value.length > 0) &&
+    (args.length === 2 || args[2] === '--shared-clients'),
+  'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC> [--shared-clients]');
+  return {cliDirectory: resolve(args[0]), sdkDirectory: resolve(args[1]),
+    sharedClients: args.length === 3};
+}
+
 export function nativeStandaloneAcceptanceScope() {
   return {acceptedScope: 'only completed direct Native --version/help/refusal and original Remote Host fixture; Node-free Native child PATH; separate public Node Host installation',
     unverified: ['Local execution/bootstrap/approval', 'standard Project/README CLI', 'other platforms', 'npm Native launcher installation', 'full fault matrix', 'owner approval/publication authority']};

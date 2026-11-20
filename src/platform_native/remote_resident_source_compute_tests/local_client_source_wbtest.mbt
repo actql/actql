@@ -8,7 +8,7 @@ fn local_client_source_publication_case(
   cancel_before_start? : Bool = false,
   delivery_handoff? : Bool = false,
   original_normalization? : Bool = false,
-  reject_original_completion? : Bool = false,
+  source_completion? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Source acceptance requires its actual DuckDB fixture")
@@ -217,9 +217,10 @@ fn local_client_source_publication_case(
     resident_compute_reclaim(root, name)
     return
   }
-  if reject_original_completion {
+  if source_completion {
     let key = @host.client_request_scope_cid(request)
     let before = database.read("client_runs", key).unwrap().body
+    // Current authorization still precedes audit, start claim and Source I/O.
     assert_true(
       @client.open_native_client_local_source_work(
         journal,
@@ -230,7 +231,7 @@ fn local_client_source_publication_case(
         configuration,
         name,
         () => "2026-10-10T00:00:01.000Z",
-        () => true,
+        () => false,
         observe=event => {
           match event {
             @resident.AcquisitionEntered => acquisitions += 1
@@ -241,22 +242,13 @@ fn local_client_source_publication_case(
           true
         },
       )
-      is Err(
-        @client.Normalization(
-          @host.CommonInventory(@checked.CompletionObserved)
-        )
-      ),
+      is Err(@client.AuthorizationDenied),
     )
-    // No dispatch/start claim may be persisted by a rejected original audit.
     assert_eq(database.read("client_runs", key).unwrap().body, before)
     assert_eq(acquisitions, 0)
     assert_eq(consumers, 0)
     assert_eq(cleanups, 0)
     assert_eq(initial_store.capacity_usage().unwrap().reserved_bytes, 0L)
-    assert_true(initial_store.close().unwrap())
-    database.close_checked().unwrap()
-    resident_compute_reclaim(root, name)
-    return
   }
   assert_true(initial_store.close().unwrap())
   let current_time = () => {
@@ -277,7 +269,7 @@ fn local_client_source_publication_case(
     }
     true
   }
-  let work = if original_normalization {
+  let work = if original_normalization || source_completion {
     @client.open_native_client_local_source_work(
       journal,
       request,
@@ -303,6 +295,25 @@ fn local_client_source_publication_case(
       current_authorization,
       observe~,
     ).unwrap()
+  }
+  if source_completion {
+    let normalization = @host.prepared_client_local_normalization_original(
+      prepared,
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        normalization,
+        @host.issue_prepared_client_local_normalization(prepared).unwrap(),
+      ),
+    )
+    let evidence = @host.prepared_client_local_normalization_evidence(
+      prepared, normalization,
+    ).unwrap()
+    // Existing independently pinned sole-view journal: one original occurrence.
+    assert_eq(
+      @publication.run_evidence_value_identity(evidence),
+      "sha256:ab38441a7255bbf31e4b031ae9281ccf792ac10f673ca3b90d2dea76fa161887",
+    )
   }
   let original = work
     .publication_invocation(resident_compute_limits(), 1000000, 100000, 100)
@@ -365,7 +376,8 @@ fn local_client_source_publication_case(
     value => permitted = value,
     journal,
     race,
-    original_normalization~,
+    original_normalization=original_normalization || source_completion,
+    source_completion~,
   )
   if !race {
     local_client_read_committed_result(
@@ -655,6 +667,6 @@ test "Native Local original explicit-view audit reaches the same Source Result a
 }
 
 ///|
-test "Native Local original sole-view completion is refused before acquisition or durable start claim" {
-  local_client_source_publication_case(false, reject_original_completion=true)
+test "Native Local original sole-view completion retains its journal through Source Result and cleanup" {
+  local_client_source_publication_case(false, source_completion=true)
 }

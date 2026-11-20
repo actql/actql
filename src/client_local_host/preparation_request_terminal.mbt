@@ -83,6 +83,8 @@ pub fn[I] finish_request_computation_check(
   }
   if child.phase != SemanticCheckComplete &&
     child.phase != CompilationQuoted &&
+    child.phase != DebugCompilationInspecting &&
+    !(child.phase is DebugCompilationQuoted(_)) &&
     child.phase != CompilationComplete {
     return Err(Preparation(WrongPhase))
   }
@@ -110,7 +112,17 @@ pub fn[I] finish_request_computation_preparation(
   }
   let child = owner.program_check.unwrap()
   let limits = owner.computation_limits.unwrap()
+  let execution_profile = match owner.submitted_intent {
+    Some(original) =>
+      @publication_host.client_submitted_intent_execution_profile(original)
+    None => @publication_host.Normal
+  }
   if child.effect_limits is Some(_) {
+    if execution_profile == Debug {
+      return Err(
+        Preparation(ProgramCheck(Compilation(DebugProfileUnsupported))),
+      )
+    }
     if child.phase != CompilationComplete {
       match
         compile_effect_program_check_preparation(
@@ -130,7 +142,8 @@ pub fn[I] finish_request_computation_preparation(
     }
   } else {
     if child.phase != CompilationComplete {
-      match compile_program_check_preparation(child, limits) {
+      match
+        compile_program_check_preparation(child, limits, execution_profile~) {
         Err(issue) => return Err(Preparation(ProgramCheck(issue)))
         Ok(_) => ()
       }

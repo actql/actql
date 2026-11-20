@@ -41,7 +41,14 @@ function fixture({mixed = false, refusal, typed = true, managed = false, content
   runDefinition: {wire: '{"created_at":"2026-11-11T00:00:00Z","valid_until":"2026-11-12T00:00:00Z"}'},
   compiledPlan: {identity: 'compiled'}, authorityScopeCid: 'scope',
   namespaceId: 'namespace', storeAuthorityCid: 'store', now: () => '2026-11-11T00:00:00Z'};
+  acquired.selectRetention = () => ({availableUntil: '2026-11-12T00:00:00Z',
+    deleteBy: '2026-11-12T01:00:00Z', metadataDeleteBy: '2026-11-18T00:00:00Z'});
   acquired.control = {
+    issueInstalledEffectInitialRetention(parent, prepared, request, plan) {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(plan, sourcePlan);
+      return retention;
+    },
     admitRunEvidence(name, wire, bounds) {
       assert.equal(name, 'source_evidence'); assert.strictEqual(bounds, limits);
       calls.push('admit'); return originals[Number(wire.at(-1))];
@@ -83,7 +90,13 @@ function fixture({mixed = false, refusal, typed = true, managed = false, content
       assert.strictEqual(bounds, limits); calls.push('content-invocation');
       return {observation: {wire: '{"data_policy_cid":"joined"}'}, invocation: {}, owner};
     },
-    seal() { calls.push('query-retention'); return {}; },
+    rebindInstalledEffectResultRetention(run, prepared, request, plan, originalRetention, policy, bounds) {
+      assert.strictEqual(run, managed ? managedRun : undefined);
+      assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(request, acquired.requestIdentity);
+      assert.strictEqual(plan, sourcePlan); assert.strictEqual(originalRetention, retention);
+      assert.equal(policy, sources[1].captured.checkedSource.sourceDataPolicyCid);
+      assert.strictEqual(bounds, limits); calls.push('query-retention'); return {};
+    },
     issueCheckedAcquiredEffectEvidence(...args) {
       assert.strictEqual(args[3], sources[1].captured.requirement);
       assert.strictEqual(args[5], originals[1]); calls.push('query-unit');

@@ -14,6 +14,16 @@ pub fn NativeClientRelationFileWork::publication_limits(
         self.prepared,
         max_payload_bytes,
       ).map(limits => (rows, limits))
+    (ManagedSourceFileExecution(rows, _, _), ManagedRelationFiles(owner, _))
+    | (
+      ManagedSourceFileExecution(rows, _, _),
+      ManagedWholeRelationFiles(owner, _),
+    ) =>
+      @local.installed_managed_publication_limits(
+        owner,
+        self.prepared,
+        max_payload_bytes,
+      ).map(limits => (rows, limits))
     _ => None
   }
 }
@@ -25,7 +35,9 @@ pub fn NativeClientRelationFileWork::publication_entry_limits(
   match self.plan {
     QueryFileExecution(requirements) =>
       requirements.publication_entry_limits(self.prepared)
-    WholeFileExecution(_, bridge, evidence) => Some((bridge, evidence))
+    WholeFileExecution(_, bridge, evidence)
+    | ManagedSourceFileExecution(_, bridge, evidence) =>
+      Some((bridge, evidence))
   }
 }
 
@@ -42,7 +54,13 @@ fn NativeClientRelationFileWork::grow_publication_identity(
     !self.entry.arena.matches_business_scope(false) {
     return Err(OriginalRunNotCurrent)
   }
-  guard self.access.source is WholeRelationFile(_, _, _, owner, _, _) &&
+  guard (match self.access.source {
+      WholeRelationFile(_, _, _, owner, _, _)
+      | ManagedRelationFiles(owner, _)
+      | ManagedWholeRelationFiles(owner, _) => Some(owner)
+      _ => None
+    })
+    is Some(owner) &&
     @local.installed_managed_preparation_admission_original(
       owner,
       self.prepared,
@@ -105,6 +123,15 @@ fn NativeClientRelationFileWork::grow_publication_identity(
 }
 
 ///|
+/// Borrow only the SAME retained publication refusal. This does not retry an
+/// invocation, observe currentness, grow capacity or consume the primary.
+pub fn NativeClientRelationFileWork::publication_invocation_failure(
+  self : NativeClientRelationFileWork,
+) -> NativeClientSourceWorkIssue? {
+  self.publication_identity_issue
+}
+
+///|
 /// Evidence from the actual retained whole input and original source policy.
 /// This issues once on the same Run and cannot substitute an empty audit.
 pub fn NativeClientRelationFileWork::publication_invocation(
@@ -114,11 +141,11 @@ pub fn NativeClientRelationFileWork::publication_invocation(
   max_depth : Int,
 ) -> Result[
   (
-    @publication.RunEvidenceValue,
-    @publication.RunEvidenceValue,
+    Array[@publication.RunEvidenceValue],
+    Array[@publication.RunEvidenceValue],
     @publication.RunEvidenceValue,
     @publication.PublicationContract,
-    String,
+    Array[String],
     String,
   ),
   NativeClientSourceWorkIssue,
@@ -146,11 +173,11 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   max_depth : Int,
 ) -> Result[
   (
-    @publication.RunEvidenceValue,
-    @publication.RunEvidenceValue,
+    Array[@publication.RunEvidenceValue],
+    Array[@publication.RunEvidenceValue],
     @publication.RunEvidenceValue,
     @publication.PublicationContract,
-    String,
+    Array[String],
     String,
   ),
   NativeClientSourceWorkIssue,
@@ -162,13 +189,24 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   if self.publication_original is Some(original) {
     return Ok(original)
   }
+  if self.access.source is ManagedRelationFiles(owner, sources) {
+    return self.managed_query_publication_invocation(
+      owner, sources, max_wire_bytes, max_nodes, max_depth,
+    )
+  }
+  if self.access.source is ManagedWholeRelationFiles(owner, sources) {
+    return self.managed_whole_publication_invocation(
+      owner, sources, max_wire_bytes, max_nodes, max_depth,
+    )
+  }
   guard self.access.source
     is WholeRelationFile(_, original, acquisition, owner, _, _) &&
     self.capture_times is Some((started, completed)) &&
     self.identity_scan is None else {
     return Err(Configuration)
   }
-  let captured = match self.source.capture() {
+  guard self.source is Single(source) else { return Err(Configuration) }
+  let captured = match source.capture() {
     Err(issue) => return Err(RelationFile(issue))
     Ok(value) => value
   }
@@ -182,13 +220,18 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   // acquisition's limits, not the possibly smaller aggregate Result bounds.
   // The same original tuple/Some/Ok and final map closure: H4/R9/S2.
   // These borrow the actual input CID/policy strings; no wire is parsed again.
-  guard @execution.preparation_representation_cost({
+  guard @execution.preparation_array_representation(3L, 3L, false)
+    is Some(vectors) &&
+    @execution.preparation_representation_cost(vectors) is Some(vector_bytes) &&
+    @execution.preparation_representation_cost({
       record_headers: 4L,
       reference_slots: 9L,
       scalar_words: 2L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
+    is Some(fixed_controls) &&
+    @execution.checked_preparation_add_product(fixed_controls, vector_bytes, 1L)
     is Some(controls) &&
     @host.client_protocol_metadata_construction_bytes(
       max_wire_bytes,
@@ -320,11 +363,11 @@ fn NativeClientRelationFileWork::publication_invocation_original(
     Ok(value) => value
   }
   let original = (
-    evidence,
-    logical,
+    [evidence],
+    [logical],
     observation,
     invocation,
-    @execution_query.captured_source_relation_logical_cid(identity),
+    [@execution_query.captured_source_relation_logical_cid(identity)],
     policy,
   )
   self.publication_original = Some(original)
@@ -401,8 +444,14 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
     Ok(value) => value
   }
   guard results.length() == 1 &&
-    self.access.source is WholeRelationFile(_, _, _, owner, _, _) &&
-    results[0].input_relation_cids == [input_cid] &&
+    (match self.access.source {
+      WholeRelationFile(_, _, _, owner, _, _)
+      | ManagedRelationFiles(owner, _)
+      | ManagedWholeRelationFiles(owner, _) => Some(owner)
+      _ => None
+    })
+    is Some(owner) &&
+    results[0].input_relation_cids == input_cid &&
     results[0].effective_data_policy_cid == policy &&
     results[0].scope_cid ==
     @publication.publication_contract_identity(self.definition) &&
@@ -447,7 +496,7 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
       normalization_journal: normalization,
       binding_names: [],
       binding_digests: [],
-      source_evidence: [source],
+      source_evidence: source,
       model_evidence: [],
       barrier_attempt_receipt_cids: [],
       source_advances: [],

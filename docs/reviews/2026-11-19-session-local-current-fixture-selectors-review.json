@@ -1,0 +1,192 @@
+{
+  "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "6c3f796557c52242f7702c3cb66380d91eecd95f7531f0a1d8e5fb1c08c7cd03",
+  "bytes": 12991,
+  "qualification": "Finite current JS package-configuration review only; no compiler, runtime, artifact or cache-reuse authority. Complete immediate source bytes/modes/membership and transitive literal imports remain original inputs.",
+  "previousRevision": "3cb1294bbc2c2c8f49580b99eda135c7140c9d40",
+  "previousSha256": "b30ff1c30337f7ac7903f712f8768ba44d7b59194e3b1d20fa92627d208a6f6f",
+  "previousBytes": 12567,
+  "previousReview": "docs/reviews/2026-11-18-session-local-mock-footprint-selector-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "preparation_dispatch_failure_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "installed_query_tasks_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "preparation_logical_observation_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "preparation_logical_observation_overlap_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "installed_effect_retention_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "initial_retention_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "terminal_normal_serialization_adoption_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "371562105f460248af45c2147a3cbc3afe6afd1acb1ba747d72003cee77097eb",
+      "bytes": 11909,
+      "meaning": "Node createRequire and the imported diagnostic consumer are explicit JS externs.",
+      "jsFixtureDependencies": [
+        "preparation_explanation_capture_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "50830e81cf3c9e898b241315d93ed67d3e9d12596b71453bd839c693743a9390",
+      "bytes": 21334,
+      "meaning": "Uses original Query/registration fixtures already selected only for JS.",
+      "jsFixtureDependencies": [
+        "installed_capture_provider_source_js_wbtest.mbt",
+        "preparation_program_check_source_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_logical_observation_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "19d71088d491a9c3f941cc2c1dad04adefc89c6845e610db18f2425a8875487c",
+      "bytes": 23671,
+      "meaning": "Borrows the existing JS original explanation/Request fixture.",
+      "jsFixtureDependencies": [
+        "preparation_explanation_capture_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_logical_observation_overlap_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "c5a9b77c89d6e8e39ddf3087fada35056f283592793a8f6ca5486d3459bdafdf",
+      "bytes": 4951,
+      "meaning": "Builds on the existing JS Request program-body fixture.",
+      "jsFixtureDependencies": [
+        "preparation_request_program_body_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "94ea9e57ddbc27e4f8a749246f12730800bc571a8f5592e8497af96b460d960c",
+      "bytes": 14453,
+      "meaning": "Uses the existing JS installed Effect publication original.",
+      "jsFixtureDependencies": [
+        "installed_effect_publication_binding_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/initial_retention_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "35b5457b4d464588fe0efb2048aa365cb9d0afb0a3058f74ccbe1dbad3daa969",
+      "bytes": 22185,
+      "meaning": "Uses existing JS Serialization, Content and Effect original fixtures.",
+      "jsFixtureDependencies": [
+        "preparation_request_serialization_compilation_js_wbtest.mbt",
+        "preparation_request_content_body_js_wbtest.mbt",
+        "installed_effect_publication_binding_js_wbtest.mbt"
+      ]
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/terminal_normal_serialization_adoption_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "381dd5177ceb73db4c7a05e85d3434adb111d614183ceeed00758e3c7d231c97",
+      "bytes": 17061,
+      "meaning": "Uses request_serialization_plan_fixture, already selected only for JS; original Native failure was an unbound helper.",
+      "jsFixtureDependencies": [
+        "preparation_request_serialization_compilation_js_wbtest.mbt"
+      ]
+    }
+  ],
+  "fixtureDependencies": [
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "8f8e7255eacd3e05278b484b1fbdd8e1daa33c2494bb7c0f9db397346a9a4ca4",
+      "bytes": 11433
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "34278b8668a4f60fff254d9319e0f92481b60914fc4115d203b81e000ffab3e8",
+      "bytes": 25841
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_explanation_capture_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "0968d5ff588c0ba70370aa24ba0b10dcd6a93cec6b96c6609b7f94915752fcaf",
+      "bytes": 24641
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_program_check_source_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "cc20d62f13900646da41b5682d2a4d2e65e4e1dcc6711346a02a879116ffa5c8",
+      "bytes": 10116
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_request_content_body_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "d5cc6121e500593752f7ab6703a6126c12eb3b06b5f3e83777a70f875a36e747",
+      "bytes": 17075
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "8304f072cb18a14df30302737a544aeb3f3970283f3920d837e281e0c8cfd0d6",
+      "bytes": 102399
+    },
+    {
+      "source": "ea209b7776eef4934202b8a2924a07464a43bdd7",
+      "path": "src/client_local_host/preparation_request_serialization_compilation_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "dbb6fc12c44d029a15f9440c2bf8e1455836362d374ae6d661e35032a3dd7b34",
+      "bytes": 29416
+    }
+  ],
+  "meaning": "Exactly seven literal JS-only whitebox selectors. Removing them reconstructs the previous complete descriptor. Imports, aliases, supported targets, all prior selectors, linker options, hooks and external resolvers are byte-exact. Product files and test bodies are not changed by this review.",
+  "refusalPolicy": "Only exact current descriptor/JS target/reviewed toolchain. Missing or changed selector/import/option/membership, foreign path/target/toolchain, and all earlier preimages retain refusal/full fallback. Mixed inputs never acquire current admission."
+}

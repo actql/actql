@@ -1253,7 +1253,7 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
           code: error.code, pending: error.cleanupHandle?.status(),
           failures: error.cleanupErrors?.map(item => ({owner: item.owner,
             code: item.error?.code, message: item.error?.message,
-            stack: item.error?.stack}))}));
+            stack: item.error?.stack, cleanupDiagnostic: item.error?.cleanupDiagnostic}))}));
         throw error;
       }
       if (remaining !== undefined) {

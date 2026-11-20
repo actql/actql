@@ -6,7 +6,15 @@
 fn request_normalization_publication_extents(
   value : @publication_host.ClientLocalNormalizationConstruction,
 ) -> (Int64, Int64)? {
-  let shape = value.complete
+  request_evidence_publication_extents(value.complete)
+}
+
+///|
+// Shared original evidence sealer layout. Domain callers retain their own
+// constructor/proof/current/failed-child lifetimes; this projects DATA only.
+fn request_evidence_publication_extents(
+  shape : @encode.EncodingConstructionGeometry,
+) -> (Int64, Int64)? {
   let usage = @encode.construction_geometry_usage(shape)
   guard program_artifact_parse_layout(usage, structure=Some(shape))
     is Some(parse) &&

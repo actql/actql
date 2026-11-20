@@ -1,4 +1,32 @@
 ///|
+#export_name("clientProgramIssueProgramInitialRetention")
+pub fn client_program_issue_program_initial_retention(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  retention_contract_cid : String,
+  effective_data_policy_cid : String,
+  available_until : String,
+  delete_by : String,
+  extension_ceiling_at : String,
+  metadata_retention_policy_cid : String,
+  metadata_delete_by : String,
+  clock_contract_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.issue_program_initial_retention(
+    owner, prepared, request, retention_contract_cid, effective_data_policy_cid,
+    available_until, delete_by, extension_ceiling_at, metadata_retention_policy_cid,
+    metadata_delete_by, clock_contract_cid, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// Fixed ordinary Node publication growth on the original preparation owner.
 /// The handle carries provenance, not caller-supplied byte/work quantities.
 #export_name("clientProgramReservePublication")

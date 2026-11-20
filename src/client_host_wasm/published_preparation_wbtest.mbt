@@ -9,6 +9,8 @@ fn published_preparation_fixture(
   nonce : Int64,
   text : String,
   read_only? : Bool = false,
+  retained_bytes? : Int64 = 67108864L,
+  execution_bytes? : Int64 = 67108864L,
 ) -> (
   Instance,
   StoredPreparation,
@@ -22,8 +24,8 @@ fn published_preparation_fixture(
     attempts: 128,
     holdings: 128,
     transfer_bytes: 67108864L,
-    retained_bytes: 67108864L,
-    execution_bytes: 67108864L,
+    retained_bytes,
+    execution_bytes,
   }).unwrap()
   let capacity = @resources.reserve_shared_capacity(root, 33554432L).unwrap()
   let pool = @buffers.open_pool_on_ledger(root, 4194304L, 16, 1048576).unwrap()

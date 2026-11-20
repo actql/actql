@@ -85,6 +85,14 @@ typedef struct {
   // 0: not attempted, 1: retired, -1: consumed/unconfirmed; never reclose.
   int32_t close_result;
   char *close_error;
+  // Exclusive-path locks share Node's create/unlink protocol. Persistent
+  // Store flock locks retain their existing lifetime and never own this name.
+  bool exclusive_path;
+  bool path_pending;
+  bool identity_known;
+  char *owned_name;
+  uint64_t device;
+  uint64_t inode;
 } actql_native_filesystem_lock;
 
 typedef struct {
@@ -647,10 +655,14 @@ int32_t actql_native_filesystem_root_close(
 static void actql_native_filesystem_lock_finalize(void *value) {
   actql_native_filesystem_lock *lock = value;
   if (lock->fd >= 0) {
-    flock(lock->fd, LOCK_UN);
+    if (!lock->exclusive_path) flock(lock->fd, LOCK_UN);
     close(lock->fd);
     lock->fd = -1;
   }
+  // Finalization cannot acknowledge a close or unlink an owned pathname.
+  // Failed explicit cleanup leaves the original name for its actual Owner.
+  free(lock->owned_name);
+  lock->owned_name = NULL;
   free(lock->error);
   free(lock->close_error);
   lock->error = NULL;
@@ -1633,10 +1645,11 @@ moonbit_bytes_t actql_native_filesystem_root_acquisition_error(
 // Same opaque Lock close path for successful and rejected acquisition.
 int32_t actql_native_filesystem_lock_close_checked(actql_native_filesystem_lock *lock);
 
-void *actql_native_filesystem_acquire_lock(
+static void *actql_native_filesystem_acquire_lock_impl(
   actql_native_filesystem_root *root,
   moonbit_bytes_t name,
-  int32_t length
+  int32_t length,
+  bool exclusive_path
 ) {
   actql_native_filesystem_lock *lock = moonbit_make_external_object(
     actql_native_filesystem_lock_finalize,
@@ -1644,6 +1657,7 @@ void *actql_native_filesystem_acquire_lock(
   );
   memset(lock, 0, sizeof(*lock));
   lock->fd = -1;
+  lock->exclusive_path = exclusive_path;
   lock->root = root;
   if (root != NULL) moonbit_incref(root);
   char *name_text = actql_copy_text(name, length);
@@ -1657,14 +1671,27 @@ void *actql_native_filesystem_acquire_lock(
     lock->fd = openat(
       root->fd,
       name_text,
-      O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW,
+      O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW |
+        (exclusive_path ? O_EXCL : 0),
       0600
     );
     if (lock->fd < 0) {
       actql_replace_bounded_errno_error(&lock->error, root->diagnostic_ceiling, "open Store lock", errno);
     } else {
+      if (exclusive_path) {
+        // Successful O_EXCL is the ownership boundary. Retain it before the
+        // first fallible observation; a rejected open never owns any path.
+        lock->owned_name = name_text;
+        name_text = NULL;
+        lock->path_pending = true;
+      }
       struct stat status;
       int inspect_result = fstat(lock->fd, &status);
+      if (inspect_result == 0 && exclusive_path) {
+        lock->device = (uint64_t)status.st_dev;
+        lock->inode = (uint64_t)status.st_ino;
+        lock->identity_known = true;
+      }
       if (inspect_result != 0 || !S_ISREG(status.st_mode)) {
         int inspect_error = inspect_result == 0 ? 0 : errno;
         actql_native_filesystem_lock_close_checked(lock);
@@ -1678,7 +1705,7 @@ void *actql_native_filesystem_acquire_lock(
             inspect_error
           );
         }
-      } else if (flock(lock->fd, LOCK_EX | LOCK_NB) != 0) {
+      } else if (!exclusive_path && flock(lock->fd, LOCK_EX | LOCK_NB) != 0) {
         int lock_error = errno;
         actql_native_filesystem_lock_close_checked(lock);
         actql_replace_bounded_errno_error(&lock->error, root->diagnostic_ceiling, "acquire Store lock", lock_error);
@@ -1689,6 +1716,22 @@ void *actql_native_filesystem_acquire_lock(
   }
   free(name_text);
   return lock;
+}
+
+void *actql_native_filesystem_acquire_lock(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  return actql_native_filesystem_acquire_lock_impl(root, name, length, false);
+}
+
+void *actql_native_filesystem_acquire_exclusive_lock(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  return actql_native_filesystem_acquire_lock_impl(root, name, length, true);
 }
 
 int32_t actql_native_filesystem_lock_ready(
@@ -1708,25 +1751,80 @@ int32_t actql_native_filesystem_lock_close_checked(
   actql_native_filesystem_lock *lock
 ) {
   if (lock == NULL) return 0;
-  if (lock->close_result != 0) return lock->close_result == 1;
-  if (lock->fd < 0) {
+  if (lock->close_result < 0) return 0;
+  if (lock->close_result == 0 && lock->fd < 0) {
     // No descriptor was acquired, or a constructor already observed its
     // retirement through this same function. This says nothing about Root.
     lock->close_result = 1;
     return 1;
   }
-  int descriptor = lock->fd;
-  lock->fd = -1;
-  lock->ready = false;
-  lock->close_result = -1;
-  flock(descriptor, LOCK_UN);
-  if (close(descriptor) != 0) {
-    actql_replace_bounded_errno_error(&lock->close_error,
-      lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
-      "close Store lock", errno);
-    return 0;
+  if (lock->close_result == 0) {
+    if (lock->path_pending && !lock->identity_known) {
+      // A failed first stat still owns this FD/path. Recover only this same
+      // FD's identity; never reopen a name or guess that a foreign path is ours.
+      struct stat held;
+      if (fstat(lock->fd, &held) != 0) {
+        if (lock->close_error == NULL) actql_replace_bounded_errno_error(
+          &lock->close_error,
+          lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+          "inspect original exclusive lock", errno);
+        return 0;
+      }
+      lock->device = (uint64_t)held.st_dev;
+      lock->inode = (uint64_t)held.st_ino;
+      lock->identity_known = true;
+    }
+    int descriptor = lock->fd;
+    lock->fd = -1;
+    lock->ready = false;
+    lock->close_result = -1;
+    if (!lock->exclusive_path) flock(descriptor, LOCK_UN);
+    if (close(descriptor) != 0) {
+      if (lock->close_error == NULL) actql_replace_bounded_errno_error(
+        &lock->close_error,
+        lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+        "close Store lock", errno);
+      return 0;
+    }
+    lock->close_result = 1;
   }
-  lock->close_result = 1;
+  if (lock->path_pending) {
+    struct stat named;
+    if (lock->root == NULL || lock->root->fd < 0) {
+      if (lock->close_error == NULL) actql_replace_bounded_error(
+        &lock->close_error, lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+        "exclusive lock Root is unavailable");
+      return 0;
+    }
+    if (fstatat(lock->root->fd, lock->owned_name, &named,
+                AT_SYMLINK_NOFOLLOW) != 0) {
+      if (errno != ENOENT) {
+        if (lock->close_error == NULL) actql_replace_bounded_errno_error(
+          &lock->close_error, lock->root->diagnostic_ceiling,
+          "observe original exclusive lock path", errno);
+        return 0;
+      }
+      // No original named resource remains; this does not acknowledge any
+      // Effect, replacement or other Owner's physical stop.
+      lock->path_pending = false;
+    } else {
+      if (!S_ISREG(named.st_mode) ||
+          (uint64_t)named.st_dev != lock->device ||
+          (uint64_t)named.st_ino != lock->inode) {
+        if (lock->close_error == NULL) actql_replace_bounded_error(
+          &lock->close_error, lock->root->diagnostic_ceiling,
+          "exclusive lock path no longer names the original inode");
+        return 0;
+      }
+      if (unlinkat(lock->root->fd, lock->owned_name, 0) != 0 && errno != ENOENT) {
+        if (lock->close_error == NULL) actql_replace_bounded_errno_error(
+          &lock->close_error, lock->root->diagnostic_ceiling,
+          "unlink original exclusive lock", errno);
+        return 0;
+      }
+      lock->path_pending = false;
+    }
+  }
   return 1;
 }
 
@@ -1750,6 +1848,20 @@ int32_t actql_native_filesystem_lock_close(
 int32_t actql_native_filesystem_test_lock_consumed_unknown(
   actql_native_filesystem_lock *lock
 ) {
+  if (lock != NULL && lock->exclusive_path && lock->fd >= 0 &&
+      lock->close_result == 0) {
+    // Actual first close, but withhold its observation BEFORE path cleanup.
+    // The original marker must remain and a reused FD must never be retried.
+    int descriptor = lock->fd;
+    lock->fd = -1;
+    lock->ready = false;
+    lock->close_result = -1;
+    int result = close(descriptor);
+    actql_replace_bounded_error(&lock->close_error,
+      lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+      "lock retirement observation unavailable");
+    return result == 0;
+  }
   if (lock == NULL || lock->fd < 0 ||
       !actql_native_filesystem_lock_close_checked(lock)) return 0;
   lock->close_result = -1;
@@ -2031,6 +2143,7 @@ static bool actql_observed_replacement_lock_matches(
   actql_native_filesystem_lock *lock
 ) {
   if (lock == NULL || lock->root != root || !lock->ready ||
+      !lock->exclusive_path || !lock->path_pending ||
       lock->fd < 0 || lock->close_result != 0) return false;
   static const char suffix[] = ".actql-write.lock";
   size_t length = strlen(target);
@@ -2039,7 +2152,9 @@ static bool actql_observed_replacement_lock_matches(
   memcpy(name, target, length);
   memcpy(name + length, suffix, sizeof(suffix));
   struct stat held, named;
-  bool matches = fstat(lock->fd, &held) == 0 && S_ISREG(held.st_mode) &&
+  bool matches = lock->owned_name != NULL &&
+    strcmp(lock->owned_name, name) == 0 &&
+    fstat(lock->fd, &held) == 0 && S_ISREG(held.st_mode) &&
     held.st_nlink == 1 && held.st_uid == geteuid() &&
     (held.st_mode & 07777) == 0600 &&
     actql_stat_regular_at(root, name, &named) &&

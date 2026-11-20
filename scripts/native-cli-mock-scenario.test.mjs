@@ -541,11 +541,13 @@ test('Native mock command capture preserves complete diagnostics on an owned reg
     const body=readFileSync(process.argv[1]);
     for(let offset=0;offset<body.length;offset+=512)
       assert.equal(writeSync(2,body.subarray(offset,offset+512)),Math.min(512,body.length-offset));
-    writeSync(1,'complete original child\\n');`;
+    writeSync(1,JSON.stringify({pid:process.pid,phase:'complete'})+'\\n');`;
   const result = await captureNativeMockCommand(process.execPath,
     ['--input-type=module','-e',source,payload,`http://127.0.0.1:${server.address().port}`],
     {cwd:root, env:process.env, stderrPath, timeout:5000});
-  assert.equal(result.stdout, 'complete original child\n');
+  const completed = JSON.parse(result.stdout);
+  assert.equal(completed.phase, 'complete');
+  assert.equal(result.pid, completed.pid, 'Bind the report to the actual spawned/exited child');
   assert.equal(result.stderr, original);
   assert.equal(await readFile(stderrPath, 'utf8'), original);
   assert.equal((await stat(stderrPath)).mode & 0o777, 0o600);

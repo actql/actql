@@ -133,3 +133,52 @@ pub fn NativeLocalJournalCapture::bind_result_file_read_policy_for_run_in_origin
     )
   })
 }
+
+///|
+/// Bind one requested original Result after the SAME committed Run/Store/current
+/// lookup. The optional independent sink file remains an exact adopted original.
+/// The returned binding contains a finite one-name selection; templates cannot
+/// reach read/egress code, and old finite selections are never widened.
+pub fn NativeLocalJournalCapture::bind_requested_original_result_read_in_original_read(
+  self : NativeLocalJournalCapture,
+  policy : NativeLocalRunPolicyBinding,
+  original : NativeClientOriginalRunSelection,
+  store : @publication_store.Store,
+  namespace_id : String,
+  result_name : String,
+  now : Double,
+  prepare : (Int64, Int64) -> Bool,
+  material_file? : String? = None,
+  file_configuration? : String? = None,
+) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
+  // Synchronous wrapper closure1H9R1W; six optional input/result contexts
+  // 6H9R5W; original predicate1H9R and primary cell1H1R; caught issue Some
+  // 1H1R1W; final checked return/match2H2R2W. These controls coexist with the
+  // separately admitted finite selection and original Store read (12H31R9W).
+  // Retain conservatively until this SAME command Read actually retires.
+  guard @execution.preparation_representation_cost({
+      record_headers: 12L,
+      reference_slots: 31L,
+      scalar_words: 9L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(cost) &&
+    prepare(cost, cost) else {
+    return Err(Adoption(OriginalResourceScopePending))
+  }
+  read_binding_in_original_read(self, (host, operations) => {
+    host.bind_result_read_policy_for_run_with_capture(
+      policy,
+      original.reference,
+      original.request,
+      now,
+      capture=Some(self),
+      material_file~,
+      file_configuration~,
+      requested_result=Some((original, store, namespace_id, result_name)),
+      construction=Some(prepare),
+      requested_operations=Some(operations),
+    )
+  })
+}

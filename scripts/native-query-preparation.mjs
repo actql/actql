@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, writeFileSync} from 'node:fs';
 import {delimiter, dirname, isAbsolute, join, sep} from 'node:path';
-import {copyNativePreparationTools} from './native-preparation-lanes.mjs';
+import {copyNativePreparationTools} from './native-preparation-originals.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {originalDescriptor, verifyOriginal} from './native-preparation-originals.mjs';
 
@@ -41,7 +41,9 @@ function verify(paths,records) {
     else verifyOriginal(item);
   }
 }
-function selection(repository,env) {
+function selection(repository,env,jobs) {
+  assert(jobs===undefined||jobs===1||jobs===2,'Query construction requires a bounded selected job count');
+  const selectedCommand=jobs===undefined?command:[...command,'-j',String(jobs)];
   repository=realpathSync(repository);
   const git=args=>run(repository,env,'git',args);
   assert.equal(git(['status','--porcelain']),'','Query preparation requires unchanged clean source');
@@ -84,13 +86,13 @@ function selection(repository,env) {
   const installation=describe([...installationFiles,'installed.json'].map(path=>join(home,path)))
     .map(({bytes,sha256,mode},index)=>({file:[...installationFiles,'installed.json'][index],bytes,sha256,mode}));
   return {identity:{repository,source,platform:process.platform,arch:process.arch,installation,sourceAliases,
-    environment:compilerEnvironment(env),tools:resolved,overrides,sdk,openssl,command},
+    environment:compilerEnvironment(env),tools:resolved,overrides,sdk,openssl,command:selectedCommand},
     paths:[...new Set([...paths,...resolved.flatMap(([,path])=>path===null?[]:[path]),
       ...overrides.map(([,path])=>path),...(openssl===null?[]:[...files(join(openssl,'include/openssl')),
         join(openssl,'lib/libssl.dylib'),join(openssl,'lib/libcrypto.dylib')])])].sort()};
 }
 
-export function prepareNativeQuerySoftware(repository,destination,{env=process.env,moonHome=env.MOON_HOME,execute=execFileSync}={}) {
+export function prepareNativeQuerySoftware(repository,destination,{env=process.env,moonHome=env.MOON_HOME,jobs,execute=execFileSync}={}) {
   env={...env,MOON_HOME:moonHome};
   repository=realpathSync(repository);destination=realpathSync(destination);
   const timings=[];let source=null;
@@ -110,7 +112,7 @@ export function prepareNativeQuerySoftware(repository,destination,{env=process.e
     }
   }
   const {selected,inputs}=observe('input-admission',()=>{
-    const selected=selection(repository,env);
+    const selected=selection(repository,env,jobs);
     source=selected.identity.source;
     return {selected,inputs:describe(selected.paths)};
   });
@@ -124,14 +126,14 @@ export function prepareNativeQuerySoftware(repository,destination,{env=process.e
   const environment={...env,MOON_HOME:home,PATH:join(home,'bin')+delimiter+(env.PATH??'')};
   // Runtime prerequisites are deliberately absent here. This command only
   // constructs the complete two-package driver; it cannot execute any case.
-  const args=[...command,'--target-dir',target,'--build-only'];
+  const args=[...selected.identity.command,'--target-dir',target,'--build-only'];
   const remaining=env.ACTQL_NATIVE_CI_DEADLINE===undefined?3600000:
     Math.min(3600000,Number(env.ACTQL_NATIVE_CI_DEADLINE)-Date.now());
   assert(Number.isSafeInteger(remaining)&&remaining>0,'Original Native job budget exhausted');
   observe('build-only',()=>execute(join(home,'bin/moon'),args,
     {cwd:repository,env:environment,stdio:'inherit',timeout:remaining}));
   observe('input-correspondence',()=>{
-    assert.deepEqual(selection(repository,env),selected,'Query build inputs changed during preparation');
+    assert.deepEqual(selection(repository,env,jobs),selected,'Query build inputs changed during preparation');
     verify(selected.paths,inputs);
   });
   const body=observe('output-retention',()=>{
@@ -158,7 +160,9 @@ export function preparedNativeQuerySoftware(repository,env=process.env) {
   assert.equal(body.target,join(dirname(path),'query-software/target'));
   for(const directory of [body.home,body.target])assert.equal(realpathSync(directory),directory);
   const check=()=>{
-    const selected=selection(repository,env);
+    const jobs=env.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
+    assert(jobs===undefined||jobs==='1'||jobs==='2','Invalid Query preparation construction mode');
+    const selected=selection(repository,env,jobs===undefined?undefined:Number(jobs));
     assert.deepEqual(selected.identity,body.identity,'Foreign Query source/toolchain/compiler settings');
     verify(selected.paths,body.inputs);
     verify(body.tools.map(item=>item.selectedPath),body.tools);

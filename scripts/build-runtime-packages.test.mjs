@@ -42,6 +42,46 @@ test('holder terminal facade runs after the existing prepared Remote Site CI gat
   }
 });
 
+test('metadata child regressions use the existing prepared Site gate with a bounded nonzero named selection', () => {
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const prepared = pkg.scripts['prepare:remote-site-runtime'];
+  assert(prepared.includes('src/connectors_builtin_node'));
+  assert(prepared.includes('src/connectors/hubspot/host_node'));
+  const commands = pkg.scripts['test:remote-site-runtime'].split(' && ');
+  assert(commands.some(command => command.startsWith('node --test ') &&
+    command.includes('adapters/connectors/hubspot/test/hubspot-managed-sequence.test.mjs') &&
+    command.includes('adapters/host-node/installed-credential-source-reader.test.mjs')));
+  const prefix = 'node scripts/local-checks.mjs test node --timeout-seconds 120 -- --test-name-pattern ';
+  const metadataCommands = commands.filter(command => command.startsWith(prefix) &&
+    command.includes('adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs'));
+  assert.equal(metadataCommands.length, 1, 'one intended bounded metadata selection');
+  const selection = metadataCommands[0].slice(prefix.length).match(/^'([^']+)' (.+)$/u);
+  assert(selection);
+  const pattern = new RegExp(selection[1], 'u');
+  const controls = {
+    'adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs': [
+      'managed metadata children retain the same parent target and their independent current decisions',
+      'metadata current loss after its first observation cannot send the later property recheck',
+      'metadata authorization retains the Reader cancellation signal across its original await',
+      'a data read grant cannot authorize identity or property metadata',
+    ],
+    'adapters/host-node/installed-source-resource-child.test.mjs': [
+      'resource child is bound once under the same reader and joins its own close and retirement',
+      'undeclared or foreign resource child credentials refuse before physical send',
+      'original Form current failure and callback replacement cannot send another request',
+      'returned resource child with no close method cannot supply cleanup acknowledgement',
+    ],
+  };
+  assert.deepEqual(selection[2].split(' '), Object.keys(controls));
+  for (const [file, intended] of Object.entries(controls)) {
+    const source = readFileSync(join(root, file), 'utf8');
+    const named = [...source.matchAll(/\btest\('([^']+)'/gu)].map(value => value[1]);
+    assert(intended.length > 0);
+    for (const name of intended) assert(named.includes(name) && pattern.test(name), name);
+    assert.deepEqual(named.filter(name => pattern.test(name)).sort(), [...intended].sort());
+  }
+});
+
 const packages = {
   'run-host-core': {builder: 'build-run-host-core-package', args: ['--runtime-only'],
     sources: ['client_values_host_abi', 'checkpoint_runtime_node',
@@ -74,7 +114,7 @@ function put(directory, path, contents) {
 }
 
 function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
-  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, temporaryParent = tmpdir()} = {}) {
+  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, commandEntry = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -229,11 +269,14 @@ const refusal = new Error('Original fixture interface admission refused');
 try {
   if (${JSON.stringify(normalCli || missingInterfaceOwner)}) {
     record({normalCli: true});
-    process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs', ...${JSON.stringify(requested)}];
+    process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs',
+      ...${JSON.stringify(jobs === undefined ? [] : ['--moon-jobs', String(jobs)])}, ...${JSON.stringify(requested)}];
     await import('./scripts/build-runtime-packages.mjs');
   } else {
-    const {prepareRuntimePackages} = await import('./scripts/build-runtime-packages.mjs');
-    await prepareRuntimePackages(${JSON.stringify(requested)}, {
+    const {prepareRuntimePackages,runRuntimePackageCommand} = await import('./scripts/build-runtime-packages.mjs');
+    const prepare = ${JSON.stringify(commandEntry)} ? runRuntimePackageCommand : prepareRuntimePackages;
+    await prepare(${JSON.stringify(commandEntry ? [...(jobs === undefined ? [] : ['--moon-jobs', String(jobs)]), ...requested] : requested)}, {
+      jobs: ${JSON.stringify(jobs)},
       checkInterfaces: async (root, {manifests}) => {
         record({command: 'fixture-interface-admission', root, manifests});
         await Promise.resolve();
@@ -277,10 +320,19 @@ test('explicit fixture interface admission is awaited for the physical root and 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(calls, expectedCalls(['coordinator-core', 'transfer-core'], directory));
   assert.equal(realpathSync(calls[0].root), directory);
+  const bounded=run(t,['coordinator-core','transfer-core'],{jobs:1,commandEntry:true});
+  assert.equal(bounded.result.status,0,bounded.result.stderr);
+  const compiler=bounded.calls.find(call=>call.command==='moon');
+  assert.equal(compiler.args[compiler.args.indexOf('-j')+1],'1');
+  assert(compiler.args.includes('src/remote_coordinator_abi'));
+  assert(compiler.args.includes('src/remote_transfer_abi'));
+  assert.equal(bounded.calls[0].command,'fixture-interface-admission');
+  assert.equal(bounded.calls[1].fixtureInterfacesAdmitted,true);
+  assert.equal(bounded.calls.at(-1).done,true);
 });
 
 test('original interface refusal prevents every compiler and builder call', t => {
-  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true});
+  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true,jobs:1,commandEntry:true});
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Original fixture interface admission refused/u);
   assert.deepEqual(calls, [expectedCalls(['local-node', 'run-host-core'], directory)[0],
@@ -288,13 +340,24 @@ test('original interface refusal prevents every compiler and builder call', t =>
 });
 
 test('normal runtime CLI selects its real interface checker instead of fixture admission', t => {
-  const {result, calls} = run(t, ['transfer-core'], {normalCli: true});
+  for(const jobs of [undefined,1]) {
+  const {result, calls} = run(t, ['transfer-core'], {normalCli: true,jobs});
   assert.notEqual(result.status, 0);
   // The isolated scheduling fixture deliberately has no real Owner checker
   // or approvals. Normal CLI selection must load that missing dependency.
   assert.match(result.stderr, /ERR_MODULE_NOT_FOUND/u);
   assert.match(result.stderr, /scripts\/check-interface-owners\.mjs/u);
   assert.deepEqual(calls, [{normalCli: true}]);
+  }
+  const invalid=run(t,['transfer-core'],{normalCli:true,jobs:2});
+  assert.notEqual(invalid.result.status,0);
+  assert.match(invalid.result.stderr,/requires one selected build slot/u);
+  assert.deepEqual(invalid.calls,[{normalCli:true}]);
+  for(const requested of [['--moon-jobs'],['--moon-jobs','1','--moon-jobs','1','transfer-core']]) {
+    const refused=run(t,requested,{normalCli:true});
+    assert.notEqual(refused.result.status,0);
+    assert.deepEqual(refused.calls,[{normalCli:true}]);
+  }
 });
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {

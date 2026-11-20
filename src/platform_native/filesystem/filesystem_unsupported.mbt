@@ -273,6 +273,14 @@ pub fn Root::acquire_lock_with_custody(
 }
 
 ///|
+pub fn Root::acquire_exclusive_lock_with_custody(
+  _self : Root,
+  _name : String,
+) -> Result[Lock, NativeLockOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, lock: None, })
+}
+
+///|
 pub fn Lock::close_checked(_self : Lock) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {lstat,realpath} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {join,relative,isAbsolute,sep} from 'node:path';
-export async function resolveInstalledCompletionModules(consumerRoot) {
+export async function resolveInstalledCompletionModules(consumerRoot, {observation = false} = {}) {
  assert(isAbsolute(consumerRoot));
  const modules=join(consumerRoot,'node_modules');
  assert(!(await lstat(modules)).isSymbolicLink(),'CompletionWorkspaceAliasRefused');
@@ -22,5 +22,11 @@ export async function resolveInstalledCompletionModules(consumerRoot) {
  const sdk=await resolveNormal(createRequire(node),'@actql/sdk');
  assert.equal(await resolveNormal(createRequire(host),'@actql/sdk'),sdk,'CompletionSdkNamespaceMismatch');
  assert.equal(await resolveNormal(consumer,'@actql/sdk'),sdk,'CompletionSdkNamespaceMismatch');
- return Object.freeze({node,host,sdk});
+ if (!observation) return Object.freeze({node,host,sdk});
+ const observationModule=await resolveNormal(createRequire(node),'@actql/local-node/observation');
+ assert.equal(await resolveNormal(createRequire(host),'@actql/local-node/observation'),observationModule,
+  'CompletionObservationNamespaceMismatch');
+ assert.equal(await resolveNormal(consumer,'@actql/local-node/observation'),observationModule,
+  'CompletionObservationNamespaceMismatch');
+ return Object.freeze({node,host,sdk,observation:observationModule});
 }

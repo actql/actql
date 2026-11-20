@@ -5,6 +5,7 @@ test "Source Unit export diagnostic projects actual returned issue only" {
   let cases : Array[
     (@client_local_host.ClientEffectUnitPreparationIssue, String),
   ] = [
+    (Retention(@publication.InvalidLimits), "retention"),
     (Run(ForeignOriginal), "run"),
     (Export(MissingResult), "export.missing_result"),
     (Export(ForeignOutput), "export.foreign_output"),
@@ -36,6 +37,7 @@ test "Source Unit artifact diagnostic retains the original typed failure family"
   let cases : Array[
     (@client_local_host.ClientEffectUnitPreparationIssue, String),
   ] = [
+    (Retention(@publication.InvalidLimits), "retention"),
     (Run(ForeignOriginal), "run.foreign_original"),
     (Run(InsufficientCapacity), "run.insufficient_capacity"),
     (Run(Retired), "run.retired"),

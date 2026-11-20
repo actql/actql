@@ -74,6 +74,8 @@ pub fn github_pull_requests_request_json(String, Int, Bool, String, String, Arra
 
 pub fn github_rate_limit_basis_json(Array[String], Array[String]) -> String
 
+pub fn github_repository_access_valid(String, String) -> Bool
+
 pub fn github_repository_request(String, String) -> String
 
 pub fn github_repository_response_json(Bytes, Int) -> String

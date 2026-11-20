@@ -62,7 +62,7 @@ test('public primary finite Mock policy and configuration have independent compl
   assert.equal(body('local_mock_primary_profile_body'), canonical(primaryProfile));
   assert.equal(cid(profile), 'sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52');
   assert.equal(cid(configuration), 'sha256:d516378d5284e53e3c9667e62a11ffd020b477111920fa0405d93f73695f2907');
-  assert.equal(body('local_mock_profile_body'), canonical(profile));
+  assert.equal(body('local_mock_updates_profile_body'), canonical(profile));
   const normative = readFileSync(new URL('../docs/spec/execution.md', import.meta.url), 'utf8');
   assert(normative.includes(cid(profile)));
   assert.deepEqual(profile.result.resources, ['result/answer', 'result/main', 'result/updates']);
@@ -84,4 +84,19 @@ test('complete answer-only predecessor policy/configuration identities remain ex
   delete oldest.result;
   assert.equal(cid(oldest), 'sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a');
   assert.equal(body('local_mock_profile_predecessor_body'), canonical(oldest));
+});
+
+const currentProfile = {...primaryProfile,
+  result: {operations: ['read'], scope: 'same-run-original-results'}};
+const currentConfiguration = {...primaryConfiguration,
+  bootstrap: {...primaryConfiguration.bootstrap, profile_cid: cid(currentProfile)},
+  entries: primaryConfiguration.entries.filter(rule => rule.entry_id !== 'local-primary-result-read')
+    .map(rule => rule.entry_id === 'local-result-read' ? {...rule, resource: {all: true}} : rule)};
+test('current Mock original Result policy has an independent disjoint-domain preimage', () => {
+  assert.equal(cid(currentProfile), 'sha256:c910a820bfc2428234bcb73701593a3aafe7f457fb586eb000d4587c1e600a5e');
+  assert.equal(cid(currentConfiguration), 'sha256:94f4170019ee50edbe161fa3697d1d509441962092046df298abf6d4be5da40d');
+  assert.equal(body('local_mock_profile_body'), canonical(currentProfile));
+  const normative = readFileSync(new URL('../docs/spec/execution.md', import.meta.url), 'utf8');
+  assert(normative.includes(cid(currentProfile)));
+  assert.deepEqual(currentConfiguration.entries.find(rule => rule.entry_id === 'local-result-read').resource, {all: true});
 });

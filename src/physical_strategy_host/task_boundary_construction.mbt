@@ -26,13 +26,13 @@ let captured_boundary_setup_bytes : Int64 = captured_boundary_current_bytes +
     // simultaneous OLD+NEW grant Some+pair4;
     // original refusal Some+variant2, cleanup Some1, result carriers3.
     record_headers: 1L + 1L + 1L + 1L + 1L + 6L + 4L + 2L + 1L + 3L,
-    // Hooks(original,before,committed,grant,reads)5; setup(owner,graph,ledger,
+    // Hooks(original,before,committed,grant,reads,control)6; setup(owner,graph,ledger,
     // reservation,refusal,cleanup)6; Some/Observed/SetupCleanup3;
     // latest/write Some references3; moved grant references2; carriers3.
-    reference_slots: 5L + 6L + 3L + 3L + 2L + 3L,
-    // Hooks flags2; setup generation/revision/return fence3; record+Some12;
+    reference_slots: 6L + 6L + 3L + 3L + 2L + 3L,
+    // Hooks flags3; setup generation/revision/return fence3; record+Some12;
     // option/variant tags3; OLD+NEW grant tag+pair6; refusal/cleanup/carriers8.
-    scalar_words: 2L + 3L + 12L + 3L + 6L + 8L,
+    scalar_words: 3L + 3L + 12L + 3L + 6L + 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -80,3 +80,16 @@ let captured_boundary_logical_projection_bytes : Int64 = captured_boundary_read_
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
+
+///|
+// One observer's actual setup and simultaneous temporary base read plus owned
+// logical fork. This is sizing DATA for the existing parent, never a reserve,
+// child Ledger or claim that these constructors have physical backing.
+let logical_boundary_observation_bytes : Int64 = captured_boundary_setup_bytes +
+  captured_boundary_read_bytes +
+  captured_boundary_logical_projection_bytes
+
+///|
+pub fn captured_logical_observation_construction_bytes() -> Int64 {
+  logical_boundary_observation_bytes
+}

@@ -234,6 +234,95 @@ int32_t actql_native_acceptance_enabled(void) {
   errno = saved_errno;
   return enabled;
 }
+/* A borrowed lexical File Work/Ledger scope, never a registered Resource or
+ * managed root. Only numeric copies leave this scope. Reentry/foreign events
+ * decline; a closed scope clears every borrowed identity. Fixed diagnostic TLS
+ * and <=768 stack bytes introduce no managed object or reservation layout. */
+typedef struct {
+  const void *ledger;
+  pid_t process;
+  unsigned depth;
+  bool invalid, compute, row_seen, row_ambiguous, task_seen, task_ambiguous;
+  int32_t row_serial, task_serial;
+  int64_t body_execution, row_execution, task_execution;
+} actql_file_capacity_scope;
+_Static_assert(sizeof(actql_file_capacity_scope) <= 96, "finite File diagnostic context");
+static _Thread_local actql_file_capacity_scope actql_file_capacity;
+static _Atomic bool actql_file_capacity_recorded;
+void actql_native_file_capacity_observe(const void *ledger, int32_t kind,
+    int32_t serial, int64_t requested, int64_t capacity, int64_t limit,
+    int64_t reserved) {
+  int saved_errno = errno;
+  actql_file_capacity_scope *scope = &actql_file_capacity;
+  if (!actql_native_acceptance_enabled()) goto done;
+  if (kind == 0) {
+    if (scope->depth) {
+      scope->invalid = true;
+      if (scope->depth < UINT32_MAX) scope->depth++;
+      goto done;
+    }
+    *scope = (actql_file_capacity_scope){.ledger=ledger, .process=getpid(),
+      .depth=1, .row_execution=-1, .task_execution=-1,
+      .body_execution=serial == 1 ? reserved : -1};
+    goto done;
+  }
+  if (!scope->depth || scope->process != getpid()) goto done;
+  if (kind == 1) {
+    if (scope->ledger != ledger) scope->invalid = true;
+    if (--scope->depth == 0) *scope = (actql_file_capacity_scope){0};
+    goto done;
+  }
+  if (scope->invalid) goto done;
+  const bool same_ledger = scope->ledger == ledger;
+  if (kind == 2) { if (same_ledger) scope->compute = true; goto done; }
+  if (kind == 3 || kind == 4) {
+    /* Original Read accounting can run inside this non-reentered Work. Its
+     * successful events neither mutate nor invalidate this Ledger's tracking. */
+    if (!same_ledger) goto done;
+    if (!scope->compute && kind == 3 && serial >= 0) {
+      if (scope->row_seen && scope->row_serial != serial) scope->row_ambiguous = true;
+      else { scope->row_seen = true; scope->row_serial = serial; scope->row_execution = capacity; }
+    } else if (scope->compute && kind == 3 && serial >= 0) {
+      if (scope->task_seen && scope->task_serial != serial) scope->task_ambiguous = true;
+      else { scope->task_seen = true; scope->task_serial = serial; scope->task_execution = capacity; }
+    } else if (scope->row_seen && scope->row_serial == serial)
+      scope->row_execution = capacity;
+    else if (scope->task_seen && scope->task_serial == serial)
+      scope->task_execution = capacity;
+    else if (kind == 4) scope->body_execution = -1;
+    goto done;
+  }
+  if (kind < 10 || kind > 16 || requested < 0 || capacity < 0 ||
+      limit < 0 || reserved < 0) goto done;
+  bool expected = false;
+  if (!atomic_compare_exchange_strong_explicit(&actql_file_capacity_recorded,
+      &expected, true, memory_order_relaxed, memory_order_relaxed)) goto done;
+  /* Private observation only: not the public error/packet schema, no identities,
+   * paths, payloads or serialized pointers. Missing/truncated is unmeasured.
+   * First refusal is overall within this lexical Work, not automatically its
+   * public primary. Numeric demand/usage belongs to the actual issuing Ledger;
+   * foreign Role attribution is unavailable, never borrowed from the scope.
+   * For prechecks, task_capacity is the one observed live suffix token, or -1
+   * if unavailable/ambiguous. Resize uses its actual pre-grow token; reserve
+   * starts at zero. entry_singleton_execution is unavailable after any
+   * unclassified resize: it is never a subtraction of unrelated usage. */
+  char body[768];
+  int bytes = snprintf(body, sizeof(body),
+    "ACTQL_NATIVE_FILE_CAPACITY {\"phase\":%d,\"scope_ledger_match\":%s,\"compute\":%s,"
+    "\"requested_execution\":%" PRId64 ",\"task_capacity\":%" PRId64 ","
+    "\"limit_execution\":%" PRId64 ",\"reserved_execution\":%" PRId64 ","
+    "\"entry_singleton_execution\":%" PRId64 ",\"row_execution\":%" PRId64 "}\n",
+    kind, same_ledger ? "true" : "false", scope->compute ? "true" : "false", requested,
+    !same_ledger ? -1 : kind == 12 || kind == 13 || kind == 15 || kind == 16
+      ? (scope->task_seen && !scope->task_ambiguous ? scope->task_execution : -1)
+      : capacity, limit,
+    reserved, same_ledger ? scope->body_execution : -1,
+    same_ledger && scope->row_seen && !scope->row_ambiguous ? scope->row_execution : -1);
+  if (bytes > 0 && (size_t)bytes < sizeof(body)) actql_timing_emit(body, (size_t)bytes);
+done:
+  errno = saved_errno;
+}
+
 void actql_native_acceptance_incomplete(void) {
   int saved_errno = errno;
   if (actql_native_acceptance_enabled()) atomic_store_explicit(&actql_acceptance_invalid, true, memory_order_relaxed);

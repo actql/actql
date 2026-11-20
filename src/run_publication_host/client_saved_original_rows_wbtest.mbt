@@ -44,7 +44,7 @@ test "same saved original reobserves both physical triples without rebuilding Ma
   assert_eq(state.wire(), client_saved_manifest_envelope)
   assert_eq(state.state_wire(), client_saved_manifest_state)
   assert_eq(
-    @publication.publication_contract_json(state.original_manifest()),
+    @publication.publication_contract_json(state.original_manifest().unwrap()),
     client_saved_manifest_manifest,
   )
 }

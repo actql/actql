@@ -199,17 +199,32 @@ test "ordinary material admission cannot silently discard Effect normalization c
     definition,
     normalization=Some(original),
   ).unwrap()
-  assert_true(
-    admit_client_values_run_materials(
+  // Legal Effect-free/INFER material may now retain its verified journal.
+  // This fixture has a real create Effect: the ordinary reader must still
+  // reject its original Stage before checking or restoring any journal.
+  for
+    body in [
       wire,
-      @publication.publication_contract_identity(definition),
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-      run_materials_manifests(),
-      run_materials_limits(),
+      issue_prepared_client_effect_run_materials(allowed, definition).unwrap(),
+    ] {
+    assert_true(
+      admit_client_values_run_materials(
+        body,
+        @publication.publication_contract_identity(definition),
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+        run_materials_manifests(),
+        run_materials_limits(),
+      )
+      is Err(MaterialsProgram(EffectNotSupported("source"))),
     )
-    is Err(MaterialsEvidence("normalization_journal")),
-  )
+  }
 }
 
 ///|

@@ -1,5 +1,6 @@
-// Run only inside a verified ordinary installation. Product implementations
-// and private bootstrap brands come from that same installed Local runtime.
+// The ordinary runner requires a verified installation. Its product/runtime
+// originals come from that installation; the shared TLS opener below is
+// fixture-only and loads no Host, Common or installed product.
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir, mkdtemp} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -10,14 +11,26 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
+import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
+import {recordApprovalReplyLossExpectation} from './workflow.mjs';
+export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
 
 const execute = promisify(execFile);
 const pem = key => key.export({format: 'pem', type: key.type === 'private' ? 'pkcs8' : 'spki'});
 const safe = error => ({name: error?.name, code: error?.code, message: error?.message});
 const privateFile = {mode: 0o600, flag: 'wx'};
 
+// Same existing transport/fault seam for the ordinary harness and direct TLS
+// protocol controls. This helper never classifies a public Run outcome.
+export function openRecordApprovalExchange(t, fixture) {
+  return openHttpsExchangeFixture(t, {routes: fixture.provider.routes, faults: fixture.faults ?? []});
+}
+
 export async function runInstalledRecordApprovalFixture(t, fixture) {
   const {connectorId, resource, alias, selection, provider} = fixture;
+  const expected = recordUpdateFixtureState(selection);
+  const loss = recordApprovalReplyLossExpectation(fixture.replyLossExpectation);
+  if (loss !== undefined) assert.equal(fixture.faults, undefined, 'Select one original reply-loss fault only');
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1', 'Preserve original state on every outcome');
   const parent = join(process.cwd(), connectorId + '-approval-original-roots');
   await mkdir(parent, {recursive: true});
@@ -31,7 +44,8 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
   const load = path => import(new URL(path, local));
   try {
-    tls = await openHttpsExchangeFixture(undefined, {routes: provider.routes});
+    tls = await openRecordApprovalExchange(undefined, loss === undefined ? fixture
+      : {...fixture, faults: recordUpdateReplyLossFaults(provider)});
     const common = await load('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
     const {loadInstalledSource} = await load('adapters/host-node/installed-source.mjs');
     const {canonicalJson} = await load('adapters/host-node/local-account-config.mjs');
@@ -115,6 +129,8 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       privateFile);
     const env = {...process.env, HOME: join(root, 'home'), NODE_OPTIONS: '', NODE_PATH: ''};
     for (const key of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[key];
+    delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
+    if (loss !== undefined) env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION = JSON.stringify(loss);
     for (const phase of ['capture', 'approve', 'recover']) {
       const before = provider.snapshot(), startedAt = new Date().toISOString();
       const args = [fileURLToPath(new URL('./installed-child.mjs', import.meta.url)),
@@ -132,15 +148,25 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       await writeFile(join(root, phase + '.stderr'), result.stderr, privateFile);
       const outcome = JSON.parse(result.stdout);
       assert.equal(outcome.status, 'passed');
+      assert.deepEqual(outcome.replyLossExpectation, loss, 'The child retains the exact selected fixture expectation');
       assert.equal(outcome.publicClientClose, 'returned');
       assert.deepEqual(outcome.descriptors.before.openPaths, []);
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       const after = provider.snapshot();
       assert.deepEqual(after.control, before.control);
+      assert.deepEqual({id: after.control.id, name: after.control.name}, expected.before.control);
       assert.equal(after.writes, phase === 'capture' ? 0 : 1);
-      assert.equal(after.target.name, phase === 'capture' ? selection.previousName : selection.nextName);
-      if (phase === 'recover') assert.equal(after.requests.length, before.requests.length,
+      assert.deepEqual({id: after.target.id, name: after.target.name},
+        (phase === 'capture' ? expected.before : expected.after).target);
+      if (phase === 'recover' && loss === undefined) assert.equal(after.requests.length, before.requests.length,
         'Saved first sends no provider request');
+      if (loss !== undefined) {
+        assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
+        const writeCount = snapshot => snapshot.requests.filter(request =>
+          request.method === provider.writeRequest.method && request.pathname === provider.writeRequest.pathname).length;
+        assert.equal(writeCount(after), phase === 'capture' ? 0 : 1,
+          'One original write request, including refused duplicate attempts');
+      }
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,
         requestsBefore: before.requests.length, requestsAfter: after.requests.length, writes: after.writes});
     }
@@ -150,7 +176,10 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     if (services && !parentClosed) try {await closeParent();} catch (error) {cleanup.push(error);}
     if (tls) try {await tls.close();} catch (error) {cleanup.push(error);}
     const snapshot = provider.snapshot();
-    const summary = {qualification: 'Owned TLS functional consumer of the selected installed cohort; no real provider authentication, performance or physical cleanup ACK claim',
+    const summary = {qualification: loss === undefined
+      ? 'Owned TLS functional consumer of the selected installed cohort; no real provider authentication, performance or physical cleanup ACK claim'
+      : 'Owned TLS applied-write reply-loss consumer: original public outcome and separate-process same-Run lookup only; expected Unknown is not success, Result, physical stop or cleanup ACK',
+      ...(loss === undefined ? {} : {replyLossExpectation: loss, remainingFaults: tls?.remainingFaults()}),
       passed: !failed && cleanup.length === 0 && snapshot.failures.length === 0, phases, provider: snapshot,
       publicFailure: failed ? safe(primary) : null, cleanup: cleanup.map(safe), bootstrapClosed: parentClosed};
     await writeFile(join(root, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', privateFile);

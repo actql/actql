@@ -13,12 +13,13 @@ const vector = JSON.parse(readFileSync(new URL(
 function valid(shape, value) {
   for (const keyword of Object.keys(shape)) assert.ok([
     '$schema', '$id', 'type', 'additionalProperties', 'required', 'properties', 'const', 'pattern', 'maxLength',
-    'minLength', 'not', 'anyOf', 'enum', 'items', 'uniqueItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'oneOf',
+    'minLength', 'not', 'anyOf', 'allOf', 'enum', 'items', 'uniqueItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'oneOf',
   ].includes(keyword), keyword);
   if (shape.required && (value === null || typeof value !== 'object'
       || shape.required.some(key => !Object.hasOwn(value, key)))) return false;
   if (shape.not && valid(shape.not, value)) return false;
   if (shape.anyOf && !shape.anyOf.some(alternative => valid(alternative, value))) return false;
+  if (shape.allOf && !shape.allOf.every(alternative => valid(alternative, value))) return false;
   if (shape.oneOf && shape.oneOf.filter(alternative => valid(alternative, value)).length !== 1) return false;
   if (shape.type === 'object') {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -112,4 +113,44 @@ test('independent original packet identity and closed shape retain original bind
   assert.equal(valid(packetSchema, {...body, profile_wire: 'x'.repeat(4097)}), false);
   assert.equal(valid(packetSchema, {...body, host_adoption_cid: 'copied'}), false);
   assert.equal(valid(packetSchema, {...body, extra: true}), false);
+});
+
+test('requested original Result purpose is closed and exclusive of historical finite lists', () => {
+  const shape = JSON.parse(readFileSync(new URL('../spec/contracts/actql-native-local-result-read.schema.json', import.meta.url)));
+  const original = JSON.parse(readFileSync(new URL('../reviews/2026-10-12-d-native-local-expiry-1701/finite-read-selection-vector.json', import.meta.url))).body;
+  const old = JSON.parse(original), purpose = structuredClone(old);
+  delete purpose.native.result_read.result_names;
+  purpose.native.result_read.result_selection = {kind: 'requested_original_result'};
+  assert.equal(valid(shape, old), true);
+  assert.equal(valid(shape, purpose), true);
+  const accepted = structuredClone(purpose); delete accepted.native.result_read.data_policy_cids;
+  accepted.native.result_read.accepted_run_policy = true;
+  assert.equal(valid(shape, accepted), true);
+  assert.equal(valid(shape, {...accepted, native: {result_read: {...accepted.native.result_read, data_policy_cids: ['sha256:'+'a'.repeat(64)]}}}), false);
+  const check = value => valid(shape, {...purpose, native: {result_read: value}});
+  const read = purpose.native.result_read;
+  assert.equal(check({...read, result_names: ['answer']}), false);
+  assert.equal(check({...read, result_selection: {kind: 'all'}}), false);
+  assert.equal(check({...read, result_selection: {kind: 'requested_original_result', names: ['file']}}), false);
+  assert.equal(check({...read, expires_at: '2026-10-12T00:00:00.000Z'}), false);
+  for (const field of ['run_policy_profile_cid', 'run_file', 'retention_file', 'store_file']) {
+    const missing = {...read}; delete missing[field]; assert.equal(check(missing), false);
+  }
+  assert.equal(read.max_bytes, old.native.result_read.max_bytes);
+  assert.equal(read.max_uses, old.native.result_read.max_uses);
+});
+
+test('requested original purpose has a complete independent canonical preimage', () => {
+  const vector = JSON.parse(readFileSync(new URL('../reviews/2026-10-12-d-native-local-expiry-1701/finite-read-selection-vector.json', import.meta.url)));
+  const previous = JSON.parse(vector.body), current = structuredClone(previous);
+  delete current.native.result_read.result_names;
+  current.native.result_read.result_selection = {kind: 'requested_original_result'};
+  const canonical = value => value && typeof value === 'object'
+    ? Array.isArray(value) ? '['+value.map(canonical).join(',')+']'
+      : '{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonical(value[key])).join(',')+'}'
+    : JSON.stringify(value);
+  assert.equal(vector.cid, 'sha256:a9f3763dd497b71ef891cb741842cc5e608cfe522474b841b083550d962d385a');
+  assert.equal('sha256:'+createHash('sha256').update(vector.body).digest('hex'), vector.cid);
+  assert.equal('sha256:'+createHash('sha256').update(canonical(current)).digest('hex'),
+    'sha256:4eda3772ec30b941c674a137584057cb17d49d7c2a40e1e4c931a668d0b717e4');
 });

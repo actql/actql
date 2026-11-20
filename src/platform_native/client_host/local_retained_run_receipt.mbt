@@ -161,7 +161,10 @@ fn NativeLocalHostConnection::observe_retained_run_receipt_with_operations(
         if !authority.current_for(self.journal, original.request) {
           return Err(AuthorizationDenied)
         }
-        Ok((binding, state.original_manifest()))
+        guard state.original_manifest() is Some(manifest) else {
+          return Err(CustodyLost)
+        }
+        Ok((binding, manifest))
       },
       reads=Some(operations.reads),
     ) {

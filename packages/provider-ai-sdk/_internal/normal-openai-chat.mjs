@@ -116,26 +116,39 @@ export function createOpenAIChatProvider(options) {
     }
     const config = await context.prepareConfiguration(() => {
       const selected = configuration(options);
-      if (selected.transportTimeouts?.callMs === undefined) return selected;
-      if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
-        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      if (typeof moon.clientProgramInstalledNodeModelSdkV4RequestCapacity !== 'function') {
+        refuse('OpenAIProviderRequestCapacityUnavailable');
       }
-      const quote = moon.clientProgramInstalledNodeModelDeadlineCapacity();
-      if (!Array.isArray(quote) || quote.length !== 2 || quote.some(value =>
-        typeof value !== 'bigint' || value < 0n || value > BigInt(maxInt)) || quote[1] < quote[0]) {
-        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      const sdkQuote = moon.clientProgramInstalledNodeModelSdkV4RequestCapacity(
+        selected.budget.maxRows, limits.request_bytes, bodyLimits.maxNodes, bodyLimits.maxDepth);
+      const validQuote = quote => Array.isArray(quote) && quote.length === 2 && quote.every(value =>
+        typeof value === 'bigint' && value >= 0n && value <= BigInt(maxInt)) && quote[1] >= quote[0];
+      if (!validQuote(sdkQuote) || sdkQuote[0] === 0n) refuse('OpenAIProviderRequestCapacityUnavailable');
+      let deadline = [0n, 0n];
+      if (selected.transportTimeouts?.callMs !== undefined) {
+        if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
+          refuse('OpenAIProviderDeadlineCapacityUnavailable');
+        }
+        deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity();
+        if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
       }
-      const holding = BigInt(limits.adapter_holding_bytes) + quote[0];
-      const execution = BigInt(limits.adapter_workspace_bytes) + quote[1];
+      const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0];
+      const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1];
       if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
-        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+        refuse('OpenAIProviderRequestCapacityUnavailable');
       }
-      // Same initial constructor owns quote/profile DATA. These are additional
-      // DEMANDS, not an uplift of budget/ledger limits or spare-field borrowing.
-      return Object.freeze({...selected, physicalLimits: Object.freeze({...limits,
-        adapter_holding_bytes: Number(holding), adapter_workspace_bytes: Number(execution)})});
+      // Preserve the entire previous Read base (including selected deadline
+      // overlap). Add all-row expected wires only to retained; the SAME serial
+      // writer/parse/compare workspace contributes only to execution peak.
+      // These are demands on the original initial Owner, never a budget uplift.
+      const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1];
+      return Object.freeze({...selected,
+        readRetainedBytes: previousRead + sdkQuote[0],
+        readExecutionBytes: previousRead + sdkQuote[1],
+        physicalLimits: Object.freeze({...limits,
+          adapter_holding_bytes: Number(holding), adapter_workspace_bytes: Number(execution)})});
     });
-    const physicalLimits = config.physicalLimits ?? limits;
+    const physicalLimits = config.physicalLimits;
     const runtimeCid = await context.runtimeIdentity();
     const builderCid = await context.artifactIdentity(builderArtifactUrl);
     const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
@@ -149,8 +162,8 @@ export function createOpenAIChatProvider(options) {
         physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
-        read_retained_bytes: String(readEnvelopeBytes(config.budget.maxRows, physicalLimits)),
-        read_execution_bytes: String(readEnvelopeBytes(config.budget.maxRows, physicalLimits)),
+        read_retained_bytes: String(config.readRetainedBytes),
+        read_execution_bytes: String(config.readExecutionBytes),
         model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
         model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
@@ -206,7 +219,6 @@ export function createOpenAIChatProvider(options) {
       // actual native all-row/Model bounds are added, never replaced by it.
       // Keep the adapter's complete declared live holding/workspace in
       // addition to every prepared row; neither minimum can replace the other.
-      const readBytes = readEnvelopeBytes(config.budget.maxRows, physicalLimits);
       const entries = owned.map(task => {
         const profile = profiles.get(task.taskCid).profile;
         const originalReadRecipe = Object.freeze({
@@ -218,7 +230,7 @@ export function createOpenAIChatProvider(options) {
             layoutArtifactCid: layoutCid, installation, probability: undefined,
             layout: Object.freeze({runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
               response_profile: profile, prepared_rows: BigInt(config.budget.maxRows),
-              retained_bytes: readBytes, execution_bytes: readBytes})}),
+              retained_bytes: config.readRetainedBytes, execution_bytes: config.readExecutionBytes})}),
           metadataAcquisition: Object.freeze({retainedBytes: 2097152n, workspaceBytes: 2097152n,
             metadata: Object.freeze({maxWireBytes: 1048576, maxLedgerEntries: 4096}),
             directory: Object.freeze({maxWireBytes: 1048576, maxDirectoryEntries: 4096})}),

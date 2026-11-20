@@ -4,10 +4,11 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "99ad92018df1ddcbef741bbd40fedfb7cb4742c28b1eb9f77372416fc7f382ac",
+      "sha256": "b33142b1cabe0f790190ac14e3ed352aa9d7238cf7eb7d96c814409da7754b0a",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
+        "NOTION_USER_LIST_REQUEST",
         "NotionUserListReadFailure",
         "prepareNotionUserListPages"
       ],
@@ -25,6 +26,7 @@
             "moon",
             "names",
             "limits",
+            "capturedRequest",
             "applySynchronousProjection"
           ],
           "async": false
@@ -84,8 +86,10 @@
         }
       ],
       "imports": [
+        "../../../../src/connectors/notion/user-list-request.json",
         "../../../host-common/http-exchange.mjs",
-        "../../../host-common/runtime-result.mjs"
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/rest-source-request.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -110,7 +114,8 @@
             "NOTION_USER_LIST_API_VERSION",
             "NOTION_USER_LIST_OPERATION",
             "NotionUserListReadFailure",
-            "prepareNotionUserListPages"
+            "prepareNotionUserListPages",
+            "NOTION_USER_LIST_REQUEST"
           ],
           "attributes": {
             "responsibility": [
@@ -174,11 +179,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion users constructs through the same current Host Source services without external reader capacity"
+                "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion standard loader retains original implementation refusal and failed Source children"
+                "anchor": "Notion constructor keeps the original implementation refusal before any Site or reader"
               },
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
@@ -1418,7 +1423,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "b768c54288a949f9f372cbc978a7e81c3703ef8ce19257299270e65b7fdb6c60",
+      "sha256": "2c2504b2ec977d2883ad8217eab6e51c7cc17dd1ea40a9753c583f9b7e1aa45e",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1511,12 +1516,36 @@
           "async": false
         },
         {
-          "name": "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
+          "name": "loadInstalledNotionSource/preparePageReader",
           "parameters": [
             "selected",
             "columns",
             "applySynchronousProjection"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/publish",
+          "parameters": [
+            "authorization",
+            "site",
+            "providerReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/request/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/request/init:capacity/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/request/init:project/init:project",
+          "parameters": [],
           "async": false
         },
         {
@@ -1548,10 +1577,12 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-finite-page-source.mjs",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/rest-read-original.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../site/user-list-read-wire.generated.mjs",
         "../site/user-list-read.mjs",
         "node:crypto",
         "node:path",
@@ -1576,11 +1607,14 @@
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/implementation/implementation",
-            "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
+            "loadInstalledNotionSource/preparePageReader",
+            "loadInstalledNotionSource/publish",
             "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
             "readInputs/binding/binding",
-            "readInputs/reads/reads"
+            "readInputs/reads/reads",
+            "loadInstalledNotionSource/request/init:capacity/init:capacity",
+            "loadInstalledNotionSource/request/init:project/init:project"
           ],
           "exports": [
             "INSTALLED_NOTION_SITE_VERSION",
@@ -1651,11 +1685,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion users constructs through the same current Host Source services without external reader capacity"
+                "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion standard loader retains original implementation refusal and failed Source children"
+                "anchor": "finite provider-page publication refusal keeps its original cause and never republishes"
               },
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
@@ -1664,6 +1698,130 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledNotionSource/request/init:capacity/init:capacity/init:capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
               }
             ]
           }
@@ -2388,6 +2546,251 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-finite-page-source.mjs",
+      "sha256": "116fe1d549c679a722b889b1a1c91eb795fcd3ceab9e3c4dad5cca09d9e74560",
+      "exports": [
+        "installFinitePageSource"
+      ],
+      "operations": [
+        {
+          "name": "installFinitePageSource",
+          "parameters": [
+            "services",
+            "siteInput",
+            "implementation",
+            "operation",
+            "preparePageReader",
+            "implementationMismatch",
+            "publish"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "./installed-host-cleanup.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing installed Host Site/Source initialization assembly; no new resource or authorization Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installFinitePageSource"
+          ],
+          "exports": [
+            "installFinitePageSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The private finite-page Host assembly reuses the original Site call record and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "the trusted installed Host continuation, passing the same Site, authorization"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "This assembly constructs no capacity, metadata collection or second snapshot of"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The returned reader is retained before observing its capacity or publishing a"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Reader retirement must"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "child remains the same pending child. Cleanup retry cannot reconstruct or"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "complete before closing the dependent Site; an unresolved Site-construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "the declaration, legacy JSON page/id/cursor inventories, raw response"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The generic row-only REST family remains a separate interpretation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/user-list-read-wire.generated.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion provider-authored user-list request asset; generated exact literal only, no semantic parser or Host permission issuer",
+      "exports": [
+        "notionUserListReadWire"
+      ],
+      "operations": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "notionUserListReadWire"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "5b97216a712735c4eccf1c3847856d5f35c37c2d31c7ab910ec64aa8a00961c8",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

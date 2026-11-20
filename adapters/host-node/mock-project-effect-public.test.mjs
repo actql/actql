@@ -7,6 +7,318 @@ import {DatabaseSync} from 'node:sqlite';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {workflowWorkObservation, workflowObservationComplete} from './fixtures/work-observation.fixture.mjs';
+import {mockProjectWorkflowChecks, startMockProjectSource} from './fixtures/mock-project-effect-protocol.fixture.mjs';
+import {multipleTargetMockProjectFiles, multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
+import {terminalMockScenario, checkTerminalMockRows, checkTerminalMockSavedRows, assertTerminalMockObservation,
+  runTerminalMockWorkflow, terminalMockFailureDiagnostic} from './fixtures/mock-project-terminal-public.mjs';
+import {createDiagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import * as terminalFs from 'node:fs/promises';
+import {tmpdir, userInfo} from 'node:os';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+
+const terminalRiskRows = [
+  {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+  {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+];
+
+test('terminal Mock declarations and independent rows cannot substitute an Effect or another output', () => {
+  const infer = terminalMockScenario('terminal-infer');
+  assert.equal(infer.format, 'aql');assert.match(infer.source, /RESULT updates;/u);
+  assert(!infer.source.includes('EFFECT'));assert.deepEqual([infer.sourceStarts, infer.modelStarts], [2, 2]);
+  const program = JSON.parse(terminalMockScenario('terminal-content').source), stage = program.stages[0];
+  assert.deepEqual(stage.inputs, {});assert.equal(stage.effects, undefined);
+  assert.deepEqual(stage.steps[0].values.rows, [{id: 1}, {id: 2}]);
+  assert.deepEqual(stage.steps[1].serialize, {format: 'jsonl', fields: ['id'], name: 'two.jsonl',
+    preserve_order: true, bounds: {max_rows: 2, max_bytes: 64}});
+  checkTerminalMockRows('terminal-infer', terminalRiskRows);
+  assert.throws(() => checkTerminalMockRows('terminal-infer', terminalRiskRows.slice(1)));
+  const foreign = structuredClone(terminalRiskRows);foreign[1].risk.value.reason = 'other original';
+  assert.throws(() => checkTerminalMockRows('terminal-infer', foreign));
+  const wrongKey = structuredClone(terminalRiskRows);wrongKey[0].risk.input_key.id = '001Globex';
+  assert.throws(() => checkTerminalMockRows('terminal-infer', wrongKey));
+  const missingKey = structuredClone(terminalRiskRows);delete missingKey[0].risk.input_key;
+  assert.throws(() => checkTerminalMockRows('terminal-infer', missingKey));
+  assert.throws(() => terminalMockScenario('unknown'));
+});
+
+test('terminal Content oracle checks byte-derived metadata and full original Saved equality separately', () => {
+  // A synthetic response DTO for checking the oracle, NOT an issued reference,
+  // permission, Store fixture or real product completion.
+  const contentCid = 'sha256:' + createHash('sha256').update('{"id":1}\n{"id":2}\n').digest('hex');
+  const row = {name: 'two.jsonl', media_type: 'application/x-ndjson', size_bytes: 18, row_count: 2,
+    content: {$actql_ref: 'content', version: 'actql-content-ref/0.1', content_ref_cid: 'sha256:' + 'a'.repeat(64),
+      media_type: 'application/x-ndjson', metadata: {content_cid: contentCid, size_bytes: 18,
+        media_type: 'application/x-ndjson', truncated: false,
+        issuer_evidence: {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'content_derivation', content_cid: contentCid}}}};
+  checkTerminalMockRows('terminal-content', [row]);
+  checkTerminalMockSavedRows('terminal-content', [structuredClone(row)], [row]);
+  const otherEnvelope = structuredClone(row);otherEnvelope.content.content_ref_cid = 'sha256:' + 'b'.repeat(64);
+  checkTerminalMockRows('terminal-content', [otherEnvelope]);
+  assert.throws(() => checkTerminalMockSavedRows('terminal-content', [otherEnvelope], [row]));
+  for (const mutate of [r => {r.size_bytes++;}, r => {r.row_count++;},
+    r => {r.content.metadata.content_cid = 'sha256:' + 'b'.repeat(64);},
+    r => {r.content.metadata.truncated = true;}, r => {delete r.content.content_ref_cid;}]) {
+    const changed = structuredClone(row);mutate(changed);
+    assert.throws(() => checkTerminalMockRows('terminal-content', [changed]));
+  }
+});
+
+test('terminal original observation refuses repeats, unknown, same process and incomplete close', () => {
+  const actual = {phase: 'recover', variant: 'terminal-infer', pid: 202,
+    status: 'passed', complete: true, submits: 0, resultReads: 1, lookupOriginal: true,
+    savedFirst: true, originalRefBeforeWait: false, originalInputsAbsent: true,
+    firstClose: {attempted: true, returned: true, calls: 1}, aliveScopedFD: {before: 0, after: 0, pid: 202},
+    workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0}};
+  const expected = {phase: 'recover', variant: 'terminal-infer', pid: 202, capturedPid: 101};
+  assertTerminalMockObservation(actual, expected);
+  const started = {...actual, recoveryOrigin: 'started', originalRowsCompared: false, normalCaptureComplete: false};
+  assertTerminalMockObservation(started, {...expected, fromStarted: true});
+  assert.throws(() => assertTerminalMockObservation(started, expected));
+  assert.throws(() => assertTerminalMockObservation(actual, {...expected, capturedPid: 202}));
+  for (const mutate of [v => {v.savedFirst = false;}, v => {v.submits++;}, v => {v.status = 'needs_reconciliation';},
+    v => {v.workObservation.sourceAcquisitionStarts++;}, v => {v.workObservation.modelCallStarts++;},
+    v => {v.workObservation.complete = false;}, v => {v.firstClose.returned = false;},
+    v => {v.firstClose.calls++;}, v => {v.aliveScopedFD.after++;}]) {
+    const changed = structuredClone(actual);mutate(changed);
+    assert.throws(() => assertTerminalMockObservation(changed, expected));
+  }
+});
+
+async function terminalScratch(t) {
+  const root = await terminalFs.mkdtemp(join(tmpdir(), 'actql-terminal-consumer-component-'));
+  // Only authored files and explicit public-port observations, no product DB,
+  // key, runtime, pending business state or installed normal software is made.
+  t.after(() => terminalFs.rm(root, {recursive: true, force: true}));
+  await terminalFs.mkdir(join(root, 'mock'));
+  return root;
+}
+
+test('terminal explicit operator Content selects only its authored finite Account and unchanged Program', async t => {
+  const root = await terminalScratch(t), primary = new Error('Stop before product initialization');
+  const program = terminalMockScenario('terminal-content');
+  await terminalFs.writeFile(join(root,program.path),program.source);
+  let connections = 0;
+  const connect = async ({mode,profile,installation}) => {
+    connections++;assert.equal(mode,'local');assert.equal(profile,'mock');
+    assert.equal(installation.authorization.siteKey,'local-mock');
+    assert.deepEqual(Object.keys(installation.authorization).sort(),['accountConfiguration','observe','siteKey']);
+    assert.equal(typeof installation.authorization.observe,'function');
+    const configuration = JSON.parse(installation.authorization.accountConfiguration);
+    assert.deepEqual(Object.keys(configuration).sort(),['account_id','entries','version']);
+    assert.equal(configuration.version,'actql-execution-account-config/0.1');
+    assert.equal(configuration.account_id,'terminal-content-explicit-operator');
+    assert.deepEqual(configuration.entries.map(entry => entry.entry_id),
+      ['operator-request','operator-result-file','operator-run']);
+    assert.deepEqual(configuration.entries.map(entry => [entry.resource.any_of,entry.operation.any_of]),[
+      [['installed-multi-acquired'],['write']],[['result/file'],['read']],
+      [['run'],['cancel','publish','read','resolve','submit']],
+    ]);
+    for (const entry of configuration.entries) {
+      assert.deepEqual(Object.keys(entry).sort(),
+        ['connection','entry_id','exclusions','operation','outcome','principal','resource']);
+      assert.equal(entry.outcome,'allow');assert.deepEqual(entry.principal,{any_of:[userInfo().username]});
+      assert.deepEqual(entry.connection,{any_of:['local-mock']});assert.deepEqual(entry.exclusions,[]);
+      assert.equal(JSON.stringify(entry).includes('"all"'),false);
+    }
+    assert.equal(await terminalFs.readFile(join(root,program.path),'utf8'),program.source);
+    throw primary;
+  };
+  const options = {phase:'capture',variant:'terminal-content',accountScenario:'explicit-operator-content',
+    handoffPath:join(root,'handoff.json'),directory:root,connect,
+    observeDescriptors:async () => ({pid:process.pid,openPaths:[]}),
+    createWorkObservation:() => ({connection:{},snapshot:() => ({complete:true,
+      sourceAcquisitionStarts:0,modelCallStarts:0,effectReplacementReturns:0})})};
+  await assert.rejects(runTerminalMockWorkflow(options),error => error.cause === primary &&
+    error.observation.accountScenario === 'explicit-operator-content');
+  await assert.rejects(runTerminalMockWorkflow({...options,variant:'terminal-infer'}),{code:'ERR_ASSERTION'});
+  await assert.rejects(runTerminalMockWorkflow({...options,accountScenario:'unsupported'}),{code:'ERR_ASSERTION'});
+  assert.equal(connections,1);
+  const {accountScenario, ...omitted} = options;
+  assert.equal(accountScenario,'explicit-operator-content');
+  await assert.rejects(runTerminalMockWorkflow({...omitted,directory:await terminalScratch(t),
+    async connect({mode,profile,installation}) {
+      connections++;assert.equal(mode,'local');assert.equal(profile,'mock');
+      assert.deepEqual(Object.keys(installation.authorization),['observe']);
+      assert.equal(typeof installation.authorization.observe,'function');throw primary;
+    }}),error => error.cause === primary && !Object.hasOwn(error.observation,'accountScenario'));
+  assert.equal(connections,2);
+});
+
+test('terminal preparation failure projection accepts only closed source locations and original capacity scalars', () => {
+  const sites = 'adapters/host-common/runtime-result.mjs:8:25\nadapters/host-node/embedded-local.mjs:5500:9';
+  const capacity = {phase: 'request_snapshot', dimension: 'execution', requiredRetentionBytes: '7',
+    requiredExecutionBytes: '19', availableRetentionBytes: '8', availableExecutionBytes: '18'};
+  let touched = 0;
+  const detail = {boundary: 'request_admission', available: true,
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message: sites}, capacity};
+  Object.defineProperty(detail, 'cause', {get() {touched++;throw Error('Do not inspect causes');}});
+  assert.deepEqual(terminalMockFailureDiagnostic('preparation_failed', detail), {
+    event: 'preparation_failed', available: true, boundary: 'request_admission',
+    primary: {phase: 'dispatch', kind: 'code_site'}, sites, capacity});
+  for (const message of ['private prompt/key', '/private/state/request:1:2', 'adapters/../private.mjs:1:2', sites.repeat(200)]) {
+    const result = terminalMockFailureDiagnostic('preparation_failed', {
+      ...detail, primaryDiagnostic: {kind: 'code_site', message}});
+    assert.equal(Object.hasOwn(result, 'sites'), false);
+  }
+  assert.equal(touched, 0);
+  assert.deepEqual(terminalMockFailureDiagnostic('preparation_failed', {boundary: 'request_admission', available: false}),
+    {event: 'preparation_failed', available: false, boundary: 'request_admission'});
+});
+
+test('terminal Content existing authorization callback retains only bounded original failure scalars before first close', async t => {
+  const root = await terminalScratch(t), path = join(root, 'handoff.json');
+  await terminalFs.writeFile(join(root, 'terminal.program.json'), terminalMockScenario('terminal-content').source);
+  const primary = Object.assign(Error('private public error text'), {code: 'SubmissionUnknown'});
+  let getterCalls = 0, delivery, starts = 0, closes = 0;
+  const cause = {$tag: 7, _0: {$tag: 3}};
+  Object.defineProperty(cause, 'message', {get() {getterCalls++;throw Error('Private getter');}});
+  const detail = {code: 'MoonBitHostFailure', boundary: 'task_compilation', cause,
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message: 'private prompt and key'},
+    reference: 'private-original', body: 'private-input'};
+  const expected = {event: 'content_preparation_rejected', code: 'MoonBitHostFailure', boundary: 'task_compilation',
+    primary: {phase: 'dispatch', kind: 'code_site'}, issueTag: 7, nestedIssueTag: 3};
+  assert.deepEqual(terminalMockFailureDiagnostic('content_preparation_rejected', detail), expected);
+  assert.equal(terminalMockFailureDiagnostic('authorization_allowed', detail), undefined);
+  const ports = {phase: 'capture', variant: 'terminal-content', directory: root, handoffPath: path,
+    observeDescriptors: async () => ({pid: process.pid, openPaths: []}),
+    createWorkObservation: () => ({connection: {}, snapshot: () => ({complete: true,
+      sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0})}),
+    async connect({installation}) {
+      delivery = createDiagnosticObserver(installation.authorization.observe);
+      return {newSubmission: () => ({request: 'original-before-start'}),
+        async startSource() {starts++;delivery('content_preparation_rejected', detail);throw primary;},
+        async close() {
+          closes++;
+          const original = JSON.parse(await terminalFs.readFile(join(root, 'capture.primary.json'), 'utf8'));
+          assert.deepEqual(original, {publicCode: 'SubmissionUnknown', thrownUndefined: false, originalDiagnostics: [expected]});
+          delivery.close();
+        }};
+    }};
+  await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause === primary);
+  assert.equal(starts, 1); assert.equal(closes, 1); assert.equal(getterCalls, 0);
+  const original = JSON.parse(await terminalFs.readFile(join(root, 'capture.pending.json'), 'utf8'));
+  assert.deepEqual(original.originalDiagnostics, [expected]);
+  assert.deepEqual(original.firstClose, {attempted: true, returned: true, calls: 1});
+  await assert.rejects(terminalFs.access(path + '.started'), {code: 'ENOENT'});
+});
+
+test('terminal imported consumer preserves ref before wait, Saved first and thrown undefined at first close', async t => {
+  for (const phase of ['capture', 'recover', 'from-started', 'unknown-start', 'failure']) {
+    const root = await terminalScratch(t), path = join(root, 'handoff.json'), events = [];
+    const ref = {runDefinitionCid: 'sha256:' + 'a'.repeat(64)}, submissionRef = {request: 'authored-port'};
+    const recovering = phase === 'recover' || phase === 'from-started';
+    if (!recovering) await terminalFs.writeFile(join(root, 'terminal.aql'), terminalMockScenario('terminal-infer').source);
+    else await terminalFs.writeFile(path + (phase === 'from-started' ? '.started' : ''), JSON.stringify({variant: 'terminal-infer', ref, submissionRef,
+      ...(phase === 'recover' ? {rows: terminalRiskRows} : {}), pid: process.pid + 1}));
+    const run = {ref, async wait() {
+      events.push('wait');const saved = JSON.parse(await terminalFs.readFile(path + '.started', 'utf8'));
+      assert.deepEqual(saved.ref, ref);
+      if (phase === 'failure') throw undefined;
+      return {status: 'succeeded'};
+    }, result() {events.push('result');return {all: async () => terminalRiskRows};},
+    async status() {events.push('status');return {status: 'succeeded'};}};
+    let closes = 0;
+    const ports = {phase: recovering ? 'recover' : 'capture', fromStarted: phase === 'from-started',
+      variant: 'terminal-infer', directory: root, handoffPath: path,
+      observeDescriptors: async () => ({pid: process.pid, openPaths: []}),
+      createWorkObservation: () => ({connection: {}, snapshot: () => ({complete: true,
+        sourceAcquisitionStarts: recovering ? 0 : 2, modelCallStarts: recovering ? 0 : 2, effectReplacementReturns: 0})}),
+      connect: async () => ({newSubmission() {events.push('new');return submissionRef;},
+        async startSource() {
+          events.push('start');assert.equal(recovering, false);
+          const submitted = JSON.parse(await terminalFs.readFile(path + '.submission', 'utf8'));
+          assert.deepEqual(submitted.submissionRef, submissionRef);
+          if (phase === 'unknown-start') throw Object.assign(Error('OriginalUnknown'), {code: 'SubmissionUnknown'});
+          return run;
+        },
+        async attach(actual) {events.push('attach');assert.deepEqual(actual, ref);return run;},
+        async lookupSubmission(actual) {events.push('lookup');assert.deepEqual(actual, submissionRef);return {kind: 'ready', admission: {ref}};},
+        async close() {closes++;events.push('close');if (phase === 'failure') throw Error('LaterCloseFailure');}})};
+    if (phase === 'unknown-start') {
+      await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause.code === 'SubmissionUnknown');
+      assert.deepEqual(events, ['new', 'start', 'close']);
+      await assert.rejects(terminalFs.access(path + '.started'), {code: 'ENOENT'});
+      assert.deepEqual(JSON.parse(await terminalFs.readFile(path + '.submission', 'utf8')).submissionRef, submissionRef);
+    } else if (phase === 'failure') {
+      await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause === undefined &&
+        error.observation.status === 'failed' && error.observation.firstClose.returned === false);
+      assert.deepEqual(events, ['new', 'start', 'wait', 'close']);
+    } else {
+      const observation = await runTerminalMockWorkflow(ports);assert.equal(observation.complete, true);
+      assert.deepEqual(events, phase === 'capture' ? ['new', 'start', 'wait', 'result', 'lookup', 'close']
+        : ['attach', 'result', 'status', 'lookup', 'close']);
+      if (phase === 'from-started') {
+        assert.equal(observation.recoveryOrigin, 'started');assert.equal(observation.originalRowsCompared, false);
+        assert.equal(observation.normalCaptureComplete, false);
+        await assert.rejects(terminalFs.access(path), {code: 'ENOENT'});
+      }
+    }
+    assert.equal(closes, 1);
+  }
+});
+
+test('plural Mock fixture authors one document and two exact same-Run UPDATE members without a Model',()=>{
+  const files=multipleTargetMockProjectFiles(),config=JSON.parse(files['actql.config.json']);
+  assert.equal(config.mock.data,'./mock/data.json');
+  assert.deepEqual(JSON.parse(files['model-tasks.json']).tasks,{});
+  const source=JSON.parse(files['mock/catalog.json']).connections.salesforce;
+  assert.deepEqual(source.data.map(value=>value.items_path),[
+    ['salesforce','Account','rows'],['salesforce','Contact','rows']]);
+  assert.deepEqual(source.writes.map(value=>value.resource),['Account','Contact']);
+  const program=JSON.parse(files['multiple-targets.program.json']);
+  assert.equal(program.stages.length,1);const stage=program.stages[0];
+  assert.deepEqual(stage.inputs,{accounts:{connector:'salesforce',resource:'Account'},
+    contacts:{connector:'salesforce',resource:'Contact'}});
+  assert.deepEqual(stage.effects,{
+    account:{update:{target:'connector://salesforce/Account',mapping:'mapping:salesforce/Account/update-cd4d1d065cc201b7.v1',
+      from:{result:'rows'},id:'account_id',set:{value:{field:'account_next'}}}},
+    contact:{update:{target:'connector://salesforce/Contact',mapping:'mapping:salesforce/Contact/update-bfab525c7c063542.v1',
+      from:{result:'rows'},id:'contact_id',set:{value:{field:'contact_next'}}}},
+  });
+  assert.equal(multipleTargetMockWriteCount,2);
+});
+
+test('plural Mock fixture byte oracle preserves both control rows and rejects a changed starting document',()=>{
+  const before=multipleTargetMockProjectFiles()['mock/data.json'];
+  const expected=multipleTargetMockExpectedBytes(before),parsed=JSON.parse(expected);
+  assert.deepEqual(parsed.salesforce.Account.rows,[{id:'a1',group:'selected',value:'A-new'},
+    {id:'a-control',group:'account-control',value:'keep-account'}]);
+  assert.deepEqual(parsed.salesforce.Contact.rows,[{id:'c1',group:'selected',value:'C-new'},
+    {id:'c-control',group:'contact-control',value:'keep-contact'}]);
+  assert.deepEqual(parsed.control,{unchanged:'keep-physical-document'});
+  assert.equal(expected.replace('A-new','A-old').replace('C-new','C-old'),before);
+  assert.throws(()=>multipleTargetMockExpectedBytes(before.replace('keep-contact','foreign-change')));
+});
+
+test('plural Mock fixture oracles require both exact logical targets rather than one successful member',async()=>{
+  // Public projection DATA only: these oracles issue no actual Review, Run,
+  // checkpoint, authorization, claim, version or physical cleanup receipt.
+  const checks=await mockProjectWorkflowChecks({template:'churn-risk-mock',variant:'multiple-targets'});
+  const rows=[{account_id:'a1',contact_id:'c1',account_before:'A-old',contact_before:'C-old',
+    account_next:'A-new',contact_next:'C-new'}];
+  checks.checkRows(rows);assert.throws(()=>checks.checkRows([]));
+  const cid=letter=>'sha256:'+letter.repeat(64);
+  const summary={reviewProjectionCid:cid('a'),requiredArtifact:{cid:cid('b')},requirements:[]};
+  const ref={authorityScopeCid:cid('c')};
+  const review={version:'actql-review-projection/0.1',review_projection_cid:cid('a'),
+    effect_preview_cid:cid('b'),authority_scope_cid:cid('c'),approval_claims:[],
+    authoring_context_cid:cid('d'),redaction_policy_cid:cid('e'),sensitivity:'restricted',
+    retention_class:'approval-evidence',encryption_required:true,displayed_authoring_context:{},
+    displayed_permissions:[],displayed_scope:{effects:[
+    {kind:'update',target:'connector://salesforce/Contact',count:1},
+    {kind:'update',target:'connector://salesforce/Account',count:1}]},displayed_rows:[
+    ['a1','A-old','A-new'],['c1','C-old','C-new']].map(([id,prior,next])=>({target_row_identity:id,
+      row_preview_cid:'sha256:'+'a'.repeat(64),preview_strength:'full_diff',
+      target_guard:{state:'version',version_cid:'sha256:'+'b'.repeat(64)},
+      before:{state:'present',value:{group:'selected',id,value:prior}},
+      intended_changes:{state:'present',value:{value:next}},after:{state:'present',value:{value:next}}}))};
+  checks.checkReview(review,summary,ref);
+  const missing=structuredClone(review);missing.displayed_scope.effects.pop();
+  assert.throws(()=>checks.checkReview(missing,summary,ref));
+  const foreign=structuredClone(review);foreign.displayed_rows[1].before.value.id='a1';
+  assert.throws(()=>checks.checkReview(foreign,summary,ref));
+});
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
@@ -268,7 +580,7 @@ test('original Run work separates fresh verification reads and refuses unbound o
 test('write attribution borrows the existing exact Mock original and keeps unreadable identity unbound', () => {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  let callback;
+  let callback, installationCall, installationMethod;
   const declarations = new Map();
   function visit(node) {
     if (!node || typeof node !== 'object') return;
@@ -278,7 +590,11 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
     }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'preparation' && node.callee.property.name === 'installMockEffects') {
-      assert.equal(callback, undefined); callback = node.arguments.at(-1);
+      assert.equal(installationCall, undefined); installationCall = node;
+    }
+    if (node.type === 'Property' && !node.computed && node.key.name === 'installMockEffects' &&
+        node.value.type === 'FunctionExpression') {
+      assert.equal(installationMethod, undefined); installationMethod = node.value;
     }
     for (const child of Object.values(node)) {
       if (Array.isArray(child)) child.forEach(visit);
@@ -286,6 +602,17 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
     }
   }
   visit(ast);
+  assert(installationCall && installationMethod, 'Require the actual Mock installation call and implementation');
+  const forwarded = name => {
+    const index = installationMethod.params.findIndex(parameter => parameter.type === 'Identifier' && parameter.name === name);
+    assert.notEqual(index, -1, `Missing Mock installation parameter: ${name}`);
+    return installationCall.arguments[index];
+  };
+  for (const name of ['sourceProfile', 'installationServices']) {
+    assert.equal(forwarded(name)?.type, 'Identifier');
+    assert.equal(forwarded(name).name, name, `Forward the same original ${name}`);
+  }
+  callback = forwarded('observeWrite');
   if (callback?.type === 'Identifier') {
     assert.equal(callback.name, 'observeMockEffectWrite');
     callback = declarations.get(callback.name);
@@ -326,7 +653,7 @@ function capture({saveFailure, state = {status: 'failed', terminal_error: {code:
       saved = value;
     },
   };
-  const make = new Function('ports', 'assert', `
+  const make = new Function('ports', 'assert', 'startMockProjectSource', `
     const {client,targetState,readFile,save,console}=ports;
     const phase='capture',twoModels=false,dealReview=false,handoffPath='fixture-handoff';
     const template='churn-risk-mock',variant='readme';
@@ -337,7 +664,7 @@ function capture({saveFailure, state = {status: 'failed', terminal_error: {code:
       return {cause,firstFailedStep,runObservation};
     }};
   `);
-  return {invoke: make(ports, assert), events, saved: () => saved, originalRef};
+  return {invoke: make(ports, assert, startMockProjectSource), events, saved: () => saved, originalRef};
 }
 
 test('actual capture retains the original accepted reference before its first failed wait', async () => {

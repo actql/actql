@@ -1,11 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync} from 'node:fs';
+import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync,mkdirSync,symlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {connectorConformancePlan} from './connector.mjs';
+import {projectRestConnector} from './connector-authoring.mjs';
+
+test('declarative read author projection retains closed request DATA and rejects colliding parameters', () => {
+  const definition = {version: 'actql-rest-connector/0.1', id: 'acme', origin: 'https://api.example.invalid',
+    auth: {kind: 'bearer'}, sources: {records: {fields: [{name: 'id', type: 'string', nullable: false}],
+      read: {method: 'GET', path: '/v1/records'}, pagination: {kind: 'cursor', items: ['data'],
+        next: ['next_cursor'], parameter: 'after'}, limits: {maxPageRows: 100, maxPageBytes: 4096,
+        maxPages: 3, maxRows: 200, maxNodes: 1024, maxDepth: 12, maxCursorBytes: 256}}}};
+  const project = () => JSON.parse(projectRestConnector(definition).files['src/connectors/acme/rest-source.json']);
+  assert.deepEqual(JSON.parse(project().sources[0].readWire), {method: 'GET', path: '/v1/records'});
+  definition.sources.records.read = {method: 'GET', path: '/v1/records', query: [['kind', 'public']],
+    pageSize: {parameter: 'page_size', limit: 100}, versionHeader: {name: 'api-version', value: '2026-03-11'}};
+  assert.deepEqual(JSON.parse(project().sources[0].readWire), definition.sources.records.read);
+  definition.sources.records.read.query.push(['after', 'replacement-cursor']);
+  assert.throws(project, /InvalidRestConnectorDefinition:read/u);
+});
 
 // Actual author command boundary only. Bare Host imports remain in generated
 // module DATA; this test never imports a provider/Host or supplies a grant.
@@ -28,9 +44,15 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
         maxNodes:10000,maxDepth:16,maxCursorBytes:1024},
     }}};
   const wire=JSON.stringify(definition,null,2)+'\n';writeFileSync(started.definition,wire);
+  // Source/component preparation reuses the ONE existing same-source public
+  // library build. This dev alias is not an ordinary installed-package claim,
+  // no connector compiler/pack, and its target is never mutated by the case.
+  const scope=join(author,'node_modules','@actql');mkdirSync(scope,{recursive:true});
+  symlinkSync(join(root,'packages/local-node'),join(scope,'local-node'),'dir');
   const built=JSON.parse(invoke(['build',started.definition,output]));
   assert.equal(built.registration,'acme');assert.equal(built.customMoonBitPackages,0);
-  assert.equal(built.runtimeExecuted,false);assert.deepEqual(built.authorFiles,['connector.json']);
+  assert.equal(built.runtimeExecuted,true);assert.equal(built.pureCommonValidation,true);
+  assert.equal(built.hostRuntimeExecuted,false);assert.deepEqual(built.authorFiles,['connector.json']);
   const views={views:[{resource:'customers',resource_kind:'record',fields:[
     {name:'id',type:'string',nullable:false},{name:'name',type:'string',nullable:true},
   ]}]};
@@ -48,6 +70,66 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
   assert.equal(refused.status,1);assert.match(refused.stderr,/StaleRestConnectorProjection:index\.mjs/u);
   assert.equal(readFileSync(join(output,'index.mjs'),'utf8'),stale);
   assert.equal(readFileSync(started.definition,'utf8'),wire);
+});
+
+test('author build refuses a missing shipped pure validator before writing a package', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-missing-validator-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const author=join(scratch,'author'),output=join(scratch,'package');
+  const cli=join(root,'scripts/connector.mjs');
+  const initialized=spawnSync(process.execPath,[cli,'init',author,'acme'],{cwd:root,encoding:'utf8'});
+  assert.equal(initialized.status,0,initialized.stderr);
+  // CI places TMPDIR below its prepared workspace: a fresh directory can
+  // legitimately resolve an ancestor installation. Select a test-owned
+  // package with a missing shipped entry, rather than assume no ancestor.
+  const validator=join(author,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    type:'module',exports:{'./connector-authoring':'./missing.mjs'}}));
+  const refused=spawnSync(process.execPath,[cli,'build',join(author,'connector.json'),output],{cwd:root,encoding:'utf8'});
+  assert.equal(refused.status,1);assert.match(refused.stderr,/RestAuthoringValidatorUnavailable/u);
+  assert.deepEqual(readdirSync(scratch),['author']);
+  assert.deepEqual(readdirSync(author),['connector.json','node_modules']);
+});
+
+test('author child resolves its installed consumer validator and preserves original refusal', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-consumer-resolution-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const consumer=join(scratch,'consumer'),author=join(consumer,'author'),output=join(scratch,'package');
+  mkdirSync(consumer);writeFileSync(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
+  const cli=join(root,'scripts/connector.mjs');
+  const invoke=args=>spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8',timeout:10000});
+  const initialized=invoke(['init',author,'acme']);assert.equal(initialized.status,0,initialized.stderr);
+  const definition=join(author,'connector.json'),original=readFileSync(definition);
+  // An explicitly absent public export must refuse even if TMPDIR inherits
+  // a matching installation. This is distinct from the missing method below.
+  const validator=join(consumer,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    type:'module',exports:{}}));
+  const missing=invoke(['build',definition,output]);
+  assert.equal(missing.status,1);assert.equal(missing.signal,null);
+  assert.match(missing.stderr,/RestAuthoringValidatorUnavailable: install a matching/u);
+  assert.deepEqual(readdirSync(scratch),['consumer']);
+  // Explicit test-owned public export controls only. They do not implement or
+  // qualify Common validation, a normal package, Host or successful build.
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    version:'0.0.0-development',type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
+  writeFileSync(join(validator,'author.mjs'),'export const unrelated = true;\n');
+  const absentMethod=invoke(['build',definition,output]);
+  assert.equal(absentMethod.status,1);assert.equal(absentMethod.signal,null);
+  assert.equal(absentMethod.stderr.trim(),'RestAuthoringValidatorUnavailable');
+  writeFileSync(join(validator,'author.mjs'),
+    'export function validateRestReadDeclaration(wire,cursor) {\n'+
+    'const read=JSON.parse(wire);\n'+
+    'if(read.method!=="GET"||read.path!=="/v1/records"||cursor!=="after") throw Error("FixtureOriginalReadMismatch");\n'+
+    'throw Object.assign(new Error("FixtureParentValidatorReached"),{code:"RestAuthoringValidatorUnavailable"});\n}\n');
+  const originalRefusal=invoke(['build',definition,output]);
+  assert.equal(originalRefusal.status,1);assert.equal(originalRefusal.signal,null);
+  assert.equal(originalRefusal.stderr.trim(),'FixtureParentValidatorReached');
+  assert.deepEqual(readFileSync(definition),original);
+  assert.deepEqual(readdirSync(author),['connector.json']);
+  assert.deepEqual(readdirSync(scratch),['consumer']);
 });
 
 test('author conformance selects the installed reference case without creating an installation', t => {

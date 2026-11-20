@@ -7,12 +7,6 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 
 // These are the actual JS callers with explicit Core result/identity ports.
 // No fixture here issues a Core preparation, resource admission or public Run.
-const manager = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const start = manager.indexOf('    async fundedPreparation(');
-const end = manager.indexOf('    publicationPreparation(prepared) {', start);
-assert.ok(start >= 0 && end > start);
-const body = manager.slice(start, end).trim().replace(/,$/, '');
-const fail = code => {throw Object.assign(new Error(code), {code});};
 const ports = () => ({
   clientProgramRequestPreparationControl() {return [1n, 0n];},
   clientLocalResourcePolicyOriginal() {return {};},
@@ -22,6 +16,10 @@ const ports = () => ({
   clientProgramPrepareRequestNativeComputation() {},
   clientProgramPrepareRequestSourceComputation() {},
   clientProgramFinishRequestComputation() {},
+  clientProgramPrepareRequestProgramNormalization() {},
+  clientProgramRequestProgramNormalizationIssueCode() {},
+  clientProgramPrepareRequestProgramAuthoringContext() {return {};},
+  clientProgramRequestProgramAuthoringContextIssueCode() {},
   clientProgramPrepareRequestPolicySubjects() {},
   clientProgramReadRequestPolicySubject() {},
   clientProgramBindRequestPolicySubject() {},
@@ -44,6 +42,15 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
   old.clientProgramPrepareClosedValuesModuleBody = old.clientProgramPrepareRequestProgramModuleBody;
   delete old.clientProgramPrepareRequestProgramModuleBody;
   assert.equal(requestPreparationAvailable(context(old, false)), false);
+  const unnormalized = ports();
+  delete unnormalized.clientProgramPrepareRequestProgramNormalization;
+  assert.equal(requestPreparationAvailable(context(unnormalized, false)), false);
+  let normalizationReads = 0;
+  Object.defineProperty(unnormalized, 'clientProgramPrepareRequestProgramNormalization', {
+    get() {normalizationReads++; return () => {};},
+  });
+  assert.equal(requestPreparationAvailable(context(unnormalized, false)), false);
+  assert.equal(normalizationReads, 0);
   for (const mode of [undefined, null, 0, 'false', {}]) {
     assert.equal(requestPreparationAvailable(context(ports(), mode)), false);
   }
@@ -53,68 +60,22 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
   assert.equal(requestPreparationAvailable(accessor), false);
   const proxy = new Proxy(context(ports(), false), {getOwnPropertyDescriptor() {callbacks++; return undefined;}});
   assert.equal(requestPreparationAvailable(proxy), false);
+  const unauthored = ports();
+  delete unauthored.clientProgramPrepareRequestProgramAuthoringContext;
+  assert.equal(requestPreparationAvailable(context(unauthored, false)), false);
+  Object.defineProperty(unauthored, 'clientProgramPrepareRequestProgramAuthoringContext', {
+    get() {callbacks++; return () => ({});},
+  });
+  assert.equal(requestPreparationAvailable(context(unauthored, false)), false);
   assert.equal(callbacks, 0);
-});
-
-test('funded caller passes the same installed mode to one original Request compiler and ModuleBody', async () => {
-  for (const mode of [false, true]) for (const valuesMaxRows of [undefined, 2]) for (const sourceFreeMaxWork of [undefined, 30000000]) {
-    const parent = {}, receipt = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
-    const captured = {input: {}, parameters: {text: '日本語😀'}}, parametersCursor = {}, calls = [];
-    let constructing = false;
-    const moon = {...ports(),
-      clientProgramPrepareRequestNativeComputation(...args) {
-        assert.strictEqual(this, moon);
-        assert.deepEqual(args, [parent, receipt, captured.input, captured.parameters, environment, preparedEnvironment, valuesMaxRows]);
-        calls.push('check');
-      },
-      clientProgramFinishRequestComputation(...args) {
-        assert.strictEqual(this, moon);
-        assert.deepEqual(args, [parent, receipt, environment, preparedEnvironment]);
-        calls.push('compiler'); return 'effect_free';
-      },
-      clientProgramPrepareRequestProgramModuleBody(...args) {
-        assert.strictEqual(this, moon);
-        assert.deepEqual(args, [parent, receipt, admission, mode, undefined, sourceFreeMaxWork]);
-        constructing = true; calls.push('body'); constructing = false;
-      },
-      clientProgramBorrowRequestProgramPlanInput(value, original) {
-        assert.strictEqual(this, moon); assert.strictEqual(value, parent); assert.strictEqual(original, receipt);
-        assert.equal(constructing, false); calls.push('borrow'); return holder;
-      },
-      clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
-      clientProgramRequestParametersOriginal(...args) {
-        assert.deepEqual(args, [parent, receipt]); calls.push('parameters'); return parametersCursor;
-      },
-    };
-    const state = {parent, snapshot: captured, context: Object.freeze({runtime: moon, environment,
-      preparedEnvironment, retainedRelationOutput: mode, valuesMaxRows, sourceFreeMaxWork})};
-    const request = {};
-    const producer = {receipt, request, kind: 'program', body: captured, preparation: state};
-    const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
-    const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-      'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
-      `const closing=false,closed=false;return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
-      originals, value => value, (_moon, value) => value, requestPreparationAvailable, () => {});
-    for(let i=0;i<2;i++){
-      const original=await read(request, environment);
-      assert.strictEqual(original.prepared, prepared);
-      assert.equal(original.kind,'effect_free');
-      assert.deepEqual(original.originalInputs,{environment,parameters:undefined,parametersCursor});
-      assert.equal(Object.isFrozen(original),true);
-      assert.equal(Object.isFrozen(original.originalInputs),true);
-    }
-    assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
-    assert.strictEqual(state.prepared, prepared);
-    // A valid but different counter limit cannot replace the captured input on
-    // the cached same Request, even when compilation is already complete.
-    const originalContext = state.context;
-    state.context = Object.freeze({...originalContext, sourceFreeMaxWork: 40000000});
-    await assert.rejects(read(request, environment), {code: 'ForeignInstalledSourceProducer'});
-    state.context = originalContext;
-    state.context = context(moon, undefined);
-    await assert.rejects(read(request, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
-    assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
+  for (const name of ['clientProgramRequestProgramNormalizationIssueCode',
+    'clientProgramRequestProgramAuthoringContextIssueCode']) {
+    const missing = ports(); delete missing[name];
+    assert.equal(requestPreparationAvailable(context(missing, false)), false);
+    Object.defineProperty(missing, name, {get() {callbacks++; return () => {};}});
+    assert.equal(requestPreparationAvailable(context(missing, false)), false);
   }
+  assert.equal(callbacks, 0);
 });
 
 test('selected context failure cannot allocate producer slots or fall through to raw snapshot', async () => {

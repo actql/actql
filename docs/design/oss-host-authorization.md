@@ -301,6 +301,16 @@ are reserved before their constructors. The retained prefix, active scratch and
 failed children coexist on that same original. A quote, wire length or matching
 CID supplies neither permission nor another reservation owner.
 
+The trusted Mock initializer retains only its complete subject and exact
+Source/target/task vectors on that same Read. Configuration and declaration
+wires remain borrowed originals; the subject contains their digests, not those
+whole wires or Mapping bodies. Each synchronous digest separately reserves its
+actual UTF8 Buffer before allocation. The call returns and drops that temporary
+Buffer before the next digest; all returned CIDs and subject vectors remain
+charged. An error keeps the original frame and full admitted execution peak.
+This logical lifetime distinction supplies neither physical cleanup nor a new
+Account, and preserves the one-target canonical preimage.
+
 This funded route can admit an original wire above the legacy one-million-byte
 reader selection. Unfunded compatibility intake retains that existing cap.
 Explicit smaller Resource, node/depth/work limits, malformed input and foreign

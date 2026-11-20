@@ -510,3 +510,334 @@ pub fn request_model_recovery_program_capacity(
   // its separately owned Source index/base/controller are excluded here.
   @execution.execution_capacity(retained, Int64::max(retained, execution))
 }
+
+///|
+/// Construct authoring evidence from the exact source admitted by this material
+/// Read. The saved full Run and original compiler owner must already match.
+/// All collection/path/writer overlap is admitted on the SAME recovery Request,
+/// and partial state remains in its existing authoring slot through failure.
+pub fn[I] prepare_request_model_recovery_authoring_context(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  compiler : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.ClientAuthoringContextPreparation,
+  ClientRequestAuthoringIssue,
+] {
+  guard owner.phase == ModelRecovery &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.program_capacity is None &&
+    owner.effect_capacity is None &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelRecovery(old_request, old_definition)) &&
+    physical_equal(old_request, request) &&
+    physical_equal(old_definition, definition) &&
+    @publication_host.client_compiled_run_matches(compiled, prepared) &&
+    @publication_host.check_client_compiled_run_definition(compiled, definition)
+    is Ok(_) &&
+    @publication_host.client_request_program_cid(request) ==
+    @publication_host.prepared_client_identity(prepared).program_definition_cid &&
+    @publication_host.client_request_parameters_cid(request) ==
+    @publication_host.prepared_client_identity(prepared).parameter_values_cid else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  prepare_request_authoring_in_capacity(
+    owner,
+    input,
+    prepared,
+    compiler,
+    owner.capacity,
+  )
+}
+
+///|
+/// Admit the saved journal before the material compiler enters. The original
+/// Request already owns raw/parsed material. Audit, measured saved evidence and
+/// failed-child overlap use its existing normalization continuation and laws.
+pub fn[I] prepare_request_model_recovery_normalization(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  wire : String,
+  compiler : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.ClientLocalNormalization,
+  ClientRequestNormalizationIssue,
+] {
+  guard owner.phase == ModelRecovery &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.program_capacity is None &&
+    owner.effect_capacity is None &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelRecovery(old_request, old_definition)) &&
+    physical_equal(old_request, request) &&
+    physical_equal(old_definition, definition) &&
+    @publication_host.client_request_program_cid(request) ==
+    @publication_host.prepared_client_identity(prepared).program_definition_cid &&
+    @publication_host.client_request_parameters_cid(request) ==
+    @publication_host.prepared_client_identity(prepared).parameter_values_cid else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  prepare_request_model_recovery_normalization_owned(
+    owner, input, prepared, wire, compiler,
+  )
+}
+
+///|
+// Only the fixed public entry above or the same material Read below enters.
+// Keeping Selecting across the whole inverse fences every Resource callback.
+fn[I] prepare_request_model_recovery_normalization_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  wire : String,
+  compiler : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.ClientLocalNormalization,
+  ClientRequestNormalizationIssue,
+] {
+  let phase = owner.phase
+  owner.phase = Selecting
+  defer {
+    owner.phase = phase
+  }
+  let capacity = owner.capacity
+  if owner.program_normalization is None {
+    let base = match
+      @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(value) => value
+    }
+    guard request_original_normalization_audit_extent_cost(prepared)
+      is Some(bytes) &&
+      @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
+      return Err(Preparation(Policy))
+    }
+    let codec = compiler.checking.compilation.artifacts
+    owner.program_normalization = Some({
+      original: prepared,
+      compiler,
+      limits: {
+        max_work: compiler.checking.compilation.work,
+        max_wire_bytes: codec.bytes,
+        max_nodes: codec.nodes,
+        max_depth: codec.depth,
+      },
+      baseline: base,
+      audit_quote: (r, e),
+      audit: None,
+      retained: None,
+      construction: None,
+      publication_quote: None,
+      work: None,
+      returned: false,
+      charged_work: 0L,
+      spent_work: 0L,
+      result: None,
+    })
+  }
+  let state = owner.program_normalization.unwrap()
+  if !physical_equal(state.original, prepared) ||
+    !physical_equal(state.compiler, compiler) {
+    return Err(Preparation(ForeignOriginal))
+  }
+  if state.result is Some(result) {
+    match result {
+      Err(_) => return result
+      Ok(_) => {
+        match
+          @resources.check_working_preparation_capacity_current(capacity, input) {
+          Err(issue) => return Err(Preparation(Capacity(issue)))
+          Ok(_) => ()
+        }
+        // Exact saved bytes still matter on a cached constructor retry.
+        return @publication_host.admit_measured_prepared_client_local_normalization(
+          state.audit.unwrap(),
+          wire,
+          state.construction.unwrap(),
+        ).map_err(issue => Normalization(issue))
+      }
+    }
+  }
+  prepare_request_program_normalization_owned(
+    owner,
+    input,
+    state,
+    capacity,
+    restored_wire=Some(wire),
+  )
+}
+
+///|
+pub suberror ClientRequestModelRecoveryMaterialsIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Normalization(ClientRequestNormalizationIssue)
+  Authoring(ClientRequestAuthoringIssue)
+  Materials(@publication_host.ClientTaskRunMaterialsIssue)
+  Compilation(@publication_host.ClientCompiledRunIssue)
+}
+
+///|
+/// One same-parent inverse, not a fresh preparation/Root or a second compiler.
+/// The fixed callback retains typed normalization before the compiler; original
+/// source annotations are constructed after the complete saved Run matches.
+pub fn[I] admit_request_model_recovery_materials(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  wire : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  manifests : @publication_host.ClientCompilationManifests,
+  limits : @publication_host.ClientValuesRunMaterialsLimits,
+) -> Result[
+  (
+    @publication_host.ClientTaskRunMaterials,
+    @publication_host.ClientAuthoringContextPreparation,
+  ),
+  ClientRequestModelRecoveryMaterialsIssue,
+] {
+  guard owner.phase == ModelRecovery &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelRecovery(old_request, old_definition)) &&
+    physical_equal(old_request, request) &&
+    physical_equal(old_definition, definition) &&
+    owner.program_capacity is None &&
+    owner.effect_capacity is None else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  owner.phase = Selecting
+  defer {
+    owner.phase = ModelRecovery
+  }
+  match
+    @resources.check_working_preparation_capacity_current(owner.capacity, input) {
+    Err(issue) => return Err(Preparation(Capacity(issue)))
+    Ok(_) => ()
+  }
+  let normalization_issue : Ref[ClientRequestNormalizationIssue?] = Ref(None)
+  let material = @publication_host.admit_client_infer_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    expressions,
+    operations,
+    manifests,
+    limits,
+    restore_normalization=Some((prepared, journal) => {
+      let identity = @publication_host.prepared_client_identity(prepared)
+      if identity.program_definition_cid !=
+        @publication_host.client_request_program_cid(request) ||
+        identity.parameter_values_cid !=
+        @publication_host.client_request_parameters_cid(request) {
+        normalization_issue.val = Some(Preparation(ForeignOriginal))
+        return false
+      }
+      match
+        prepare_request_model_recovery_normalization_owned(
+          owner,
+          input,
+          prepared,
+          journal,
+          limits.preparation,
+        ) {
+        Err(issue) => {
+          normalization_issue.val = Some(issue)
+          false
+        }
+        Ok(_) => true
+      }
+    }),
+  )
+  let material = match material {
+    Err(issue) =>
+      return match normalization_issue.val {
+        Some(original) => Err(Normalization(original))
+        None => Err(Materials(issue))
+      }
+    Ok(value) => value
+  }
+  let compiled = match
+    @publication_host.client_task_run_materials_compiled_original(material) {
+    Err(issue) => return Err(Compilation(issue))
+    Ok(value) => value
+  }
+  if !@publication_host.client_compiled_run_matches(compiled, material.prepared) ||
+    !(@publication_host.check_client_compiled_run_definition(
+      compiled, definition,
+    )
+    is Ok(_)) {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let authoring = match
+    prepare_request_authoring_in_capacity(
+      owner,
+      input,
+      material.prepared,
+      limits.preparation,
+      owner.capacity,
+    ) {
+    Err(issue) => return Err(Authoring(issue))
+    Ok(value) => value
+  }
+  Ok((material, authoring))
+}
+
+///|
+/// Project the warm Model journal under the SAME original Request before its
+/// serializer starts. Parameter DATA is borrowed from the retained checker
+/// input; no caller wire, standalone capacity or current catalogue can replace it.
+pub fn[I] issue_request_model_run_materials(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[String, ClientRequestProgramPlanIssue] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.program_capacity is Some(capacity) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_compilation is Some(original_compilation) &&
+    @publication_host.client_compiled_run_matches_pure_compilation(
+      compiled, prepared, original_compilation,
+    ) &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  construct_request_original_materials_owned(
+    owner,
+    input,
+    capacity,
+    () => {
+      owner.phase == Selecting &&
+      owner.input is Some(original) &&
+      physical_equal(original, input) &&
+      owner.compiled_program is Some(current) &&
+      physical_equal(current, prepared) &&
+      owner.program_compilation is Some(current_compilation) &&
+      @publication_host.client_compiled_run_matches_pure_compilation(
+        compiled, current, current_compilation,
+      )
+    },
+    retained_aliases=1L,
+    fund => {
+      @publication_host.issue_original_client_infer_run_materials(
+        compiled,
+        definition,
+        owner.native_parameters,
+        fund,
+      ).map_err(issue => InferMaterials(issue))
+    },
+  )
+}

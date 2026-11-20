@@ -42,7 +42,7 @@ pub fn issue_client_requested_effect_stop(
   definition : @publication.PublicationContract,
   preview : @strategy.CapturedEffectPreviewInputs,
 ) -> Result[ClientRequestedEffectStop?, ClientRequestedEffectStopIssue] {
-  if !intent.stop_before_commit {
+  if !client_submitted_intent_requests_commit_stop(intent) {
     return Ok(None)
   }
   let prepared = allowed.compilation.owner
@@ -76,7 +76,7 @@ pub fn restore_client_requested_effect_stop(
   preview : @publication.EffectPreviewIdentity,
   limits : ClientCapturedEffectPreviewLimits,
 ) -> Result[ClientRequestedEffectStop?, ClientRequestedEffectStopIssue] {
-  if !intent.stop_before_commit {
+  if !client_submitted_intent_requests_commit_stop(intent) {
     return Ok(None)
   }
   guard materials.request is Some(original_request) &&

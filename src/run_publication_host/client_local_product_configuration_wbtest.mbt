@@ -491,17 +491,21 @@ test "finite Mock product originals retain the closed selected Account and Resul
       )
       is None,
     )
-    guard product_test_field(value, ["native", "result_read", "result_names"])
-      is @canonical.Array(names) else {
-      fail("missing original Result selection")
-    }
-    assert_eq(@canonical.array_count(names), 3)
-    for index, expected in ["answer", "main", "updates"] {
-      assert_eq(
-        product_test_text(@canonical.array_at(names, index).unwrap()),
-        expected,
+    assert_eq(
+      product_test_text(
+        product_test_field(value, [
+          "native", "result_read", "result_selection", "kind",
+        ]),
+      ),
+      "requested_original_result",
+    )
+    assert_true(
+      @canonical.object_field(
+        product_test_field(value, ["native", "result_read"]),
+        "result_names",
       )
-    }
+      is None,
+    )
   }
   // A fresh Mock selection changes only these four initial originals. It
   // cannot rewrite a restored Account, deadline, Run policy or compiler asset.
@@ -523,6 +527,65 @@ test "finite Mock product originals retain the closed selected Account and Resul
   assert_true(
     make(
       Some({ ..subjects, update_target: Some(("salesforce", "unselected")), }),
+    )
+    is Err(UnsupportedAsset),
+  )
+}
+
+///|
+test "finite Mock selected control stays original across Account and all Native read bindings" {
+  let selected = @authorization.local_mock_control_connection_prepared(
+      "local",
+      None,
+      None,
+      [("local", "legal-source")],
+      [],
+      _ => true,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(selected, "actql-local-control-0")
+  let subjects : @authorization.LocalMockAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: selected,
+    sources: [("local", "legal-source")],
+    model_tasks: [],
+    request_target: None,
+    update_target: None,
+    signing_key_resource: None,
+  }
+  let originals = client_local_product_finite_originals(
+    "/Users/operator/.actql-local",
+    "/product/lib/sqlite.dylib",
+    "/product/lib/crypto.dylib",
+    "2026-10-12T00:00:00.000Z",
+    product_test_assets(),
+    mock=Some(subjects),
+  ).unwrap()
+  for
+    name in ["config.json", "read.json", "material-read.json", "file-read.json"] {
+    let value = product_asset_value(product_test_original(originals, name)).unwrap()
+    let section = if name == "config.json" { "local" } else { "result_read" }
+    assert_eq(
+      product_test_text(
+        product_test_field(value, ["native", section, "connection"]),
+      ),
+      selected,
+    )
+  }
+  assert_eq(
+    product_test_original(originals, "account.json"),
+    @authorization.local_mock_account_configuration(subjects).unwrap(),
+  )
+  assert_true(
+    client_local_product_finite_originals(
+      "/Users/operator/.actql-local",
+      "/product/lib/sqlite.dylib",
+      "/product/lib/crypto.dylib",
+      "2026-10-12T00:00:00.000Z",
+      product_test_assets(),
+      mock=Some({ ..subjects, control_connection: "local", }),
     )
     is Err(UnsupportedAsset),
   )

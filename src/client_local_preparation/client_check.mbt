@@ -461,9 +461,12 @@ fn check_source_findings(
                 return Report
               }
             }
-          // A failed closure never becomes a verified advisory check. Retain
-          // the implementation limit until its typed diagnostic is projected.
-          Err(_) => ()
+          Err(issue) =>
+            match check_static_effect_type_issue(findings, issue) {
+              Some(stop) => return stop
+              // Other unclosed obligations never become a verified report.
+              None => ()
+            }
         }
       }
       match @checked.diagnostic_category(diagnostic) {
@@ -2873,4 +2876,56 @@ fn check_frontend_issue(
     | Encoding => return Failed("check_internal")
   }
   Report
+}
+
+///|
+// Only the existing static Mapping owner can establish these type failures.
+// A failed static closure is not generic unsupported input; equally, unrelated
+// pending obligations and unknown failures cannot become a fabricated success.
+fn check_static_effect_type_issue(
+  findings : Array[CheckFinding],
+  issue : @host.ClientEffectComputationIssue,
+) -> CheckStop? {
+  match issue {
+    Candidate(Computation(cause)) => {
+      // The ordinary Pure check stops at UnsupportedEffects before checking
+      // this computation. Keep a definite input failure from the SAME Effect
+      // candidate instead of replacing it with that earlier implementation
+      // limit. No generated cursor becomes an authored source location.
+      let diagnostic = @checked.construction_failure_diagnostic(cause)
+      if @checked.diagnostic_category(diagnostic) == InvalidInput {
+        findings.push(check_program_finding(diagnostic, None, None, None, None))
+        Some(Report)
+      } else {
+        None
+      }
+    }
+    Static(MappingLiterals(issue)) =>
+      match @effect_results.effect_mapping_literal_issue_kind(issue) {
+        IncompatibleLiteral(_) | RejectedNull(_) => {
+          findings.push(Violation("query_invalid"))
+          Some(Report)
+        }
+        WorkLimit => {
+          findings.push(Limit("analysis_budget_exhausted"))
+          Some(Report)
+        }
+        InvalidLimits => Some(Failed("check_internal"))
+        RequiredOmission(_) => None
+      }
+    Static(MappingRules(issue)) =>
+      match @effect_results.effect_mapping_rule_issue_kind(issue) {
+        IncompatibleSourceType(_) | IncompatibleNullBehavior(_) => {
+          findings.push(Violation("query_invalid"))
+          Some(Report)
+        }
+        WorkLimit => {
+          findings.push(Limit("analysis_budget_exhausted"))
+          Some(Report)
+        }
+        InvalidLimits => Some(Failed("check_internal"))
+        _ => None
+      }
+    _ => None
+  }
 }

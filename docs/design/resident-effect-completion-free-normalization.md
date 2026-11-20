@@ -93,8 +93,15 @@ compilation is repeated by this projection.
 The optional `normalization_journal_json` string carries the original issued
 journal in the existing bounded materials wire, before dispatch. The issuing
 API accepts only the nominal projection owned by the same original preparation.
-An absent journal stays absent; Effect-free admission refuses this Effect-only
-custody rather than silently dropping it.
+An absent journal stays absent. The same optional field also carries the exact
+original local Common journal for supported Effect-free/INFER material profiles.
+Its inverse checks the saved catalogue and complete original occurrence audit,
+then retains that admitted journal on the same restored preparation before
+compilation. It does not issue a current-catalogue replacement or treat an
+absent legacy journal as empty. The existing funded Read owns audit, evidence,
+comparison and failed-construction overlap; journal identity is not admission
+or authority. Newly projected material bytes take their natural content identity,
+while prior material bytes and completed Saved reads remain unchanged.
 
 ## Admitted material custody and Native review
 

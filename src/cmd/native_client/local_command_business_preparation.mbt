@@ -1,4 +1,12 @@
 ///|
+priv enum LocalCommandFileSources {
+  Project(LocalProjectMockDeclarations)
+  Whole(LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)
+  Query(Array[@local_host.NativeRelationFileQuerySource])
+  WholeSet(Array[@local_host.NativeRelationFileWholeSource])
+}
+
+///|
 // One retained selection, prepared before the first durable Submission action.
 // The existing Owners still admit the input, Program, Account and physical
 // execution independently. Recovery never constructs this fresh selection.
@@ -19,7 +27,7 @@ priv struct LocalCommandBusinessPreparation {
   preparation : @local_host.NativeClientSubmittedPreparation
   requirements : @local_values.ClientLocalRequirements?
   normalization : @run_host.ClientLocalNormalization?
-  file_source : (LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)?
+  mut file_source : LocalCommandFileSources?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   assets : @run_host.ClientLocalProductAssets
   submission : LocalRunSubmission?
@@ -72,6 +80,13 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     }
   } else if original_input is Some(_) {
     stop("LocalBusinessOriginalReferenceRequired")
+  }
+  // A retained original cannot be downgraded into this Native profile. Refuse
+  // before configuration binding, input construction or the first compiler.
+  if original_input is Some((_, intent)) &&
+    @run_host.client_submitted_intent_execution_profile(intent) == Debug {
+    self.retain_primary(CommandApplication("LocalExecutionProfileUnsupported"))
+    stop("LocalExecutionProfileUnsupported")
   }
   let configuration_name = configuration.configuration_name
   let configuration_body = configuration.configuration_body
@@ -136,7 +151,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
         let selected = self
           .select_business_file_source(prepared)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-        (None, Some(selected))
+        (None, Some(Project(selected)))
       } else {
         // The same Request already reserved its original Plan/body envelope.
         // Construct sequences in that business allocator, keeping any typed
@@ -268,7 +283,7 @@ fn LocalCommandBusinessPreparation::current(
 fn LocalCommandPreparationOriginal::select_business_file_source(
   self : LocalCommandPreparationOriginal,
   prepared : @run_host.PreparedClientProgram,
-) -> (LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)? {
+) -> LocalProjectMockDeclarations? {
   guard self.project is Some(project) &&
     project.mock_declarations is Some(original) &&
     !original.closing &&
@@ -276,8 +291,9 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
     return None
   }
   let graph = @run_host.prepared_client_graph(prepared)
-  if @run_host.prepared_client_acquisition_count(prepared) != 1 ||
-    @strategy.graph_captured_prefix(graph) != 1 ||
+  let count = @run_host.prepared_client_acquisition_count(prepared)
+  if count <= 0 ||
+    @strategy.graph_captured_prefix(graph) != count ||
     @strategy.graph_result_count(graph) != 1 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
@@ -289,22 +305,7 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
     @run_host.prepared_client_serialization_occurrences(prepared).is_empty() else {
     return None
   }
-  let source = match
-    @run_host.prepare_client_source_acquisition(prepared, 0, 0) {
-    Err(_) => return None
-    Ok(value) => value
-  }
-  let subject = @sourceviews.declaration(
-    @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
-  )
-  for declaration in original.sources {
-    if declaration._retained_connection == subject.connector {
-      for row in declaration._retained_rows {
-        if row.view.resource == subject.resource {
-          return Some((declaration, row))
-        }
-      }
-    }
-  }
-  None
+  // No unbacked Query/array construction here. The same Request's next Plan
+  // phase binds every original direct subject to its exact Project mapping.
+  Some(original)
 }

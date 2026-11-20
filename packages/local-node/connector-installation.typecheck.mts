@@ -4,6 +4,7 @@ import {
   openRowSourceCredentialSite, retainInstalledHostInitializationFailure,
   rowSourceCheckEnvironment, rowSourceMapping,
 } from '@actql/local-node/connector-installation';
+import {validateRestReadDeclaration} from '@actql/local-node/connector-authoring';
 import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
@@ -40,6 +41,12 @@ declare const runtimeBundleCid: string;
 declare const bindingCid: string;
 declare const writesJson: string;
 declare const providerReaderCapacity: ConnectorRuntimeHandle;
+
+// An opaque original is not the public tuple returned by its typed accessor.
+// @ts-expect-error Capacity internals are not public record fields.
+providerReaderCapacity._0;
+// @ts-expect-error Opaque handles do not expose numeric array elements.
+providerReaderCapacity[0];
 
 const originalReaderPreparer = (request: RowProviderReaderRequest): InstalledRowProviderReader => ({
   async read() {await request.verifyRead(); return request.rowRun.acquisition;},
@@ -394,6 +401,24 @@ const invalidScopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver
 void [scopedRecoveryDriver, invalidScopedRecoveryDriver];
 
 declare const originalRestDefinition: RestSourceInstallationDefinition;
+const originalReadWire: string = validateRestReadDeclaration('{"method":"GET","path":"/records"}');
+// @ts-expect-error Offline author validation consumes an original wire, not an object/Host or grant.
+validateRestReadDeclaration({method: 'GET', path: '/records'});
+void originalReadWire;
+// Both supported static declaration representations remain explicit. Neither
+// an absent read nor two competing originals can select a Source constructor.
+const restReadBase = {resource: 'records', resource_kind: 'record', fields: [],
+  pagination: {kind: 'none' as const, items: []}, limits: {maxPageRows: 1,
+    maxPageBytes: 1024, maxPages: 1, maxRows: 1, maxNodes: 64, maxDepth: 8, maxCursorBytes: 64}};
+const originalReadSource: RestSourceInstallationDefinition['sources'][number] = {
+  ...restReadBase, read: {method: 'GET', path: '/records'}};
+const finiteReadSource: RestSourceInstallationDefinition['sources'][number] = {
+  ...restReadBase, readWire: '{"method":"GET","path":"/records"}'};
+// @ts-expect-error A generated original and a legacy object cannot both select the same read.
+const competingRestReads: RestSourceInstallationDefinition['sources'][number] = {...restReadBase, read: {method: 'GET', path: '/records'}, readWire: '{}'};
+// @ts-expect-error A Source must select one actual request declaration.
+const absentRestRead: RestSourceInstallationDefinition['sources'][number] = restReadBase;
+void [originalReadSource, finiteReadSource, competingRestReads, absentRestRead];
 const pureRestTransform: RestSourceTransform = (page, context) => {
   const wire: string = page.rowsWire;
   const column: string | undefined = context.columns[0];

@@ -1,10 +1,23 @@
 import {openRequestPreparation, cleanupRequestInput}
   from '../local-node/request-preparation-adapter.mjs';
 import {physicalContentReadWindowBytes} from '../store-local/publication-store.mjs';
-import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {ResultDeliveryError} from '../host-common/result-delivery.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {setImmediate as yieldRead} from 'node:timers/promises';
+import {types as nodeTypes} from 'node:util';
+
+function checkedExplanation(result, runtime, explanationIssueCode) {
+    if (runtimeIsError(result)) {
+      const issue = runtimeField(result, 0);
+      const code = Reflect.apply(explanationIssueCode, runtime, [issue]);
+      if (typeof code !== 'string' || code.length < 1 || code.length > 128) {
+        throw Object.assign(new Error('InvalidHostRuntimeResult'), {code: 'InvalidHostRuntimeResult'});
+      }
+      throw Object.assign(new Error(code, {cause: issue}), {code});
+    }
+    return checked(result);
+}
 
 // The installed Result owner supplies the original runtime/policy. A READ is
 // one existing Request admission, independent of its retired producing Run.
@@ -20,10 +33,15 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   const releaseMetadata = runtime.clientProgramReleaseRequestResultMetadata;
   const finishMetadata = runtime.clientProgramFinishRequestResultMetadata;
   const reconcileSerializer = runtime.clientProgramReconcileRequestResultReadSerializer;
+  const beginExplanation = runtime.clientProgramBeginRequestExplanationRead;
+  const reserveExplanation = runtime.clientProgramReserveRequestExplanationRead;
+  const renderExplanation = runtime.clientProgramReadRequestExplanation;
+  const explanationIssueCode = runtime.clientProgramRequestExplanationReadIssueCode;
   if (typeof assertCurrent !== 'function') {
     throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
   }
   const context = Object.freeze({runtime, requestMemory});
+
   const reads = new Map();
   let closing = false;
   const unavailable = () => {throw Object.assign(new Error('ForeignResultReadWorkspace'),
@@ -39,6 +57,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   };
   function retire(entry) {
     if (pending(entry)) return false;
+    // These semantic aliases must disappear before the existing Request can
+    // settle. Physical cleanup responsibility remains on this SAME entry.
+    if (entry.explanation !== undefined) entry.explanation = undefined;
     cleanupRequestInput(entry.state);
     reads.delete(entry.request);
     return true;
@@ -60,25 +81,107 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     });
     return error;
   }
+  function beginEntry(request, control, explanation) {
+    if (closing || reads.has(request)) unavailable();
+    assertCurrent();
+    const retained = control === undefined ? undefined : Object.getOwnPropertyDescriptor(control, 'retainResultReadMetadata')?.value;
+    const entry = {request, state: {context}, control, retained, active: true, rowUnits: 0,
+      prepared: false, metadataActive: false, physical: [], unknownPhysical: false};
+    reads.set(request, entry);
+    try {
+      openRequestPreparation(entry.state, request, assertCurrent, () => pending(entry));
+      if (explanation) {
+        checkedExplanation(Reflect.apply(beginExplanation, runtime, [entry.state.parent, request]), runtime, explanationIssueCode);
+        // Only after the structural entry reservation: one public read owns
+        // this memo across its before/after Account checks, never another read.
+        const operation = Object.freeze({principalId: request.principalId,
+          purpose: 'run-explanation', indexKey: Object.freeze({...request.ref})});
+        // The ingress already owns the immutable connection. Capture only
+        // this bounded read's scalars/ref here, after its fixed entry admits
+        // the snapshot. No second serialization of connection/Source input.
+        const selected = Object.freeze({principalId: operation.principalId,
+          connection: request.connection, ref: operation.indexKey,
+          maxWireBytes: request.maxWireBytes, maxNodes: request.maxNodes,
+          maxDepth: request.maxDepth, signal: request.signal});
+        entry.explanation = {operation, selected, prepared: false};
+        return operation;
+      }
+    } catch (cause) {
+      entry.active = false;
+      try {retire(entry);} catch {throw cleanupFailure(entry, cause);}
+      throw cause;
+    }
+  }
   return Object.freeze({
     begin(request, control) {
       if (closing || reads.has(request)) unavailable();
       if ([reserve, grow, beginWire, beginRow, advanceRow, metadata, retainData, releaseMetadata, finishMetadata, reconcileSerializer].some(method => typeof method !== 'function')) {
         throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
       }
-      assertCurrent();
       // Retain the original before any fallible platform/Core constructor.
-      const retained = control === undefined ? undefined : Object.getOwnPropertyDescriptor(control, 'retainResultReadMetadata')?.value;
-      const entry = {request, state: {context}, control, retained, active: true, rowUnits: 0,
-        prepared: false, metadataActive: false, physical: [], unknownPhysical: false};
-      reads.set(request, entry);
-      try {
-        openRequestPreparation(entry.state, request, assertCurrent, () => pending(entry));
-      } catch (cause) {
-        entry.active = false;
-        try {retire(entry);} catch {throw cleanupFailure(entry, cause);}
-        throw cause;
+      beginEntry(request, control, false);
+    },
+    beginExplanation(request) {
+      if (typeof beginExplanation !== 'function' || typeof reserveExplanation !== 'function' ||
+          typeof renderExplanation !== 'function' || typeof explanationIssueCode !== 'function') {
+        throw Object.assign(new Error('RunExplanationReadCapacityUnavailable'),
+          {code: 'RunExplanationReadCapacityUnavailable'});
       }
+      return beginEntry(request, undefined, true);
+    },
+    explanationRequest(request) {
+      const entry = original(request);
+      if (!entry.active || entry.explanation === undefined) unavailable();
+      assertCurrent();
+      return entry.explanation.selected;
+    },
+    prepareExplanation(request, storedBytes) {
+      const entry = original(request);
+      if (!entry.active || entry.explanation === undefined || entry.explanation.prepared ||
+          !Number.isSafeInteger(storedBytes) || storedBytes < 1 || storedBytes > 2147483647) unavailable();
+      assertCurrent();
+      const selected = entry.explanation.selected;
+      checkedExplanation(Reflect.apply(reserveExplanation, runtime, [entry.state.parent, request, storedBytes,
+        selected.maxWireBytes, selected.maxNodes, selected.maxDepth]), runtime, explanationIssueCode);
+      entry.explanation.prepared = true;
+      entry.explanation.storedBytes = storedBytes;
+    },
+    renderExplanation(request, stored) {
+      const entry = original(request);
+      if (!entry.active || entry.explanation?.prepared !== true || entry.explanation.rendered) unavailable();
+      assertCurrent();
+      // The native Journal already bounds every selected original. Parsing
+      // this retained Host-private wrapper is physical codec work under the
+      // SAME read admission; Common alone interprets the Plan/Facts binding.
+      const rejected = cause => Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
+        {code: 'RunExplanationEncodingRejected'});
+      if (stored === null || typeof stored !== 'object' || nodeTypes.isProxy(stored)) throw rejected();
+      const own = name => {
+        const field = Object.getOwnPropertyDescriptor(stored, name);
+        if (field === undefined || !Object.hasOwn(field, 'value')) throw rejected();
+        return field.value;
+      };
+      const definition = own('definitionWire'), evidence = own('admissionEvidenceWire'),
+        facts = own('factsWire'), program = own('programDefinitionCid'), parameters = own('parameterValuesCid');
+      if (typeof definition !== 'string' || typeof program !== 'string' || typeof parameters !== 'string' ||
+          evidence !== undefined && typeof evidence !== 'string' || facts !== undefined && typeof facts !== 'string') throw rejected();
+      entry.explanation.rendered = true;
+      const selected = entry.explanation.selected;
+      let plan;
+      if (facts !== undefined) {
+        try {plan = JSON.parse(evidence)?.logicalPlanOriginal;}
+        catch (cause) {throw Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
+          {code: 'RunExplanationEncodingRejected'});}
+        if (plan === null || typeof plan !== 'object' || Array.isArray(plan) ||
+            Object.keys(plan).length !== 2 || typeof plan.compiledPlanWire !== 'string' ||
+            typeof plan.planViewWire !== 'string') throw rejected();
+      }
+      const result = Reflect.apply(renderExplanation, runtime, [entry.state.parent, request,
+        definition, plan?.compiledPlanWire, plan?.planViewWire, facts,
+        program, parameters, selected.ref.namespaceId,
+        selected.ref.authorityScopeCid, selected.ref.runDefinitionCid,
+        entry.explanation.storedBytes, selected.maxWireBytes, selected.maxNodes, selected.maxDepth]);
+      return checkedExplanation(result, runtime, explanationIssueCode);
     },
     metadata(request, bytes) {
       const entry = original(request);

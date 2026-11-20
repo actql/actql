@@ -24,6 +24,130 @@ fn relation_document_construction_test_projection(
 }
 
 ///|
+test "relation document retained inventory preserves returned Values and borrowed input String backing" {
+  let limits : RowPageLimits = {
+    max_bytes: 512,
+    max_nodes: 4,
+    max_depth: 8,
+    max_rows: 1,
+  }
+  let projection : RelationDocumentProjectionConstruction = {
+    original: @contract.object_contract(
+      [("value", @contract.primitive(@contract.StringType, nullable=false))],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=10,
+    ).unwrap(),
+    items_path_depth: 1,
+    key_path_depth: None,
+    writable_fields: 0,
+  }
+  let actual = relation_document_projection_retained_inventory(
+    projection, limits, 128L,
+  ).unwrap()
+  // Independent expansion at N=4: returned Value endpoints have
+  // (54H,177R,42W), four checked entry frames add (8H,12R,8W),
+  // and Source's seven String headers add 7H with no Span/tree/index.
+  // Array backing keeps the pinned conservative growth geometry. The SAME
+  // borrowed decoded text is additional, not free because Value borrowed it.
+  assert_true(
+    actual ==
+    {
+      record_headers: 69L,
+      reference_slots: 189L,
+      scalar_words: 50L,
+      owned_utf16_units: 128L,
+      owned_wire_bytes: 0L,
+    },
+  )
+  assert_eq(@execution.preparation_representation_cost(actual), Some(3272L))
+  let shorter_text = relation_document_projection_retained_inventory(
+    projection, limits, 127L,
+  ).unwrap()
+  assert_eq(
+    @execution.preparation_representation_cost(shorter_text),
+    Some(3270L),
+  )
+  let peak = @execution.preparation_representation_cost(
+    relation_document_construction_inventory(limits, [projection]).unwrap(),
+  ).unwrap()
+  assert_true(peak > 3272L)
+  let decimal = {
+    ..projection,
+    original: @contract.object_contract(
+      [("value", @contract.decimal_contract(10, 2, nullable=false).unwrap())],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=10,
+    ).unwrap(),
+  }
+  let owned = relation_document_projection_retained_inventory(
+    decimal, limits, 128L,
+  ).unwrap()
+  assert_true(owned.owned_utf16_units > actual.owned_utf16_units)
+  assert_true(owned.record_headers > actual.record_headers)
+}
+
+///|
+test "relation document retained inventory refuses missing backing bounds and unsupported or writable projections" {
+  let limits = relation_document_construction_test_limits()
+  let projection = {
+    ..relation_document_construction_test_projection(
+      @contract.primitive(@contract.NumberType, nullable=false),
+    ),
+    writable_fields: 0,
+  }
+  for text in [-1L, limits.max_bytes.to_int64() + 1L] {
+    assert_true(
+      relation_document_projection_retained_inventory(projection, limits, text)
+      is None,
+    )
+  }
+  for
+    invalid in [
+      { ..projection, writable_fields: 1, },
+      { ..projection, items_path_depth: limits.max_depth + 1, },
+      { ..projection, key_path_depth: Some(-1), },
+    ] {
+    assert_true(
+      relation_document_projection_retained_inventory(invalid, limits, 1L)
+      is None,
+    )
+  }
+  for
+    invalid in [
+      { ..limits, max_bytes: 0, },
+      { ..limits, max_nodes: 0, },
+      { ..limits, max_depth: 0, },
+      { ..limits, max_rows: -1, },
+    ] {
+    assert_true(
+      relation_document_projection_retained_inventory(projection, invalid, 0L)
+      is None,
+    )
+  }
+  for
+    unsupported in [
+      @contract.primitive(@contract.JsonType, nullable=true),
+      @contract.vector_contract(2.0, nullable=false).unwrap(),
+      @contract.content_reference_contract(
+        Some("text/plain"),
+        nullable=false,
+        max_name_bytes=100,
+      ).unwrap(),
+    ] {
+    let invalid = {
+      ..relation_document_construction_test_projection(unsupported),
+      writable_fields: 0,
+    }
+    assert_true(
+      relation_document_projection_retained_inventory(invalid, limits, 1L)
+      is None,
+    )
+  }
+}
+
+///|
 test "relation document inventory shares raw backing and sums every simultaneous projection" {
   let limits = relation_document_construction_test_limits()
   let text = relation_document_construction_test_projection(

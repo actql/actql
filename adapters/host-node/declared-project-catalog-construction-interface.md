@@ -80,3 +80,20 @@
   separately exercise the selected caller. These are source/component checks;
   neither the sidecar nor those tests establish full normal-package, artifact,
   runtime coverage or release acceptance.
+
+## Common public-view projection path
+
+`declaredProjectCatalogEntryHostConstructionGeometry` keeps only the original
+entry validation, public-view index, alias/data/write/File metadata descriptors
+and their traversal/spread/freeze overlap. Its parsed forest is borrowed from
+the earlier funded parse. It does not report removed JS schema/CID/body wire or
+hash buffers as retained data. The separately reserved Common domain recipe
+owns the actual raw Json, canonical forests/Maps/writers/hash and output wire.
+
+A separately funded parse of that exact returned wire supplies the existing
+saved-view descriptors. `declaredProjectCatalogSavedInputArraysConstructionGeometry`
+funds only seven parallel restore argument arrays, their wrapper and freeze
+controls. It borrows the returned wire, owns no serialization/text buffer and
+never parses or serializes to compute its quantity. The initial native restore
+consumes that exact wire. Existing later File facts/final rewritten inputs and
+physical override constructors keep their separately quoted recipes.

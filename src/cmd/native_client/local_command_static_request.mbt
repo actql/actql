@@ -66,6 +66,7 @@ fn LocalCheckContext::project_request(
   }
   let (publication, publication_wire) = local_command_project_publication(
     self.environment,
+    checking=if explain { None } else { Some((capture, self.audience)) },
   )
   let correlation = "corr:" +
     local_check_hex(
@@ -73,7 +74,10 @@ fn LocalCheckContext::project_request(
       .random_bytes(16)
       .unwrap_or_else(() => stop("LocalCheckContextUnavailable")),
     )
-  let reference = self.reference(input)
+  let reference = self.reference(
+    input,
+    visible_publication=if explain { None } else { Some(publication_wire) },
+  )
   let kind = if input.format == Json || input.format == Yaml {
     "program"
   } else {

@@ -2,8 +2,11 @@
 // observations. The execution installer never invokes an independent checker.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {readFile} from 'node:fs/promises';
-import {installNodeClientProgramPreparation, checkedRequestProgramPreparation} from './client-program-preparation.mjs';
+import {installNodeClientProgramPreparation, checkedRequestProgramPreparation,
+  checkedRequestSnapshotPreparation, requestProgramCapacityRefusal, retainPreparedSubmissionFailure} from './client-program-preparation.mjs';
+import {createDiagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
@@ -14,6 +17,110 @@ const failed = JSON.parse(await readFile(new URL('../../packages/client-wire/fix
 const sourceRequest = {principalId: 'original-audience', connection: {}, kind: 'aql',
   input: {format: 'sql', text: 'SELECT 1 AS n', parameterDeclarations: {minimum: {type: 'number', default: 'bad'}}},
   parameters: {raw: 'e\u0301\r\n'}};
+
+test('prepared submission catch retains original first and observer throw cannot replace primary or touch cleanup', () => {
+  const failures = new WeakMap(), requested = {}, sourceRefusal = {}, prepared = {};
+  const submission = {preparedProgram: prepared};
+  const primary = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+  let forbidden = 0, cleaned = 0, caught;
+  const observed = [];
+  for (const key of ['cause', 'cleanupHandle']) Object.defineProperty(primary, key, {
+    get() {forbidden++;throw Error('Private failed-owner accessor');}});
+  const observe = (event, detail) => {
+    observed.push({event, detail, retained: failures.get(submission)});
+    throw Error('Optional observer failed');
+  };
+  try {retainPreparedSubmissionFailure(failures, submission, primary, requested, sourceRefusal, observe);}
+  catch (error) {caught = error;}
+  finally {cleaned++;assert.strictEqual(failures.get(submission).error, primary);}
+  assert.strictEqual(caught, primary); assert.equal(observed.length, 1); assert.equal(cleaned, 1); assert.equal(forbidden, 0);
+  const {event, detail, retained} = observed[0];
+  assert.equal(event, 'preparation_failed'); assert.strictEqual(retained.error, primary);
+  assert.strictEqual(retained.prepared, prepared); assert.strictEqual(retained.requested, requested);
+  assert.strictEqual(retained.sourceRefusal, sourceRefusal); assert(Object.isFrozen(retained));
+  assert.equal(detail.boundary, 'request_admission'); assert.equal(detail.primaryDiagnostic.kind, 'code_site');
+  assert.equal(detail.available, true); assert.equal(Object.hasOwn(detail, 'cause'), false);
+  assert(detail.primaryDiagnostic.message.split('\n').every(site => /^(?:adapters|packages|_build)\//u.test(site)));
+});
+
+test('prepared submission catch keeps undefined and unavailable foreign errors without invoking accessors', () => {
+  let touched = 0;
+  const proxy = new Proxy({}, {get() {touched++;throw Error('Private get');},
+    getOwnPropertyDescriptor() {touched++;throw Error('Private descriptor');}});
+  for (const original of [undefined, new TypeError('Private arbitrary text'), proxy]) {
+    const failures = new WeakMap(), submission = {preparedProgram: {}}, observed = [];
+    let threw = false;
+    try {retainPreparedSubmissionFailure(failures, submission, original, undefined, undefined,
+      (event, detail) => observed.push({event, detail}));}
+    catch (error) {threw = true;assert.strictEqual(error, original);}
+    assert(threw); assert.strictEqual(failures.get(submission).error, original);
+    assert.deepEqual(observed, [{event: 'preparation_failed', detail: {boundary: 'request_admission', available: false}}]);
+  }
+  assert.equal(touched, 0);
+});
+
+test('prepared submission catch forwards only existing original typed capacity projection', () => {
+  // Explicit typed-result port isolates the catch transport, not actual Core
+  // funding, normal failure cause or a real Request/Host admission.
+  const issue = {}, result = {$tag: 0, _0: issue};
+  const moon = {clientProgramRequestSnapshotCapacityRefusal(value) {
+    assert.strictEqual(value, result); return {_0: 'request_snapshot', _1: 'retention',
+      _2: 9n, _3: 11n, _4: 8n, _5: 12n};
+  }};
+  let primary;
+  try {checkedRequestSnapshotPreparation(moon, result);} catch (error) {primary = error;}
+  const original = requestProgramCapacityRefusal(primary), failures = new WeakMap(), submission = {preparedProgram: {}};
+  assert(original); assert(Object.isFrozen(original));
+  let observed;
+  assert.throws(() => retainPreparedSubmissionFailure(failures, submission, primary, {}, undefined,
+    (_event, detail) => {observed = detail;}), error => error === primary);
+  assert.strictEqual(observed.capacity, original);
+  const foreign = Object.assign(Error('Private copied capacity'), {capacity: {...original}});
+  assert.equal(requestProgramCapacityRefusal(foreign), undefined);
+});
+
+test('prepared submission catch uses existing bounded observer without awaiting its failed callback', async () => {
+  const failures = new WeakMap(), submission = {preparedProgram: {}}, primary = {};
+  let entered, release, actual;
+  const delivered = new Promise(resolve => {entered = resolve;});
+  const held = new Promise(resolve => {release = resolve;});
+  const observer = createDiagnosticObserver(async (event, detail) => {
+    actual = {event, detail, retained: failures.get(submission)}; entered();
+    await held;
+    throw Error('Optional async delivery failed');
+  });
+  assert.throws(() => retainPreparedSubmissionFailure(failures, submission, primary, {}, undefined, observer),
+    error => error === primary);
+  await delivered;
+  assert.strictEqual(failures.get(submission).error, primary);
+  assert.equal(actual.event, 'preparation_failed'); assert.equal(actual.detail.available, false);
+  assert.strictEqual(actual.retained.error, primary);
+  assert.equal(observer.status().active, 1);
+  release();
+  // Observe the existing queue's rejection/finally settlement after this
+  // turn, rather than assuming a number of Promise-assimilation microtasks.
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(observer.status().failures, 1);
+  assert.equal(observer.status().active, 0); observer.close();
+});
+
+// Source forwarding contract only; runtime retention/failure behavior is
+// established by the actual imported helper controls above.
+test('prepared submission catch forwards its same original association to the imported helper', async () => {
+  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), calls = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
+        node.callee.name === 'retainPreparedSubmissionFailure') calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(tree); assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].arguments.map(value => value.type === 'Identifier' && value.name),
+    ['admissionFailures', 'submission', 'error', 'requested', 'sourceRefusal', 'diagnostic']);
+});
 
 // Typed result ports isolate JS refusal transport. The actual audience-bound
 // same-Request projection below is exercised separately, never fabricated by

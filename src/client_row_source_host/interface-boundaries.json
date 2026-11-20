@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "eaf4d172cc2941a97dfd7a065fcb79214c6813b8c629da545f298f1b532dc805",
+      "sha256": "78bcbb52cfebe2ad08ac312150ef9096ba30905a5bdd812bb9f5968e5899598b",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -376,11 +376,13 @@
         "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]",
         "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
+        "pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]",
         "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]",
         "pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]",
         "pub fn advance_row_capture_cleanup(RowRun, Int) -> Result[Bool, RowHostIssue]",
         "pub fn advance_row_run_keyed_page(RowRun, Int) -> Result[RowKeyedPagePoll, RowHostIssue]",
         "pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]",
+        "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
         "pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_declared_keyed_row_read(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, String, RowDeclaredView, RowPageLimits, Int, @execution_relation.ValueLimits, @sourceview_resolution.RequestLimits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[RowSourceRead, RowSourceIssue]",
@@ -395,6 +397,7 @@
         "pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
         "pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]",
+        "pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]",
         "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
         "pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
         "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
@@ -408,17 +411,20 @@
         "pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
+        "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
         "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool",
         "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
         "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool",
         "pub fn close_row_run(RowRun) -> Unit",
         "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
+        "pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
         "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn declared_file_read_profile_construction_inventory(RowDeclaration, RowDeclaration, DeclaredFileReadFields, prior_profiles? : Int) -> @execution_relation.PreparationRepresentationUnits?",
@@ -436,6 +442,7 @@
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
         "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+        "pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
@@ -477,7 +484,10 @@
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+        "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]",
         "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]",
+        "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]",
         "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
@@ -487,8 +497,10 @@
         "pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract",
         "pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
+        "pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
+        "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
@@ -515,11 +527,13 @@
         "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
         "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
+        "pub fn row_acquisition_max_rows(RowAcquisition) -> Int",
         "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]",
         "pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequirement",
         "pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64",
         "pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?",
+        "pub fn row_capture_original_borrowed_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?",
         "pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?",
         "pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?",
         "pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?",
@@ -534,6 +548,7 @@
         "pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
         "pub fn row_captured_inputs_source_at(RowCapturedInputs, Int) -> @execution_query.CapturedInputSource?",
         "pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?",
+        "pub fn row_captured_inputs_source_same_original(RowCapturedInputs, Int, @execution_query.CapturedInputSource) -> Bool",
         "pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool",
@@ -568,11 +583,26 @@
         "pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])",
         "pub fn row_original_input_capacity() -> (Int64, Int64)",
         "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?",
+        "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits",
+        "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String",
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
         "pub fn row_run_normal_available(RowRun) -> Bool",
         "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
+        "pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool",
+        "pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSourceCursorIssue]",
+        "pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]",
+        "pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]",
+        "pub fn row_source_get_page_construction_capacity(RowSourceGetRead) -> @execution_relation.ExecutionCapacity?",
+        "pub fn row_source_get_page_construction_inventory(RowSourceGetRead) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn row_source_get_page_frame(RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), RowSourceGetReadIssue]",
+        "pub fn row_source_get_read_construction_capacity(RowSourceGetReadLimits) -> @execution_relation.ExecutionCapacity?",
+        "pub fn row_source_get_read_construction_inventory(RowSourceGetReadLimits) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn row_source_get_read_metadata(RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), RowSourceGetReadIssue]",
+        "pub fn row_source_get_read_original_wire(RowSourceGetRead) -> Result[String, RowSourceGetReadIssue]",
+        "pub fn row_source_get_read_page(RowSourceGetRead, Int, Int, String?) -> Result[RowSourceGetPageRequest, RowSourceGetReadIssue]",
+        "pub fn row_source_get_request_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
         "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
         "pub fn row_source_json_page_original(RowSourceJsonPage) -> RowSourceProjectedJsonPage",
@@ -583,6 +613,7 @@
         "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
         "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
         "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int",
+        "pub fn row_update_mapping_construction_capacity(RowDeclaration, String, String, String) -> @execution_relation.ExecutionCapacity?",
         "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]",
@@ -665,6 +696,10 @@
           "declaration": "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]"
         },
         {
+          "name": "admit_row_source_get_read",
+          "declaration": "pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]"
+        },
+        {
           "name": "advance_keyed_row_page",
           "declaration": "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]"
         },
@@ -683,6 +718,10 @@
         {
           "name": "advance_row_run_listing_page",
           "declaration": "pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress",
+          "declaration": "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]"
         },
         {
           "name": "begin_charged_row_run_keyed_page",
@@ -741,6 +780,10 @@
           "declaration": "pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]"
         },
         {
+          "name": "bind_installed_row_read_profile",
+          "declaration": "pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]"
+        },
+        {
           "name": "bind_row_run_response_borrow_cleanup",
           "declaration": "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]"
         },
@@ -793,6 +836,10 @@
           "declaration": "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
         },
         {
+          "name": "check_row_capture_compute_original",
+          "declaration": "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
+        },
+        {
           "name": "check_row_input_acquisition_declaration",
           "declaration": "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
         },
@@ -811,6 +858,10 @@
         {
           "name": "check_row_keyed_acquisition_original",
           "declaration": "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_query_capture_run",
+          "declaration": "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool"
         },
         {
           "name": "check_row_run_response_borrow_current",
@@ -835,6 +886,10 @@
         {
           "name": "complete_keyed_row_read",
           "declaration": "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]"
+        },
+        {
+          "name": "complete_row_run_response_construction_capacity",
+          "declaration": "pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "consume_row_run_observation_charge",
@@ -903,6 +958,10 @@
         {
           "name": "grow_row_run_response_construction_capacity",
           "declaration": "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "installed_row_read_profile_construction_inventory",
+          "declaration": "pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "issue_row_input_source_evidence",
@@ -1069,8 +1128,20 @@
           "declaration": "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]"
         },
         {
+          "name": "prepare_row_source_cursor_progress",
+          "declaration": "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]"
+        },
+        {
           "name": "prepare_row_update_mapping",
           "declaration": "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "project_relation_declaration_input",
+          "declaration": "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
+        },
+        {
+          "name": "project_relation_declaration_wire_input",
+          "declaration": "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]"
         },
         {
           "name": "project_relation_target_document",
@@ -1109,12 +1180,20 @@
           "declaration": "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]"
         },
         {
+          "name": "relation_document_projection_retained_inventory",
+          "declaration": "pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
           "name": "relation_document_raw_construction_inventory",
           "declaration": "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_document_usage",
           "declaration": "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?"
+        },
+        {
+          "name": "relation_public_projection_construction_inventory",
+          "declaration": "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_restore_construction_inventory",
@@ -1221,6 +1300,10 @@
           "declaration": "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]"
         },
         {
+          "name": "row_acquisition_max_rows",
+          "declaration": "pub fn row_acquisition_max_rows(RowAcquisition) -> Int"
+        },
+        {
           "name": "row_acquisition_provider_capacity",
           "declaration": "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
         },
@@ -1239,6 +1322,10 @@
         {
           "name": "row_capture_input",
           "declaration": "pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?"
+        },
+        {
+          "name": "row_capture_original_borrowed_requirement",
+          "declaration": "pub fn row_capture_original_borrowed_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?"
         },
         {
           "name": "row_capture_original_prefix_requirement",
@@ -1295,6 +1382,10 @@
         {
           "name": "row_captured_inputs_source_original_at",
           "declaration": "pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?"
+        },
+        {
+          "name": "row_captured_inputs_source_same_original",
+          "declaration": "pub fn row_captured_inputs_source_same_original(RowCapturedInputs, Int, @execution_query.CapturedInputSource) -> Bool"
         },
         {
           "name": "row_captures_original_keyed_child_available",
@@ -1433,6 +1524,14 @@
           "declaration": "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
         },
         {
+          "name": "row_query_acquisition_completion_limits",
+          "declaration": "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits"
+        },
+        {
+          "name": "row_query_acquisition_target_resource",
+          "declaration": "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String"
+        },
+        {
           "name": "row_run_attempt",
           "declaration": "pub fn row_run_attempt(RowRun) -> RowAttempt"
         },
@@ -1451,6 +1550,58 @@
         {
           "name": "row_source_columns",
           "declaration": "pub fn row_source_columns(RowSourcePreparation) -> Array[String]"
+        },
+        {
+          "name": "row_source_cursor_has_next",
+          "declaration": "pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool"
+        },
+        {
+          "name": "row_source_cursor_next",
+          "declaration": "pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSourceCursorIssue]"
+        },
+        {
+          "name": "row_source_cursor_remaining_rows",
+          "declaration": "pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]"
+        },
+        {
+          "name": "row_source_cursor_request_rows",
+          "declaration": "pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]"
+        },
+        {
+          "name": "row_source_get_page_construction_capacity",
+          "declaration": "pub fn row_source_get_page_construction_capacity(RowSourceGetRead) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
+          "name": "row_source_get_page_construction_inventory",
+          "declaration": "pub fn row_source_get_page_construction_inventory(RowSourceGetRead) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "row_source_get_page_frame",
+          "declaration": "pub fn row_source_get_page_frame(RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), RowSourceGetReadIssue]"
+        },
+        {
+          "name": "row_source_get_read_construction_capacity",
+          "declaration": "pub fn row_source_get_read_construction_capacity(RowSourceGetReadLimits) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
+          "name": "row_source_get_read_construction_inventory",
+          "declaration": "pub fn row_source_get_read_construction_inventory(RowSourceGetReadLimits) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "row_source_get_read_metadata",
+          "declaration": "pub fn row_source_get_read_metadata(RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), RowSourceGetReadIssue]"
+        },
+        {
+          "name": "row_source_get_read_original_wire",
+          "declaration": "pub fn row_source_get_read_original_wire(RowSourceGetRead) -> Result[String, RowSourceGetReadIssue]"
+        },
+        {
+          "name": "row_source_get_read_page",
+          "declaration": "pub fn row_source_get_read_page(RowSourceGetRead, Int, Int, String?) -> Result[RowSourceGetPageRequest, RowSourceGetReadIssue]"
+        },
+        {
+          "name": "row_source_get_request_construction_capacity",
+          "declaration": "pub fn row_source_get_request_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "row_source_json_page_has_next_cursor",
@@ -1491,6 +1642,10 @@
         {
           "name": "row_source_typed_json_page_row_count",
           "declaration": "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
+        },
+        {
+          "name": "row_update_mapping_construction_capacity",
+          "declaration": "pub fn row_update_mapping_construction_capacity(RowDeclaration, String, String, String) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "single_relation_declaration_construction_inventory",
@@ -1638,7 +1793,9 @@
             "start_row_acquisition",
             "row_acquisition_listing_capacity",
             "keyed_row_capture_export_construction_capacity",
-            "row_declaration_keyed_read_schema_identities"
+            "row_declaration_keyed_read_schema_identities",
+            "row_query_acquisition_completion_limits",
+            "row_query_acquisition_target_resource"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1747,7 +1904,9 @@
             "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
             "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
             "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
-            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
+            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?",
+            "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits",
+            "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String"
           ],
           "attributes": {
             "responsibility": [
@@ -1766,6 +1925,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
@@ -1784,6 +1947,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
@@ -1802,6 +1969,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
@@ -1824,6 +1995,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
@@ -1846,6 +2021,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
@@ -1868,6 +2047,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
@@ -1890,6 +2073,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
@@ -1912,6 +2099,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
@@ -1930,6 +2121,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -1972,6 +2167,10 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }
@@ -4504,10 +4703,14 @@
         },
         {
           "operations": [
-            "check_row_capture_compute_binding"
+            "check_row_capture_compute_binding",
+            "check_row_query_capture_run",
+            "check_row_capture_compute_original"
           ],
           "exports": [
-            "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
+            "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
+            "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool",
+            "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
           ],
           "attributes": {
             "responsibility": [
@@ -4568,6 +4771,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
               }
             ]
           }
@@ -5192,6 +5399,400 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "admit_row_source_get_read",
+            "advance_row_source_cursor_progress",
+            "bind_installed_row_read_profile",
+            "complete_row_run_response_construction_capacity",
+            "installed_row_read_profile_construction_inventory",
+            "prepare_row_source_cursor_progress",
+            "row_acquisition_max_rows",
+            "row_capture_original_borrowed_requirement",
+            "row_captured_inputs_source_same_original",
+            "row_source_cursor_has_next",
+            "row_source_cursor_next",
+            "row_source_cursor_remaining_rows",
+            "row_source_cursor_request_rows",
+            "row_source_get_page_construction_capacity",
+            "row_source_get_page_construction_inventory",
+            "row_source_get_page_frame",
+            "row_source_get_read_construction_capacity",
+            "row_source_get_read_construction_inventory",
+            "row_source_get_read_metadata",
+            "row_source_get_read_original_wire",
+            "row_source_get_read_page",
+            "row_source_get_request_construction_capacity",
+            "row_update_mapping_construction_capacity"
+          ],
+          "exports": [
+            "pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]",
+            "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
+            "pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]",
+            "pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+            "pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]",
+            "pub fn row_acquisition_max_rows(RowAcquisition) -> Int",
+            "pub fn row_capture_original_borrowed_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?",
+            "pub fn row_captured_inputs_source_same_original(RowCapturedInputs, Int, @execution_query.CapturedInputSource) -> Bool",
+            "pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool",
+            "pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSourceCursorIssue]",
+            "pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]",
+            "pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]",
+            "pub fn row_source_get_page_construction_capacity(RowSourceGetRead) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_source_get_page_construction_inventory(RowSourceGetRead) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn row_source_get_page_frame(RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), RowSourceGetReadIssue]",
+            "pub fn row_source_get_read_construction_capacity(RowSourceGetReadLimits) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_source_get_read_construction_inventory(RowSourceGetReadLimits) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn row_source_get_read_metadata(RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), RowSourceGetReadIssue]",
+            "pub fn row_source_get_read_original_wire(RowSourceGetRead) -> Result[String, RowSourceGetReadIssue]",
+            "pub fn row_source_get_read_page(RowSourceGetRead, Int, Int, String?) -> Result[RowSourceGetPageRequest, RowSourceGetReadIssue]",
+            "pub fn row_source_get_request_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_update_mapping_construction_capacity(RowDeclaration, String, String, String) -> @execution_relation.ExecutionCapacity?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_input"
+          ],
+          "exports": [
+            "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection preserves the original canonical schema and existing Relation admission\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection retains strict private field and unknown input refusal\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_wire_input",
+            "relation_public_projection_construction_inventory"
+          ],
+          "exports": [
+            "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]",
+            "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "relation_document_projection_retained_inventory"
+          ],
+          "exports": [
+            "pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation_document_construction_wbtest.mbt",
+                "anchor": "test \"relation document retained inventory preserves returned Values and borrowed input String backing\""
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_construction_wbtest.mbt",
+                "anchor": "test \"relation document retained inventory refuses missing backing bounds and unsupported or writable projections\""
+              }
+            ]
+          }
         }
       ]
     },
@@ -5200,7 +5801,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "e8481acb94c39baf5e684145f24c3ca1b30d43e188941aaebc45469c9b94955c",
+      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
       "exports": [],
       "operations": [
         {
@@ -5224,6 +5825,10 @@
           "declaration": "check_row_run_response_borrow_current ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
+          "name": "complete_row_run_response_construction_capacity",
+          "declaration": "complete_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
@@ -5238,6 +5843,10 @@
         {
           "name": "retire_row_run_response_workspace",
           "declaration": "retire_row_run_response_workspace ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "retire_row_run_response_workspace_selected",
+          "declaration": "retire_row_run_response_workspace_selected ( value : RowRunResponseBorrow , provider_remainder : @ execution . ExecutionCapacity ? , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "row_response_configuration_matches",
@@ -5614,6 +6223,79 @@
               {
                 "path": "src/run_publication_host/client_whole_response_growth_wbtest.mbt",
                 "anchor": "WholeInput response growth refuses one short byte dimension atomically"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "complete_row_run_response_construction_capacity",
+            "retire_row_run_response_workspace_selected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The original Native Query reader keeps its full provider R/E construction peak"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "caller derives the remaining allowance from the same prepared Contract, declared"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "same bound transport/transient observer may confirm constructor retirement."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Reservation R, already moved holdings, the complete"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Query cut through that same observer and its pre/post current fences."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A refused or reentered observer returns no credit;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "closes the capture. Repeating the same completed Query remainder is idempotent;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Common Row base E and scratch, original input/export backing, Native metadata,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "logical implementation allowances are not an allocator/RSS bound or permission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_workspace_retirement_wbtest.mbt",
+                "anchor": "test \"completed Query constructor return preserves Row debt and admits only exact suffix coexistence\""
+              },
+              {
+                "path": "src/query_integration/provider_workspace_retirement_wbtest.mbt",
+                "anchor": "test \"completed Query constructor return refuses observer reentry and current loss without another credit\""
               }
             ]
           }
@@ -6295,7 +6977,7 @@
     {
       "module": "src/client_row_source_host/relation_declaration.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a1c012df14b4a5ab63490ba244a179102f6fbc34edb97aed4c2887357afc557c",
+      "sha256": "abb51abefbc4ad52104b605d1dce761ee6e60f145b8ba81ca44dfb745d5bd3cf",
       "role": "common-semantics",
       "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
       "exports": [],
@@ -6307,6 +6989,14 @@
         {
           "name": "generate_relation_row_declaration_with_resource_identities",
           "declaration": "generate_relation_row_declaration_with_resource_identities ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowRelationViewSpec ] , limits : RowDeclarationLimits , classifications : Array [ @ environment . DataClassification ] ? , resource_identity_wires : Array [ String ? ] ? , ) - > Result [ RowDeclaration , RowHostIssue ]"
+        },
+        {
+          "name": "project_relation_declaration_input",
+          "declaration": "project_relation_declaration_input ( entry : Json , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RowHostIssue ]"
+        },
+        {
+          "name": "relation_declaration_projection_wire",
+          "declaration": "relation_declaration_projection_wire ( value : Json , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RowHostIssue ]"
         },
         {
           "name": "restore_relation_row_declaration",
@@ -6417,6 +7107,83 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_input",
+            "relation_declaration_projection_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection preserves the original canonical schema and existing Relation admission\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection retains strict private field and unknown input refusal\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
               }
             ]
           }
@@ -7247,7 +8014,7 @@
     {
       "module": "src/client_row_source_host/captured_compute_binding.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7fae0b47fe046d56a11464ff19f4edf6d28f456f82a2f92e0b096c48a299bfc3",
+      "sha256": "7ea879d326e45db89bcea55bcab24d9c358274af21ff8c7e27c8b72368cc5152",
       "role": "common-semantics",
       "owner": "Existing Common original Row capture and physical custody owner; read-only exact DAG binding",
       "exports": [],
@@ -7255,13 +8022,33 @@
         {
           "name": "check_row_capture_compute_binding",
           "declaration": "check_row_capture_compute_binding ( capture : RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Bool"
+        },
+        {
+          "name": "check_row_capture_compute_original",
+          "declaration": "check_row_capture_compute_original ( capture : RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Bool"
+        },
+        {
+          "name": "check_row_query_capture_run",
+          "declaration": "check_row_query_capture_run ( capture : RowSourceCapture , run : RowRun , ) - > Bool"
+        },
+        {
+          "name": "row_query_acquisition_completion_limits",
+          "declaration": "row_query_acquisition_completion_limits ( acquisition : RowAcquisition , ) - > RowCompletionLimits"
+        },
+        {
+          "name": "row_query_acquisition_target_resource",
+          "declaration": "row_query_acquisition_target_resource ( acquisition : RowAcquisition , ) - > String"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "check_row_capture_compute_binding"
+            "check_row_capture_compute_binding",
+            "check_row_query_capture_run",
+            "check_row_capture_compute_original",
+            "row_query_acquisition_completion_limits",
+            "row_query_acquisition_target_resource"
           ],
           "exports": [],
           "attributes": {
@@ -7269,60 +8056,287 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/project_relation_declaration_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c932b50864e8c05fb8ff5fd041668bdc7546945d2beff31b34b87e9c894f3bf2",
+      "role": "common-semantics",
+      "owner": "Existing Common original row declaration and construction representation Owner; not authority or physical admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "project_relation_declaration_wire_input",
+          "declaration": "project_relation_declaration_wire_input ( wire : String , ) - > Result [ String , RowHostIssue ]"
+        },
+        {
+          "name": "relation_public_projection_canonical",
+          "declaration": "relation_public_projection_canonical ( nodes : Int , frames : Int , calls : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_public_projection_construction_inventory",
+          "declaration": "relation_public_projection_construction_inventory ( wire : String , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_public_projection_geometry",
+          "declaration": "relation_public_projection_geometry ( wire : String , ) - > RelationPublicProjectionGeometry ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote keeps equal AST nodes for long punctuation and escaped Text\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote retains escaped output and SAME original resource boundaries\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_wire_input",
+            "relation_public_projection_canonical",
+            "relation_public_projection_construction_inventory",
+            "relation_public_projection_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote keeps equal AST nodes for long punctuation and escaped Text\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote retains escaped output and SAME original resource boundaries\""
               }
             ]
           }

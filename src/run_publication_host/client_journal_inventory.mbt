@@ -84,6 +84,27 @@ pub fn[E] inspect_client_run_journal_inventory(
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
 ) -> Result[(Int, Int64), E] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  inspect_client_run_journal_inventory_with_task_original(
+    max_records, scan, read, validate_run, confirm_cancellation, custody_lost, original,
+  )
+}
+
+///|
+/// The same complete inventory with one already retained pure material value.
+/// Only exact same material can skip repeated codec work, never physical reads.
+pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  confirm_cancellation : () -> Result[Unit, E],
+  custody_lost : E,
+  original : ClientTaskMaterialsOriginal[Plan]?,
+) -> Result[(Int, Int64), E] {
   let (count, revision) = match
     journal_inventory_count(
       "client_run_custody", max_records, scan, read, custody_lost,
@@ -116,14 +137,16 @@ pub fn[E] inspect_client_run_journal_inventory(
       return Err(custody_lost)
     }
     if record.task_materials_cid is Some(cid) {
-      let wire = match
-        read_client_task_material_original(row.key, cid, read, custody_lost) {
+      let (_, chunks) = match
+        read_task_material_original_details_with_original(
+          row.key,
+          cid,
+          read,
+          custody_lost,
+          original,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
-      }
-      let chunks = match client_task_material_original_chunks(row.key, wire) {
-        Ok(value) => value
-        Err(_) => return Err(custody_lost)
       }
       for (key, _) in chunks {
         task_chunks[key] = true

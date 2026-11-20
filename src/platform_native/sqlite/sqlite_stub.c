@@ -2389,6 +2389,82 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   return owns_transaction ? actql_capacity_commit(database) : 0;
 }
 
+/* Grow one protocol scope in its original caller transaction. These limits
+ * belong to the selected key, not to the sum of retained historical scopes.
+ * Keep the namespace-limited reservation primitive above unchanged. */
+int32_t actql_native_sqlite_database_grow_key_capacity_in_transaction(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t previous_bytes,
+  int64_t previous_objects,
+  int64_t bytes,
+  int64_t objects,
+  int64_t max_bytes,
+  int64_t max_objects
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
+  actql_clear_result(database);
+  if (database->library->get_autocommit(database->database) != 0) {
+    actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+      "key capacity growth requires an active transaction");
+    return -1;
+  }
+  if (previous_bytes < 0 || previous_objects < 0 || bytes <= 0 || objects <= 0 ||
+      max_bytes < previous_bytes || max_objects < previous_objects ||
+      bytes > max_bytes - previous_bytes || objects > max_objects - previous_objects) return 6;
+  const int64_t next_bytes = previous_bytes + bytes;
+  const int64_t next_objects = previous_objects + objects;
+  // One indexed CAS, then first-insert only when the expected counters are zero.
+  // Never delete/recreate an existing row or scan another scope's history.
+  for (int first_insert = 0; first_insert < 2; first_insert++) {
+    sqlite3_stmt *statement = NULL;
+    const char *sql = first_insert
+      ? "INSERT INTO actql_capacity(namespace,reservation_key,reserved_bytes,reserved_objects) VALUES(?1,?2,?3,?4)"
+      : "UPDATE actql_capacity SET reserved_bytes=?3,reserved_objects=?4 WHERE namespace=?1 AND reservation_key=?2 AND reserved_bytes=?5 AND reserved_objects=?6";
+    int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
+      database->database, sql, -1, &statement, NULL);
+    if (code != SQLITE_OK) {
+      actql_database_error(database, "prepare key capacity growth failed");
+      return actql_operation_code(code);
+    }
+    int32_t result = actql_bind_key(database, statement, 1, namespace_bytes,
+      namespace_length, 2, key, key_length);
+    if (result == 0) {
+      code = database->library->bind_int64(statement, 3, next_bytes);
+      if (code == SQLITE_OK) code = database->library->bind_int64(statement, 4, next_objects);
+      if (code == SQLITE_OK && !first_insert) code = database->library->bind_int64(statement, 5, previous_bytes);
+      if (code == SQLITE_OK && !first_insert) code = database->library->bind_int64(statement, 6, previous_objects);
+      if (code != SQLITE_OK) {
+        actql_database_error(database, "bind key capacity growth failed");
+        result = actql_operation_code(code);
+      }
+    }
+    int64_t changed = 0;
+    if (result == 0) {
+      code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
+      if (code != SQLITE_DONE) {
+        actql_database_error(database, "key capacity growth failed");
+        result = (code & 0xff) == SQLITE_CONSTRAINT ? 2 : actql_operation_code(code);
+      } else {
+        changed = database->library->changes64(database->database);
+      }
+    }
+    int finalize_code = database->library->finalize(statement);
+    if (result == 0 && finalize_code != SQLITE_OK) {
+      actql_database_error(database, "finalize key capacity growth failed");
+      result = actql_operation_code(finalize_code);
+    }
+    if (result != 0) return result;
+    if (changed == 1) return 0;
+    if (changed != 0 || first_insert || previous_bytes != 0 || previous_objects != 0) return 2;
+  }
+  return 2;
+}
+
 static int32_t actql_database_release_capacity(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,

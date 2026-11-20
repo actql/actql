@@ -12,7 +12,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape, validWireRunExplanationViewShape} from '../../packages/client-wire/index.mjs';
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
@@ -107,7 +107,7 @@ export function createNodeInProcessClientHost({
   bindOwnedRequest,
   attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
-  resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
+  resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, runExplanation, maxRowBytes, observe,
   performInstalledRequest,
   captureResultObservation,
   captureResultOperation,
@@ -192,15 +192,16 @@ export function createNodeInProcessClientHost({
         // caller packet or replace the prepared Program/permission.
         return await performInstalledRequest(operation,body,signal);
       }
-      const invoke = async (handler, preparedProgram) => {
+      const invoke = async (handler, preparedProgram, consume) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
-        return handler(own(body, Object.freeze({principalId, connection,
+        const original = own(body, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
           ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
-        })));
+        }));
+        return consume === undefined ? handler(original) : handler(original, consume);
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -211,6 +212,7 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'submit') {
         return await performClientSubmit({connection, requestId: body.requestId,
+          executionProfile: body.executionProfile,
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});
@@ -270,6 +272,17 @@ export function createNodeInProcessClientHost({
         if (!validWireRunPlanViewShape(view) ||
             Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunPlanView');
         return view;
+      }
+      if (operation === 'run-explanation') {
+        return await invoke(runExplanation, undefined, view => {
+          if (!validWireRunExplanationViewShape(view) ||
+              Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunExplanationView');
+          // Consume the Host-owned parsed view while its original read is
+          // admitted. Only the independent caller value crosses this boundary.
+          const wire = JSON.stringify(view);
+          if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) fail('RunExplanationReadLimit');
+          return JSON.parse(wire);
+        });
       }
       if (operation === 'inspect-run') {
         const view = await invoke(inspectRun);

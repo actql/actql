@@ -135,8 +135,8 @@ test('CheckedProgram artifact policy scalars remain in the same initial Check pa
   assert(driver);
   const scalars = driver.match(/scalar_words: ([^\n]+),/)?.[1];
   assert(scalars && /^(?:[0-9]+L)(?: \+ [0-9]+L)*$/.test(scalars));
-  assert.equal(scalars.split(' + ').reduce((sum, term) => sum + Number(term.slice(0, -1)), 0), 66,
-    '63 existing driver scalar words plus the three retained original policy limits');
+  assert.equal(scalars.split(' + ').reduce((sum, term) => sum + Number(term.slice(0, -1)), 0), 70,
+    '63 existing driver scalar words plus the three retained original policy limits and four Static Effect reporting words');
   assert.match(layout, /compose_preparation_representation\(\[\s*program_check_quote_controls, program_check_driver_controls,/);
   const domain = await readFile(path.join(root, 'src/client_local_host/preparation_program_check_domain.mbt'), 'utf8');
   const entry = domain.slice(domain.indexOf('let (base_retained, base_execution) = match'));

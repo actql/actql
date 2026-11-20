@@ -27,10 +27,14 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 // Request copies them before its existing typed continuation clears the child.
 // Remaining-check and compiler call observers add two temporary Ref/Some pairs
 // (4H/2R/4W), conservatively co-counted without assuming collection or reuse.
+// Static Effect reporting adds one field R, Some H/R/W, publication/result
+// record H/2R, result Some H/R/W, Result H/R/W and its worst-case typed issue
+// wrapper H/R/W: 5H/7R/4W = 168 bytes. Variable Mapping/candidate is backed separately
+// by the SAME existing compilation envelope before that constructor.
 let program_check_driver_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 1L + 1L + 24L + 5L + 1L + 2L + 2L + 4L,
-  reference_slots: 25L + 7L + 24L + 1L + 2L + 1L + 2L,
-  scalar_words: 9L + 24L + 10L + 9L + 3L + 2L + 2L + 4L + 3L,
+  record_headers: 1L + 1L + 24L + 5L + 1L + 2L + 2L + 4L + 5L,
+  reference_slots: 25L + 7L + 24L + 1L + 2L + 1L + 2L + 7L,
+  scalar_words: 9L + 24L + 10L + 9L + 3L + 2L + 2L + 4L + 3L + 4L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

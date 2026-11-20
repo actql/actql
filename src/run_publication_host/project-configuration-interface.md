@@ -55,3 +55,17 @@
   Wasm metadata and Python locator cases cover their same retained projection
   and file custody. These references do not claim installed mock execution,
   physical funding, artifact freshness or unexecuted target acceptance.
+
+## Original catalogue Relation projection
+
+The private Node/RelA `clientProjectCatalogRelationDeclarationInput` bridge reads
+only the exact retained `ClientProjectCatalog.at(index)` entry. It uses the
+existing Common wire adapter and mechanical Relation projection, returning typed
+wire DATA; an absent index refuses rather than selecting another connection.
+`clientProjectCatalogRelationDeclarationConstructionCapacity` quotes that SAME
+entry's complete parser/projector demand before the original initialization
+member invokes it. Both bridges share the original module namespace and entry;
+equal wire, a copied JS object or a profile label grants no Source or permission.
+The actual installing Project/connection/current checks, same-parent reservation,
+subsequent full declaration admission, Request read charge and physical cleanup
+remain separate. These ports neither open fixture data nor install a Run.

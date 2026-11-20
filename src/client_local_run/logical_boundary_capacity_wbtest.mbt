@@ -336,6 +336,7 @@ test "failed logical map bound returns only its own unused construction fork" {
 // This component does not allocate a VM/OS pool or acknowledge physical return.
 fn logical_callback_ledger(
   callback : () -> Unit,
+  initial_window? : Int64 = 4088L,
 ) -> (@resources.Ledger, @resources.ImportedChildLedger) {
   let parent = capacity_boundary_root(100000L, 200000L)
   let capacity = @resources.reserve_shared_capacity(parent, 4096L).unwrap()
@@ -361,7 +362,7 @@ fn logical_callback_ledger(
     },
     5L,
     7L,
-    initial_window=Some(4088L),
+    initial_window=Some(initial_window),
   ).unwrap()
   let read = @resources.borrow_backed_execution_read_use(
     region, provider, child, ticket,

@@ -406,7 +406,7 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
     },
     clientProgramInstalledSourceRetainedConstructionCapacity(original) {
       assert.strictEqual(this, moon);sameQuantity(original);
-      assert(['json', 'profile-construct'].includes(original.kind));assert.equal(live.size, 0);
+      assert(['json', 'profile-construct', 'material', 'update-mapping'].includes(original.kind));assert.equal(live.size, 0);
       return ok(quantity('retained', [original]));
     },
     clientProgramReserveInstalledSourceConstruction(value, original, quote) {
@@ -435,6 +435,13 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
     },
   });
   if (operation === 'update') {
+    moon.clientProgramRowSourceUpdateMappingConstructionCapacity = function (value, writes, resource, sources) {
+      assert.strictEqual(this, moon);assert.strictEqual(value, declaration);
+      assert.equal(writes, '{"original":"writes"}');assert.equal(resource, 'records');
+      assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+      assert.equal(live.size, 0);events.push('mapping-quantity');
+      return ok(quantity('update-mapping', [value, writes, resource, sources]));
+    };
     moon.clientProgramRowSourcePrepareUpdateMapping = moon.clientProgramRowSourcePrepareMapping;
     moon.clientProgramRowSourcePrepareMapping = () => assert.fail('UPDATE must not select CREATE');
   }
@@ -561,15 +568,20 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
     assert.equal(this, services);assert.equal(options.sourceInitialization, initialization);
     assert.equal(options.installation, installation);events.push('Site');throw stop;
   }});
-  // Actual entire installer and shared Site helper; only initial constructor
-  // and Site service ports are explicit. No native Common, grant or I/O Site.
+  const providerMoon = Object.freeze({installedStandardCreateHttpLimits() {
+    assert.equal(this, providerMoon);
+    events.push('native-http-limits');return [300000, 100000, 10000, 32];
+  }, githubRepositoryAccessValid(owner, repo) {
+    assert.equal(this, providerMoon);assert.equal(owner, site.owner);assert.equal(repo, site.repo);
+    events.push('repository-validation');return true;
+  }});
+  // Actual entire installer and shared Site helper; constructor, repository
+  // predicate and Site ports are explicit. No native Common, grant or I/O Site.
   await assert.rejects(loadInstalledGitHubEffect(profile, {root: '/UNOPENED/root', principalId: 'authored',
-    moon: {}, providerMoon: {installedStandardCreateHttpLimits() {
-      events.push('native-http-limits');return [300000, 100000, 10000, 32];
-    }}, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
+    moon: {}, providerMoon, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
     ledgerRoot: '/UNOPENED/ledger', installation, installationServices: services,
     sourceInitialization: initialization, configurationReader: reader}), cause => cause === stop);
-  assert.deepEqual(events, ['native-http-limits', 'site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
+  assert.deepEqual(events, ['native-http-limits', 'site-json', 'repository-validation', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
 });
 
 
@@ -1144,8 +1156,10 @@ test('Source Command optional definition must be own DATA when supplied', () => 
 // the existing Host reservation and real adapter custody boundary.
 test('Effect UPDATE construction selects its typed continuation under the same reservation', async t => {
   const f = await constructionFixture(t, {operation: 'update'}), adapter = await f.run();
+  assert.equal(f.events.filter(value => value === 'mapping-quantity').length, 1);
   assert.equal(f.events.filter(value => value === 'mapping').length, 1);
   assert.match(f.options().mappings[0].mappingRef, /update/);
+  assert.equal(f.options().mappings[0].resource, 'records');
   f.allowClose();
   await adapter.close();
   assert.equal(retireInstalledSourceInitialization(f.services), true);
@@ -1154,6 +1168,7 @@ test('Effect UPDATE construction selects its typed continuation under the same r
 test('Effect UPDATE backing refusal never enters either Mapping constructor', async t => {
   const f = await constructionFixture(t, {operation: 'update', refuseMapping: true});
   await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
+  assert.equal(f.events.includes('mapping-quantity'), false);
   assert.equal(f.events.includes('mapping'), false);
   assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
     {code: 'ForeignInstalledSourceInitialization'});

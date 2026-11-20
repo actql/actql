@@ -90,7 +90,7 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
   assert.deepEqual(Object.keys(options).sort(), ['assets', 'libraries', 'licenses', 'platform', 'sourceSha']);
   const {sourceSha, platform, libraries, assets, licenses} = options;
   assert(Array.isArray(libraries) && libraries.length >= 2 && libraries.length <= 8);
-  assert(Array.isArray(assets) && assets.length >= 5 && assets.length <= 6);
+  assert(Array.isArray(assets) && assets.length >= 5 && assets.length <= 8);
   assert(Array.isArray(licenses) && licenses.length >= 1 && licenses.length <= 8);
   let total = 0;
   for (const [items, ceiling] of [[libraries, LOCAL_RUNTIME_MAX_BYTES], [assets, 65536], [licenses, 1024 * 1024]]) {

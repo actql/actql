@@ -1,15 +1,19 @@
-// Fixture contract tests only. These doubles prove oracle/phase ordering and
-// failure preservation, not provider authentication or ordinary Run acceptance.
+// Fixture contract and TLS transport components only. Client doubles prove
+// oracle/phase ordering; synthetic TLS requests prove the fixture socket point.
+// Neither establishes actual Host authentication, Run/Unknown or ordinary acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {request as requestHttps} from 'node:https';
+import {openRecordApprovalExchange, installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
-import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
-import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
+import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
+  sharedRecordUpdateSelections, recordUpdateFixtureState, recordUpdateReplyLossFaults} from './fixtures/record-approval/cases.mjs';
+import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectation} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
@@ -225,6 +229,55 @@ test('shared capture keeps a thrown first wait primary and never invents a retur
   assert.equal(f.events.filter(event => event === 'effect:wait').length, 1);
   assert.equal(f.events.at(-1), 'close');
 });
+
+for (const connector of ['hubspot', 'kintone']) {
+  test(`shared ${connector} existing Unknown status cannot approve or resend the original update`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    await phase('capture', value, f);
+    f.effect.status = async () => {f.events.push('effect:status');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(f.saved.get('approve-status'), {ref: f.effect.ref, status: 'needs_reconciliation'});
+    const events = f.events.slice(split);
+    assert(!events.some(value => value.startsWith('submit:') || ['approve', 'effect:wait', 'effect:result'].includes(value)));
+    assert(!f.saved.has('approved'));assert(!f.saved.has('approve-wait'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+
+  test(`shared ${connector} post-commit Unknown is retained before refusing Result without another send`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    await phase('capture', value, f);
+    const state = {status: 'needs_reconciliation', run_id: 'same-run'};
+    Object.defineProperty(state, 'unselectedInput', {enumerable: true,
+      get() {assert.fail('Do not read unselected returned DATA');}});
+    f.effect.wait = async () => {f.events.push('effect:wait');return state;};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(f.saved.get('approve-wait'), {ref: f.saved.get('captured').ref, status: 'needs_reconciliation'});
+    assert(!f.saved.has('approved'));
+    const events = f.events.slice(split);
+    assert.equal(events.filter(value => value === 'approve').length, 1);
+    assert.equal(events.filter(value => value === 'effect:wait').length, 1);
+    assert(events.indexOf('effect:wait') < events.indexOf('save:approve-wait'));
+    assert(events.indexOf('save:approve-wait') < events.indexOf('close'));
+    assert(!events.some(value => value.startsWith('submit:') || value === 'effect:result'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+
+  test(`shared ${connector} thrown post-commit wait preserves original failure without an invented observation`, async () => {
+    const value = await definition(connector), f = publicDouble(value), primary = new Error('OriginalApprovalWaitLost');
+    await phase('capture', value, f);
+    f.effect.wait = async () => {f.events.push('effect:wait');throw primary;};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), error => error === primary);
+    assert(f.saved.has('approve-status'));assert(!f.saved.has('approve-wait'));assert(!f.saved.has('approved'));
+    const events = f.events.slice(split);
+    assert.equal(events.filter(value => value === 'approve').length, 1);
+    assert.equal(events.filter(value => value === 'effect:wait').length, 1);
+    assert(!events.some(value => value.startsWith('submit:') || value === 'effect:result'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+}
 
 for (const primary of [undefined, null, false, 0, '']) {
   test(`shared fixture preserves original falsy rejection ${String(primary)} through cleanup`, async () => {
@@ -687,6 +740,69 @@ test('kintone approval provider keeps string identity and original revision for 
   assert.equal(f.value.snapshot().writes, 1);
 });
 
+for (const [connector, builder, resource, idField, valueField, makeProvider, makeCase, beforeName, afterName] of [
+  ['hubspot', hubspotMock, 'companies', 'id', 'name', hubspotApprovalProvider, hubspotUpdateCase,
+    'Before HubSpot approval', 'After HubSpot approval'],
+  ['kintone', kintoneMock, 'inquiries', '$id', 'Subject', kintoneApprovalProvider, kintoneUpdateCase,
+    'Before kintone approval', 'After kintone approval'],
+]) test(`shared ${connector} record update fixture keeps identical seed and independent Mock HTTP DATA oracles`, async () => {
+  const selected = sharedRecordUpdateSelections[connector];
+  const expectedBefore = {target: {id: '9007199254740993', name: beforeName},
+    control: {id: '9007199254740994', name: 'Untouched control'}};
+  const expectedAfter = {target: {id: '9007199254740993', name: afterName}, control: expectedBefore.control};
+  assert.deepEqual(recordUpdateFixtureState(selected), {before: expectedBefore, after: expectedAfter});
+  assert(Object.isFrozen(selected));assert.throws(() => {selected.controlId = 'foreign';}, TypeError);
+  const files = builder(selected), catalog = JSON.parse(files['mock/catalog.json']).connections[connector];
+  const rows = JSON.parse(files['mock/data.json'])[connector][resource].rows;
+  assert.deepEqual(rows, [expectedBefore.target, expectedBefore.control].map(value =>
+    ({[idField]: value.id, [valueField]: value.name})));
+  assert.deepEqual(catalog.views[0].schema, {[idField]: {type: 'string', nullable: false},
+    [valueField]: {type: 'string', nullable: false}});
+  const programs = Object.fromEntries(await Promise.all(['read', 'update'].map(async name =>
+    [name, await readFile(new URL(`./fixtures/${connector}-approval/${name}.aql`, import.meta.url), 'utf8')])));
+  const definition = makeCase(programs, selected);
+  assert.equal(definition.effect.document, programs.update);assert.equal(definition.read.document, programs.read);
+  assert.deepEqual(definition.effect.parameters, {record_id: '9007199254740993', next_name: afterName});
+  assert.deepEqual(definition.effect.expectedRows, [{id: '9007199254740993', previous_name: beforeName, next_name: afterName}]);
+  const provider = makeProvider(selected), before = provider.snapshot();
+  assert.deepEqual({id: before.target.id, name: before.target.name}, expectedBefore.target);
+  assert.deepEqual({id: before.control.id, name: before.control.name}, expectedBefore.control);
+  assert.equal(before.writes, 0);
+  if (connector === 'hubspot') {
+    const update = provider.routes.find(route => route.pathname.endsWith('/batch/update'));
+    const exchange = {method: 'POST', pathname: update.pathname, authorized: true, body: JSON.stringify({inputs: [{
+      id: selected.recordId, objectWriteTraceId: cid('a'), properties: {name: selected.nextName, actql_request_id: cid('b')},
+    }]})};
+    update.handle(exchange);
+    assert.equal(provider.snapshot().target.marker, cid('b'));
+    assert.equal(Object.hasOwn(provider.snapshot().target, 'revision'), false, 'HubSpot does not gain atomic revision semantics');
+    assert.throws(() => update.handle(exchange), 'A repeated fixture 200 must not prove another write');
+  } else {
+    const update = provider.routes.find(route => route.method === 'PUT');
+    const exchange = {method: 'PUT', pathname: update.pathname, headers: {}, authorized: true,
+      body: JSON.stringify({app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+        record: {Subject: {value: selected.nextName}}}], upsert: false})};
+    update.handle(exchange);
+    assert.equal(provider.snapshot().target.revision, '9007199254740995');
+    assert.equal(Object.hasOwn(provider.snapshot().target, 'marker'), false);
+    assert.throws(() => update.handle(exchange), 'Original revision cannot authorize another write');
+  }
+  const after = provider.snapshot();
+  assert.deepEqual({id: after.target.id, name: after.target.name}, expectedAfter.target);
+  assert.deepEqual(after.control, before.control);assert.equal(after.writes, 1);
+  assert.equal(after.failures.length, 1, 'The explicit repeated-write refusal remains a separate fixture failure');
+});
+
+test('shared record fixture rejects missing or aliased control identity without changing its original selection', () => {
+  const selected = sharedRecordUpdateSelections.hubspot, before = structuredClone(selected);
+  for (const controlId of [undefined, '', 9007199254740994, selected.recordId]) {
+    assert.throws(() => recordUpdateFixtureState({...selected, controlId}), {message: 'InvalidRecordApprovalControl'});
+  }
+  const state = recordUpdateFixtureState(selected);
+  assert.throws(() => {state.before.control.name = 'changed';}, TypeError);
+  assert.deepEqual(selected, before);
+});
+
 test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {
   for (const mutate of [body => {body.records[0].id = '123';},
     body => {body.records[0].revision = '7';}, body => {delete body.records[0].revision;},
@@ -762,4 +878,193 @@ test('binary Whole JOIN fixture refuses incomplete answer Result without losing 
   await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
   assert.equal(f.events.at(-1), 'close');
   assert.equal(f.saved.has('approved'), false);
+});
+
+
+for (const [connector, makeProvider, credentialHeader] of [
+  ['hubspot', hubspotApprovalProvider, 'authorization'],
+  ['kintone', kintoneApprovalProvider, 'x-cybozu-api-token'],
+]) test(`shared ${connector} reply loss applies once over real TLS and retains independent control`,
+  {timeout: 15000}, async t => {
+  const selected = sharedRecordUpdateSelections[connector];
+  const expected = recordUpdateFixtureState(selected), provider = makeProvider(selected);
+  const before = provider.snapshot();
+  assert.deepEqual({id: before.target.id, name: before.target.name}, expected.before.target);
+  const faults = recordUpdateReplyLossFaults(provider);
+  const tls = await openRecordApprovalExchange(t, {provider, faults});
+  const body = connector === 'hubspot' ? {inputs: [{id: selected.recordId,
+    objectWriteTraceId: cid('a'), properties: {name: selected.nextName, actql_request_id: cid('b')}}]}
+    : {app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+      record: {Subject: {value: selected.nextName}}}], upsert: false};
+  let receivedResponse = false;
+  // One test protocol request, not a Host claim/approval/credential grant.
+  // The existing TLS fixture alone applies then destroys the original socket.
+  await assert.rejects(new Promise((resolve, reject) => {
+    const bytes = Buffer.from(JSON.stringify(body));
+    const call = requestHttps(new URL(provider.writeRequest.pathname, tls.origin), {
+      method: provider.writeRequest.method, ca: tls.ca, agent: false,
+      headers: {[credentialHeader]: credentialHeader === 'authorization'
+        ? 'Bearer loopback-loss-credential' : 'loopback-loss-credential', 'content-type': 'application/json',
+        'content-length': bytes.length},
+    }, response => {
+      receivedResponse = true;response.resume();response.once('end', resolve);
+      response.once('error', reject);
+    });
+    call.setTimeout(5000, () => call.destroy(Object.assign(new Error('FixtureRequestTimeout'),
+      {code: 'FixtureRequestTimeout'})));
+    call.once('error', reject);call.end(bytes);
+  }), error => error.code === 'ECONNRESET');
+  assert.equal(receivedResponse, false, 'No returned HTTP success/body was fabricated');
+  assert.equal(tls.remainingFaults(), 0);
+  assert.equal(tls.seen().length, 1, 'This component sends exactly one original request, with no retry');
+  assert.equal(tls.seen()[0].method, provider.writeRequest.method);
+  assert.equal(tls.seen()[0].pathname, provider.writeRequest.pathname);
+  assert.equal(JSON.stringify(tls.seen()).includes('loopback-loss-credential'), false);
+  const after = provider.snapshot();
+  assert.equal(after.writes, 1);
+  assert.deepEqual({id: after.target.id, name: after.target.name}, expected.after.target);
+  assert.deepEqual(after.control, before.control);
+  assert.equal(after.failures.length, 0, 'Socket failure followed a real successful provider apply');
+  if (connector === 'hubspot') {
+    assert.equal(after.target.marker, cid('b'));
+    assert.equal(Object.hasOwn(after.target, 'revision'), false);
+  } else {
+    assert.equal(after.target.revision, '9007199254740995');
+    assert.equal(Object.hasOwn(after.target, 'marker'), false);
+  }
+  // These independent backend facts are NOT a public Run/Result/receipt or
+  // product no-resend proof. Actual Unknown/recovery needs the original Host.
+});
+
+test('shared reply-loss selection snapshots only a finite provider-owned write route', () => {
+  assert.deepEqual(recordUpdateReplyLossFaults({writeRequest: {method: 'PUT', pathname: '/v10/records'}}),
+    [{kind: 'apply-then-lose-reply', method: 'PUT', pathname: '/v10/records', times: 1}]);
+  const request = {method: 'PUT', pathname: '/original'};
+  const faults = recordUpdateReplyLossFaults({writeRequest: request});
+  request.pathname = '/changed';
+  assert.deepEqual(faults, [{kind: 'apply-then-lose-reply', method: 'PUT', pathname: '/original', times: 1}]);
+  assert(Object.isFrozen(faults) && Object.isFrozen(faults[0]));
+  for (const writeRequest of [undefined, {}, {method: 'put', pathname: '/x'},
+    {method: 'PUT', pathname: 'https://external.invalid/x'},
+    {method: 'PUT', pathname: '//external.invalid/x'}, {method: 'PUT', pathname: '/x?secret=x'},
+    {method: 'PUT', pathname: '/x\0'}, {method: 'PUT', pathname: '/x\\y'},
+    {method: 'PUT', pathname: '/\ud800'}]) {
+    assert.throws(() => recordUpdateReplyLossFaults({writeRequest}), {message: 'InvalidRecordApprovalWriteRoute'});
+  }
+});
+
+// Client doubles qualify only the selected consumer/control flow. These
+// hypothetical capability outcomes are not either provider's runtime evidence.
+for (const connector of ['hubspot', 'kintone']) {
+  test(`shared installed reply-loss ${connector} keeps Unknown and cold same-Run lookup without Result or another approval`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => {f.events.push('effect:wait');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const split = f.events.length;
+    await phase('approve', value, f, {replyLossExpectation});
+    assert.deepEqual(f.saved.get('approval-answer'), {ref: f.effect.ref, statuses: ['committed']});
+    assert.equal(f.saved.get('reply-loss').status, 'needs_reconciliation');
+    assert(!f.saved.has('approved'));
+    f.effect.status = async () => {f.events.push('effect:status');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const cold = f.events.length;
+    await phase('recover', value, f, {replyLossExpectation});
+    assert.deepEqual(f.saved.get('reply-loss-lookup'), {ref: f.effect.ref, status: 'needs_reconciliation'});
+    assert(!f.saved.has('recovered'));
+    const after = f.events.slice(split), lookup = f.events.slice(cold);
+    assert.equal(after.filter(event => event === 'approve').length, 1);
+    assert.equal(after.filter(event => event === 'effect:wait').length, 1);
+    assert(!after.some(event => event.startsWith('submit:') || event.startsWith('effect:result')));
+    assert(!lookup.some(event => ['approve', 'effect:wait'].includes(event)));
+    assert.equal(lookup.filter(event => event === 'effect:status').length, 1);
+    assert.equal(after.filter(event => event === 'close').length, 2);
+    assert(f.events.indexOf('save:approval-answer') < f.events.lastIndexOf('effect:wait'));
+  });
+}
+
+test('shared installed reply-loss uses explicit distinct capability outcomes and reads Result only after actual success', async () => {
+  for (const approveStatus of ['needs_reconciliation', 'succeeded']) {
+    const value = await definition('hubspot'), f = publicDouble(value);
+    const replyLossExpectation = {approveStatus, lookupStatus: 'succeeded'};
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => {f.events.push('effect:wait');return {status: approveStatus, run_id: 'same-run'};};
+    const approval = f.events.length;
+    await phase('approve', value, f, {replyLossExpectation});
+    assert.equal(f.saved.has('approved'), approveStatus === 'succeeded');
+    assert(!f.events.slice(approval).some(event => event.startsWith('submit:')));
+    const cold = f.events.length;
+    await phase('recover', value, f, {replyLossExpectation});
+    const events = f.events.slice(cold);
+    assert(events.indexOf('effect:status') < events.indexOf('effect:result'));
+    assert.deepEqual(f.saved.get('recovered').rows, value.effect.expectedRows);
+    assert.deepEqual(f.saved.get('recovered').ref, f.saved.get('captured').ref);
+    assert(!events.some(event => event.startsWith('submit:') || ['approve', 'effect:wait'].includes(event)));
+  }
+});
+
+test('shared installed reply-loss refuses an unexpected outcome after saving the original returned reply', async () => {
+  const value = await definition('kintone'), f = publicDouble(value);
+  const replyLossExpectation = {approveStatus: 'succeeded', lookupStatus: 'succeeded'};
+  await phase('capture', value, f, {replyLossExpectation});
+  f.effect.wait = async () => {f.events.push('effect:wait');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+  const split = f.events.length;
+  await assert.rejects(phase('approve', value, f, {replyLossExpectation}), {code: 'ERR_ASSERTION'});
+  assert.equal(f.saved.get('approve-wait').status, 'needs_reconciliation');
+  assert(!f.saved.has('reply-loss'));assert(!f.saved.has('approved'));
+  assert(!f.events.slice(split).some(event => event.startsWith('effect:result') || event.startsWith('submit:')));
+  assert.equal(f.events.at(-1), 'close');
+});
+
+test('shared installed reply-loss cannot change its original expectation or operation during cold lookup', async () => {
+  const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+  for (const change of ['expectation', 'ref', 'runId', 'status']) {
+    const value = await definition('hubspot'), f = publicDouble(value);
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => ({status: 'needs_reconciliation', run_id: 'same-run'});
+    await phase('approve', value, f, {replyLossExpectation});
+    if (change !== 'expectation') f.saved.get('reply-loss')[change] = change === 'ref' ? {other: 'operation'} : 'other';
+    const split = f.events.length;
+    await assert.rejects(phase('recover', value, f, {replyLossExpectation: change === 'expectation'
+      ? {...replyLossExpectation, lookupStatus: 'succeeded'} : replyLossExpectation}), {code: 'ERR_ASSERTION'});
+    const events = f.events.slice(split);
+    assert(!events.some(event => event.startsWith('submit:') || ['approve', 'effect:wait', 'effect:status', 'effect:result'].includes(event)));
+    assert.equal(events.at(-1), 'close');
+  }
+});
+
+test('shared installed reply-loss preserves a thrown original wait and actual cleanup failure without retry', async () => {
+  const value = await definition('hubspot'), f = publicDouble(value);
+  const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+  await phase('capture', value, f, {replyLossExpectation});
+  const primary = new Error('OriginalPostApprovalWaitFailed'), cleanup = new Error('OriginalCleanupPending');
+  f.effect.wait = async () => {f.events.push('effect:wait');throw primary;};
+  f.client.close = async () => {f.events.push('close');throw cleanup;};
+  const split = f.events.length;
+  await assert.rejects(phase('approve', value, f, {replyLossExpectation}), error => {
+    assert(error instanceof AggregateError);assert.deepEqual(error.errors, [primary, cleanup]);
+    assert.strictEqual(error.cause, primary);return true;
+  });
+  assert(f.saved.has('approval-answer'));assert(!f.saved.has('approve-wait'));assert(!f.saved.has('reply-loss'));
+  const events = f.events.slice(split);
+  assert.equal(events.filter(event => event === 'effect:wait').length, 1);
+  assert.equal(events.filter(event => event === 'close').length, 1);
+  assert(!events.some(event => event.startsWith('submit:') || event === 'effect:result'));
+});
+
+test('shared installed reply-loss selection is finite opt-in DATA and snapshots independent outcomes', () => {
+  assert.equal(recordApprovalReplyLossExpectation(undefined), undefined);
+  assert.equal(installedRecordReplyLossExpectation({}), undefined);
+  const original = {approveStatus: 'needs_reconciliation', lookupStatus: 'succeeded'};
+  const selected = recordApprovalReplyLossExpectation(original);
+  original.lookupStatus = 'cancelled';
+  assert.deepEqual(selected, {approveStatus: 'needs_reconciliation', lookupStatus: 'succeeded'});
+  assert(Object.isFrozen(selected));
+  assert.deepEqual(installedRecordReplyLossExpectation({ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION: JSON.stringify(selected)}), selected);
+  for (const value of [null, [], {}, {approveStatus: 'unknown', lookupStatus: 'succeeded'},
+    {approveStatus: 'needs_reconciliation', lookupStatus: 'failed'}, {...selected, allow: true}]) {
+    assert.throws(() => recordApprovalReplyLossExpectation(value));
+  }
+  for (const wire of ['', '{', ' '.repeat(257)]) {
+    assert.throws(() => installedRecordReplyLossExpectation({ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION: wire}));
+  }
 });

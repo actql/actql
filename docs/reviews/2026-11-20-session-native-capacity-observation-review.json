@@ -1,0 +1,122 @@
+{
+  "source": "68dee887cad197b143c3551956597f9724490cbc",
+  "qualification": "Finite current JS source-input admission of reviewed Native-only diagnostic bridge/selector descriptors; no Native compile, VM/runtime, quota/authority or reusable proof claim",
+  "configurations": [
+    {
+      "path": "src/physical_resources/moon.pkg",
+      "mode": "100644",
+      "sha256": "bca70a8ea7f3d4f7f3967755eec6a4407e38b732ce3a06a5aa81ac11d19a141d",
+      "bytes": 1992,
+      "previousRevision": "bf198225499436c26be2f7d763582b0efaeeae2b",
+      "previousSha256": "508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23",
+      "previousBytes": 1822,
+      "rule": "literal-native-options-with-bound-source-membership",
+      "addedSelectors": [
+        {
+          "file": "capacity_observation_native.mbt",
+          "targets": [
+            "native"
+          ]
+        },
+        {
+          "file": "capacity_observation_unsupported.mbt",
+          "targets": [
+            "not",
+            "native"
+          ]
+        }
+      ],
+      "nativeStub": "capacity_observation_stub.c"
+    },
+    {
+      "path": "src/connectors/local/driver/moon.pkg",
+      "mode": "100644",
+      "sha256": "055d7fefa3b737bffcc718e07d42895e2211ed55fc05e40c44057cc22ccb8784",
+      "bytes": 880,
+      "previousRevision": "1d46d9f6ac2e0bc5040d6eccb883bf95fb608a4c",
+      "previousSha256": "8af3a3176a7ed842e787bc298f2ca5ec45d883e6d5d3d947b83d834775c23c36",
+      "previousBytes": 732,
+      "rule": "literal-target-selectors-with-bound-source-membership",
+      "addedSelectors": [
+        {
+          "file": "capacity_observation_native.mbt",
+          "targets": [
+            "native"
+          ]
+        },
+        {
+          "file": "capacity_observation_unsupported.mbt",
+          "targets": [
+            "not",
+            "native"
+          ]
+        }
+      ],
+      "nativeStub": null
+    }
+  ],
+  "bridgeSources": [
+    {
+      "path": "src/physical_resources/capacity_observation_native.mbt",
+      "mode": "100644",
+      "sha256": "1ce214dbd25c711bf6016f72657849d11bfe824403a6fc58272527847438e198",
+      "bytes": 312
+    },
+    {
+      "path": "src/physical_resources/capacity_observation_unsupported.mbt",
+      "mode": "100644",
+      "sha256": "558cfdaec244f87348a45d9fe7d98296d1a73acf492c1ee5e13c65c9fe731bfe",
+      "bytes": 191
+    },
+    {
+      "path": "src/physical_resources/capacity_observation_stub.c",
+      "mode": "100644",
+      "sha256": "117e1e90e3d4f6314e2d8b40b311b5bd5697aeb36f1f89d42f0a9adfccc228d5",
+      "bytes": 1064
+    },
+    {
+      "path": "src/connectors/local/driver/capacity_observation_native.mbt",
+      "mode": "100644",
+      "sha256": "f538f76427c237ccda5a9dd686ab390d6a134637fca7736a94569023a1e3a345",
+      "bytes": 323
+    },
+    {
+      "path": "src/connectors/local/driver/capacity_observation_unsupported.mbt",
+      "mode": "100644",
+      "sha256": "42c857cc08da2fee2ddea7c4aaf3595c6337fb49bd70a53943134dfebd4a8f06",
+      "bytes": 202
+    }
+  ],
+  "testPackage": {
+    "configuration": {
+      "path": "src/physical_resources/native_observation_test/moon.pkg",
+      "mode": "100644",
+      "sha256": "5671dcf85f85ec09f52d034db509f8a5cdca83a11af91d4b49c3ffeb3dec842f",
+      "bytes": 155
+    },
+    "supportedTarget": "native",
+    "JSConfigurationAdmitted": false,
+    "sources": [
+      {
+        "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+        "mode": "100644",
+        "sha256": "8f87d277406411500553a90fe5d17a860c961717d2c01b67ddd4a294f1ed8de7",
+        "bytes": 2000
+      },
+      {
+        "path": "src/physical_resources/native_observation_test/observation_probe.c",
+        "mode": "100644",
+        "sha256": "7b7c201ef96518a032353fe0f44b654c60087d99d41b1ca0ecfc7ae2d06b4820",
+        "bytes": 792
+      },
+      {
+        "path": "src/physical_resources/native_observation_test/pkg.generated.mbti",
+        "mode": "100644",
+        "sha256": "8ae018a21179f4778a7e59c7e349f0f34b0a924b0f857d5707e0993126f55a75",
+        "bytes": 183
+      }
+    ]
+  },
+  "meaning": "Only physical_resources gains the exact optional Native C stub; both packages gain the paired Native/not-Native observation implementations. Imports and all previous options/selectors remain exact. JS selects the no-op implementation, never a Native compiler/linker. Native observer preserves errno and has a weak no-op sink without filesystem dependency. Source bytes/modes and every immediate package member remain keyed even when not executed on JS. The separate Native-only observation test package is not imported by either parent; it is excluded from parent JS closure and remains unreviewed if directly requested for JS.",
+  "refusalPolicy": "Prior/current-foreign digests, mixed or unknown targets/toolchains/hooks/imports and changed source membership remain refused. Existing historical review files are unchanged."
+}

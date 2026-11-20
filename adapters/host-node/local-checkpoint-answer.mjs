@@ -14,6 +14,64 @@ const names = ['clientLocalCheckpointProofPrepare', 'clientLocalCheckpointProofP
   'clientLocalCheckpointProofActor', 'clientLocalCheckpointProofSeal',
   'clientLocalCheckpointProofEffectSubject'];
 
+// The existing Host signing reader borrows its restored parent through the
+// consumer and releases it once. Only the Journal may recognize its own
+// one-way physical-stop progression; no signing original is reconstructed.
+export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid, moon, control, journal,
+  restoreEffectManagedPreparation, recoverEffectCapture, localSigningRecoveries,
+  assertCurrent, releaseLocalSigningRecovery, clientOperationError}) {
+  return async function loadRunOriginal(view, signal, consume) {
+    if (typeof consume !== 'function') throw clientOperationError('LocalSigningOriginalConflict');
+    const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid};
+    let retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || retained.cancellationRequested) {
+      throw clientOperationError('LocalSigningOriginalConflict');
+    }
+    let restored = await restoreEffectManagedPreparation(ref, signal);
+    let recovered = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
+    localSigningRecoveries.add(recovered);
+    let originalFailure, failed = false;
+    try {
+      if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
+          control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
+        throw clientOperationError('LocalSigningOriginalConflict');
+      }
+      const current = () => {
+        if (recovered === undefined) throw clientOperationError('LocalSigningOriginalConflict');
+        assertCurrent();
+        recovered.originalSubmittedIntent.assertCurrent();
+        recovered.assertUpdateSelectionCurrent?.();
+        const next = journal.lookupRunDefinition(ref, moon, control, retained);
+        if (next === undefined || next.cancellationRequested || next !== retained &&
+            !journal.canReinspectRunAfterPhysicalClose(retained, next)) {
+          throw clientOperationError('LocalSigningOriginalConflict');
+        }
+        retained = next;
+      };
+      current();
+      return await Reflect.apply(consume, undefined, [Object.freeze({materials: recovered.materials,
+        requestIdentity: recovered.requestIdentity,
+        referenceWire: recovered.originalSubmittedIntent.referenceWire,
+        invocation: recovered.computation.invocation, assertCurrent: current})]);
+    } catch (cause) {originalFailure = cause; failed = true; throw cause;}
+    finally {
+      let original = recovered;
+      recovered = restored = undefined;
+      try {
+        const release = releaseLocalSigningRecovery(original);
+        original = undefined;
+        await release;
+      }
+      catch (cleanup) {
+        if (failed) throw Object.assign(new AggregateError([originalFailure, cleanup],
+          'Original signing capture and cleanup failed', {cause: originalFailure}),
+        {code: 'LocalSigningCaptureCleanupPending', cleanupPending: true});
+        throw cleanup;
+      }
+    }
+  };
+}
+
 export function createLocalCheckpointAnswer({moon, checkpoints, mockAccount, store,
   authorityScopeCid, principalId, metadata, assertCurrent, loadRunOriginal, now = Date.now}) {
   const methods = Object.fromEntries(names.map(name => [name, moon[name]]));

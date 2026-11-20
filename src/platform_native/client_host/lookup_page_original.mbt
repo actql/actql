@@ -237,10 +237,11 @@ pub fn NativeClientMockModelWork::persist_lookup_page_in_original_read(
         // cannot become a retry, a second adoption or physical cleanup ACK.
         entry.page_attempted = true
         match
-          reserve_client_journal_capacity(
+          grow_client_journal_key_capacity(
             host.database,
             table,
             scope,
+            usage,
             body.length().to_int64(),
             1L,
             self.capture.max_snapshot_bytes,

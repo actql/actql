@@ -17,3 +17,10 @@ import {
   "actql/actql/capacity_program_step" @traversal_limits,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }
+
+options(
+  targets: {
+    "capacity_observation_native.mbt": [ "native" ],
+    "capacity_observation_unsupported.mbt": [ "not", "native" ],
+  },
+)

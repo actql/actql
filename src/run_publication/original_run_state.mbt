@@ -1,4 +1,72 @@
 ///|
+/// Validate retained unpublished metadata without manufacturing a Manifest or
+/// a physical-stop witness. Only the original Host can establish the facts
+/// before saving; restoration validates their closed immutable DATA domain.
+pub fn validate_original_unpublished_run_state(
+  definition : PublicationContract,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[RunOutcomeStatus, PublicationContractIssue] {
+  if definition.name != "run_definition" {
+    return Err(InvalidField("run_definition"))
+  }
+  let value = match
+    parse_contract_wire(wire, max_bytes, max_nodes, max_depth, data_keys=true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let original = @json.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  if original != wire ||
+    !validate_generated_protocol_shape(
+      "run_state", value, true, max_bytes, max_nodes, max_depth,
+    ) {
+    return Err(InvalidWire)
+  }
+  guard contract_string_from_value(value, "run_id") ==
+    contract_string(definition, "run_id") &&
+    contract_string_from_value(value, "status") is Some(text) &&
+    read_run_outcome_status(text) is Some(status) &&
+    @json.object_field(value, "result_available") is Some(@json.Bool(false)) &&
+    @json.object_field(value, "result_availability") is Some(availability) &&
+    object_fields(availability) is Ok(fields) &&
+    @json.object_field(value, "next_action") is Some(next) else {
+    return Err(InvalidField("run_state"))
+  }
+  if status == Succeeded || status == WaitingCheckpoint || status == Resuming {
+    return Err(InvalidField("status"))
+  }
+  let names : Array[String] = []
+  let observations : Array[ResultAvailability] = []
+  for (name, item) in fields {
+    if contract_string_from_value(item, "state") != Some("unavailable") ||
+      contract_string_from_value(item, "reason") != Some("not_published") {
+      return Err(InvalidField("result_availability"))
+    }
+    names.push(name)
+    observations.push({ name, state: Unavailable, reason: NotPublished, })
+  }
+  let action = if status == NeedsReconciliation {
+    if contract_string_from_value(next, "kind") != Some("reconcile_run") {
+      return Err(InvalidField("next_action"))
+    }
+    ReconcileRun
+  } else {
+    if contract_string_from_value(next, "kind") != Some("none") {
+      return Err(InvalidField("next_action"))
+    }
+    NoAction
+  }
+  match validate_run_state(status, names, observations, false, action, false) {
+    Ok(_) => Ok(status)
+    Err(_) => Err(InvalidField("run_state"))
+  }
+}
+
+///|
 /// Validate the original succeeded observation, without inventing a control
 /// revision or availability. Declared names come from the original Manifest,
 /// never from the incoming observation. This admits metadata, not permission.
