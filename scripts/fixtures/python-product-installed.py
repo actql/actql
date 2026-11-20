@@ -104,6 +104,8 @@ class _ClosedTaskDriveObservation:
                 self.valid = self.valid and same
                 if event == 'call' and same:
                     self.counts[4] += 1
+            else:
+                return
             if any(count > 1024 for count in self.counts):
                 self.refusal_bits |= 16
                 self.valid = False
