@@ -102618,7 +102618,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "8ffa75a356261d2ff866a500af0aa354c2323dd8a9e1e9b8f292140885cc0735",
+      "sha256": "db79899a8be65499b0ba74d663e5481cae165252412bd6f1007a8c7de393a44b",
       "exports": [],
       "operations": [
         {
@@ -102659,7 +102659,7 @@
         },
         {
           "name": "local_command_failure_text",
-          "declaration": "local_command_failure_text ( message : String , json : Bool ) - > String"
+          "declaration": "local_command_failure_text ( message : String , json : Bool , primary ? : LocalCommandPreparationIssue ?"
         },
         {
           "name": "local_command_json_selected",
