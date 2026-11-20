@@ -188,6 +188,49 @@ export function validateNativeApprovalDiagnosticSource(options) {
   return validateBuildSource({...options, nativeApproval: true}, nativeCpuPurpose);
 }
 
+// This is the original same-run event binding, shared by the pure guard and
+// its metadata reader. A refreshed REST base never replaces the event tuple.
+function originalNativeApprovalWorkflow(options, run, pr, eventHeadSha, sourceSha, purpose) {
+  assert(options.nativeApproval && options.adapter === 'native' && purpose === 'acceptance');
+  const {runId, runAttempt, sourceSha: workflowSource, ref, event} = options.originalWorkflow;
+  assert.equal(runId, String(run.id)); assert.equal(runId, String(options.runId));
+  assert.equal(runAttempt, String(run.run_attempt));
+  assert.equal(workflowSource, sourceSha, 'Original workflow checkout differs');
+  assert.equal(ref, `refs/pull/${pr.number}/merge`);
+  assert.equal(event.repository.id, run.repository.id);
+  assert.equal(event.repository.full_name, options.repository);
+  assert.equal(event.number, pr.number); assert.equal(event.pull_request.number, pr.number);
+  assert.equal(event.pull_request.head.repo.id, run.repository.id);
+  assert.equal(event.pull_request.base.repo.id, run.repository.id);
+  assert.equal(event.pull_request.head.sha, eventHeadSha);
+  assert.match(event.pull_request.base.sha, /^[a-f0-9]{40}$/u);
+  return {runId, runAttempt, sourceSha: workflowSource, ref, repository: options.repository,
+    repositoryId: event.repository.id, prNumber: pr.number,
+    eventBaseSha: event.pull_request.base.sha, eventHeadSha};
+}
+
+function assertBoundedGitAncestry(repository, base, head, comparison) {
+  assert.match(base, /^[a-f0-9]{40}$/u); assert.match(head, /^[a-f0-9]{40}$/u);
+  if (base === head) {
+    assert.equal(comparison, undefined, 'Equal commit identity needs no ancestry substitution');
+    return;
+  }
+  assert(comparison && typeof comparison === 'object' && !Array.isArray(comparison),
+    'Missing original repository ancestry comparison');
+  assert.equal(comparison.html_url, `https://github.com/${repository}/compare/${base}...${head}`);
+  assert.equal(comparison.status, 'ahead'); assert.equal(comparison.behind_by, 0);
+  assert.equal(comparison.base_commit.sha, base); assert.equal(comparison.merge_base_commit.sha, base);
+  assert(Number.isSafeInteger(comparison.total_commits) && comparison.total_commits > 0
+    && comparison.total_commits <= 100, 'Ancestry comparison must be complete and bounded');
+  assert.equal(comparison.ahead_by, comparison.total_commits);
+  assert(Array.isArray(comparison.commits));
+  assert.equal(comparison.commits.length, comparison.total_commits);
+  assert.equal(new Set(comparison.commits.map(commit => {
+    assert.match(commit.sha, /^[a-f0-9]{40}$/u); return commit.sha;
+  })).size, comparison.total_commits);
+  assert.equal(comparison.commits.at(-1).sha, head, 'Ancestry comparison ends at another head');
+}
+
 function validateBuildSource(options, purpose) {
   const {sourceSha: eventHeadSha, manifest, manifestSha256, run, headCommit, sourceCommit} = options;
   const producer = purpose === nativeCpuPurpose ? validateNativeApprovalDiagnosticProducer(options)
@@ -200,35 +243,37 @@ function validateBuildSource(options, purpose) {
   assert.equal(sourceCommit.sha, manifest.sourceSha);
   assert.match(headCommit.tree.sha, /^[a-f0-9]{40}$/u);
   assert.equal(sourceCommit.tree.sha, headCommit.tree.sha, 'Built source differs from the reviewed head tree');
-  let relation = 'same-head';
+  let relation = 'same-head', workflowEvent, baseAdvance;
   if (manifest.sourceSha !== eventHeadSha) {
     const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run,
       purpose === nativeCpuPurpose ? options.diagnosticHeadComparison : undefined);
     let originalBase = pr.base.sha;
     if (options.originalWorkflow !== undefined) {
-      // REST PR associations can change after retargeting. Only the original
-      // same-run GitHub event may supply that run's original base/head tuple.
-      assert(options.nativeApproval && options.adapter === 'native' && purpose === 'acceptance');
-      const {runId, runAttempt, sourceSha, ref, event} = options.originalWorkflow;
-      assert.equal(runId, String(run.id)); assert.equal(runId, String(options.runId));
-      assert.equal(runAttempt, String(run.run_attempt));
-      assert.equal(sourceSha, manifest.sourceSha, 'Original workflow checkout differs');
-      assert.equal(ref, `refs/pull/${pr.number}/merge`);
-      assert.equal(event.repository.id, run.repository.id);
-      assert.equal(event.repository.full_name, options.repository);
-      assert.equal(event.number, pr.number); assert.equal(event.pull_request.number, pr.number);
-      assert.equal(event.pull_request.head.repo.id, run.repository.id);
-      assert.equal(event.pull_request.base.repo.id, run.repository.id);
-      assert.equal(event.pull_request.head.sha, eventHeadSha);
-      assert.match(event.pull_request.base.sha, /^[a-f0-9]{40}$/u);
-      originalBase = event.pull_request.base.sha;
+      workflowEvent = originalNativeApprovalWorkflow(options, run, pr, eventHeadSha, manifest.sourceSha, purpose);
+      originalBase = workflowEvent.eventBaseSha;
     }
-    assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [originalBase, eventHeadSha],
-      'Built source does not have the original PR base/head parents');
+    const parents = sourceCommit.parents.map(parent => parent.sha);
+    if (workflowEvent !== undefined && parents[0] !== originalBase) {
+      assert.equal(parents.length, 2, 'Advanced source must retain exactly two ordered parents');
+      const actualBase = parents[0]; assert.match(actualBase, /^[a-f0-9]{40}$/u);
+      assert.equal(parents[1], eventHeadSha, 'Advanced source has another event head');
+      const comparisons = options.baseAdvanceComparisons;
+      assert(comparisons && typeof comparisons === 'object' && !Array.isArray(comparisons),
+        'Missing constrained base-advance evidence');
+      assert.deepEqual(Object.keys(comparisons).sort(), ['actualBaseToHead', 'eventBaseToActualBase']);
+      assertBoundedGitAncestry(options.repository, originalBase, actualBase, comparisons.eventBaseToActualBase);
+      assertBoundedGitAncestry(options.repository, actualBase, eventHeadSha, comparisons.actualBaseToHead);
+      baseAdvance = {eventBaseSha: originalBase, actualBaseSha: actualBase, eventHeadSha};
+    } else {
+      assert.deepEqual(parents, [originalBase, eventHeadSha],
+        'Built source does not have the original PR base/head parents');
+    }
     relation = 'pull-request-merge';
   }
   return {...producer, sourceSha: manifest.sourceSha, sourceTreeSha: sourceCommit.tree.sha,
-    sourceParents: sourceCommit.parents.map(parent => parent.sha), manifestSha256, relation};
+    sourceParents: sourceCommit.parents.map(parent => parent.sha), manifestSha256, relation,
+    ...(workflowEvent === undefined ? {} : {workflowEvent}),
+    ...(baseAdvance === undefined ? {} : {baseAdvance})};
 }
 
 export function validateNativeApprovalSource(options) {
@@ -299,7 +344,23 @@ async function inspectPackageProducer(options, fetchMetadata, purpose) {
       const currentHead = run.pull_requests[0].head.sha; assert.match(currentHead, /^[a-f0-9]{40}$/u);
       diagnosticHeadComparison = await get(`compare/${options.sourceSha}...${currentHead}?per_page=100&page=1`);
     }
+    let baseAdvanceComparisons;
+    if (options.originalWorkflow !== undefined && manifest.sourceSha !== options.sourceSha) {
+      const pr = originalPerformanceMerge(repository, options.sourceSha, manifest.sourceSha, run);
+      const original = originalNativeApprovalWorkflow(options, run, pr, options.sourceSha, manifest.sourceSha, purpose);
+      assert.equal(sourceCommit.parents.length, 2, 'Advanced source must retain exactly two ordered parents');
+      assert.equal(sourceCommit.parents[1].sha, options.sourceSha);
+      const actualBase = sourceCommit.parents[0].sha; assert.match(actualBase, /^[a-f0-9]{40}$/u);
+      if (actualBase !== original.eventBaseSha) {
+        baseAdvanceComparisons = {
+          eventBaseToActualBase: await get(`compare/${original.eventBaseSha}...${actualBase}?per_page=100&page=1`),
+          actualBaseToHead: actualBase === options.sourceSha ? undefined
+            : await get(`compare/${actualBase}...${options.sourceSha}?per_page=100&page=1`),
+        };
+      }
+    }
     const binding = {...validateBuildSource({...options, run, artifact, jobs, manifest, diagnosticHeadComparison,
+      baseAdvanceComparisons,
       manifestSha256: hash(bytes), headCommit, sourceCommit}, purpose), manifestFile};
     if (purpose === nativeCpuPurpose) {
       // Recheck the exact downloaded archive before the checkout changes. Member

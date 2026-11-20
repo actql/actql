@@ -483,24 +483,25 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
             break
         stream.write(wire)
         stream.flush()
-        # Local submission preserves its original failure as a retained
-        # exception attribute before raising outside the except block. Read
-        # only that known exception carrier, never arbitrary diagnostic values.
+        # Submission and context exit retain the original/cleanup exceptions
+        # outside their native chains. Read only existing plain exception
+        # associations; the same seen/output bounds apply and no error changes.
         retained = fields.get('original_error')
-        for linked in (current.__context__, current.__cause__, retained):
+        cleanup = fields.get('cleanup_error')
+        for linked in (current.__context__, current.__cause__, retained, cleanup):
             if isinstance(linked, BaseException):
                 pending.append((linked, None))
 
 
 def run_consumer(target: Path) -> None:
-    # Only this original failed case selects the optional observation. Existing
+    # Only these original failed cases select the optional observation. Existing
     # profilers are never replaced, and setup failure cannot prevent execution.
     args = sys.argv[1:]
     selected = target.name == 'python-product-installed.py' and all(
         args.count(flag) == 1 and args.index(flag) + 1 < len(args)
-        and args[args.index(flag) + 1] == expected
-        for flag, expected in (('--mode', 'local'), ('--facade', 'sync'),
-                               ('--case', 'cancellation'), ('--phase', 'initial')))
+        and args[args.index(flag) + 1] in expected
+        for flag, expected in (('--mode', ('local',)), ('--facade', ('sync', 'async')),
+                               ('--case', ('cancellation',)), ('--phase', ('initial',))))
     observer = None
     if selected:
         try:
