@@ -1293,7 +1293,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -1313,7 +1313,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -1743,7 +1743,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -1763,14 +1763,14 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
                 "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
@@ -1779,7 +1779,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
@@ -1899,7 +1899,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -1915,7 +1915,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -2325,7 +2325,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2604,7 +2604,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2624,7 +2624,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -2636,7 +2636,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
@@ -2735,7 +2735,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2751,14 +2751,14 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
                 "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
@@ -2767,7 +2767,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
@@ -2955,7 +2955,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2975,7 +2975,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -3135,7 +3135,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -3155,7 +3155,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -3167,7 +3167,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
@@ -3258,7 +3258,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -3274,14 +3274,14 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
                 "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
@@ -3290,7 +3290,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {

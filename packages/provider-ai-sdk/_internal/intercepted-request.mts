@@ -5,16 +5,52 @@
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
 import {prepareOriginalUndiciFetch} from './original-undici-transport.mjs';
 
-const preparations = new WeakMap();
+type ResponseLimits = Parameters<typeof fixedInferResponseLimits>[0];
+type FixedResponseLimits = ReturnType<typeof fixedInferResponseLimits>;
+type PhysicalResponse = Parameters<typeof readBoundedInferResponse>[0];
+type RawResponse = Awaited<ReturnType<typeof readBoundedInferResponse>>;
+interface PreparedRequest {
+  url: string; method: 'POST'; body: string;
+  headers: readonly (readonly [string, string])[];
+  requestBytes: number; headerBytes: number;
+}
+interface TransportState {
+  invoke: (() => unknown) | undefined;
+  physicalCleanup: (() => Promise<boolean>) | undefined;
+  physicalRetired: boolean; physicalRetiring: boolean;
+  limits: FixedResponseLimits; observeAt: (() => unknown) | undefined;
+  observedAt: unknown; rawObservation: (RawResponse & {observedAt: unknown}) | undefined;
+  responseMode: 'sdk' | 'raw-only' | 'raw-only-retiring';
+  started: boolean; settled: boolean; raw: RawResponse | undefined;
+  failure: string | undefined; readerRetired: boolean; retiring: boolean;
+  unreadResponse: unknown;
+  finishResponse?: () => void;
+}
+interface PreparationState {
+  controller: AbortController | undefined;
+  settled: boolean; retired: boolean; stopped: boolean;
+  fetchCount: number; delivered: boolean; violation: string | undefined;
+  failure: string | undefined; request: PreparedRequest | undefined;
+  responseResolve: ((value: Response) => void) | undefined;
+  responseReject: ((reason?: unknown) => void) | undefined;
+  decoded: unknown; taken: boolean; notify: (() => unknown) | undefined;
+  signal: AbortSignal | undefined; abort: (() => void) | undefined;
+  transport: TransportState | undefined;
+}
+// An unchecked view used only after the original object/body checks. Neither
+// a structural type nor a transport return proves reader or physical cleanup.
+interface UnreadResponse {body?: null | {cancel(): unknown}}
+
+const preparations = new WeakMap<object, PreparationState>();
 // Internal SDK consumer retirement, not Provider failure or a response fact.
 // The owned transport mode records why its already intercepted wait ends;
 // the existing rejection handlers still wait for actual SDK settlement.
 const rawConsumerRetired = Symbol('ActQLSdkRawConsumerRetired');
-const positive = value => Number.isSafeInteger(value) && value > 0 &&
-  value <= 2_147_483_647;
-const issue = code => Object.assign(new TypeError(code), {code});
-const record = handle => {
-  const value = preparations.get(handle);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 &&
+  (value as number) <= 2_147_483_647;
+const issue = (code: string) => Object.assign(new TypeError(code), {code});
+const record = (handle: unknown): PreparationState => {
+  const value = preparations.get(handle as object);
   if (value === undefined || value.retired) throw issue('ForeignSdkPreparation');
   return value;
 };
@@ -23,7 +59,11 @@ const record = handle => {
 // Before invocation, the installed caller must fund the complete SDK input,
 // body/header copies, Promise/record and eventual decoder/response holdings.
 export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
-  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
+  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}: {
+    runSdk: (fetch: typeof globalThis.fetch, signal: AbortSignal) => unknown;
+    endpoint: string; maxRequestBytes: number; maxHeaderBytes: number; maxHeaders: number;
+    signal?: AbortSignal; notify: () => unknown; verifyRequest?: (body: string) => unknown;
+  }) {
   if (typeof runSdk !== 'function' || typeof endpoint !== 'string' ||
       !positive(maxRequestBytes) || !positive(maxHeaderBytes) ||
       !positive(maxHeaders) || maxHeaders > 64 ||
@@ -39,7 +79,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
   }
   const handle = Object.freeze({});
   const controller = new AbortController();
-  const state = {controller, settled: false, retired: false, stopped: false,
+  const state: PreparationState = {controller, settled: false, retired: false, stopped: false,
     fetchCount: 0, delivered: false, violation: undefined, failure: undefined,
     request: undefined, responseResolve: undefined, responseReject: undefined,
     decoded: undefined, taken: false, notify, signal, abort: undefined,
@@ -48,13 +88,13 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
   const wake = () => {
     try { state.notify?.(); } catch { /* Wake is neither permission nor fact. */ }
   };
-  const reject = code => {
+  const reject = (code: string) => {
     state.violation ??= code;
     state.responseReject?.(issue(code));
     wake();
     return Promise.reject(issue(code));
   };
-  const fetch = (input, init) => {
+  const fetch: typeof globalThis.fetch = (input, init) => {
     if (state.retired) return Promise.reject(issue('ForeignSdkPreparation'));
     if (++state.fetchCount !== 1) return reject('SdkAdditionalRequestRefused');
     if (state.stopped || controller.signal.aborted) {
@@ -69,7 +109,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
         init.redirect !== undefined && init.redirect !== 'error') {
       return reject('SdkRequestBindingRefused');
     }
-    let headers;
+    let headers: [string, string][];
     try { headers = [...new Headers(init.headers)]; }
     catch { return reject('SdkRequestHeadersRefused'); }
     let bytes = 0;
@@ -90,7 +130,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
     state.request = {url: input, method: 'POST', body: init.body,
       headers: Object.freeze(headers.map(pair => Object.freeze(pair))),
       requestBytes: Buffer.byteLength(init.body), headerBytes: bytes};
-    const waiting = new Promise((resolve, rejectResponse) => {
+    const waiting = new Promise<Response>((resolve, rejectResponse) => {
       state.responseResolve = resolve;
       state.responseReject = rejectResponse;
     });
@@ -109,7 +149,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
   };
   signal?.addEventListener('abort', state.abort, {once: true});
   if (signal?.aborted) {
-    state.abort();
+    state.abort!();
     state.settled = true;
     state.failure = 'SdkPreparationCancelled';
     return handle;
@@ -157,7 +197,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
   return handle;
 }
 
-export function pollSdkPreparation(handle) {
+export function pollSdkPreparation(handle: unknown) {
   const state = record(handle);
   if (state.failure || state.violation) return Object.freeze({kind: 'rejected',
     issue: state.failure ?? state.violation});
@@ -169,10 +209,10 @@ export function pollSdkPreparation(handle) {
 
 // Physical original for Common's rendered-request binding. This private body
 // is not a public diagnostic and contains exactly the SDK-produced wire.
-export function sdkPreparedRequest(handle) {
+export function sdkPreparedRequest(handle: unknown) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready') return undefined;
-  const {url, method, body, requestBytes, headerBytes} = state.request;
+  const {url, method, body, requestBytes, headerBytes} = state.request!;
   return Object.freeze({url, method, body, requestBytes, headerBytes});
 }
 
@@ -180,8 +220,8 @@ export function sdkPreparedRequest(handle) {
 // There is no ambient fetch, endpoint override or authority in this API.
 // The complete request/init, limits and closure are fixed BEFORE Core consumes
 // its original one-shot send gate. Their holdings must already be funded.
-export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
-  responseMode = 'sdk'}) {
+export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, observeAt,
+  responseMode = 'sdk'}: {fetch: typeof globalThis.fetch; responseLimits: ResponseLimits; observeAt?: () => unknown; responseMode?: 'sdk' | 'raw-only'}) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready' ||
       state.transport !== undefined || state.delivered || state.settled ||
@@ -191,13 +231,13 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
     throw issue('SdkTransportPreparationRefused');
   }
   const limits = fixedInferResponseLimits(responseLimits);
-  const original = state.request;
+  const original = state.request!;
   const init = Object.freeze({method: original.method, body: original.body,
-    headers: original.headers, redirect: 'error', signal: state.controller.signal});
+    headers: original.headers, redirect: 'error', signal: state.controller!.signal});
   // Selected per-call Client/options are fixed in preparation before Entry.
   // Generic/native transports retain their original fetch behavior.
   const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits, state.controller);
-  state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init)),
+  state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init as RequestInit)),
     physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
     physicalRetiring: false, limits, observeAt,
     observedAt: undefined, rawObservation: undefined, responseMode,
@@ -212,7 +252,7 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
 // durable Entry ACK and final current/stop/authority/egress/reservation gate.
 // No await, notification or request construction precedes the actual invoke.
 // A throw/lost response is unknown responsibility, not proof of non-send.
-export function startSdkTransport(handle) {
+export function startSdkTransport(handle: unknown) {
   const state = record(handle);
   const transport = state.transport;
   if (transport === undefined || transport.started ||
@@ -222,7 +262,7 @@ export function startSdkTransport(handle) {
   }
   transport.started = true;
   let operation;
-  try { operation = transport.invoke(); }
+  try { operation = transport.invoke!(); }
   catch { operation = Promise.reject(issue('SdkTransportUnknown')); }
   transport.invoke = undefined;
   const wake = () => {
@@ -235,7 +275,7 @@ export function startSdkTransport(handle) {
     // body reading or Store awaits. It is not a provider-reported timestamp.
     transport.observedAt = transport.observeAt?.();
     transport.observeAt = undefined;
-    return readBoundedInferResponse(response, transport.limits, state.controller.signal);
+    return readBoundedInferResponse(response as PhysicalResponse, transport.limits, state.controller!.signal);
   }).then(raw => {
     transport.raw = raw;
     // The retained raw view now carries the same reader's retirement duty.
@@ -261,8 +301,8 @@ export function startSdkTransport(handle) {
     // This is a separately funded physical copy for the same suspended SDK.
     // It is not a raw Artifact CID, Common answer or completion observation.
     const body = [204, 205, 304].includes(raw.status) ? null : raw.body;
-    deliverOriginalSdkResponse(state, new Response(body, {
-      status: raw.status, headers: raw.headers,
+    deliverOriginalSdkResponse(state, new Response(body as BodyInit | null, {
+      status: raw.status, headers: raw.headers as HeadersInit,
     }));
   }).catch(() => {
     transport.failure ??= 'SdkTransportUnknown';
@@ -275,7 +315,7 @@ export function startSdkTransport(handle) {
   });
 }
 
-export function pollSdkTransport(handle) {
+export function pollSdkTransport(handle: unknown) {
   const transport = record(handle).transport;
   if (transport === undefined) throw issue('ForeignSdkTransport');
   if (!transport.started) return Object.freeze({kind: 'not-started'});
@@ -288,16 +328,16 @@ export function pollSdkTransport(handle) {
 // A private original physical view, not a serializer or public diagnostic.
 // The original Artifact/capture owner must admit and retain these bytes; SDK
 // defaults or a complete transport are not a verified endpoint completion.
-export function sdkTransportResponse(handle) {
+export function sdkTransportResponse(handle: unknown) {
   const state = record(handle);
   if (pollSdkTransport(handle).kind !== 'response') return undefined;
-  return state.transport.raw;
+  return state.transport!.raw;
 }
 
 // Retain an actually observed partial/error body as well as a complete body.
 // This does not turn an incomplete transport into a successful response. The
 // original capture caller must preserve its exact bytes and EOF separately.
-export function sdkTransportRawObservation(handle) {
+export function sdkTransportRawObservation(handle: unknown) {
   const transport = record(handle).transport;
   if (transport === undefined) throw issue('ForeignSdkTransport');
   if (!transport.settled || transport.raw === undefined) return undefined;
@@ -309,25 +349,25 @@ export function sdkTransportRawObservation(handle) {
 // Feed an already bounded owned response to the same suspended SDK invocation.
 // This does not send, authorize, validate completeness or issue a success token.
 // The transport/raw-response Owner must retain its independent original bytes.
-export function deliverSdkResponse(handle, response) {
+export function deliverSdkResponse(handle: unknown, response: unknown) {
   const state = record(handle);
   if (state.transport !== undefined) throw issue('SdkResponseDeliveryRefused');
   deliverOriginalSdkResponse(state, response);
 }
 
-function deliverOriginalSdkResponse(state, response) {
+function deliverOriginalSdkResponse(state: PreparationState, response: unknown) {
   if (state.failure || state.violation || state.stopped ||
       state.request === undefined || state.delivered || state.settled ||
       !(response instanceof Response)) {
     throw issue('SdkResponseDeliveryRefused');
   }
   state.delivered = true;
-  state.responseResolve(response);
+  state.responseResolve!(response);
   state.responseResolve = undefined;
   state.responseReject = undefined;
 }
 
-export function pollSdkDecode(handle) {
+export function pollSdkDecode(handle: unknown) {
   const state = record(handle);
   if (state.failure || state.violation) return Object.freeze({kind: 'rejected',
     issue: state.failure ?? state.violation});
@@ -338,7 +378,7 @@ export function pollSdkDecode(handle) {
 }
 
 // A one-time physical transfer, not a Common output/capture admission.
-export function takeSdkDecodedResult(handle) {
+export function takeSdkDecodedResult(handle: unknown) {
   const state = record(handle);
   if (pollSdkDecode(handle).kind !== 'ready' || state.taken) {
     throw issue('SdkDecodedResultUnavailable');
@@ -355,8 +395,8 @@ export function takeSdkDecodedResult(handle) {
 // original one-time-transfer bit; do not mutate an escaped value or retire raw,
 // transport, request, reader, Promise or entered-call responsibility. This is
 // not physical GC, saved response, remote stop or capacity-release evidence.
-export function retireSdkDecodedResult(handle) {
-  const state = preparations.get(handle);
+export function retireSdkDecodedResult(handle: unknown) {
+  const state = preparations.get(handle as object);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   // Original preparation cleanup may finish before its parent Owner retires.
   if (state.retired) return true;
@@ -366,18 +406,18 @@ export function retireSdkDecodedResult(handle) {
   return true;
 }
 
-export function cancelSdkPreparation(handle) {
+export function cancelSdkPreparation(handle: unknown) {
   const state = record(handle);
-  state.abort();
+  state.abort!();
 }
 
 // Advance only the SAME installed physical duty. This does not clear raw,
 // reader, SDK, request or Store aliases, and does not issue a Common receipt.
-function advanceOriginalPhysicalCleanup(state, transport) {
+function advanceOriginalPhysicalCleanup(state: PreparationState, transport: TransportState) {
   if (transport.physicalRetired) return true;
   if (!transport.physicalRetiring) {
     transport.physicalRetiring = true;
-    transport.physicalCleanup().then(retired => {
+    transport.physicalCleanup!().then(retired => {
       transport.physicalRetired = retired === true;
     }, () => { /* Preserve the same original physical cleanup duty. */ }).finally(() => {
       transport.physicalRetiring = false;
@@ -392,14 +432,14 @@ function advanceOriginalPhysicalCleanup(state, transport) {
 // Successful reading must finish before normal close; cancellation/Unknown
 // retains independent raw/reader/SDK/Store custody until their actual cleanup.
 // Port support DATA only. It neither progresses I/O nor issues an ACK.
-export function sdkOriginalIoObservationAvailable(handle) {
-  const state = preparations.get(handle);
+export function sdkOriginalIoObservationAvailable(handle: unknown) {
+  const state = preparations.get(handle as object);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   return state.transport?.physicalCleanup !== undefined;
 }
 
-export function progressSdkOriginalIoCleanup(handle) {
-  const state = preparations.get(handle);
+export function progressSdkOriginalIoCleanup(handle: unknown) {
+  const state = preparations.get(handle as object);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   const transport = state.transport;
   if (transport?.physicalCleanup === undefined) return undefined;
@@ -408,8 +448,8 @@ export function progressSdkOriginalIoCleanup(handle) {
   return advanceOriginalPhysicalCleanup(state, transport);
 }
 
-export function cleanupSdkPreparation(handle) {
-  const state = preparations.get(handle);
+export function cleanupSdkPreparation(handle: unknown) {
+  const state = preparations.get(handle as object);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   if (state.retired) return true;
   const transport = state.transport;
@@ -418,13 +458,13 @@ export function cleanupSdkPreparation(handle) {
     // Request the SAME original controller stop before physical cleanup can
     // disarm its deadline or synchronously report a pending body's failure.
     // The existing physical AND remains separate; abort is never its ACK.
-    state.abort();
+    state.abort!();
     advanceOriginalPhysicalCleanup(state, transport);
     return false;
   }
   if (transport?.started) {
     if (!transport.settled) {
-      state.abort();
+      state.abort!();
       return false;
     }
     if (transport.unreadResponse !== undefined) {
@@ -434,11 +474,11 @@ export function cleanupSdkPreparation(handle) {
         let retirement;
         try {
           if (response === null || typeof response !== 'object' ||
-              response.body === undefined) {
+              (response as UnreadResponse).body === undefined) {
             // An invalid transport return supplied no usable response body.
             retirement = Promise.resolve();
           } else {
-            retirement = response.body === null ? Promise.resolve() : response.body.cancel();
+            retirement = (response as UnreadResponse).body === null ? Promise.resolve() : (response as UnreadResponse).body!.cancel();
           }
         } catch { retirement = Promise.reject(issue('SdkUnreadResponseCleanupFailed')); }
         Promise.resolve(retirement).then(() => {
@@ -464,10 +504,10 @@ export function cleanupSdkPreparation(handle) {
     }
   }
   if (!state.settled) {
-    state.abort();
+    state.abort!();
     return false;
   }
-  state.signal?.removeEventListener('abort', state.abort);
+  state.signal?.removeEventListener('abort', state.abort!);
   state.request = undefined;
   state.decoded = undefined;
   state.responseResolve = undefined;

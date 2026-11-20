@@ -210,3 +210,7 @@ target/
 # Generated original optional-provider transport and private declaration.
 /packages/provider-ai-sdk/_internal/original-undici-transport.mjs
 /packages/provider-ai-sdk/_internal/original-undici-transport.d.mts
+
+# Generated private suspended SDK request preparation and transport.
+/packages/provider-ai-sdk/_internal/intercepted-request.mjs
+/packages/provider-ai-sdk/_internal/intercepted-request.d.mts
