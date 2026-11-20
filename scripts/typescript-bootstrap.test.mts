@@ -155,13 +155,13 @@ test('copied Source compiler failure prevents prepack with stale emit and preser
 test('artifact source switch discards old emit and prepares the selected Git source', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-ts-artifact-source-'));
   t.after(() => rm(root, {recursive: true}));
-  const environment = {...process.env, npm_config_offline: 'true', npm_config_audit: 'false',
+  const environment: NodeJS.ProcessEnv = {...process.env, npm_config_offline: 'true', npm_config_audit: 'false',
     npm_config_update_notifier: 'false'};
-  const run = (file: string, args: readonly string[]) => spawnSync(file, args, {
-    cwd: root, env: environment, encoding: 'utf8', timeout: 30_000, maxBuffer: 4 * 1024 * 1024,
+  const run = (file: string, args: readonly string[], env = environment) => spawnSync(file, args, {
+    cwd: root, env, encoding: 'utf8', timeout: 30_000, maxBuffer: 4 * 1024 * 1024,
   });
-  const checked = (file: string, args: readonly string[]) => {
-    const result = run(file, args);
+  const checked = (file: string, args: readonly string[], env = environment) => {
+    const result = run(file, args, env);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     return result.stdout.trim();
   };
@@ -173,6 +173,17 @@ test('artifact source switch discards old emit and prepares the selected Git sou
     return git('rev-parse', 'HEAD');
   };
   const helper = join(repository, 'scripts/ci-checkout-artifact-source.sh');
+  const tools = await mkdtemp(join(tmpdir(), 'actql-ts-artifact-tools-'));
+  t.after(() => rm(tools, {recursive: true}));
+  await writeFile(join(tools, 'npm'), `#!/bin/sh
+if [ "\${GITHUB_TOKEN+x}" = x ]; then
+  echo "Artifact verification token reached the selected npm process" >&2
+  exit 97
+fi
+exec "$ACTQL_FIXTURE_NPM" "$@"
+`, {mode: 0o755});
+  const checkoutEnvironment = {...environment, PATH: `${tools}:${environment.PATH ?? ''}`,
+    ACTQL_FIXTURE_NPM: checked('which', ['npm']), GITHUB_TOKEN: 'synthetic-verification-token'};
   git('init', '--quiet');
   await mkdir(join(root, 'scripts'));
   await writeFile(join(root, '.gitignore'), '/scripts/stale.mjs\n/scripts/stale.d.mts\n/keep.mjs\n');
@@ -201,22 +212,22 @@ test('artifact source switch discards old emit and prepares the selected Git sou
   assert(existsSync(join(root, 'scripts/stale.mjs')));
   assert(existsSync(join(root, 'scripts/stale.d.mts')));
 
-  checked('bash', [helper, controller]);
+  checked('bash', [helper, controller], checkoutEnvironment);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'controller');
-  checked('bash', [helper, selected]);
+  checked('bash', [helper, selected], checkoutEnvironment);
   assert.equal(git('rev-parse', 'HEAD'), selected);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'selected TS');
   assert.equal(existsSync(join(root, 'scripts/stale.mjs')), false);
   assert.equal(existsSync(join(root, 'scripts/stale.d.mts')), false);
   assert(existsSync(join(root, 'scripts/entry.d.mts')));
 
-  const refused = run('bash', [helper, invalid]);
+  const refused = run('bash', [helper, invalid], checkoutEnvironment);
   assert.notEqual(refused.status, 0);
   assert.match(refused.stdout + refused.stderr, /TS2322/u);
   assert.equal(git('rev-parse', 'HEAD'), invalid);
   assert.equal(existsSync(join(root, 'scripts/entry.mjs')), false);
 
-  checked('bash', [helper, legacy]);
+  checked('bash', [helper, legacy], checkoutEnvironment);
   assert.equal(git('rev-parse', 'HEAD'), legacy);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'original JS');
   assert.equal(await readFile(join(root, 'keep.mjs'), 'utf8'), '// unrelated ignored file\n');

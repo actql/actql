@@ -18,6 +18,9 @@ fi
 
 git checkout --detach "$source_sha"
 if [[ "$source_sha" != "$controller_sha" && -f tsconfig.tooling.json ]]; then
-  npm ci --ignore-scripts
-  npm run build:typescript
+  (
+    unset GITHUB_TOKEN
+    npm ci --ignore-scripts
+    npm run build:typescript
+  )
 fi
