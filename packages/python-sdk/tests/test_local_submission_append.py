@@ -141,7 +141,9 @@ class LocalSubmissionAppendTests(unittest.TestCase):
             self.assertEqual(output.family, 'submission_append')
             self.assertIs(core._loans[output.ticket], output)
             self.assertEqual(counts['append_produce'], 1)
-            self.assertGreaterEqual(counts['append_validate'], 4)
+            # Production's postcheck is the adjacent transfer precheck. The
+            # transfer postcheck and fresh physical write check remain distinct.
+            self.assertEqual(counts['append_validate'], 3)
             self.assertFalse(any(family in ('program', 'compute', 'publication') for family, _, _ in calls))
             self.assertTrue(host.close())
 
@@ -173,18 +175,59 @@ class LocalSubmissionAppendTests(unittest.TestCase):
             host, core, _, _ = self.host(Path(directory))
             ref = self.reference(host)
             original = core.validate_submission_append
+            store = host._installation._store
+            original_write = store.compare_exchange_many_inspected
             attempts = []
+            writing = False
+            def write(*args, **kwargs):
+                nonlocal writing
+                writing = True
+                try:
+                    return original_write(*args, **kwargs)
+                finally:
+                    writing = False
             def refuse(output, current):
-                attempts.append(output)
-                # The fourth inspection is the fresh physical write frame.
-                if len(attempts) == 4:
+                attempts.append(writing)
+                if writing:
                     raise LocalCoreError('validate_submission_append', -32)
                 return original(output, current)
-            with patch.object(core, 'validate_submission_append', side_effect=refuse):
+            with patch.object(core, 'validate_submission_append', side_effect=refuse), patch.object(
+                    store, 'compare_exchange_many_inspected', side_effect=write):
                 with self.assertRaises(LocalCoreError):
                     host._retain_intent(ref, INTENT)
             self.assert_rows(host, count=b'0', preparing=None)
-            self.assertEqual(len(attempts), 4)
+            self.assertEqual(attempts.count(True), 1)
+            self.assertTrue(host.close())
+
+    def test_current_refusal_after_transfer_keeps_original_borrow_and_prevents_write(self):
+        with TemporaryDirectory(prefix='actql-append-') as directory:
+            host, core, _, _ = self.host(Path(directory))
+            reference = self.reference(host)
+            original_read = core._read_output
+            original_check = core.validate_submission_append
+            copied = []
+            refusal = LocalCoreError('validate_submission_append', -32)
+            def read(output, family, operation, **options):
+                result = original_read(output, family, operation, **options)
+                if family == 'submission_append':
+                    copied.append(output)
+                return result
+            def check(output, current):
+                if copied and copied[-1] is output:
+                    raise refusal
+                return original_check(output, current)
+            store = host._installation._store
+            with patch.object(core, '_read_output', side_effect=read), patch.object(
+                    core, 'validate_submission_append', side_effect=check), patch.object(
+                    store, 'compare_exchange_many_inspected') as write:
+                with self.assertRaises(LocalCoreError) as raised:
+                    host._retain_intent(reference, INTENT)
+            self.assertIs(raised.exception, refusal)
+            write.assert_not_called()
+            self.assertEqual(len(copied), 1)
+            self.assertIs(core._loans[copied[0].ticket], copied[0])
+            self.assertIs(host._projections[-1], copied[0])
+            self.assert_rows(host, count=b'0', preparing=None)
             self.assertTrue(host.close())
 
     def test_physical_write_conflict_is_not_acceptance_and_does_not_retry(self):
