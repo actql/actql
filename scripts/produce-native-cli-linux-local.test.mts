@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import type {TestContext} from 'node:test';
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -8,13 +9,26 @@ import {parseNativeLinuxLocalArguments, planNativeLinuxLocalProduction, produceN
   requireNativeLinuxLocalComponentSelection, requireNativeLinuxLocalHeader,
   requireNativeLinuxLocalArtifact} from './produce-native-cli-linux-local.mjs';
 
+type Options = Parameters<typeof planNativeLinuxLocalProduction>[0];
+type Artifact = Parameters<typeof requireNativeLinuxLocalArtifact>[0];
+type Identity = {bytes: number; sha256: string};
+type Plan = ReturnType<typeof planNativeLinuxLocalProduction>;
+type Ports = NonNullable<Parameters<typeof produceNativeCliLinuxLocal>[1]>;
+type Execute = NonNullable<Ports['execute']>;
+type Host = NonNullable<Ports['host']>;
+type Settings = {env: NodeJS.ProcessEnv; cwd: string; timeout: number};
+type Component = {target: string; compiler_target: string; loaded: boolean; initialized: boolean; inputs: Record<string, Identity>};
+type FixtureInputs = {inputs: Record<string, Identity>;
+  sqlite: Component & {source_sha: string; stage?: {outputs: {'sqlite3.h': Identity}}};
+  crypto: Component & {source: string; package_archives?: (Identity & {path: string})[]}};
+
 const sourceSha = 'a'.repeat(40), target = 'x86_64-unknown-linux-gnu';
 const options = {sourceSha, packageVersion: '0.1.2-rc.3', outputDirectory: '/output/new',
   clang: '/tools/clang-19', sqliteArchive: '/inputs/sqlite.zip',
   opensslPackageArchives: ['/inputs/libssl-dev.deb', '/inputs/libssl3t64.deb']};
 const context = {sourceRoot: '/source', node: '/tools/node'};
-const identity = bytes => ({bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
-const wire = value => JSON.stringify(value) + '\n';
+const identity = (bytes: Buffer) => ({bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
+const wire = (value: unknown) => JSON.stringify(value) + '\n';
 const args = ['--source', sourceSha, '--package-version', '0.1.2-rc.3', '--output', '/output/new',
   '--clang', '/tools/clang-19', '--sqlite-archive', '/inputs/sqlite.zip',
   '--openssl-package-archive', '/inputs/libssl-dev.deb', '--openssl-package-archive', '/inputs/libssl3t64.deb'];
@@ -57,8 +71,8 @@ test('explicit component and compiler limits stay separate and UAPI roots never 
 
 test('missing, duplicate, implicit, unbounded and foreign selections fail rather than select Remote', () => {
   for (const key of ['sourceSha', 'packageVersion', 'outputDirectory', 'clang', 'sqliteArchive', 'opensslPackageArchives']) {
-    const selected = {...options}; delete selected[key];
-    assert.throws(() => planNativeLinuxLocalProduction(selected, context));
+    const selected: Partial<Options> = {...options}; delete selected[key as keyof Options];
+    assert.throws(() => planNativeLinuxLocalProduction(selected as Options, context));
   }
   for (const selected of [
     {sourceSha: 'a'.repeat(39)}, {sourceSha: 'A'.repeat(40)}, {packageVersion: 'next'}, {packageVersion: '0.1.2+local'},
@@ -72,7 +86,7 @@ test('missing, duplicate, implicit, unbounded and foreign selections fail rather
     {localRuntime: undefined}, {allowHeavy: true}, {opensslPrefix: '/usr'}, {providerReceipt: '/old/receipt'},
   ]) assert.throws(() => planNativeLinuxLocalProduction({...options, ...selected}, context));
   for (const key of ['componentSeconds', 'compileSeconds']) for (const value of [null, false, '60', 0, -1, 1.5, NaN, Infinity, 86401])
-    assert.throws(() => planNativeLinuxLocalProduction({...options, [key]: value}, context));
+    assert.throws(() => planNativeLinuxLocalProduction({...options, [key]: value} as Options, context));
   assert.throws(() => planNativeLinuxLocalProduction({...options, componentSeconds: 1801}, context));
   assert.equal(planNativeLinuxLocalProduction({...options, componentSeconds: 1800, compileSeconds: 86400}, context).commands.length, 4);
   for (const suffix of [['--source', sourceSha], ['--unknown', 'yes'], ['--allow-heavy'], ['--compile-seconds', '1e3'],
@@ -86,7 +100,7 @@ const syntheticLinuxReport = Object.freeze({header: Object.freeze({glibcVersionR
 const syntheticLinuxHost = Object.freeze({platform: 'linux', arch: 'x64',
   report: Object.freeze({getReport: () => syntheticLinuxReport})});
 
-function receipts(plan) {
+function receipts(plan: Plan): FixtureInputs {
   const inputs = Object.fromEntries([plan.clang, plan.sqliteArchive, ...plan.opensslPackageArchives]
     .map(path => [path, identity(Buffer.from(path))]));
   const common = {target, compiler_target: 'x86_64-pc-linux-gnu', loaded: false, initialized: false, inputs};
@@ -97,16 +111,16 @@ function receipts(plan) {
 test('component receipts must bind the exact source, target, compiler and both original selected archives', () => {
   const plan = planNativeLinuxLocalProduction(options, context);
   const mutations = [
-    f => {f.sqlite.source_sha = 'b'.repeat(40);}, f => {f.crypto.source = 'b'.repeat(40);},
-    f => {f.sqlite.target = 'aarch64-unknown-linux-gnu';}, f => {f.crypto.target = 'aarch64-apple-darwin';},
-    f => {f.sqlite.compiler_target = 'x86_64-windows';}, f => {f.crypto.compiler_target = 'aarch64-linux-gnu';},
-    f => {f.sqlite.loaded = true;}, f => {f.crypto.initialized = true;},
-    f => {delete f.sqlite.inputs[plan.clang];}, f => {f.crypto.inputs[plan.clang] = identity(Buffer.from('another compiler'));},
-    f => {delete f.sqlite.inputs[plan.sqliteArchive];},
-    f => {delete f.crypto.inputs[plan.opensslPackageArchives[1]];},
-    f => {delete f.crypto.package_archives;}, f => {f.crypto.package_archives.reverse();},
-    f => {f.crypto.package_archives[0].sha256 = 'b'.repeat(64);},
-    f => {f.crypto.package_archives.pop();},
+    (f: FixtureInputs) => {f.sqlite.source_sha = 'b'.repeat(40);}, (f: FixtureInputs) => {f.crypto.source = 'b'.repeat(40);},
+    (f: FixtureInputs) => {f.sqlite.target = 'aarch64-unknown-linux-gnu';}, (f: FixtureInputs) => {f.crypto.target = 'aarch64-apple-darwin';},
+    (f: FixtureInputs) => {f.sqlite.compiler_target = 'x86_64-windows';}, (f: FixtureInputs) => {f.crypto.compiler_target = 'aarch64-linux-gnu';},
+    (f: FixtureInputs) => {f.sqlite.loaded = true;}, (f: FixtureInputs) => {f.crypto.initialized = true;},
+    (f: FixtureInputs) => {delete f.sqlite.inputs[plan.clang];}, (f: FixtureInputs) => {f.crypto.inputs[plan.clang] = identity(Buffer.from('another compiler'));},
+    (f: FixtureInputs) => {delete f.sqlite.inputs[plan.sqliteArchive];},
+    (f: FixtureInputs) => {delete f.crypto.inputs[plan.opensslPackageArchives[1]];},
+    (f: FixtureInputs) => {delete f.crypto.package_archives;}, (f: FixtureInputs) => {f.crypto.package_archives!.reverse();},
+    (f: FixtureInputs) => {f.crypto.package_archives![0].sha256 = 'b'.repeat(64);},
+    (f: FixtureInputs) => {f.crypto.package_archives!.pop();},
   ];
   const good = receipts(plan);
   requireNativeLinuxLocalComponentSelection(plan, good, good.inputs);
@@ -126,7 +140,7 @@ test('Native header selection requires the staged original and its checked-in so
     [Buffer.from('changed header'), sqlite, sourceRecipe], [bytes, {}, sourceRecipe], [bytes, sqlite, {}],
     [bytes, {stage: {outputs: {'sqlite3.h': {...selected, bytes: 1}}}}, sourceRecipe],
     [bytes, sqlite, {upstream: {members: {'sqlite3.h': {...selected, sha256: 'b'.repeat(64)}}}}],
-  ]) assert.throws(() => requireNativeLinuxLocalHeader(header, receipt, recipe));
+  ] as const) assert.throws(() => requireNativeLinuxLocalHeader(header, receipt, recipe));
 });
 
 test('final metadata selection refuses Remote, foreign source/target and missing explicit version evidence', () => {
@@ -137,14 +151,14 @@ test('final metadata selection refuses Remote, foreign source/target and missing
       binarySha256: 'b'.repeat(64), binaryBytes: 1, buildInputSha256: 'c'.repeat(64)}};
   for (const patch of [{sourceSha: 'b'.repeat(40)}, {platform: 'darwin-arm64'}, {localRuntime: undefined},
     {localRuntime: null}, {packageVersion: '0.0.0'}, {packageVersionObservation: undefined}])
-    assert.throws(() => requireNativeLinuxLocalArtifact({...record, ...patch}, plan));
+    assert.throws(() => requireNativeLinuxLocalArtifact({...record, ...patch} as unknown as Artifact, plan));
 });
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-linux-local-entry-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const sourceRoot = join(root, 'source'); mkdirSync(sourceRoot);
-  const put = (path, data, mode) => {mkdirSync(dirname(path), {recursive: true}); writeFileSync(path, data, {mode}); return identity(Buffer.from(data));};
+  const put = (path: string, data: string | Buffer, mode?: number) => {mkdirSync(dirname(path), {recursive: true}); writeFileSync(path, data, {mode}); return identity(Buffer.from(data as string));};
   const selected = {...options, outputDirectory: join(root, 'output'), clang: join(root, 'clang-real'),
     sqliteArchive: join(root, 'sqlite.zip'), opensslPackageArchives: [join(root, 'dev.deb'), join(root, 'license.deb')]};
   const plan = planNativeLinuxLocalProduction(selected, {sourceRoot});
@@ -157,9 +171,9 @@ function fixture(t) {
   const previousMoon = process.env.MOON_HOME;
   process.env.MOON_HOME = join(root, 'selected-moon');
   t.after(() => {if (previousMoon === undefined) delete process.env.MOON_HOME; else process.env.MOON_HOME = previousMoon;});
-  const calls = [];
-  let stop;
-  const execute = (command, values, settings) => {
+  const calls: {phase: string; settings: Settings}[] = [];
+  let stop: string | undefined;
+  const execute = (command: string, values: readonly string[], settings: Settings) => {
     if (command === 'git') return values[0] === 'rev-parse' ? sourceSha + '\n' : '';
     if (command === 'sh') {
       assert.deepEqual(values, ['-c', 'command -v clang']);
@@ -177,7 +191,7 @@ function fixture(t) {
     } else if (step.phase === 'crypto') put(join(plan.directories.crypto, 'producer.json'), wire(f.crypto));
     return '';
   };
-  return {root, sourceRoot, selected, plan, f, header, put, calls, execute, stopAt: phase => {stop = phase;}};
+  return {root, sourceRoot, selected, plan, f, header, put, calls, execute, stopAt: (phase: string) => {stop = phase;}};
 }
 
 test('unsupported producer hosts refuse before commands or output, including the actual default host', async t => {
@@ -185,12 +199,12 @@ test('unsupported producer hosts refuse before commands or output, including the
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const selected = {...options, outputDirectory: join(root, 'output')};
   const withoutGlibc = Object.freeze({header: Object.freeze({})});
-  const vectors = [
+  const vectors: [unknown, RegExp][] = [
     [Object.freeze({...syntheticLinuxHost, platform: 'darwin'}), /linux/u],
     [Object.freeze({...syntheticLinuxHost, arch: 'arm64'}), /x64/u],
     [Object.freeze({...syntheticLinuxHost, report: Object.freeze({getReport: () => withoutGlibc})}), /Linux GNU producer required/u],
   ];
-  if (process.platform !== 'linux' || process.arch !== 'x64' || !process.report.getReport().header.glibcVersionRuntime) {
+  if (process.platform !== 'linux' || process.arch !== 'x64' || !(process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime) {
     vectors.push([undefined, process.platform !== 'linux' ? /linux/u
       : process.arch !== 'x64' ? /x64/u : /Linux GNU producer required/u]);
   }
@@ -198,7 +212,7 @@ test('unsupported producer hosts refuse before commands or output, including the
     let commands = 0;
     await assert.rejects(produceNativeCliLinuxLocal(selected, {sourceRoot: context.sourceRoot,
       execute: () => {commands++; assert.fail('Unsupported host cannot execute a command');},
-      ...(host === undefined ? {} : {host})}), reason);
+      ...(host === undefined ? {} : {host})} as Ports), reason);
     assert.equal(commands, 0);
     assert(!existsSync(selected.outputDirectory));
   }
@@ -207,7 +221,7 @@ test('unsupported producer hosts refuse before commands or output, including the
 test('failed existing stages stop in order with no retries or Remote fallback', async t => {
   for (const phase of ['sqlite', 'crypto', 'recipe', 'artifact']) {
     const f = fixture(t); f.stopAt(phase);
-    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute, host: syntheticLinuxHost}),
+    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute as Execute, host: syntheticLinuxHost as unknown as Host}),
       new RegExp('selected ' + phase + ' failed', 'u'));
     assert.deepEqual(f.calls.map(call => call.phase), ['sqlite', 'crypto', 'recipe', 'artifact'].slice(0,
       ['sqlite', 'crypto', 'recipe', 'artifact'].indexOf(phase) + 1));
@@ -216,19 +230,19 @@ test('failed existing stages stop in order with no retries or Remote fallback', 
 });
 
 test('Native sees only the captured header and the exact original compiler; a missing final artifact cannot succeed', async t => {
-  const f = fixture(t), previous = {};
+  const f = fixture(t), previous: NodeJS.ProcessEnv = {};
   for (const key of ['CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'OBJC_INCLUDE_PATH']) {
     previous[key] = process.env[key]; process.env[key] = '/ambient/unselected';
   }
   t.after(() => {for (const [key, value] of Object.entries(previous)) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   }});
-  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute, host: syntheticLinuxHost}), /ENOENT/u);
+  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute as Execute, host: syntheticLinuxHost as unknown as Host}), /ENOENT/u);
   assert.deepEqual(f.calls.map(call => call.phase), ['sqlite', 'crypto', 'recipe', 'artifact']);
   for (const {phase, settings: {env}} of f.calls) {
     assert.equal(env.C_INCLUDE_PATH, phase === 'artifact' ? f.plan.directories.include : undefined);
     for (const key of ['CPATH', 'CPLUS_INCLUDE_PATH', 'OBJC_INCLUDE_PATH']) assert.equal(env[key], undefined);
-    assert.equal(env.PATH.split(':')[0], f.plan.directories['compiler-bin']);
+    assert.equal(env.PATH!.split(':')[0], f.plan.directories['compiler-bin']);
   }
   assert.equal(realpathSync(join(f.plan.directories['compiler-bin'], 'clang')), f.selected.clang);
   assert.deepEqual(readFileSync(join(f.plan.directories.include, 'sqlite3.h')), f.header);
@@ -243,26 +257,26 @@ test('dirty or wrong source, existing output, aliases and receipt contradictions
       const alias = join(f.root, 'alias'); symlinkSync(f.selected[field], alias); f.selected[field] = alias;
     }
     if (kind === 'target') f.f.crypto.target = 'aarch64-apple-darwin';
-    if (kind === 'receipt') f.f.crypto.package_archives[1].sha256 = 'b'.repeat(64);
-    if (kind === 'header') f.f.sqlite.stage.outputs['sqlite3.h'].sha256 = 'b'.repeat(64);
-    const execute = (command, values, settings) => {
+    if (kind === 'receipt') f.f.crypto.package_archives![1].sha256 = 'b'.repeat(64);
+    if (kind === 'header') f.f.sqlite.stage!.outputs['sqlite3.h'].sha256 = 'b'.repeat(64);
+    const execute = (command: string, values: readonly string[], settings: Settings) => {
       if (command === 'git' && kind === 'dirty' && values[0] === 'status') return ' M changed\n';
       if (command === 'git' && kind === 'source' && values[0] === 'rev-parse') return 'b'.repeat(40) + '\n';
       return f.execute(command, values, settings);
     };
-    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost}));
+    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost} as unknown as Ports));
     assert(!f.calls.some(call => call.phase === 'recipe' || call.phase === 'artifact'));
   }
 });
 
 test('changed original input between components stops before the next stage', async t => {
   const f = fixture(t);
-  const execute = (command, values, settings) => {
+  const execute = (command: string, values: readonly string[], settings: Settings) => {
     const result = f.execute(command, values, settings);
     if (command === 'python3' && values[0].endsWith('/produce-python-sqlite-component.py'))
       f.put(f.selected.opensslPackageArchives[0], 'changed original archive');
     return result;
   };
-  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost}), /Original input changed/u);
+  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost} as unknown as Ports), /Original input changed/u);
   assert.deepEqual(f.calls.map(call => call.phase), ['sqlite']);
 });

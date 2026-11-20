@@ -873,3 +873,7 @@ target/
 /scripts/native-cli-fresh-runtime.test.d.mts
 /scripts/native-cli-completed-provider.test.mjs
 /scripts/native-cli-completed-provider.test.d.mts
+/scripts/produce-native-cli-darwin-local.test.mjs
+/scripts/produce-native-cli-darwin-local.test.d.mts
+/scripts/produce-native-cli-linux-local.test.mjs
+/scripts/produce-native-cli-linux-local.test.d.mts

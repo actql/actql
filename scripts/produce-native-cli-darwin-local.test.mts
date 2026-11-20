@@ -4,6 +4,10 @@ import {createHash} from 'node:crypto';
 import {parseNativeDarwinLocalArguments, planNativeDarwinLocalProduction, produceNativeCliDarwinLocal,
   requireNativeDarwinLocalComponentSelection, requireNativeDarwinLocalArtifact} from './produce-native-cli-darwin-local.mjs';
 
+type Options = Parameters<typeof planNativeDarwinLocalProduction>[0];
+type Artifact = Parameters<typeof requireNativeDarwinLocalArtifact>[0];
+type Identity = {bytes: number; sha256: string};
+
 const sourceSha = 'a'.repeat(40);
 const options = {sourceSha, packageVersion: '0.0.2', outputDirectory: '/output/new',
   clang: '/tools/clang', sdk: '/SDK', sqliteArchive: '/inputs/sqlite.zip', opensslSourceArchive: '/inputs/openssl.tar.gz'};
@@ -11,7 +15,7 @@ const context = {sourceRoot: '/source', node: '/tools/node'};
 const args = ['--source', sourceSha, '--package-version', '0.0.2', '--output', '/output/new',
   '--clang', '/tools/clang', '--sdk', '/SDK', '--sqlite-archive', '/inputs/sqlite.zip',
   '--openssl-source-archive', '/inputs/openssl.tar.gz'];
-const identity = text => ({bytes: Buffer.byteLength(text), sha256: createHash('sha256').update(text).digest('hex')});
+const identity = (text: string) => ({bytes: Buffer.byteLength(text), sha256: createHash('sha256').update(text).digest('hex')});
 
 test('Darwin producer selects existing same-process and source-built owners with an explicit final version', () => {
   const plan = planNativeDarwinLocalProduction(options, context);
@@ -39,8 +43,8 @@ test('Darwin producer selects existing same-process and source-built owners with
 
 test('Darwin selection refuses implicit versions, foreign platforms, ambiguous inputs and unbounded preparation', () => {
   for (const key of ['sourceSha', 'packageVersion', 'outputDirectory', 'clang', 'sdk', 'sqliteArchive', 'opensslSourceArchive']) {
-    const selected = {...options}; delete selected[key];
-    assert.throws(() => planNativeDarwinLocalProduction(selected, context));
+    const selected: Partial<Options> = {...options}; delete selected[key as keyof Options];
+    assert.throws(() => planNativeDarwinLocalProduction(selected as Options, context));
   }
   for (const patch of [
     {sourceSha: 'a'.repeat(39)}, {packageVersion: 'latest'}, {packageVersion: '0.0.2+local'},
@@ -51,7 +55,7 @@ test('Darwin selection refuses implicit versions, foreign platforms, ambiguous i
     {completedLocalProvider: true}, {componentSeconds: 1801}, {compileSeconds: 86401},
   ]) assert.throws(() => planNativeDarwinLocalProduction({...options, ...patch}, context));
   for (const key of ['componentSeconds', 'compileSeconds']) for (const value of [0, -1, false, null, '900', NaN, Infinity, 1.5])
-    assert.throws(() => planNativeDarwinLocalProduction({...options, [key]: value}, context));
+    assert.throws(() => planNativeDarwinLocalProduction({...options, [key]: value} as Options, context));
   for (const suffix of [['--source', sourceSha], ['--unknown', 'yes'], ['--component-seconds', '1e3'], ['--sdk']])
     assert.throws(() => parseNativeDarwinLocalArguments([...args, ...suffix]));
   const bounded = planNativeDarwinLocalProduction({...options, componentSeconds: 60, compileSeconds: 300}, context);
@@ -60,7 +64,12 @@ test('Darwin selection refuses implicit versions, foreign platforms, ambiguous i
 });
 
 // These are closed selection DATA, not fabricated components or runtime proof.
-function selectedInputs() {
+type FixtureInputs = {inputs: Record<string, Identity>;
+  sqlite: {source_sha: string; target: string; loaded: boolean; initialized: boolean; inputs: Record<string, Identity>};
+  crypto: {source: string; target: string; inputs: Record<string, Identity>;
+    static_source?: {source: string; target: string; inputs: Record<string, Identity>}}};
+
+function selectedInputs(): FixtureInputs {
   const inputs = Object.fromEntries(['/tools/clang', '/SDK/SDKSettings.json', '/inputs/sqlite.zip', '/inputs/openssl.tar.gz']
     .map(file => [file, identity(file)]));
   const shared = {'/tools/clang': inputs['/tools/clang'], '/SDK/SDKSettings.json': inputs['/SDK/SDKSettings.json']};
@@ -74,13 +83,13 @@ test('completed component selection binds both archives, compiler, SDK and the s
   const plan = planNativeDarwinLocalProduction(options, context), good = selectedInputs();
   requireNativeDarwinLocalComponentSelection(plan, good, good.inputs);
   for (const mutate of [
-    f => {f.sqlite.source_sha = 'b'.repeat(40);}, f => {f.crypto.source = 'b'.repeat(40);},
-    f => {f.sqlite.target = 'x86_64-unknown-linux-gnu';}, f => {f.crypto.target = 'x86_64-unknown-linux-gnu';},
-    f => {f.sqlite.loaded = true;}, f => {f.sqlite.initialized = true;},
-    f => {delete f.sqlite.inputs['/tools/clang'];}, f => {delete f.crypto.inputs['/SDK/SDKSettings.json'];},
-    f => {f.sqlite.inputs['/inputs/sqlite.zip'] = identity('foreign archive');},
-    f => {delete f.crypto.static_source;}, f => {f.crypto.static_source.source = 'b'.repeat(40);},
-    f => {f.crypto.static_source.inputs['/inputs/openssl.tar.gz'] = identity('foreign OpenSSL');},
+    (f: FixtureInputs) => {f.sqlite.source_sha = 'b'.repeat(40);}, (f: FixtureInputs) => {f.crypto.source = 'b'.repeat(40);},
+    (f: FixtureInputs) => {f.sqlite.target = 'x86_64-unknown-linux-gnu';}, (f: FixtureInputs) => {f.crypto.target = 'x86_64-unknown-linux-gnu';},
+    (f: FixtureInputs) => {f.sqlite.loaded = true;}, (f: FixtureInputs) => {f.sqlite.initialized = true;},
+    (f: FixtureInputs) => {delete f.sqlite.inputs['/tools/clang'];}, (f: FixtureInputs) => {delete f.crypto.inputs['/SDK/SDKSettings.json'];},
+    (f: FixtureInputs) => {f.sqlite.inputs['/inputs/sqlite.zip'] = identity('foreign archive');},
+    (f: FixtureInputs) => {delete f.crypto.static_source;}, (f: FixtureInputs) => {f.crypto.static_source!.source = 'b'.repeat(40);},
+    (f: FixtureInputs) => {f.crypto.static_source!.inputs['/inputs/openssl.tar.gz'] = identity('foreign OpenSSL');},
   ]) {
     const f = structuredClone(selectedInputs()); mutate(f);
     assert.throws(() => requireNativeDarwinLocalComponentSelection(plan, f, good.inputs));
@@ -94,15 +103,15 @@ test('only an admitted Local Darwin image with the exact compiled banner can com
     abi: {format: 'Mach-O'}, packageVersion: '0.0.2', binarySha256: 'b'.repeat(64), binaryBytes: 1,
     packageVersionObservation: {argv: ['--version'], stdout: '0.0.2\n', code: 0, signal: null,
       binarySha256: 'b'.repeat(64), binaryBytes: 1, buildInputSha256: 'c'.repeat(64)}};
-  assert.equal(requireNativeDarwinLocalArtifact(record, plan), record);
+  assert.equal(requireNativeDarwinLocalArtifact(record as unknown as Artifact, plan), record);
   for (const patch of [{sourceSha: 'b'.repeat(40)}, {platform: 'linux-x64-gnu'}, {localRuntime: null},
     {abi: {format: 'ELF'}}, {packageVersion: '0.0.2-rc.0'}, {packageVersionObservation: undefined}])
-    assert.throws(() => requireNativeDarwinLocalArtifact({...record, ...patch}, plan));
+    assert.throws(() => requireNativeDarwinLocalArtifact({...record, ...patch} as unknown as Artifact, plan));
 });
 
 test('the Darwin route refuses a foreign actual host before invoking any original owner', async () => {
-  const calls = [];
+  const calls: unknown[][] = [];
   await assert.rejects(produceNativeCliDarwinLocal(options, {sourceRoot: '/source', host: {platform: 'linux', arch: 'x64'},
-    execute(...values) {calls.push(values); throw Error('Owner must not be invoked');}}));
+    execute(...values: unknown[]) {calls.push(values); throw Error('Owner must not be invoked');}}));
   assert.deepEqual(calls, []);
 });
