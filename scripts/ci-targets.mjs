@@ -36,7 +36,7 @@ export const maintenanceFiles = Object.freeze([
   'docs/reviews/2026-10-03-graph-host-acquired-input-handoff.md',
   'docs/reviews/2026-10-03-graph-host-owner-fixtures.md',
   'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
-  'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
+  'scripts/ci-timing.mts', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
   // Offline cost display is consumed only by the existing artifact reporter;
   // proof producers and final acceptance do not import this projection.
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',

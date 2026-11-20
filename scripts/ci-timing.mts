@@ -1,6 +1,46 @@
 // Timing projection of the existing attempt-bound evidence; no extra API calls.
+type Timestamp = string | null;
+type Outcome = {status: string | null; conclusion: string | null};
+type Step = Outcome & {name: string | null; number: number | null;
+  startedAt: Timestamp; completedAt: Timestamp};
+type Job = Outcome & {id: number | null; name: string | null; endpoint: string;
+  identityMatches: boolean; createdAt: Timestamp; startedAt: Timestamp; completedAt: Timestamp;
+  runnerLabels: string[] | null; runnerName: string | null; runnerGroupId: number | null;
+  runnerGroupName: string | null; steps: Step[] | null};
+type Attempt = Outcome & {available: true; number: number; endpoint: string;
+  workflow: string | null; workflowPath: string | null; workflowId: number | null;
+  event: string | null; headSha: string | null; sourceMatch: string;
+  createdAt: Timestamp; startedAt: Timestamp; updatedAt: Timestamp; evidenceComplete: boolean;
+  jobsAvailable: boolean; jobs: Job[]; pullRequests: {number: number | null; baseSha: string | null}[]};
+type Identity = {repository: string; runId: number; attempt: number;
+  workflow: string | null; workflowPath: string | null; workflowId: number | null;
+  event: string | null; sourceSha: string | null; sourceMatch: string;
+  attemptStatus: string | null; attemptConclusion: string | null;
+  evidenceComplete: boolean; configurationId: string | undefined;
+  configurationKnown: boolean; cacheState: string};
+type CommonRow = Identity & Outcome & {jobId: number | null; jobName: string | null;
+  stepNumber: number | null; stepName: string | null; identityValid: boolean;
+  timestamps: Record<string, Timestamp>; execution: Interval; preStart?: Interval; sinceAttemptStart?: Interval};
+type JobRow = CommonRow & {kind: 'job'; runnerLabels: Job['runnerLabels']; runnerName: Job['runnerName'];
+  runnerGroupId: Job['runnerGroupId']; stepsState: string; preStart: Interval; sinceAttemptStart: Interval};
+type TimingRow = JobRow |
+  CommonRow & {kind: 'step'; runnerLabels: Job['runnerLabels']; runnerName: Job['runnerName']; runnerGroupId: Job['runnerGroupId']} |
+  CommonRow & {kind: 'attempt'; runnerLabels: {jobId: number | null; labels: Job['runnerLabels']}[]};
+type Boundary = {endpoint: string; field: string; value: Timestamp};
+type Interval = {from: Boundary; to: Boundary; seconds: number | null; reason: string | null};
+type Group = {dimensions: Record<string, unknown>; rows: TimingRow[]};
+type Timing = {observedAt: string; configurations: ({id: string} & ReturnType<typeof configuration>)[];
+  measurements: TimingRow[]; runnerConsumption: ReturnType<typeof runnerConsumption>[];
+  aggregateCheckCompletion: ReturnType<typeof aggregateCheckCompletion>[];
+  longestJobs: TimingRow[]; longestSteps: TimingRow[];
+  comparison: {selection: readonly string[]; unavailable: string[]; groups: ({dimensions: Group['dimensions'];
+    members: {runId: number; attempt: number; jobId: number | null; stepNumber: number | null;
+      omittedReason: string | null}[]} & ReturnType<typeof stats>)[]}; limits: string[]};
+type TimingReport = {observedAt: string; repository: string;
+  runs: {id: number; attempts: (Attempt | {available: false; number: number})[]}[]; timing?: Timing};
+
 // A timestamp is evidence only when it is a real, timezone-qualified instant.
-function instant(value) {
+function instant(value: unknown) {
   if (typeof value !== 'string') return null;
   const match = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d{1,3}))?(Z|[+-](\d\d):(\d\d))$/u.exec(value);
   if (!match || Number(match[4] ?? 0) > 23 || Number(match[5] ?? 0) > 59) return null;
@@ -9,30 +49,30 @@ function instant(value) {
   if (!Number.isFinite(calendar) || new Date(calendar).toISOString() !== local || !Number.isFinite(parsed)) return null;
   return parsed;
 }
-const boundary = (endpoint, field, value) => ({endpoint, field, value: value ?? null});
-function interval(from, to, reason = null) {
+const boundary = (endpoint: string, field: string, value: Timestamp) => ({endpoint, field, value: value ?? null});
+function interval(from: Boundary, to: Boundary, reason: string | null = null): Interval {
   const start = instant(from.value), end = instant(to.value);
   reason ??= from.value == null || to.value == null ? 'missing-timestamp' :
     start === null || end === null ? 'invalid-timestamp' : end < start ? 'reversed-timestamps' : null;
-  return {from, to, seconds: reason ? null : (end - start) / 1000, reason};
+  return {from, to, seconds: reason ? null : (end! - start!) / 1000, reason};
 }
-const executionReason = item => item.conclusion === 'skipped' ? 'skipped-not-executed' :
+const executionReason = (item: Outcome) => item.conclusion === 'skipped' ? 'skipped-not-executed' :
   item.status !== 'completed' ? 'not-completed' :
     typeof item.conclusion !== 'string' || !item.conclusion ? 'missing-outcome' : null;
-const execution = (item, endpoint, prefix = '') => interval(
+const execution = (item: Pick<Step, 'startedAt' | 'completedAt'> & Outcome, endpoint: string, prefix = '') => interval(
   boundary(endpoint, `${prefix}started_at`, item.startedAt),
   boundary(endpoint, `${prefix}completed_at`, item.completedAt), executionReason(item));
-const precisionAllowance = value => 10 ** (3 - (value?.match(/\.(\d{1,3})(?:Z|[+-])/u)?.[1].length ?? 0)) - 1;
-const knownNumber = value => Number.isSafeInteger(value) && value > 0;
-const knownString = value => typeof value === 'string' && value.length > 0;
-function stats(rows) {
+const precisionAllowance = (value: Timestamp) => 10 ** (3 - (value?.match(/\.(\d{1,3})(?:Z|[+-])/u)?.[1].length ?? 0)) - 1;
+const knownNumber = (value: number | null) => Number.isSafeInteger(value) && value! > 0;
+const knownString = (value: unknown) => typeof value === 'string' && value.length > 0;
+function stats(rows: readonly TimingRow[]) {
   const values = rows.map(row => row.execution.seconds).filter(value => value !== null).sort((a, b) => a - b);
   const middle = Math.floor(values.length / 2);
   return {selectedCount: rows.length, sampleCount: values.length, omittedCount: rows.length - values.length,
     medianSeconds: values.length ? (values[middle] + values[Math.floor((values.length - 1) / 2)]) / 2 : null,
-    maximumSeconds: values.length ? values.at(-1) : null};
+    maximumSeconds: values.length ? values.at(-1)! : null};
 }
-function configuration(attempt) {
+function configuration(attempt: Attempt) {
   const jobs = attempt.jobs;
   // These are observed dimensions, not a claim about resolved action refs,
   // dispatch inputs, runner image versions, historical checkout or cache hits.
@@ -41,7 +81,7 @@ function configuration(attempt) {
     jobs.every(job => job.conclusion === 'skipped' || job.runnerLabels?.length && job.steps?.length && job.steps.every(step =>
       knownNumber(step.number) && knownString(step.name))) &&
     (attempt.event !== 'pull_request' || attempt.pullRequests.length > 0 && attempt.pullRequests.every(pr => /^[a-f0-9]{40}$/iu.test(pr.baseSha ?? ''))) &&
-    !['workflow_dispatch', 'repository_dispatch', 'workflow_call'].includes(attempt.event);
+    !['workflow_dispatch', 'repository_dispatch', 'workflow_call'].includes(attempt.event!);
   return {known, observed: {
     workflowPath: attempt.workflowPath, workflowId: attempt.workflowId,
     prBases: attempt.pullRequests.map(pr => [pr.number, pr.baseSha]).sort(),
@@ -51,7 +91,7 @@ function configuration(attempt) {
   }};
 }
 
-function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
+function runnerConsumption(attempt: Attempt, jobs: readonly JobRow[], common: Identity, wallSpan: Interval, steps: readonly TimingRow[]) {
   const observations = jobs.map((row, index) => {
     const job = attempt.jobs[index];
     const skipped = job.conclusion === 'skipped';
@@ -67,7 +107,7 @@ function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
   const measured = executed.filter(row => row.execution.seconds !== null);
   // Count distinct jobs once, never steps or nested phase measurements.
   // Millisecond timestamps avoid fractional addition drift; overflow is unknown.
-  const milliseconds = measured.map(row => Math.round(row.execution.seconds * 1000));
+  const milliseconds = measured.map(row => Math.round(row.execution.seconds! * 1000));
   const total = milliseconds.reduce((sum, value) => sum + value, 0);
   const safe = milliseconds.every(Number.isSafeInteger) && Number.isSafeInteger(total);
   const reason = !attempt.evidenceComplete || !attempt.jobsAvailable ? 'incomplete-or-mismatched-evidence' :
@@ -76,7 +116,7 @@ function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
   return {...common, status: attempt.status, conclusion: attempt.conclusion,
     boundary: 'sum of distinct observed job started_at -> completed_at intervals',
     successfulSample: reason === null && attempt.conclusion === 'success' && executed.every(row =>
-      attempt.jobs.find(job => job.id === row.jobId).conclusion === 'success'),
+      attempt.jobs.find(job => job.id === row.jobId)!.conclusion === 'success'),
     knownJobSeconds: safe ? total / 1000 : null,
     totalJobSeconds: reason === null ? total / 1000 : null,
     reason, measuredJobCount: measured.length, unknownJobCount: executed.length - measured.length,
@@ -84,7 +124,7 @@ function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
     observedJobWallSpan: wallSpan, jobs: observations};
 }
 
-function aggregateCheckCompletion(attempt, jobs, common) {
+function aggregateCheckCompletion(attempt: Attempt, jobs: readonly JobRow[], common: Identity) {
   const gates = jobs.filter(job => job.jobName === 'check');
   const gate = gates.length === 1 ? gates[0] : null;
   const reason = !attempt.evidenceComplete || !attempt.jobsAvailable ? 'incomplete-or-mismatched-evidence' :
@@ -98,8 +138,8 @@ function aggregateCheckCompletion(attempt, jobs, common) {
       attempt.conclusion === 'success' && gate?.conclusion === 'success'};
 }
 
-export function addTimingEvidence(report, selection = []) {
-  const timing = report.timing = {observedAt: report.observedAt, configurations: [], measurements: [], runnerConsumption: [], aggregateCheckCompletion: [], longestJobs: [], longestSteps: [],
+export function addTimingEvidence(report: TimingReport, selection: readonly string[] = []) {
+  const timing: Timing = report.timing = {observedAt: report.observedAt, configurations: [], measurements: [], runnerConsumption: [], aggregateCheckCompletion: [], longestJobs: [], longestSteps: [],
     comparison: {selection, groups: [], unavailable: []}, limits: [
       'Timing is not successful test evidence and does not change check conclusions or readiness uncertainty.',
       'Execution uses reported started_at -> completed_at. Running/skipped durations are unknown, not zero or completed samples.',
@@ -113,7 +153,7 @@ export function addTimingEvidence(report, selection = []) {
       'Jobs without an observed runner or started step leave runner totals unknown. Failed/cancelled attempts retain measured consumption but are not successful comparison samples.',
       'Job-duration totals are observed runner time, not billed minutes or causal savings. Cross-revision savings still require authenticated equal-input/obligation evidence and comparable execution conditions.',
     ]};
-  const attempts = new Map(), configurations = new Map();
+  const attempts = new Map<string, TimingRow[]>(), configurations = new Map<string, string>();
   for (const run of report.runs) for (const attempt of run.attempts) {
     const key = `${run.id}:${attempt.number}`;
     if (!attempt.available) { attempts.set(key, []); continue; }
@@ -129,10 +169,10 @@ export function addTimingEvidence(report, selection = []) {
       event: attempt.event, sourceSha: attempt.headSha, sourceMatch: attempt.sourceMatch,
       attemptStatus: attempt.status, attemptConclusion: attempt.conclusion,
       evidenceComplete: attempt.evidenceComplete, configurationId, configurationKnown: config.known, cacheState: 'unknown'};
-    const rows = [];
+    const rows: TimingRow[] = [];
     const jobs = attempt.jobs.map(job => {
       const identityValid = attempt.evidenceComplete && job.identityMatches;
-      const row = {...common, kind: 'job', jobId: job.id, jobName: job.name, stepNumber: null, stepName: null,
+      const row: JobRow = {...common, kind: 'job', jobId: job.id, jobName: job.name, stepNumber: null, stepName: null,
         runnerLabels: job.runnerLabels, runnerName: job.runnerName, runnerGroupId: job.runnerGroupId,
         status: job.status, conclusion: job.conclusion, identityValid,
         stepsState: job.steps === null ? 'unknown' : job.steps.length ? 'available' : 'absent',
@@ -143,7 +183,7 @@ export function addTimingEvidence(report, selection = []) {
         sinceAttemptStart: interval(boundary(attempt.endpoint, 'run_started_at', attempt.startedAt),
           boundary(job.endpoint, `jobs[id=${job.id}].started_at`, job.startedAt), job.conclusion === 'skipped' ? 'skipped-not-executed' : null),
       };
-      if (!identityValid) for (const name of ['execution', 'preStart', 'sinceAttemptStart']) {
+      if (!identityValid) for (const name of ['execution', 'preStart', 'sinceAttemptStart'] as const) {
         row[name] = {...row[name], seconds: null, reason: 'incomplete-or-mismatched-evidence'};
       }
       rows.push(row);
@@ -156,8 +196,8 @@ export function addTimingEvidence(report, selection = []) {
         // Whole-second parent timestamps have up to one second less precision
         // than fractional step timestamps. Do not invent a parent bound.
         const outside = measured.seconds !== null && (
-          parentStart !== null && instant(step.startedAt) < parentStart - precisionAllowance(job.startedAt) ||
-          parentEnd !== null && instant(step.completedAt) > parentEnd + precisionAllowance(job.completedAt));
+          parentStart !== null && instant(step.startedAt)! < parentStart - precisionAllowance(job.startedAt) ||
+          parentEnd !== null && instant(step.completedAt)! > parentEnd + precisionAllowance(job.completedAt));
         if (job.conclusion === 'skipped' || outside) {
           measured.seconds = null;
           measured.reason = 'inconsistent-parent-job';
@@ -174,8 +214,8 @@ export function addTimingEvidence(report, selection = []) {
     const executed = jobs.filter(job => job.conclusion !== 'skipped');
     const complete = attempt.evidenceComplete && attempt.jobsAvailable && !executionReason(attempt) &&
       executed.length > 0 && executed.every(job => job.execution.seconds !== null);
-    const first = complete ? executed.reduce((a, b) => instant(a.execution.from.value) < instant(b.execution.from.value) ? a : b) : null;
-    const last = complete ? executed.reduce((a, b) => instant(a.execution.to.value) > instant(b.execution.to.value) ? a : b) : null;
+    const first = complete ? executed.reduce((a, b) => instant(a.execution.from.value)! < instant(b.execution.from.value)! ? a : b) : null;
+    const last = complete ? executed.reduce((a, b) => instant(a.execution.to.value)! > instant(b.execution.to.value)! ? a : b) : null;
     rows.unshift({...common, kind: 'attempt', jobId: null, jobName: null, stepNumber: null, stepName: null,
       runnerLabels: jobs.map(job => ({jobId: job.jobId, labels: job.runnerLabels})),
       status: attempt.status, conclusion: attempt.conclusion, identityValid: attempt.evidenceComplete,
@@ -193,11 +233,11 @@ export function addTimingEvidence(report, selection = []) {
   }
   // Rankings retain the complete measurement, including every identity and
   // boundary. Parallel jobs are ranked individually and are never summed.
-  for (const [kind, key] of [['job', 'longestJobs'], ['step', 'longestSteps']]) {
+  for (const [kind, key] of [['job', 'longestJobs'], ['step', 'longestSteps']] as const) {
     timing[key] = timing.measurements.filter(row => row.kind === kind && row.execution.seconds !== null)
-      .sort((a, b) => b.execution.seconds - a.execution.seconds).slice(0, 10);
+      .sort((a, b) => b.execution.seconds! - a.execution.seconds!).slice(0, 10);
   }
-  const groups = new Map();
+  const groups = new Map<string, Group>();
   for (const key of selection) {
     const rows = attempts.get(key);
     if (!rows?.length) { timing.comparison.unavailable.push(key); continue; }
@@ -213,7 +253,7 @@ export function addTimingEvidence(report, selection = []) {
         isolatedJob: row.configurationKnown ? null : row.jobId};
       const groupKey = JSON.stringify(dimensions);
       if (!groups.has(groupKey)) groups.set(groupKey, {dimensions, rows: []});
-      groups.get(groupKey).rows.push(row);
+      groups.get(groupKey)!.rows.push(row);
     }
   }
   timing.comparison.groups = [...groups.values()].map(({dimensions, rows}) => ({dimensions,
@@ -221,15 +261,15 @@ export function addTimingEvidence(report, selection = []) {
       stepNumber: row.stepNumber, omittedReason: row.execution.reason})), ...stats(rows)}));
 }
 
-function show(interval) {
+function show(interval: Interval) {
   return `${interval.seconds === null ? `unknown (${interval.reason})` : `${interval.seconds}s`} ` +
     `[${interval.from.endpoint} ${interval.from.field}=${interval.from.value ?? 'unknown'} -> ` +
     `${interval.to.endpoint} ${interval.to.field}=${interval.to.value ?? 'unknown'}]`;
 }
-const identity = row => `${row.workflow} [${row.workflowPath}] | ${row.event} | SHA ${row.sourceSha} | ${row.sourceMatch} | run ${row.runId} attempt ${row.attempt} | ${row.status}/${row.conclusion ?? 'unknown'}`;
-const subject = row => row.kind === 'attempt' ? 'observed job wall span' :
+const identity = (row: Identity & Outcome) => `${row.workflow} [${row.workflowPath}] | ${row.event} | SHA ${row.sourceSha} | ${row.sourceMatch} | run ${row.runId} attempt ${row.attempt} | ${row.status}/${row.conclusion ?? 'unknown'}`;
+const subject = (row: TimingRow) => row.kind === 'attempt' ? 'observed job wall span' :
   `${row.jobName}${row.kind === 'step' ? ` / step ${row.stepNumber} ${row.stepName}` : ''}`;
-export function formatTiming(timing) {
+export function formatTiming(timing: Timing) {
   const lines = [`\nTiming observed at ${timing.observedAt}:`];
   for (const config of timing.configurations) lines.push(`  ${config.id}: ${JSON.stringify(config)}`);
   for (const row of timing.measurements) {
@@ -240,7 +280,7 @@ export function formatTiming(timing) {
     if (row.preStart) lines.push(`    observed pre-start delay: ${show(row.preStart)}`);
     if (row.sinceAttemptStart) lines.push(`    observed since attempt start: ${show(row.sinceAttemptStart)}`);
   }
-  for (const [label, rows] of [['Longest jobs', timing.longestJobs], ['Longest steps', timing.longestSteps]]) {
+  for (const [label, rows] of [['Longest jobs', timing.longestJobs], ['Longest steps', timing.longestSteps]] as const) {
     lines.push(`${label} (individual execution intervals):`);
     for (const row of rows) lines.push(`  ${row.execution.seconds}s | ${subject(row)} | ${identity(row)} | labels ${JSON.stringify(row.runnerLabels)}`);
   }

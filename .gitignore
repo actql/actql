@@ -881,3 +881,5 @@ target/
 /scripts/ci-artifact-reader.d.mts
 /scripts/ci-artifact-reader.test.mjs
 /scripts/ci-artifact-reader.test.d.mts
+/scripts/ci-timing.mjs
+/scripts/ci-timing.d.mts
