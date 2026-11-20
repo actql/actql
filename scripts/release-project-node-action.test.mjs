@@ -3,7 +3,7 @@ import test from 'node:test';
 import {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
-function ports({decisionFailure, closeFailure, closeObservationFailure, foreignCheckpoint = false,
+function ports({decisionFailure, closeFailure, closeObservationFailure, closeObservationFailureAfterClose, foreignCheckpoint = false,
   source = 'authored source', checkReply, resolutionFields = {}, readonly = false} = {}) {
   const ref = {namespaceId: 'original-namespace', authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
   const original = {ref, runId: 'original-run', checkpointId: 'original-checkpoint', checkpointCid: 'sha256:' + 'c'.repeat(64)};
@@ -62,7 +62,8 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
       getCheckInput(value, id) {assert.equal(id, 'source'); return checkInputs.get(value);},
       async retainAccepted(value) {calls.push('retain-accepted'); accepted.push(value);},
       assertPendingTarget() {calls.push('pending-target');},
-      retainClose(value) {closes.push(value); if (closeObservationFailure) throw closeObservationFailure;},
+      retainClose(value) {closes.push(value); if (closeObservationFailure) throw closeObservationFailure;
+        if (value.outcome !== undefined && closeObservationFailureAfterClose) throw closeObservationFailureAfterClose;},
     }};
 }
 
@@ -108,6 +109,23 @@ test('RC readonly refusal stops before submission and still closes its own Clien
   await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}));
   assert(!f.calls.includes('start')); assert(!f.calls.includes('wait')); assert.equal(f.accepted.length, 0);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
+});
+
+test('RC first close failure remains primary over a later failed close observation', async () => {
+  const cleanup = new Error('original Client cleanup pending'), later = new Error('later observation failure');
+  const f = ports({readonly: true, closeFailure: cleanup, closeObservationFailureAfterClose: later});
+  await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}), cause => cause === cleanup);
+  assert.equal(f.calls.filter(value => value === 'start').length, 1);
+  assert.equal(f.calls.filter(value => value === 'close').length, 1);
+  assert.deepEqual(f.closes.at(-1), {attempted: true, returned: false, outcome: 'threw'});
+});
+
+test('RC successful first close does not hide a failed later close observation', async () => {
+  const later = new Error('original post-close observation failure');
+  const f = ports({readonly: true, closeObservationFailureAfterClose: later});
+  await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}), cause => cause === later);
+  assert.equal(f.calls.filter(value => value === 'close').length, 1);
+  assert.deepEqual(f.closes.at(-1), {attempted: true, returned: true, outcome: 'returned'});
 });
 
 for (const decision of ['approved', 'rejected']) for (const field of ['checkpoint_id', 'checkpoint_cid'])

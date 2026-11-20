@@ -149,7 +149,8 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
   if (client) try {await client.close();} catch (cause) {closeFailure = cause; closeFailed = true;}
   try {await retainClose({attempted: client !== undefined, returned: client !== undefined && !closeFailed,
     outcome: closeFailed ? 'threw' : client ? 'returned' : 'not-attempted'});} catch (cause) {
-    if (!failed) {primary = cause; failed = true;}
+    // A later observation failure cannot replace the actual first-close issue.
+    if (!failed && !closeFailed) {primary = cause; failed = true;}
   }
   if (failed) throw primary;
   if (closeFailed) throw closeFailure;
