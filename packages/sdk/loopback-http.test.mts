@@ -3,13 +3,22 @@ import test from 'node:test';
 import * as http from 'node:http';
 import {requestLoopbackClient} from './loopback-http.mjs';
 
-const listen = server => new Promise((resolve, reject) => {
+const listen = (server: http.Server) => new Promise<void>((resolve, reject) => {
   server.once('error', reject);
   server.listen({host: '127.0.0.1', port: 0}, () => {server.off('error', reject); resolve();});
 });
-const close = server => new Promise(resolve => {server.closeAllConnections(); server.close(resolve);});
-const options = signal => ({method: 'POST', redirect: 'error', signal,
+const close = (server: http.Server) => new Promise<Error | undefined>(resolve => {server.closeAllConnections(); server.close(resolve);});
+const options = (signal?: AbortSignal) => ({method: 'POST', redirect: 'error', signal,
   headers: {'content-type': 'application/json', authorization: 'Bearer fixture-only-secret'}, body: '{"request":1}'});
+
+const proxyHttp = http as typeof http & {
+  setGlobalProxyFromEnv?: (environment: NodeJS.ProcessEnv) => () => void;
+};
+function address(server: http.Server) {
+  const value = server.address();
+  assert(value && typeof value === 'object');
+  return value;
+}
 
 test('direct loopback POST ignores global Fetch and proxy configuration', async t => {
   let proxyRequests = 0, requests = 0;
@@ -26,12 +35,12 @@ test('direct loopback POST ignores global Fetch and proxy configuration', async 
   await listen(proxy); await listen(server);
   const oldFetch = globalThis.fetch;
   globalThis.fetch = () => assert.fail('Loopback HTTP must not use a global Fetch dispatcher');
-  const restoreProxy = http.setGlobalProxyFromEnv?.({
-    HTTP_PROXY: `http://127.0.0.1:${proxy.address().port}`, NO_PROXY: '',
+  const restoreProxy = proxyHttp.setGlobalProxyFromEnv?.({
+    HTTP_PROXY: `http://127.0.0.1:${address(proxy).port}`, NO_PROXY: '',
   });
   t.after(async () => {globalThis.fetch = oldFetch; restoreProxy?.(); await close(server); await close(proxy);});
   const response = await requestLoopbackClient(new URL(
-    `http://127.0.0.1:${server.address().port}/actql/client/0.1/connect`), options());
+    `http://127.0.0.1:${address(server).port}/actql/client/0.1/connect`), options());
   assert.deepEqual(await response.json(), {ok: true});
   assert.equal(requests, 1);
   assert.equal(proxyRequests, 0);
@@ -41,19 +50,19 @@ test('loopback transport never follows a redirect or sends its bearer to the tar
   let targetRequests = 0;
   const target = http.createServer((_request, response) => {targetRequests++; response.end();});
   const origin = http.createServer((_request, response) => {
-    response.writeHead(307, {location: `http://127.0.0.1:${target.address().port}/elsewhere`}); response.end();
+    response.writeHead(307, {location: `http://127.0.0.1:${address(target).port}/elsewhere`}); response.end();
   });
   await listen(target); await listen(origin);
   t.after(async () => {await close(origin); await close(target);});
   await assert.rejects(requestLoopbackClient(new URL(
-    `http://127.0.0.1:${origin.address().port}/actql/client/0.1/connect`), options()),
+    `http://127.0.0.1:${address(origin).port}/actql/client/0.1/connect`), options()),
   {message: 'LoopbackRedirectRefused'});
   assert.equal(targetRequests, 0);
 });
 
 test('loopback Response streams and cancellation closes the original response', async t => {
-  let ended;
-  const disconnected = new Promise(resolve => {ended = resolve;});
+  let ended!: () => void;
+  const disconnected = new Promise<void>(resolve => {ended = resolve;});
   const server = http.createServer((request, response) => {
     response.once('close', ended);
     response.writeHead(200, {'content-type': 'application/jsonl'});
@@ -61,7 +70,8 @@ test('loopback Response streams and cancellation closes the original response', 
   });
   await listen(server); t.after(() => close(server));
   const response = await requestLoopbackClient(new URL(
-    `http://127.0.0.1:${server.address().port}/actql/client/0.1/read`), options());
+    `http://127.0.0.1:${address(server).port}/actql/client/0.1/read`), options());
+  assert(response.body);
   const reader = response.body.getReader();
   assert.equal(new TextDecoder().decode((await reader.read()).value), '{"n":1}\n');
   await reader.cancel(); reader.releaseLock();
@@ -81,8 +91,8 @@ test('loopback transport refuses invalid targets, port zero and pre-aborted work
 });
 
 test('a null-body 205 cannot leave an unbounded response draining', {timeout: 5000}, async t => {
-  let ended;
-  const disconnected = new Promise(resolve => {ended = resolve;});
+  let ended!: () => void;
+  const disconnected = new Promise<void>(resolve => {ended = resolve;});
   const server = http.createServer((_request, response) => {
     response.once('close', ended);
     response.writeHead(205, {'content-type': 'application/json', 'transfer-encoding': 'chunked'});
@@ -90,7 +100,7 @@ test('a null-body 205 cannot leave an unbounded response draining', {timeout: 50
   });
   await listen(server); t.after(() => close(server));
   const response = await requestLoopbackClient(new URL(
-    `http://127.0.0.1:${server.address().port}/actql/client/0.1/connect`), options());
+    `http://127.0.0.1:${address(server).port}/actql/client/0.1/connect`), options());
   assert.equal(response.body, null);
   await disconnected;
 });

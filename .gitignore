@@ -58,3 +58,11 @@ target/
 /packages/sdk/connection-string.test.d.mts
 /packages/sdk/internal/connection-options.mjs
 /packages/sdk/internal/connection-options.d.mts
+/packages/sdk/loopback-http.mjs
+/packages/sdk/loopback-http.d.mts
+/packages/sdk/loopback-http-unavailable.mjs
+/packages/sdk/loopback-http-unavailable.d.mts
+/packages/sdk/loopback-http.test.mjs
+/packages/sdk/loopback-http.test.d.mts
+/packages/sdk/loopback-http-browser.test.mjs
+/packages/sdk/loopback-http-browser.test.d.mts

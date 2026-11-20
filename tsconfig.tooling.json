@@ -9,7 +9,8 @@
       "DOM",
       "DOM.Iterable",
       "ESNext.Array",
-      "ES2024.String"
+      "ES2024.String",
+      "DOM.AsyncIterable"
     ],
     "declaration": true
   },
