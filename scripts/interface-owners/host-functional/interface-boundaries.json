@@ -109909,7 +109909,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -113725,7 +113725,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
