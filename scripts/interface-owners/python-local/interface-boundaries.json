@@ -80900,7 +80900,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "293bf4a9652682c4dd13acb33c647a0bd1ba721a397eb3dc4a03c0b24827bd25",
+      "sha256": "3474871241e350760694f1f056f35f6dccfdff19bd7e72ff17b63fc5847d4b62",
       "exports": [],
       "operations": [
         {
@@ -80953,7 +80953,7 @@
         },
         {
           "name": "validate_sdk_run_row_decoded",
-          "declaration": "validate_sdk_run_row_decoded ( decoded : Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ] , ) - > Result [ @ host . ClientRunJournalEncoding , Int ]"
+          "declaration": "validate_sdk_run_row_decoded ( decoded : Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ] , observation_original ? : @ host . ClientRunObservationOriginals ?"
         },
         {
           "name": "validate_submission_append",
@@ -81042,6 +81042,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
                 "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
               }
             ],
             "cancellation": [
@@ -81062,6 +81066,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "@buffers.reserve_output_buffer("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
               }
             ],
             "extension": [
@@ -81156,6 +81164,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
               }
             ],
             "cancellation": [
@@ -81176,6 +81188,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
               }
             ],
             "extension": [
@@ -81252,6 +81268,10 @@
               {
                 "path": "src/client_host_wasm/sdk_row_original.mbt",
                 "anchor": "fn dispose_sdk_run_row_original("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
               }
             ],
             "cancellation": [
@@ -81272,6 +81292,10 @@
               {
                 "path": "src/client_host_wasm/sdk_row_original.mbt",
                 "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
               }
             ],
             "extension": [
@@ -81372,6 +81396,10 @@
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "!material.closing"
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
               }
             ],
             "cancellation": [
@@ -81396,6 +81424,10 @@
               {
                 "path": "src/run_publication_host/client_task_material_original.mbt",
                 "anchor": "row.body.length() > 131072"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
               }
             ],
             "extension": [
@@ -93815,7 +93847,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "abc4e20e3b837ef59beeb57114b7f2089a8c0034cc95378b0aa46cbc65b580ff",
+      "sha256": "0e9092578e1b98a46dc556ffae17bbabc1008b65b14bedc25f0829a9adafb8fe",
       "exports": [],
       "operations": [
         {
@@ -93839,8 +93871,12 @@
           "declaration": "journal_decode_run_inspection ( value : Instance , child : StoredJournalObservation , frame : StoredJournalDecodeFrame , row : @ host . ClientJournalPhysicalRow , before_construction ? : ( ( @ host . ClientRunJournalConstruction ) - > Result [ Unit , @ host . ClientJournalDecodingIssue , ] ) ?"
         },
         {
-          "name": "journal_inspect_decoded_run",
-          "declaration": "journal_inspect_decoded_run ( decoded : ( @ host . ClientRunJournalEncoding , String ? , String ? ) , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
+          "name": "journal_drop_observation",
+          "declaration": "journal_drop_observation ( cell : StoredJournalRunOriginal ) - > Unit"
+        },
+        {
+          "name": "journal_inspect_run_with_observation",
+          "declaration": "journal_inspect_run_with_observation ( value : Instance , cell : StoredJournalRunOriginal ? , row : @ host . ClientJournalPhysicalRow , decoded : ( @ host . ClientRunJournalEncoding , String ? , String ? ) , before_observation : ( ( ) - > Unit ) ? , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
         },
         {
           "name": "open_journal_decode_frame",
@@ -93863,7 +93899,8 @@
             "journal_decode_frame_current",
             "journal_decode_row_capacity",
             "journal_decode_run_inspection",
-            "journal_inspect_decoded_run",
+            "journal_drop_observation",
+            "journal_inspect_run_with_observation",
             "open_journal_decode_frame",
             "settle_journal_decode_original"
           ],
@@ -93912,13 +93949,21 @@
             "cancellation": [
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
-                "anchor": "validate_sdk_run_row_decoded(Ok(decoded))"
+                "anchor": "validate_sdk_run_row_decoded("
               }
             ],
             "resources": [
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "fn journal_decode_row_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_drop_observation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
               }
             ],
             "extension": [
@@ -93935,6 +93980,10 @@
               {
                 "path": ".github/workflows/ci.yml",
                 "anchor": "journal_decode_originals_wbtest.mbt"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal typed observation exact construction allowance admits and one-short refuses before restore\""
               }
             ]
           }
@@ -94029,6 +94078,210 @@
               {
                 "path": "src/platform_native/client_host/journal_run_decode_construction_native_wbtest.mbt",
                 "anchor": "test \"Run decode quotes outer rows separately from bounded cold identities\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/journal_observation_construction.mbt",
+      "sha256": "6f9948229744ffd826db9c13d8efdb4f204abf1dd839d8494fea9dee8711ee16",
+      "exports": [],
+      "operations": [
+        {
+          "name": "journal_observation_construction_capacity",
+          "declaration": "journal_observation_construction_capacity ( ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "journal_observation_evidence_retention",
+          "declaration": "journal_observation_evidence_retention ( original : @ publication . RunEvidenceValue , ) - > Int64 ?"
+        },
+        {
+          "name": "journal_observation_retention",
+          "declaration": "journal_observation_retention ( original : @ host . ClientRunObservationOriginals , ) - > Int64 ?"
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "D / existing Local journal child and original Root Ledger; pure typed observation constructor and retained DATA units",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "journal_observation_construction_capacity",
+            "journal_observation_evidence_retention",
+            "journal_observation_retention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/journal_observation_construction.mbt",
+                "anchor": "fn journal_observation_construction_capacity()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_frame_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "cell.capacity,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "frame.busy = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if record.checkpoint is Some(_) || record.effect_material_originals is Some(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/journal_observation_construction.mbt",
+                "anchor": "fn journal_observation_evidence_retention("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_drop_observation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal typed observation exact construction allowance admits and one-short refuses before restore\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "journal_decode_originals_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/run_evidence_admission_construction.mbt",
+      "sha256": "4b5f2e5ec261666ff78be4d774f01a3d6423d538edf05deaae4263740a792f7a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "run_evidence_admission_construction_inventory",
+          "declaration": "run_evidence_admission_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > RunEvidenceAdmissionConstruction ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing run_publication evidence codec and preparation units; original Local journal child prices the closed prepared/authorization route",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "run_evidence_admission_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "pub fn run_evidence_admission_construction_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_frame_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "cell.capacity,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "frame.busy = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if observation_construction_issue != 0"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "if record.checkpoint is Some(_) || record.effect_material_originals is Some(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/journal_observation_construction.mbt",
+                "anchor": "fn journal_observation_evidence_retention("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_drop_observation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same-frame typed observation originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal typed observation exact construction allowance admits and one-short refuses before restore\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "journal_decode_originals_wbtest.mbt"
               }
             ]
           }

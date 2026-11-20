@@ -4273,9 +4273,10 @@ transaction, row or decoder purpose cannot consume the retained tuple.
 The existing Root Ledger admits the actual cold request/Definition and row
 constructor geometry, linked-cell storage and distinct fresh selected-row copy
 before retention. The logical geometry is shared with the Native codec;
-Native raw allocation/layout bounds remain target-specific. Extra optimization
-capacity is optional: unavailable capacity takes the original complete decoder
-path, without raising a cap, granting an allowance or trusting a record count.
+Native raw allocation/layout bounds remain target-specific. Extra outer-decoder
+retention capacity is optional: unavailable capacity takes the original complete
+outer decoder path, without raising a cap, granting an allowance or trusting a
+record count. This does not fund the nested evidence constructors described below.
 No Array/Map backing is inferred from the journal's maximum record count.
 
 All unrelated frame cells and temporary construction capacity retire on exit.
@@ -4297,6 +4298,42 @@ therefore cannot leave a reachable frame over a pending physical close. Buffer
 close still requires the original physical cleanup; pending close retains only
 the scalar initiating error, without successful payload or decoder frame.
 No new public wire, ABI export, resource Owner or physical cleanup ACK is issued.
+
+### Same-frame typed observation originals
+
+The same row cell may additionally retain the actual prepared-invocation and
+Run-authorization values restored from its original observation envelope. These
+are immutable metadata, not a saved Allow/current decision or a validation result.
+Only the identical live frame, physical namespace, key, revision and complete row
+bytes can reuse them. The SDK validator still checks local policy first, then
+the unsupported Checkpoint/Effect guard, original Definition correspondence and
+publication policy. Physical reads, Request/Plan relationships, Activation,
+Account, inventory, cancellation and current checks remain with their original
+callers; none is supplied by this cell.
+
+A present envelope without retained originals requires its constructor peak on
+the SAME row reservation. The `run_publication` admission inventory composes the
+nonpreserving Source grammar, Canonical normalization and complete/self-CID
+canonical forests, shape validation, hash/text writers, both serializer stacks
+and fixed carriers. The Host adds the preserving envelope, BOTH full child peaks,
+the bounded actual-backing measurement workspace and its original slot/closure/
+error carriers. These quantities coexist with the original parent, input/output
+and frame holdings; they do not borrow unused outer-row scratch or another Root.
+Missing cell, missing quote or refused growth carries a resource refusal through
+the fresh SDK prefix and stops at the original observation-constructor stage,
+before calling the constructor. No-envelope and already-retained hits need no
+new constructor peak. A standalone quote fitting a profile does not establish
+that a complete Host's simultaneous holdings can be admitted.
+
+Both actual evidence values remain covered while their canonical arrays and
+spare backing are measured. Successful inspection retains that measured backing
+under the same cell/token; the constructor helper returns before scratch shrinks.
+An error after evidence construction keeps its original error and funded debt
+reachable for cleanup. At frame disposal, a separate drop helper removes every
+selected and foreign nested metadata alias and returns before any shrink or
+settlement. The selected outer tuple may retain its existing saved-observation
+backing, but nested metadata cannot escape into that outcome or another read.
+The original physical cleanup and token-only pending-close rules above remain.
 
 ### Live SDK continuation currentness
 
