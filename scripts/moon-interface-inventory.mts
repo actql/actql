@@ -7,7 +7,7 @@ import {join, relative, resolve} from 'node:path';
 import {productionDependencyClosure} from './source-dependency-closure.mjs';
 import {tokens} from './portable-core.mjs';
 
-export function moonApiInterface(source) {
+export function moonApiInterface(source: string) {
   const exports = source.split('\n').filter(line => line.startsWith('pub '));
   const operations = exports.flatMap(declaration => {
     const match = /^pub fn(?:\[[^\]]*\])? ([^(]+)\(/u.exec(declaration);
@@ -16,8 +16,8 @@ export function moonApiInterface(source) {
   return {exports, operations};
 }
 
-export function moonOperations(source) {
-  const input = tokens(source, true), operations = [];
+export function moonOperations(source: string) {
+  const input = tokens(source, true), operations: {name: string; declaration: string}[] = [];
   let braces = 0;
   for (let index = 0; index < input.length; index++) {
     const token = input[index];
@@ -27,7 +27,7 @@ export function moonOperations(source) {
     // Anonymous function types have no name. Keep the actual declaration
     // header, including type parameters and same-typed argument role names.
     if (input[index + 1]?.kind !== 'word' && input[index + 1]?.value !== '[') continue;
-    const header = [];
+    const header: string[] = [];
     let cursor = index + 1;
     while (cursor < input.length && !['{', '=', ';'].includes(input[cursor].value)) {
       header.push(input[cursor++].value);
@@ -38,11 +38,11 @@ export function moonOperations(source) {
   return operations.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function moonInterfaceClosure(root, entrances) {
-  const readManifest = name => readFileSync(join(root, 'src', name, 'moon.pkg'), 'utf8');
+export function moonInterfaceClosure(root: string, entrances: readonly string[]) {
+  const readManifest = (name: string) => readFileSync(join(root, 'src', name, 'moon.pkg'), 'utf8');
   const packages = [...new Set(entrances.flatMap(name => [name,
     ...productionDependencyClosure(name, readManifest)]))].sort();
-  const modules = [];
+  const modules: (ReturnType<typeof moonApiInterface> & {module: string; sha256: string; package: string})[] = [];
   for (const name of packages) {
     const directory = resolve(root, 'src', name);
     assert(!relative(resolve(root, 'src'), directory).startsWith('..'), 'Escaped MoonBit package');

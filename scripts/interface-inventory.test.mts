@@ -5,25 +5,25 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {test} from 'node:test';
+import {test, type TestContext} from 'node:test';
 import {assertInterfaceCoverage, interfaceAttributes, javascriptClosure,
   javascriptInterface, packageEntrances} from './interface-inventory.mjs';
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-if-coverage-'));
   t.after(() => rmSync(root, {recursive: true}));
-  function put(path, body) {
+  function put(path: string, body: string) {
     mkdirSync(join(root, path, '..'), {recursive: true});
     writeFileSync(join(root, path), body);
   }
   put('owner.md', 'Existing owner contract and real boundary verification');
   const ref = {path: 'owner.md', anchor: 'Existing owner contract'};
-  const declaration = module => {
+  const declaration = (module: Parameters<typeof assertInterfaceCoverage>[0]['modules'][number]) => {
     const operations = module.operations.filter(value => !module.privateOperations?.includes(value.name));
     return {module: module.module, sha256: module.sha256, role: 'physical-io', owner: 'existing-owner',
       exports: module.exports, operations, contracts: [{
         operations: ['<module>', ...operations.map(value => value.name)], exports: module.exports,
-        attributes: Object.fromEntries(interfaceAttributes.map(key => [key, [ref]]))}]};
+        attributes: Object.fromEntries(interfaceAttributes.map(key => [key, [ref]])) as Record<string, unknown>}]};
   };
   return {root, put, declaration, ref};
 }
@@ -169,7 +169,7 @@ test('handwritten implementation snapshots accept comments and internal refactor
 test('Moon source operation correspondence ignores only optional outer parameter commas', t => {
   const {root, declaration} = fixture(t);
   const source = 'pub fn consume(value : (Int, Bool), max_bytes : Int,) -> Int { 0 }';
-  const module = text => ({module:'src/owner.mbt', sha256:createHash('sha256').update(text).digest('hex'),
+  const module = (text: string) => ({module:'src/owner.mbt', sha256:createHash('sha256').update(text).digest('hex'),
     exports:[], operations:moonOperations(text)});
   const original = module(source), declarations = [declaration(original)];
   assert.equal(assertInterfaceCoverage({root, modules:[module(source.replace('Int,) ->', 'Int) ->'))], declarations}),1);
@@ -186,7 +186,7 @@ test('Moon source operation correspondence ignores only optional outer parameter
   const nested = 'pub fn consume(value : (Int,), max_bytes : Int,) -> Int { 0 }';
   assert.throws(() => assertInterfaceCoverage({root, modules:[module(nested.replace('(Int,)','(Int)'))],
     declarations:[declaration(module(nested))]}), /Unregistered interface operation/u);
-  const api = text => ({module:'src/pkg.generated.mbti',sha256:createHash('sha256').update(text).digest('hex'),
+  const api = (text: string) => ({module:'src/pkg.generated.mbti',sha256:createHash('sha256').update(text).digest('hex'),
     ...moonApiInterface(text)});
   const originalApi = api('pub fn consume(Int,) -> Int');
   assert.throws(() => assertInterfaceCoverage({root, modules:[api('pub fn consume(Int) -> Int')],
@@ -219,7 +219,7 @@ test('executable interface evidence uses stable case IDs without freezing displa
   const modules = javascriptClosure(root, ['entry.mjs']);
   const decl = declaration(modules[0]);
   const source = 'test "original presentation" {\n  // resource-case-id: retained_input_recovery\n  assert_true(true)\n}\n';
-  const check = text => {
+  const check = (text: string) => {
     put('recovery_wbtest.mbt', text);
     assertInterfaceCoverage({root, modules, declarations: [decl]});
   };

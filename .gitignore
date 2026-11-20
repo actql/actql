@@ -558,3 +558,9 @@ target/
 
 /adapters/host-common/owned-invocation-context.test.mjs
 /adapters/host-common/owned-invocation-context.test.d.mts
+
+/scripts/moon-interface-inventory.mjs
+/scripts/moon-interface-inventory.d.mts
+
+/scripts/interface-inventory.test.mjs
+/scripts/interface-inventory.test.d.mts
