@@ -89,23 +89,23 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('root README deal-review template prepares its exact Program"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('deal-review Mock DATA contains only original Opportunity"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('mock template catalogs declare existing typed rows keys aliases and write permissions'"
               },
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('deal-review catalog separates physical UTF8 files from logical keyed Content views'"
               }
             ]
@@ -322,7 +322,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "path": "scripts/native-cli-project-scaffold.test.mts",
                 "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {

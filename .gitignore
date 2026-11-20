@@ -801,3 +801,5 @@ target/
 # Emitted from the authored Native project cleanup controls.
 /scripts/native-cli-project-cleanup.test.mjs
 /scripts/native-cli-project-cleanup.test.d.mts
+/scripts/native-cli-project-scaffold.test.mjs
+/scripts/native-cli-project-scaffold.test.d.mts

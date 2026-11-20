@@ -6,12 +6,26 @@ import {join} from 'node:path';
 import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
-const scratch = async t => {
+import type {TestContext} from 'node:test';
+
+// These views describe fixture fields observed by the assertions below.
+type Table<Row> = {key: readonly string[]; rows: Row[]};
+type Registries = {connections: Record<string, object>; providers: {openai: {api_key_env: string}};
+  tasks: Record<string, string>};
+type RiskData = {salesforce: {Account: Table<{id: string; Churn_Risk__c: string; Risk_Reason__c: unknown}>};
+  snowflake: {usage_30d: Table<{account_id: string; active_users: number}>}};
+type ReviewData = {salesforce: {Opportunity: Table<{name: string}>};
+  drive: {files: Table<{id: string; name: string; content_utf8: string; media_type: string; version: string}>}};
+type CatalogView = {schema: Record<string, unknown>; facts?: unknown; acquisition?: unknown; request_schema?: unknown};
+type CatalogConnection = {views: CatalogView[]; query_aliases?: unknown; data: unknown[]; writes?: unknown; file_bindings?: unknown};
+type Catalog = {connections: Record<string, CatalogConnection>};
+
+const scratch = async (t: TestContext) => {
   const root = await mkdtemp(join(tmpdir(), 'actql-project-scaffold-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   return root;
 };
-const json = async path => JSON.parse(await readFile(path, 'utf8'));
+const json = async <T = object,>(path: string): Promise<T> => JSON.parse(await readFile(path, 'utf8')) as T;
 
 test('current troubleshooting commands correspond to the CLI registry and project template', async () => {
   const guide = await readFile(new URL('../docs/guides/debugging.md', import.meta.url), 'utf8');
@@ -69,16 +83,16 @@ test('the Quickstart template prepares eight inputs and leaves state creation to
 
 test('mock data retains both source keys, original field values and independent expected joins', async t => {
   const root = await scratch(t), result = scaffoldProject(join(root, 'project'), 'churn-risk-mock');
-  const data = await json(join(result.directory, 'mock/data.json'));
+  const data = await json<RiskData>(join(result.directory, 'mock/data.json'));
   assert.deepEqual(data.salesforce.Account.key, ['id']);
   assert.deepEqual(data.snowflake.usage_30d.key, ['account_id']);
   const rows = data.salesforce.Account.rows.map(account => ({id: account.id,
-    risk: account.Churn_Risk__c, users: data.snowflake.usage_30d.rows.find(x => x.account_id === account.id).active_users}));
+    risk: account.Churn_Risk__c, users: data.snowflake.usage_30d.rows.find(x => x.account_id === account.id)!.active_users}));
   assert.deepEqual(rows, [{id: '001Acme', risk: 'low', users: 4}, {id: '001Globex', risk: 'medium', users: 12}]);
   assert(data.salesforce.Account.rows.every(x => x.Risk_Reason__c === null));
-  const connections = await json(join(result.directory, 'connectors.json'));
+  const connections = await json<Pick<Registries, 'connections'>>(join(result.directory, 'connectors.json'));
   assert.deepEqual(connections.connections, {salesforce: {connector: 'salesforce'}, snowflake: {connector: 'snowflake'}});
-  const model = await json(join(result.directory, 'model-tasks.json'));
+  const model = await json<Pick<Registries, 'providers' | 'tasks'>>(join(result.directory, 'model-tasks.json'));
   assert.equal(model.providers.openai.api_key_env, 'OPENAI_API_KEY');
   assert.equal(model.tasks['model-task:churn-risk.v1'], './model-tasks/churn-risk.v1.yaml');
   // No credential file or environment variable is read by template preparation.
@@ -89,7 +103,7 @@ test('the SQL/AQL program and YAML instructions match the documented Quickstart 
   const root = await scratch(t), result = scaffoldProject(join(root, 'project'), 'churn-risk-mock');
   const docs = await readFile(new URL('../docs/getting-started/quickstart.md', import.meta.url), 'utf8');
   const program = await readFile(join(result.directory, 'churn-risk.aql'), 'utf8');
-  assert.equal(program, docs.match(/```sql\n([\s\S]*?)```/u)[1]);
+  assert.equal(program, docs.match(/```sql\n([\s\S]*?)```/u)![1]);
   const yaml = [...docs.matchAll(/```yaml\n([\s\S]*?)```/gu)].map(match => match[1]);
   assert.equal(await readFile(join(result.directory, 'model-tasks/churn-risk.v1.yaml'), 'utf8'), yaml[0]);
   assert.equal(await readFile(join(result.directory, 'mock/churn-risk.v1.answers.yaml'), 'utf8'), yaml[1]);
@@ -99,8 +113,8 @@ test('a plain project has empty registries and no implicitly selected mock profi
   const root = await scratch(t), result = scaffoldProject(join(root, 'project'));
   assert.equal(result.files.length, 3);
   assert.equal(Object.hasOwn(await json(result.configuration), 'profile'), false);
-  assert.deepEqual((await json(join(result.directory, 'connectors.json'))).connections, {});
-  assert.deepEqual((await json(join(result.directory, 'model-tasks.json'))).providers, {});
+  assert.deepEqual((await json<Pick<Registries, 'connections'>>(join(result.directory, 'connectors.json'))).connections, {});
+  assert.deepEqual((await json<Pick<Registries, 'providers' | 'tasks'>>(join(result.directory, 'model-tasks.json'))).providers, {});
   await assert.rejects(stat(result.stateDirectory), {code: 'ENOENT'});
 });
 
@@ -143,10 +157,10 @@ test('a group-writable project directory is refused without chmod or file writes
 test('invalid paths fail without creating a project and returned template files cannot be replaced', async t => {
   await scratch(t);
   for (const path of ['', null, 'nul\0name', 'x'.repeat(4097)]) {
-    assert.throws(() => scaffoldProject(path), {code: 'ACTQL_E_PROJECT_PATH'});
+    assert.throws(() => scaffoldProject(path as string), {code: 'ACTQL_E_PROJECT_PATH'});
   }
   const files = projectTemplateFiles('churn-risk-mock');
-  assert.throws(() => {files['churn-risk.aql'] = 'SELECT 1';}, TypeError);
+  assert.throws(() => {(files as Record<string, string>)['churn-risk.aql'] = 'SELECT 1';}, TypeError);
   assert.match(projectTemplateFiles('churn-risk-mock')['churn-risk.aql'], /EFFECT UPDATE salesforce.Account/u);
 });
 
@@ -156,14 +170,14 @@ test('root README deal-review template prepares its exact Program and typed Task
     'mock/catalog.json', 'mock/data.json', 'mock/deal-review.v1.answers.yaml', 'model-tasks.json', 'model-tasks/deal-review.v1.yaml']);
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
   assert.equal(await readFile(join(result.directory, 'deal-review.aql'), 'utf8'),
-    readme.match(/```sql\n([\s\S]*?)```/u)[1]);
+    readme.match(/```sql\n([\s\S]*?)```/u)![1]);
   assert.deepEqual(await json(result.configuration), {version: 'actql-config/0.1',
     connectors: './connectors.json', model_tasks: './model-tasks.json', state_dir: './.actql',
     profile: 'mock', mock: {catalog: './mock/catalog.json', data: './mock/data.json',
       answers: {'model-task:deal-review.v1': './mock/deal-review.v1.answers.yaml'}}});
-  assert.deepEqual((await json(join(result.directory, 'connectors.json'))).connections,
+  assert.deepEqual((await json<Pick<Registries, 'connections'>>(join(result.directory, 'connectors.json'))).connections,
     {salesforce: {connector: 'salesforce'}, drive: {connector: 'drive'}});
-  assert.equal((await json(join(result.directory, 'model-tasks.json'))).tasks['model-task:deal-review.v1'],
+  assert.equal((await json<Pick<Registries, 'providers' | 'tasks'>>(join(result.directory, 'model-tasks.json'))).tasks['model-task:deal-review.v1'],
     './model-tasks/deal-review.v1.yaml');
   const task = await readFile(join(result.directory, 'model-tasks/deal-review.v1.yaml'), 'utf8');
   assert.match(task, /^task: model-task:deal-review\.v1\n/u);
@@ -176,7 +190,7 @@ test('root README deal-review template prepares its exact Program and typed Task
 
 test('deal-review Mock DATA contains only original Opportunity rows and UTF8 Drive documents keyed by ID', async t => {
   const root = await scratch(t), result = scaffoldProject(join(root, 'deal-review'), 'deal-review-mock');
-  const data = await json(join(result.directory, 'mock/data.json'));
+  const data = await json<ReviewData>(join(result.directory, 'mock/data.json'));
   assert.deepEqual(Object.keys(data).sort(), ['drive', 'salesforce']);
   assert.deepEqual(Object.keys(data.salesforce), ['Opportunity']);
   assert.deepEqual(Object.keys(data.drive), ['files']);
@@ -212,11 +226,11 @@ test('mock template catalogs declare existing typed rows keys aliases and write 
   for (const [template, resource, alias, writable] of [
     ['churn-risk-mock', 'Account', 'salesforce.accounts', ['Churn_Risk__c', 'Risk_Reason__c']],
     ['deal-review-mock', 'Opportunity', 'salesforce.opportunities', ['StageName', 'NextStep']],
-  ]) {
+  ] as const) {
     const files = projectTemplateFiles(template);
-    const configuration = JSON.parse(files['actql.config.json']);
-    const catalog = JSON.parse(files['mock/catalog.json']);
-    const data = JSON.parse(files['mock/data.json']);
+    const configuration = JSON.parse(files['actql.config.json']) as {profile: string; mock: {catalog: string}};
+    const catalog = JSON.parse(files['mock/catalog.json']) as Catalog;
+    const data = JSON.parse(files['mock/data.json']) as {salesforce: Record<string, Pick<Table<never>, 'key'>>};
     assert.equal(configuration.profile, 'mock');
     assert.equal(configuration.mock.catalog, './mock/catalog.json');
     const declared = catalog.connections.salesforce;
@@ -231,7 +245,7 @@ test('mock template catalogs declare existing typed rows keys aliases and write 
     assert.deepEqual(data.salesforce[resource].key, ['id']);
     assert.doesNotMatch(files['mock/catalog.json'], /sha256:|schema_wire|schema_cid|scenario|template/u);
   }
-  const catalog = JSON.parse(projectTemplateFiles('churn-risk-mock')['mock/catalog.json']);
+  const catalog = JSON.parse(projectTemplateFiles('churn-risk-mock')['mock/catalog.json']) as Catalog;
   assert.deepEqual(catalog.connections.snowflake.views[0].schema.active_users,
     {type: 'int64', nullable: false});
   assert.deepEqual(catalog.connections.snowflake.views[0].facts,
@@ -240,7 +254,7 @@ test('mock template catalogs declare existing typed rows keys aliases and write 
 });
 
 test('deal-review catalog separates physical UTF8 files from logical keyed Content views', () => {
-  const catalog = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/catalog.json']);
+  const catalog = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/catalog.json']) as Catalog;
   const drive = catalog.connections.drive;
   const [listing, contents] = drive.views;
   assert.deepEqual(Object.keys(listing.schema).sort(),
