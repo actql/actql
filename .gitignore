@@ -773,3 +773,7 @@ target/
 /packages/native-cli/lib/local-runtime.d.mts
 /scripts/native-cli-local-runtime.mjs
 /scripts/native-cli-local-runtime.d.mts
+
+# Emitted from the authored Native artifact reader.
+/scripts/native-cli-artifact-reader.mjs
+/scripts/native-cli-artifact-reader.d.mts
