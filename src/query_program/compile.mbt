@@ -4781,6 +4781,7 @@ fn compile_steps(
         }
         let input_namespace_profiles = column_profiles
         let mut group_namespace_profiles = column_profiles
+        let mut selected_namespace_profiles : Array[ResultColumn]? = None
         let namespace_ranges = if input_namespace_profiles is Some(_) {
           let values = value_range_names(
             value_table_receivers, scalar_value_table_ranges,
@@ -5213,12 +5214,32 @@ fn compile_steps(
           // group keys after aggregation; arguments used the old value slots.
           let names : Array[String] = []
           let selected : Array[@builder.Node] = []
+          let selected_columns : Array[ResultColumn]? = group_namespace_profiles.map(_ => {
+              []
+            },
+          )
           for index in 0..<key_names.length() {
             let name = key_display_names[index]
             if names.any(previous => ascii_upper(previous) == ascii_upper(name)) {
               raise Abort(DuplicateOutput)
             }
             names.push(name)
+            if selected_columns is Some(columns) {
+              columns.push({
+                label: name,
+                slot: name,
+                name: Some(
+                  key_aliases
+                  .get(index)
+                  .bind(value => value)
+                  .unwrap_or({ value: name, quoted: false, }),
+                ),
+                name_view: slot_namespace(
+                  group_namespace_profiles,
+                  key_names[index],
+                ),
+              })
+            }
             selected.push(
               if name == key_names[index] {
                 construction.text(name)
@@ -5278,6 +5299,15 @@ fn compile_steps(
               slot
             }
             names.push(name)
+            if selected_columns is Some(columns) {
+              columns.push(
+                projection_result_column(
+                  projection,
+                  name,
+                  name_view=slot_namespace(group_namespace_profiles, slot),
+                ),
+              )
+            }
             selected.push(
               if name == slot {
                 construction.text(slot)
@@ -5298,6 +5328,7 @@ fn compile_steps(
             entries.clear()
             entries.push(("select", construction.array(selected)))
           }
+          selected_namespace_profiles = selected_columns
           reset_infer_key_labels = true
           active_fields = names.copy()
           output = names
@@ -5327,14 +5358,20 @@ fn compile_steps(
         scalar_value_table_ranges = scalar_value_table_ranges.filter(receiver => {
           key_names.contains(receiver.1)
         })
-        column_profiles = group_namespace_profiles.bind(profiles => {
-          let retained = profiles.filter(column => {
-            active_fields.contains(column.slot)
+        // A Pipe select can rename an aggregate's private slot to an authored
+        // output name. Project views along those exact same bindings; filtering
+        // by the new spelling could resurrect an old input value's namespace.
+        column_profiles = (if sql_group_projection {
+          group_namespace_profiles.map(profiles => {
+            profiles.filter(column => active_fields.contains(column.slot))
           })
-          if retained.is_empty() {
+        } else {
+          selected_namespace_profiles
+        }).bind(profiles => {
+          if profiles.is_empty() {
             None
           } else {
-            Some(retained)
+            Some(profiles)
           }
         })
         grouped = true

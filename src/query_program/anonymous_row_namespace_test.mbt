@@ -649,3 +649,51 @@ test "group aggregate named members and row arrays retain their original types" 
     }
   }
 }
+
+///|
+test "Pipe aggregate select projects the actual array namespace to its output name" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row, n AS sort_key FROM t), keyed AS (FROM r |> ASSERT UNIQUE BY (sort_key)) FROM keyed |> AGGREGATE ARRAY_AGG(row ORDER BY sort_key) AS row |> SELECT "
+  let source = prefix + "row[OFFSET(0)].f0_ AS bad"
+  let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+  match
+    compile_query_script(
+      script,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ) {
+    Err(UnknownColumn) => ()
+    Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) => assert_true(@origin.belongs_to(@query.script_document(script), origin))
+    Err(_) => fail("wrong original Pipe array member refusal")
+    Ok(_) => fail("Pipe select dropped the actual Array row namespace")
+  }
+  let program = anonymous_result_program(prefix + "row[OFFSET(0)].n AS value")
+  assert_eq(anonymous_result_fields(program), ["value"])
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) =>
+      fail("same original asserted key and row array remain closed")
+  }
+}
+
+///|
+test "Pipe aggregate namespace projection preserves named keys and scalar siblings" {
+  let source = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row, n AS sort_key FROM t), keyed AS (FROM r |> ASSERT UNIQUE BY (sort_key)) FROM keyed |> AGGREGATE ARRAY_AGG(row ORDER BY sort_key) AS row, COUNT(*) + 0 AS count GROUP BY sort_key |> SELECT row[OFFSET(0)].n AS value, sort_key, count"
+  let program = anonymous_result_program(source)
+  assert_eq(anonymous_result_fields(program), ["value", "sort_key", "count"])
+  match
+    @check.check_parsed(
+      program,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) =>
+      fail("the existing key scalar and row array fixtures remain closed")
+  }
+}
