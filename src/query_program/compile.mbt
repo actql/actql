@@ -4431,6 +4431,13 @@ fn compile_steps(
             _ => ()
           }
         }
+        let object_key_receivers : Array[
+          (@query.Expression, String, @builder.Node),
+        ]? = if object_expansions is Some(expansions) && !expansions.is_empty() {
+          Some([])
+        } else {
+          None
+        }
         let derives : Array[(String, @builder.Node)] = []
         let hidden_order_derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
@@ -4593,25 +4600,70 @@ fn compile_steps(
                 (
                   name,
                   if key is ObjectColumn(original) {
-                    let receiver = append_pipe_expression(
-                      construction,
-                      original.receiver,
-                      unnest_expression_columns(
-                        pipe_visible, value_table_receivers, scalar_value_table_ranges,
-                        pipe_columns,
-                      ),
-                      pipe_ranges,
-                      max_work,
-                      value_ranges=value_range_names(
-                        value_table_receivers, scalar_value_table_ranges,
-                      ),
-                      column_profiles~,
-                    )
+                    // A generated group key owns one property of the same
+                    // original star receiver. Reuse the receiver slot, not a
+                    // second lowering of its complete row for each property.
+                    let receivers = object_key_receivers.unwrap()
+                    if receivers.length() > key_reuse_work {
+                      raise Abort(
+                        Expression({
+                          issue: @expression.WorkLimit,
+                          origin: @query.expression_origin(
+                            original.receiver,
+                            @query.expression_root(original.receiver),
+                          ),
+                        }),
+                      )
+                    }
+                    key_reuse_work -= receivers.length()
+                    let mut retained : String? = None
+                    for (expression, slot, _) in receivers {
+                      if physical_equal(expression, original.receiver) {
+                        retained = Some(slot)
+                        break
+                      }
+                    }
+                    let receiver = match retained {
+                      Some(slot) => slot
+                      None => {
+                        let mut serial = receivers.length()
+                        let mut slot = "aql_group_receiver_" +
+                          serial.to_string()
+                        while active_fields.any(field => {
+                                ascii_upper(field) == ascii_upper(slot)
+                              }) ||
+                              receivers.any(entry => entry.1 == slot) {
+                          serial += 1
+                          slot = "aql_group_receiver_" + serial.to_string()
+                        }
+                        let value = append_pipe_expression(
+                          construction,
+                          original.receiver,
+                          unnest_expression_columns(
+                            pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                            pipe_columns,
+                          ),
+                          pipe_ranges,
+                          max_work,
+                          value_ranges=value_range_names(
+                            value_table_receivers, scalar_value_table_ranges,
+                          ),
+                          column_profiles~,
+                        )
+                        receivers.push((original.receiver, slot, value))
+                        slot
+                      }
+                    }
                     construction.object([
                       (
                         "property",
                         construction.object([
-                          ("value", receiver),
+                          (
+                            "value",
+                            construction.object([
+                              ("field", construction.text(receiver)),
+                            ]),
+                          ),
                           ("name", construction.text(original.column.label)),
                         ]),
                       ),
@@ -5209,6 +5261,20 @@ fn compile_steps(
         }
         // Property order can depend on a SELECT alias evaluated above. Common
         // derive fields share an input snapshot, so emit the dependency next.
+        if object_key_receivers is Some(receivers) && !receivers.is_empty() {
+          let receiver_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 {
+            receiver_step.push(entries[0])
+            entries.clear()
+          }
+          receiver_step.push(
+            (
+              "derive",
+              construction.object(receivers.map(entry => (entry.1, entry.2))),
+            ),
+          )
+          step_entries.push(receiver_step)
+        }
         for fields in [derives, hidden_order_derives] {
           if fields.is_empty() {
             continue

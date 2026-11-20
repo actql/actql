@@ -291,3 +291,108 @@ test "namespace full container and material quote refuses one-short before actua
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
+
+///|
+test "namespace star material counts the property and group key beside result mappings" {
+  // One snapshot of three fields. Two projection mappings (4 nodes), a
+  // property over the evaluated receiver (5), and the Group.by entry (1).
+  let (_, nodes, text) = request_query_namespace_construction(
+    6L,
+    (1, 3, 1, 0, 0),
+    (0L, 0L),
+    (0, 0),
+    12L,
+    false,
+    true,
+  ).unwrap()
+  assert_eq(nodes, 46)
+  assert_eq(text, 516L)
+}
+
+///|
+test "namespace computed star reserves both dimensions before actual property lowering" {
+  let (environment, publication) = request_query_publication_fixture()
+  for retained in [true, false] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let source = "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2"
+    let parsed = parse_request_query_syntax(
+      parent,
+      input,
+      source,
+      @frontend.Sql,
+    ).unwrap()
+    let catalog = @source_publication.prepared_published_query_catalog(
+      publication, environment,
+    ).unwrap()
+    let copy = @source_publication.prepared_published_request_copy_geometry(
+      publication, environment,
+    ).unwrap()
+    let bytes = request_query_lowering_data_bytes(
+      parent.query_syntax.unwrap(),
+      None,
+      catalog,
+      copy,
+      publication,
+    ).unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    // This uses the ordinary finite preparation policy, not a raised fixture cap.
+    assert_true(bytes < limits.retained_bytes - before.0)
+    assert_true(bytes < limits.execution_bytes - before.1)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retained {
+        limits.retained_bytes - before.0 - bytes + 1L
+      } else {
+        0L
+      },
+      if retained {
+        0L
+      } else {
+        limits.execution_bytes - before.1 - bytes + 1L
+      },
+    ).unwrap()
+    assert_true(
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+      )
+      is Err(Request(Capacity(_))),
+    )
+    assert_eq(parent._observed_query_lower_calls, 0L)
+    let selected = parent.query_syntax.unwrap().lowering.unwrap()
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    let lowered = lower_request_published_query(
+      parent,
+      input,
+      publication,
+      environment,
+      None,
+    ).unwrap()
+    assert_true(lowered.0.program is Some(_))
+    assert_eq(parent._observed_query_lower_calls, 1L)
+    assert_eq(parent._observed_query_parse_calls, 1L)
+    assert_true(
+      physical_equal(parent.query_syntax.unwrap().lowering.unwrap(), selected),
+    )
+    assert_true(
+      physical_equal(
+        parent.query_syntax.unwrap().query.unwrap().unwrap(),
+        parsed,
+      ),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}

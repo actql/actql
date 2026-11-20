@@ -146,6 +146,16 @@ fn request_query_namespace_construction(
     return None
   }
   let controls = @shape.collection_construction_quotation_extent()
+  // The existing four nodes per field cover both two-node select mappings.
+  // A computed star field can additionally build a five-node property over
+  // its shared evaluated receiver and one Group.by string. The whole receiver
+  // is lowered once per original occurrence, not once per projected field.
+  let material_per_field = if has_star { 10L } else { 4L }
+  // Star property names can recur in the derive, projection and final Result
+  // fields. Include three copies of the original name bound plus generated
+  // slot names (receiver, property/key, projection and Result naming).
+  let original_text_copies = if has_star { 3L } else { 1L }
+  let generated_text_per_field = if has_star { 160L } else { 64L }
   guard @execution.checked_preparation_add_product(
       collections.record_headers,
       controls.record_headers,
@@ -168,11 +178,16 @@ fn request_query_namespace_construction(
     is Some(text) &&
     @execution.checked_preparation_add_product(text, schema_names, 1L)
     is Some(text) &&
-    @execution.checked_preparation_add_product(text, width, 64L) is Some(text) &&
+    @execution.checked_preparation_add_product(0L, text, original_text_copies)
+    is Some(text) &&
+    @execution.checked_preparation_add_product(
+      text, width, generated_text_per_field,
+    )
+    is Some(text) &&
     @execution.checked_preparation_add_product(0L, snapshots, text.max(1L))
     is Some(text) &&
     @execution.checked_preparation_add_product(0L, text, 2L) is Some(utf16) &&
-    @execution.checked_preparation_add_product(0L, fields, 4L)
+    @execution.checked_preparation_add_product(0L, fields, material_per_field)
     is Some(material_nodes) &&
     @execution.checked_preparation_add_product(material_nodes, snapshots, 16L)
     is Some(material_nodes) else {

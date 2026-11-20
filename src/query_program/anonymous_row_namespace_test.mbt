@@ -856,3 +856,26 @@ test "group scalar row arrays preserve named members in SQL Pipe and retained re
     }
   }
 }
+
+///|
+test "grouped object star evaluates the original receiver once across its keys" {
+  for
+    source in [
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2", "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY ALL",
+    ] {
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), ["f0_", "n"], msg=source)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) => fail("grouped computed row inputs are closed")
+    }
+    // The final Program retains one complete original receiver expression.
+    // The shape probe does not become a second runtime derive.
+    let wire = semantic(program)
+    let receiver = "\"object\":{\"f0_\":{"
+    let receiver_count = wire.split(receiver).count() - 1
+    assert_eq(receiver_count, 1, msg=source)
+  }
+}
