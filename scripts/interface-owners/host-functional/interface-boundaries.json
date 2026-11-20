@@ -28264,7 +28264,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9428942b5e4a5c26fd6229601aa6e7cbd0b5ee2903ce45dcfc1c4dd52d688db0",
+      "sha256": "9aca91e7c8ea5d054804dc7cbe6888094648c39723010396aeef96c210d49b23",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28976,6 +28976,21 @@
         },
         {
           "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+          "parameters": [
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
           "parameters": [
             "key"
           ],
@@ -29967,7 +29982,9 @@
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose"
+            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -30784,6 +30801,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
               }
             ]
           }
@@ -118178,7 +118199,7 @@
     },
     {
       "module": "adapters/host-node/local-checkpoint-answer.mjs",
-      "sha256": "c95f61ceeed28b47155d19a1cbe5e650ca56468494096cdaae5f44dd6e1b8814",
+      "sha256": "f766a1a82018cd77d72297a4f2317cbec6c301aa6da6c6644b5bd0d0579e4480",
       "exports": [
         "createLocalCheckpointAnswer",
         "createLocalSigningOriginalReader"
@@ -137007,7 +137028,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5511,
+    "operations": 5513,
     "exports": 1194,
     "explicitContractGroups": 550
   },
