@@ -132382,7 +132382,7 @@
                 "anchor": "export function installHttpRequestPreparation(preparation, registry, originals,"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "export function prepareClientHostRequest("
               }
             ],

@@ -4383,7 +4383,7 @@
                 "anchor": "\"submission_epoch\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRef"
               }
             ],
@@ -4489,7 +4489,7 @@
                 "anchor": "\"submission_attempt\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionAttempt"
               }
             ],
@@ -4595,7 +4595,7 @@
                 "anchor": "\"cancellation\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationAttempt"
               }
             ],
@@ -4799,7 +4799,7 @@
                 "anchor": "\"operations\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientBody"
               }
             ],

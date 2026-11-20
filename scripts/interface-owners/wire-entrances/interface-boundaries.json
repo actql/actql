@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "96b1fef6d904584eec20608796a62ffc899d06e50f94d1e44957bc483df2db1d",
+      "sha256": "051f1aa96dd078d82043ab655e43750365f6e8964750e27bf39fa129f7e0baf9",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -49,9 +49,372 @@
         "WireSubmitPreparationErrorShape",
         "WireValueContractShape",
         "checkOutcomeProtocol",
-        "runStateProtocol"
+        "checkOutcomeSchemaCid",
+        "checkReasonSchemaCid",
+        "clientHostOperations",
+        "clientHostRequestKeys",
+        "runStateProtocol",
+        "validAdmissionContract",
+        "validAdmissionShape",
+        "validCancellationAttemptShape",
+        "validCancellationLookupShape",
+        "validCancellationRefShape",
+        "validCancellationShape",
+        "validCheckOutcomeContract",
+        "validCheckOutcomeShape",
+        "validCheckpointReviewShape",
+        "validCheckpointSummaryShape",
+        "validClientRequestOptionalFields",
+        "validConnectionShape",
+        "validHeldContract",
+        "validHeldShape",
+        "validLookupFoundShape",
+        "validLookupNotFoundShape",
+        "validLookupUnknownShape",
+        "validNamedSubmissionAttemptShape",
+        "validOperationAttemptRefShape",
+        "validOwnerCursorShape",
+        "validOwnerObservationsShape",
+        "validOwnerRefShape",
+        "validProfileContract",
+        "validProfileShape",
+        "validRequestCancellationShape",
+        "validRequestLookupContract",
+        "validResolveItemShape",
+        "validResolveResultShape",
+        "validResourceInspectionShape",
+        "validResourceListingShape",
+        "validResourcePeekShape",
+        "validResultDescriptionShape",
+        "validRunRefShape",
+        "validRunStateShape",
+        "validRunWaitContract",
+        "validSubmissionAttemptShape",
+        "validSubmissionEpochShape",
+        "validSubmissionLookupShape",
+        "validSubmissionNameShape",
+        "validSubmissionOutcomeShape",
+        "validSubmissionRefShape",
+        "validSubmissionRestartShape",
+        "validSubmitPreparationErrorShape"
       ],
-      "operations": [],
+      "operations": [
+        {
+          "name": "clientHostRequestKeys",
+          "parameters": [
+            "operation: unknown",
+            "body?: unknown"
+          ],
+          "result": "string[] | undefined"
+        },
+        {
+          "name": "validAdmissionContract",
+          "parameters": [
+            "value: unknown",
+            "selected: WireConnectionShape"
+          ],
+          "result": "value is WireAdmissionShape"
+        },
+        {
+          "name": "validAdmissionShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireAdmissionShape"
+        },
+        {
+          "name": "validCancellationAttemptShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCancellationAttemptShape"
+        },
+        {
+          "name": "validCancellationLookupShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCancellationLookupShape"
+        },
+        {
+          "name": "validCancellationRefShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCancellationRefShape"
+        },
+        {
+          "name": "validCancellationShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCancellationShape"
+        },
+        {
+          "name": "validCheckOutcomeContract",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCheckOutcomeShape"
+        },
+        {
+          "name": "validCheckOutcomeShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCheckOutcomeShape"
+        },
+        {
+          "name": "validCheckpointReviewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCheckpointReviewShape"
+        },
+        {
+          "name": "validCheckpointSummaryShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireCheckpointSummaryShape"
+        },
+        {
+          "name": "validClientRequestOptionalFields",
+          "parameters": [
+            "operation: unknown",
+            "body: unknown"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "validConnectionShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireConnectionShape"
+        },
+        {
+          "name": "validHeldContract",
+          "parameters": [
+            "value: unknown",
+            "expected: string"
+          ],
+          "result": "value is WireHeldShape"
+        },
+        {
+          "name": "validHeldShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireHeldShape"
+        },
+        {
+          "name": "validLookupFoundShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireLookupFoundShape"
+        },
+        {
+          "name": "validLookupNotFoundShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireLookupNotFoundShape"
+        },
+        {
+          "name": "validLookupUnknownShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireLookupUnknownShape"
+        },
+        {
+          "name": "validNamedSubmissionAttemptShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireNamedSubmissionAttemptShape"
+        },
+        {
+          "name": "validOperationAttemptRefShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireOperationAttemptRefShape"
+        },
+        {
+          "name": "validOwnerCursorShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireOwnerCursorShape"
+        },
+        {
+          "name": "validOwnerObservationsShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireOwnerObservationsShape"
+        },
+        {
+          "name": "validOwnerRefShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireOwnerRefShape"
+        },
+        {
+          "name": "validProfileContract",
+          "parameters": [
+            "value: unknown",
+            "selected: WireConnectionShape"
+          ],
+          "result": "value is WireProfileShape"
+        },
+        {
+          "name": "validProfileShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireProfileShape"
+        },
+        {
+          "name": "validRequestCancellationShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRequestCancellationShape"
+        },
+        {
+          "name": "validRequestLookupContract",
+          "parameters": [
+            "value: unknown",
+            "expected: string"
+          ],
+          "result": "value is WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape | WireHeldShape"
+        },
+        {
+          "name": "validResolveItemShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResolveItemShape"
+        },
+        {
+          "name": "validResolveResultShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResolveResultShape"
+        },
+        {
+          "name": "validResourceInspectionShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResourceInspectionShape"
+        },
+        {
+          "name": "validResourceListingShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResourceListingShape"
+        },
+        {
+          "name": "validResourcePeekShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResourcePeekShape"
+        },
+        {
+          "name": "validResultDescriptionShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireResultDescriptionShape"
+        },
+        {
+          "name": "validRunRefShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRunRefShape"
+        },
+        {
+          "name": "validRunStateShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRunStateShape"
+        },
+        {
+          "name": "validRunWaitContract",
+          "parameters": [
+            "value: unknown",
+            "since: number | null"
+          ],
+          "result": "value is WireRunStateShape"
+        },
+        {
+          "name": "validSubmissionAttemptShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionAttemptShape"
+        },
+        {
+          "name": "validSubmissionEpochShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionEpochShape"
+        },
+        {
+          "name": "validSubmissionLookupShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionLookupShape"
+        },
+        {
+          "name": "validSubmissionNameShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionNameShape"
+        },
+        {
+          "name": "validSubmissionOutcomeShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionOutcomeShape"
+        },
+        {
+          "name": "validSubmissionRefShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionRefShape"
+        },
+        {
+          "name": "validSubmissionRestartShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionRestartShape"
+        },
+        {
+          "name": "validSubmitPreparationErrorShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmitPreparationErrorShape"
+        }
+      ],
       "imports": [],
       "compilerFields": [],
       "role": "public-wire-codec",
@@ -59,7 +422,49 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "clientHostRequestKeys",
+            "validAdmissionContract",
+            "validAdmissionShape",
+            "validCancellationAttemptShape",
+            "validCancellationLookupShape",
+            "validCancellationRefShape",
+            "validCancellationShape",
+            "validCheckOutcomeContract",
+            "validCheckOutcomeShape",
+            "validCheckpointReviewShape",
+            "validCheckpointSummaryShape",
+            "validClientRequestOptionalFields",
+            "validConnectionShape",
+            "validHeldContract",
+            "validHeldShape",
+            "validLookupFoundShape",
+            "validLookupNotFoundShape",
+            "validLookupUnknownShape",
+            "validOperationAttemptRefShape",
+            "validOwnerCursorShape",
+            "validOwnerObservationsShape",
+            "validOwnerRefShape",
+            "validProfileContract",
+            "validProfileShape",
+            "validRequestCancellationShape",
+            "validRequestLookupContract",
+            "validResolveItemShape",
+            "validResolveResultShape",
+            "validResourceInspectionShape",
+            "validResourceListingShape",
+            "validResourcePeekShape",
+            "validResultDescriptionShape",
+            "validRunRefShape",
+            "validRunStateShape",
+            "validRunWaitContract",
+            "validSubmissionAttemptShape",
+            "validSubmissionEpochShape",
+            "validSubmissionLookupShape",
+            "validSubmissionOutcomeShape",
+            "validSubmissionRefShape",
+            "validSubmissionRestartShape",
+            "validSubmitPreparationErrorShape"
           ],
           "exports": [
             "ClientHostOperation",
@@ -101,7 +506,52 @@
             "WireSubmitPreparationErrorShape",
             "WireValueContractShape",
             "checkOutcomeProtocol",
-            "runStateProtocol"
+            "runStateProtocol",
+            "checkOutcomeSchemaCid",
+            "checkReasonSchemaCid",
+            "clientHostOperations",
+            "clientHostRequestKeys",
+            "validAdmissionContract",
+            "validAdmissionShape",
+            "validCancellationAttemptShape",
+            "validCancellationLookupShape",
+            "validCancellationRefShape",
+            "validCancellationShape",
+            "validCheckOutcomeContract",
+            "validCheckOutcomeShape",
+            "validCheckpointReviewShape",
+            "validCheckpointSummaryShape",
+            "validClientRequestOptionalFields",
+            "validConnectionShape",
+            "validHeldContract",
+            "validHeldShape",
+            "validLookupFoundShape",
+            "validLookupNotFoundShape",
+            "validLookupUnknownShape",
+            "validOperationAttemptRefShape",
+            "validOwnerCursorShape",
+            "validOwnerObservationsShape",
+            "validOwnerRefShape",
+            "validProfileContract",
+            "validProfileShape",
+            "validRequestCancellationShape",
+            "validRequestLookupContract",
+            "validResolveItemShape",
+            "validResolveResultShape",
+            "validResourceInspectionShape",
+            "validResourceListingShape",
+            "validResourcePeekShape",
+            "validResultDescriptionShape",
+            "validRunRefShape",
+            "validRunStateShape",
+            "validRunWaitContract",
+            "validSubmissionAttemptShape",
+            "validSubmissionEpochShape",
+            "validSubmissionLookupShape",
+            "validSubmissionOutcomeShape",
+            "validSubmissionRefShape",
+            "validSubmissionRestartShape",
+            "validSubmitPreparationErrorShape"
           ],
           "attributes": {
             "responsibility": [
@@ -276,15 +726,24 @@
               {
                 "path": "packages/sdk/domain-carrier-presentation.typecheck.mts",
                 "anchor": "const domain: Reason ="
+              },
+              {
+                "path": "packages/client-wire/generated-guards.typecheck.mts",
+                "anchor": "The existing generated shape checks refine DATA only."
               }
             ]
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "validNamedSubmissionAttemptShape",
+            "validSubmissionNameShape"
+          ],
           "exports": [
             "WireNamedSubmissionAttemptShape",
-            "WireSubmissionNameShape"
+            "WireSubmissionNameShape",
+            "validNamedSubmissionAttemptShape",
+            "validSubmissionNameShape"
           ],
           "attributes": {
             "responsibility": [
@@ -389,6 +848,10 @@
               {
                 "path": "packages/client-wire/named-submission.typecheck.mts",
                 "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              },
+              {
+                "path": "packages/client-wire/generated-guards.typecheck.mts",
+                "anchor": "The existing generated shape checks refine DATA only."
               }
             ]
           }
@@ -919,7 +1382,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "clientWorkspaceMatches"
               },
               {
@@ -1015,7 +1478,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "isClientSubmitRejection"
               },
               {
@@ -1111,7 +1574,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "prepareClientHostRequest"
               },
               {
@@ -1133,11 +1596,11 @@
                 "anchor": "export "
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -1149,11 +1612,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -1215,7 +1678,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "sameSubmissionRef"
               },
               {
@@ -1311,7 +1774,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "snapshotCheckRequest"
               },
               {
@@ -1333,11 +1796,11 @@
                 "anchor": "export "
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -1349,11 +1812,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -1416,7 +1879,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "snapshotClientRequest"
               },
               {
@@ -1438,11 +1901,11 @@
                 "anchor": "export "
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -1454,11 +1917,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -1520,7 +1983,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellation"
               },
               {
@@ -1616,7 +2079,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationAttempt"
               },
               {
@@ -1712,7 +2175,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationLookup"
               },
               {
@@ -1808,7 +2271,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationRef"
               },
               {
@@ -1904,7 +2367,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckOutcome"
               },
               {
@@ -2000,7 +2463,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckpointPage"
               },
               {
@@ -2096,7 +2559,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckpointReview"
               },
               {
@@ -2192,7 +2655,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientAdmission"
               },
               {
@@ -2288,7 +2751,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientBody"
               },
               {
@@ -2384,7 +2847,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientConnection"
               },
               {
@@ -2480,7 +2943,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientProfile"
               },
               {
@@ -2576,7 +3039,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validDeliveryAttemptLookup"
               },
               {
@@ -2672,7 +3135,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validHeldRequest"
               },
               {
@@ -2768,7 +3231,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOperationAttemptRef"
               },
               {
@@ -2864,7 +3327,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOwnerCursor"
               },
               {
@@ -2960,7 +3423,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOwnerObservations"
               },
               {
@@ -3056,7 +3519,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOwnerRef"
               },
               {
@@ -3152,7 +3615,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRequestCancellation"
               },
               {
@@ -3248,7 +3711,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRequestLookup"
               },
               {
@@ -3344,7 +3807,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResolveItem"
               },
               {
@@ -3440,7 +3903,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResolveResults"
               },
               {
@@ -3536,7 +3999,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourceInspection"
               },
               {
@@ -3632,7 +4095,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourceListing"
               },
               {
@@ -3728,7 +4191,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourcePeek"
               },
               {
@@ -3824,7 +4287,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResultDescription"
               },
               {
@@ -3920,7 +4383,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRunRef"
               },
               {
@@ -4016,7 +4479,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRunState"
               },
               {
@@ -4112,7 +4575,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validStoredSubmissionOutcome"
               },
               {
@@ -4208,7 +4671,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionAttempt"
               },
               {
@@ -4304,7 +4767,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionEpoch"
               },
               {
@@ -4400,7 +4863,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionLookup"
               },
               {
@@ -4496,7 +4959,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionOutcome"
               },
               {
@@ -4592,7 +5055,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRef"
               },
               {
@@ -4688,7 +5151,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRestart"
               },
               {
@@ -4784,7 +5247,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmitPreparationError"
               },
               {
@@ -4880,7 +5343,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmitReply"
               },
               {
@@ -4976,7 +5439,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "withinResultDescriptionLimits"
               },
               {
@@ -5131,7 +5594,7 @@
                 "anchor": "\"exports\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
@@ -6106,7 +6569,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "boundedText"
               },
               {
@@ -6124,7 +6587,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6140,7 +6603,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6156,7 +6619,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6212,7 +6675,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "clientWorkspaceMatches"
               },
               {
@@ -6230,7 +6693,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6246,7 +6709,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6262,7 +6725,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6314,7 +6777,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "exact"
               },
               {
@@ -6332,7 +6795,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6348,7 +6811,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6364,7 +6827,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6420,7 +6883,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "isClientSubmitRejection"
               },
               {
@@ -6438,7 +6901,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6454,7 +6917,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6470,7 +6933,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6522,7 +6985,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "jsonObject"
               },
               {
@@ -6540,7 +7003,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6556,7 +7019,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6572,7 +7035,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6624,7 +7087,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "ownerIdentity"
               },
               {
@@ -6642,7 +7105,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6658,7 +7121,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6674,7 +7137,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6730,7 +7193,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "prepareClientHostRequest"
               },
               {
@@ -6752,15 +7215,15 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               },
               {
@@ -6780,11 +7243,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               },
               {
@@ -6808,7 +7271,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               },
               {
@@ -6884,7 +7347,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "restartMatches"
               },
               {
@@ -6902,7 +7365,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -6918,7 +7381,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -6934,7 +7397,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -6986,7 +7449,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "sameCancellationRef"
               },
               {
@@ -7004,7 +7467,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7020,7 +7483,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7036,7 +7499,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7090,7 +7553,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "sameRunRef"
               },
               {
@@ -7108,7 +7571,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7124,7 +7587,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7140,7 +7603,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7197,7 +7660,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "sameSubmissionRef"
               },
               {
@@ -7215,7 +7678,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7231,7 +7694,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7247,7 +7710,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7302,7 +7765,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "shape"
               },
               {
@@ -7320,7 +7783,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7336,7 +7799,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7352,7 +7815,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7408,7 +7871,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "snapshotCheckRequest"
               },
               {
@@ -7426,15 +7889,15 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -7446,11 +7909,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -7466,7 +7929,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7522,7 +7985,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "snapshotClientRequest"
               },
               {
@@ -7540,15 +8003,15 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -7560,11 +8023,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -7580,7 +8043,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7634,7 +8097,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "snapshotRequest"
               },
               {
@@ -7652,15 +8115,15 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableClientNumber"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "UnrepresentableCheckNumber"
               }
             ],
@@ -7672,11 +8135,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Client requests observe the JSON value actually submitted at this boundary."
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Capture the original Workspace target"
               }
             ],
@@ -7692,7 +8155,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7744,7 +8207,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "submissionFactsMatch"
               },
               {
@@ -7762,7 +8225,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7778,7 +8241,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7794,7 +8257,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7846,7 +8309,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "utf8Bytes"
               },
               {
@@ -7864,7 +8327,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7880,7 +8343,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -7896,7 +8359,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -7952,7 +8415,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellation"
               },
               {
@@ -7970,7 +8433,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -7986,7 +8449,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8002,7 +8465,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8058,7 +8521,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationAttempt"
               },
               {
@@ -8076,7 +8539,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8092,7 +8555,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8108,7 +8571,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8164,7 +8627,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationLookup"
               },
               {
@@ -8182,7 +8645,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8198,7 +8661,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8214,7 +8677,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8270,7 +8733,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationRef"
               },
               {
@@ -8288,7 +8751,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8304,7 +8767,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8320,7 +8783,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8376,7 +8839,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckOutcome"
               },
               {
@@ -8394,7 +8857,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8410,7 +8873,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8426,7 +8889,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8483,7 +8946,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckpointPage"
               },
               {
@@ -8501,7 +8964,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8517,7 +8980,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8533,7 +8996,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8589,7 +9052,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCheckpointReview"
               },
               {
@@ -8607,7 +9070,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8623,7 +9086,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8639,7 +9102,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8700,7 +9163,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientBody"
               },
               {
@@ -8722,7 +9185,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
@@ -8746,7 +9209,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               },
               {
@@ -8770,7 +9233,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               },
               {
@@ -8850,7 +9313,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientProfile"
               },
               {
@@ -8868,7 +9331,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8884,7 +9347,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -8900,7 +9363,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -8957,7 +9420,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validDeliveryAttemptLookup"
               },
               {
@@ -8975,7 +9438,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -8991,7 +9454,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9007,7 +9470,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9063,7 +9526,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOperationAttemptRef"
               },
               {
@@ -9081,7 +9544,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9097,7 +9560,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9113,7 +9576,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9172,7 +9635,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validOwnerObservations"
               },
               {
@@ -9190,7 +9653,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9206,7 +9669,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9222,7 +9685,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9274,7 +9737,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validProgramInput"
               },
               {
@@ -9292,7 +9755,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9308,7 +9771,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9324,7 +9787,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9380,7 +9843,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRequestCancellation"
               },
               {
@@ -9398,7 +9861,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9414,7 +9877,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9430,7 +9893,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9486,7 +9949,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResolveItem"
               },
               {
@@ -9504,7 +9967,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9520,7 +9983,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9536,7 +9999,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9593,7 +10056,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResolveResults"
               },
               {
@@ -9611,7 +10074,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9627,7 +10090,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9643,7 +10106,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9699,7 +10162,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourceInspection"
               },
               {
@@ -9717,7 +10180,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9733,7 +10196,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9749,7 +10212,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9806,7 +10269,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourceListing"
               },
               {
@@ -9824,7 +10287,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9840,7 +10303,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9856,7 +10319,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -9915,7 +10378,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResourcePeek"
               },
               {
@@ -9933,7 +10396,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -9949,7 +10412,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -9965,7 +10428,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10023,7 +10486,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validResultDescription"
               },
               {
@@ -10041,7 +10504,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10057,7 +10520,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10073,7 +10536,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10129,7 +10592,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRunRef"
               },
               {
@@ -10147,7 +10610,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10163,7 +10626,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10179,7 +10642,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10235,7 +10698,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validRunState"
               },
               {
@@ -10253,7 +10716,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10269,7 +10732,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10285,7 +10748,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10341,7 +10804,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validStoredSubmissionOutcome"
               },
               {
@@ -10359,7 +10822,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10375,7 +10838,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10391,7 +10854,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10447,7 +10910,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionAttempt"
               },
               {
@@ -10465,7 +10928,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10481,7 +10944,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10497,7 +10960,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10553,7 +11016,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionEpoch"
               },
               {
@@ -10571,7 +11034,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10587,7 +11050,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10603,7 +11066,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10659,7 +11122,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionLookup"
               },
               {
@@ -10677,7 +11140,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10693,7 +11156,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10709,7 +11172,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10765,7 +11228,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionOutcome"
               },
               {
@@ -10783,7 +11246,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10799,7 +11262,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10815,7 +11278,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10871,7 +11334,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRef"
               },
               {
@@ -10889,7 +11352,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -10905,7 +11368,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -10921,7 +11384,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -10977,7 +11440,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRestart"
               },
               {
@@ -10995,7 +11458,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -11011,7 +11474,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -11027,7 +11490,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -11083,7 +11546,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmitPreparationError"
               },
               {
@@ -11101,7 +11564,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -11117,7 +11580,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -11133,7 +11596,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -11189,7 +11652,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmitReply"
               },
               {
@@ -11207,7 +11670,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -11223,7 +11686,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -11239,7 +11702,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -11296,7 +11759,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "withinResultDescriptionLimits"
               },
               {
@@ -11314,7 +11777,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               }
             ],
@@ -11330,7 +11793,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               }
             ],
@@ -11346,7 +11809,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               }
             ],
@@ -11422,7 +11885,7 @@
                 "anchor": "\"exports\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
@@ -11440,7 +11903,7 @@
                 "anchor": "| inputsOutputs |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Structural Client–Host wire admission only."
               },
               {
@@ -11464,7 +11927,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "Authentication, authorization and transport-specific reading stay outside."
               },
               {
@@ -11488,7 +11951,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "journal and start uncertainty are absent."
               },
               {
@@ -16874,13 +17337,38 @@
     {
       "module": "packages/client-wire/publication.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "0240df8c7a770b7cd63d32d55e15f55ae379851d2052a88c8cf9b38943034dee",
+      "sha256": "8f58fed15f875c83f3d73a7c48944b298e141827a860814060b366f65e4be90e",
       "exports": [
         "WireDeliveryAttempt",
         "WireDeliveryRecord",
-        "WireHostReleaseReceipt"
+        "WireHostReleaseReceipt",
+        "validDeliveryAttempt",
+        "validDeliveryRecord",
+        "validHostReleaseReceipt"
       ],
-      "operations": [],
+      "operations": [
+        {
+          "name": "validDeliveryAttempt",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireDeliveryAttempt"
+        },
+        {
+          "name": "validDeliveryRecord",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireDeliveryRecord"
+        },
+        {
+          "name": "validHostReleaseReceipt",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireHostReleaseReceipt"
+        }
+      ],
       "imports": [],
       "compilerFields": [],
       "role": "public-wire-codec",
@@ -16888,12 +17376,18 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "validDeliveryAttempt",
+            "validDeliveryRecord",
+            "validHostReleaseReceipt"
           ],
           "exports": [
             "WireDeliveryAttempt",
             "WireDeliveryRecord",
-            "WireHostReleaseReceipt"
+            "WireHostReleaseReceipt",
+            "validDeliveryAttempt",
+            "validDeliveryRecord",
+            "validHostReleaseReceipt"
           ],
           "attributes": {
             "responsibility": [
@@ -16980,6 +17474,10 @@
               {
                 "path": "scripts/public-wire-language-vectors.test.mjs",
                 "anchor": "jsWireVector"
+              },
+              {
+                "path": "packages/client-wire/generated-guards.typecheck.mts",
+                "anchor": "The existing generated shape checks refine DATA only."
               }
             ]
           }

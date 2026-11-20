@@ -1,3 +1,14 @@
+import type * as Public from './index.js';
+
+// Unchecked private field views derive from the existing public DTO union.
+// The original runtime validators below remain the sole structural admission.
+type UnionKeys<T> = T extends unknown ? keyof T : never;
+type Field<T, K extends PropertyKey> = T extends unknown ? K extends keyof T ? T[K] : never : never;
+type Fields<T> = {[K in UnionKeys<T>]: Field<T, K>};
+type RequestFields = Fields<Public.WireClientBody>;
+type SubmissionAttemptFields = Fields<Public.WireSubmissionAttempt>;
+type TextInputFields = Extract<Public.WireClientBodyByOperation['submit'], {kind: 'aql'}>['input'];
+type SnapshotObserver = Parameters<typeof Public.snapshotClientRequest>[1];
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 export {validRunWaitContract} from './client-host.generated.js';
 export * from './interactive-control.generated.js';
@@ -23,22 +34,22 @@ import {validOwnerRefShape, validOwnerCursorShape, validOwnerObservationsShape} 
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
-export const clientSourceFormats = Object.freeze([
+export const clientSourceFormats: typeof Public.clientSourceFormats = Object.freeze([
   'json', 'yaml', 'aql-json', 'aql-yaml', 'aql', 'aql-text', 'sql',
 ]);
 const cid = /^sha256:[0-9a-f]{64}$/u;
-const exact = (value, keys) => value !== null && typeof value === 'object' &&
+const exact = (value: unknown, keys: readonly string[]): value is Record<string, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') ===
   [...keys].sort().join('\0');
 // Bounds of the Checkpoint operations. A Host may apply tighter ones.
-export const checkpointLimits = Object.freeze({
+export const checkpointLimits: typeof Public.checkpointLimits = Object.freeze({
   maxPageItems: 100,
   maxCursorLength: 512,
   maxReviewBytes: 1024 * 1024,
   maxResolveItems: 16,
 });
 // Bounds of the Resource discovery operations. A Host may apply tighter ones.
-export const resourceLimits = Object.freeze({
+export const resourceLimits: typeof Public.resourceLimits = Object.freeze({
   maxQueryLength: 255,
   maxListItems: 1000,
   maxInspectBytes: 1024 * 1024,
@@ -46,25 +57,25 @@ export const resourceLimits = Object.freeze({
   maxPeekRows: 200,
   maxPeekBytes: 4 * 1024 * 1024,
 });
-const boundedText = (value, maximum = 256) => typeof value === 'string' &&
+const boundedText = (value: unknown, maximum = 256): value is string => typeof value === 'string' &&
   value.length > 0 && value.length <= maximum &&
   !/[\u0000-\u001f\u007f]/u.test(value);
 
 // Whole response limits, including the envelope and nested type descriptors.
 // These are UTF-8 JSON wire bytes and structural budgets, not payload limits.
-export const resultDescriptionLimits = Object.freeze({
+export const resultDescriptionLimits: typeof Public.resultDescriptionLimits = Object.freeze({
   maxWireBytes: 1024 * 1024, maxNodes: 10000, maxDepth: 64,
 });
-export function withinResultDescriptionLimits(value,
-  limits = resultDescriptionLimits) {
-  if (!Object.keys(resultDescriptionLimits).every(key =>
+export function withinResultDescriptionLimits(value: unknown,
+  limits: typeof resultDescriptionLimits = resultDescriptionLimits): boolean {
+  if (!(Object.keys(resultDescriptionLimits) as (keyof typeof resultDescriptionLimits)[]).every(key =>
     Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
     limits[key] <= resultDescriptionLimits[key])) return false;
   let nodes = 0;
   const seen = new Set();
-  const work = [[value, 1]];
+  const work: [unknown, number][] = [[value, 1]];
   while (work.length) {
-    const [item, depth] = work.pop();
+    const [item, depth] = work.pop()!;
     if (++nodes > limits.maxNodes || depth > limits.maxDepth) return false;
     if (item !== null && typeof item === 'object') {
       if (seen.has(item)) return false;
@@ -81,11 +92,12 @@ export function withinResultDescriptionLimits(value,
       limits.maxWireBytes;
   } catch { return false; }
 }
-export function validResultDescription(value, expected,
-  limits = resultDescriptionLimits) {
+export function validResultDescription(value: unknown, expected: Readonly<{ref: Public.WireRunRef; resultName: string;
+    format: 'json' | 'jsonl' | 'csv'}>,
+  limits: typeof resultDescriptionLimits = resultDescriptionLimits): value is Public.WireResultDescription {
   if (!withinResultDescriptionLimits(value, limits) ||
       !validResultDescriptionShape(value) || !validRunRef(expected?.ref) ||
-      !['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].every(key =>
+      !(['namespaceId', 'authorityScopeCid', 'runDefinitionCid'] as const).every(key =>
         value.ref[key] === expected.ref[key]) ||
       value.resultName !== expected.resultName ||
       value.serialization.format !== expected.format ||
@@ -101,7 +113,7 @@ export function validResultDescription(value, expected,
 // before creating a Run; inside a Run it is an observed Run outcome instead.
 // A public-looking code, exception class, or an arbitrary 4xx response is not
 // evidence of refusal. In particular, journal and start uncertainty are absent.
-const submitRejections = new Set([
+const submitRejections = new Set<unknown>([
   'InvalidClientRequest', 'ClientRequestTooLarge',
   'ClientProgramInvalidInput', 'ClientParametersInvalid',
   'ClientParametersTooLarge', 'ClientProgramNeedsInputs',
@@ -114,54 +126,54 @@ const submitRejections = new Set([
   'ACTQL_E_DELEGATION_REJECTED',
   'ACTQL_E_DELEGATION_UNAVAILABLE',
 ]);
-export function isClientSubmitRejection(code) {
+export function isClientSubmitRejection(code: unknown): boolean {
   return submitRejections.has(code);
 }
-export function validRunRef(value) {
+export function validRunRef(value: unknown): value is Public.WireRunRef {
   return validRunRefShape(value);
 }
 
-export function validSubmissionEpoch(value) {
+export function validSubmissionEpoch(value: unknown): value is Public.WireSubmissionEpoch {
   return validSubmissionEpochShape(value) &&
     !Object.is(value.notBefore, -0) && !Object.is(value.expiresAt, -0) &&
     value.expiresAt > value.notBefore;
 }
 
-export function validSubmissionRef(value) {
+export function validSubmissionRef(value: unknown): value is Public.WireSubmissionRef {
   return validSubmissionRefShape(value) && validSubmissionEpoch(value.epoch) &&
     value.nonce.isWellFormed() && value.nonce.normalize('NFC') === value.nonce &&
     !/[\u0080-\u009f]/u.test(value.nonce) &&
     new TextEncoder().encode(value.nonce).byteLength <= 256;
 }
 
-export function validSubmissionName(value) {
+export function validSubmissionName(value: unknown): value is Public.WireSubmissionName {
   return validSubmissionNameShape(value) && value.isWellFormed() &&
     value.normalize('NFC') === value && !/[\u0080-\u009f]/u.test(value) &&
     new TextEncoder().encode(value).byteLength <= 256;
 }
 
-export function sameSubmissionRef(left, right) {
+export function sameSubmissionRef(left: unknown, right: unknown): boolean {
   return validSubmissionRef(left) && validSubmissionRef(right) &&
-    left.nonce === right.nonce && ['version', 'authorityScopeCid', 'epochNonce',
-      'notBefore', 'expiresAt', 'authenticator'].every(key => left.epoch[key] === right.epoch[key]);
+    left.nonce === right.nonce && (['version', 'authorityScopeCid', 'epochNonce',
+      'notBefore', 'expiresAt', 'authenticator'] as const).every(key => left.epoch[key] === right.epoch[key]);
 }
 
-export function validSubmissionRestart(value, fresh) {
+export function validSubmissionRestart(value: unknown, fresh: Public.WireSubmissionRef): value is Public.WireSubmissionRestart {
   return validSubmissionRestartShape(value) && validSubmissionRef(value.submissionRef) &&
     validSubmissionRef(fresh) &&
     value.submissionRef.epoch.authorityScopeCid === fresh.epoch.authorityScopeCid &&
     value.submissionRef.epoch.expiresAt < fresh.epoch.expiresAt;
 }
 
-function restartMatches(actual, expected) {
+function restartMatches(actual: Public.WireSubmissionRestart | undefined, expected: Public.WireSubmissionRestart | undefined) {
   if (actual === undefined || expected === undefined) return actual === expected;
   return actual.acknowledgement === expected.acknowledgement &&
     sameSubmissionRef(actual.submissionRef, expected.submissionRef);
 }
 
-function submissionFactsMatch(value, expected, intentCid) {
+function submissionFactsMatch(value: Public.WireSubmissionOutcome | Public.WireSubmissionLookup, expected: Public.WireSubmissionRef, intentCid?: string) {
   if (!sameSubmissionRef(value.submissionRef, expected) ||
-      intentCid !== undefined && value.intentCid !== intentCid ||
+      intentCid !== undefined && (value as {intentCid?: unknown}).intentCid !== intentCid ||
       value.unresolvedHistory !== undefined && !validSubmissionRestart(value.unresolvedHistory, expected)) return false;
   if (value.kind === 'ready') return value.admission.ref.authorityScopeCid === expected.epoch.authorityScopeCid;
   if (value.kind === 'held') return validHeldRequest(value.held, expected.nonce);
@@ -171,27 +183,27 @@ function submissionFactsMatch(value, expected, intentCid) {
 // Durable journal facts have no negotiated transport connection. Their Run
 // binding is checked by the journal; a received reply additionally needs the
 // selected connection below.
-export function validStoredSubmissionOutcome(value, expected, intentCid) {
-  return validSubmissionOutcomeShape(value) && value.checkObservation === undefined && submissionFactsMatch(value, expected, intentCid) &&
+export function validStoredSubmissionOutcome(value: unknown, expected: Public.WireSubmissionRef, intentCid: string): value is Public.WireSubmissionOutcome {
+  return validSubmissionOutcomeShape(value) && (value as {checkObservation?: Public.WireCheckOutcome}).checkObservation === undefined && submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || value.admission.durability === 'durable');
 }
 
-export function validSubmissionOutcome(value, selected, expected, intentCid, unresolvedHistory) {
+export function validSubmissionOutcome(value: unknown, selected: Public.WireConnection, expected: Public.WireSubmissionRef, intentCid?: string, unresolvedHistory?: Public.WireSubmissionRestart): value is Public.WireSubmissionOutcome {
   return validSubmissionOutcomeShape(value) &&
-    (value.checkObservation === undefined || validCheckOutcome(value.checkObservation)) &&
+    ((value as {checkObservation?: Public.WireCheckOutcome}).checkObservation === undefined || validCheckOutcome((value as {checkObservation?: Public.WireCheckOutcome}).checkObservation)) &&
     (arguments.length < 5 || restartMatches(value.unresolvedHistory, unresolvedHistory)) &&
     submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
 }
 
-export function validSubmissionLookup(value, selected, expected) {
+export function validSubmissionLookup(value: unknown, selected: Public.WireConnection, expected: Public.WireSubmissionRef): value is Public.WireSubmissionLookup {
   return validSubmissionLookupShape(value) && submissionFactsMatch(value, expected) &&
     (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
 }
 
-export function validSubmissionAttempt(value, selected, expected, intentCid, attemptRef, unresolvedHistory) {
+export function validSubmissionAttempt(value: unknown, selected: Public.WireConnection, expected: Public.WireSubmissionRef, intentCid: string, attemptRef: Public.WireOperationAttemptRef, unresolvedHistory?: Public.WireSubmissionRestart): value is Public.WireSubmissionAttempt {
   if (!validSubmissionRef(expected) || !validOperationAttemptRef(attemptRef) ||
       attemptRef.operation !== 'submit' || !validSubmissionAttemptShape(value) ||
       !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit' ||
@@ -201,12 +213,12 @@ export function validSubmissionAttempt(value, selected, expected, intentCid, att
       (value.kind !== 'already_satisfied' || value.outcome.kind !== 'preparing');
   }
   return value.kind === 'refused' && value.reason === 'authorization' ||
-    sameSubmissionRef(value.submissionRef, expected) && value.intentCid === intentCid;
+    sameSubmissionRef((value as SubmissionAttemptFields).submissionRef, expected) && (value as SubmissionAttemptFields).intentCid === intentCid;
 }
 
 // A scoped name can resolve a reference issued under an earlier connection's
 // epoch. This separate envelope never relaxes explicit-epoch correlation.
-export function validNamedSubmissionAttempt(value, selected, name, candidate, intentCid, attemptRef) {
+export function validNamedSubmissionAttempt(value: unknown, selected: Public.WireConnection, name: Public.WireSubmissionName, candidate: Public.WireSubmissionRef, intentCid: string, attemptRef: Public.WireOperationAttemptRef): value is Public.WireNamedSubmissionAttempt {
   if (!validClientConnection(selected) || !validSubmissionName(name) || !validSubmissionRef(candidate) ||
       !validOperationAttemptRef(attemptRef) || attemptRef.operation !== 'submit' ||
       !validNamedSubmissionAttemptShape(value) || value.requestName !== name ||
@@ -223,24 +235,24 @@ export function validNamedSubmissionAttempt(value, selected, name, candidate, in
 
 // This is one existing Engine-owned Run-state component. The public Client
 // snapshot must also carry publication, cancellation and physical stop facts.
-export function validRunState(value) {
+export function validRunState(value: unknown): value is Public.WireRunState {
   return validRunStateShape(value);
 }
 
-export const ownerObservationLimits = Object.freeze({maxEntries:1000,maxWireBytes:65536});
-export const validOwnerRef = validOwnerRefShape;
-export const validOwnerCursor = validOwnerCursorShape;
-const ownerIdentity = owner => JSON.stringify([owner.kind,owner.scopeCid,owner.streamCid]);
-export function validOwnerObservations(value, ref, limits = ownerObservationLimits) {
+export const ownerObservationLimits: typeof Public.ownerObservationLimits = Object.freeze({maxEntries:1000,maxWireBytes:65536});
+export const validOwnerRef: typeof Public.validOwnerRef = validOwnerRefShape;
+export const validOwnerCursor: typeof Public.validOwnerCursor = validOwnerCursorShape;
+const ownerIdentity = (owner: Public.WireOwnerRef) => JSON.stringify([owner.kind,owner.scopeCid,owner.streamCid]);
+export function validOwnerObservations(value: unknown, ref: Public.WireRunRef, limits: typeof ownerObservationLimits & Readonly<{cursors?:readonly Public.WireOwnerCursor[]}> = ownerObservationLimits): value is Public.WireOwnerObservations {
   if (!validRunRef(ref) || !Number.isSafeInteger(limits.maxEntries) || limits.maxEntries < 1 ||
       limits.maxEntries > ownerObservationLimits.maxEntries || !Number.isSafeInteger(limits.maxWireBytes) ||
       limits.maxWireBytes < 1024 || limits.maxWireBytes > ownerObservationLimits.maxWireBytes ||
       !withinResultDescriptionLimits(value,{maxWireBytes:limits.maxWireBytes,maxNodes:10000,maxDepth:64}) ||
       !validOwnerObservationsShape(value) ||
-      !['namespaceId','authorityScopeCid','runDefinitionCid'].every(key => value.ref[key] === ref[key])) return false;
+      !(['namespaceId','authorityScopeCid','runDefinitionCid'] as const).every(key => value.ref[key] === ref[key])) return false;
   if(value.unmatchedCursors !== undefined &&
       (new Set(value.unmatchedCursors.map(item=>item.index)).size !== value.unmatchedCursors.length ||
-       limits.cursors !== undefined && value.unmatchedCursors.some(item=>item.index >= limits.cursors.length)))return false;
+       limits.cursors !== undefined && value.unmatchedCursors.some(item=>item.index >= limits.cursors!.length)))return false;
   const vectors = new Map();
   for (const vector of value.revisionVector) {
     const key = ownerIdentity(vector.owner);
@@ -279,21 +291,21 @@ export function validOwnerObservations(value, ref, limits = ownerObservationLimi
 
 // The registered contract and generated validator enforce verdict/coverage
 // consistency as well as shape, without enumerating reason codes.
-export function validCheckOutcome(value) {
+export function validCheckOutcome(value: unknown): value is Public.WireCheckOutcome {
   return validCheckOutcomeContract(value);
 }
 
-export function validSubmitPreparationError(value) {
+export function validSubmitPreparationError(value: unknown): value is Public.WireSubmitPreparationError {
   return validSubmitPreparationErrorShape(value);
 }
 
-export const validClientConnection = validConnectionShape;
+export const validClientConnection: typeof Public.validClientConnection = validConnectionShape as typeof Public.validClientConnection;
 
 // A target assertion is separate from authorization. The second argument must
 // come from the Host's authenticated/installed Workspace binding, never from
 // a caller's connection or Run reference. No assertion preserves the existing
 // endpoint contract; a Host with no binding cannot accept an asserted target.
-export const clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
+export const clientWorkspaceMatches: typeof Public.clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
   connection.workspaceId === undefined ||
   boundedText(authenticatedWorkspaceId) &&
     connection.workspaceId === authenticatedWorkspaceId;
@@ -301,13 +313,13 @@ export const clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
 // Native brands are captured once; inspecting a caller's prototype or
 // Symbol.toStringTag would add observable getters/Proxy traps to the snapshot.
 const snapshotStringValueOf = String.prototype.valueOf;
-const snapshotRawJSONBrand = JSON.isRawJSON;
+const snapshotRawJSONBrand = (JSON as typeof JSON & {isRawJSON?: (value: unknown) => boolean}).isRawJSON;
 
 // Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
-function snapshotRequest(value, numberError, observe) {
+function snapshotRequest(value: unknown, numberError: string, observe?: SnapshotObserver): unknown {
   let units = 0, reserved = 0, values = 0, reservedValues = 0;
-  const document = JSON.stringify(value, (key, item) => {
+  const document = JSON.stringify(value, (key, item: unknown) => {
     let number = item, boxed = false;
     if (item !== null && typeof item === 'object') {
       // Brand-check without invoking user coercion, including across realms.
@@ -316,7 +328,7 @@ function snapshotRequest(value, numberError, observe) {
     }
     // JSON unwraps Number objects with ToNumber, including custom coercion.
     // Return that primitive so serialization cannot coerce it again unchecked.
-    if (boxed) number = +item;
+    if (boxed) number = +(item as number);
     if (typeof number === 'number' &&
         (!Number.isFinite(number) || Object.is(number, -0))) {
       throw new TypeError(numberError);
@@ -333,7 +345,7 @@ function snapshotRequest(value, numberError, observe) {
       else if (typeof snapshotRawJSONBrand === 'function' && snapshotRawJSONBrand(item)) {
         // The native brand excludes copied objects and Proxies. Its original
         // frozen rawJSON field is DATA, not another caller property getter.
-        rawUnits = item.rawJSON.length;
+        rawUnits = (item as {rawJSON: string}).rawJSON.length;
       }
     }
     if (observe !== undefined) {
@@ -359,20 +371,20 @@ function snapshotRequest(value, numberError, observe) {
     return selected;
   });
   if (observe !== undefined) observe(reserved, document, reservedValues);
-  return JSON.parse(document);
+  return JSON.parse(document as string) as unknown;
 }
 
 // One serialization owner for check and submit. Preserve the existing check
 // helper's error spelling for direct consumers. SDK callers map local refusal.
-export const snapshotClientRequest = (value, observe) =>
+export const snapshotClientRequest: typeof Public.snapshotClientRequest = (value, observe) =>
   snapshotRequest(value, 'UnrepresentableClientNumber', observe);
-export const snapshotCheckRequest = value =>
+export const snapshotCheckRequest: typeof Public.snapshotCheckRequest = value =>
   snapshotRequest(value, 'UnrepresentableCheckNumber');
 
 // Synchronous Host ingress preparation. Capture the original Workspace target
 // before serialization or an awaited authentication/authorization boundary.
 // Authentication, authorization and transport-specific reading stay outside.
-function freezeCapturedRequest(value) {
+function freezeCapturedRequest<T>(value: T): T {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) freezeCapturedRequest(child);
     Object.freeze(value);
@@ -380,17 +392,17 @@ function freezeCapturedRequest(value) {
   return value;
 }
 
-export function prepareClientHostRequest(operation, original, retainSnapshot = false) {
+export function prepareClientHostRequest(operation: Public.ClientHostOperation, original: unknown, retainSnapshot: boolean = false): Readonly<{body: unknown; connection: Public.WireConnection}> | undefined {
   if (!validClientBody(operation, original)) return undefined;
-  const suppliedConnection = original.connection;
+  const suppliedConnection = (original as RequestFields).connection;
   const connection = Object.freeze({...suppliedConnection,
     consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
     runners: Object.freeze([...suppliedConnection.runners])});
   if (!validClientConnection(connection)) return undefined;
-  let body = original, snapshotted = false;
+  let body = original as RequestFields, snapshotted = false;
   if (operation === 'check') {
     // Observe the original serializer once, before spreading can erase it.
-    try { body = snapshotCheckRequest(body); }
+    try { body = snapshotCheckRequest(body) as RequestFields; }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
     snapshotted = true;
@@ -398,7 +410,7 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
   if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan', 'run-explanation'].includes(operation)) {
-    try { body = snapshotClientRequest(body); }
+    try { body = snapshotClientRequest(body) as RequestFields; }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
     snapshotted = true;
@@ -408,7 +420,7 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   if (operation === 'run-explanation') Object.freeze(body.ref);
   if (retainSnapshot === true) {
     if (!snapshotted) {
-      try { body = snapshotClientRequest(body); }
+      try { body = snapshotClientRequest(body) as RequestFields; }
       catch { return undefined; }
       if (!validClientBody(operation, body)) return undefined;
     }
@@ -423,16 +435,16 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
 // Program size belongs to the selected Host preparation owner, whose one
 // snapshot observer reserves actual demand. This closed envelope does not add
 // an independent UTF-16 support ceiling or relax transport ingress policy.
-function validProgramInput(body) {
+function validProgramInput(body: RequestFields) {
   return (body.kind === 'aql' &&
     (exact(body.input, ['text', 'format']) ||
       exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
     typeof body.input.text === 'string' &&
     body.input.text.length > 0 &&
     !body.input.text.includes('\u0000') &&
-    clientSourceFormats.includes(body.input.format) &&
+    clientSourceFormats.includes(body.input.format as Public.ClientSourceFormat) &&
     (body.input.parameterDeclarations === undefined ||
-      ['aql', 'aql-text', 'sql'].includes(body.input.format) &&
+      ['aql', 'aql-text', 'sql'].includes(body.input.format as string) &&
       body.input.parameterDeclarations !== null &&
       typeof body.input.parameterDeclarations === 'object' &&
       !Array.isArray(body.input.parameterDeclarations)) ||
@@ -440,158 +452,158 @@ function validProgramInput(body) {
     typeof body.input === 'object' && !Array.isArray(body.input));
 }
 
-export function validClientBody(operation, body) {
+export function validClientBody<O extends Public.ClientHostOperation>(operation: O, body: unknown): body is Public.WireClientBodyByOperation[O] {
   const bodyKeys = clientHostRequestKeys(operation, body);
   // Template requests contain no submitted bindings. The scope is selected
   // before input admission; even null or an empty binding object is refused.
-  const selectedKeys = operation === 'check' && body?.scope === 'template_only'
+  const selectedKeys = operation === 'check' && (body as RequestFields | undefined)?.scope === 'template_only'
     ? bodyKeys?.filter(key => key !== 'parameters') : bodyKeys;
   if (selectedKeys === undefined || !exact(body, selectedKeys) ||
-      !validClientConnection(body.connection) ||
+      !validClientConnection((body as RequestFields).connection) ||
       !validClientRequestOptionalFields(operation, body)) return false;
   if (operation === 'connect') return true;
   if (operation === 'submit-intent' || operation === 'submit-named-intent' || operation === 'restart-intent') {
-    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid) ||
-        !validOperationAttemptRef(body.attemptRef) || body.attemptRef.operation !== 'submit') return false;
-    if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
-    if (operation === 'submit-named-intent' && !validSubmissionName(body.requestName)) return false;
-    return validClientBody('submit', {connection: body.connection,
-      requestId: body.submissionRef.nonce, kind: body.kind,
-      input: body.input, parameters: body.parameters,
-      ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-      ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
-      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})}) &&
-      (body.parameters === null || typeof body.parameters === 'object' &&
-        !Array.isArray(body.parameters));
+    if (!validSubmissionRef((body as RequestFields).submissionRef) || !cid.test((body as RequestFields).intentCid) ||
+        !validOperationAttemptRef((body as RequestFields).attemptRef) || (body as RequestFields).attemptRef.operation !== 'submit') return false;
+    if (operation === 'restart-intent' && !validSubmissionRestart((body as RequestFields).unresolvedHistory, (body as RequestFields).submissionRef)) return false;
+    if (operation === 'submit-named-intent' && !validSubmissionName((body as RequestFields).requestName)) return false;
+    return validClientBody('submit', {connection: (body as RequestFields).connection,
+      requestId: (body as RequestFields).submissionRef.nonce, kind: (body as RequestFields).kind,
+      input: (body as RequestFields).input, parameters: (body as RequestFields).parameters,
+      ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: (body as RequestFields).stopBefore} : {}),
+      ...(Object.hasOwn(body, 'readOnly') ? {readOnly: (body as RequestFields).readOnly} : {}),
+      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: (body as RequestFields).executionProfile} : {})}) &&
+      ((body as RequestFields).parameters === null || typeof (body as RequestFields).parameters === 'object' &&
+        !Array.isArray((body as RequestFields).parameters));
   }
-  if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
+  if (operation === 'lookup-submission') return validSubmissionRef((body as RequestFields).submissionRef);
   if (operation === 'inspect-run' || operation === 'run-plan' || operation === 'run-explanation') {
-    return validRunRef(body.ref) &&
-      Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
-      Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
-      Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
+    return validRunRef((body as RequestFields).ref) &&
+      Number.isSafeInteger((body as RequestFields).maxWireBytes) && (body as RequestFields).maxWireBytes >= 1024 && (body as RequestFields).maxWireBytes <= 65536 &&
+      Number.isSafeInteger((body as RequestFields).maxNodes) && (body as RequestFields).maxNodes > 0 && (body as RequestFields).maxNodes <= 10000 &&
+      Number.isSafeInteger((body as RequestFields).maxDepth) && (body as RequestFields).maxDepth > 0 && (body as RequestFields).maxDepth <= 64;
   }
   if (operation === 'plan') {
-    return validProgramInput(body) &&
-      (body.parameters === null || typeof body.parameters === 'object' &&
-        !Array.isArray(body.parameters)) &&
-      Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes > 0 && body.maxWireBytes <= 65536 &&
-      Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
-      Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
+    return validProgramInput(body as RequestFields) &&
+      ((body as RequestFields).parameters === null || typeof (body as RequestFields).parameters === 'object' &&
+        !Array.isArray((body as RequestFields).parameters)) &&
+      Number.isSafeInteger((body as RequestFields).maxWireBytes) && (body as RequestFields).maxWireBytes > 0 && (body as RequestFields).maxWireBytes <= 65536 &&
+      Number.isSafeInteger((body as RequestFields).maxNodes) && (body as RequestFields).maxNodes > 0 && (body as RequestFields).maxNodes <= 10000 &&
+      Number.isSafeInteger((body as RequestFields).maxDepth) && (body as RequestFields).maxDepth > 0 && (body as RequestFields).maxDepth <= 64;
   }
   if (operation === 'submit') {
-    return boundedText(body.requestId) && validProgramInput(body);
+    return boundedText((body as RequestFields).requestId) && validProgramInput(body as RequestFields);
   }
   // This validates the closed request envelope only. Program/language meaning
   // belongs to the same common checker selected by the Host.
   if (operation === 'check') {
-    if (!['template_only', 'bound_input'].includes(body.scope) ||
-        !['text', 'program'].includes(body.kind) ||
-        body.scope === 'bound_input' && !(body.parameters === null ||
-          body.parameters !== null && typeof body.parameters === 'object' &&
-          !Array.isArray(body.parameters))) return false;
-    if (body.kind === 'program') return body.input !== null &&
-      typeof body.input === 'object' && !Array.isArray(body.input);
-    return (exact(body.input, ['text', 'format']) ||
-        exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
-      typeof body.input.text === 'string' &&
-      body.input.text.length > 0 &&
-      body.input.text.isWellFormed() &&
-      !body.input.text.includes('\u0000') &&
-      ['aql', 'aql-text', 'sql'].includes(body.input.format) &&
-      (body.input.parameterDeclarations === undefined ||
-        body.input.parameterDeclarations !== null &&
-        typeof body.input.parameterDeclarations === 'object' &&
-        !Array.isArray(body.input.parameterDeclarations));
+    if (!['template_only', 'bound_input'].includes((body as RequestFields).scope) ||
+        !['text', 'program'].includes((body as RequestFields).kind) ||
+        (body as RequestFields).scope === 'bound_input' && !((body as RequestFields).parameters === null ||
+          (body as RequestFields).parameters !== null && typeof (body as RequestFields).parameters === 'object' &&
+          !Array.isArray((body as RequestFields).parameters))) return false;
+    if ((body as RequestFields).kind === 'program') return (body as RequestFields).input !== null &&
+      typeof (body as RequestFields).input === 'object' && !Array.isArray((body as RequestFields).input);
+    return (exact((body as RequestFields).input, ['text', 'format']) ||
+        exact((body as RequestFields).input, ['text', 'format', 'parameterDeclarations'])) &&
+      typeof ((body as RequestFields).input as TextInputFields).text === 'string' &&
+      ((body as RequestFields).input as TextInputFields).text.length > 0 &&
+      ((body as RequestFields).input as TextInputFields).text.isWellFormed() &&
+      !((body as RequestFields).input as TextInputFields).text.includes('\u0000') &&
+      ['aql', 'aql-text', 'sql'].includes(((body as RequestFields).input as TextInputFields).format) &&
+      (((body as RequestFields).input as TextInputFields).parameterDeclarations === undefined ||
+        ((body as RequestFields).input as TextInputFields).parameterDeclarations !== null &&
+        typeof ((body as RequestFields).input as TextInputFields).parameterDeclarations === 'object' &&
+        !Array.isArray(((body as RequestFields).input as TextInputFields).parameterDeclarations));
   }
   if (operation === 'lookup-request' || operation === 'cancel-request') {
-    return boundedText(body.requestId);
+    return boundedText((body as RequestFields).requestId);
   }
   if (operation === 'resources') {
-    return boundedText(body.resourceConnection) &&
-      typeof body.query === 'string' &&
-      body.query.length <= resourceLimits.maxQueryLength &&
-      !/[\u0000-\u001f\u007f]/u.test(body.query) &&
-      Number.isSafeInteger(body.limit) && body.limit > 0 &&
-      body.limit <= resourceLimits.maxListItems;
+    return boundedText((body as RequestFields).resourceConnection) &&
+      typeof (body as RequestFields).query === 'string' &&
+      (body as RequestFields).query.length <= resourceLimits.maxQueryLength &&
+      !/[\u0000-\u001f\u007f]/u.test((body as RequestFields).query) &&
+      Number.isSafeInteger((body as RequestFields).limit) && (body as RequestFields).limit > 0 &&
+      (body as RequestFields).limit <= resourceLimits.maxListItems;
   }
   if (operation === 'resource-inspect') {
-    return boundedText(body.resourceConnection) && boundedText(body.resource) &&
-      Number.isSafeInteger(body.maxBytes) && body.maxBytes > 0 &&
-      body.maxBytes <= resourceLimits.maxInspectBytes;
+    return boundedText((body as RequestFields).resourceConnection) && boundedText((body as RequestFields).resource) &&
+      Number.isSafeInteger((body as RequestFields).maxBytes) && (body as RequestFields).maxBytes > 0 &&
+      (body as RequestFields).maxBytes <= resourceLimits.maxInspectBytes;
   }
   if (operation === 'resource-peek') {
-    return boundedText(body.resourceConnection) && boundedText(body.resource) &&
-      Array.isArray(body.fields) && body.fields.length > 0 &&
-      body.fields.length <= resourceLimits.maxPeekFields &&
-      body.fields.every(field => boundedText(field)) &&
-      new Set(body.fields).size === body.fields.length &&
-      Number.isSafeInteger(body.maxRows) && body.maxRows > 0 &&
-      body.maxRows <= resourceLimits.maxPeekRows &&
-      Number.isSafeInteger(body.maxBytes) && body.maxBytes > 0 &&
-      body.maxBytes <= resourceLimits.maxPeekBytes;
+    return boundedText((body as RequestFields).resourceConnection) && boundedText((body as RequestFields).resource) &&
+      Array.isArray((body as RequestFields).fields) && (body as RequestFields).fields.length > 0 &&
+      (body as RequestFields).fields.length <= resourceLimits.maxPeekFields &&
+      (body as RequestFields).fields.every(field => boundedText(field)) &&
+      new Set((body as RequestFields).fields).size === (body as RequestFields).fields.length &&
+      Number.isSafeInteger((body as RequestFields).maxRows) && (body as RequestFields).maxRows > 0 &&
+      (body as RequestFields).maxRows <= resourceLimits.maxPeekRows &&
+      Number.isSafeInteger((body as RequestFields).maxBytes) && (body as RequestFields).maxBytes > 0 &&
+      (body as RequestFields).maxBytes <= resourceLimits.maxPeekBytes;
   }
   if (operation === 'checkpoints') {
-    return Number.isSafeInteger(body.limit) && body.limit > 0 &&
-      body.limit <= checkpointLimits.maxPageItems &&
-      (body.after === '' ||
-        boundedText(body.after, checkpointLimits.maxCursorLength));
+    return Number.isSafeInteger((body as RequestFields).limit) && (body as RequestFields).limit > 0 &&
+      (body as RequestFields).limit <= checkpointLimits.maxPageItems &&
+      ((body as RequestFields).after === '' ||
+        boundedText((body as RequestFields).after, checkpointLimits.maxCursorLength));
   }
   if (operation === 'checkpoint-review') {
-    return typeof body.checkpointCid === 'string' &&
-      cid.test(body.checkpointCid) &&
-      Number.isSafeInteger(body.maxBytes) && body.maxBytes > 0 &&
-      body.maxBytes <= checkpointLimits.maxReviewBytes;
+    return typeof (body as RequestFields).checkpointCid === 'string' &&
+      cid.test((body as RequestFields).checkpointCid) &&
+      Number.isSafeInteger((body as RequestFields).maxBytes) && (body as RequestFields).maxBytes > 0 &&
+      (body as RequestFields).maxBytes <= checkpointLimits.maxReviewBytes;
   }
   if (operation === 'resolve') {
-    return Array.isArray(body.items) && body.items.length > 0 &&
-      body.items.length <= checkpointLimits.maxResolveItems &&
-      body.items.every(validResolveItemShape) &&
-      new Set(body.items.map(item => item.checkpointCid)).size ===
-        body.items.length;
+    return Array.isArray((body as RequestFields).items) && (body as RequestFields).items.length > 0 &&
+      (body as RequestFields).items.length <= checkpointLimits.maxResolveItems &&
+      (body as RequestFields).items.every(validResolveItemShape) &&
+      new Set((body as RequestFields).items.map(item => item.checkpointCid)).size ===
+        (body as RequestFields).items.length;
   }
-  if (!validRunRef(body.ref)) return false;
-  if (operation === 'owner-observations') return Array.isArray(body.cursors) && body.cursors.length <= 5 &&
-    body.cursors.every(validOwnerCursor) &&
-    new Set(body.cursors.map(cursor => ownerIdentity(cursor.owner))).size === body.cursors.length &&
-    Number.isSafeInteger(body.maxEntries) && body.maxEntries > 0 && body.maxEntries <= ownerObservationLimits.maxEntries &&
-    Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= ownerObservationLimits.maxWireBytes;
+  if (!validRunRef((body as RequestFields).ref)) return false;
+  if (operation === 'owner-observations') return Array.isArray((body as RequestFields).cursors) && (body as RequestFields).cursors.length <= 5 &&
+    (body as RequestFields).cursors.every(validOwnerCursor) &&
+    new Set((body as RequestFields).cursors.map(cursor => ownerIdentity(cursor.owner))).size === (body as RequestFields).cursors.length &&
+    Number.isSafeInteger((body as RequestFields).maxEntries) && (body as RequestFields).maxEntries > 0 && (body as RequestFields).maxEntries <= ownerObservationLimits.maxEntries &&
+    Number.isSafeInteger((body as RequestFields).maxWireBytes) && (body as RequestFields).maxWireBytes >= 1024 && (body as RequestFields).maxWireBytes <= ownerObservationLimits.maxWireBytes;
   if (operation === 'cancel' || operation === 'lookup-cancellation') {
-    if (operation === 'cancel' && (!validOperationAttemptRef(body.attemptRef) ||
-        body.attemptRef.operation !== 'cancel')) return false;
-    return validCancellationRef({...body.ref, cancelId: body.cancelId,
-      expectedRevision: body.expectedRevision});
+    if (operation === 'cancel' && (!validOperationAttemptRef((body as RequestFields).attemptRef) ||
+        (body as RequestFields).attemptRef.operation !== 'cancel')) return false;
+    return validCancellationRef({...(body as RequestFields).ref, cancelId: (body as RequestFields).cancelId,
+      expectedRevision: (body as RequestFields).expectedRevision});
   }
-  if (operation === 'result-describe') return boundedText(body.resultName) &&
-    boundedText(body.attemptId) && ['json', 'jsonl', 'csv'].includes(body.format) &&
-    Object.keys(resultDescriptionLimits).every(key =>
-      Number.isSafeInteger(body[key]) && body[key] > 0 &&
-      body[key] <= resultDescriptionLimits[key]);
-  if (operation === 'read') return boundedText(body.resultName) &&
-    boundedText(body.attemptId) &&
-    ['json', 'jsonl', 'csv'].includes(body.format);
-  if (operation === 'delivery-attempt') return boundedText(body.resultName) &&
-    boundedText(body.attemptId);
-  if (operation === 'wait') return (body.until === null || boundedText(body.until, 128)) &&
-    (body.since === null || Number.isSafeInteger(body.since) && body.since >= 0);
+  if (operation === 'result-describe') return boundedText((body as RequestFields).resultName) &&
+    boundedText((body as RequestFields).attemptId) && ['json', 'jsonl', 'csv'].includes((body as RequestFields).format) &&
+    (Object.keys(resultDescriptionLimits) as (keyof typeof resultDescriptionLimits)[]).every(key =>
+      Number.isSafeInteger(body[key]) && (body[key] as number) > 0 &&
+      (body[key] as number) <= resultDescriptionLimits[key]);
+  if (operation === 'read') return boundedText((body as RequestFields).resultName) &&
+    boundedText((body as RequestFields).attemptId) &&
+    ['json', 'jsonl', 'csv'].includes((body as RequestFields).format);
+  if (operation === 'delivery-attempt') return boundedText((body as RequestFields).resultName) &&
+    boundedText((body as RequestFields).attemptId);
+  if (operation === 'wait') return ((body as RequestFields).until === null || boundedText((body as RequestFields).until, 128)) &&
+    ((body as RequestFields).since === null || Number.isSafeInteger((body as RequestFields).since) && ((body as RequestFields).since as number) >= 0);
   return true;
 }
 
 // Structural Host replies bind connection and request identity without
 // deciding Run admission, authorization, retry or state transitions.
-export const validClientProfile = (value, selected) => validProfileContract(value, selected) &&
+export const validClientProfile: typeof Public.validClientProfile = (value: unknown, selected: Public.WireConnection): value is Public.WireClientProfile => validProfileContract(value, selected) &&
   (value.submissionEpoch === undefined || validSubmissionEpoch(value.submissionEpoch));
-export const validClientAdmission = validAdmissionContract;
+export const validClientAdmission: typeof Public.validClientAdmission = validAdmissionContract;
 
 // A request the Host holds before any Run exists: waiting on a
 // `prepare_attempt` Checkpoint, resuming after an approval, or ended without
 // a Run. Once the Run exists the lookup is `found` with its RunRef.
-export const validHeldRequest = validHeldContract;
-export const validRequestLookup = validRequestLookupContract;
+export const validHeldRequest: typeof Public.validHeldRequest = validHeldContract;
+export const validRequestLookup: typeof Public.validRequestLookup = validRequestLookupContract;
 
 // A submit reply: the admitted Run, or the held request (no Run yet).
-export function validSubmitReply(value, selected, expectedRequestId) {
-  if (value?.kind === 'held') {
+export function validSubmitReply(value: unknown, selected: Public.WireConnection, expectedRequestId: string): value is Public.WireSubmitReply {
+  if ((value as {kind?: unknown} | null | undefined)?.kind === 'held') {
     return validClientConnection(selected) &&
       validHeldRequest(value, expectedRequestId);
   }
@@ -599,7 +611,7 @@ export function validSubmitReply(value, selected, expectedRequestId) {
 }
 
 // One authorized page of waiting Checkpoints (safe metadata only).
-export function validCheckpointPage(value, limit) {
+export function validCheckpointPage(value: unknown, limit: number): value is Public.WireCheckpointPage {
   if (!Number.isSafeInteger(limit) || limit < 1 ||
       limit > checkpointLimits.maxPageItems ||
       !shape(value, ['items'], ['next']) || !Array.isArray(value.items) ||
@@ -612,8 +624,8 @@ export function validCheckpointPage(value, limit) {
 }
 
 // Exact pending-ID metadata only; it issues no approval or completion fact.
-export function validCheckpointLookup(value, checkpointId) {
-  return clientHostRequestKeys('checkpoints', {checkpointId}).includes('checkpointId') &&
+export function validCheckpointLookup(value: unknown, checkpointId: string): value is Public.WireCheckpointPage {
+  return clientHostRequestKeys('checkpoints', {checkpointId})!.includes('checkpointId') &&
     validClientRequestOptionalFields('checkpoints', {checkpointId}) &&
     validCheckpointPage(value, 1) && !Object.hasOwn(value, 'next') &&
     value.items.every(item => item.checkpointId === checkpointId);
@@ -621,7 +633,7 @@ export function validCheckpointLookup(value, checkpointId) {
 
 // The exact review projection a Checkpoint names, within the requested
 // bound. The caller still checks the decoded bytes against `artifactCid`.
-export function validCheckpointReview(value, expected) {
+export function validCheckpointReview(value: unknown, expected: Readonly<{checkpointCid: string; maxBytes: number}>): value is Public.WireCheckpointReview {
   if (!shape(expected, ['checkpointCid', 'maxBytes']) ||
       !validCheckpointReviewShape(value) ||
       value.checkpointCid !== expected.checkpointCid ||
@@ -632,12 +644,12 @@ export function validCheckpointReview(value, expected) {
     value.contentBase64.length / 4 * 3 - padding === value.byteLength;
 }
 
-export function validResolveItem(value) {
+export function validResolveItem(value: unknown): value is Public.WireResolveItem {
   return validResolveItemShape(value);
 }
 
 // Per-item answers, in request order, one per submitted Checkpoint.
-export function validResolveResults(value, items) {
+export function validResolveResults(value: unknown, items: readonly Readonly<{checkpointCid: string}>[]): value is Readonly<{results: readonly Public.WireResolveResult[]}> {
   if (!Array.isArray(items) || !exact(value, ['results']) ||
       !Array.isArray(value.results) ||
       value.results.length !== items.length) return false;
@@ -651,13 +663,14 @@ export function validResolveResults(value, items) {
 
 // Generated guards validate the published shapes. These checks bind the
 // requested identity and related owner-issued evidence across those shapes.
-const shape = (value, required, optional = []) => value !== null &&
+const shape = (value: unknown, required: readonly string[], optional: readonly string[] = []): value is Record<string, unknown> => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => required.includes(key) ||
     optional.includes(key));
 
-export function validDeliveryAttemptLookup(value, expected) {
+export function validDeliveryAttemptLookup(value: unknown, expected: Readonly<{attemptId: string; runDefinitionCid: string;
+    resultName: string}>): value is Public.WireDeliveryAttemptLookup {
   if (!shape(expected, ['attemptId', 'runDefinitionCid', 'resultName']) ||
       !boundedText(expected.attemptId) ||
       !cid.test(expected.runDefinitionCid) ||
@@ -685,32 +698,32 @@ export function validDeliveryAttemptLookup(value, expected) {
         receipt.result_delivery_receipt_cid ||
       record.confirmed_byte_count !== receipt.delivered_byte_count ||
       record.delivered_sha256 !== receipt.delivered_sha256) return false;
-  return ['run_definition_cid', 'result_manifest_cid', 'result_name',
-    'result_artifact_cid', 'serialization_contract_cid']
+  return (['run_definition_cid', 'result_manifest_cid', 'result_name',
+    'result_artifact_cid', 'serialization_contract_cid'] as const)
     .every(key => attempt[key] === receipt[key]);
 }
 
-export const validCancellationRef = value => validCancellationRefShape(value) &&
+export const validCancellationRef: typeof Public.validCancellationRef = (value: unknown): value is Public.WireCancellationRef => validCancellationRefShape(value) &&
   value.namespaceId.isWellFormed() && value.cancelId.isWellFormed();
-const sameRunRef = (left, right) => ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+const sameRunRef = (left: Public.WireRunRef, right: Public.WireRunRef) => (['namespaceId', 'authorityScopeCid', 'runDefinitionCid'] as const)
   .every(key => left[key] === right[key]);
-const sameCancellationRef = (left, right) => sameRunRef(left, right) &&
+const sameCancellationRef = (left: Public.WireCancellationRef, right: Public.WireCancellationRef) => sameRunRef(left, right) &&
   left.cancelId === right.cancelId && left.expectedRevision === right.expectedRevision;
-export const validCancellation = (value, expected) => validCancellationShape(value) &&
+export const validCancellation: typeof Public.validCancellation = (value: unknown, expected?: Public.WireCancellationRef): value is Public.WireCancellation => validCancellationShape(value) &&
   validCancellationRef(value.cancelRef) && sameRunRef(value.ref, value.cancelRef) &&
   value.revision >= value.cancelRef.expectedRevision &&
   (value.kind !== 'accepted' || value.revision > value.cancelRef.expectedRevision) &&
   (expected === undefined || validCancellationRef(expected) &&
     sameCancellationRef(value.cancelRef, expected));
-export function validCancellationLookup(value, expected) {
+export function validCancellationLookup(value: unknown, expected: Public.WireCancellationRef): value is Public.WireCancellationLookup {
   return validCancellationRef(expected) && validCancellationLookupShape(value) &&
     (value.kind === 'found' ? validCancellation(value.cancellation, expected) :
       validCancellationRef(value.cancelRef) && sameCancellationRef(value.cancelRef, expected));
 }
 
-export const validOperationAttemptRef = value => validOperationAttemptRefShape(value) &&
+export const validOperationAttemptRef: typeof Public.validOperationAttemptRef = (value: unknown): value is Public.WireOperationAttemptRef => validOperationAttemptRefShape(value) &&
   value.attemptId.isWellFormed();
-export function validCancellationAttempt(value, expected, attemptRef) {
+export function validCancellationAttempt(value: unknown, expected: Public.WireCancellationRef, attemptRef: Public.WireOperationAttemptRef): value is Public.WireCancellationAttempt {
   if (!validCancellationRef(expected) || !validOperationAttemptRef(attemptRef) ||
       attemptRef.operation !== 'cancel' || !validCancellationAttemptShape(value) ||
       !validOperationAttemptRef(value.attemptRef) ||
@@ -728,24 +741,24 @@ export function validCancellationAttempt(value, expected, attemptRef) {
 // The reply to a request cancellation. `accepted` means the cancellation is
 // durable, not that anything stopped or was cleaned up. A reply for a
 // request whose Run exists names that Run.
-export function validRequestCancellation(value, expectedRequestId) {
+export function validRequestCancellation(value: unknown, expectedRequestId: string): value is Public.WireRequestCancellation {
   return boundedText(expectedRequestId) &&
     validRequestCancellationShape(value) &&
     value.requestId === expectedRequestId &&
     (value.ref === undefined) === (value.revision === undefined);
 }
 
-const utf8Bytes = text => new TextEncoder().encode(text).length;
-const jsonObject = text => {
+const utf8Bytes = (text: string) => new TextEncoder().encode(text).length;
+const jsonObject = (text: string) => {
   try {
-    const value = JSON.parse(text);
+    const value: unknown = JSON.parse(text);
     return value !== null && typeof value === 'object' &&
       !Array.isArray(value) ? value : undefined;
   } catch { return undefined; }
 };
 
 // One page of Resource names answering the exact request. Names are unique.
-export function validResourceListing(value, expected) {
+export function validResourceListing(value: unknown, expected: Readonly<{resourceConnection: string; limit: number}>): value is Public.WireResourceListing {
   if (!shape(expected, ['resourceConnection', 'limit']) ||
       !validResourceListingShape(value) ||
       value.resourceConnection !== expected.resourceConnection ||
@@ -756,7 +769,8 @@ export function validResourceListing(value, expected) {
 
 // A ready inspection carries only its bounded summary object; a Resource
 // that needs Catalog evidence carries only the reason.
-export function validResourceInspection(value, expected) {
+export function validResourceInspection(value: unknown, expected: Readonly<{resourceConnection: string; resource: string;
+    maxBytes: number}>): value is Public.WireResourceInspection {
   if (!shape(expected, ['resourceConnection', 'resource', 'maxBytes']) ||
       !validResourceInspectionShape(value) ||
       value.resourceConnection !== expected.resourceConnection ||
@@ -771,7 +785,8 @@ export function validResourceInspection(value, expected) {
 
 // A bounded preview: at most the requested rows, each with exactly the
 // requested fields and scalar JSON values. `limited` marks a prefix.
-export function validResourcePeek(value, expected) {
+export function validResourcePeek(value: unknown, expected: Readonly<{resourceConnection: string; resource: string;
+    fields: readonly string[]; maxRows: number; maxBytes: number}>): value is Public.WireResourcePeek {
   if (!shape(expected, ['resourceConnection', 'resource', 'fields',
         'maxRows', 'maxBytes']) ||
       !validResourcePeekShape(value) ||
@@ -785,9 +800,9 @@ export function validResourcePeek(value, expected) {
   const keys = [...value.fields].sort().join('\0');
   return Array.isArray(rows) && rows.length <= expected.maxRows &&
     (value.limited || rows.length < expected.maxRows) &&
-    rows.every(row => row !== null && typeof row === 'object' &&
+    rows.every((row: unknown) => row !== null && typeof row === 'object' &&
       !Array.isArray(row) && Object.keys(row).sort().join('\0') === keys &&
-      Object.values(row).every(cell => cell === null ||
+      Object.values(row).every((cell: unknown) => cell === null ||
         ['string', 'boolean'].includes(typeof cell) ||
         typeof cell === 'number' && Number.isFinite(cell)));
 }

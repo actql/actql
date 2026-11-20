@@ -347,3 +347,7 @@ target/
 # Generated maintained bounded configuration reader controls.
 /adapters/host-node/source-profile-json.test.mjs
 /adapters/host-node/source-profile-json.test.d.mts
+
+# Generated Client Host runtime keeps its original public import path.
+/packages/client-wire/index.mjs
+/packages/client-wire/index.d.mts
