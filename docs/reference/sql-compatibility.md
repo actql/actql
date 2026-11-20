@@ -106,7 +106,7 @@ propagation is not supported.
 | Parameters | `@name`, declared by the Program; never interpolated |
 | Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN`, `LIKE`, `NOT LIKE` |
 | Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
-| Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
+| Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| INT64 \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
