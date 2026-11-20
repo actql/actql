@@ -1856,6 +1856,28 @@ test('automatic main integration remains full without cumulative evidence', () =
   }
 });
 
+test('Source profile custody runs once beside original profile intake after preparation', () => {
+  const files = ['adapters/host-node/source-profile-json.test.mjs',
+    'adapters/host-node/source-profile-custody.test.mjs'];
+  const steps = jobs['client-distribution-callers'].steps;
+  const owners = files.map(file => {
+    const selected = Object.values(jobs).flatMap(job => job.steps ?? [])
+      .filter(step => step.run?.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1, file);
+    return selected[0];
+  });
+  assert.equal(owners[0], owners[1]);
+  const [owner] = owners, args = owner.run.trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0, 5), ['node', 'scripts/local-checks.mjs', 'test', 'node', '--']);
+  assert(!args.some(argument => /^--test-(?:name|skip|only)/u.test(argument)));
+  assert.equal(owner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(owner['continue-on-error'], undefined);
+  assert(steps.findIndex(step => step.id === 'distribution-preparation') < steps.indexOf(owner));
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(/\s+/u);
+  for (const file of files) assert.equal(command.filter(argument => argument === file).length, 1, file);
+});
+
 test('REST demand controls have one prepared public package owner without narrowing CI admission', () => {
   const file = 'adapters/host-node/rest-source-initial-material.test.mjs';
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;

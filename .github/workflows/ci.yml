@@ -2114,7 +2114,7 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs adapters/host-node/host-deferred-publication-startup.test.mjs adapters/host-node/source-profile-json.test.mjs
+        run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs adapters/host-node/host-deferred-publication-startup.test.mjs adapters/host-node/source-profile-json.test.mjs adapters/host-node/source-profile-custody.test.mjs
       - name: Test distribution caller installed-content-family-custody.test.mjs
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
