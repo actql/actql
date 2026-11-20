@@ -14,19 +14,32 @@ import {finiteRuntimeModules} from '../adapters/workers/artifact.mjs';
 import './deferred-function-runtime.test.mjs';
 import './runtime-package-pack-json.test.mjs';
 
+import type {TestContext} from 'node:test';
+
+type WorkflowStep = {name?: string; id?: string; run?: string; if?: string; 'continue-on-error'?: unknown};
+type Workflow = {jobs: {host: {steps: WorkflowStep[]}}};
+type PackageManifest = {scripts: Record<string, string>; files: string[]; exports: Record<string, unknown>};
+type FixturePackage = {builder: string; args: string[]; sources: string[]; destination: string; stale: string};
+type Call = {command?: string; args?: string[]; cwd?: string; stdio?: string; root?: string;
+  manifests?: string[]; fixtureInterfacesAdmitted?: boolean; originalInterfaceRefusal?: boolean;
+  done?: boolean; normalCli?: boolean};
+type RunOptions = {fail?: string; stalePayload?: string; wrapper?: string; version?: string;
+  additionalProvider?: boolean; refuseInterfaces?: boolean; normalCli?: boolean;
+  missingInterfaceOwner?: boolean; jobs?: number; commandEntry?: boolean; temporaryParent?: string};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('holder terminal facade runs after the existing prepared Remote Site CI gate', () => {
-  const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8'));
+  const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8')) as Workflow;
   const steps = workflow.jobs.host.steps;
-  const named = name => {
+  const named = (name: string) => {
     const selected = steps.filter(step => step.name === name);
     assert.equal(selected.length, 1, name);
     return selected[0];
   };
   const prepared = steps.filter(step => step.id === 'remote-site-preparation');
   assert.equal(prepared.length, 1);
-  const gate = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+  const gate = (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as PackageManifest)
     .scripts['check:remote-site-runtime'].split(' && ');
   assert.deepEqual(gate, ['npm run prepare:remote-site-runtime',
     'npm run test:remote-site-runtime', 'node scripts/test-packed-coordinator-core.mjs']);
@@ -43,7 +56,7 @@ test('holder terminal facade runs after the existing prepared Remote Site CI gat
 });
 
 test('metadata child regressions use the existing prepared Site gate with a bounded nonzero named selection', () => {
-  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const pkg = (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as PackageManifest);
   const prepared = pkg.scripts['prepare:remote-site-runtime'];
   assert(prepared.includes('src/connectors_builtin_node'));
   assert(prepared.includes('src/connectors/hubspot/host_node'));
@@ -82,7 +95,7 @@ test('metadata child regressions use the existing prepared Site gate with a boun
   }
 });
 
-const packages = {
+const packages: Record<string, FixturePackage> = {
   'run-host-core': {builder: 'build-run-host-core-package', args: ['--runtime-only'],
     sources: ['client_values_host_abi', 'checkpoint_runtime_node',
       'connectors_workers_bridge'],
@@ -108,13 +121,13 @@ const packages = {
     stale: 'StaleLocalNodeAsset'},
 };
 
-function put(directory, path, contents) {
+function put(directory: string, path: string, contents: string | Uint8Array) {
   mkdirSync(dirname(join(directory, path)), {recursive: true});
   writeFileSync(join(directory, path), contents);
 }
 
-function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
-  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, commandEntry = false, temporaryParent = tmpdir()} = {}) {
+function run(t: TestContext, requested: readonly string[], {fail, stalePayload, wrapper, version, additionalProvider = false,
+  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, commandEntry = false, temporaryParent = tmpdir()}: RunOptions = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -151,7 +164,7 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
       ...(entry.providerBundle === undefined ? [] : [`src/${entry.providerBundle}/moon.pkg`]),
-      ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
+      ...[entry.source, entry.effect].filter(Boolean).map(role => role!.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
   }
@@ -161,7 +174,7 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   // the independently authored compiled payloads below still test each builder.
   const fixtureGraph = buildSync({
     entryPoints: readHostBundles(root).flatMap(entry => [entry.source, entry.effect]
-      .filter(Boolean).map(role => role.module)),
+      .filter(Boolean).map(role => role!.module)),
     bundle: true, packages: 'external', platform: 'node', format: 'esm',
     metafile: true, write: false, absWorkingDir: root,
     outdir: join(root, '_build/runtime-preparation-fixture-graph'),
@@ -296,11 +309,11 @@ record({done: true});
   });
   assert.ok(existsSync(join(directory, 'calls.jsonl')),
     result.error?.message ?? result.stderr);
-  const calls = readFileSync(join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+  const calls = readFileSync(join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse as unknown as (line: string, index: number, lines: string[]) => Call);
   return {result, calls, directory};
 }
 
-function expectedCalls(names, directory) {
+function expectedCalls(names: readonly string[], directory: string): Call[] {
   return [{command: 'fixture-interface-admission', root: directory + '/',
     manifests: names.map(name => `packages/${name}/package.json`)},
   {fixtureInterfacesAdmitted: true},
@@ -319,16 +332,16 @@ test('explicit fixture interface admission is awaited for the physical root and 
   const {result, calls, directory} = run(t, ['coordinator-core', 'transfer-core', 'coordinator-core']);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(calls, expectedCalls(['coordinator-core', 'transfer-core'], directory));
-  assert.equal(realpathSync(calls[0].root), directory);
+  assert.equal(realpathSync(calls[0].root!), directory);
   const bounded=run(t,['coordinator-core','transfer-core'],{jobs:1,commandEntry:true});
   assert.equal(bounded.result.status,0,bounded.result.stderr);
   const compiler=bounded.calls.find(call=>call.command==='moon');
-  assert.equal(compiler.args[compiler.args.indexOf('-j')+1],'1');
-  assert(compiler.args.includes('src/remote_coordinator_abi'));
-  assert(compiler.args.includes('src/remote_transfer_abi'));
+  assert.equal(compiler!.args![compiler!.args!.indexOf('-j')+1],'1');
+  assert(compiler!.args!.includes('src/remote_coordinator_abi'));
+  assert(compiler!.args!.includes('src/remote_transfer_abi'));
   assert.equal(bounded.calls[0].command,'fixture-interface-admission');
   assert.equal(bounded.calls[1].fixtureInterfacesAdmitted,true);
-  assert.equal(bounded.calls.at(-1).done,true);
+  assert.equal(bounded.calls.at(-1)!.done,true);
 });
 
 test('original interface refusal prevents every compiler and builder call', t => {
@@ -411,7 +424,7 @@ for (const name of Object.keys(packages)) {
     assert.match(result.stderr, new RegExp(packages[name].stale));
     const expected = expectedCalls(Object.keys(packages), directory);
     const stop = expected.findIndex(call => call.args?.[0] === `scripts/${packages[name].builder}.mjs` &&
-      call.args.includes('--check'));
+      call.args!.includes('--check'));
     assert.deepEqual(calls, expected.slice(0, stop + 1));
   });
 }
@@ -427,7 +440,7 @@ for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-
 }
 
 test('run-host-core includes the unchanged canonical cleanup dependency as a private package member', () => {
-  const manifest = JSON.parse(readFileSync(join(root, 'packages/run-host-core/package.json')));
+  const manifest = JSON.parse(readFileSync(join(root, 'packages/run-host-core/package.json')) as unknown as string) as PackageManifest;
   assert(manifest.files.includes('managed-failure.mjs'));
   assert(!Object.hasOwn(manifest.exports, './managed-failure'));
   assert.deepEqual(readFileSync(join(root, 'packages/run-host-core/managed-failure.mjs')),
@@ -468,7 +481,7 @@ for (const name of Object.keys(packages)) {
 
 for (const name of Object.keys(packages)) {
   test(`${name} retains its real prepack runtime preparation`, () => {
-    const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'), 'utf8')) as PackageManifest;
     assert.equal(manifest.scripts.prepack, (name === 'local-node' ? 'node ../../scripts/generate-credential-scope-binding.mjs --check && ' : '') +
       `node ../../scripts/build-runtime-packages.mjs ${name}` +
       (name === 'local-node' ? ' && node ../../scripts/build-local-node-adapters.mjs' : ''));

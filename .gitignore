@@ -737,3 +737,11 @@ target/
 /scripts/check-interface-owners.d.mts
 /scripts/required-interface-check.test.mjs
 /scripts/required-interface-check.test.d.mts
+
+# Emitted from the authored runtime package preparation chain.
+/scripts/build-local-node-assets.mjs
+/scripts/build-local-node-assets.d.mts
+/scripts/build-runtime-packages.mjs
+/scripts/build-runtime-packages.d.mts
+/scripts/build-runtime-packages.test.mjs
+/scripts/build-runtime-packages.test.d.mts

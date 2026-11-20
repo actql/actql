@@ -9,12 +9,21 @@ import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {packageMetadata} from './connector-build-inputs.mjs';
 
+import type {ExternalLocalNodePackageInputs} from './local-node-package-inputs.mjs';
+import type {checkInterfaceOwners} from './check-interface-owners.mjs';
+
+type PackageInputs = ReturnType<typeof runtimePackageInputs>;
+type RuntimePackage = PackageInputs[keyof PackageInputs] & {args?: readonly string[]};
+type InterfaceOptions = NonNullable<Parameters<typeof checkInterfaceOwners>[1]>;
+type RuntimeOptions = {jobs?: number;
+  checkInterfaces?: (root: string, options: InterfaceOptions) => unknown | PromiseLike<unknown>};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
-const packages = runtimePackageInputs(root);
+const packages: Record<string, RuntimePackage> = runtimePackageInputs(root);
 // A resolved external Host compiles only the inventory's exact package
 // targets. Its workspace is supplied by the trusted build harness; this
 // function never resolves modules from a registry or rewrites Core inputs.
-export async function buildExternalLocalNodeRuntime({inputs, destination, compiledDirectory}) {
+export async function buildExternalLocalNodeRuntime({inputs, destination, compiledDirectory}: {inputs: ExternalLocalNodePackageInputs; destination: string; compiledDirectory: string}) {
   const {buildLocalNodeAssets} = await import('./build-local-node-assets.mjs');
   const resolved = inputs.buildInputs;
   if (resolved === undefined || existsSync(compiledDirectory)) {
@@ -22,12 +31,12 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
   }
   resolved.outputPath(relative(resolved.host.root, join(compiledDirectory, 'sentinel')));
   const inventory = JSON.parse(readFileSync(join(inputs.coreRoot,
-    'scripts/owned-contract-version-legacy.json'), 'utf8'));
+    'scripts/owned-contract-version-legacy.json'), 'utf8')) as Parameters<typeof violations>[1];
   const source = repositoryOccurrences(inputs.coreRoot);
   // Core's reviewed contexts do not grant an external Source writer the same
   // token. Package inputs need not have their own Git checkout.
-  const external = [];
-  const inspectText = (path, ownerPath) => {
+  const external: ReturnType<typeof occurrences> = [];
+  const inspectText = (path: string, ownerPath: string) => {
     const bytes = readFileSync(path);
     if (bytes.includes(0)) return;
     let text;
@@ -37,20 +46,20 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
   const pending = inputs.runtimeInputs.map(entry => ({name: entry.qualifiedPackage,
     from: resolved.host.namespace})), inspected = new Set();
   while (pending.length) {
-    const {name, from} = pending.pop();
+    const {name, from} = pending.pop()!;
     if (name.startsWith('moonbitlang/core/') || inspected.has(name)) continue;
     inspected.add(name);
     const owner = resolved.modules.find(module => name === module.namespace || name.startsWith(module.namespace + '/'));
     if (owner?.root === inputs.coreRoot) continue;
     const manifest = resolved.resolvePackage(name, from), directory = dirname(manifest);
     for (const imported of packageMetadata(manifest).productionImports) {
-      pending.push({name: imported, from: owner.namespace});
+      pending.push({name: imported, from: owner!.namespace});
     }
     for (const entry of readdirSync(directory, {withFileTypes: true})) {
       const path = join(directory, entry.name);
       if (entry.name.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/u.test(entry.name)) {
         if (!entry.isFile()) throw new Error('AliasedExternalContractSource');
-        inspectText(path, `${owner.namespace}:${relative(owner.root, path)}`);
+        inspectText(path, `${owner!.namespace}:${relative(owner!.root, path)}`);
       }
     }
   }
@@ -60,14 +69,14 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
     const owner = resolved.modules.find(module => item.source.startsWith(module.root + sep));
     if (owner?.root !== inputs.coreRoot) {
       if (owner === undefined) throw new Error('ForeignExternalContractSource');
-      inspectText(item.source, `${owner.namespace}:${relative(owner.root, item.source)}`);
+      inspectText(item.source, `${owner!.namespace}:${relative(owner!.root, item.source)}`);
     }
   }
   const rejected = violations(external, inventory);
   if (rejected.length) throw new Error('Unadmitted external source contract contexts:\n' +
     rejected.map(item => `${item.path}:${item.line}: ${item.token}`).join('\n'));
   assertGeneratedOwnedContracts({source, generated: [], inventory});
-  const byModule = new Map();
+  const byModule = new Map<string, string[]>();
   for (const entry of inputs.runtimeInputs) {
     const targets = byModule.get(entry.moduleRoot) ?? [];
     targets.push(entry.target);
@@ -89,16 +98,16 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
 // The normal CLI always resolves the real source-side gate. An imported
 // scheduling fixture may supply an explicit admission/refusal port; that
 // result is not an interface-Owner proof or a product admission capability.
-async function checkSourceInterfaces(root, options) {
+async function checkSourceInterfaces(root: string, options: InterfaceOptions) {
   const {checkInterfaceOwners} = await import('./check-interface-owners.mjs');
   await checkInterfaceOwners(root, options);
 }
 
-export async function prepareRuntimePackages(requested,
-  {checkInterfaces = checkSourceInterfaces, jobs} = {}) {
+export async function prepareRuntimePackages(requested: readonly string[],
+  {checkInterfaces = checkSourceInterfaces, jobs}: RuntimeOptions = {}) {
 if (jobs !== undefined && jobs !== 1) throw new Error('Runtime package construction requires one selected build slot');
 const inventory = JSON.parse(readFileSync(join(root,
-  'scripts/owned-contract-version-legacy.json'), 'utf8'));
+  'scripts/owned-contract-version-legacy.json'), 'utf8')) as Parameters<typeof violations>[1];
 const source = repositoryOccurrences(root);
 assertGeneratedOwnedContracts({source, generated: [], inventory});
 for (const name of requested) {
@@ -126,7 +135,7 @@ assertGeneratedOwnedContracts({source, generated, inventory});
 
 // The actual CLI and scheduling controls share this closed argument boundary.
 // Its default still resolves the real source-side interface gate.
-export async function runRuntimePackageCommand(args, options = {}) {
+export async function runRuntimePackageCommand(args: readonly string[], options: RuntimeOptions = {}) {
   const requested = [...args];
   let jobs;
   if (requested[0] === '--moon-jobs') {
