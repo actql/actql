@@ -388,3 +388,224 @@ test "Initial signing Journal routing fits the exact same real Read retained bou
 test "Initial signing Journal routing one short refuses before retained controls change" {
   effect_route_original_read_quote_case(true, signing=true)
 }
+
+///|
+// The Read and its retained-byte ledger are real. Private fixture records
+// present mismatched preparation inputs, without issuing a signing use or
+// claiming that the test has an installed approval path.
+test "Host attestation refuses mismatched preparation before entering its captured Read route" {
+  let fixture = journal_metadata_original_read_fixture()
+  let foreign_db = epoch_test_database("attestation-prequote-checkpoint")
+  let (_, request, waiting) = checkpoint_test_waiting(foreign_db, [])
+  let artifact = waiting.checkpoint.unwrap().artifact
+  let run_definition_cid = artifact.checkpoint.run_definition_cid().unwrap()
+  let name = "attestation-prequote"
+  let (host, file) = initial_reviewer_fixture(
+    name,
+    account=installed_host_subject_account,
+    host_signing_subject=Some(
+      ("host-machine", "host-cli", "key/initial-host-attestation"),
+    ),
+  )
+  let crypto = host.epoch.crypto
+  let installed = installed_subject_reviewer(host, file)
+  let account = host.restore_initial_host_signing_account(installed).unwrap()
+  let key = host
+    .acquire_initial_reviewer_signing_key(account.original.reviewer, installed)
+    .unwrap()
+  let capture = prepare_native_local_journal_capture_with_original_resources(
+    host.session,
+    fixture.host,
+    fixture.pair,
+    fixture.read,
+    crypto,
+    100.0,
+    8,
+    8388608L,
+  )
+  capture.opening = JournalAcquired(host)
+  capture.read_callback_active = true
+  capture.read_facts_valid = true
+  let material = host.adopted_current_material().unwrap()
+  let account = {
+    ..account,
+    original: {
+      ..account.original,
+      reviewer: {
+        ..account.original.reviewer,
+        original_read: Some((capture, material)),
+      },
+    },
+  }
+  let reference = prepare_native_client_submission_reference(
+    host.epoch
+    .issue_epoch(key.fields.authority_scope_cid, true, 1000.0)
+    .unwrap(),
+    "prequote-refusal",
+  ).unwrap()
+  let library = local_journal_test_library()
+  let store = @publication_store.open_store(
+    library,
+    observed_state_store_fixture(name + ".store"),
+    "sha256:" + "c".repeat(64),
+    65536L,
+    8L,
+    131072L,
+  ).unwrap()
+  let selected : NativeLocalCheckpointSelection = {
+    reference,
+    request,
+    checkpoint_id: artifact.checkpoint.checkpoint_id,
+    checkpoint_cid: artifact.checkpoint_cid,
+  }
+  let saved = {
+    capture,
+    store,
+    selected,
+    principal: "machine-user",
+    connection: "cli",
+    namespace_id: "prequote-fixture",
+    attempted: false,
+    retired: false,
+    approval_attempted: false,
+    approval_original: None,
+    retained_persisted: None,
+    _retained_checkpoint: None,
+    _retained_continuation: None,
+    _retained_original: None,
+    _retained_restoration: None,
+    _retained_file_entry_control: None,
+    _retained_publication_construction: None,
+    _retained_constructor_bytes: 0L,
+  }
+  let state = native_client_run_checkpoint_state(waiting).unwrap()
+  let current_calls = Ref(0)
+  let binding : NativeLocalEffectReviewerBinding = {
+    host,
+    crypto,
+    principal: "machine-user",
+    connection: "cli",
+    reference,
+    request,
+    original: {
+      checkpoint_cid: artifact.checkpoint_cid,
+      run_definition_cid,
+      revision: waiting.revision,
+      cancellation_requested: false,
+      state,
+    },
+    approval_scope: SavedApproval(saved),
+    installed,
+    now: () => {
+      current_calls.val += 1
+      1001.0
+    },
+  }
+  let limits = native_checkpoint_limits()
+  let writer = @encode.writer(
+    limits.max_wire_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  )
+  emit_saved_effect_resolution(
+    writer,
+    artifact,
+    "machine-user",
+    "rejected",
+    artifact.checkpoint.created_at,
+  )
+  let proof = @checkpoint.prepare_resolution_proof(
+    artifact,
+    @encode.finish(writer),
+    limits,
+  ).unwrap()
+  let registration : @effect_resolution.NativeEffectReviewerRegistration = {
+    selection: {
+      principal_id: binding.principal,
+      checkpoint_cid: artifact.checkpoint_cid,
+    },
+    key_id: installed.reviewer.key_id,
+    reviewer_id: installed.reviewer.reviewer_id,
+    public_key_pem: installed.reviewer.public_key_pem,
+    approval_authority_scope_cid: key.fields.authority_scope_cid,
+    authority_context_cid: key.fields.authority_scope_cid,
+    policy_cid: key.fields.account_configuration_cid,
+  }
+  let materials : NativeLocalReviewerProofMaterials = {
+    key: InitialReviewerKey(key),
+    reviewer: binding,
+    registration,
+    original: {
+      artifact,
+      revision: waiting.revision,
+      cancellation_requested: false,
+      state,
+      reported_unknown_effect_count: 0,
+      settlement_only: false,
+    },
+    proof: ResolutionOriginal(proof),
+  }
+  let authenticated : NativeLocalAuthenticatedEffectReviewer = {
+    binding,
+    registration,
+    limits,
+    resolution_wire: "",
+    authentication: {
+      key_id: registration.key_id,
+      reviewer_id: registration.reviewer_id,
+      expected_authority_scope_cid: registration.approval_authority_scope_cid,
+      authority_context_cid: registration.authority_context_cid,
+      policy_cid: registration.policy_cid,
+      proof_preimage: proof.preimage(),
+    },
+  }
+  let mismatch = {
+    ..authenticated,
+    authentication: {
+      ..authenticated.authentication,
+      proof_preimage: "foreign preimage",
+    },
+  }
+  let foreign_host = checkpoint_lookup_host_fixture(
+    "attestation-foreign-receiver",
+  )
+  let foreign = {
+    ..authenticated,
+    binding: { ..binding, host: foreign_host, },
+  }
+  let original = capture.original_resources.unwrap()
+  for receiver in [mismatch, foreign] {
+    let retained = original.metadata_retained
+    let route = native_timing_counter_value(33)
+    let refused = original
+      .stage(@arena.HostRead, fn() {
+        Ok(
+          receiver.prepare_initial_host_attestation(
+            account, materials, "refused",
+          )
+          is Err(HostAttestationUnavailable),
+        )
+      })
+      .unwrap()
+    assert_eq(original.metadata_retained, retained)
+    assert_eq(native_timing_counter_value(33), route)
+    assert_eq(current_calls.val, 0)
+    assert_true(
+      capture.read_material is None && capture.read_operation_issue is None,
+    )
+    assert_true(refused)
+  }
+  capture.read_callback_active = false
+  capture.read_facts_valid = false
+  // The fixture lent this old Host to the negative input. Close it through
+  // its actual owner, independently from the separately entered Read.
+  capture.opening = JournalNotAttempted
+  assert_true(store.close().unwrap())
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+  let foreign_crypto = foreign_host.epoch.crypto
+  foreign_host.close().unwrap()
+  foreign_crypto.close_checked().unwrap()
+  foreign_db.close_checked().unwrap()
+  account_original_read_close_fixture(fixture)
+}

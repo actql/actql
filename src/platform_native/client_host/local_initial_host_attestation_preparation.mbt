@@ -66,6 +66,22 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
   NativeLocalInitialHostAttestationPreparation,
   NativeLocalInitialHostAttestationIssue,
 ] {
+  // Reject mismatched originals before borrowing the Account's Read.
+  let binding = self.binding
+  let host = binding.host
+  guard materials.proof is ResolutionOriginal(_) &&
+    physical_equal(binding, materials.reviewer) &&
+    physical_equal(host, account.original.reviewer.host) &&
+    physical_equal(account.installed.host, host) &&
+    account.installed.file == binding.installed.file &&
+    account.installed.original_bytes == binding.installed.original_bytes &&
+    self.registration == materials.registration &&
+    self.authentication.proof_preimage == materials.proof.preimage() &&
+    materials.key is InitialReviewerKey(reviewer_key) &&
+    reviewer_key.original.exported == account.original.reviewer.exported &&
+    reviewer_key.original.control_body == account.original.reviewer.control_body else {
+    return Err(HostAttestationUnavailable)
+  }
   match account.original.reviewer.original_read {
     None =>
       self.prepare_initial_host_attestation_with_operations(
@@ -114,19 +130,6 @@ fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation_with
   let reads = operations.map(value => value.reads)
   let binding = self.binding
   let host = binding.host
-  guard materials.proof is ResolutionOriginal(_) &&
-    physical_equal(binding, materials.reviewer) &&
-    physical_equal(host, account.original.reviewer.host) &&
-    physical_equal(account.installed.host, host) &&
-    account.installed.file == binding.installed.file &&
-    account.installed.original_bytes == binding.installed.original_bytes &&
-    self.registration == materials.registration &&
-    self.authentication.proof_preimage == materials.proof.preimage() &&
-    materials.key is InitialReviewerKey(reviewer_key) &&
-    reviewer_key.original.exported == account.original.reviewer.exported &&
-    reviewer_key.original.control_body == account.original.reviewer.control_body else {
-    return Err(HostAttestationUnavailable)
-  }
   match account.require_current_account() {
     Err(issue) => return Err(HostAttestationAccount(issue))
     Ok(_) => ()
