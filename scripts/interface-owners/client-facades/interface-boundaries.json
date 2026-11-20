@@ -15345,7 +15345,7 @@
                 "anchor": "Source-level facade checks compare actual namespaces and original identities,"
               },
               {
-                "path": "scripts/runtime-package-inputs.test.mjs",
+                "path": "scripts/runtime-package-inputs.test.mts",
                 "anchor": "test('public observation facade"
               }
             ]
@@ -15446,7 +15446,7 @@
                 "anchor": "Source-level facade checks compare actual namespaces and original identities,"
               },
               {
-                "path": "scripts/runtime-package-inputs.test.mjs",
+                "path": "scripts/runtime-package-inputs.test.mts",
                 "anchor": "test('public Result facade"
               }
             ]

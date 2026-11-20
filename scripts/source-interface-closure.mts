@@ -28,7 +28,9 @@ type ModuleInterface = Parameters<typeof assertInterfaceCoverage>[0]['modules'][
 type SourceModule = ModuleInterface & {imports: readonly string[]};
 type ArtifactInput = {module: string; sourcePackages: readonly string[]; build: string;
   package?: string; sourceFiles?: readonly string[]; sha256?: string; target?: string; qualification?: string};
-type SourceOptions = {distributionRoots?: ReturnType<typeof npmInterfaceRoots>;
+type NpmRoot = ReturnType<typeof npmInterfaceRoots>[number];
+type DistributionRoot = Pick<NpmRoot, 'name' | 'entrances'> & Partial<Omit<NpmRoot, 'name' | 'entrances'>>;
+type SourceOptions = {distributionRoots?: readonly DistributionRoot[];
   generatedInputs?: readonly ArtifactInput[]; reportUnresolvedEntrances?: boolean; authoredEntrances?: readonly string[]};
 type SourceAsset = {module: string; sha256: string; qualification: string};
 type ProviderEntry = {providerBundle?: string};
@@ -200,9 +202,9 @@ export async function sourceInterfaceClosure(root: string, {distributionRoots = 
         if (!reference.specifier.startsWith('./') && !reference.specifier.startsWith('../')) return;
         targets = [admitTarget(reference.specifier)];
       } else if (reference.kind === 'package-resolution') {
-        const original = roots.find(value => module.startsWith(dirname(value.manifest) + '/'));
+        const original = roots.find(value => module.startsWith(dirname(value.manifest!) + '/'));
         const target = roots.find(value => value.name === reference.specifier);
-        if (!original?.dependencies.includes(reference.specifier) || !target) return;
+        if (!original?.dependencies!.includes(reference.specifier) || !target) return;
         targets = [reference.specifier];
       } else if (reference.kind === 'owner-projection') {
         const owner = 'adapters/host-node/installed-connectors.mjs';

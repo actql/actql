@@ -695,3 +695,9 @@ target/
 
 /scripts/source-interface-closure.mjs
 /scripts/source-interface-closure.d.mts
+
+/scripts/update-selection-interface.test.mjs
+/scripts/update-selection-interface.test.d.mts
+
+/scripts/runtime-package-inputs.test.mjs
+/scripts/runtime-package-inputs.test.d.mts

@@ -14,11 +14,16 @@ import {assertInterfaceCoverage, javascriptInterface} from './interface-inventor
 import {conformanceModules, finiteConformanceModules, hostModules, finiteRuntimeModules}
   from '../adapters/workers/artifact.mjs';
 
-function publicFacadeFixture(t, name) {
+import type {TestContext} from 'node:test';
+
+type FixtureManifest = {exports: Record<string, {default: string}>; files: string[]};
+type UncheckedNamespace = Record<string, unknown>;
+
+function publicFacadeFixture(t: TestContext, name: string) {
   const root = process.cwd(), source = join(root, 'packages', name);
   const directory = mkdtempSync(join(root, '_build-public-facade-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
-  const manifest = JSON.parse(readFileSync(join(source, 'package.json'), 'utf8'));
+  const manifest = JSON.parse(readFileSync(join(source, 'package.json'), 'utf8')) as FixtureManifest;
   writeFileSync(join(directory, 'package.json'), JSON.stringify(manifest));
   for (const path of manifest.files.filter(path => !path.includes('/') && path.endsWith('.mjs'))) {
     writeFileSync(join(directory, path), readFileSync(join(source, path)));
@@ -26,7 +31,7 @@ function publicFacadeFixture(t, name) {
   symlinkSync(join(root, 'adapters'), join(directory, 'adapters'), 'dir');
   mkdirSync(join(directory, 'node_modules/@actql'), {recursive: true});
   symlinkSync(join(root, 'packages/client-wire'), join(directory, 'node_modules/@actql/client-wire'), 'dir');
-  const load = path => import(pathToFileURL(join(directory, path)).href);
+  const load = (path: string) => import(pathToFileURL(join(directory, path)).href) as Promise<UncheckedNamespace>;
   return {root, directory, manifest, load};
 }
 
@@ -36,11 +41,11 @@ test('public observation facade retains the two original typed values and privat
   const exposed = await load(selected);
   assert.deepEqual(Object.keys(exposed).sort(), ['createHostObservationConnection', 'observationLimits']);
   assert(manifest.files.includes(selected.slice(2)));
-  const original = await import(pathToFileURL(join(root, 'adapters/host-common/observation.mjs')).href);
+  const original = await import(pathToFileURL(join(root, 'adapters/host-common/observation.mjs')).href) as UncheckedNamespace;
   for (const name of Object.keys(exposed)) assert.equal(exposed[name], original[name]);
   assert.equal(typeof original.installHostObservation, 'function');
-  assert.equal(original.isHostObservationProjection({}), false);
-  assert.equal(original.isHostObservationProjection(Object.freeze({})), false);
+  assert.equal((original.isHostObservationProjection as (value: unknown) => unknown)({}), false);
+  assert.equal((original.isHostObservationProjection as (value: unknown) => unknown)(Object.freeze({})), false);
 });
 
 test('public Result facade retains all five original typed functions and the original private error class', async t => {
@@ -52,8 +57,8 @@ test('public Result facade retains all five original typed functions and the ori
   assert(manifest.files.includes(selected.slice(2)));
   const original = await load('result-access.mjs');
   for (const name of Object.keys(exposed)) assert.equal(exposed[name], original[name]);
-  assert.throws(() => exposed.installResultAccessAuthority({}), error =>
-    error instanceof original.ResultAccessError && error.code === 'InvalidResultAccessAuthority');
+  assert.throws(() => (exposed.installResultAccessAuthority as (value: unknown) => unknown)({}), error =>
+    error instanceof (original.ResultAccessError as new (...args: never[]) => Error & {code?: unknown}) && error.code === 'InvalidResultAccessAuthority');
   const canonical = readFileSync(join(root, 'adapters/host-common/result-access.mjs'), 'utf8')
     .replace("'../../packages/client-wire/index.mjs'", "'@actql/client-wire'");
   assert.equal(readFileSync(join(root, 'packages/run-host-core/result-access.mjs'), 'utf8'), canonical);
@@ -103,7 +108,7 @@ test('actual coordinator source graph records its generated artifact without pre
 
 test('ordinary bundled Workers sources and local Host assets remain in source coverage', async () => {
   const result = await sourceInterfaceClosure(process.cwd(), {distributionRoots:
-    npmInterfaceRoots(process.cwd()).filter(value => ['@actql/run-host-core', '@actql/local-node'].includes(value.name))});
+    npmInterfaceRoots(process.cwd()).filter(value => ['@actql/run-host-core', '@actql/local-node'].includes(value.name as string))});
   assert.equal(result.qualification, 'source-input-coverage-only');
   assert(result.modules.some(value => value.module === 'adapters/workers/finite-runtime.mjs'));
   assert(result.artifacts.some(value => value.module === '_build/workers/modules/bridge.mjs' &&
@@ -170,7 +175,7 @@ test('ordinary Local source binds its finite native delivery images to the actua
   for (const artifact of native) {
     assert.equal(artifact.build, 'scripts/build-node-directory-native.mjs');
     assert.deepEqual(artifact.sourcePackages, []);
-    assert.deepEqual(artifact.sourceFiles, [artifact.target.startsWith('linux-')
+    assert.deepEqual(artifact.sourceFiles, [artifact.target!.startsWith('linux-')
       ? 'adapters/host-node/native/local-files-linux.c' : 'adapters/host-node/native/directory-darwin.c',
       'adapters/host-node/native/napi-filesystem-helpers.inc',
       'adapters/connectors/local/site/root-filesystem-platform.inc',
@@ -181,17 +186,17 @@ test('ordinary Local source binds its finite native delivery images to the actua
   }
   assert.deepEqual([...new Set(native.map(value => value.target))].sort(),
     ['darwin-arm64/node-napi8', 'darwin-x64/node-napi8', 'linux-x64/node-napi8']);
-  for (const path of new Set(native.flatMap(value => [...value.sourceFiles, value.build]))) {
+  for (const path of new Set(native.flatMap(value => [...value.sourceFiles!, value.build]))) {
     assert(result.assets.some(value => value.module === path && value.qualification === 'compiled-native-build-source'));
   }
   const builder = readFileSync(native[0].build, 'utf8');
   for (const path of new Set(native.flatMap(value => value.sourceFiles))) assert(builder.includes(`'${path}'`));
   const host = result.modules.find(value => value.module === 'adapters/host-node/embedded-local.mjs');
-  assert.deepEqual(host.unresolvedSyntax, []);
+  assert.deepEqual(host!.unresolvedSyntax, []);
   const filesystem = result.modules.find(value => value.module === 'adapters/host-node/local-files-native.mjs');
-  assert.deepEqual(filesystem.unresolvedSyntax, []);
-  assert.equal(filesystem.imports.filter(path => path.endsWith('.node')).length, 6);
-  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 0);
+  assert.deepEqual(filesystem!.unresolvedSyntax, []);
+  assert.equal(filesystem!.imports.filter(path => path.endsWith('.node')).length, 6);
+  assert.equal(host!.imports.filter(path => path.endsWith('.node')).length, 0);
   assert(result.modules.every(value => !value.module.endsWith('.node')));
 });
 

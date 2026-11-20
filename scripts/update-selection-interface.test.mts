@@ -7,6 +7,14 @@ import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {generateUpdateTargetDataCodec} from './generate-update-target-data-codec.mjs';
 
+import type {assertInterfaceCoverage} from './interface-inventory.mjs';
+
+type CoverageInput = Parameters<typeof interfaceOwnerCoverage>[0];
+type Declaration = Parameters<typeof assertInterfaceCoverage>[0]['declarations'][number];
+type MutableDeclaration = Omit<Declaration, 'operations'> & {
+  operations: Declaration['operations'][number][]; responsibilityFacet?: unknown;
+};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const paths = [
   'adapters/host-node/update-target-original-shape.mjs',
@@ -28,8 +36,8 @@ const modules = () => paths.map(path => {
 // This focused test selects only the R3 change boundary. The ordinary checker
 // continues to validate every declaration in the full distribution closure.
 const owners = () => interfaceOwnerDeclarations(root).map(owner => ({...owner,
-  declarations: owner.declarations.filter(value => paths.includes(value.module))}));
-const check = (actual, declarations) => interfaceOwnerCoverage({root, modules: actual,
+  declarations: owner.declarations.filter(value => paths.includes((value as MutableDeclaration).module)) as MutableDeclaration[]}));
+const check = (actual: CoverageInput['modules'], declarations: CoverageInput['owners']) => interfaceOwnerCoverage({root, modules: actual,
   owners: declarations, generated: [], requireComplete: true});
 
 test('UPDATE selection references retain complete original functional and supplemental facets', () => {
@@ -42,7 +50,7 @@ test('UPDATE selection references retain complete original functional and supple
 test('UPDATE selection missing operations are rejected by the actual reference boundary', () => {
   const actual = modules();
   const declarations = owners();
-  const target = declarations.flatMap(owner => owner.declarations).find(value => value.module === paths[0]);
+  const target = declarations.flatMap(owner => owner.declarations).find(value => value.module === paths[0])!;
   target.operations.pop();
   assert.throws(() => check(actual, declarations), /Unregistered interface operation/);
 });
@@ -59,5 +67,5 @@ test('UPDATE bounded DATA codec has ordinary freshness without compiler-binding 
   const declarations = owners().flatMap(owner => owner.declarations).filter(value => value.module === paths[1]);
   assert(declarations.length);
   assert(declarations.every(value => value.role === 'physical-io'));
-  assert.equal(modules().find(value => value.module === paths[1]).compilerFields.length, 0);
+  assert.equal(modules().find(value => value.module === paths[1])!.compilerFields!.length, 0);
 });
