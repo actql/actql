@@ -1,3 +1,4 @@
+type GatewayClient = Parameters<typeof startExplorerGateway>[0]['client'];
 import assert from 'node:assert/strict';
 import {Server} from 'node:http';
 import {setImmediate as nextTurn} from 'node:timers/promises';
@@ -7,9 +8,9 @@ import {startExplorerGateway} from './gateway.mjs';
 test('a refused server close retries only the same original listener', async () => {
   const close = Server.prototype.close;
   const originalFailure = new Error('original listener close refused');
-  let original, calls = 0;
-  const attempted = [];
-  Server.prototype.close = function(callback) {
+  let original!:Server, calls = 0;
+  const attempted:Server[] = [];
+  Server.prototype.close = function(this:Server,callback:NonNullable<Parameters<Server['close']>[0]>) {
     original ??= this;
     assert.equal(this, original);
     attempted.push(this);
@@ -19,17 +20,17 @@ test('a refused server close retries only the same original listener', async () 
       return this;
     }
     return Reflect.apply(close, this, [callback]);
-  };
-  let gateway;
+  } as typeof close;
+  let gateway:Awaited<ReturnType<typeof startExplorerGateway>>;
   try {
     gateway = await startExplorerGateway({client: {
       attach() {assert.fail('No Run is opened');},
       close() {assert.fail('The borrowed Client is not the server cleanup');},
-    }});
+    } as unknown as GatewayClient});
     const first = gateway.close();
     await assert.rejects(first, error => {
-      assert.equal(error.message, 'ExplorerGatewayCleanupPending');
-      assert.deepEqual(error.errors, [originalFailure]);
+      assert.equal((error as Error).message, 'ExplorerGatewayCleanupPending');
+      assert.deepEqual((error as AggregateError).errors, [originalFailure]);
       return true;
     });
     assert.equal(original.listening, true, 'A refusal is not physical close acknowledgement');
@@ -44,8 +45,8 @@ test('a refused server close retries only the same original listener', async () 
   } finally {
     Server.prototype.close = close;
     if (original?.listening) {
-      await new Promise((resolve, reject) => {
-        Reflect.apply(close, original, [error => error ? reject(error) : resolve()]);
+      await new Promise<void>((resolve, reject) => {
+        Reflect.apply(close, original, [(error?:Error) => error ? reject(error) : resolve()]);
         original.closeAllConnections();
       });
     }
@@ -54,19 +55,19 @@ test('a refused server close retries only the same original listener', async () 
 
 test('a server close with an outstanding callback remains one pending attempt', async () => {
   const close = Server.prototype.close;
-  let original, finish, calls = 0;
-  Server.prototype.close = function(callback) {
+  let original!:Server, finish!:()=>Server, calls = 0;
+  Server.prototype.close = function(this:Server,callback:NonNullable<Parameters<Server['close']>[0]>) {
     original ??= this;
     assert.equal(this, original);
     calls++;
     finish = () => Reflect.apply(close, this, [callback]);
     return this;
-  };
+  } as typeof close;
   try {
     const gateway = await startExplorerGateway({client: {
       attach() {assert.fail('No Run is opened');},
       close() {assert.fail('The borrowed Client is not closed');},
-    }});
+    } as unknown as GatewayClient});
     const pending = gateway.close();
     let settled = false;
     void pending.then(() => {settled = true;});
@@ -81,8 +82,8 @@ test('a server close with an outstanding callback remains one pending attempt', 
   } finally {
     Server.prototype.close = close;
     if (original?.listening) {
-      await new Promise((resolve, reject) => {
-        Reflect.apply(close, original, [error => error ? reject(error) : resolve()]);
+      await new Promise<void>((resolve, reject) => {
+        Reflect.apply(close, original, [(error?:Error) => error ? reject(error) : resolve()]);
         original.closeAllConnections();
       });
     }
@@ -92,10 +93,10 @@ test('a server close with an outstanding callback remains one pending attempt', 
 test('a known socket close failure still retains the original outstanding SDK read', async () => {
   const close = Server.prototype.close;
   const originalFailure = new Error('original socket cleanup refused');
-  let original, calls = 0, release, entered;
-  const admitted = new Promise(resolve => {entered = resolve;});
-  const read = new Promise(resolve => {release = resolve;});
-  Server.prototype.close = function(callback) {
+  let original!:Server, calls = 0, release!:(value:{items:unknown[]})=>void, entered!:()=>void;
+  const admitted = new Promise<void>(resolve => {entered = resolve;});
+  const read = new Promise<{items:unknown[]}>(resolve => {release = resolve;});
+  Server.prototype.close = function(this:Server,callback:NonNullable<Parameters<Server['close']>[0]>) {
     original ??= this;
     assert.equal(this, original);
     if (++calls === 1) {
@@ -103,22 +104,22 @@ test('a known socket close failure still retains the original outstanding SDK re
       return this;
     }
     return Reflect.apply(close, this, [callback]);
-  };
-  let response;
+  } as typeof close;
+  let response:Promise<Response|null>|undefined;
   try {
     const gateway = await startExplorerGateway({client: {
       attach() {assert.fail('No Run is opened');},
       checkpoints() {entered(); return read;},
       close() {assert.fail('The Client retains separate physical cleanup');},
-    }});
+    } as unknown as GatewayClient});
     const bootstrap = await fetch(`${gateway.origin}/api/session`, {
       method: 'POST', headers: {Origin: gateway.origin, 'Content-Type': 'application/json'},
       body: JSON.stringify({bootstrap: gateway.issueBootstrap().bootstrap}),
     });
-    const body = await bootstrap.json();
+    const body = await bootstrap.json() as {csrf:string};
     response = fetch(`${gateway.origin}/api/read/checkpoints`, {
       method: 'POST', headers: {Origin: gateway.origin, 'Content-Type': 'application/json',
-        Cookie: bootstrap.headers.get('set-cookie').split(';')[0], 'X-Actql-CSRF': body.csrf},
+        Cookie: bootstrap.headers.get('set-cookie')!.split(';')[0], 'X-Actql-CSRF': body.csrf},
       body: '{}',
     }).catch(() => null);
     await admitted;
@@ -131,7 +132,7 @@ test('a known socket close failure still retains the original outstanding SDK re
     assert.equal(calls, 1, 'The original SDK settlement cannot be replaced by socket failure');
     release({items: []});
     await assert.rejects(first, error => {
-      assert.deepEqual(error.errors, [originalFailure]);
+      assert.deepEqual((error as AggregateError).errors, [originalFailure]);
       return true;
     });
     await response;
@@ -144,8 +145,8 @@ test('a known socket close failure still retains the original outstanding SDK re
     await response;
     Server.prototype.close = close;
     if (original?.listening) {
-      await new Promise((resolve, reject) => {
-        Reflect.apply(close, original, [error => error ? reject(error) : resolve()]);
+      await new Promise<void>((resolve, reject) => {
+        Reflect.apply(close, original, [(error?:Error) => error ? reject(error) : resolve()]);
         original.closeAllConnections();
       });
     }

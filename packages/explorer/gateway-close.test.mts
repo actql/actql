@@ -1,15 +1,17 @@
+type GatewayClient = Parameters<typeof createExplorerGateway>[0]['client'];
+type Gateway = ReturnType<typeof createExplorerGateway>;
 import assert from 'node:assert/strict';
 import {setImmediate as nextTurn} from 'node:timers/promises';
 import test from 'node:test';
 import {createExplorerGateway, gatewayLimits, startExplorerGateway} from './gateway.mjs';
 
 function deferred() {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
+  let resolve!:(value?:unknown)=>void, reject!:(error:unknown)=>void;
+  const promise = new Promise<unknown>((yes, no) => {resolve = yes as (value?:unknown)=>void; reject = no;});
   return {promise, resolve, reject};
 }
 
-async function session(gateway, origin) {
+async function session(gateway:Gateway, origin:string) {
   const response = await gateway.fetch(new Request(`${origin}/api/session`, {
     method: 'POST', headers: {Host: new URL(origin).host, Origin: origin,
       'Content-Type': 'application/json'},
@@ -18,7 +20,7 @@ async function session(gateway, origin) {
   assert.equal(response.status, 200);
   const body = await response.json();
   return {Host: new URL(origin).host, Origin: origin, 'Content-Type': 'application/json',
-    Cookie: response.headers.get('set-cookie').split(';')[0], 'X-Actql-CSRF': body.csrf};
+    Cookie: response.headers.get('set-cookie')!.split(';')[0], 'X-Actql-CSRF': body.csrf};
 }
 
 for (const rejects of [false, true]) {
@@ -30,7 +32,7 @@ for (const rejects of [false, true]) {
       attach() {assert.fail('No Run operation');},
       checkpoints() {calls++; entered.resolve(); return original.promise;},
       close() {assert.fail('The Client is borrowed');},
-    }});
+    } as unknown as GatewayClient});
     const headers = await session(gateway, origin);
     const response = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
       method: 'POST', headers, body: '{}',
@@ -63,7 +65,7 @@ for (const rejects of [false, true]) {
 test('a reentrant close from the original SDK callback retains that same invocation', async () => {
   const original = deferred(), entered = deferred();
   const origin = 'http://127.0.0.1:43210';
-  let closing, settled = false;
+  let closing:Promise<void>|undefined, settled = false;
   const gateway = createExplorerGateway({origin, client: {
     attach() {assert.fail('No Run operation');},
     checkpoints() {
@@ -72,7 +74,7 @@ test('a reentrant close from the original SDK callback retains that same invocat
       entered.resolve();
       return original.promise;
     },
-  }});
+  } as unknown as GatewayClient});
   const headers = await session(gateway, origin);
   const response = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
     method: 'POST', headers, body: '{}',
@@ -100,7 +102,7 @@ test('a presentation timeout leaves the same SDK call pending until close observ
   const gateway = createExplorerGateway({origin, client: {
     attach() {assert.fail('No Run operation');},
     checkpoints() {calls++; entered.resolve(); return original.promise;},
-  }});
+  } as unknown as GatewayClient});
   const headers = await session(gateway, origin);
   const response = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
     method: 'POST', headers, body: '{}',
@@ -131,15 +133,15 @@ test('the actual loopback server close waits for its original SDK call without c
     attach() {assert.fail('No Run operation');},
     checkpoints() {calls++; entered.resolve(); return original.promise;},
     close() {assert.fail('The Client is borrowed');},
-  }});
+  } as unknown as GatewayClient});
   const bootstrap = await fetch(`${server.origin}/api/session`, {
     method: 'POST', headers: {Origin: server.origin, 'Content-Type': 'application/json'},
     body: JSON.stringify({bootstrap: server.issueBootstrap().bootstrap}),
   });
-  const body = await bootstrap.json();
+  const body = await bootstrap.json() as {csrf:string};
   const response = fetch(`${server.origin}/api/read/checkpoints`, {
     method: 'POST', headers: {Origin: server.origin, 'Content-Type': 'application/json',
-      Cookie: bootstrap.headers.get('set-cookie').split(';')[0], 'X-Actql-CSRF': body.csrf},
+      Cookie: bootstrap.headers.get('set-cookie')!.split(';')[0], 'X-Actql-CSRF': body.csrf},
     body: '{}',
   }).catch(() => null);
   try {
@@ -168,7 +170,7 @@ test('closing before a request body is admitted prevents SDK entry', async () =>
   const gateway = createExplorerGateway({origin, client: {
     attach() {assert.fail('No Run operation');},
     checkpoints() {calls++; return {items: []};},
-  }});
+  } as unknown as GatewayClient});
   const headers = await session(gateway, origin);
   const response = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
     method: 'POST', headers, body: '{}',
@@ -184,14 +186,14 @@ test('settlement removes the original read before admitting its replacement into
   const OriginalSet = globalThis.Set;
   const originals = Array.from({length: 4}, deferred), entered = deferred(), probed = deferred();
   const origin = 'http://127.0.0.1:43210';
-  let gateway, headers, replacement, calls = 0, maximum = 0, didProbe = false;
-  class ObservedSet extends OriginalSet {
-    add(value) {
+  let gateway!:Gateway, headers!:Record<string,string>, replacement:Response|Promise<Response>|undefined, calls = 0, maximum = 0, didProbe = false;
+  class ObservedSet extends OriginalSet<unknown> {
+    add(value:unknown) {
       const result = super.add(value);
       if (value instanceof Promise) maximum = Math.max(maximum, this.size);
       return result;
     }
-    delete(value) {
+    delete(value:unknown) {
       if (value instanceof Promise && !didProbe) {
         didProbe = true;
         replacement = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
@@ -202,7 +204,7 @@ test('settlement removes the original read before admitting its replacement into
       return super.delete(value);
     }
   }
-  globalThis.Set = ObservedSet;
+  globalThis.Set = ObservedSet as unknown as SetConstructor;
   try {
     gateway = createExplorerGateway({origin, client: {
       attach() {assert.fail('No Run operation');},
@@ -211,7 +213,7 @@ test('settlement removes the original read before admitting its replacement into
         if (calls === 4) entered.resolve();
         return index < 4 ? originals[index].promise : {items: []};
       },
-    }});
+    } as unknown as GatewayClient});
   } finally {globalThis.Set = OriginalSet;}
   headers = await session(gateway, origin);
   const responses = Array.from({length: 4}, () => gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
@@ -224,7 +226,7 @@ test('settlement removes the original read before admitting its replacement into
     await probed.promise;
     const overlap = await replacement;
     assert.equal(maximum, 4, 'Retained original reads and newly admitted reads share the same four-call bound');
-    assert.equal(overlap.status, 429, 'The old invocation still owns its slot until collection removal');
+    assert.equal(overlap!.status, 429, 'The old invocation still owns its slot until collection removal');
     assert.equal(calls, 4);
     const following = await gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
       method: 'POST', headers, body: '{}',
