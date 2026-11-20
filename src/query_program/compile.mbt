@@ -1008,6 +1008,8 @@ fn append_pipe_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
   value_ranges? : Array[@query.NamePart] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   append_pipe_range_expression(
     construction,
@@ -1016,6 +1018,8 @@ fn append_pipe_expression(
     ranges,
     max_work,
     value_ranges~,
+    column_profiles~,
+    namespace_out~,
   )
 }
 
@@ -1147,7 +1151,17 @@ fn append_expression(
   fields : Array[String],
   max_work : Int,
   private_columns? : Array[(String, String)] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
+  if column_profiles is Some(_) && input.graph_bindings.is_empty() {
+    return append_pipe_range_expression(
+      construction, expression,
+      fields.map(field => (field, field)) + private_columns,
+      if @query.relation(query).is_empty() { [] } else { [(query_range_name(query), fields.map(field => (field, field)))] },
+      max_work, column_profiles~, namespace_out~,
+    )
+  }
   let resolve = fn(path : Array[@query.NamePart]) -> String? {
     if path.length() == 1 {
       for (name, slot) in private_columns {
@@ -2313,6 +2327,8 @@ fn compile_steps(
   reserved_bindings? : Array[String] = [],
   prefix_context? : Context? = None,
   positional_set_output? : Bool = false,
+  input_columns? : Array[ResultColumn] = [],
+  output_columns? : Array[Array[ResultColumn]]? = None,
   source_projection_capture? : SourceProjectionCapture? = None,
   checked_infer_prefix? : ((
     Array[@builder.Node],
@@ -2322,16 +2338,14 @@ fn compile_steps(
   ) -> InferPrefixProjection raise Abort)? = None,
   checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
-  // Internal parenthesized bindings retain their positional export role.
-  // This parser fact never grants anonymous exports to authored CTEs.
+  // Anonymous values retain private physical slots. Positional set operands
+  // additionally retain duplicate authored columns; neither role creates an alias.
   let positional_set_output = positional_set_output ||
     @query.positional_output(query)
-  let positional_projection = if positional_set_output {
-    positional_set_terminal_projection(query)
-  } else {
-    None
-  }
-  let positional_private_fields : Array[String] = []
+  let positional_projection = positional_set_terminal_projection(query)
+  let positional_private_fields : Array[String] = input_columns
+    .filter(column => column.name is None)
+    .map(column => column.slot)
   let positional_authored_aliases : Array[(String, String)] = []
   // A later authored column destination is a real column name. Reserve it
   // before assigning private storage names to anonymous/duplicate occurrences.
@@ -2445,6 +2459,20 @@ fn compile_steps(
     Some(scope) => seed_infer_key_labels(construction, scope.key_labels, [])
     None => seed_infer_key_labels(construction, [], pipe_visible)
   }
+  let mut column_profiles = initial_scope.bind(scope => scope.result_columns)
+  if column_profiles is None && !input_columns.is_empty() {
+    column_profiles = Some(input_columns)
+  }
+  let resolve_named_columns = fn(path, visible, ranges) {
+    pipe_slot(
+      path,
+      scope_named_columns(visible, column_profiles),
+      scope_named_ranges(ranges, column_profiles),
+    )
+  }
+  let named_column_exists = fn(visible, name) {
+    pipe_name_exists(scope_named_columns(visible, column_profiles), name)
+  }
   let mut selected_input_scope : JoinChainScope = {
     visible: pipe_visible.copy(),
     ranges: pipe_ranges.copy(),
@@ -2454,6 +2482,7 @@ fn compile_steps(
     star_ranges: pipe_star_ranges.copy(),
     receivers: initial_scope.map(scope => scope.receivers.copy()).unwrap_or([]),
     key_labels: infer_key_labels.copy(),
+    result_columns: column_profiles,
     scalar_ranges: scalar_value_table_ranges.copy(),
   }
   let mut pipe_changed = initial_scope is Some(_)
@@ -2614,7 +2643,7 @@ fn compile_steps(
       scalar_value_table_ranges = []
       sql_group_projection = false
     }
-    if positional_projection is Some(projection) && i > projection {
+    if !positional_private_fields.is_empty() {
       if operation is Rename(names) {
         for (target, _) in names {
           if positional_private_fields.any(field => {
@@ -2692,16 +2721,20 @@ fn compile_steps(
           operation is Analytic(_) ||
           operation is AnalyticExpressions(_, _) ||
           operation is OrderAnalytic(_, _) {
-          pipe_slot(path, pipe_visible, pipe_ranges)
+          resolve_named_columns(path, pipe_visible, pipe_ranges)
         } else if pipe_selected || pipe_changed || pipe_rebound {
           scope_expression_slot(path, selected_input_scope)
         } else {
           resolve_column(path, query, input, selected_input_fields)
         }
       }
-      let projections = match @query.operation_at(query, projection).unwrap() {
-        Select(projections, _) => projections
-        _ => []
+      let projections = match positional_projection {
+        Some(projection) =>
+          match @query.operation_at(query, projection).unwrap() {
+            Select(projections, _) => projections
+            _ => []
+          }
+        None => []
       }
       let remaining_projections = projections.filter(column => {
         guard projection_alias(column) is Some(name) &&
@@ -2771,6 +2804,11 @@ fn compile_steps(
           remaining_projections, references, resolve_input,
         )
         for path in references {
+          if resolve_input(path)
+            .map(slot => positional_private_fields.contains(slot))
+            .unwrap_or(false) {
+            raise Abort(UnknownColumn)
+          }
           if path.length() > 1 &&
             pipe_ranges.any(range => {
               same_name(path[0], range.0) &&
@@ -3088,7 +3126,8 @@ fn compile_steps(
       AssertUnique(keys) => {
         let unique : Array[@builder.Node] = []
         for path in keys {
-          guard pipe_slot(path, pipe_visible, pipe_ranges) is Some(slot) else {
+          guard resolve_named_columns(path, pipe_visible, pipe_ranges)
+            is Some(slot) else {
             raise Abort(UnknownColumn)
           }
           unique.push(construction.text(slot))
@@ -3405,7 +3444,7 @@ fn compile_steps(
         let derived : Array[(String, @builder.Node)] = []
         for projection in projections {
           let name = projection.name.unwrap()
-          if pipe_name_exists(next, name) {
+          if named_column_exists(next, name) {
             raise Abort(DuplicateOutput)
           }
           let slot = if projection.analytic is Some(_) {
@@ -3459,7 +3498,7 @@ fn compile_steps(
         let next = snapshot.copy()
         for projection in projections {
           let name = projection.name.unwrap()
-          if pipe_name_exists(next, name) {
+          if named_column_exists(next, name) {
             raise Abort(DuplicateOutput)
           }
           let physical = pipe_physical_name(active_fields, "aql_pipe_extend_")
@@ -3698,7 +3737,7 @@ fn compile_steps(
         })
         let target_columns = pipe_columns.copy()
         for name in names {
-          if !pipe_name_exists(target_columns, name) {
+          if !named_column_exists(target_columns, name) {
             raise Abort(UnknownColumn)
           }
           if names.filter(other => same_name(name, other)).length() != 1 {
@@ -3823,7 +3862,9 @@ fn compile_steps(
         output = next.map(entry => entry.0)
         pipe_changed = true
         deferred = true
-        if positional_projection is Some(projection) && i > projection {
+        if positional_set_output &&
+          positional_projection is Some(projection) &&
+          i > projection {
           let names = next.map(entry => entry.0)
           let bindings = next.copy()
           let selected = next.map(entry => {
@@ -4075,7 +4116,7 @@ fn compile_steps(
             input_ranges,
             path => {
               if scoped {
-                pipe_slot(
+                resolve_named_columns(
                   path,
                   unnest_expression_columns(
                     input_visible, value_table_receivers, scalar_value_table_ranges,
@@ -4106,6 +4147,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           sql_group_input_columns = input_visible.copy()
@@ -4217,7 +4259,7 @@ fn compile_steps(
         let mut key_reuse_work = max_work
         let resolve_key_input = path => {
           if scoped {
-            pipe_slot(
+            resolve_named_columns(
               path,
               unnest_expression_columns(
                 input_visible, value_table_receivers, scalar_value_table_ranges,
@@ -4302,7 +4344,7 @@ fn compile_steps(
           let direct = match root.kind {
             Reference(path) =>
               if scoped {
-                pipe_slot(
+                resolve_named_columns(
                   path,
                   unnest_expression_columns(
                     pipe_visible, value_table_receivers, scalar_value_table_ranges,
@@ -4412,7 +4454,7 @@ fn compile_steps(
           let keys = grouped_keys.copy()
           let resolve = path => {
             if scoped {
-              pipe_slot(
+              resolve_named_columns(
                 path,
                 unnest_expression_columns(
                   input_visible, value_table_receivers, scalar_value_table_ranges,
@@ -4454,6 +4496,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.filter(receiver => {
               key_names.contains(receiver.1)
             }),
@@ -4497,7 +4540,7 @@ fn compile_steps(
         let pipe_output_slots : Array[(String, String)] = []
         let resolve_input = path => {
           if scoped {
-            pipe_slot(
+            resolve_named_columns(
               path,
               unnest_expression_columns(
                 input_visible, value_table_receivers, scalar_value_table_ranges,
@@ -4520,7 +4563,7 @@ fn compile_steps(
               let name = match projection.name {
                 Some(name) => name.value
                 None => {
-                  if !positional_set_output || !sql_group_projection {
+                  if !sql_group_projection {
                     raise Abort(UnsupportedProjection)
                   }
                   pipe_physical_name(
@@ -4650,7 +4693,7 @@ fn compile_steps(
         if sql_group_projection && !hidden_calls.is_empty() {
           let input_resolve = path => {
             if scoped {
-              pipe_slot(
+              resolve_named_columns(
                 path,
                 unnest_expression_columns(
                   input_visible, value_table_receivers, scalar_value_table_ranges,
@@ -5027,6 +5070,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         } else {
@@ -5035,7 +5079,7 @@ fn compile_steps(
         let references = join_reference_paths(predicate)
         if !positional_set_aggregate_slots.is_empty() {
           reject_duplicate_projection_references(projections, references, path => {
-            pipe_slot(path, pipe_visible, pipe_ranges)
+            resolve_named_columns(path, pipe_visible, pipe_ranges)
           })
         }
         let derives : Array[(String, @builder.Node)] = []
@@ -5214,6 +5258,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -5363,6 +5408,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           analytic_input_fields = Some(snapshot)
@@ -5393,6 +5439,7 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -5500,12 +5547,13 @@ fn compile_steps(
             continue
           }
           let positional_terminal = !order_window &&
-            positional_set_output &&
             positional_projection is Some(_)
           let positional_private = positional_terminal &&
             (match projection.name {
               None => true
-              Some(name) => duplicate_projection_alias(projections, name.value)
+              Some(name) =>
+                positional_set_output &&
+                duplicate_projection_alias(projections, name.value)
             })
           let slot = match projection.name {
             None => {
@@ -5602,7 +5650,7 @@ fn compile_steps(
             return scope_expression_slot(path, order_scope)
           }
           if pipe_changed || pipe_rebound {
-            pipe_slot(
+            resolve_named_columns(
               path,
               unnest_expression_columns(
                 analytic_visible, value_table_receivers, scalar_value_table_ranges,
@@ -5716,12 +5764,14 @@ fn compile_steps(
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
             key_labels: infer_key_labels.copy(),
+            result_columns: column_profiles,
             scalar_ranges: scalar_value_table_ranges.copy(),
           }
         }
         let lower_select_expression = fn(
           expression : @query.Expression,
           private_columns : Array[(String, String)],
+          namespace_out : Array[NamespaceView?]?,
         ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
@@ -5742,6 +5792,8 @@ fn compile_steps(
               expression_scope.visible + private_columns,
               expression_scope.ranges,
               max_work,
+              column_profiles=expression_scope.result_columns,
+              namespace_out~,
               value_ranges=value_range_names(
                 expression_scope.receivers,
                 expression_scope.scalar_ranges,
@@ -5754,7 +5806,7 @@ fn compile_steps(
           original_projections,
           expanded_projections,
           active_fields,
-          expression => lower_select_expression(expression, []),
+          expression => lower_select_expression(expression, [], None),
           expression => {
             qualify_cached_slot(expression, qualify_values) is Some(_) ||
             (
@@ -5783,6 +5835,7 @@ fn compile_steps(
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
         let expression_positions : Array[Int] = []
+        let selection_columns : Array[ResultColumn] = []
         let physical = active_fields.copy()
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
@@ -5803,17 +5856,40 @@ fn compile_steps(
                   },
                   authored_aliases=positional_authored_aliases,
                 ) {
-                names.push(visible.0)
+                let original = result_column_profile(
+                  column_profiles,
+                  visible.0,
+                  visible.1,
+                )
+                let public_name : @query.NamePart? = match original {
+                  Some(column) => column.name
+                  None => Some({ value: visible.0, quoted: false, })
+                }
+                let name = if public_name is None {
+                  anonymous_set_projection_name(
+                    projections,
+                    physical + pipe_visible.map(field => field.0),
+                    names,
+                    reserved_names=positional_destination_names,
+                  )
+                } else {
+                  visible.0
+                }
+                selection_columns.push({
+                  slot: name,
+                  label: name,
+                  name: public_name,
+                  name_view: original.bind(column => column.name_view),
+                })
+                names.push(name)
                 selected.push(
-                  if visible.0 == visible.1 {
+                  if name == visible.1 {
                     construction.text(visible.1)
                   } else {
-                    construction.object([
-                      (visible.0, construction.text(visible.1)),
-                    ])
+                    construction.object([(name, construction.text(visible.1))])
                   },
                 )
-                bindings.push(visible)
+                bindings.push((name, visible.1))
               }
             Some(_) => raise Abort(UnsupportedProjection)
             None => {
@@ -5844,8 +5920,7 @@ fn compile_steps(
                       (name.value, matches[0].1)
                     }
                   None => {
-                    if !positional_set_output ||
-                      positional_projection != Some(i) {
+                    if positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     (
@@ -5873,6 +5948,9 @@ fn compile_steps(
                 }
                 names.push(name)
                 bindings.push((name, slot))
+                selection_columns.push(
+                  projection_result_column(projection, name),
+                )
                 selected.push(
                   if slot == name {
                     construction.text(slot)
@@ -5886,8 +5964,7 @@ fn compile_steps(
                 let name = match projection.name {
                   Some(name) => name.value
                   None => {
-                    if !positional_set_output ||
-                      positional_projection != Some(i) {
+                    if positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     anonymous_set_projection_name(
@@ -5898,11 +5975,13 @@ fn compile_steps(
                     )
                   }
                 }
-                let source = if positional_set_output &&
-                  positional_projection == Some(i) &&
+                let source = if positional_projection == Some(i) &&
                   (
                     projection.name is None ||
-                    duplicate_projection_alias(projections, name)
+                    (
+                      positional_set_output &&
+                      duplicate_projection_alias(projections, name)
+                    )
                   ) {
                   positional_set_analytic_slot(
                     call,
@@ -5922,6 +6001,9 @@ fn compile_steps(
                 }
                 names.push(name)
                 bindings.push((name, source))
+                selection_columns.push(
+                  projection_result_column(projection, name),
+                )
                 selected.push(
                   if source == name {
                     construction.text(source)
@@ -5946,6 +6028,7 @@ fn compile_steps(
                 }
               }
               let cached = qualify_cached_slot(expression, qualify_values)
+              let namespace_result : Array[NamespaceView?] = []
               let source = if (match cached {
                   Some(_) => cached
                   None => grouped_slot
@@ -5970,7 +6053,7 @@ fn compile_steps(
                           (
                             slot,
                             lower_select_expression(
-                              expression, computed_star_bindings,
+                              expression, computed_star_bindings, Some(namespace_result),
                             ),
                           ),
                         )
@@ -5984,7 +6067,7 @@ fn compile_steps(
                       (
                         slot,
                         lower_select_expression(
-                          expression, computed_star_bindings,
+                          expression, computed_star_bindings, Some(namespace_result),
                         ),
                       ),
                     )
@@ -5992,8 +6075,7 @@ fn compile_steps(
                   }
                 }
               }
-              let name = if positional_set_output &&
-                positional_projection == Some(i) &&
+              let name = if positional_projection == Some(i) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(
                   projections,
@@ -6011,6 +6093,7 @@ fn compile_steps(
               }
               names.push(name)
               bindings.push((name, source))
+              selection_columns.push(projection_result_column(projection, name, name_view=namespace_result.get(0).unwrap_or(slot_namespace(column_profiles, source))))
               expression_positions.push(names.length() - 1)
               expressions.push(
                 (
@@ -6028,7 +6111,7 @@ fn compile_steps(
             }
           }
         }
-        if positional_projection == Some(i) {
+        if positional_set_output && positional_projection == Some(i) {
           positional_private_fields.append(
             privatize_positional_duplicate_columns(
               construction,
@@ -6081,8 +6164,10 @@ fn compile_steps(
           star_ranges: pipe_star_ranges.copy(),
           receivers: value_table_receivers.copy(),
           key_labels: infer_key_labels.copy(),
+          result_columns: column_profiles,
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
+        column_profiles = selected_result_columns(selection_columns, names)
         selected_output_slots = bindings.copy()
         pipe_columns = bindings.copy()
         if !distinct &&
@@ -6148,6 +6233,7 @@ fn compile_steps(
           star_ranges: pipe_star_ranges.copy(),
           receivers: value_table_receivers.copy(),
           key_labels: infer_key_labels.copy(),
+          result_columns: column_profiles,
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         let projections = if sql_group_projection {
@@ -6164,6 +6250,7 @@ fn compile_steps(
         let lower_select_expression = fn(
           expression : @query.Expression,
           private_columns : Array[(String, String)],
+          namespace_out : Array[NamespaceView?]?,
         ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let scope = sql_group_select_scope.unwrap()
@@ -6187,6 +6274,8 @@ fn compile_steps(
               select_fields,
               max_work,
               private_columns=analytic_expression_bindings + private_columns,
+              column_profiles=input_scope.result_columns,
+              namespace_out~,
             )
           }
         }
@@ -6195,7 +6284,7 @@ fn compile_steps(
           original_projections,
           expanded_projections,
           active_fields,
-          expression => lower_select_expression(expression, []),
+          expression => lower_select_expression(expression, [], None),
           expression => {
             qualify_cached_slot(expression, qualify_values) is Some(_) ||
             grouped_keys.any(pair => same_expression(pair.0, expression)) ||
@@ -6220,6 +6309,7 @@ fn compile_steps(
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
         let expression_positions : Array[Int] = []
+        let selection_columns : Array[ResultColumn] = []
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
           match projection.star {
@@ -6239,6 +6329,29 @@ fn compile_steps(
                   },
                   authored_aliases=positional_authored_aliases,
                 ) {
+                let original = result_column_profile(
+                  column_profiles, name, field,
+                )
+                let public_name : @query.NamePart? = match original {
+                  Some(column) => column.name
+                  None => Some({ value: name, quoted: false, })
+                }
+                let name = if public_name is None {
+                  anonymous_set_projection_name(
+                    projections,
+                    active_fields + pipe_visible.map(field => field.0),
+                    names,
+                    reserved_names=positional_destination_names,
+                  )
+                } else {
+                  name
+                }
+                selection_columns.push({
+                  slot: name,
+                  label: name,
+                  name: public_name,
+                  name_view: original.bind(column => column.name_view),
+                })
                 names.push(name)
                 selected.push(
                   if name == field {
@@ -6254,8 +6367,7 @@ fn compile_steps(
               // after GROUP retains only its evaluated key. This naming
               // snapshot does not authorize reading the original receiver:
               // grouped expression lowering below still owns value access.
-              let name = if positional_set_output &&
-                positional_projection == Some(i) &&
+              let name = if positional_projection == Some(i) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(
                   projections,
@@ -6285,11 +6397,13 @@ fn compile_steps(
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
                 let source = if projection.analytic is Some(call) {
-                  if positional_set_output &&
-                    positional_projection == Some(i) &&
+                  if positional_projection == Some(i) &&
                     (
                       projection.name is None ||
-                      duplicate_projection_alias(projections, name)
+                      (
+                        positional_set_output &&
+                        duplicate_projection_alias(projections, name)
+                      )
                     ) {
                     positional_set_analytic_slot(
                       call,
@@ -6330,6 +6444,9 @@ fn compile_steps(
                   },
                 )
                 bindings.push((name, source))
+                selection_columns.push(
+                  projection_result_column(projection, name),
+                )
                 continue
               }
               let expression = projection.expression.unwrap()
@@ -6374,6 +6491,7 @@ fn compile_steps(
                 None => direct
               }
               let cached = qualify_cached_slot(expression, qualify_values)
+              let namespace_result : Array[NamespaceView?] = []
               let source = if (match cached {
                   Some(_) => cached
                   None => direct
@@ -6393,7 +6511,7 @@ fn compile_steps(
                 derives.push(
                   (
                     temporary,
-                    lower_select_expression(expression, computed_star_bindings),
+                    lower_select_expression(expression, computed_star_bindings, Some(namespace_result)),
                   ),
                 )
                 temporary
@@ -6406,10 +6524,11 @@ fn compile_steps(
                 },
               )
               bindings.push((name, source))
+              selection_columns.push(projection_result_column(projection, name, name_view=namespace_result.get(0).unwrap_or(slot_namespace(column_profiles, source))))
             }
           }
         }
-        if positional_projection == Some(i) {
+        if positional_set_output && positional_projection == Some(i) {
           positional_private_fields.append(
             privatize_positional_duplicate_columns(
               construction,
@@ -6446,6 +6565,7 @@ fn compile_steps(
         }
         entries.push(("select", construction.array(selected)))
         output = names
+        column_profiles = selected_result_columns(selection_columns, names)
         pipe_visible = names.map(name => (name, name))
         pipe_columns = pipe_visible.copy()
         selected_expressions = expressions
@@ -6683,7 +6803,7 @@ fn compile_steps(
                         resolve,
                         name => {
                           resolve([name]) is Some(_) ||
-                          pipe_name_exists(
+                          named_column_exists(
                             unnest_expression_columns(
                               pipe_visible, value_table_receivers, scalar_value_table_ranges,
                               pipe_columns,
@@ -7243,6 +7363,7 @@ fn compile_steps(
       star_ranges: pipe_star_ranges.copy(),
       receivers: value_table_receivers.copy(),
       key_labels: infer_key_labels.copy(),
+      result_columns: column_profiles,
       scalar_ranges: scalar_value_table_ranges.copy(),
     })
     output = active_fields.copy()
@@ -7274,6 +7395,41 @@ fn compile_steps(
     entries.push(("select", construction.array(selected)))
     step_entries.push(entries)
     output = pipe_visible.map(field => field.0)
+  }
+  let columns = output.map(slot => {
+    match result_column_profile(column_profiles, slot, slot) {
+      Some(column) => column
+      None => {
+        let column : ResultColumn = {
+          slot,
+          label: slot,
+          name: Some({
+            value: positional_authored_column_name(
+              slot, positional_authored_aliases,
+            ),
+            quoted: false,
+          }),
+          name_view: None,
+        }
+        column
+      }
+    }
+  })
+  match output_columns {
+    Some(retained) => retained.push(columns)
+    None =>
+      if !positional_set_output && columns.any(column => column.name is None) {
+        let displayed = result_column_display_names(columns, max_work)
+        let entries : Array[(String, @builder.Node)] = []
+        if step_entries.is_empty() {
+          entries.push(("from", construction.text(input_from)))
+        }
+        entries.push(
+          ("select", set_select_fields(construction, displayed, output)),
+        )
+        step_entries.push(entries)
+        output = displayed
+      }
   }
   if step_entries.is_empty() {
     return ([], output)
@@ -8300,6 +8456,7 @@ fn compile_set_stages(
   let stages : Array[@builder.Node] = []
   let sources : Array[String] = []
   let outputs : Array[Array[String]] = []
+  let term_columns : Array[Array[ResultColumn]] = []
   let mut first_term : (
     Int,
     String,
@@ -8492,6 +8649,7 @@ fn compile_set_stages(
       raise Abort(InvalidContext)
     }
     let term_name = "aql_set_output_" + index.to_string()
+    let collected_columns : Array[Array[ResultColumn]] = []
     let (body, compiled_output) = compile_steps(
       construction,
       term,
@@ -8538,6 +8696,7 @@ fn compile_set_stages(
           authored_aliases,
         )
       }),
+      output_columns=Some(collected_columns),
       positional_set_output=index > 0 &&
         !@query.set_part_at(query, index - 1).unwrap().by_name,
     )
@@ -8556,6 +8715,22 @@ fn compile_set_stages(
           ("as", construction.text(term_name)),
         ]),
       )
+    }
+    let original_columns = collected_columns[0]
+    if (
+        index == 0 &&
+        @query.set_part_at(query, 0).unwrap().by_name &&
+        original_columns.any(column => column.name is None)
+      ) ||
+      (
+        index > 0 &&
+        @query.set_part_at(query, index - 1).unwrap().by_name &&
+        (
+          original_columns.any(column => column.name is None) ||
+          term_columns[0].any(column => column.name is None)
+        )
+      ) {
+      raise Abort(UnsupportedSet)
     }
     let mut output = compiled_output
     let mut term_result = term_name
@@ -8601,6 +8776,20 @@ fn compile_set_stages(
     )
     sources.push(term_stage)
     outputs.push(output)
+    term_columns.push(
+      output.map(field => {
+        match result_column_profile(Some(original_columns), field, field) {
+          Some(column) => column
+          None =>
+            {
+              slot: field,
+              label: field,
+              name: Some({ value: field, quoted: false, }),
+              name_view: None,
+            }
+        }
+      }),
+    )
   }
   let sql_inner_count = set_inner_chain_length(query)
   let sql_inner_fields = if sql_inner_count > 0 {
@@ -8879,8 +9068,18 @@ fn compile_set_stages(
     }
   }
   let steps : Array[@builder.Node] = []
+  let combined_columns = term_columns[0].filter(column => {
+    left_fields.contains(column.slot)
+  })
   let mut current = append_set_final_steps(
-    construction, query, limits, "set_rows", left_fields, steps, "",
+    construction,
+    query,
+    limits,
+    "set_rows",
+    left_fields,
+    steps,
+    "",
+    column_profiles=Some(combined_columns),
   )
   if steps.is_empty() {
     current = "aql_set_final_0"
@@ -8894,6 +9093,22 @@ fn compile_set_stages(
         ("as", construction.text(current)),
       ]),
     )
+  }
+  if combined_columns.any(column => column.name is None) {
+    let displayed = result_column_display_names(
+      combined_columns,
+      limits.max_expression_work,
+    )
+    let named = "aql_set_display"
+    steps.push(
+      construction.object([
+        ("from", construction.text(current)),
+        ("select", set_select_fields(construction, displayed, left_fields)),
+        ("as", construction.text(named)),
+      ]),
+    )
+    current = named
+    left_fields = displayed
   }
   let result = construction.object([
     ("from", construction.text(current)),

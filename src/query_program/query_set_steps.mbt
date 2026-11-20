@@ -127,6 +127,7 @@ fn append_set_final_steps(
   left_fields : Array[String],
   steps : Array[@builder.Node],
   prefix : String,
+  column_profiles? : Array[ResultColumn]? = None,
 ) -> String raise Abort {
   let mut current = input
   let order_windows : Array[(String, String)] = []
@@ -169,7 +170,7 @@ fn append_set_final_steps(
         }
         let derives : Array[(String, @builder.Node)] = []
         let evaluated : Array[(@query.Expression, String)] = []
-        let visible = left_fields.map(field => (field, field))
+        let visible = scope_named_columns(left_fields.map(field => (field, field)), column_profiles)
         let bodies = groups.map(group => {
           lower_analytic(
             construction,
@@ -224,7 +225,7 @@ fn append_set_final_steps(
         // every public field for the final projection. Window input keys
         // continue to resolve against left_fields above, not this output scope.
         let visible = order_windows +
-          left_fields
+          scope_named_columns(left_fields.map(field => (field, field)), column_profiles).map(field => field.0)
           .filter(field => {
             !order_windows.any(window => {
               ascii_upper(window.0) == ascii_upper(field)

@@ -111,6 +111,8 @@ fn append_pipe_range_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
   value_ranges? : Array[@query.NamePart] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   let row_ranges = ranges.filter(range => {
     !value_ranges.any(name => same_name(name, range.0))
@@ -118,13 +120,15 @@ fn append_pipe_range_expression(
   append_resolved_range_expression(
     construction,
     expression,
-    path => pipe_expression_slot(path, visible, ranges, value_ranges~),
+    path => pipe_expression_slot(path, scope_named_columns(visible, column_profiles), scope_named_ranges(ranges, column_profiles), value_ranges~),
     name => {
       pipe_name_exists(visible, name) &&
       !ordinary_range_name(name, ranges, value_ranges)
     },
     max_work,
     resolve_row=Some(path => row_reference_fields(path, _ => false, row_ranges)),
+    column_profiles~,
+    namespace_out~,
   )
 }
 
@@ -138,9 +142,13 @@ fn append_resolved_range_expression(
   value_name_exists : (@query.NamePart) -> Bool,
   max_work : Int,
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
+  let namespace_frame = expression_namespace(expression, resolve, path => resolve_row.bind(resolver => resolver(path)), column_profiles, max_work)
+  if namespace_out is Some(output) { output.push(namespace_frame.root) }
   let (lowered, slots, remaining) = bind_range_property_expression(
-    expression, resolve, value_name_exists, max_work,
+    expression, resolve, value_name_exists, namespace_frame.remaining,
   )
   match
     @expression.append_with_properties(
@@ -158,7 +166,12 @@ fn append_resolved_range_expression(
       construction.builder,
       remaining,
       resolve_parameter=construction.parameter_resolver(),
-      resolve_row~,
+      resolve_row=Some(path => {
+        for (original, fields) in namespace_frame.rows {
+          if same_path(path, original) { return Some(fields) }
+        }
+        resolve_row.bind(resolver => resolver(path))
+      }),
     ) {
     Ok(node) => node
     Err(issue) => raise Abort(Expression(issue))

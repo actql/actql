@@ -55,6 +55,18 @@ fn lower_script_set_relation(
     )
   }
   let sql_inner_fields = if sql_inner_count > 0 {
+    if sources.result_columns
+      .get(left.name)
+      .map(columns => columns.any(column => column.name is None))
+      .unwrap_or(false) ||
+      sql_rights.any(input => {
+        sources.result_columns
+        .get(input.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false)
+      }) {
+      raise Abort(UnsupportedSet)
+    }
     Some(
       set_inner_fields(
         left.visible_fields,
@@ -97,6 +109,19 @@ fn lower_script_set_relation(
       sql_inner_fields.unwrap()
     } else {
       set_output_fields(fields, part, right_fields=right.visible_fields)
+    }
+    if part.by_name &&
+      (
+        sources.result_columns
+        .get(left.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false) ||
+        sources.result_columns
+        .get(right.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false)
+      ) {
+      raise Abort(UnsupportedSet)
     }
     let (left_matched, left_alignment_needed) = set_alignment_fields(
       output_fields,
@@ -212,6 +237,10 @@ fn lower_script_set_relation(
         ("as", construction.text(output)),
       ]),
     )
+  }
+  if sources.result_columns.get(left.name) is Some(columns) &&
+    columns.any(column => column.name is None) {
+    sources.result_columns[output] = columns
   }
   {
     relation: [],

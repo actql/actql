@@ -7,6 +7,30 @@ fn script_input_scope(
   input : String,
   range : @query.NamePart,
 ) -> JoinChainScope? raise Abort {
+  if sources.result_columns.get(input) is Some(columns) &&
+    columns.any(column => column.name is None) {
+    let physical = columns.map(column => (column.slot, column.slot))
+    let named : Array[(String, String)] = []
+    for column in columns {
+      if column.name is Some(name) {
+        named.push((name.value, column.slot))
+      }
+    }
+    return Some({
+      // Star and column ordinals retain every value. Expressions resolve only
+      // original public names; compile_steps also fences private slot paths.
+      visible: physical,
+      columns: physical.copy(),
+      value_table: false,
+      value_columns: [],
+      ranges: [(range, physical.copy())],
+      star_ranges: [(range, physical.copy())],
+      receivers: [],
+      result_columns: Some(columns),
+      scalar_ranges: [],
+      key_labels: seed_infer_key_labels(construction, [], named),
+    })
+  }
   match sources.value_tables.get(input) {
     Some(scope) => Some(bind_value_table_scope(construction, scope, range))
     None => sources.ranges.get(input)
@@ -51,6 +75,7 @@ fn bind_value_table_scope(
     } else {
       rename_infer_key_label(construction, scope.key_labels, slot, name.value)
     },
+    result_columns: None,
     scalar_ranges: if object_value {
       []
     } else {

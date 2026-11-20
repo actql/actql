@@ -4,6 +4,7 @@
 // input without reviving a dropped range or confusing equal column names.
 priv struct JoinChainScope {
   visible : Array[(String, String)]
+  result_columns : Array[ResultColumn]?
   columns : Array[(String, String)]
   value_table : Bool
   value_columns : Array[(String, String, Array[(String, String)])]
@@ -291,6 +292,7 @@ fn compile_join_chain_steps(
   nearest_inputs? : Array[Input] = [],
   nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   positional_set_output? : Bool = false,
+  output_columns? : Array[Array[ResultColumn]]? = None,
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
@@ -330,6 +332,7 @@ fn compile_join_chain_steps(
         star_ranges: [],
         ranges: [(query_range_name(query), original.copy())],
         receivers: [],
+        result_columns: None,
         scalar_ranges: [],
         key_labels: seed_infer_key_labels(construction, [], original),
       }
@@ -368,6 +371,7 @@ fn compile_join_chain_steps(
           star_ranges: [],
           ranges: [(qualifier, right_columns.copy())],
           receivers: [],
+          result_columns: None,
           scalar_ranges: [],
           key_labels: seed_infer_key_labels(construction, [], right_columns),
         }
@@ -637,6 +641,12 @@ fn compile_join_chain_steps(
       right_scope.ranges.map(range => {
         (range.0, range.1.map(field => (field.0, right_slots[field.1])))
       }),
+      result_columns: join_result_columns(
+        if index == 0 { source_scope.result_columns } else { scope.result_columns },
+        right_scope.result_columns,
+        if index == 0 { Some(slots) } else { None },
+        right_slots,
+      ),
       scalar_ranges: (if index == 0 {
         source_scope.scalar_ranges.map(receiver => {
           (receiver.0, slots[receiver.1])
@@ -683,6 +693,7 @@ fn compile_join_chain_steps(
     nearest_inputs~,
     nearest_vectors~,
     positional_set_output~,
+    output_columns~,
     checked_infer_prefix~,
     checked_nearest_prefix~,
   )

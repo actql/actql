@@ -225,6 +225,7 @@ fn retain_script_carrier_column_scope(
     key_labels: script_carrier_key_labels(
       construction, sources, scope, pipeline, target, known, fields, call,
     ),
+    result_columns: None,
     scalar_ranges: [],
   }
 }

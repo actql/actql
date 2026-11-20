@@ -50,6 +50,7 @@ test "checked window grouping replaces an aggregate spelling without recycling i
     ranges: [],
     star_ranges: [],
     receivers: [],
+    result_columns: None,
     scalar_ranges: [],
     key_labels: [
       ("id", "ticket"),
@@ -66,6 +67,7 @@ test "checked window grouping replaces an aggregate spelling without recycling i
     bound: Map([]),
     unshared: [],
     ranges: Map([("rows", scope)]),
+    result_columns: Map([]),
     value_tables: Map([]),
     binding_ranges: [],
     carriers: Map([]),

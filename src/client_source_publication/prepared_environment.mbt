@@ -486,3 +486,23 @@ pub fn prepared_published_request_copy_geometry(
   }
   Ok((prepared.request_copy_nodes, prepared.request_copy_utf16))
 }
+
+///|
+/// Count the retained Context's original top-level input fields. This is DATA
+/// for constructor backing, not Catalog size, rows, visibility or permission.
+/// No Context, input array or field vector is copied or returned.
+pub fn prepared_published_query_input_field_count(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Result[Int64, PreparedPublicationIssue] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  let mut count = 0L
+  // Both Array lengths are bounded by Int::max. Their complete sum is below
+  // Int::max squared (<2^62), so this exact Int64 accumulation cannot overflow.
+  for input in prepared.context.inputs {
+    count += input.visible_fields.length().to_int64()
+  }
+  Ok(count)
+}

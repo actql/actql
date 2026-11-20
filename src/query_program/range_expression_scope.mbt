@@ -40,8 +40,8 @@ fn scope_expression_slot(
 ) -> String? {
   pipe_expression_slot(
     path,
-    scope.visible,
-    scope.ranges,
+    scope_named_columns(scope.visible, scope.result_columns),
+    scope_named_ranges(scope.ranges, scope.result_columns),
     value_ranges=value_range_names(scope.receivers, scope.scalar_ranges),
   )
 }
