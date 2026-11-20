@@ -24,6 +24,7 @@
     "scripts/**/*.mts",
     "packages/sdk/**/*.mts",
     "packages/node/**/*.mts",
+    "packages/native-cli/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
     "adapters/host-common/**/*.mts",

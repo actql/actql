@@ -270,7 +270,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -284,7 +284,7 @@
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -329,7 +329,7 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
@@ -343,7 +343,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -413,7 +413,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -427,7 +427,7 @@
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -476,7 +476,7 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
@@ -490,7 +490,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -572,7 +572,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -586,7 +586,7 @@
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -631,7 +631,7 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
@@ -645,7 +645,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1024,7 +1024,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1038,7 +1038,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1056,7 +1056,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1064,7 +1064,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1074,11 +1074,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1088,7 +1088,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1098,7 +1098,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1115,7 +1115,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1123,13 +1123,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1137,7 +1137,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1151,7 +1151,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               }
             ]
@@ -1167,7 +1167,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1181,7 +1181,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1199,7 +1199,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1207,7 +1207,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1217,11 +1217,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1231,7 +1231,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1241,7 +1241,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1258,7 +1258,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1266,13 +1266,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1280,7 +1280,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1294,7 +1294,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               }
             ]
@@ -1312,7 +1312,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1326,7 +1326,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1344,7 +1344,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1352,7 +1352,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1362,11 +1362,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1376,7 +1376,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1386,7 +1386,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1403,7 +1403,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1411,13 +1411,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1425,7 +1425,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1439,7 +1439,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               }
             ]
@@ -1451,7 +1451,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1465,7 +1465,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1483,7 +1483,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1491,7 +1491,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1501,11 +1501,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1515,7 +1515,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1525,7 +1525,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1542,7 +1542,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1550,13 +1550,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1564,7 +1564,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1578,7 +1578,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               }
             ]
@@ -1592,7 +1592,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1606,7 +1606,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1624,7 +1624,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1632,7 +1632,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1642,11 +1642,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1656,7 +1656,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1666,7 +1666,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1683,7 +1683,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1691,13 +1691,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1705,7 +1705,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1719,7 +1719,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               }
             ]
@@ -1731,7 +1731,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1745,7 +1745,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1763,7 +1763,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1771,7 +1771,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1781,11 +1781,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1795,7 +1795,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1805,7 +1805,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1822,7 +1822,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1830,13 +1830,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1844,7 +1844,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1858,7 +1858,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               }
             ]
@@ -1870,7 +1870,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1884,7 +1884,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1902,7 +1902,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1910,7 +1910,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1920,11 +1920,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1934,7 +1934,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1944,7 +1944,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1961,7 +1961,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1969,13 +1969,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1983,7 +1983,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1997,7 +1997,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               }
             ]
@@ -2013,7 +2013,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2027,7 +2027,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2045,7 +2045,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2053,7 +2053,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2063,11 +2063,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2077,7 +2077,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2087,7 +2087,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2104,7 +2104,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2112,13 +2112,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2126,7 +2126,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2140,7 +2140,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               }
             ]
@@ -2156,7 +2156,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2170,7 +2170,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2188,7 +2188,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2196,7 +2196,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2206,11 +2206,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2220,7 +2220,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2230,7 +2230,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2247,7 +2247,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2255,13 +2255,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2269,7 +2269,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2283,7 +2283,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               }
             ]
@@ -2299,7 +2299,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2313,7 +2313,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2331,7 +2331,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2339,7 +2339,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2349,11 +2349,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2363,7 +2363,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2373,7 +2373,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2390,7 +2390,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2398,13 +2398,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2412,7 +2412,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2426,7 +2426,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               }
             ]
@@ -2445,7 +2445,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2459,7 +2459,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2477,7 +2477,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2485,7 +2485,7 @@
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2495,11 +2495,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2509,7 +2509,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2519,7 +2519,7 @@
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2536,7 +2536,7 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2544,13 +2544,13 @@
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2558,7 +2558,7 @@
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2572,7 +2572,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               }
             ]
@@ -2592,7 +2592,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               },
               {
@@ -2606,7 +2606,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2616,7 +2616,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2626,7 +2626,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2636,7 +2636,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2646,7 +2646,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2656,7 +2656,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2666,7 +2666,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2676,7 +2676,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2690,7 +2690,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ]

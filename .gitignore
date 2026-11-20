@@ -767,3 +767,9 @@ target/
 /scripts/build-node-directory-native.test.d.mts
 /scripts/test-runtime-package-build.mjs
 /scripts/test-runtime-package-build.d.mts
+
+# Emitted from the authored Native local-runtime installation boundary.
+/packages/native-cli/lib/local-runtime.mjs
+/packages/native-cli/lib/local-runtime.d.mts
+/scripts/native-cli-local-runtime.mjs
+/scripts/native-cli-local-runtime.d.mts

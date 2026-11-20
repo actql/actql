@@ -11,7 +11,14 @@ import {
   admitLocalLibraryBytes, admitInstalledLocalRuntime,
 } from '../packages/native-cli/lib/local-runtime.mjs';
 
-function original(input, maxBytes) {
+type Member = Parameters<typeof validateLocalRuntimeManifest>[0]['licenses'][number];
+type Inspect = (file: string, args: readonly string[], options: {
+  encoding: 'utf8'; timeout: number; maxBuffer: number}) => string;
+type PrepareOptions = {sourceSha: string; platform: string;
+  libraries: {role: string; name: string; original: Member; license: string; dependencies: string[]}[];
+  assets: {role: string; original: Member}[]; licenses: {name: string; original: Member}[]};
+
+function original(input: Member, maxBytes: number) {
   assert.deepEqual(Object.keys(input).sort(), ['bytes', 'path', 'sha256']);
   assert(Number.isSafeInteger(input.bytes) && input.bytes > 0 && input.bytes <= maxBytes);
   assert.match(input.sha256, /^[a-f0-9]{64}$/u);
@@ -38,10 +45,10 @@ function original(input, maxBytes) {
   } finally { closeSync(descriptor); }
 }
 
-export function inspectLocalLibrary(path, platform, names, execute = execFileSync) {
-  const inspect = args => execute(platform === 'darwin-arm64' ? 'otool' : 'readelf', args,
+export function inspectLocalLibrary(path: string, platform: string, names: ReadonlySet<string>, execute: Inspect = execFileSync) {
+  const inspect = (args: readonly string[]) => execute(platform === 'darwin-arm64' ? 'otool' : 'readelf', args,
     {encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024});
-  let dependencies, abi;
+  let dependencies: string[], abi: Record<string, string>;
   if (platform === 'darwin-arm64') {
     const ids = inspect(['-D', path]).split('\n').slice(1).map(s => s.trim()).filter(Boolean);
     assert.equal(ids.length, 1, 'Selected dylib must have one install identity');
@@ -80,20 +87,20 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
         return 0;
       });
     assert(versions.length, 'No observed shared-library glibc requirements');
-    abi = {minimumGlibc: versions.at(-1).join('.')};
+    abi = {minimumGlibc: versions.at(-1)!.join('.')};
   }
   assert.equal(new Set(dependencies).size, dependencies.length);
   return {dependencies, abi};
 }
 
-export async function prepareNativeLocalRuntime(directory, options, execute = execFileSync) {
+export async function prepareNativeLocalRuntime(directory: string, options: PrepareOptions, execute: Inspect = execFileSync) {
   assert.deepEqual(Object.keys(options).sort(), ['assets', 'libraries', 'licenses', 'platform', 'sourceSha']);
   const {sourceSha, platform, libraries, assets, licenses} = options;
   assert(Array.isArray(libraries) && libraries.length >= 2 && libraries.length <= 8);
   assert(Array.isArray(assets) && assets.length >= 5 && assets.length <= 8);
   assert(Array.isArray(licenses) && licenses.length >= 1 && licenses.length <= 8);
   let total = 0;
-  for (const [items, ceiling] of [[libraries, LOCAL_RUNTIME_MAX_BYTES], [assets, 65536], [licenses, 1024 * 1024]]) {
+  for (const [items, ceiling] of [[libraries, LOCAL_RUNTIME_MAX_BYTES], [assets, 65536], [licenses, 1024 * 1024]] as const) {
     for (const item of items) {
       assert(Number.isSafeInteger(item.original?.bytes) && item.original.bytes > 0 && item.original.bytes <= ceiling);
       total += item.original.bytes; assert(total <= LOCAL_RUNTIME_MAX_BYTES);
@@ -122,7 +129,7 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
   };
   validateLocalRuntimeManifest(manifest, {sourceSha, platform});
   // Verify every selected original before mutating the new artifact directory.
-  const contents = new Map();
+  const contents = new Map<string, Buffer>();
   for (const [index, item] of libraries.entries()) {
     assert.equal(basename(item.name), item.name);
     const bytes = libraryBytes[index];

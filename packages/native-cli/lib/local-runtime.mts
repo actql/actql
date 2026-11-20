@@ -5,24 +5,35 @@ import {createHash} from 'node:crypto';
 import {constants, closeSync, fstatSync, lstatSync, openSync, readSync} from 'node:fs';
 import {join} from 'node:path';
 
+import type {BinaryLike} from 'node:crypto';
+
+type Member = {path: string; bytes: number; sha256: string};
+// Unchecked installation DATA; the closed checks below remain authoritative.
+type LocalManifest = {sourceSha: string; platform: string;
+  libraries: (Member & {role: string; license: string; dependencies: string[]; abi: Record<string, string>})[];
+  assets: (Member & {role: string})[]; licenses: Member[]};
+type Expected = {sourceSha: string; platform: string};
+type InstalledOptions = {root: string; expected: Expected & {localRuntimeSha256: string}; metadata: Member};
+type PlatformFacts = {macOS?: unknown; glibc?: unknown};
+
 export const LOCAL_RUNTIME_MAX_BYTES = 64 * 1024 * 1024;
 const MANIFEST_MAX_BYTES = 65536;
 const DATA_MAX_BYTES = 65536;
 const LICENSE_MAX_BYTES = 1024 * 1024;
 const roles = ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy',
   'query', 'query-evidence'];
-const systems = {
+const systems: Record<string, ReadonlySet<string>> = {
   'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
 };
-export const localRuntimeHash = bytes => createHash('sha256').update(bytes).digest('hex');
-const exact = (value, keys) => {
+export const localRuntimeHash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const exact = (value: unknown, keys: readonly string[]) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
   assert.deepEqual(Object.keys(value).sort(), [...keys].sort());
 };
-const digest = value => assert.equal(typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value), true);
-const filename = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u.test(value);
-const boundedRead = (descriptor, size) => {
+const digest = (value: unknown) => assert.equal(typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value), true);
+const filename = (value: unknown) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u.test(value);
+const boundedRead = (descriptor: number, size: number) => {
   const bytes = Buffer.alloc(size + 1);
   let position = 0;
   while (position < bytes.length) {
@@ -34,7 +45,7 @@ const boundedRead = (descriptor, size) => {
   return bytes.subarray(0, size);
 };
 
-export function admitLocalLibraryBytes(bytes, platform) {
+export function admitLocalLibraryBytes(bytes: Buffer, platform: string) {
   assert(bytes.length >= 32);
   if (platform === 'darwin-arm64') {
     assert.equal(bytes.readUInt32LE(0), 0xfeedfacf);
@@ -50,7 +61,7 @@ export function admitLocalLibraryBytes(bytes, platform) {
   // A matching header is necessary, not ABI or execution acceptance.
 }
 
-export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
+export function validateLocalRuntimeManifest(value: LocalManifest, {sourceSha, platform}: Expected) {
   exact(value, ['sourceSha', 'platform', 'libraries', 'assets', 'licenses']);
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   assert.equal(value.sourceSha, sourceSha);
@@ -60,7 +71,7 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
   assert(Array.isArray(value.licenses) && value.licenses.length >= 1 && value.licenses.length <= 8);
   const paths = new Set(), libraryNames = new Set(), libraryRoles = new Set(), assetRoles = new Set();
   let bytes = 0;
-  const member = (item, prefix, maxBytes) => {
+  const member = (item: Member, prefix: string, maxBytes: number) => {
     assert(filename(item.path.slice(prefix.length)) && item.path.startsWith(prefix));
     assert(!paths.has(item.path)); paths.add(item.path);
     assert(Number.isSafeInteger(item.bytes) && item.bytes > 0 && item.bytes <= maxBytes);
@@ -107,7 +118,7 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
   return value;
 }
 
-export function readLocalRuntimeMember(root, item, maxBytes) {
+export function readLocalRuntimeMember(root: string, item: Member, maxBytes: number) {
   // Each manifest path has one fixed directory and one closed file name.
   // Reject directory/file symlinks rather than following a dependency elsewhere.
   const [directory, name] = item.path.split('/');
@@ -133,21 +144,21 @@ export function readLocalRuntimeMember(root, item, maxBytes) {
   } finally { closeSync(descriptor); }
 }
 
-export function admitLocalRuntimePlatform(manifest, {macOS, glibc}) {
+export function admitLocalRuntimePlatform(manifest: LocalManifest, {macOS, glibc}: PlatformFacts) {
   const key = manifest.platform === 'darwin-arm64' ? 'minimumMacOS' : 'minimumGlibc';
   const actual = manifest.platform === 'darwin-arm64' ? macOS : glibc;
-  const parse = text => typeof text === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(text)
+  const parse = (text: unknown) => typeof text === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(text)
     ? [...text.split('.').map(Number), 0].slice(0, 3) : null;
   const current = parse(actual);
   for (const item of manifest.libraries) {
     const required = parse(item.abi[key]);
     const difference = current && required && current.map((v, i) => v - required[i]).find(v => v !== 0);
-    if (!current || !required || difference < 0) throw Object.assign(
+    if (!current || !required || difference! < 0) throw Object.assign(
       Error(`Unsupported Local runtime platform; bundled ${item.role} requires ${key} ${item.abi[key]}.`), {exitCode: 64});
   }
 }
 
-function readInstalledLocalRuntimeManifest({root, expected, metadata}) {
+function readInstalledLocalRuntimeManifest({root, expected, metadata}: InstalledOptions) {
   try {
     const directory = lstatSync(root);
     assert(directory.isDirectory() && !directory.isSymbolicLink());
@@ -174,7 +185,7 @@ function readInstalledLocalRuntimeManifest({root, expected, metadata}) {
   }
 }
 
-export function admitInstalledLocalRuntime({root, expected, metadata}) {
+export function admitInstalledLocalRuntime({root, expected, metadata}: InstalledOptions) {
   try {
     const manifest = readInstalledLocalRuntimeManifest({root, expected, metadata});
     for (const item of manifest.libraries) {
@@ -194,7 +205,7 @@ export function admitInstalledLocalRuntime({root, expected, metadata}) {
 // The launcher selects bounded installation metadata and the required OS ABI.
 // Native verifies each physical member before loading it and retains its actual
 // file lifetime. Selection is neither physical admission nor permission.
-export function installedLocalRuntimeEnvironment({root, expected, metadata, platformFacts, environment}) {
+export function installedLocalRuntimeEnvironment({root, expected, metadata, platformFacts, environment}: InstalledOptions & {platformFacts: PlatformFacts; environment: NodeJS.ProcessEnv}) {
   const manifest = readInstalledLocalRuntimeManifest({root, expected, metadata});
   admitLocalRuntimePlatform(manifest, platformFacts);
   const result = {...environment};
