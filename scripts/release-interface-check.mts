@@ -21,9 +21,20 @@ import {buildLocalNodeAssets} from './build-local-node-assets.mjs';
 import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {initialControlPackageOriginal} from './initial-control-package-images.mjs';
 
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+import type {BinaryLike} from 'node:crypto';
 
-export async function releaseInterfaceCheck({repository, directory}) {
+type Correspondence = Parameters<typeof installedInterfaceCorrespondence>[0];
+type Artifacts = ReturnType<typeof installedInterfaceInventory>['artifacts'];
+type SourceArtifact = Awaited<ReturnType<typeof sourceInterfaceClosure>>['artifacts'][number];
+// Unchecked descriptor DATA. The builder and original member checks below
+// remain responsible for validating the physical artifact and its provenance.
+type NativeRecord = {platform: string; arch: string; source: {path: string};
+  binary: {path: string; sha256: string; bytes: number}};
+type NativeDescriptor = NativeRecord & {version: unknown; targets?: {original: NativeRecord}[]};
+
+const hash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+
+export async function releaseInterfaceCheck({repository, directory}: {repository: string; directory: string}) {
   const before = checkoutState(repository);
   assert(before.clean, 'Release interface verification needs clean source HEAD');
   const manifest = await verifyPackageRelease(directory);
@@ -33,7 +44,7 @@ export async function releaseInterfaceCheck({repository, directory}) {
   const roots = npmInterfaceRoots(repository), plans = runtimePackageInputs(repository);
   const owners = interfaceOwnerDeclarations(repository);
   const manifestSha256 = hash(readFileSync(join(directory, 'release.json')));
-  return {manifest, async verifyConsumer(consumer, names) {
+  return {manifest, async verifyConsumer(consumer: string, names: readonly string[]) {
     assert.equal(new Set(names).size, names.length, 'Duplicate installed interface package');
     const reports = [];
     for (const name of names) {
@@ -44,10 +55,10 @@ export async function releaseInterfaceCheck({repository, directory}) {
       const installed = join(consumer, 'node_modules', item.name);
       assert.deepEqual(await inventory(installed), item.files, `Changed installed release members: ${item.name}`);
       const packageSource = dirname(root.manifest);
-      const bindings = new Map(item.files.map(file => [file.path,
+      const bindings = new Map<string, Correspondence['bindings'][number]>(item.files.map(file => [file.path,
         {member: file.path, source: `${packageSource}/${file.path}`} ]));
-      const plan = plans[name];
-      const localArtifacts = [];
+      const plan = plans[name as keyof typeof plans];
+      const localArtifacts: Artifacts = [];
       if (name === 'local-node') {
         const inputs = localNodePackageInputs(repository);
         // Generation belongs to the original development context. Its image
@@ -72,18 +83,18 @@ export async function releaseInterfaceCheck({repository, directory}) {
             const descriptorModule = '_build/native/directory-original.json';
             const descriptorFile = item.files.find(file => file.path === descriptorModule);
             assert(descriptorFile, 'Missing original native descriptor');
-            const descriptor = JSON.parse(await readFile(join(original, descriptorModule)));
+            const descriptor = JSON.parse(await readFile(join(original, descriptorModule)) as unknown as string) as NativeDescriptor;
             const records = descriptor.version === 'actql-node-directory-native-cohort/0.1'
-              ? descriptor.targets.map(target => target.original) : [descriptor];
+              ? descriptor.targets!.map(target => target.original) : [descriptor];
             for (const file of nativeMembers) {
-              const input = reference.artifacts.find(value => value.module === `${packageSource}/${file.path}` &&
+              const input: SourceArtifact | undefined = reference.artifacts.find(value => value.module === `${packageSource}/${file.path}` &&
                 value.package === name && value.target?.endsWith('/node-napi8'));
               const record = records.find(value => value.binary.path === file.path);
               assert(input && record, `Unregistered normal native artifact: ${file.path}`);
               assert.equal(file.sha256, record.binary.sha256, 'Changed original native binary');
               assert.equal(file.bytes, record.binary.bytes, 'Changed original native binary extent');
               assert.equal(input.target, `${record.platform}-${record.arch}/node-napi8`, 'Foreign original native target');
-              assert(input.sourceFiles.includes(record.source.path), 'Foreign original native source');
+              assert(input.sourceFiles!.includes(record.source.path), 'Foreign original native source');
               localArtifacts.push({module: file.path, sha256: file.sha256, sourceSha: before.revision,
                 target: input.target, verification: {build: input.build, sourceFiles: input.sourceFiles,
                   manifestSha256, originalSha256: item.originalSha256,
@@ -115,7 +126,7 @@ export async function releaseInterfaceCheck({repository, directory}) {
         }
         for (const path of inputs.dataFiles) bindings.set(path, {member: path, source: path});
       }
-      const artifacts = (plan?.files ?? []).map(path => {
+      const artifacts = (plan?.files ?? []).map<Artifacts[number]>(path => {
         assert(path.startsWith(packageSource + '/'), 'Runtime input outside its original package');
         const module = path.slice(packageSource.length + 1);
         const file = item.files.find(value => value.path === module);
@@ -133,7 +144,7 @@ export async function releaseInterfaceCheck({repository, directory}) {
       const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
       const bySource = new Map([...bindings.values()].map(value => [value.source, value.member]));
       const runtimeBindings = checkedSource.runtimeBindings.filter(value => bySource.has(value.module))
-        .map(value => ({...value, module: bySource.get(value.module)}));
+        .map(value => ({...value, module: bySource.get(value.module)!}));
       const dependencies = await assertInstalledDependencyClosure({directory: installed,
         modules: actual.modules, artifacts, runtimeBindings});
       reports.push({...installedInterfaceCorrespondence({repository, directory: installed,

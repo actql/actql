@@ -815,3 +815,7 @@ target/
 /scripts/native-cli-mock-scenario.d.mts
 /scripts/native-cli-project-init.test.mjs
 /scripts/native-cli-project-init.test.d.mts
+/scripts/native-cli-interface-check.mjs
+/scripts/native-cli-interface-check.d.mts
+/scripts/release-interface-check.mjs
+/scripts/release-interface-check.d.mts

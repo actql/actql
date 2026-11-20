@@ -11,19 +11,25 @@ import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from
 import {admitInstalledNativeArtifactMaterial} from './native-cli-artifact-reader.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 
-export async function checkStagedNativeCliInterfaces({repository, directory, source, checkedSource, artifact}) {
+type ArtifactMaterial = Awaited<ReturnType<typeof admitInstalledNativeArtifactMaterial>>;
+type StagedOptions = {repository: string; directory: string; source: string;
+  checkedSource: Awaited<ReturnType<typeof checkInterfaceOwners>>; artifact?: unknown};
+type Correspondence = Parameters<typeof installedInterfaceCorrespondence>[0];
+type Artifacts = ReturnType<typeof installedInterfaceInventory>['artifacts'];
+
+export async function checkStagedNativeCliInterfaces({repository, directory, source, checkedSource, artifact}: StagedOptions) {
   assert.match(source, /^[a-f0-9]{40}$/u);
   execFileSync('git', ['cat-file', '-e', `${source}^{commit}`], {cwd: repository});
   const checkedHead = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
-  const metadata = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+  const metadata = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as {name: unknown};
   // Validate the existing checker instance before reading its candidate list.
   // DATA or a foreign-root report cannot request a replacement qualification.
   checkedOriginalInterface(repository, 'packages/native-cli/bin/actql.mjs', checkedSource);
-  const artifacts = [];
-  let bindings, artifactMaterial;
+  const artifacts: Artifacts = [];
+  let bindings: Correspondence['bindings'], artifactMaterial: ArtifactMaterial | undefined;
   if (artifact === undefined) {
     assert.equal(metadata.name, 'actql');
-    bindings = nativeCliPackageInputs(repository).copies;
+    bindings = nativeCliPackageInputs(repository)!.copies;
   } else {
     artifactMaterial = await admitInstalledNativeArtifactMaterial(directory, source);
     const {artifact: original, localRuntime: local} = artifactMaterial;
@@ -39,13 +45,13 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
       const runtimeVerification = {reader: 'packages/native-cli/lib/local-runtime.mjs#admitInstalledLocalRuntime',
         manifest: original.localRuntime,
         qualification: 'Original selected runtime material; not compiled by the MoonBit CLI build or runtime ABI acceptance'};
-      for (const library of local.libraries) {
+      for (const library of local!.libraries) {
         artifacts.push({sourceSha: source, target: 'native-runtime-library',
           module: library.path, sha256: library.sha256,
           verification: {...runtimeVerification, role: library.role,
             dependencies: library.dependencies, abi: library.abi}});
       }
-      for (const license of local.licenses.filter(item => item.path.endsWith('.h'))) {
+      for (const license of local!.licenses.filter(item => item.path.endsWith('.h'))) {
         // SQLite's original blessing is its public header. This is one exact
         // manifest-selected, hash-verified source original, never a directory
         // exemption for headers, scripts or other authored package members.
@@ -54,7 +60,7 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
         artifacts.push({sourceSha: source, target: 'native-runtime-original-header',
           module: license.path, sha256: license.sha256,
           verification: {...runtimeVerification, role: 'original-license-header',
-            libraryRoles: local.libraries.filter(library => library.license === license.path)
+            libraryRoles: local!.libraries.filter(library => library.license === license.path)
               .map(library => library.role)}});
       }
     }
