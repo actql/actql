@@ -6322,7 +6322,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6332,7 +6332,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6342,7 +6342,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6352,7 +6352,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6362,7 +6362,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6372,7 +6372,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6382,7 +6382,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6392,7 +6392,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6402,7 +6402,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],

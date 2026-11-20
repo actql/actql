@@ -979,7 +979,7 @@
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "export function defaultFileMediaType"
               },
               {
@@ -1324,7 +1324,7 @@
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "export function defaultFileMediaType"
               },
               {
@@ -1840,7 +1840,7 @@
                 "anchor": "installPreparedProjectLocalFiles"
               },
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "export function defaultFileMediaType"
               },
               {

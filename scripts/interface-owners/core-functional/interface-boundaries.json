@@ -7246,7 +7246,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7256,7 +7256,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7266,7 +7266,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7276,7 +7276,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7286,7 +7286,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7296,7 +7296,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7306,7 +7306,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7316,7 +7316,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7326,7 +7326,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],

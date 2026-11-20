@@ -459,3 +459,15 @@ target/
 
 /packages/sdk/connection-options-diagnostics.test.mjs
 /packages/sdk/connection-options-diagnostics.test.d.mts
+
+/adapters/host-common/file-media-type.mjs
+/adapters/host-common/file-media-type.d.mts
+
+/adapters/host-common/installed-effect-dependency-original.mjs
+/adapters/host-common/installed-effect-dependency-original.d.mts
+
+/adapters/host-node/installed-model-originals.mjs
+/adapters/host-node/installed-model-originals.d.mts
+
+/adapters/host-common/checkpoint-approval.mjs
+/adapters/host-common/checkpoint-approval.d.mts

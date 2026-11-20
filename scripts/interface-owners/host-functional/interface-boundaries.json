@@ -1441,8 +1441,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1455,8 +1455,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
@@ -1469,7 +1469,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "// Checkpoint records the exact approved read (tuple, physical binding,"
               },
               {
@@ -1483,7 +1483,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "// Read approvals the Host's Checkpoint owner admitted for one dispatch. The"
               },
               {
@@ -1497,8 +1497,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1511,7 +1511,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "throw new TypeError('InvalidCheckpointApproval');"
               },
               {
@@ -1525,8 +1525,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -1539,8 +1539,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
@@ -1553,8 +1553,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1585,8 +1585,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1599,8 +1599,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
@@ -1613,7 +1613,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "// Checkpoint records the exact approved read (tuple, physical binding,"
               },
               {
@@ -1627,7 +1627,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "// Read approvals the Host's Checkpoint owner admitted for one dispatch. The"
               },
               {
@@ -1641,8 +1641,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1655,7 +1655,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "path": "adapters/host-common/checkpoint-approval.mts",
                 "anchor": "throw new TypeError('InvalidCheckpointApproval');"
               },
               {
@@ -1669,8 +1669,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -1683,8 +1683,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
@@ -1697,8 +1697,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/checkpoint-approval.mjs",
-                "anchor": "export function recordCheckpointApproval(decision, facts) {"
+                "path": "adapters/host-common/checkpoint-approval.mts",
+                "anchor": "export function recordCheckpointApproval<T>(decision: T, facts: unknown): T {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -68536,8 +68536,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68550,8 +68550,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -68564,7 +68564,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68578,7 +68578,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68592,8 +68592,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68606,7 +68606,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "throw new TypeError('InstalledModelOriginalRunUnavailable');"
               },
               {
@@ -68620,7 +68620,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68634,7 +68634,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68648,7 +68648,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "throw new TypeError('InstalledModelOriginalRunUnavailable');"
               },
               {
@@ -68680,8 +68680,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68694,8 +68694,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -68708,7 +68708,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68722,7 +68722,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68736,8 +68736,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function originalModelRunWire(compiled: unknown, runDefinition: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68750,7 +68750,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "throw new TypeError('InstalledModelOriginalRunUnavailable');"
               },
               {
@@ -68764,7 +68764,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68778,7 +68778,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "// Original Run admission bytes for fixed Model custody and cancellation."
               },
               {
@@ -68792,7 +68792,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model-originals.mjs",
+                "path": "adapters/host-node/installed-model-originals.mts",
                 "anchor": "throw new TypeError('InstalledModelOriginalRunUnavailable');"
               },
               {
@@ -129100,7 +129100,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "export function defaultFileMediaType"
               }
             ],
@@ -129112,19 +129112,19 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const mediaTypes = Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const name = path.slice"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "throw new TypeError"
               }
             ],
@@ -129136,13 +129136,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const suffix = name.slice"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "Object.hasOwn(mediaTypes, extension)"
               }
             ],
@@ -129172,7 +129172,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "export function defaultFileMediaType"
               }
             ],
@@ -129184,19 +129184,19 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const mediaTypes = Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const name = path.slice"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "throw new TypeError"
               }
             ],
@@ -129208,13 +129208,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "const suffix = name.slice"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/file-media-type.mjs",
+                "path": "adapters/host-common/file-media-type.mts",
                 "anchor": "Object.hasOwn(mediaTypes, extension)"
               }
             ],
@@ -135693,19 +135693,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "// Private association of the existing installed Run control, not a resource"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
-                "anchor": "originals.set(view,Object.freeze({...original}));"
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "originals.set(view,Object.freeze({...original}) as Readonly<UncheckedDependencyOriginal>);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.runtime!==runtime"
               },
               {
@@ -135725,13 +135725,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "throw new TypeError('ForeignInstalledEffectDependencyOriginal')"
               }
             ],
@@ -135740,8 +135740,8 @@
             },
             "resources": [
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
-                "anchor": "const originals=new WeakMap();"
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "const originals=new WeakMap<object, Readonly<UncheckedDependencyOriginal>>();"
               },
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
