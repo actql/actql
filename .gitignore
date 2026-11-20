@@ -531,3 +531,12 @@ target/
 
 /scripts/interface-owner-coverage.mjs
 /scripts/interface-owner-coverage.d.mts
+
+/scripts/distribution-interface-roots.test.mjs
+/scripts/distribution-interface-roots.test.d.mts
+
+/scripts/interface-owner-discovery.test.mjs
+/scripts/interface-owner-discovery.test.d.mts
+
+/scripts/interface-owner-coverage.test.mjs
+/scripts/interface-owner-coverage.test.d.mts

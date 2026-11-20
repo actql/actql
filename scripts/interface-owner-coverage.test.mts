@@ -4,19 +4,22 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {test} from 'node:test';
+import type {TestContext} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {interfaceOwnerCoverage, replaceInterfaceDeclarations} from './interface-owner-coverage.mjs';
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-interface-owner-'));
   t.after(() => rmSync(root, {recursive: true}));
   writeFileSync(join(root, 'owner.md'), 'Original functional boundary and original representation binding');
   const source = 'export function read(value) {return value;}';
   const module = {module: 'outside/sdk.mjs', sha256: createHash('sha256').update(source).digest('hex'),
     ...javascriptInterface(source)};
-  const declaration = (role, anchor) => ({...module, role, owner: anchor, responsibilityFacet: 'primary',
+  type Declaration = typeof module & {role: string; owner: string; responsibilityFacet?: string;
+    contracts: {operations: string[]; exports: string[]; attributes: Record<string, {path: string; anchor: string}[]>}[]};
+  const declaration = (role: string, anchor: string): Declaration => ({...module, role, owner: anchor, responsibilityFacet: 'primary',
     contracts: [{operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
-      attributes: Object.fromEntries(interfaceAttributes.map(name => [name, [{path: 'owner.md', anchor}]]))}]});
+      attributes: Object.fromEntries(interfaceAttributes.map(name => [name, [{path: 'owner.md', anchor}]])) as Declaration['contracts'][number]['attributes']}]});
   return {root, module, declaration};
 }
 
@@ -75,7 +78,7 @@ test('explicit module replacement adds a new declaration and refuses duplicate o
   const child = {...original, sha256: '1'.repeat(64)}, added = {...original, module: 'new/module.mjs'};
   const merged = replaceInterfaceDeclarations([original], [child, added]);
   assert.equal(merged.length, 2);
-  assert.equal(merged.find(value => value.module === original.module).sha256, child.sha256);
+  assert.equal(merged.find(value => value.module === original.module)!.sha256, child.sha256);
   assert.throws(() => replaceInterfaceDeclarations([original], [child, child]), /Duplicate overlay interface declaration/u);
 });
 

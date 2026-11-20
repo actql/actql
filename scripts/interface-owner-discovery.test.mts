@@ -17,7 +17,7 @@ test('actual owner declarations outside the original directories remain discover
   }
   const result = interfaceOwnerDeclarations(root, files);
   assert.equal(result.length, 3);
-  assert.equal(result[0].declarations[0].role, undefined, 'the loader cannot invent the missing role');
+  assert.equal((result[0].declarations[0] as {readonly role?: unknown}).role, undefined, 'the loader cannot invent the missing role');
   assert.deepEqual(result.map(value => value.id), [...files.slice(0, 3)].sort());
 });
 

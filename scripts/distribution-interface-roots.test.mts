@@ -8,7 +8,7 @@ import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 test('manifest discovery includes new SDK and CLI outside fixed product directories', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-if-roots-'));
   t.after(() => rmSync(root, {recursive: true}));
-  const put = (path, data) => {
+  const put = (path: string, data: object) => {
     mkdirSync(join(root, path, '..'), {recursive: true});
     writeFileSync(join(root, path), JSON.stringify(data));
   };
