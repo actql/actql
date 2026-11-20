@@ -16554,6 +16554,131 @@
           }
         }
       ]
+    },
+    {
+      "module": "packages/sdk/json-value-wire.generated.d.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "2f758e352713da8624c2c525092644b8cb9423890075fd6c42c886b8d0f4e436",
+      "exports": [
+        "jsonValueWireContractCid",
+        "resultSerializationContractCids"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "public-wire-codec",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Type-only mirror emitted by the same existing Common typed JSON wire-law generator; these literal serialization identities are DATA, not authority or a second law registry.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "jsonValueWireContractCid",
+            "resultSerializationContractCids"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Identity domains"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              },
+              {
+                "path": "portability/corpus/typed-json-literals.json",
+                "anchor": "\"serialization_contracts\": {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Publication, retention and authorization"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Expiry is an admission restriction, not proof of nonexecution."
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "cannot discharge Model, Effect,"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Delivery profile and bounds"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/typed-results.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "scripts/typed-json-literal-contract.test.mjs",
+                "anchor": "test('generated SDK serialization identities match all three independent existing wire vectors'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

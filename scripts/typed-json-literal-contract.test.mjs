@@ -18,6 +18,7 @@ test('generated SDK serialization identities match all three independent existin
     assert.equal(vector.preimage.json_value_wire_contract_cid, jsonValueWireContractCid);
   }
   assert.equal(typedJsonClientPin(), readFileSync('packages/sdk/json-value-wire.generated.mjs', 'utf8'));
+  assert.equal(typedJsonClientPin({declaration: true}), readFileSync('packages/sdk/json-value-wire.generated.d.mts', 'utf8'));
 });
 
 test('typed literal has explicit JSON domain and opaque source data', () => {
