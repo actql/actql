@@ -1,9 +1,28 @@
 // RC fixture logic over the actual public Client. Injected ports in its tests
 // prove sequencing/error custody, not installed Host or Native execution.
 import assert from 'node:assert/strict';
+import type {EmbeddedLocalOptions} from '../packages/node/index.d.ts';
+import type {CheckOutcome, CheckpointSummary, Client, Execution, Result, RunReference, RunState,
+  getCheckInput as publicGetCheckInput} from '../packages/sdk/index.d.ts';
 
-export function projectStaticCheckControls(program, source) {
-  const variable = {'churn-risk.aql': 'risk', 'deal-review.aql': 'review'}[program];
+type Original = {ref: RunReference; runId: string; checkpointId?: string;
+  checkpointCid?: string; summary?: CheckpointSummary; reviewBase64?: string};
+type Request = {kind: 'static' | 'start' | 'read' | 'resolve' | 'status' | 'result';
+  program?: string; resultName?: 'main'; decision?: 'approved' | 'rejected'; original?: Original};
+type CheckedControl = {name: string; check: CheckOutcome};
+type CompletedCheck = Extract<CheckOutcome, {outcome: 'completed'}>;
+type Response = {original?: Original; check?: CheckOutcome; state?: RunState;
+  plan?: Awaited<ReturnType<Client['plan']>>; staticChecks?: CheckedControl[];
+  rows?: Awaited<ReturnType<Result['all']>>; description?: Awaited<ReturnType<Result['describe']>>};
+type FirstClose = {attempted: boolean; returned: boolean; outcome?: 'threw' | 'returned' | 'not-attempted'};
+type ActionPorts = {connect: (options: EmbeddedLocalOptions) => Promise<Client>;
+  request: Request; readProgram: () => Promise<string>;
+  retainAccepted: (value: Pick<Original, 'ref'>) => void | Promise<void>;
+  assertPendingTarget: () => unknown; retainClose: (value: FirstClose) => void | Promise<void>;
+  getCheckInput: typeof publicGetCheckInput};
+
+export function projectStaticCheckControls(program: string, source: string) {
+  const variable = ({'churn-risk.aql': 'risk', 'deal-review.aql': 'review'} as Record<string, string>)[program];
   assert(variable, 'Use an existing authored Mock template');
   const original = variable + ".outcome = 'ok'";
   assert.equal(source.split(original).length, 2, 'Use one exact original published comparison');
@@ -13,29 +32,30 @@ export function projectStaticCheckControls(program, source) {
   ];
 }
 
-export function assertProjectStaticCheckControls(controls) {
+export function assertProjectStaticCheckControls(controls: readonly CheckedControl[]) {
   assert.deepEqual(controls?.map(value => value.name), ['known-outcome-type-error', 'unknown-update-target']);
   for (const {check} of controls) {
     assert.equal(check.outcome, 'completed');
     assert.equal(check.report?.scope?.kind, 'bound_input');
     assert(!JSON.stringify(check).includes('check_unclassified'));
   }
-  const invalid = controls[0].check.report, unknown = controls[1].check.report;
+  const invalid = (controls[0].check as CompletedCheck).report, unknown = (controls[1].check as CompletedCheck).report;
   assert.equal(invalid.verdict, 'invalid');
   assert(invalid.reasons.some(value => value.code === 'expression_domain_mismatch' &&
-    value.facts?.domain === 'key_comparable_operands'));
+    (value.facts as {domain?: unknown} | undefined)?.domain === 'key_comparable_operands'));
   assert.equal(invalid.requirements.length, 0, 'A known type error must not fabricate a policy/value Requirement');
   assert.equal(unknown.verdict, 'undetermined');
   assert(JSON.stringify(unknown.coverage).includes('unresolved_protected'));
 }
 
 export async function runReleaseProjectNodeAction({connect, request, readProgram, retainAccepted,
-  assertPendingTarget, retainClose, getCheckInput}) {
+  assertPendingTarget, retainClose, getCheckInput}: ActionPorts) {
   assert(['static', 'start', 'read', 'resolve', 'status', 'result'].includes(request.kind));
   assert(request.resultName === undefined || request.resultName === 'main');
   assert(request.kind !== 'read' || request.decision === undefined);
   assert(request.decision === undefined || ['approved', 'rejected'].includes(request.decision));
-  let client, primary, failed = false, closeFailure, closeFailed = false, response;
+  let client: Client | undefined, primary: unknown, failed = false,
+    closeFailure: unknown, closeFailed = false, response: Response | undefined;
   try {
     // CLI init already adopts .actql. This independent Node owner never opens
     // or converts that Native Store, including during static analysis.
@@ -45,7 +65,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
       response = {check: await client.check(source, {kind: 'text', format: 'aql', scope: 'bound_input'}),
         plan: await client.plan(source, {format: 'aql'})};
       response.staticChecks = [];
-      for (const control of projectStaticCheckControls(request.program, source)) {
+      for (const control of projectStaticCheckControls(request.program!, source)) {
         const check = await client.check(control.text, {kind: 'text', format: 'aql', scope: 'bound_input'});
         const received = getCheckInput(check, 'source');
         assert.equal(received?.kind, 'text');
@@ -54,7 +74,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
       }
       assertProjectStaticCheckControls(response.staticChecks);
     } else {
-      let execution, original = request.original;
+      let execution: Execution, original = request.original;
       if (request.kind === 'start' || request.kind === 'read') {
         const source = await readProgram();
         if (request.kind === 'read') {
@@ -78,11 +98,11 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
           const checkpointId = waiting.checkpoint?.id;
           assert.equal(typeof checkpointId, 'string');
           original = {ref: execution.ref, runId: waiting.run_id, checkpointId,
-            checkpointCid: waiting.checkpoint.checkpoint_cid};
+            checkpointCid: waiting.checkpoint!.checkpoint_cid};
           // Immediate approval must not gain an extra asynchronous lookup,
           // review, filesystem read or sleep between wait() and approve().
           const pending = assertPendingTarget();
-          assert(!pending || typeof pending.then !== 'function', 'Pending target observation must be synchronous');
+          assert(!pending || typeof (pending as {then?: unknown}).then !== 'function', 'Pending target observation must be synchronous');
           response = {original, state: waiting};
         }
       } else {
@@ -96,39 +116,39 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
         }
       }
       if (request.kind === 'resolve' || request.kind === 'start' && request.decision) {
-        assert.equal(response.state.status, 'waiting_checkpoint');
-        assert.equal(response.state.checkpoint.id, original.checkpointId);
-        assert.equal(response.state.checkpoint.checkpoint_cid, original.checkpointCid);
+        assert.equal(response.state!.status, 'waiting_checkpoint');
+        assert.equal(response.state!.checkpoint!.id, original!.checkpointId);
+        assert.equal(response.state!.checkpoint!.checkpoint_cid, original!.checkpointCid);
         if (request.kind === 'resolve') {
-          const page = await client.checkpoints({checkpointId: original.checkpointId});
+          const page = await client.checkpoints({checkpointId: original!.checkpointId});
           assert.equal(page.items.length, 1);
           const summary = page.items[0];
-          assert.equal(summary.checkpointId, original.checkpointId);
-          assert.equal(summary.checkpointCid, original.checkpointCid);
+          assert.equal(summary.checkpointId, original!.checkpointId);
+          assert.equal(summary.checkpointCid, original!.checkpointCid);
           assert.equal(summary.subject.kind, 'run_unit');
-          assert.equal(summary.subject.runId, original.runId);
-          assert.equal(summary.subject.runDefinitionCid, original.ref.runDefinitionCid);
+          assert.equal(summary.subject.runId, original!.runId);
+          assert.equal(summary.subject.runDefinitionCid, original!.ref.runDefinitionCid);
           const review = await client.reviewCheckpoint(summary);
-          if (original.reviewBase64 !== undefined)
-            assert.equal(Buffer.from(review.bytes).toString('base64'), original.reviewBase64);
+          if (original!.reviewBase64 !== undefined)
+            assert.equal(Buffer.from(review.bytes).toString('base64'), original!.reviewBase64);
           // An original CLI checkpoint can be selected by its public exact ID
           // and CID; no missing namespace/scope or new checkpoint is invented.
-          original = {...original, summary, reviewBase64: Buffer.from(review.bytes).toString('base64')};
+          original = {...original!, summary, reviewBase64: Buffer.from(review.bytes).toString('base64')};
           response.original = original;
           await assertPendingTarget();
         }
         // Exactly one resolution. No sleep, second signing or retry on error.
-        const answer = await client[request.decision === 'approved' ? 'approve' : 'reject'](original.checkpointId);
+        const answer = await client[request.decision === 'approved' ? 'approve' : 'reject'](original!.checkpointId!);
         assert.equal(answer.results.length, 1); assert.equal(answer.results[0].status, 'committed');
         assert.equal(answer.signed.length, 1);
         const resolution = JSON.parse(answer.signed[0].resolutionWire);
         assert.equal(resolution.decision, request.decision);
-        assert.equal(resolution.checkpoint_id, original.checkpointId);
-        assert.equal(resolution.checkpoint_cid, original.checkpointCid);
-        assert.equal(resolution.run_id, original.runId);
-        assert.equal(resolution.run_definition_cid, original.ref.runDefinitionCid);
+        assert.equal(resolution.checkpoint_id, original!.checkpointId);
+        assert.equal(resolution.checkpoint_cid, original!.checkpointCid);
+        assert.equal(resolution.run_id, original!.runId);
+        assert.equal(resolution.run_definition_cid, original!.ref.runDefinitionCid);
         response.state = await execution.wait();
-        assert.equal(response.state.run_id, original.runId);
+        assert.equal(response.state.run_id, original!.runId);
         assert.equal(response.state.status, request.decision === 'approved' ? 'succeeded' : 'cancelled');
       }
       if (request.kind === 'result' || request.kind === 'read') {
@@ -138,7 +158,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
         response.rows = await result.all();
         response.description = await result.describe();
         response.state = await execution.status();
-        assert.equal(response.state.run_id, original.runId);
+        assert.equal(response.state.run_id, original!.runId);
       }
     }
   } catch (cause) {primary = cause; failed = true;}

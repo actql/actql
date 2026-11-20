@@ -909,3 +909,5 @@ target/
 /scripts/native-cli-union-rows.d.mts
 /scripts/release-project-sequence-install.mjs
 /scripts/release-project-sequence-install.d.mts
+/scripts/release-project-node-action.mjs
+/scripts/release-project-node-action.d.mts
