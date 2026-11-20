@@ -839,3 +839,7 @@ target/
 /scripts/native-cli-original-input.d.mts
 /scripts/native-cli-ci-artifact.mjs
 /scripts/native-cli-ci-artifact.d.mts
+/scripts/native-cli-local-recipe.mjs
+/scripts/native-cli-local-recipe.d.mts
+/scripts/native-cli-linux-local-recipe.mjs
+/scripts/native-cli-linux-local-recipe.d.mts
