@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {Execution, QueryOptions} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';
@@ -7,7 +9,7 @@ import {submissionEpoch, readySubmissionAttempt} from './submission-fixture.mjs'
 
 // Actual SDK objects with explicit original-resource/Host controls. These
 // callbacks issue no installed capacity, Account grant or durable Run proof.
-const cid = digit => 'sha256:' + digit.repeat(64);
+const cid = (digit: string) => 'sha256:' + digit.repeat(64);
 const ref = {namespaceId: 'original-query', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'volatile', scopeRef: 'original-query', capabilities: ['aql-document'], submissionEpoch,
@@ -18,16 +20,17 @@ const state = {version: 'actql-run-state/0.1', run_id: 'original-query', revisio
   next_action: {kind: 'read_result', results: ['answer']}, result_available: true,
   result_availability: {answer: {state: 'available', observed_at: '2026-10-20T00:00:00.000Z',
     reason: 'confirmed_present'}}};
+interface FixtureBody {input: {text: string; format: string}; parameters: {n: {original: number}}; readOnly: boolean}
 const source = () => ({
-  captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+  captureSourceSnapshot(_receipt: unknown, value: unknown, snapshot: (value: unknown) => unknown) {return snapshot(value);},
   assertSourceSnapshotCurrent() {},
   publishSourceSnapshot() {},
   beforeSourceSnapshot() {assert.fail('NoSecondAdmission');},
   bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer() {}, intentCid() {return cid('c');},
   beforeResultRead() {}, assertResultReadCurrent() {}});
-async function fixture(t, receiver, overrides = {}) {
-  const calls = [];
-  const port = {async perform(operation, packet) {
+async function fixture(t: TestContext, receiver: unknown, overrides: Record<string, (packet: Record<string, unknown>) => unknown> = {}) {
+  const calls: string[] = [];
+  const port: {perform(operation: string, packet: Record<string, unknown>): Promise<unknown>; [sourcePreparationPort]?: unknown} = {async perform(operation, packet) {
     calls.push(operation);
     if (operation === 'connect') return profile;
     if (overrides[operation]) return overrides[operation](packet);
@@ -45,13 +48,13 @@ async function fixture(t, receiver, overrides = {}) {
   return {client, calls, port};
 }
 
-for (const [method, format] of [['sql', 'sql'], ['aql', 'aql-text']]) {
+for (const [method, format] of [['sql', 'sql'], ['aql', 'aql-text']] as const) {
   test(`${method} original refusal precedes every raw query option getter and enumeration`, async t => {
     let reads = 0, before = 0;
     const original = new Error('OriginalQueryUnavailable'), parameters = {};
     const options = new Proxy({}, {get() {reads++; assert.fail('UnownedGet');},
       ownKeys() {reads++; assert.fail('UnownedKeys');}});
-    const receiver = {...source(), beforeSourceQuery(actualFormat, text, params, raw) {
+    const receiver = {...source(), beforeSourceQuery(actualFormat: string, text: string, params: unknown, raw: unknown) {
       before++; assert.equal(this, receiver); assert.equal(actualFormat, format);
       assert.equal(text, 'original'); assert.equal(params, parameters); assert.equal(raw, options);
       throw original;
@@ -64,49 +67,49 @@ for (const [method, format] of [['sql', 'sql'], ['aql', 'aql-text']]) {
   });
 
   test(`${method} uses one original receipt for capture, request, identity and terminal before wait`, async t => {
-    const receipt = {}, parameters = {n: {original: 1}}, options = {}, events = [];
-    let body, observed;
-    const receiver = {...source(), beforeSourceQuery(actualFormat, text, params, raw) {
+    const receipt = {}, parameters = {n: {original: 1}}, options: QueryOptions = {}, events: string[] = [];
+    let body: FixtureBody, observed: FixtureBody;
+    const receiver = {...source(), beforeSourceQuery(actualFormat: string, text: string, params: unknown, raw: unknown) {
       events.push('before'); assert.equal(this, receiver); assert.equal(actualFormat, format);
       assert.equal(text, 'original'); assert.equal(params, parameters); assert.equal(raw, options);
       return receipt;
-    }, bindSourceSnapshot(value, captured) {
+    }, bindSourceSnapshot(value: unknown, captured: FixtureBody) {
       events.push('snapshot'); assert.equal(value, receipt); body = captured;
       assert.equal(captured.input.text, 'original'); assert.equal(captured.input.format, format);
       assert.equal(captured.readOnly, true); assert.equal(Object.isFrozen(captured), true);
       assert.equal(captured.parameters.n.original, 1);
-    }, intentCid(value, captured) {
+    }, intentCid(value: unknown, captured: FixtureBody) {
       events.push('identity'); assert.equal(value, receipt); assert.equal(captured, body); return cid('c');
-    }, bindSourceRequest(value, captured, packet) {
+    }, bindSourceRequest(value: unknown, captured: FixtureBody, packet: FixtureBody) {
       events.push('request'); assert.equal(value, receipt); assert.equal(captured, body);
       assert.equal(packet.input.text, 'original'); assert.equal(packet.parameters.n.original, 1);
       observed = packet;
-    }, finishSourceProducer(value, terminal) {
+    }, finishSourceProducer(value: unknown, terminal: unknown) {
       events.push('finish'); assert.equal(value, receipt); assert.equal(terminal, 'returned');
     }};
     const f = await fixture(t, receiver, {wait() {events.push('wait'); return state;}});
     const query = f.client[method]('original', parameters, options);
-    parameters.n.original = 99; options.result = 'foreign';
+    parameters.n.original = 99; (options as {result?: string}).result = 'foreign';
     f.port[sourcePreparationPort] = {};
     receiver.beforeSourceQuery = () => assert.fail('Replacement');
     assert.deepEqual(await query.all(), [{n: 1}]);
     assert.deepEqual(events, ['before', 'snapshot', 'identity', 'request', 'finish', 'wait']);
-    assert.equal(getSubmissionInput(query).requestId, query.requestId);
-    assert.equal(getSubmissionInput(query).input.text, observed.input.text);
+    assert.equal(getSubmissionInput(query)!.requestId, query.requestId);
+    assert.equal((getSubmissionInput(query)!.input as {text: string}).text, observed!.input.text);
     assert.equal(f.calls.filter(name => name === 'submit-intent').length, 1);
     assert.equal(f.calls.filter(name => name === 'read').length, 1);
   });
 }
 
 test('query omission and null parameters reach the original before SDK defaults', async t => {
-  const seen = [], original = new Error('OriginalUnavailable');
-  const f = await fixture(t, {...source(), beforeSourceQuery(...args) {seen.push(args); throw original;}});
+  const seen: unknown[][] = [], original = new Error('OriginalUnavailable');
+  const f = await fixture(t, {...source(), beforeSourceQuery(...args: unknown[]) {seen.push(args); throw original;}});
   await assert.rejects(f.client.sql('original'), error => error === original);
   await assert.rejects(f.client.aql('original', null), error => error === original);
   assert.deepEqual(seen.map(args => args.slice(0, 4)), [['sql', 'original', undefined, undefined], ['aql-text', 'original', null, undefined]]);
   assert.equal(seen[0][4], seen[1][4]);
   assert.equal(Object.isFrozen(seen[0][4]), true);
-  assert.equal(seen[0][4].mode, 'local');
+  assert.equal((seen[0][4] as {mode: string}).mode, 'local');
   assert.deepEqual(f.calls, ['connect']);
 });
 
@@ -132,13 +135,13 @@ test('asynchronous query acquisition cannot defer raw capture or produce a repla
 });
 
 test('capture rejection finishes only its original producer and retains failed cleanup for close', async t => {
-  const receipt = {}, finishes = [], originalCleanup = new Error('OriginalAliasPending');
+  const receipt = {}, finishes: unknown[][] = [], originalCleanup = new Error('OriginalAliasPending');
   let ready = false, before = 0;
   const f = await fixture(t, {...source(), beforeSourceQuery() {before++; return receipt;},
-    finishSourceProducer(value, terminal) {
+    finishSourceProducer(value: unknown, terminal: unknown) {
       finishes.push([value, terminal]); if (!ready) throw originalCleanup;
     }});
-  await assert.rejects(f.client.sql('SELECT 1', undefined, {unknown: true}), {code: 'InvalidQueryOptions'});
+  await assert.rejects(f.client.sql('SELECT 1', undefined, {unknown: true} as QueryOptions), {code: 'InvalidQueryOptions'});
   assert.deepEqual(finishes, [[receipt, 'failed']]);
   ready = true; await f.client.close();
   assert.deepEqual(finishes, [[receipt, 'failed'], [receipt, 'failed']]);
@@ -146,9 +149,9 @@ test('capture rejection finishes only its original producer and retains failed c
 });
 
 test('submission uncertainty retains the same query receipt and never resends', async t => {
-  const receipt = {}, finishes = [];
+  const receipt = {}, finishes: unknown[][] = [];
   const f = await fixture(t, {...source(), beforeSourceQuery() {return receipt;},
-    finishSourceProducer(value, terminal) {finishes.push([value, terminal]);}},
+    finishSourceProducer(value: unknown, terminal: unknown) {finishes.push([value, terminal]);}},
   {'submit-intent'() {throw new Error('OriginalLostReply');}});
   const query = f.client.sql('SELECT 1 AS n');
   await assert.rejects(query.all(), {code: 'SubmissionUnknown'});

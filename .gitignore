@@ -176,3 +176,11 @@ target/
 /packages/sdk/delivery-lookup-failure.test.d.mts
 /packages/sdk/read-progress.test.mjs
 /packages/sdk/read-progress.test.d.mts
+
+# Generated maintained schema and original-input SDK regressions.
+/packages/sdk/typed-results.test.mjs
+/packages/sdk/typed-results.test.d.mts
+/packages/sdk/original-result-intake.test.mjs
+/packages/sdk/original-result-intake.test.d.mts
+/packages/sdk/original-query-intake.test.mjs
+/packages/sdk/original-query-intake.test.d.mts

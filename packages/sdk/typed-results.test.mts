@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {Client, ClientError as SdkFailure, ReadOptions, StandardSchemaV1} from './index.d.ts';
 import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
@@ -6,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {setImmediate} from 'node:timers/promises';
 import {connect, connectInProcess, explainReadFailure} from './index.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'typed-results', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 const time = '2026-10-07T00:00:00.000Z';
@@ -19,17 +21,25 @@ const state = {version: 'actql-run-state/0.1', run_id: 'typed-run', revision: 23
   status: 'succeeded', updated_at: time, next_action: {kind: 'read_result', results: ['answer']},
   result_available: true, result_availability: {answer: {state: 'available',
     observed_at: time, reason: 'confirmed_present'}}};
-const schema = validate => ({'~standard': {version: 1, vendor: 'test', validate}});
+// Some callbacks deliberately return invalid values; this fixture view does
+// not replace the actual Result schema/validation admission under test.
+const schema = (validate: (row: {n: number}) => unknown) =>
+  ({'~standard': {version: 1, vendor: 'test', validate}}) as StandardSchemaV1 & {
+    '~standard': {version: 1; vendor: string; validate: (row: {n: number}) => unknown};
+  };
 const deferred = () => {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
+  let resolve!: (value?: unknown) => void, reject!: (reason: unknown) => void;
+  const promise = new Promise<unknown>((yes, no) => {resolve = yes; reject = no;});
   return {promise, resolve, reject};
 };
 
-async function fixture(t, mode, overrides = {}) {
-  const calls = [], stats = {pulled: 0, returned: 0, closed: 0};
+async function fixture(t: TestContext, mode: 'local' | 'remote', overrides: {
+  rows?: {n: number}[]; wait?: () => unknown; cleanup?: () => unknown;
+  response?: (stats: {pulled: number; returned: number; closed: number}) => Response;
+} = {}) {
+  const calls: {operation: string; body: Record<string, unknown>}[] = [], stats = {pulled: 0, returned: 0, closed: 0};
   const rows = overrides.rows ?? [{n: 1}, {n: 2}];
-  const operate = async (operation, body, signal) => {
+  const operate = async (operation: string, body: Record<string, unknown>, signal?: AbortSignal | null) => {
     calls.push({operation, body});
     if (operation === 'connect') return {...profile, mode, owner: mode};
     if (operation === 'submit-intent') return readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1});
@@ -42,7 +52,7 @@ async function fixture(t, mode, overrides = {}) {
       async *[Symbol.asyncIterator]() {
         try {
           for (const value of rows) {
-            signal.throwIfAborted(); stats.pulled++;
+            signal!.throwIfAborted(); stats.pulled++;
             yield {value, byteLength: new TextEncoder().encode(JSON.stringify(value)).length};
           }
         } finally {stats.returned++;}
@@ -51,11 +61,11 @@ async function fixture(t, mode, overrides = {}) {
     if (overrides.response) return overrides.response(stats);
     return new Response(rows.map(row => JSON.stringify(row) + '\n').join('') + '\x1e');
   };
-  let client;
+  let client: Client;
   if (mode === 'local') client = await connectInProcess({mode, owner: mode}, {perform: operate});
   else {
-    mock.method(globalThis, 'fetch', async (url, init) => {
-      const value = await operate(url.pathname.split('/').at(-1), JSON.parse(init.body), init.signal);
+    mock.method(globalThis, 'fetch', async (url: URL, init: {body: string; signal?: AbortSignal | null}) => {
+      const value = await operate(url.pathname.split('/').at(-1)!, JSON.parse(init.body), init.signal);
       return value instanceof Response ? value : Response.json(value);
     });
     t.after(() => mock.restoreAll());
@@ -65,7 +75,7 @@ async function fixture(t, mode, overrides = {}) {
   return {client, result: (await client.attach(ref)).result('answer'), calls, stats};
 }
 
-for (const mode of ['local', 'remote']) {
+for (const mode of ['local', 'remote'] as const) {
   test(`${mode}: raw calls and sync/async schema views preserve row order and one read`, async t => {
     const f = await fixture(t, mode);
     assert.deepEqual(await f.result.all(), [{n: 1}, {n: 2}]);
@@ -95,33 +105,33 @@ for (const mode of ['local', 'remote']) {
     let failure;
     await assert.rejects(iterator.next(), error => {
       failure = error;
-      assert.equal(error.code, 'ResultValidationFailed');
-      assert.equal(error.validationKind, 'issues'); assert.equal(error.issues, issues);
-      assert.equal(error.rowIndex, 1); assert.equal(error.rowsYielded, 1);
-      assert.equal(error.attemptId, reader.attemptId);
-      assert.deepEqual(error.resultRef, f.result.ref);
+      assert.equal((error as SdkFailure).code, 'ResultValidationFailed');
+      assert.equal((error as SdkFailure).validationKind, 'issues'); assert.equal((error as SdkFailure).issues, issues);
+      assert.equal((error as SdkFailure).rowIndex, 1); assert.equal((error as SdkFailure).rowsYielded, 1);
+      assert.equal((error as SdkFailure).attemptId, reader.attemptId);
+      assert.deepEqual((error as SdkFailure).resultRef, f.result.ref);
       assert.doesNotMatch(JSON.stringify(error), /private invalid n/); return true;
     });
     assert.equal(reader.rowsYielded(), 1); assert.equal(reader.state(), 'prefix');
-    assert.deepEqual(explainReadFailure(failure).next.ref, ref);
-    assert.equal(explainReadFailure(failure).next.resultName, 'answer');
+    assert.deepEqual(explainReadFailure(failure)!.next.ref, ref);
+    assert.equal(explainReadFailure(failure)!.next.resultName, 'answer');
     await assert.rejects(f.result.all(validator), error =>
-      error.code === 'ResultValidationFailed' && error.rowIndex === 1 &&
-      error.rowsYielded === 0 && error.issues === issues &&
-      error.resultRef.resultName === 'answer');
+      (error as SdkFailure).code === 'ResultValidationFailed' && (error as SdkFailure).rowIndex === 1 &&
+      (error as SdkFailure).rowsYielded === 0 && (error as SdkFailure).issues === issues &&
+      (error as SdkFailure).resultRef!.resultName === 'answer');
   });
 
   test(`${mode}: raw quotas run before mutating transforms and collection counts`, async t => {
     const f = await fixture(t, mode);
     let validated = 0;
-    const shrink = schema(row => {validated++; delete row.n; return {value: null};});
+    const shrink = schema(row => {validated++; delete (row as {n?: number}).n; return {value: null};});
     for (const [limits, code, expectedCalls] of [
       [{maxWireBytes: 1}, 'ResultWireLimit', 0],
       [{maxRowWireBytes: 1}, 'ResultRowWireLimit', 0],
       [{maxRowRetainedValueBytes: 1}, 'ResultRowRetainedLimit', 0],
       [{maxRows: 1}, 'ResultRetainedLimit', 1],
       [{maxRetainedValueBytes: 270}, 'ResultRetainedLimit', 1],
-    ]) {
+    ] as const) {
       validated = 0;
       await assert.rejects(f.result.all(shrink, limits), {code, rowsYielded: 0});
       assert.equal(validated, expectedCalls);
@@ -134,7 +144,7 @@ for (const mode of ['local', 'remote']) {
     const f = await fixture(t, mode);
     let assimilated = 0;
     const thenable = {then() {assimilated++; throw new Error('must not run');}};
-    const cycle = {}; cycle.self = cycle;
+    const cycle: {self?: unknown} = {}; cycle.self = cycle;
     const pending = new Promise(() => {});
     const fn = () => 'callable';
     const date = new Date('2026-10-07T00:00:00.000Z');
@@ -146,7 +156,7 @@ for (const mode of ['local', 'remote']) {
       const reader = f.result.rows(view), iterator = reader[Symbol.asyncIterator]();
       const next = await iterator.next();
       assert.equal(next.done, false); assert.equal(next.value, output);
-      assert.equal(reader.rowsYielded(), 1); await iterator.return();
+      assert.equal(reader.rowsYielded(), 1); await iterator.return!();
     }
     assert.equal(assimilated, 0);
   });
@@ -171,8 +181,8 @@ for (const mode of ['local', 'remote']) {
     const reader = f.result.rows(schema(() => {entered.resolve(); return late.promise;}),
       {signal: controller.signal});
     const next = reader[Symbol.asyncIterator]().next();
-    const rejected = assert.rejects(next, error => error.rowsYielded === 0 &&
-      error.code !== 'ResultValidationFailed');
+    const rejected = assert.rejects(next, error => (error as SdkFailure).rowsYielded === 0 &&
+      (error as SdkFailure).code !== 'ResultValidationFailed');
     await entered.promise; controller.abort(); await rejected;
     late.resolve({value: 'too late'}); await setImmediate();
     assert.equal(reader.rowsYielded(), 0);
@@ -192,7 +202,7 @@ test('validation is serial and reader backpressure does not pull the next Local 
   finish.resolve(); assert.deepEqual(await first, {done: false, value: 1});
   await setImmediate(); assert.equal(f.stats.pulled, 1); assert.equal(validations, 1);
   assert.deepEqual(await iterator.next(), {done: false, value: 2});
-  await iterator.return(); assert.equal(f.stats.returned, 1); assert.equal(f.stats.closed, 1);
+  await iterator.return!(); assert.equal(f.stats.returned, 1); assert.equal(f.stats.closed, 1);
 });
 
 test('validation errors distinguish issues, throws, rejections and malformed results', async t => {
@@ -206,11 +216,11 @@ test('validation errors distinguish issues, throws, rejections and malformed res
     [() => ({}), 'invalid_result'], [() => ({issues: false}), 'invalid_result'],
     [() => ({issues: [{path: ['n']}]}), 'invalid_result'],
     [() => ({issues: [{message: 'bad path', path: [{}]}]}), 'invalid_result'],
-  ]) {
+  ] as const) {
     await assert.rejects(f.result.all(schema(validate)), error => {
-      assert.equal(error.code, 'ResultValidationFailed'); assert.equal(error.validationKind, kind);
-      assert.equal(error.rowIndex, 0); assert.equal(error.rowsYielded, 0);
-      if (kind === 'exception') assert.equal(error.cause.cause.cause, thrown);
+      assert.equal((error as SdkFailure).code, 'ResultValidationFailed'); assert.equal((error as SdkFailure).validationKind, kind);
+      assert.equal((error as SdkFailure).rowIndex, 0); assert.equal((error as SdkFailure).rowsYielded, 0);
+      if (kind === 'exception') assert.equal((error as {cause: {cause: {cause: unknown}}}).cause.cause.cause, thrown);
       assert.doesNotMatch(JSON.stringify(error), /private callback exception/); return true;
     });
   }
@@ -229,14 +239,14 @@ test('invalid schemas fail before read; callable schemas and their receivers are
   const f = await fixture(t, 'local');
   for (const standard of [null, {}, {version: 2, vendor: 'test', validate() {}},
     {version: 1, vendor: 'test', validate: true}]) {
-    await assert.rejects(f.result.all({'~standard': standard}), {code: 'InvalidResultSchema'});
-    assert.throws(() => f.result.rows({'~standard': standard}), {code: 'InvalidResultSchema'});
+    await assert.rejects(f.result.all({'~standard': standard} as unknown as StandardSchemaV1), {code: 'InvalidResultSchema'});
+    assert.throws(() => f.result.rows({'~standard': standard} as unknown as StandardSchemaV1), {code: 'InvalidResultSchema'});
   }
   assert.equal(f.calls.some(x => x.operation === 'read'), false);
   function callable() {}
-  callable['~standard'] = {version: 1, vendor: 'callable', offset: 10,
-    validate(row) {return {value: row.n + this.offset};}};
-  assert.deepEqual(await f.result.all(callable), [11, 12]);
+  callable['~standard'] = {version: 1 as const, vendor: 'callable', offset: 10,
+    validate(row: {n: number}) {return {value: row.n + this.offset};}};
+  assert.deepEqual(await f.result.all(callable as unknown as StandardSchemaV1), [11, 12]);
 });
 
 test('Result and query shortcut capture validators, inherited limits and live signals at invocation', async t => {
@@ -265,8 +275,8 @@ test('Result and query shortcut capture validators, inherited limits and live si
   assert.equal(live.rowsYielded(), 0);
 });
 
-for (const mode of ['local', 'remote']) {
-  for (const operation of ['rows', 'all']) {
+for (const mode of ['local', 'remote'] as const) {
+  for (const operation of ['rows', 'all'] as const) {
     test(`${mode}: ${operation} preserves validation failure and secondary cleanup uncertainty`, async t => {
       let ready = false;
       const cleanup = new Error('private cleanup uncertainty');
@@ -279,18 +289,18 @@ for (const mode of ['local', 'remote']) {
       let failure;
       await assert.rejects(operation === 'all' ? f.result.all(view) : Array.fromAsync(f.result.rows(view)), error => {
         failure = error;
-        assert.equal(error.code, 'ResultValidationFailed'); assert.equal(error.validationKind, 'issues');
-        assert.equal(error.cleanupError, cleanup); assert.equal(error.rowIndex, 0);
-        assert.equal(error.rowsYielded, 0); return true;
+        assert.equal((error as SdkFailure).code, 'ResultValidationFailed'); assert.equal((error as SdkFailure).validationKind, 'issues');
+        assert.equal((error as SdkFailure).cleanupError, cleanup); assert.equal((error as SdkFailure).rowIndex, 0);
+        assert.equal((error as SdkFailure).rowsYielded, 0); return true;
       });
-      assert.equal(explainReadFailure(failure).cleanup, 'unknown');
-      assert.equal(explainReadFailure(failure).observation, 'read_incomplete');
+      assert.equal(explainReadFailure(failure)!.cleanup, 'unknown');
+      assert.equal(explainReadFailure(failure)!.observation, 'read_incomplete');
       ready = true; await f.client.close();
     });
   }
 }
 
-for (const operation of ['rows', 'all']) {
+for (const operation of ['rows', 'all'] as const) {
   test(`Local ${operation} retains a rejecting frame return without a close callback`, async t => {
     const cleanup = new Error('frame return failed');
     let returned = 0;
@@ -311,9 +321,9 @@ for (const operation of ['rows', 'all']) {
     const result = (await client.attach(ref)).result('answer');
     const view = schema(() => ({issues: [{message: 'invalid n'}]}));
     await assert.rejects(operation === 'all' ? result.all(view) : Array.fromAsync(result.rows(view)), error =>
-      error.code === 'ResultValidationFailed' && error.rowsYielded === 0 &&
-      error.rowIndex === 0 && error.cleanupError === cleanup &&
-      explainReadFailure(error).cleanup === 'unknown');
+      (error as SdkFailure).code === 'ResultValidationFailed' && (error as SdkFailure).rowsYielded === 0 &&
+      (error as SdkFailure).rowIndex === 0 && (error as SdkFailure).cleanupError === cleanup &&
+      explainReadFailure(error)!.cleanup === 'unknown');
     assert.equal(returned, 1);
   });
 }
@@ -337,10 +347,10 @@ test('Local validation preserves both frame-return and close cleanup errors', as
   t.after(() => client.close());
   const result = (await client.attach(ref)).result('answer');
   await assert.rejects(result.all(schema(() => ({issues: [{message: 'invalid n'}]}))), error => {
-    assert.equal(error.code, 'ResultValidationFailed'); assert.equal(error.rowIndex, 0);
-    assert.equal(error.rowsYielded, 0); assert.ok(error.cleanupError instanceof AggregateError);
-    assert.deepEqual(error.cleanupError.errors, [frameError, closeError]);
-    assert.equal(explainReadFailure(error).cleanup, 'unknown'); return true;
+    assert.equal((error as SdkFailure).code, 'ResultValidationFailed'); assert.equal((error as SdkFailure).rowIndex, 0);
+    assert.equal((error as SdkFailure).rowsYielded, 0); assert.ok((error as SdkFailure).cleanupError instanceof AggregateError);
+    assert.deepEqual(((error as SdkFailure).cleanupError as AggregateError).errors, [frameError, closeError]);
+    assert.equal(explainReadFailure(error)!.cleanup, 'unknown'); return true;
   });
   ready = true; await client.close();
 });
@@ -351,8 +361,8 @@ test('raw aggregate quota failure now stays inside the owner and retains cleanup
     start(controller) {controller.enqueue(new TextEncoder().encode('{"n":1}\n{"n":2}\n'));},
     cancel() {throw cleanup;},
   }))});
-  await assert.rejects(f.result.all({maxRows: 1}), error => error.code === 'ResultRetainedLimit' &&
-    error.rowsYielded === 0 && error.cleanupError === cleanup && explainReadFailure(error).cleanup === 'unknown');
+  await assert.rejects(f.result.all({maxRows: 1}), error => (error as SdkFailure).code === 'ResultRetainedLimit' &&
+    (error as SdkFailure).rowsYielded === 0 && (error as SdkFailure).cleanupError === cleanup && explainReadFailure(error)!.cleanup === 'unknown');
 });
 
 test('typed Result and query public declarations infer the schema output', () => {
@@ -377,7 +387,7 @@ test('Local frame iteration retains native next-method capture and callable Iter
           return {
             get next() {
               captured++;
-              return async function () {
+              return async function (this: {return?: unknown}) {
                 assert.equal(typeof this.return, 'function');
                 return Object.assign(() => {}, {done: false,
                   value: {value: {n: ++index}, byteLength: 7}});
@@ -395,6 +405,6 @@ test('Local frame iteration retains native next-method capture and callable Iter
   assert.deepEqual(await iterator.next(), {done: false, value: {n: 1}});
   assert.deepEqual(await iterator.next(), {done: false, value: {n: 2}});
   assert.equal(captured, 1);
-  await iterator.return();
+  await iterator.return!();
   assert.equal(returned, 1); assert.equal(reader.rowsYielded(), 2);
 });

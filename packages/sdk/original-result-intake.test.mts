@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {Execution, Result} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {connectInProcess} from './host-port.mjs';
@@ -7,24 +9,27 @@ import {submissionEpoch, readySubmissionAttempt} from './submission-fixture.mjs'
 
 // Actual SDK entry points with explicit Host/resource ports, not operational
 // capacity or a physical Result Store. Only the installed owner can issue it.
-const cid = digit => 'sha256:' + digit.repeat(64);
+const cid = (digit: string) => 'sha256:' + digit.repeat(64);
 const ref = {namespaceId: 'original-result', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const time = '2026-10-07T00:00:00.000Z';
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'volatile', scopeRef: 'result-scope', capabilities: ['aql-document'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
-const source = () => ({
-  captureSourceSnapshot(_receipt, value, snapshot) {return snapshot(value);},
+type CapturedSource = NonNullable<ReturnType<typeof captureSourcePreparation>>;
+type SourceFixture = Partial<{-readonly [K in keyof CapturedSource]: CapturedSource[K]}>;
+const source = (): SourceFixture => ({
+  captureSourceSnapshot(_receipt: unknown, value: unknown, snapshot: (value: unknown) => unknown) {return snapshot(value);},
   assertSourceSnapshotCurrent() {},
   publishSourceSnapshot() {},
   beforeSourceSnapshot() {return {};}, bindSourceSnapshot() {},
   beforeSourceQuery() {return {};}, bindSourceRequest() {}, finishSourceProducer() {}, intentCid() {return cid('c');}});
-async function fixture(t, beforeResultRead, wait, assertResultReadCurrent = () => {}) {
-  const receiver = source(), calls = [];
+async function fixture(t: TestContext, beforeResultRead?: (this: SourceFixture, first: unknown, second: unknown) => unknown,
+  wait?: () => unknown, assertResultReadCurrent: () => void = () => {}) {
+  const receiver = source(), calls: string[] = [];
   if (beforeResultRead !== undefined) receiver.beforeResultRead = beforeResultRead;
   receiver.assertResultReadCurrent = assertResultReadCurrent;
-  const port = {[sourcePreparationPort]: receiver, async perform(operation, packet) {
+  const port = {[sourcePreparationPort]: receiver, async perform(operation: string, packet: Record<string, unknown>) {
     calls.push(operation);
     if (operation === 'connect') return profile;
     if (operation === 'attach') return {ref, durability: 'volatile', revision: 1};
@@ -48,31 +53,31 @@ async function fixture(t, beforeResultRead, wait, assertResultReadCurrent = () =
 }
 
 test('Result callback retains its original receiver and does not acquire a replacement', () => {
-  const receiver = source(), raw = {}, options = {}, calls = [];
-  receiver.beforeResultRead = function (...args) {calls.push([this, ...args]);};
+  const receiver = source(), raw = {}, options = {}, calls: unknown[][] = [];
+  receiver.beforeResultRead = function (this: SourceFixture, ...args: unknown[]) {calls.push([this, ...args]);};
   receiver.assertResultReadCurrent = () => {};
   const captured = captureSourcePreparation({[sourcePreparationPort]: receiver});
   receiver.beforeResultRead = () => assert.fail('Replacement');
-  captured.beforeResultRead(raw, options);
+  captured!.beforeResultRead(raw, options);
   assert.deepEqual(calls, [[receiver, raw, options]]);
 });
 
 test('missing, accessor and nonvoid Result callbacks refuse only at the read boundary', async () => {
   let reads = 0;
-  for (const make of [receiver => {}, receiver => Object.defineProperty(receiver, 'beforeResultRead',
-    {get() {reads++; assert.fail('Getter');}}), receiver => {receiver.beforeResultRead = () => false;},
-  receiver => {receiver.beforeResultRead = () => Promise.reject(new Error('Pending'));}]) {
+  for (const make of [(receiver: SourceFixture) => {}, (receiver: SourceFixture) => Object.defineProperty(receiver, 'beforeResultRead',
+    {get() {reads++; assert.fail('Getter');}}), (receiver: SourceFixture) => {receiver.beforeResultRead = () => false;},
+  (receiver: SourceFixture) => {receiver.beforeResultRead = () => Promise.reject(new Error('Pending'));}]) {
     const receiver = {...source(), assertResultReadCurrent() {}}; make(receiver);
     const captured = captureSourcePreparation({[sourcePreparationPort]: receiver});
-    assert.equal(captured.intentCid({}, {}), cid('c'));
-    assert.throws(() => captured.beforeResultRead(undefined, undefined),
+    assert.equal(captured!.intentCid({}, {}), cid('c'));
+    assert.throws(() => captured!.beforeResultRead(undefined, undefined),
       {code: 'NodeSourceManagedAdmissionUnavailable'});
   }
   await Promise.resolve();
   assert.equal(reads, 0);
 });
 
-for (const method of ['rows', 'batches', 'all', 'one', 'scalar']) {
+for (const method of ['rows', 'batches', 'all', 'one', 'scalar'] as const) {
   test(`Result ${method} refuses before inspecting original caller options or starting read`, async t => {
     let accesses = 0;
     const original = new Error('OriginalResultUnavailable');
@@ -85,7 +90,7 @@ for (const method of ['rows', 'batches', 'all', 'one', 'scalar']) {
     const uuid = mock.method(globalThis.crypto, 'randomUUID', () => assert.fail('UUIDBeforeAdmission'));
     t.after(() => uuid.mock.restore());
     if (['rows', 'batches'].includes(method)) assert.throws(() => f.result[method](raw), error => error === original);
-    else await assert.rejects(f.result[method](raw), error => error === original);
+    else await assert.rejects(f.result[method](raw) as Promise<unknown>, error => error === original);
     assert.equal(accesses, 0); assert.equal(f.calls.includes('read'), false);
   });
 }
@@ -102,10 +107,10 @@ test('selected omitted Result inputs stay omitted across all internal defaults',
   assert.equal(f.calls.filter(x => x === 'read').length, 5);
 });
 
-for (const method of ['all', 'one', 'scalar']) {
+for (const method of ['all', 'one', 'scalar'] as const) {
   test(`query ${method} checks the same omitted originals before capture and after wait`, async t => {
-    let release, checks = 0, currentChecks = 0;
-    const pending = new Promise(resolve => {release = resolve;});
+    let release!: () => void, checks = 0, currentChecks = 0;
+    const pending = new Promise<void>(resolve => {release = resolve;});
     const f = await fixture(t, (first, second) => {
       checks++; assert.equal(first, undefined); assert.equal(second, undefined);
     }, () => pending, () => {currentChecks++;});
@@ -122,9 +127,9 @@ for (const method of ['all', 'one', 'scalar']) {
 }
 
 test('query read refuses changed current original after await without sending a read', async t => {
-  let release, current = true;
+  let release!: () => void, current = true;
   const original = new Error('OriginalResultRetired');
-  const pending = new Promise(resolve => {release = resolve;});
+  const pending = new Promise<void>(resolve => {release = resolve;});
   const f = await fixture(t, () => {}, () => pending, () => {if (!current) throw original;});
   const collected = f.client.sql('SELECT 1 AS n').all();
   current = false; release();
@@ -166,12 +171,12 @@ test('copied captures and another installation cannot consume a selected Result 
 test('an original captured query continuation starts exactly one read', async () => {
   let reads = 0;
   const before = () => {}, current = () => {};
-  const result = createResultFactory({ref, limits: profile.limits, lookupContext: {},
+  const result = createResultFactory({ref, limits: profile.limits, lookupContext: {} as Parameters<typeof createResultFactory>[0]['lookupContext'],
     typedRows: true, beforeResultRead: before, assertResultReadCurrent: current},
   {runRequest() {reads++; return {kind: 'rows', frames: (async function* () {
     yield {value: {n: 1}, byteLength: 8};
   })()};}, responseValue() {}},
-  {activeReaders: new Set(), readerCleanups: new Set()}, () => undefined)('answer');
+  {activeReaders: new Set(), readerCleanups: new Set()}, () => undefined as unknown as Execution)('answer');
   const token = captureQueryResultRead(before, current, 'all', undefined, undefined);
   const collected = collectCapturedResult(result, token);
   assert.throws(() => collectCapturedResult(result, token), {code: 'InvalidResult'});

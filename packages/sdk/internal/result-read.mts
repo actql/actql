@@ -205,7 +205,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
     redactErrors?: boolean; typedRows?: boolean; beforeResultRead?: BeforeRead; assertResultReadCurrent?: CurrentRead;
   },
   {runRequest, responseValue}: {
-    runRequest(operation: 'read' | 'result-describe' | 'delivery-attempt', body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>;
+    runRequest(operation: 'read' | 'result-describe' | 'delivery-attempt', body: Record<string, unknown>, signal?: AbortSignal): unknown | Promise<unknown>;
     responseValue(response: unknown, maxWireBytes?: number): unknown | Promise<unknown>;
   }, {activeReaders, readerCleanups}: {activeReaders: Set<ActiveReader>; readerCleanups: Set<() => unknown | Promise<unknown>>},
   getExecution: () => Execution) {

@@ -10458,19 +10458,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -10492,7 +10492,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -10524,7 +10524,7 @@
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
@@ -10536,19 +10536,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -10566,11 +10566,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
@@ -11426,7 +11426,7 @@
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
@@ -11438,19 +11438,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -11472,11 +11472,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -11944,7 +11944,7 @@
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
@@ -11996,7 +11996,7 @@
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
@@ -12022,7 +12022,7 @@
                 "anchor": "ResolutionUnknown carries"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
@@ -12048,7 +12048,7 @@
                 "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -12134,11 +12134,11 @@
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
@@ -12615,13 +12615,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               },
               {
@@ -12631,7 +12631,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -12653,7 +12653,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               },
               {
@@ -12782,7 +12782,7 @@
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               },
               {
@@ -12846,7 +12846,7 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               },
               {
@@ -12872,7 +12872,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               },
               {
@@ -12902,7 +12902,7 @@
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               },
               {
@@ -12988,11 +12988,11 @@
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -13680,7 +13680,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/typed-results.test.mjs",
+                "path": "packages/sdk/typed-results.test.mts",
                 "anchor": "test("
               },
               {
@@ -14838,19 +14838,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -14872,7 +14872,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -14903,7 +14903,7 @@
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
@@ -14915,19 +14915,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -14945,11 +14945,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -15250,7 +15250,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/typed-results.test.mjs",
+                "path": "packages/sdk/typed-results.test.mts",
                 "anchor": "test("
               }
             ]
@@ -16668,7 +16668,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/typed-results.test.mjs",
+                "path": "packages/sdk/typed-results.test.mts",
                 "anchor": "test("
               },
               {
