@@ -1,7 +1,7 @@
 """A private Runner facade over the same async handles and wire semantics."""
 import asyncio
 from ._async import AsyncClient, _MISSING
-from ._errors import ClientError
+from ._errors import ClientError, _retain_context_cleanup
 from ._connection import NO_TOKEN as _NO_TOKEN
 from ._query import _OriginalQueryHandle
 
@@ -69,7 +69,17 @@ class Client:
         return self
 
     def __exit__(self, *exc):
-        self.close()
+        try:
+            self.close()
+        except BaseException as cleanup:
+            failure = exc[1] if len(exc) > 1 else None
+            if failure is None:
+                raise
+            try:
+                _retain_context_cleanup(failure, cleanup, self)
+            except BaseException:
+                raise failure
+        return False
 
     def close(self):
         _outside_loop()

@@ -59,6 +59,15 @@ handle for retry. If `connect` fails and cleanup also fails,
 `ClientConnectionCleanupFailed` retains `original_error`, `cleanup_error`, and
 `cleanup_client`; retry cleanup on that handle, without reconnecting.
 
+If a Client context body fails and its first close also fails, the same body
+exception remains primary, including cancellation and other `BaseException`
+values. Its `cleanup_error` retains the actual close failure and earlier cleanup
+associations. Existing `ClientError.cleanup_client` handles remain available for
+cleanup-only retry; an earlier handle is not replaced. A later successful close
+does not erase the original failure. Without a body failure, the original close
+failure is raised normally. Neither path acknowledges pending resources or
+permits resubmission.
+
 ## Original operations and recovery
 
 Create and retain the original SubmissionReference before sending. References
