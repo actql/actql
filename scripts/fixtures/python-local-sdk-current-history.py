@@ -624,7 +624,7 @@ async def main():
             raise ValueError('Only target phase takes its completed preparation report')
         if len(expected_source) != 40 or any(c not in '0123456789abcdef' for c in expected_source):
             raise ValueError('Expected exact installed cohort source SHA')
-        if phase is None and not (selection == 'pending' or selection.startswith(('pending:', 'fault:'))):
+        if phase is None and not (selection == 'pending' or selection.startswith(('pending:', 'fuel-pending:', 'fault:'))):
             raise ValueError('Installed image selection is pending history or its original current/refusal control')
         from actql_sdk import _local_product
         original_resolver = _local_product.installed_local_components

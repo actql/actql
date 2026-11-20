@@ -79,6 +79,42 @@ class InstalledFuelControlTests(unittest.TestCase):
                                              Path(tmp), 'a' * 40, cohort, {})
 
 
+    def test_actual_installed_entry_admits_explicit_fuel_role_before_owning_factory(self):
+        import asyncio
+        from types import SimpleNamespace
+        history = load('ci_actual_fuel_installed_entry',
+                       SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+        import actql_sdk._local_product as product
+        original = RuntimeError('stop at original population boundary; no runtime')
+        with tempfile.TemporaryDirectory() as tmp:
+            for role in ('fuel-pending:40', 'pending:40'):
+                args = SimpleNamespace(argv=['fixture', '--installed', 'a' * 40, tmp, role],
+                                       flags=SimpleNamespace(isolated=True))
+                population = AsyncMock(wraps=history.population)
+                with self.subTest(role=role), patch.object(history, 'INSTALLED_IMAGE', True), \
+                        patch.object(history, 'sys', args), patch.object(history, 'population', population), \
+                        patch.object(product, 'installed_local_components') as resolver, \
+                        patch.object(history.InstalledLocalHost, 'installed', side_effect=original) as factory:
+                    with self.assertRaises(RuntimeError) as raised:
+                        asyncio.run(history.main())
+                    self.assertIs(raised.exception, original)
+                    population.assert_awaited_once()
+                    self.assertIs(population.call_args.kwargs['production_quantum'], role == 'fuel-pending:40')
+                    resolver.assert_not_called()
+                    factory.assert_called_once()
+                    self.assertEqual(set(factory.call_args.kwargs), {'state_dir'})
+                    self.assertEqual(factory.call_args.kwargs['state_dir'].parent, Path(tmp))
+            for role in ('persisted:40', '40', 'fuel-pending:41', 'foreign:40', 'fault:unknown'):
+                args = SimpleNamespace(argv=['fixture', '--installed', 'a' * 40, tmp, role],
+                                       flags=SimpleNamespace(isolated=True))
+                with self.subTest(refused=role), patch.object(history, 'INSTALLED_IMAGE', True), \
+                        patch.object(history, 'sys', args), patch.object(history, 'population', AsyncMock()) as population, \
+                        patch.object(product, 'installed_local_components') as resolver:
+                    with self.assertRaises((ValueError, AssertionError)):
+                        asyncio.run(history.main())
+                    population.assert_not_awaited()
+                    resolver.assert_not_called()
+
     def test_default_role_forwards_original_quantum_and_retains_independent_controls(self):
         history = load('ci_fuel_quantum_trace', SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
         trace, task, result, calls = history.Trace(), object(), object(), []
