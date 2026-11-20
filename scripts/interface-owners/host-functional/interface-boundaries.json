@@ -84,7 +84,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "export class AcquisitionOpenError extends Error {"
               },
               {
@@ -98,7 +98,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "export class AcquisitionOpenError extends Error {"
               },
               {
@@ -112,7 +112,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// The cause's own code, or its message, stays the failure's identity."
               },
               {
@@ -126,7 +126,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// owner never infers it from an error:"
               },
               {
@@ -140,8 +140,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
-                "anchor": "export function acquisitionFailure(cause, outcome, recovery) {"
+                "path": "adapters/host-common/acquisition-outcome.mts",
+                "anchor": "export function acquisitionFailure(cause: unknown, outcome: unknown, recovery?: unknown) {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -154,7 +154,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// owner never infers it from an error:"
               },
               {
@@ -168,7 +168,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// - `stopped`: provider I/O began and every transport and resource of this"
               },
               {
@@ -182,7 +182,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// capture. The adapter that did the physical work states it; the dispatch"
               },
               {
@@ -196,7 +196,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// How an installed source's acquisition ended when it could not return a"
               },
               {
@@ -232,7 +232,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "export class AcquisitionOpenError extends Error {"
               },
               {
@@ -246,7 +246,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "export class AcquisitionOpenError extends Error {"
               },
               {
@@ -260,7 +260,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// The cause's own code, or its message, stays the failure's identity."
               },
               {
@@ -274,7 +274,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// owner never infers it from an error:"
               },
               {
@@ -288,8 +288,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
-                "anchor": "export function acquisitionFailure(cause, outcome, recovery) {"
+                "path": "adapters/host-common/acquisition-outcome.mts",
+                "anchor": "export function acquisitionFailure(cause: unknown, outcome: unknown, recovery?: unknown) {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -302,7 +302,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// owner never infers it from an error:"
               },
               {
@@ -316,7 +316,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// - `stopped`: provider I/O began and every transport and resource of this"
               },
               {
@@ -330,7 +330,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// capture. The adapter that did the physical work states it; the dispatch"
               },
               {
@@ -344,7 +344,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/acquisition-outcome.mjs",
+                "path": "adapters/host-common/acquisition-outcome.mts",
                 "anchor": "// How an installed source's acquisition ended when it could not return a"
               },
               {

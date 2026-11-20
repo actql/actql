@@ -471,3 +471,9 @@ target/
 
 /adapters/host-common/checkpoint-approval.mjs
 /adapters/host-common/checkpoint-approval.d.mts
+
+/adapters/host-common/acquisition-outcome.mjs
+/adapters/host-common/acquisition-outcome.d.mts
+
+/adapters/host-common/acquisition-outcome.test.mjs
+/adapters/host-common/acquisition-outcome.test.d.mts

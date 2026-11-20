@@ -7,19 +7,27 @@
 // - `unknown`: the adapter cannot confirm its end. A `recovery` owner
 //   ({close, cleanup, cleanupPending}) may take over what remains.
 // An error without a stated outcome is `unknown` with no recovery owner.
-const outcomes = new Set(['not_started', 'stopped', 'unknown']);
+type UncheckedFailure = {readonly code?: unknown; readonly message?: unknown};
+type UncheckedRecovery = {readonly close?: unknown; readonly cleanup?: unknown; readonly cleanupPending?: unknown};
+const outcomes = new Set<unknown>(['not_started', 'stopped', 'unknown']);
 
 export class AcquisitionOpenError extends Error {
-  constructor(cause, outcome, recovery) {
+  declare readonly code: string;
+  declare readonly outcome: unknown;
+  declare readonly recovery: unknown;
+  declare readonly classificationFailure?: unknown;
+  declare readonly identityInspectionFailure?: unknown;
+
+  constructor(cause: unknown, outcome: unknown, recovery?: unknown) {
     // The cause's own code, or its message, stays the failure's identity.
     // Classification must not replace an arbitrary rejection reason. Read
     // each property once: getters may change their result or throw any value.
     let label = 'AcquisitionFailed', classificationFailed = false, classificationFailure;
     try {
-      const code = cause?.code;
+      const code = (cause as UncheckedFailure | null | undefined)?.code;
       if (typeof code === 'string') label = code;
       else {
-        const message = cause?.message;
+        const message = (cause as UncheckedFailure | null | undefined)?.message;
         if (typeof message === 'string' && message !== '') label = message;
       }
     } catch (error) {
@@ -35,12 +43,12 @@ export class AcquisitionOpenError extends Error {
   }
 }
 
-export function acquisitionFailure(cause, outcome, recovery) {
+export function acquisitionFailure(cause: unknown, outcome: unknown, recovery?: unknown) {
   if (!outcomes.has(outcome) ||
       (recovery !== undefined && (outcome !== 'unknown' ||
-        typeof recovery?.close !== 'function' ||
-        typeof recovery?.cleanup !== 'function' ||
-        typeof recovery?.cleanupPending !== 'function'))) {
+        typeof (recovery as UncheckedRecovery | null | undefined)?.close !== 'function' ||
+        typeof (recovery as UncheckedRecovery | null | undefined)?.cleanup !== 'function' ||
+        typeof (recovery as UncheckedRecovery | null | undefined)?.cleanupPending !== 'function'))) {
     throw new TypeError('InvalidAcquisitionOutcome');
   }
   // A failure already stated by an inner step keeps its statement.
@@ -50,14 +58,14 @@ export function acquisitionFailure(cause, outcome, recovery) {
     identityInspectionFailed = true;
     identityInspectionFailure = error;
   }
-  if (original) return cause;
+  if (original) return cause as AcquisitionOpenError;
   const error = new AcquisitionOpenError(cause, outcome, recovery);
   if (identityInspectionFailed) Object.defineProperty(error, 'identityInspectionFailure',
     {value: identityInspectionFailure});
   return error;
 }
 
-export function acquisitionOutcome(error) {
+export function acquisitionOutcome(error: unknown) {
   return error instanceof AcquisitionOpenError
     ? Object.freeze({outcome: error.outcome, recovery: error.recovery})
     : Object.freeze({outcome: 'unknown', recovery: undefined});
@@ -67,22 +75,22 @@ export function acquisitionOutcome(error) {
 // can wrap the thrown error. The receiving Run owner retains this statement
 // separately from the exception chain; a missing statement remains unknown.
 export function acquisitionEndHandoff() {
-  let failure;
+  let failure: AcquisitionOpenError | undefined;
   return Object.freeze({
-    retain(error) {
+    retain(error: unknown) {
       if (!(error instanceof AcquisitionOpenError) ||
           !outcomes.has(error.outcome) ||
           (error.recovery !== undefined && (error.outcome !== 'unknown' ||
-            typeof error.recovery?.close !== 'function' ||
-            typeof error.recovery?.cleanup !== 'function' ||
-            typeof error.recovery?.cleanupPending !== 'function')) ||
+            typeof (error.recovery as UncheckedRecovery | null | undefined)?.close !== 'function' ||
+            typeof (error.recovery as UncheckedRecovery | null | undefined)?.cleanup !== 'function' ||
+            typeof (error.recovery as UncheckedRecovery | null | undefined)?.cleanupPending !== 'function')) ||
           (failure !== undefined && failure !== error)) {
         throw new TypeError('InvalidAcquisitionEndHandoff');
       }
       failure = error;
       return error;
     },
-    outcome(error) {
+    outcome(error?: unknown) {
       return acquisitionOutcome(failure ?? error);
     },
   });
