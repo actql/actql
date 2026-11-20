@@ -7,6 +7,14 @@ import {fileURLToPath} from 'node:url';
 import {runFocusedTests} from './test-execution.mjs';
 import {readCiInput} from './ci-input.mjs';
 
+type GitRead = (args: string[]) => string;
+type FileIdentity = {mode: string; object: string};
+type FocusedChange = {path: string; before: FileIdentity; after: FileIdentity};
+type FocusedPlan = {family: string; package: string; files: readonly string[]};
+type FocusedSelection = {profile: string; paths: readonly string[];
+  focusedChanges: readonly FocusedChange[]; focusedTests: FocusedPlan};
+type FocusedInput = {sourceRevision: string; selection: FocusedSelection};
+
 export const focusedFamily = 'query-fixed-requests';
 export const focusedPackage = 'src/query_integration';
 export const focusedPattern = /^src\/query_integration\/fixed_(?:compute|join)_[a-z0-9_]+_wbtest\.mbt$/u;
@@ -59,14 +67,15 @@ const constructors = new Set(['Cost', 'Err', 'EstimatedFastest', 'Execution',
   'Proposed', 'Receiving', 'Request', 'Some', 'Step', 'Validation', 'ValueBytes']);
 const zero = '0'.repeat(40);
 const object = /^[0-9a-f]{40}$/u;
-const gitDefault = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024});
-const fields = (value, names) => value && Object.keys(value).sort().join(',') === [...names].sort().join(',');
-function identity(value, absent = false) {
+const gitDefault: GitRead = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024});
+const fields = (value: object, names: readonly string[]) =>
+  value && Object.keys(value).sort().join(',') === [...names].sort().join(',');
+function identity(value: FileIdentity, absent = false) {
   return fields(value, ['mode', 'object']) && (absent
     ? value.mode === '000000' && value.object === zero
     : value.mode === '100644' && object.test(value.object) && value.object !== zero);
 }
-export function eligibleFocusedChanges(paths, changes) {
+export function eligibleFocusedChanges(paths: readonly string[], changes: readonly FocusedChange[]) {
   return Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length
     && paths.every(path => typeof path === 'string' && focusedPattern.test(path))
     && Array.isArray(changes) && changes.length === paths.length
@@ -75,11 +84,11 @@ export function eligibleFocusedChanges(paths, changes) {
       && (identity(change.before) || identity(change.before, true))
       && change.before.object !== change.after.object);
 }
-export function focusedPlan(paths) {
+export function focusedPlan(paths: readonly string[]) {
   return {family: focusedFamily, package: focusedPackage,
     files: [...new Set([...paths, ...stableFocusedFiles])].sort()};
 }
-export function validateFocusedTests(paths, changes, plan) {
+export function validateFocusedTests(paths: readonly string[], changes: readonly FocusedChange[], plan: FocusedPlan) {
   assert(eligibleFocusedChanges(paths, changes), 'Invalid focused test change inventory');
   assert.deepEqual(plan, focusedPlan(paths), 'Incomplete or unknown focused family');
   return plan;
@@ -89,7 +98,7 @@ export function validateFocusedTests(paths, changes, plan) {
 // strings/comments before inspecting code, so words like "native" and SQL/CID
 // literals are not mistaken for backend execution. Interpolation and unfamiliar
 // syntax fall back; this is not a replacement MoonBit parser or compiler.
-export function focusedCode(source) {
+export function focusedCode(source: string) {
   assert.equal(typeof source, 'string');
   let code = '';
   for (let i = 0; i < source.length;) {
@@ -118,8 +127,8 @@ export function focusedCode(source) {
   }
   return code;
 }
-export function focusedTestNames(source) {
-  const code = focusedCode(source), names = [];
+export function focusedTestNames(source: string) {
+  const code = focusedCode(source), names: string[] = [];
   for (const match of code.matchAll(/\btest\s+""/gu)) {
     const start = code.indexOf('"', match.index);
     let end = start + 1;
@@ -129,7 +138,7 @@ export function focusedTestNames(source) {
   assert.equal(new Set(names).size, names.length, 'Duplicate test names');
   return names;
 }
-export function checkFocusedSource(source, packageSymbols = []) {
+export function checkFocusedSource(source: string, packageSymbols: readonly string[] = []) {
   const code = focusedCode(source);
   assert(!/[^\x00-\x7f]/u.test(code), 'Unreviewed identifier syntax');
   assert(!/#|::|\b(?:extern|unsafe|fn|struct|enum|trait|impl|pub|priv|type|let\s+rec)\b/u.test(code),
@@ -162,10 +171,10 @@ export function checkFocusedSource(source, packageSymbols = []) {
   return tests;
 }
 
-function packageContract(git) {
+function packageContract(git: GitRead) {
   const raw = git(['ls-tree', '-rz', 'HEAD', '--', focusedPackage]);
   assert(raw.endsWith('\0'), 'Missing or truncated package tree');
-  const files = new Map();
+  const files = new Map<string, FileIdentity>();
   for (const entry of raw.slice(0, -1).split('\0')) {
     const match = /^(\d{6}) blob ([0-9a-f]{40})\t(.+)$/u.exec(entry);
     assert(match, 'Unsupported package tree entry');
@@ -173,7 +182,7 @@ function packageContract(git) {
   }
   for (const [path, expected] of Object.entries(focusedFixtureObjects))
     assert.deepEqual(files.get(path), {mode: '100644', object: expected}, `Unreviewed fixture/package contract: ${path}`);
-  const symbols = new Set();
+  const symbols = new Set<string>();
   for (const [path, entry] of files) {
     if (!path.endsWith('.mbt')) continue;
     assert.equal(entry.mode, '100644', 'Nonregular package source');
@@ -187,7 +196,7 @@ function packageContract(git) {
   }
   return {files, symbols: [...symbols]};
 }
-export function readFocusedTests(paths, changes, git = gitDefault) {
+export function readFocusedTests(paths: readonly string[], changes: readonly FocusedChange[], git = gitDefault) {
   if (!eligibleFocusedChanges(paths, changes)) return null;
   try {
     const {files, symbols} = packageContract(git);
@@ -211,7 +220,8 @@ export function readFocusedTests(paths, changes, git = gitDefault) {
     return plan;
   } catch { return null; }
 }
-export function runFocusedPlan(plan, {cwd = process.cwd(), run = runFocusedTests, check = execFileSync} = {}) {
+export function runFocusedPlan(plan: FocusedPlan, {cwd = process.cwd(), run = runFocusedTests, check = execFileSync}:
+  {cwd?: string; run?: typeof runFocusedTests; check?: typeof execFileSync} = {}) {
   // File-level selections each retain the nonzero guard. One passing file must
   // never hide a new/changed file with zero discovered or skipped-only tests.
   assert.equal(plan.family, focusedFamily);
@@ -227,12 +237,12 @@ export function runFocusedPlan(plan, {cwd = process.cwd(), run = runFocusedTests
   }
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const plan = readCiInput('CI_PLAN');
+  const plan = readCiInput('CI_PLAN') as FocusedInput | undefined;
   assert.equal(plan?.sourceRevision, gitDefault(['rev-parse', 'HEAD']).trim(), 'Focused plan belongs to another checkout');
   const selection = plan?.selection;
-  assert(['focused-tests', 'draft-focused'].includes(selection?.profile), 'Invalid focused execution profile');
-  validateFocusedTests(selection.paths, selection.focusedChanges, selection.focusedTests);
-  assert.deepEqual(readFocusedTests(selection.paths, selection.focusedChanges), selection.focusedTests,
+  assert(['focused-tests', 'draft-focused'].includes(selection?.profile!), 'Invalid focused execution profile');
+  validateFocusedTests(selection!.paths, selection!.focusedChanges, selection!.focusedTests);
+  assert.deepEqual(readFocusedTests(selection!.paths, selection!.focusedChanges), selection!.focusedTests,
     'Focused inputs or fixture contract changed');
-  runFocusedPlan(selection.focusedTests);
+  runFocusedPlan(selection!.focusedTests);
 }

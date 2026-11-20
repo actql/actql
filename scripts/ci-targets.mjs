@@ -106,7 +106,7 @@ export function gateJobRequired(selection, name) {
 const pythonWheelInputs = new Set([
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
   'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mts',
-  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mts',
   'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
   'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
   'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',

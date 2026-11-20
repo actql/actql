@@ -895,3 +895,5 @@ target/
 /scripts/ci-supported-node.d.mts
 /scripts/ci-supported-versions.test.mjs
 /scripts/ci-supported-versions.test.d.mts
+/scripts/ci-focused-tests.mjs
+/scripts/ci-focused-tests.d.mts

@@ -379,6 +379,7 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - run: npm ci
       - name: Check package and execute changed tests plus owning JS family
         env:
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
