@@ -861,3 +861,7 @@ target/
 /scripts/native-cli-artifact.d.mts
 /scripts/native-cli-artifact-budget.test.mjs
 /scripts/native-cli-artifact-budget.test.d.mts
+/scripts/produce-native-cli-linux-local.mjs
+/scripts/produce-native-cli-linux-local.d.mts
+/scripts/produce-native-cli-darwin-local.mjs
+/scripts/produce-native-cli-darwin-local.d.mts

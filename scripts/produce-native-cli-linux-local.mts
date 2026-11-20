@@ -11,6 +11,18 @@ import {admitNativeArtifact, requireNativePackageVersion} from './native-cli-art
 import {nativePackageVersion} from './native-cli-version.mjs';
 import {original, requireNativeLocalHeader} from './native-cli-original-input.mjs';
 
+type Options = {sourceSha: string; packageVersion: string; outputDirectory: string; clang: string;
+  sqliteArchive: string; opensslPackageArchives: string[]; systemHeaderRoots?: string[]; componentSeconds?: number; compileSeconds?: number};
+type Plan = ReturnType<typeof planNativeLinuxLocalProduction>;
+type Identity = ReturnType<typeof original>['identity'];
+type Artifact = Awaited<ReturnType<typeof admitNativeArtifact>>;
+type ComponentReceipt = {target?: unknown; compiler_target: string; loaded?: unknown; initialized?: unknown;
+  inputs?: Record<string, unknown>};
+type SqliteReceipt = ComponentReceipt & Parameters<typeof requireNativeLocalHeader>[1] & {source_sha?: unknown};
+type CryptoReceipt = ComponentReceipt & {source?: unknown; package_archives?: (Identity & {path: string})[]};
+type ProducerHost = Pick<NodeJS.Process, 'platform' | 'arch' | 'report'>;
+type ProducerPorts = {execute?: typeof execFileSync; sourceRoot?: string; host?: ProducerHost};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const platform = 'linux-x64-gnu', target = 'x86_64-unknown-linux-gnu';
 const usage = 'Required: --source SHA --package-version VERSION --output NEW_ABSOLUTE_DIRECTORY ' +
@@ -18,24 +30,24 @@ const usage = 'Required: --source SHA --package-version VERSION --output NEW_ABS
   '--openssl-package-archive DEV_DEB --openssl-package-archive COPYRIGHT_DEB ' +
   '[--component-seconds 1..1800] [--compile-seconds 1..86400] ' +
   '[--system-header-root /usr/lib/linux/uapi]';
-const absolute = (path, label) => {
+const absolute = (path: unknown, label: string) => {
   assert(typeof path === 'string' && isAbsolute(path) && resolve(path) === path &&
     !/[\0\r\n:]/u.test(path), `${label} requires an explicit canonical absolute path`);
   return path;
 };
-const inside = (path, parent) => parent === '/' || path === parent || path.startsWith(parent + '/');
+const inside = (path: string, parent: string) => parent === '/' || path === parent || path.startsWith(parent + '/');
 
-export function parseNativeLinuxLocalArguments(args) {
+export function parseNativeLinuxLocalArguments(args: readonly string[]) {
   const flags = {'--source': 'sourceSha', '--package-version': 'packageVersion', '--output': 'outputDirectory',
     '--clang': 'clang', '--sqlite-archive': 'sqliteArchive', '--component-seconds': 'componentSeconds',
     '--compile-seconds': 'compileSeconds', '--openssl-package-archive': 'opensslPackageArchives',
     '--system-header-root': 'systemHeaderRoots'};
   assert(Array.isArray(args) && args.length % 2 === 0, usage);
-  const options = {};
+  const options: Record<string, string | number | string[]> = {};
   for (let i = 0; i < args.length; i += 2) {
-    const key = Object.hasOwn(flags, args[i]) ? flags[args[i]] : undefined, value = args[i + 1];
+    const key = Object.hasOwn(flags, args[i]) ? flags[args[i] as keyof typeof flags] : undefined, value = args[i + 1];
     assert(key && typeof value === 'string' && value && !value.startsWith('--'), usage);
-    if (key === 'opensslPackageArchives' || key === 'systemHeaderRoots') (options[key] ??= []).push(value);
+    if (key === 'opensslPackageArchives' || key === 'systemHeaderRoots') ((options[key] ??= []) as string[]).push(value);
     else {
       assert(!Object.hasOwn(options, key), `Duplicate argument: ${args[i]}`);
       if (key.endsWith('Seconds')) {
@@ -45,11 +57,11 @@ export function parseNativeLinuxLocalArguments(args) {
     }
   }
   // Planning validates required selections as well as the finite envelopes.
-  planNativeLinuxLocalProduction(options);
-  return options;
+  planNativeLinuxLocalProduction(options as unknown as Options);
+  return options as unknown as Options;
 }
 
-export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(repository), node = process.execPath} = {}) {
+export function planNativeLinuxLocalProduction(options: Options, {sourceRoot = resolve(repository), node = process.execPath} = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options));
   const allowed = ['sourceSha', 'packageVersion', 'outputDirectory', 'clang', 'sqliteArchive',
     'opensslPackageArchives', 'systemHeaderRoots', 'componentSeconds', 'compileSeconds'];
@@ -73,9 +85,9 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
     'componentSeconds must be an integer from 1 to 1800');
   const compileBudget = nativeCliCompileBudget(compileSeconds, true);
   const directories = Object.fromEntries(['sqlite', 'crypto', 'recipe', 'artifact', 'compiler-bin', 'include']
-    .map(name => [name, join(outputDirectory, name)]));
+    .map(name => [name, join(outputDirectory, name)] as const));
   const extraHeaders = systemHeaderRoots.flatMap(path => ['--system-header-root', path]);
-  const command = (phase, executable, args, timeoutMs) => ({phase, command: executable, args, timeoutMs});
+  const command = (phase: string, executable: string, args: string[], timeoutMs: number) => ({phase, command: executable, args, timeoutMs});
   return {sourceSha, packageVersion, sourceRoot, outputDirectory, clang, sqliteArchive,
     opensslPackageArchives: [...opensslPackageArchives], directories,
     commands: [
@@ -100,11 +112,11 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
 }
 
 
-const readJson = path => JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(original(path, 8 * 1024 * 1024, true).raw));
+const readJson = <T,>(path: string): T => JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(original(path, 8 * 1024 * 1024, true).raw)) as T;
 
 // Bind the caller's selections to the completed component DATA. The existing
 // recipe assembler remains responsible for full component and source admission.
-export function requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}, inputs) {
+export function requireNativeLinuxLocalComponentSelection(plan: Plan, {sqlite, crypto}: {sqlite: SqliteReceipt; crypto: CryptoReceipt}, inputs: Record<string, Identity>) {
   assert.equal(sqlite.source_sha, plan.sourceSha); assert.equal(crypto.source, plan.sourceSha);
   for (const receipt of [sqlite, crypto]) {
     assert.equal(receipt.target, target);
@@ -117,7 +129,7 @@ export function requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}
   assert.equal(crypto.package_archives?.length, 2, 'Original archive-input Crypto receipts required');
   for (const [index, path] of plan.opensslPackageArchives.entries()) {
     assert(inputs[path]); assert.deepEqual(crypto.inputs?.[path], inputs[path], 'Selected Crypto archive input mismatch');
-    const recorded = crypto.package_archives[index];
+    const recorded: NonNullable<CryptoReceipt['package_archives']>[number] = crypto.package_archives![index];
     assert.equal(recorded.path, path);
     assert.deepEqual({bytes: recorded.bytes, sha256: recorded.sha256}, inputs[path]);
   }
@@ -125,29 +137,29 @@ export function requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}
 
 export {requireNativeLocalHeader as requireNativeLinuxLocalHeader} from './native-cli-original-input.mjs';
 
-export function requireNativeLinuxLocalArtifact(record, plan) {
+export function requireNativeLinuxLocalArtifact(record: Artifact, plan: Plan) {
   assert.equal(record.sourceSha, plan.sourceSha); assert.equal(record.platform, platform);
   assert(record.localRuntime && typeof record.localRuntime === 'object', 'Selected Linux production requires Local runtime metadata');
   return requireNativePackageVersion(record, plan.packageVersion);
 }
 
-export async function produceNativeCliLinuxLocal(options, {execute = execFileSync, sourceRoot = resolve(repository), host = process} = {}) {
+export async function produceNativeCliLinuxLocal(options: Options, {execute = execFileSync, sourceRoot = resolve(repository), host = process}: ProducerPorts = {}) {
   const plan = planNativeLinuxLocalProduction(options, {sourceRoot});
   assert.equal(host.platform, 'linux'); assert.equal(host.arch, 'x64');
-  assert(host.report.getReport().header.glibcVersionRuntime, 'Linux GNU producer required');
+  assert((host.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime, 'Linux GNU producer required');
   const clean = () => {
-    const git = args => execute('git', args, {cwd: sourceRoot, encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024}).trim();
+    const git = (args: readonly string[]) => execute('git', args, {cwd: sourceRoot, encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024}).trim();
     assert.equal(git(['rev-parse', 'HEAD']), plan.sourceSha, 'Exact current source required');
     assert.equal(git(['status', '--porcelain', '--untracked-files=all']), '', 'Clean committed source required');
   };
   clean();
   assert.equal(realpathSync(dirname(plan.outputDirectory)), dirname(plan.outputDirectory), 'Original output parent required');
   try {lstatSync(plan.outputDirectory); assert.fail('Fresh output directory required');}
-  catch (error) {if (error.code !== 'ENOENT') throw error;}
+  catch (error) {if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;}
   assert.equal(realpathSync(plan.clang), plan.clang, 'Select the real compiler, not a compiler alias');
   accessSync(plan.clang, constants.X_OK);
-  const selections = [[plan.clang, 512 * 1024 * 1024], [plan.sqliteArchive, 5 * 1024 * 1024],
-    ...plan.opensslPackageArchives.map(path => [path, 16 * 1024 * 1024]),
+  const selections: readonly (readonly [string, number])[] = [[plan.clang, 512 * 1024 * 1024], [plan.sqliteArchive, 5 * 1024 * 1024],
+    ...plan.opensslPackageArchives.map(path => [path, 16 * 1024 * 1024] as const),
     [join(sourceRoot, 'packages/python-local-runtime/native/sqlite-component/source.json'), 65536]];
   const inputs = Object.fromEntries(selections.map(([path, maximum]) => [path, original(path, maximum).identity]));
   const verifyInputs = () => {
@@ -167,14 +179,14 @@ export async function produceNativeCliLinuxLocal(options, {execute = execFileSyn
     clean(); verifyInputs();
     assert.equal(realpathSync(compilerLink), plan.clang, 'Selected clang alias changed');
     if (step.phase === 'recipe') {
-      const sqlite = readJson(join(plan.directories.sqlite, 'process-producer.json'));
-      const crypto = readJson(join(plan.directories.crypto, 'producer.json'));
+      const sqlite = readJson<SqliteReceipt>(join(plan.directories.sqlite, 'process-producer.json'));
+      const crypto = readJson<CryptoReceipt>(join(plan.directories.crypto, 'producer.json'));
       requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}, inputs);
       const staged = original(join(plan.directories.sqlite, 'source/sqlite3.h'), 16 * 1024 * 1024, true);
-      const sourceRecipe = readJson(selections.at(-1)[0]);
-      header = requireNativeLocalHeader(staged.raw, sqlite, sourceRecipe);
+      const sourceRecipe = readJson<Parameters<typeof requireNativeLocalHeader>[2]>(selections.at(-1)![0]);
+      header = requireNativeLocalHeader(staged.raw!, sqlite, sourceRecipe);
       mkdirSync(plan.directories.include);
-      writeFileSync(join(plan.directories.include, 'sqlite3.h'), staged.raw, {flag: 'wx', mode: 0o444});
+      writeFileSync(join(plan.directories.include, 'sqlite3.h'), staged.raw!, {flag: 'wx', mode: 0o444});
     }
     if (step.phase === 'artifact') {
       assert(header, 'Original SQLite header selection required before Native compilation');
@@ -200,5 +212,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const result = await produceNativeCliLinuxLocal(parseNativeLinuxLocalArguments(process.argv.slice(2)));
     console.log(JSON.stringify({directory: result.directory, sourceSha: result.artifact.sourceSha,
       platform: result.artifact.platform, packageVersion: result.artifact.packageVersion, localRuntime: result.artifact.localRuntime}, null, 2));
-  } catch (error) {console.error(error.message); process.exitCode = 1;}
+  } catch (error) {console.error((error as Error).message); process.exitCode = 1;}
 }
