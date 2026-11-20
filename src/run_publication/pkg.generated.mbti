@@ -1179,6 +1179,8 @@ pub fn run_definition_namespace(PublicationContract) -> String?
 
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn run_evidence_admission_construction_inventory(Int, Int, Int) -> RunEvidenceAdmissionConstruction?
+
 pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
 
 pub fn run_evidence_value_fits(RunEvidenceValue, Int, Int, Int) -> Bool
@@ -2516,6 +2518,16 @@ pub(all) enum RunControlReadIssue {
   ControlReadContract(PublicationContractIssue)
   RunStateVersionUnsupported
   LegacyProjectionMismatch(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RunEvidenceAdmissionConstruction {
+  retained : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunEvidenceChainIssue {

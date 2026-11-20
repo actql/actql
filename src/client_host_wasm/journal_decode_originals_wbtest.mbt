@@ -3,13 +3,15 @@
 // normal Host or fuel qualification is supplied by this fixture.
 fn journal_decode_fixture(
   cleanup? : () -> Bool = () => true,
+  retention? : Int64 = 33554432L,
+  execution? : Int64 = 268435456L,
 ) -> (
   Instance,
   StoredJournalObservation,
   StoredJournalDecodeFrame,
   @buffers.BufferSlot,
 ) raise {
-  let (value, _, parent) = sdk_row_original_fixture(33554432L)
+  let (value, _, parent) = sdk_row_original_fixture(retention, execution~)
   let slot = @buffers.reserve_output_buffer(value.pool, 2, 0L, cleanup).unwrap()
   let row = submission_append_run_inspection(
     submission_identity_row(@utf8.encode(submission_identity_wire)),
@@ -42,7 +44,7 @@ fn journal_decode_fixture_row() -> @host.ClientJournalPhysicalRow {
 }
 
 ///|
-test "journal typed observation quote admits before actual construction under the existing component profile" {
+test "journal typed observation quote refuses the original smaller component profile" {
   let (value, _, _, parent) = journal_decode_fixture()
   let (retention, peak) = journal_observation_construction_capacity().unwrap()
   let limits = @resources.ledger_limits(value.root)
@@ -52,20 +54,328 @@ test "journal typed observation quote admits before actual construction under th
   // This test does not lift the fixture profile to accommodate a quote.
   // Actual reserve refuses if any same-Root constructor overlap cannot fit.
   let reserved = @resources.reserve_capacity(value.root, retention, peak)
-  assert_true(reserved is Ok(_))
-  let capacity = reserved.unwrap()
-  assert_true(
-    @resources.capacity_reservation_covers(
-      value.root,
-      capacity,
-      retention,
-      peak,
-    ),
-  )
-  assert_true(peak > 0L && peak <= limits.execution_bytes)
-  @resources.settle_capacity(value.root, capacity).unwrap()
+  assert_true(peak > limits.execution_bytes)
+  assert_true(reserved is Err(_))
   assert_eq(close_journal_observation(value.nonce, 73), 0)
   sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+// These quantities are the unchanged _ordinary_core_limits Source, not a
+// raised product profile. Existing parent/input/pool/output holdings coexist.
+fn journal_observation_profile_fixture(
+  cleanup? : () -> Bool = () => true,
+) -> (
+  Instance,
+  StoredJournalObservation,
+  StoredJournalDecodeFrame,
+  @buffers.BufferSlot,
+) raise {
+  journal_decode_fixture(cleanup~, retention=536870912L, execution=603979776L)
+}
+
+///|
+fn journal_observation_fixture_row() -> @host.ClientJournalPhysicalRow {
+  let cid = (digit : String) => "sha256:" + digit.repeat(64)
+  let prepared = @publication.seal_run_evidence_value(
+    "prepared_invocation",
+    "{\"version\":\"actql-prepared-invocation/0.1\",\"invocation_template_cid\":\"" +
+    cid("6") +
+    "\",\"compiled_plan_cid\":\"" +
+    cid("1") +
+    "\",\"execution_context_cid\":\"" +
+    cid("2") +
+    "\",\"host_policy_cid\":\"" +
+    cid("5") +
+    "\",\"policy_decision\":\"allow\",\"expires_at\":\"2099-01-01T00:00:00.000Z\"}",
+    131072,
+    8192,
+    64,
+  ).unwrap()
+  let authorization = @publication.seal_run_evidence_value(
+    "run_authorization",
+    "{\"version\":\"actql-run-authorization/0.1\",\"prepared_invocation_cid\":\"" +
+    @publication.run_evidence_value_identity(prepared) +
+    "\",\"execution_context_cid\":\"" +
+    cid("2") +
+    "\",\"host_policy_cid\":\"" +
+    cid("5") +
+    "\",\"decision\":\"allowed\"}",
+    131072,
+    8192,
+    64,
+  ).unwrap()
+  let envelope = @encode.writer(131072, 8, 1) catch {
+    _ => abort("fixture writer")
+  }
+  @encode.begin_object(envelope) catch {
+    _ => abort("fixture begin")
+  }
+  @encode.key(envelope, "authorization") catch {
+    _ => abort("fixture key")
+  }
+  @encode.string_value(
+    envelope,
+    @publication.run_evidence_value_json(authorization),
+  ) catch {
+    _ => abort("fixture authorization")
+  }
+  @encode.key(envelope, "prepared") catch {
+    _ => abort("fixture key")
+  }
+  @encode.string_value(envelope, @publication.run_evidence_value_json(prepared)) catch {
+    _ => abort("fixture prepared")
+  }
+  @encode.end_object(envelope) catch {
+    _ => abort("fixture end")
+  }
+  let wire = @encode.finish(envelope) catch { _ => abort("fixture finish") }
+  let row = journal_decode_fixture_row()
+  let (original, _, _) = @host.decode_client_run_journal_row_with_observation_originals(
+    row.body,
+  ).unwrap()
+  let body = @host.client_run_journal_row_body(
+    original,
+    run_observation_originals=Some(wire),
+  ).unwrap()
+  { ..row, body, }
+}
+
+///|
+fn journal_assert_observation_reuse(
+  value : Instance,
+  child : StoredJournalObservation,
+  frame : StoredJournalDecodeFrame,
+  row : @host.ClientJournalPhysicalRow,
+) -> Unit raise {
+  let constructions = Ref(0)
+  let initial = @resources.ledger_usage(value.root)
+  let parent = value.runs.get(1).unwrap()
+  let input = parent.borrow
+  let overlap = Ref(false)
+  let before = () => {
+    constructions.val += 1
+    overlap.val = journal_decode_frame_current(value, child, frame) &&
+      @resources.capacity_reservation_open(frame.capacity) &&
+      !input.returned &&
+      @buffers.buffer_length(value.pool, parent.slot) == Some(2) &&
+      @buffers.buffer_output_limit(value.pool, child.slot) == Some(2) &&
+      frame.rows is Some(cell) &&
+      @resources.capacity_reservation_open(cell.capacity) &&
+      @resources.ledger_usage(value.root).reserved_execution_bytes >
+      initial.reserved_execution_bytes
+  }
+  let first = journal_decode_run_inspection(
+    value,
+    child,
+    frame,
+    row,
+    before_observation=Some(before),
+  ).unwrap()
+  assert_eq(constructions.val, 1)
+  // This was observed INSIDE the actual nested constructor call, while the
+  // SAME current frame, borrowed parent input and physical output remained.
+  // It does not assert a normal Host/Account or physical ACK qualification.
+  assert_true(overlap.val)
+  let cell = frame.selected.unwrap()
+  let original = cell.observation.unwrap()
+  let retained = @resources.ledger_usage(value.root)
+  assert_true(
+    retained.reserved_retention_bytes > initial.reserved_retention_bytes,
+  )
+  assert_eq(retained.reserved_execution_bytes, initial.reserved_execution_bytes)
+  let same = journal_decode_run_inspection(
+    value,
+    child,
+    frame,
+    row,
+    before_observation=Some(before),
+  ).unwrap()
+  assert_eq(constructions.val, 1)
+  assert_true(physical_equal(original, cell.observation.unwrap()))
+  assert_eq(
+    @publication.publication_contract_identity(first.definition),
+    @publication.publication_contract_identity(same.definition),
+  )
+  let decoded = cell.decoded.unwrap()
+  assert_true(
+    validate_sdk_run_row_decoded(
+      Ok(({ ..decoded.0, checkpoint: Some([]), }, decoded.1, decoded.2)),
+      observation_original=Some(original),
+    )
+    is Err(-42),
+  )
+  let bad_definition = @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\",\"scope_id\":\"scope\",\"run_id\":\"other\",\"compiled_plan_cid\":\"sha256:" +
+    "f".repeat(64) +
+    "\",\"invocation_template_cid\":\"sha256:" +
+    "6".repeat(64) +
+    "\",\"authorization_context_cid\":\"sha256:" +
+    "2".repeat(64) +
+    "\",\"input_artifact_set_cid\":\"sha256:" +
+    "3".repeat(64) +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"valid_until\":\"2099-01-01T00:00:00.000Z\"}",
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  assert_true(
+    validate_sdk_run_row_decoded(
+      Ok(({ ..decoded.0, definition: bad_definition, }, decoded.1, decoded.2)),
+      observation_original=Some(original),
+    )
+    is Err(-31),
+  )
+  assert_true(
+    journal_decode_run_inspection(value, { ..child, physical: 99, }, frame, row)
+    is Err(-2),
+  )
+  assert_true(
+    journal_decode_run_inspection(value, child, { ..frame, handle: 99, }, row)
+    is Err(-2),
+  )
+  ignore(
+    journal_decode_run_inspection(
+      value,
+      child,
+      frame,
+      { ..row, revision: row.revision + 1L, },
+      before_observation=Some(before),
+    ).unwrap(),
+  )
+  assert_eq(constructions.val, 2)
+}
+
+///|
+test "journal typed observation reuses actual restore while preserving same-frame overlap and fresh refusals" {
+  let (value, child, frame, parent) = journal_observation_profile_fixture()
+  let row = journal_observation_fixture_row()
+  journal_assert_observation_reuse(value, child, frame, row)
+  // The assertion helper returned; no test-held nested DATA loan crosses close.
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal typed observation exact construction allowance and one-short keep the original full path" {
+  for short in [false, true] {
+    let (value, child, frame, parent) = journal_observation_profile_fixture()
+    let row = journal_observation_fixture_row()
+    let (_, outer) = journal_decode_row_capacity(row).unwrap()
+    let (_, nested) = journal_observation_construction_capacity().unwrap()
+    let required = outer + nested
+    let usage = @resources.ledger_usage(value.root)
+    let available = @resources.ledger_limits(value.root).execution_bytes -
+      usage.reserved_execution_bytes
+    let blocker = @resources.reserve_capacity(
+      value.root,
+      0L,
+      available - required + (if short { 1L } else { 0L }),
+    ).unwrap()
+    let constructions = Ref(0)
+    let before = () => constructions.val += 1
+    ignore(
+      journal_decode_run_inspection(
+        value,
+        child,
+        frame,
+        row,
+        before_observation=Some(before),
+      ).unwrap(),
+    )
+    assert_eq(constructions.val, 1)
+    assert_eq(frame.selected.unwrap().observation is Some(_), !short)
+    ignore(
+      journal_decode_run_inspection(
+        value,
+        child,
+        frame,
+        row,
+        before_observation=Some(before),
+      ).unwrap(),
+    )
+    assert_eq(constructions.val, if short { 2 } else { 1 })
+    assert_eq(close_journal_observation(value.nonce, 73), 0)
+    @resources.settle_capacity(value.root, blocker).unwrap()
+    sdk_row_original_fixture_close(value, parent)
+  }
+}
+
+///|
+test "journal typed observation drops selected and foreign aliases before exact close debt and physical pending" {
+  let ready = Ref(false)
+  let (value, child, frame, parent) = journal_observation_profile_fixture(cleanup=() => {
+    ready.val
+  })
+  let row = journal_observation_fixture_row()
+  ignore(journal_decode_run_inspection(value, child, frame, row).unwrap())
+  ignore(
+    journal_decode_run_inspection(value, child, frame, {
+      ..row,
+      key: "foreign-key",
+    }).unwrap(),
+  )
+  assert_true(frame.rows.unwrap().observation is Some(_))
+  assert_true(frame.selected.unwrap().observation is Some(_))
+  assert_eq(dispose_journal_decode_rows(value, frame, true), 0)
+  let selected = frame.selected.unwrap()
+  assert_true(selected.observation is None)
+  assert_true(selected.decoded is Some(_) && selected.row is Some(_))
+  assert_true(@resources.capacity_reservation_open(selected.capacity))
+  @resources.settle_capacity(value.root, selected.capacity).unwrap()
+  frame.issue = -42
+  assert_true(close_journal_observation(value.nonce, 73) != 0)
+  assert_true(child.outcome is Some(Observed(Err(-42), None)))
+  ready.val = true
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal typed observation constructor and later validation errors keep original funded cleanup" {
+  for later in [false, true] {
+    let ready = Ref(false)
+    let (value, child, frame, parent) = journal_observation_profile_fixture(cleanup=() => {
+      ready.val
+    })
+    let row = journal_observation_fixture_row()
+    let (record, _, wire) = @host.decode_client_run_journal_row_with_observation_originals(
+      row.body,
+    ).unwrap()
+    let bad = if later {
+      @host.client_run_journal_row_body(
+        { ..record, publication_policy_originals: Some("{}"), },
+        run_observation_originals=wire,
+      ).unwrap()
+    } else {
+      @host.client_run_journal_row_body(
+        record,
+        run_observation_originals=Some(wire.unwrap() + " "),
+      ).unwrap()
+    }
+    let constructions = Ref(0)
+    assert_true(
+      journal_decode_run_inspection(
+        value,
+        child,
+        frame,
+        { ..row, body: bad, },
+        before_observation=Some(() => constructions.val += 1),
+      )
+      is Err(-31),
+    )
+    assert_eq(constructions.val, 1)
+    assert_eq(frame.rows.unwrap().observation is Some(_), later)
+    assert_true(
+      @resources.capacity_reservation_open(frame.rows.unwrap().capacity),
+    )
+    assert_true(close_journal_observation(value.nonce, 73) != 0)
+    assert_true(child.outcome is Some(Observed(Err(-31), None)))
+    ready.val = true
+    assert_eq(close_journal_observation(value.nonce, 73), 0)
+    sdk_row_original_fixture_close(value, parent)
+  }
 }
 
 ///|

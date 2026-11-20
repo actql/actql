@@ -3,6 +3,7 @@
 // current or dispatch authority is created by this component fixture.
 fn sdk_row_original_fixture(
   retention : Int64,
+  execution? : Int64 = 268435456L,
 ) -> (Instance, StoredRun, @buffers.BufferSlot) raise {
   let root = @resources.create_ledger({
     planning_work: 100000,
@@ -10,7 +11,7 @@ fn sdk_row_original_fixture(
     holdings: 32,
     transfer_bytes: 33554432L,
     retained_bytes: retention,
-    execution_bytes: 268435456L,
+    execution_bytes: execution,
   }).unwrap()
   let capacity = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
   let pool = @buffers.open_pool_on_ledger(root, 4096L, 16, 1048576).unwrap()
