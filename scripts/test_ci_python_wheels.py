@@ -1585,6 +1585,105 @@ class FailureLocationTests(unittest.TestCase):
         self.assertEqual(len(stream.getvalue().splitlines()), 1)
 
 
+class InitialPhaseObservationTests(unittest.TestCase):
+    """Imported public-caller doubles only; no installed runtime qualification."""
+
+    def fixture(self):
+        from types import ModuleType, SimpleNamespace
+        from unittest.mock import MagicMock
+        consumer = load('ci_initial_phase_observation', SCRIPTS / 'fixtures/python-product-installed.py')
+        client = MagicMock()
+        client.__enter__.return_value = client
+        client.__exit__.return_value = False
+        runs = [MagicMock(ref={'original': index}) for index in (1, 2)]
+        for run in runs:
+            run.wait.return_value = {'status': 'succeeded'}
+            run.result.return_value.all.return_value = [{'n': 1}]
+        client.new_submission.side_effect = [{'submission': 1}, {'submission': 2}]
+        client.start_source.side_effect = runs
+        client._client._local_host = object()
+        control = MagicMock()
+        control.__enter__.return_value = control
+        control.__exit__.return_value = False
+        control.result.return_value = {'caller_control': True}
+        public = ModuleType('actql')
+        public.Client = SimpleNamespace(open=MagicMock(return_value=client))
+        return consumer, public, client, runs, control
+
+    def test_success_records_only_closed_boundaries_without_changing_public_calls(self):
+        consumer, public, client, runs, control = self.fixture()
+        stream = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', stream):
+            observed = consumer._sync('private-version', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(observed, control.result.return_value)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([record['phase'] for record in records], [
+            'facade-import-enter', 'facade-import-return', 'factory-enter', 'factory-return',
+            'first-start-enter', 'first-start-return', 'first-wait-enter', 'first-wait-return',
+            'first-result-enter', 'first-result-return', 'first-reread-enter', 'first-reread-return',
+            'second-start-enter', 'second-start-return', 'second-state-enter', 'second-state-return',
+            'second-result-enter', 'second-result-return', 'first-close-enter', 'first-close-return'])
+        self.assertTrue(all(set(record) == {'stage', 'phase'} and
+                            record['stage'] == 'installed-sync-initial-phase' for record in records))
+        self.assertLess(len(stream.getvalue().encode()), 4096)
+        self.assertNotIn('private-version', stream.getvalue())
+        public.Client.open.assert_called_once_with()
+        self.assertEqual(client.start_source.call_count, 2)
+        for run in runs:
+            run.wait.assert_called_once_with()
+        self.assertEqual(runs[0].result.return_value.all.call_count, 2)
+        self.assertEqual(runs[1].result.return_value.all.call_count, 1)
+        client.__exit__.assert_called_once_with(None, None, None)
+
+    def test_original_failure_and_first_close_remain_when_optional_output_fails(self):
+        consumer, public, client, _, control = self.fixture()
+        original = RuntimeError('original first-start failure')
+        client.start_source.side_effect = original
+        class BrokenStream:
+            def write(self, value):
+                raise KeyboardInterrupt('optional output refused')
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', BrokenStream()):
+            with self.assertRaises(RuntimeError) as raised:
+                consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(raised.exception, original)
+        client.start_source.assert_called_once()
+        self.assertEqual(client.__exit__.call_count, 1)
+        self.assertIs(client.__exit__.call_args.args[1], original)
+        control.result.assert_not_called()
+
+    def test_saved_route_has_no_initial_markers_or_new_physical_control(self):
+        consumer, public, client, runs, control = self.fixture()
+        saved = {'submission': {'same': 'original'}, 'run': runs[0].ref}
+        client.lookup_submission.return_value = {'kind': 'ready', 'admission': {'ref': runs[0].ref}}
+        client.attach.return_value = runs[0]
+        stream = io.StringIO()
+        with patch.dict(sys.modules, {'actql': public}), patch.object(consumer, '_saved', return_value=saved), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control) as observation, \
+                patch.object(consumer.sys, 'stderr', stream):
+            self.assertIsNone(consumer._sync('fixture', 'resume', Path('/unused/receipt')))
+        self.assertEqual(stream.getvalue(), '')
+        observation.assert_not_called()
+        client.start_source.assert_not_called()
+        client.attach.assert_called_once_with(saved['run'])
+        client.__exit__.assert_called_once_with(None, None, None)
+
+    def test_unselected_or_foreign_marker_cannot_invoke_foreign_comparison_or_emit(self):
+        consumer, _, _, _, _ = self.fixture()
+        class Foreign:
+            def __eq__(self, other):
+                raise AssertionError('Do not compare a foreign diagnostic value')
+        stream = io.StringIO()
+        with patch.object(consumer.sys, 'stderr', stream):
+            consumer._sync_initial_phase(False, 'factory-enter')
+            consumer._sync_initial_phase(True, Foreign())
+            consumer._sync_initial_phase(True, 'private-stage-not-selected')
+        self.assertEqual(stream.getvalue(), '')
+
+
 class InstalledCancellationTests(unittest.TestCase):
     """Receipt and command harness checks, never installed runtime acceptance."""
 
