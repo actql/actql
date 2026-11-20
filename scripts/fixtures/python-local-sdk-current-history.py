@@ -29,6 +29,7 @@ INSTALLED_IMAGE = len(sys.argv) > 1 and sys.argv[1] == '--installed'
 if not INSTALLED_IMAGE:
     sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient
+from actql_sdk._async import _ExchangeFailure
 from actql_sdk._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution, _ordinary_core_limits
 from actql_sdk._local_journal_port import _JournalCallbacks
@@ -62,6 +63,7 @@ class Trace:
         self.target_revision = None
         self.steps = []
         self.refusal = None
+        self.refusal_phase = None
 
     def call(self, phase, invoke):
         if not self.enabled:
@@ -69,16 +71,24 @@ class Trace:
         assert self.active is None and self.target is not None
         counts = Counter()
         self.active = counts
+        primary = None
         try:
             result = invoke()
-        except LocalCoreError as error:
-            self.refusal = error
+        except BaseException as error:
+            primary = error
+            if self.refusal is None:
+                self.refusal = error
+                self.refusal_phase = phase
             raise
         finally:
             self.active = None
-            observed = {'phase': phase, 'counts': dict(sorted(counts.items()))}
-            self.steps.append(observed)
-            print(json.dumps({'continuationObservation': observed}), flush=True)
+            try:
+                observed = {'phase': phase, 'counts': dict(sorted(counts.items()))}
+                self.steps.append(observed)
+                print(json.dumps({'continuationObservation': observed}), flush=True)
+            except BaseException:
+                if primary is None:
+                    raise
         assert counts.get('historyScans', 0) == 0, observed
         assert counts.get('unrelatedRunRows', 0) == 0, observed
         assert counts.get('unrelatedTaskRows', 0) == 0, observed
@@ -270,9 +280,12 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
     fault_used = False
     injected_primary = RuntimeError('Original component current/reentry failure')
     failed_callbacks = None
+    reentry_primary = None
+    reentry_guard_qualified = False
+    callback_failure = None
 
     def queried(callbacks):
-        nonlocal fault_used, failed_callbacks
+        nonlocal fault_used, failed_callbacks, reentry_primary, reentry_guard_qualified
         namespace = bytes(callbacks.request[:callbacks.namespace_length]).decode('utf-8')
         code = original_query(callbacks)
         selected = 'client_submitted_intents' if fault == 'intent' else 'client_runs'
@@ -302,9 +315,27 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             callbacks.row = (key, StoredBytes(row.generation,
                 row.payload.replace(before, b'SELECT 2 AS n')))
         elif fault == 'reentry':
+            assert core._invoking
             try:
                 core._call('workspace', 'root_reserved')
             except RuntimeError as error:
+                # Qualify the actual nested guard, not its message or merely
+                # its exception class. No frame/exception text is published.
+                frame = error.__traceback__
+                for _ in range(32):
+                    if frame is None:
+                        break
+                    local = frame.tb_frame.f_locals
+                    if (frame.tb_frame.f_code is LocalCore._call.__code__
+                            and local.get('self') is core
+                            and local.get('family') == 'workspace'
+                            and local.get('name') == 'root_reserved'
+                            and local.get('error') is error):
+                        reentry_guard_qualified = True
+                        break
+                    frame = frame.tb_next
+                assert type(error) is RuntimeError and reentry_guard_qualified
+                reentry_primary = error
                 failed_callbacks = callbacks
                 assert callbacks._fail(error) == -41
                 assert callbacks.failure is error
@@ -572,14 +603,27 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                           'originalWorkFailures': failures}), flush=True)
         if fault is None:
             raise
-        assert fault_used and type(trace.refusal) is LocalCoreError, failures
-        assert trace.refusal.operation == 'reserve_next_sdk_task', trace.refusal.operation
-        assert trace.refusal.code == FAULTS[fault], trace.refusal.code
+        assert fault_used and trace.refusal_phase == 'select', failures
         assert [step['phase'] for step in trace.steps] == ['select'], trace.steps
-        if fault == 'current':
-            assert failed_callbacks.failure is injected_primary
-        if fault == 'reentry':
-            assert type(failed_callbacks.failure) is RuntimeError
+        if fault in ('current', 'reentry'):
+            assert type(trace.refusal) is RuntimeError
+            assert type(error) is _ExchangeFailure and error.code == 'ClientTransportUnknown'
+            assert error.sent is True
+            assert failed_callbacks is not None and failed_callbacks.failure is trace.refusal
+            assert trace.steps[0]['counts'].get('physicalOperationCalls', 0) > 0
+            if fault == 'current':
+                assert trace.refusal is injected_primary
+            else:
+                assert trace.refusal is reentry_primary and reentry_guard_qualified
+            # Closed diagnostic DATA only: Unknown is not a typed Core
+            # refusal, business output, permission or physical-stop ACK.
+            callback_failure = {'kind': fault, 'phase': trace.refusal_phase,
+                                'sameOriginal': True, 'publicCode': error.code,
+                                'sent': error.sent}
+        else:
+            assert type(trace.refusal) is LocalCoreError, failures
+            assert trace.refusal.operation == 'reserve_next_sdk_task', trace.refusal.operation
+            assert trace.refusal.code == FAULTS[fault], trace.refusal.code
     finally:
         cleanup = await close_history_owners(client, host, core, primary)
     result = {'history': history, 'fault': fault, 'steps': trace.steps,
@@ -589,7 +633,8 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             'completedHistory': completed_history, 'acceptedPendingHistory': accepted_pending_history,
             'closedPendingHistory': closed_pending_history,
             'retiredPendingParentLoans': retired_pending_parent_loans,
-            'refusal': None if trace.refusal is None else trace.refusal.code,
+            'refusal': trace.refusal.code if type(trace.refusal) is LocalCoreError else None,
+            'callbackFailure': callback_failure,
             'firstCloseReturned': not cleanup,
             'cleanupFailures': [type(error).__name__ for error in cleanup]}
     if phase is not None:
