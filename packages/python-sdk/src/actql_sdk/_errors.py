@@ -27,3 +27,32 @@ class RequestConflict(ClientError):
 
     def __init__(self, **facts):
         super().__init__('RequestConflict', **facts)
+
+
+def _retain_context_cleanup(failure, cleanup, client):
+    """Keep actual exception objects and cleanup-only handles, never outcomes."""
+    for error in (cleanup, failure):
+        if isinstance(error, ClientError) and error.cleanup_client is None:
+            error.cleanup_client = client
+    if cleanup is failure:
+        return
+    previous = getattr(failure, 'cleanup_error', None)
+    if previous is not None:
+        # Preserve both existing chains. An overlapping suffix is already
+        # retained through the earlier head; no error is cloned or formatted.
+        old, cursor = set(), previous
+        while isinstance(cursor, BaseException) and id(cursor) not in old:
+            if cursor is cleanup:
+                return
+            old.add(id(cursor))
+            cursor = getattr(cursor, 'cleanup_error', None)
+        seen, cursor = {id(failure)}, cleanup
+        while True:
+            seen.add(id(cursor))
+            following = getattr(cursor, 'cleanup_error', None)
+            if (not isinstance(following, BaseException)
+                    or id(following) in seen or id(following) in old):
+                cursor.cleanup_error = previous
+                break
+            cursor = following
+    failure.cleanup_error = cleanup
