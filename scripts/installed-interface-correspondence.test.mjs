@@ -144,6 +144,34 @@ test('same original checked source retains its Git byte read without rebuilding 
   }, {sourceProjections: 0, originalByteReads: 1});
 });
 
+test('installed TypeScript bytes must derive from the tracked original, even with a fresh check of stale emit', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const {repository, directory} = options;
+  const runtime = 'outside/owner.mjs';
+  put(repository, '.gitignore', `/${runtime}\n`);
+  unlinkSync(join(repository, runtime));
+  put(repository, 'outside/owner.mts', 'export function read(original: string) { return original; }\n');
+  const fromRoot = name => readFileSync(new URL(`../${name}`, import.meta.url));
+  for (const file of ['tsconfig.base.json', 'package-lock.json']) put(repository, file, fromRoot(file));
+  const config = JSON.stringify({extends: './tsconfig.base.json',
+    compilerOptions: {declaration: true}, include: ['outside/**/*.mts']});
+  put(repository, 'tsconfig.tooling.json', config);
+  commit();
+  const exact = 'export function read(original) { return original; }\n';
+  put(repository, runtime, exact);
+  put(directory, 'entry.mjs', exact);
+  options.checkedSource = await checkInterfaceOwners(repository);
+  assert.equal(installedInterfaceCorrespondence(options).coverage.covered, 1);
+  put(repository, 'tsconfig.tooling.json', config + '\n');
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed TypeScript preparation input: tsconfig.tooling.json/u);
+  put(repository, 'tsconfig.tooling.json', config);
+  const stale = 'export function read(original) { return original.trim(); }\n';
+  put(repository, runtime, stale);
+  put(directory, 'entry.mjs', stale);
+  options.checkedSource = await checkInterfaceOwners(repository);
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed checked original source interface/u);
+});
+
 test('original checked correspondence refuses copied foreign and changed originals', async t => {
   const {options, put, commit} = await checkedFixture(t);
   const foreign = await checkedFixture(t);

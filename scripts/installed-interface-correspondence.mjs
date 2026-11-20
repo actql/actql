@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {dirname, isAbsolute, relative, resolve} from 'node:path';
-import {existsSync, realpathSync} from 'node:fs';
+import {existsSync, readFileSync, realpathSync} from 'node:fs';
+import ts from 'typescript';
 import {build} from 'esbuild';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
@@ -17,6 +18,56 @@ import {checkedOriginalInterface} from './check-interface-owners.mjs';
 const inside = path => typeof path === 'string' && path.length && !isAbsolute(path) &&
   !path.split(/[\\/]/u).includes('..');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+
+// Runtime paths remain package identities. For emitted members, derive the
+// expected bytes from the selected Git source and the same compiler options
+// as preparation. The working .mjs is never an input to this derivation.
+function installedOriginalBytes(repository, source, selected) {
+  const git = args => execFileSync('git', args,
+    {cwd: repository, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  const blob = path => git(['show', `${source}:${path}`]);
+  const runtimePaths = [...new Set(selected.filter(path => path.endsWith('.mjs')))];
+  const authoredPath = path => path.slice(0, -4) + '.mts';
+  let tracked, config, included;
+  return path => {
+    try { return blob(path); }
+    catch (error) {
+      if (!path.endsWith('.mjs') || error.status !== 128) throw error;
+      tracked ??= new Set(git(['--literal-pathspecs', 'ls-tree', '-r', '--name-only', '-z',
+        source, '--', ...runtimePaths, ...runtimePaths.map(authoredPath)]).toString('utf8').split('\0'));
+      if (tracked.has(path) || !tracked.has(authoredPath(path))) throw error;
+    }
+    if (!config) {
+      const preparation = new Map();
+      for (const file of ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json']) {
+        const path = resolve(repository, file), original = blob(file);
+        assert(readFileSync(path).equals(original), `Changed TypeScript preparation input: ${file}`);
+        preparation.set(path, original.toString('utf8'));
+      }
+      const lock = JSON.parse(preparation.get(resolve(repository, 'package-lock.json')));
+      assert.equal(ts.version, lock.packages['node_modules/typescript'].version,
+        'TypeScript emitter differs from the original package lock');
+      const readConfig = path => preparation.get(resolve(repository, path));
+      const file = resolve(repository, 'tsconfig.tooling.json');
+      const read = ts.readConfigFile(file, readConfig);
+      assert(!read.error, 'Invalid original TypeScript preparation config');
+      config = ts.parseJsonConfigFileContent(read.config, {...ts.sys, readFile: readConfig},
+        repository, undefined, file);
+      assert(!config.errors.length && config.options.noEmitOnError && !config.options.noEmit &&
+        !config.options.emitDeclarationOnly && !config.options.outDir && !config.options.outFile,
+      'Expected the canonical in-place TypeScript preparation');
+      included = new Set(config.fileNames);
+    }
+    const authored = authoredPath(path), fileName = resolve(repository, authored);
+    assert(included.has(fileName), `Unselected TypeScript package source: ${authored}`);
+    const emitted = ts.transpileModule(blob(authored).toString('utf8'), {
+      fileName, compilerOptions: config.options, reportDiagnostics: true,
+    });
+    assert(!emitted.diagnostics?.some(item => item.category === ts.DiagnosticCategory.Error),
+      `Cannot derive installed TypeScript runtime bytes: ${authored}`);
+    return Buffer.from(emitted.outputText);
+  };
+}
 
 export function installedInterfaceCorrespondence({repository, directory, source,
   bindings, artifacts = [], owners, generated = [], checkedSource}) {
@@ -46,11 +97,11 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     {source, base: source, paths: selected, all: true,
       commands}).modules : [];
   const bySource = new Map(original.map(module => [module.module, module]));
+  const originalBytes = installedOriginalBytes(repository, source, selected);
   const actual = installed.modules.map(module => {
     const binding = byMember.get(module.module), input = bySource.get(binding.source);
     assert(input, `Missing original authored interface: ${binding.source}`);
-    const bytes = execFileSync('git', ['show', `${source}:${binding.source}`],
-      {cwd: repository, maxBuffer: 16 * 1024 * 1024});
+    const bytes = originalBytes(binding.source);
     if (checkedSource) assert.equal(input.sha256, digest(bytes),
       `Changed checked original source interface: ${binding.source}`);
     const expected = binding.transform === 'local-node-public-imports'
