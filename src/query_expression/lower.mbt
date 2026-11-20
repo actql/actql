@@ -537,7 +537,7 @@ fn append_resolved(
       let mut parameter = false
       let mut interval : String? = None
       let result = match node.kind {
-        ContextualIntegerCompanion(child) => nodes[child]
+        ContextualIntegerCompanion(child, _) => nodes[child]
         ContextualIntegerReference(_, name) =>
           lowering.form("field", lowering.add(String(name.value)))
         ContextualInteger(Some(value)) =>

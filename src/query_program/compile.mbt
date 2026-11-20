@@ -8567,7 +8567,7 @@ fn compile_set_stages(
     let mut term_result = term_name
     if index == 0 && !@query.set_part_at(query, 0).unwrap().inner_by_name {
       let part = @query.set_part_at(query, 0).unwrap()
-      let ordered = set_output_fields(output, part)
+      let ordered = set_output_fields(output, part, query)
       let (matched, needed) = set_alignment_fields(ordered, output, true)
       if needed {
         term_result = term_name + "_ordered"
@@ -8628,7 +8628,13 @@ fn compile_set_stages(
   if first_part.inner_by_name {
     let ordered = match sql_inner_fields {
       Some(fields) => fields
-      None => set_output_fields(outputs[0], first_part, right_fields=outputs[1])
+      None =>
+        set_output_fields(
+          outputs[0],
+          first_part,
+          query,
+          right_fields=outputs[1],
+        )
     }
     let (matched, needed) = set_alignment_fields(
       ordered,
@@ -8668,7 +8674,7 @@ fn compile_set_stages(
     let ordered = if index < sql_inner_count {
       sql_inner_fields.unwrap()
     } else {
-      set_output_fields(left_fields, part, right_fields~)
+      set_output_fields(left_fields, part, query, right_fields~)
     }
     let (left_matched, left_needed) = set_alignment_fields(
       ordered,

@@ -24,7 +24,7 @@ pub(all) enum ExpressionKind {
   // A checked syntax-only parallel view of the SAME producer row. Neither
   // node is parsed from an authored function/identifier spelling.
   ContextualIntegerReference(Array[NamePart], NamePart)
-  ContextualIntegerCompanion(Int)
+  ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])
@@ -161,7 +161,7 @@ fn expression_subtree(
     }
     match expression.nodes[next].kind {
       Unary(_, child)
-      | ContextualIntegerCompanion(child)
+      | ContextualIntegerCompanion(child, _)
       | Parenthesized(child)
       | Cast(child, _)
       | Interval(child, _)
@@ -213,8 +213,8 @@ fn expression_subtree(
         ArrayOffset(left, right, safe) =>
           ArrayOffset(remap[left], remap[right], safe)
         Parenthesized(child) => Parenthesized(remap[child])
-        ContextualIntegerCompanion(child) =>
-          ContextualIntegerCompanion(remap[child])
+        ContextualIntegerCompanion(child, original) =>
+          ContextualIntegerCompanion(remap[child], original)
         Cast(child, target) => Cast(remap[child], target)
         Interval(child, unit) => Interval(remap[child], unit)
         Property(child, name) => Property(remap[child], name)

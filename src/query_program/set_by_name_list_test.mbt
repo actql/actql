@@ -122,3 +122,26 @@ fn expect_with_set_append_refusal(text : String, field : String) -> Unit raise {
     @pipeline.Append(IncompatibleContracts(@schema.Unqualified(field), [])),
   )
 }
+
+///|
+test "BY NAME ON still rejects invalid public lists with contextual exact companions" {
+  for
+    text in [
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,V) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,missing) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,w) SELECT 7 AS v) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (missing) SELECT 9007199254740995 AS v) SELECT MOD(v,2) AS m FROM t",
+      "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (aql_integer_1_0_0) SELECT 9007199254740995 AS v) SELECT MOD(v,2) AS m FROM t",
+    ] {
+    assert_true(
+      compile_query_script(
+        @query.parse_query_script(text, syntax_limits()).unwrap(),
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      )
+      is Err(UnsupportedSet),
+      msg=text,
+    )
+  }
+}

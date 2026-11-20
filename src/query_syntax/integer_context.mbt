@@ -251,7 +251,7 @@ pub fn integer_context_companion_columns(query : Query) -> Array[String] {
     if operation is Select(projections, _) {
       for p in projections {
         if p.expression is Some(e) &&
-          e.nodes[e.root].kind is ContextualIntegerCompanion(_) &&
+          e.nodes[e.root].kind is ContextualIntegerCompanion(_, _) &&
           p.name is Some(name) {
           names.push(name.value)
         }
@@ -259,6 +259,51 @@ pub fn integer_context_companion_columns(query : Query) -> Array[String] {
     }
   }
   names
+}
+
+///|
+/// A physical exact companion identified by its original syntax wrapper.
+/// Anonymous positional right operands have no authored public name.
+pub fn integer_context_is_companion_column(
+  query : Query,
+  physical : String,
+) -> Bool {
+  for operation in query.operations {
+    if operation is Select(projections, _) {
+      for p in projections {
+        if p.name is Some(name) &&
+          name.value == physical &&
+          p.expression is Some(e) &&
+          e.nodes[e.root].kind is ContextualIntegerCompanion(_, _) {
+          return true
+        }
+      }
+    }
+  }
+  false
+}
+
+///|
+/// Original public column of this exact parser-owned physical companion.
+/// This is immutable syntax provenance, not a public identifier or a value.
+/// In particular it survives omission of an unavailable ordinary Number view.
+pub fn integer_context_original_column(
+  query : Query,
+  physical : String,
+) -> String? {
+  for operation in query.operations {
+    if operation is Select(projections, _) {
+      for p in projections {
+        if p.name is Some(name) &&
+          name.value == physical &&
+          p.expression is Some(e) &&
+          e.nodes[e.root].kind is ContextualIntegerCompanion(_, Some(original)) {
+          return Some(original.value)
+        }
+      }
+    }
+  }
+  None
 }
 
 ///|
@@ -407,7 +452,10 @@ fn integer_context_operation(
         let root = nodes.length()
         nodes.push({
           ..expression.nodes[expression.root],
-          kind: ContextualIntegerCompanion(expression.root),
+          kind: ContextualIntegerCompanion(
+            expression.root,
+            integer_context_projection_name(p),
+          ),
         })
         selected.push({
           ..p,

@@ -1,4 +1,162 @@
 ///|
+test "SQL explicit ON keeps exact companions and both ordinary Number views" {
+  for
+    producer in [
+      "SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (w,v) SELECT 7 AS v,10 AS w", "SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (`W`,v) SELECT 10 AS w,7 AS v",
+    ] {
+    let output = sql_integer_output(
+      timestamp_sql_original(
+        "WITH t AS (" +
+        producer +
+        ") SELECT MOD(v,2) AS m,DIV(w,3) AS n,v AS original,w AS other,v+w AS total FROM t",
+      ),
+      expected_columns=[
+        ("m", @contract.Signed64Type),
+        ("n", @contract.Signed64Type),
+        ("original", @contract.NumberType),
+        ("other", @contract.NumberType),
+        ("total", @contract.NumberType),
+      ],
+    )
+    assert_eq(@execution.completed_row_count(output), 2)
+    let actual : Array[(Int64, Int64, Double, Double, Double)] = []
+    for row in 0..<2 {
+      let mut m = None
+      let mut n = None
+      let mut original = None
+      let mut other = None
+      let mut total = None
+      for column in 0..<5 {
+        match
+          (
+            @execution.completed_column_name(output, column),
+            @execution.completed_cell(output, row, column),
+          ) {
+          (Some("m"), Some(Captured(@values.Signed64(value)))) =>
+            m = Some(value)
+          (Some("n"), Some(Captured(@values.Signed64(value)))) =>
+            n = Some(value)
+          (Some("original"), Some(Number(value))) => original = Some(value)
+          (Some("other"), Some(Number(value))) => other = Some(value)
+          (Some("total"), Some(Number(value))) => total = Some(value)
+          _ =>
+            fail(
+              "complete original and exact views must retain their distinct domains",
+            )
+        }
+      }
+      actual.push(
+        (
+          m.unwrap(),
+          n.unwrap(),
+          original.unwrap(),
+          other.unwrap(),
+          total.unwrap(),
+        ),
+      )
+    }
+    actual.sort()
+    assert_eq(
+      actual,
+      [(1L, 2L, 5.0, 8.0, 13.0), (1L, 3L, 7.0, 10.0, 17.0)],
+      msg=producer,
+    )
+  }
+}
+
+///|
+test "SQL anonymous positional set operands retain exact companion identity" {
+  for producer in ["SELECT 5 AS v,8 AS w UNION ALL SELECT 7,10"] {
+    let output = sql_integer_output(
+      timestamp_sql_original(
+        "WITH t AS (" + producer + ") SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      ),
+      expected_columns=[
+        ("m", @contract.Signed64Type),
+        ("n", @contract.Signed64Type),
+      ],
+    )
+    assert_eq(@execution.completed_row_count(output), 2)
+    let actual : Array[(Int64, Int64)] = []
+    for row in 0..<2 {
+      let mut m = None
+      let mut n = None
+      for column in 0..<2 {
+        guard @execution.completed_cell(output, row, column)
+          is Some(Captured(@values.Signed64(value))) else {
+          fail("each original exact output must retain the int64 wire domain")
+        }
+        if @execution.completed_column_name(output, column) == Some("m") {
+          m = Some(value)
+        }
+        if @execution.completed_column_name(output, column) == Some("n") {
+          n = Some(value)
+        }
+      }
+      actual.push((m.unwrap(), n.unwrap()))
+    }
+    actual.sort()
+    assert_eq(actual, [(1L, 2L), (1L, 3L)], msg=producer)
+  }
+}
+
+///|
+test "SQL explicit BY NAME ON retains omitted full-int64 originals without a Number view" {
+  let output = sql_integer_output(
+    timestamp_sql_original(
+      "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (v) SELECT 9007199254740995 AS v) SELECT MOD(v,2) AS m FROM t",
+    ),
+    expected_columns=[("m", @contract.Signed64Type)],
+  )
+  assert_eq(@execution.completed_row_count(output), 2)
+  for row in 0..<2 {
+    assert_true(
+      @execution.completed_cell(output, row, 0)
+      is Some(Captured(@values.Signed64(1L))),
+    )
+  }
+}
+
+///|
+test "SQL explicit BY NAME ON keeps public column order and exact companion correspondence" {
+  for
+    producer in [
+      "SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (w,v) SELECT 7 AS v,10 AS w", "SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (`W`,v) SELECT 10 AS w,7 AS v",
+    ] {
+    let output = sql_integer_output(
+      timestamp_sql_original(
+        "WITH t AS (" + producer + ") SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      ),
+      expected_columns=[
+        ("m", @contract.Signed64Type),
+        ("n", @contract.Signed64Type),
+      ],
+    )
+    assert_eq(@execution.completed_row_count(output), 2)
+    let actual : Array[(Int64, Int64)] = []
+    for row in 0..<2 {
+      let mut m = None
+      let mut n = None
+      for column in 0..<2 {
+        guard @execution.completed_cell(output, row, column)
+          is Some(Captured(@values.Signed64(value))) else {
+          fail("each original exact output must retain the int64 wire domain")
+        }
+        if @execution.completed_column_name(output, column) == Some("m") {
+          m = Some(value)
+        }
+        if @execution.completed_column_name(output, column) == Some("n") {
+          n = Some(value)
+        }
+      }
+      actual.push((m.unwrap(), n.unwrap()))
+    }
+    actual.sort()
+    assert_eq(actual, [(1L, 2L), (1L, 3L)], msg=producer)
+  }
+}
+
+///|
 test "SQL multiple exact companions retain positional and BY NAME UNION correspondence" {
   for
     producer in [
@@ -556,5 +714,29 @@ fn sql_integer_type_refusal(
           fail("an unrelated preparation failure is not exact operand checking")
       }
     _ => fail("a Number original must not be silently promoted to int64")
+  }
+}
+
+///|
+test "SQL explicit ON preserves unavailable Number demand refusal" {
+  let environment = string_try_number_test_environment()
+  let context = @source_frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+  ).unwrap()
+  for
+    suffix in [
+      "SELECT MOD(v,2) AS m,v AS original FROM t", "SELECT t.*,MOD(v,2) AS m FROM t",
+    ] {
+    assert_true(
+      @source_frontend.lower(
+        "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (v) SELECT 9007199254740995 AS v) " +
+        suffix,
+        Sql,
+        Some(context),
+      )
+      is Err(QueryLowering(Expression({ issue: InvalidNumber, .. }))),
+      msg=suffix,
+    )
   }
 }

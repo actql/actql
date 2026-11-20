@@ -2705,6 +2705,14 @@ and directs only the exact function operand to that companion. Original
 columns, arithmetic, other CTE consumers, whole-row references and stars keep
 their independent ordinary view. Private companions are excluded from author
 lookup and star expansion. UNION members share their companion alignment.
+An exact companion retains the original optional public projection name by
+immutable reference, including when an unavailable Number projection is
+omitted. Explicit `BY NAME ON` validates its complete authored list against
+that original public namespace before selecting the retained physical views;
+private names never satisfy an authored list. Anonymous positional right
+operands retain no fabricated public name. The bounded temporary public-name
+vector and retained physical alignment share the same original-token
+constructor envelope; neither copies identifier text or adds an owner.
 Original lexical ordinary demand is propagated separately before construction;
 an integer lexeme outside the existing Number domain can omit its unavailable
 ordinary view only when no ordinary consumer demands it. Otherwise the original
