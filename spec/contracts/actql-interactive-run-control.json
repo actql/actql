@@ -5036,9 +5036,81 @@
                             }
                           ]
                         }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "type": "object",
+                            "required": [
+                              "declaration"
+                            ],
+                            "properties": {
+                              "declaration": {
+                                "type": "object",
+                                "required": [
+                                  "effect_kind"
+                                ],
+                                "properties": {
+                                  "effect_kind": {
+                                    "const": "command"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "then": {
+                            "type": "object",
+                            "properties": {
+                              "write_fields": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "reason"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "const": "not_projected"
+                                  },
+                                  "reason": {
+                                    "const": "command_fields_not_projected"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "else": {
+                            "type": "object",
+                            "properties": {
+                              "write_fields": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "fields"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "const": "declared"
+                                  },
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "minItems": 0,
+                                    "uniqueItems": true
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "minItems": 0
+                    "minItems": 1,
+                    "maxItems": 64
                   }
                 }
               }
@@ -5094,7 +5166,7 @@
     "explanation_step": "sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a",
     "explanation_facts": "sha256:0bd17264c5c1efa5e2fa2984a5052e3ebace93ba3a66bcbe0c3a60ffca01b2a2",
     "run_explanation_view": "sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1",
-    "explanation_context": "sha256:97a413e293c1d1f5435e3a2ce60fd2ff9f5b4c84868db337e7ee31c36ae9d8c6"
+    "explanation_context": "sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27"
   },
   "identity_domains": {
     "control_profile": {
@@ -5192,5 +5264,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:e40cfd579cd943eae19e14913f532d2d8414d6142c3486fc00ab9cf1b8f60585"
+  "registry_cid": "sha256:92257649387571b9d3804710790636abf4a684d98db34f4633c8375465e5b7ab"
 }

@@ -87,6 +87,17 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
     object({state: {const: 'redacted'}}),
     object({state: {const: 'not_projected'}, reason: {const: 'expression_form_not_projected'}}),
   ]};
+  const declaredWrites = object({state: {const: 'declared'}, fields: {...list(text), uniqueItems: true}});
+  const unprojectedCommand = object({state: {const: 'not_projected'},
+    reason: {const: 'command_fields_not_projected'}});
+  const member = {...object({declaration: effectDeclaration,
+    write_fields: {oneOf: [declaredWrites, unprojectedCommand]}}),
+    allOf: [{if: {type: 'object', required: ['declaration'], properties: {
+      declaration: {type: 'object', required: ['effect_kind'],
+        properties: {effect_kind: {const: 'command'}}},
+    }},
+    then: {type: 'object', properties: {write_fields: unprojectedCommand}},
+    else: {type: 'object', properties: {write_fields: declaredWrites}}}]};
   const item = {oneOf: [
     {...object({kind: {const: 'source'}, stage_input: object({kind: {const: 'stage_input'},
       stage_ordinal: integer, input_port_ordinal: integer}),
@@ -102,13 +113,8 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
       input_bindings: list(object({role: text, binding: modelBinding, type: ref('explanation_type')})),
       output_fields: list(object({name: text, type: ref('explanation_type')}))}),
     object({kind: {const: 'result'}, name: text, stage_ordinal: integer, producer}),
-    object({kind: {const: 'effect_set'}, unit_id: text, members: list(object({
-      declaration: effectDeclaration,
-      write_fields: {oneOf: [
-        object({state: {const: 'declared'}, fields: {...list(text), uniqueItems: true}}),
-        object({state: {const: 'not_projected'}, reason: {const: 'command_fields_not_projected'}}),
-      ]},
-    }))}),
+    object({kind: {const: 'effect_set'}, unit_id: text,
+      members: {...list(member), minItems: 1, maxItems: 64}}),
   ]};
   schemas.explanation_context = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',

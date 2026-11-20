@@ -17909,9 +17909,81 @@ const schemas = {
                           }
                         ]
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "type": "object",
+                          "required": [
+                            "declaration"
+                          ],
+                          "properties": {
+                            "declaration": {
+                              "type": "object",
+                              "required": [
+                                "effect_kind"
+                              ],
+                              "properties": {
+                                "effect_kind": {
+                                  "const": "command"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "type": "object",
+                          "properties": {
+                            "write_fields": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "reason"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "const": "not_projected"
+                                },
+                                "reason": {
+                                  "const": "command_fields_not_projected"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "else": {
+                          "type": "object",
+                          "properties": {
+                            "write_fields": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "fields"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "const": "declared"
+                                },
+                                "fields": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "minItems": 0,
+                                  "uniqueItems": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   },
-                  "minItems": 0
+                  "minItems": 1,
+                  "maxItems": 64
                 }
               }
             }
@@ -17980,7 +18052,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:e40cfd579cd943eae19e14913f532d2d8414d6142c3486fc00ab9cf1b8f60585";
+export const interactiveControlRegistryCid = "sha256:92257649387571b9d3804710790636abf4a684d98db34f4633c8375465e5b7ab";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

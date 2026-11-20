@@ -31,6 +31,18 @@ test('Explanation Context admits structural declarations and refuses leaked or i
     items: [source, model, result, effect]};
   assert.equal(validWireExplanationContextShape(context), true);
   assert.equal(Object.hasOwn(buildControlRegistry().identity_domains, 'explanation_context'), false);
+  const mapping = effect.members[0];
+  const command = {declaration: commandMember,
+    write_fields: {state: 'not_projected', reason: 'command_fields_not_projected'}};
+  const contextWithMembers = members => ({...context, items: [{...effect, members}]});
+  assert.equal(validWireExplanationContextShape(contextWithMembers([command])), true);
+  assert.equal(validWireExplanationContextShape(contextWithMembers(
+    Array.from({length: 64}, (_, member_ordinal) => ({...mapping,
+      declaration: {...mapping.declaration, member_ordinal}})))), true);
+  for (const members of [[], Array(65).fill(mapping),
+    [{...command, write_fields: mapping.write_fields}],
+    [{...mapping, write_fields: command.write_fields}],
+  ]) assert.equal(validWireExplanationContextShape(contextWithMembers(members)), false);
   for (const item of [
     {...source, link_state: 'not_projected'},
     {...source, consuming_ports: []},
