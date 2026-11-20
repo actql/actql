@@ -483,11 +483,12 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
             break
         stream.write(wire)
         stream.flush()
-        # Local submission preserves its original failure as a retained
-        # exception attribute before raising outside the except block. Read
-        # only that known exception carrier, never arbitrary diagnostic values.
+        # Submission and context exit retain the original/cleanup exceptions
+        # outside their native chains. Read only existing plain exception
+        # associations; the same seen/output bounds apply and no error changes.
         retained = fields.get('original_error')
-        for linked in (current.__context__, current.__cause__, retained):
+        cleanup = fields.get('cleanup_error')
+        for linked in (current.__context__, current.__cause__, retained, cleanup):
             if isinstance(linked, BaseException):
                 pending.append((linked, None))
 

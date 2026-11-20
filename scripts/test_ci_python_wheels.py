@@ -1450,6 +1450,46 @@ class FailureLocationTests(unittest.TestCase):
         diagnostics.report_contexts(outer, stream)
         self.assertEqual(len(stream.getvalue().splitlines()), 1)
 
+    def test_retained_cleanup_chain_keeps_primary_and_original_chains(self):
+        diagnostics = load('ci_installed_cleanup_chain', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        errors = load('ci_installed_cleanup_errors',
+                      SCRIPTS.parent / 'packages/python-sdk/src/actql_sdk/_errors.py')
+        primary = errors.ClientError('private primary')
+        cleanup = ValueError('private cleanup')
+        earlier = errors.ClientError('private earlier cleanup')
+        primary.cleanup_error = cleanup
+        cleanup.cleanup_error = earlier
+        earlier.original_error = primary  # Actual identity cycle, no copy.
+        native = (primary.__context__, primary.__cause__, primary.__traceback__)
+        stream = io.StringIO()
+        diagnostics.report_contexts(primary, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([record['exception_type'] for record in records],
+                         ['ClientError', 'ValueError', 'ClientError'])
+        self.assertIs(primary.cleanup_error, cleanup)
+        self.assertIs(cleanup.cleanup_error, earlier)
+        self.assertIs(earlier.original_error, primary)
+        self.assertEqual((primary.__context__, primary.__cause__, primary.__traceback__), native)
+        self.assertNotIn('private', stream.getvalue())
+
+    def test_retained_cleanup_observation_refuses_foreign_values_and_is_bounded(self):
+        diagnostics = load('ci_installed_cleanup_bounds', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        original = RuntimeError('private')
+        original.cleanup_error = {'private': 'non-exception'}
+        stream = io.StringIO()
+        diagnostics.report_contexts(original, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), 1)
+        self.assertNotIn('private', stream.getvalue())
+        current = original
+        for _ in range(100):
+            following = ValueError('private')
+            current.cleanup_error = following
+            current = following
+        stream = io.StringIO()
+        diagnostics.report_contexts(original, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), diagnostics.MAX_CONTEXTS)
+        self.assertLessEqual(len(stream.getvalue().encode()), diagnostics.MAX_OUTPUT_BYTES)
+
     def test_cycle_is_not_repeated(self):
         import io
         diagnostics = load('ci_installed_run_cycle', SCRIPTS / 'fixtures/ci-python-installed-run.py')
