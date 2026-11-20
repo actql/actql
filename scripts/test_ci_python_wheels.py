@@ -1225,6 +1225,24 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
         self.assertTrue(result['qualified'], result)
         self.assertEqual((store.sets, store.reads), (1, 2))
 
+    def test_original_matched_stage_still_has_same_scope_entry_and_return(self):
+        _, core, store, observer, _ = self.fixture()
+        with observer:
+            with core._host_operation():
+                with core._lock, self.assertRaises(ValueError):
+                    # Original method/receiver; its existing foreign-loan check
+                    # refuses before any guest call or physical reader.
+                    core.inspect_journal_observation(None, None)
+        result = observer.summary()
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual([(r['stage'], r['event']) for r in result['stages']],
+                         [('journal-inspect', 'call'), ('journal-inspect', 'return')])
+        original = result['operations'][0]
+        for stage in result['stages']:
+            self.assertEqual((stage['core'], stage['scope'], stage['operation']),
+                             (original['core'], original['scope'], original['operation']))
+        self.assertEqual((store.sets, store.reads), (1, 4))
+
 
 class TaskRetirementSnapshotTests(unittest.TestCase):
     """Original Python worker/allowance timeline with explicit scalar FFI ports."""

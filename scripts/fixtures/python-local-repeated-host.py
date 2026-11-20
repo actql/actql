@@ -42,7 +42,9 @@ class _OrdinaryFuelObservation:
         self.operation_code = self.methods[0].__wrapped__.__code__
         self.finish_code, self.work_code = self.methods[1].__code__, self.methods[5].__code__
         self.exit_code = _GeneratorContextManager.__exit__.__code__
-        self.stage_codes = dict(zip((method.__code__ for method in self.methods[2:5]),
+        # These three code objects stay alive through the original methods.
+        # Never hash arbitrary unrelated f_code objects on the global profile path.
+        self.stage_codes = dict(zip((id(method.__code__) for method in self.methods[2:5]),
                                     ('accept', 'saved-admission', 'journal-inspect')))
         self.marker_code = write_event.__code__
         self.records, self.stages = [None] * self.MAX_OPERATIONS, [None] * self.MAX_STAGES
@@ -270,7 +272,7 @@ class _OrdinaryFuelObservation:
                         and arg.__name__ == '__exit__' and type(core) is self.core_type
                         and arg.__self__ is vars(core).get('_lock')):
                     self._lock_exit(frame, core)
-            elif code in self.stage_codes and event in ('call', 'return'):
+            elif id(code) in self.stage_codes and event in ('call', 'return'):
                 receiver = frame.f_locals.get('self')
                 core = receiver if type(receiver) is self.core_type else (
                     vars(receiver).get('_core') if type(receiver) is self.host_type else None)
@@ -284,7 +286,7 @@ class _OrdinaryFuelObservation:
                     if record is not None:
                         index = self.stage_used
                         self.stage_used += 1
-                        self.stages[index] = {'stage': self.stage_codes[code], 'event': event,
+                        self.stages[index] = {'stage': self.stage_codes[id(code)], 'event': event,
                             'core': record['core'], 'operation': record['operation'],
                             'scope': record['scope'], 'ordinal': self.ordinal,
                             'remaining': self._remaining(core, record)}
