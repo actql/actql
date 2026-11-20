@@ -4171,6 +4171,7 @@ fn compile_steps(
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
+              column_profiles~,
             )
             is Some(_)
           })
@@ -4186,6 +4187,7 @@ fn compile_steps(
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
+              column_profiles~,
             )
           }
           if @query.expression_node(
@@ -4259,6 +4261,7 @@ fn compile_steps(
           row_witness~,
           consumed_fields~,
           authored_aliases=positional_authored_aliases,
+          column_profiles~,
         )
         entries.push(("pivot", pivot))
         step_entries.push(entries)
