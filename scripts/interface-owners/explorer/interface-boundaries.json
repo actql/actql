@@ -6534,19 +6534,19 @@
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer/gateway-close.test.mjs",
+                "path": "packages/explorer/gateway-close.test.mts",
                 "anchor": "Closing presentation must not acknowledge an outstanding SDK call"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a refused server close retries only the same original listener"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a server close with an outstanding callback remains one pending attempt"
               },
               {
-                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a known socket close failure still retains the original outstanding SDK read"
               }
             ]

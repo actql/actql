@@ -440,3 +440,7 @@ target/
 
 /packages/explorer/build-assets.mjs
 /packages/explorer/build-assets.d.mts
+/packages/explorer/gateway-close.test.mjs
+/packages/explorer/gateway-close.test.d.mts
+/packages/explorer/gateway-server-close.test.mjs
+/packages/explorer/gateway-server-close.test.d.mts
