@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {writeFileSync} from 'node:fs';
 import {createLocalAuthorizationGate, observeInstalledAccount,
-  sourceReadAccountConfiguration} from './local-account-config.mjs';
+  readAccountConfiguration, sourceReadAccountConfiguration} from './local-account-config.mjs';
 
 const tuple = {connection: 'connection', resource: 'resource', operation: 'read'};
 const wire = sourceReadAccountConfiguration(tuple);
@@ -14,6 +14,22 @@ const fakeMoon = {
   executionAuthorizationAdmit: text => ({state: 'admitted', text}),
   executionAuthorizationMissing: () => ({state: 'missing'}),
 };
+
+test('reading Account configuration preserves original wire without issuing a Host CID', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-original-cid-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  const original = '{ "version": "actql-execution-account-config/0.1", "account_id": "operator", "entries": [] }';
+  await writeFile(path, original);
+  // This physical read supplies the original text and the Host context's
+  // account name. Only the subsequent Common admission owns canonical identity.
+  t.mock.method(String.prototype, 'normalize', () => {
+    assert.fail('The physical Account reader must not canonicalize configuration');
+  });
+  const actual = await readAccountConfiguration(path);
+  assert.deepEqual(actual, {path, text: original, accountId: 'operator'});
+  assert.equal(Object.isFrozen(actual), true);
+});
 
 test('the account observer allocates only the opened file length and growth sentinel', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-account-buffer-'));
