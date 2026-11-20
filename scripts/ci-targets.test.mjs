@@ -809,7 +809,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps.find(step => step.run).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
+  assert.equal(check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate')).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert.match(check.if, /always\(\)/u);
 });
 const head = 'b'.repeat(40);
@@ -1486,7 +1486,20 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   const eventPath = join(dir, 'event.json');
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
-  const script = jobs.check.steps.find(step => step.run).run;
+  const finalGate = jobs.check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate'));
+  const prepare = jobs.check.steps.find(step => step.run === 'npm ci');
+  const tools = jobs.check.steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert(finalGate && prepare);
+  assert.equal(tools.length, 1, 'The same pinned Node prepares and runs the final gate');
+  assert.equal(tools[0].with['node-version'], jobs['select-targets'].steps
+    .find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version']);
+  assert.equal(tools[0].if, undefined);
+  assert.equal(prepare.if, undefined, 'Failed selection still reaches the required gate');
+  assert.equal(prepare['continue-on-error'], undefined);
+  assert.equal(finalGate.if, undefined, 'Failed preparation cannot execute a stale gate');
+  assert(jobs.check.steps.indexOf(tools[0]) < jobs.check.steps.indexOf(prepare));
+  assert(jobs.check.steps.indexOf(prepare) < jobs.check.steps.indexOf(finalGate));
+  const script = finalGate.run;
   const run = (value, needs = results(selection)) => spawnSync('bash', ['-eo', 'pipefail', '-c', script
     .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
     .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs))], {cwd: new URL('../', import.meta.url),

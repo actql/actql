@@ -3068,6 +3068,13 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Set up pinned Node for the required gate and evidence consumers
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - name: Prepare original TypeScript gate inputs
+        run: npm ci
       - name: Require every selected integration obligation
         env:
           RESULTS_PATH: ${{ runner.temp }}/actql-ci-results.json
@@ -3080,11 +3087,6 @@ jobs:
           ${{ toJSON(needs) }}
           ACTQL_CI_RESULTS_JSON
           node scripts/ci-targets.mjs gate
-      - name: Set up pinned Node for the selected evidence consumer
-        if: ${{ needs.session-evidence.result == 'success' || needs.pipeline-evidence.result == 'success' }}
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
       - name: Authenticate all action receipts and the executed Lean certificate
         id: session-acceptance-check
         if: ${{ needs.session-evidence.result == 'success' }}
