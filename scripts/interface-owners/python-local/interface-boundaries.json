@@ -1,6 +1,6 @@
 {
-  "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "2b548dc0278f65d1bbfcc7f0944cbcd119df6eb8f351634f3e0f33244d85bdf7",
+  "source": "257930b273709f4fca49384a2d664b111d2a1568",
+  "syntaxProjectionSha256": "3513017f71de7cf211d764b34e2979a40c20db0a75f67fcd7333556e4be1faa2",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -93977,7 +93977,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "0e9092578e1b98a46dc556ffae17bbabc1008b65b14bedc25f0829a9adafb8fe",
+      "sha256": "749d4f38698ce7085787ac7319a89aec636a19168e65a968b697aa13b5fcb339",
       "exports": [],
       "operations": [
         {
@@ -93986,11 +93986,15 @@
         },
         {
           "name": "journal_decode_frame_capacity",
-          "declaration": "journal_decode_frame_capacity ( ) - > Int64 ?"
+          "declaration": "journal_decode_frame_capacity ( indexed ? : Bool"
         },
         {
           "name": "journal_decode_frame_current",
           "declaration": "journal_decode_frame_current ( value : Instance , child : StoredJournalObservation , frame : StoredJournalDecodeFrame , ) - > Bool"
+        },
+        {
+          "name": "journal_decode_index_probe",
+          "declaration": "journal_decode_index_probe ( index : FixedArray [ StoredJournalRunOriginal ? ] , key : String , ) - > ( Int , Int )"
         },
         {
           "name": "journal_decode_row_capacity",
@@ -94032,7 +94036,8 @@
             "journal_drop_observation",
             "journal_inspect_run_with_observation",
             "open_journal_decode_frame",
-            "settle_journal_decode_original"
+            "settle_journal_decode_original",
+            "journal_decode_index_probe"
           ],
           "exports": [],
           "attributes": {
@@ -94040,6 +94045,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### One-read outer Run decoding"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_index_probe("
               }
             ],
             "inputsOutputs": [
@@ -94052,12 +94061,20 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "fn journal_decode_frame_current("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "original.body == row.body &&"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
                 "anchor": "fn prepare_journal_observation_close("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "frame.index = None"
               }
             ],
             "synchronization": [
@@ -94094,6 +94111,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Same-frame typed observation originals"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_frame_capacity(indexed? : Bool = false)"
               }
             ],
             "extension": [
@@ -94114,6 +94135,14 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
                 "anchor": "test \"journal typed observation exact construction allowance admits and one-short refuses before restore\""
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal same-frame index probes distinct rows without re-decoding on exact repeat\""
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal same-frame index collision ceiling uses the complete decoder\""
               }
             ]
           }
