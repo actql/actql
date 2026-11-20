@@ -913,3 +913,5 @@ target/
 /scripts/release-project-node-action.d.mts
 /scripts/release-project-node-action.test.mjs
 /scripts/release-project-node-action.test.d.mts
+/scripts/release-project-sequences.mjs
+/scripts/release-project-sequences.d.mts
