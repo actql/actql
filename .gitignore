@@ -263,3 +263,7 @@ target/
 # Generated maintained normal configuration regression.
 /packages/provider-ai-sdk/normal-deadline-configuration.test.mjs
 /packages/provider-ai-sdk/normal-deadline-configuration.test.d.mts
+
+# Generated maintained original transport limit controls.
+/packages/provider-ai-sdk/original-undici-limits.test.mjs
+/packages/provider-ai-sdk/original-undici-limits.test.d.mts

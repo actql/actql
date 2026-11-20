@@ -5,7 +5,7 @@ import test from 'node:test';
 // Separate test process; count the original constructor without changing its
 // newTarget/layout. No invoke, TCP, SDK, Core grant or Store is exercised.
 const require = createRequire(new URL('./package.json', import.meta.url));
-const undici = require('undici');
+const undici = require('undici') as typeof import('undici');
 const OriginalClient = undici.Client;
 let constructions = 0;
 undici.Client = new Proxy(OriginalClient, {
@@ -14,7 +14,7 @@ undici.Client = new Proxy(OriginalClient, {
     return Reflect.construct(target, args, target);
   },
 });
-let physical;
+let physical!: typeof import('./_internal/original-undici-transport.mjs');
 try {
   physical = await import('./_internal/original-undici-transport.mjs');
 } finally { undici.Client = OriginalClient; }
@@ -25,7 +25,7 @@ const responseLimits = {maxBytes: 2048, maxChunkBytes: 512, maxChunks: 16,
 const create = () => physical.createOriginalUndiciFetch({endpoint,
   requestLimits: {maxBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16}, responseLimits,
   physicalAcquisitionLimits: {maxPlaintextBytes: 65536, maxBorrowedBackingBytes: 131072, maxReads: 64}});
-const prepare = (fetch, limits) => physical.prepareOriginalUndiciFetch(fetch, endpoint,
+const prepare = (fetch: Parameters<typeof physical.prepareOriginalUndiciFetch>[0], limits: Parameters<typeof physical.prepareOriginalUndiciFetch>[3]) => physical.prepareOriginalUndiciFetch(fetch, endpoint,
   {method: 'POST', body: '{}', headers: [], redirect: 'error',
     signal: new AbortController().signal}, limits);
 
@@ -33,7 +33,7 @@ test('each original response scalar mismatch refuses before Client construction'
   const fetch = create();
   const before = constructions;
   for (const [name, value] of [['maxBytes', 2049], ['maxChunkBytes', 511],
-    ['maxChunks', 17], ['maxHeaderBytes', 129]]) {
+    ['maxChunks', 17], ['maxHeaderBytes', 129]] as const) {
     assert.throws(() => prepare(fetch, {...responseLimits, [name]: value}),
       {code: 'UndiciOriginalRequestMismatch'});
     assert.equal(constructions, before);
@@ -58,10 +58,10 @@ test('equivalent original declarations prepare one Client and settle unstarted c
     observedHeaders: [...responseLimits.observedHeaders]});
   try {
     assert.equal(constructions, before + 1);
-    assert.equal(typeof call.invoke, 'function');
+    assert.equal(typeof call!.invoke, 'function');
   } finally {
-    assert.equal(await call.cleanup(), true);
-    assert.equal(await call.cleanup(), true);
+    assert.equal(await call!.cleanup(), true);
+    assert.equal(await call!.cleanup(), true);
   }
   assert.equal(constructions, before + 1);
 });
