@@ -233,6 +233,62 @@ def accept_installed_cancellation(run, consumer: Path, destination: Path,
             previous_pid = observed['pid']
 
 
+def require_installed_fuel_fault(observed, phase: str, previous_pid: int | None) -> None:
+    """Require the explicit negative control, never a normal-budget override."""
+    if (type(observed) is not dict or observed.get('phase') != phase
+            or type(observed.get('pid')) is not int or observed['pid'] <= 0
+            or observed['pid'] == previous_pid or observed.get('firstClose') is not True
+            or observed.get('replayed') is not False):
+        raise ValueError('Incomplete installed fuel-stop control')
+    if phase == 'initial':
+        if (observed.get('intentionalFuel') != 1_000
+                or observed.get('defaultFuel') != 64_000_000_000
+                or type(observed.get('actualAttempts')) is not int or observed['actualAttempts'] != 1
+                or any(observed.get(key) is not True for key in ('outOfFuel', 'normalFenced', 'sameStore'))):
+            raise ValueError('Incomplete installed original fuel exhaustion')
+    elif phase != 'resume' or any(observed.get(key) is not True for key in ('sameSaved', 'failedAdmissionAbsent')):
+        raise ValueError('Incomplete installed fuel-stop Saved recovery')
+
+
+def accept_installed_fuel(run, consumer: Path, destination: Path,
+                          source: str, cohort, env: dict[str, str]) -> None:
+    """One changed-default regression and one deliberate fail-closed operation.
+
+    The pending-history case is explicitly a private-parent-retirement fixture,
+    separate from ordinary repeated public Runs. Forty crosses the former
+    37-admission failure; it is not a general history/performance threshold.
+    """
+    for name in ('python-local-sdk-current-history.py', 'ci-python-installed-fuel.py'):
+        shutil.copyfile(ROOT / 'scripts/fixtures' / name, destination / name)
+    work = destination / 'fuel-default'
+    work.mkdir()
+    raw = run('installed-default-fuel-admission', [consumer, '-I', '-B',
+        destination / 'python-local-sdk-current-history.py', '--installed', source,
+        work, 'pending:40'], cwd=work, env=env, timeout=900)
+    observed = json.loads(raw.splitlines()[-1])
+    histories = observed.get('histories')
+    if (observed.get('fuelMode', {}).get('sourceDeclaredLimit') != 64_000_000_000
+            or observed.get('installedCohort', {}).get('sourceSha') != source
+            or observed.get('installedCohort', {}).get('moduleSha256') != cohort['module_sha256']
+            or observed.get('installedCohort', {}).get('imageSha256') != cohort['image_sha256']
+            or type(histories) is not list or len(histories) != 1
+            or histories[0].get('acceptedPendingHistory') != 40
+            or histories[0].get('retiredPendingParentLoans') != 40
+            or histories[0].get('firstCloseReturned') is not True
+            or histories[0].get('cleanupFailures') != []):
+        raise ValueError('Incomplete installed default-fuel admission')
+    work = destination / 'fuel-stop'
+    work.mkdir()
+    previous_pid = None
+    for phase in ('initial', 'resume'):
+        observed = json.loads(run('installed-fuel-stop-' + phase, [consumer, '-I', '-B',
+            destination / 'ci-python-installed-fuel.py', '--phase', phase,
+            '--state', work / 'state', '--receipt', work / 'original.json'],
+            cwd=work, env=env, timeout=180))
+        require_installed_fuel_fault(observed, phase, previous_pid)
+        previous_pid = observed['pid']
+
+
 def require_closed_task_drive(observed) -> None:
     """Require the existing installed initial case's same-Core call witness."""
     witness = observed.get('closed_task_drive') if type(observed) is dict else None
@@ -349,6 +405,7 @@ def run_acceptance(destination: Path) -> None:
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     accept_installed_cancellation(run, consumer, destination, version, env)
+    accept_installed_fuel(run, consumer, destination, source, cohort, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()

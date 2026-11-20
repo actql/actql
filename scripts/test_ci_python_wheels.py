@@ -23,6 +23,60 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class InstalledFuelControlTests(unittest.TestCase):
+    def initial(self):
+        return {'phase': 'initial', 'pid': 41, 'firstClose': True, 'replayed': False,
+                'intentionalFuel': 1_000, 'defaultFuel': 64_000_000_000,
+                'actualAttempts': 1, 'outOfFuel': True, 'normalFenced': True, 'sameStore': True}
+
+    def test_original_stop_and_distinct_process_saved_are_required(self):
+        ci.require_installed_fuel_fault(self.initial(), 'initial', None)
+        saved = {'phase': 'resume', 'pid': 42, 'firstClose': True, 'replayed': False,
+                 'sameSaved': True, 'failedAdmissionAbsent': True}
+        ci.require_installed_fuel_fault(saved, 'resume', 41)
+        with self.assertRaises(ValueError):
+            ci.require_installed_fuel_fault(saved | {'pid': 41}, 'resume', 41)
+
+    def test_replay_and_pending_close_cannot_report_fuel_acceptance(self):
+        for changed in ({'actualAttempts': 2}, {'firstClose': False}, {'replayed': True},
+                        {'sameStore': False}, {'normalFenced': False}, {'outOfFuel': False}):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                ci.require_installed_fuel_fault(self.initial() | changed, 'initial', None)
+
+    def test_test_budget_cannot_be_reported_as_the_product_default(self):
+        with self.assertRaises(ValueError):
+            ci.require_installed_fuel_fault(self.initial() | {'defaultFuel': 1_000}, 'initial', None)
+
+    def test_same_cohort_default_case_precedes_distinct_stop_and_saved_processes(self):
+        cohort = {'module_sha256': 'b' * 64, 'image_sha256': 'c' * 64}
+        history = {'acceptedPendingHistory': 40, 'retiredPendingParentLoans': 40,
+                   'firstCloseReturned': True, 'cleanupFailures': []}
+        normal = {'fuelMode': {'sourceDeclaredLimit': 64_000_000_000},
+                  'installedCohort': {'sourceSha': 'a' * 40, 'moduleSha256': 'b' * 64,
+                                      'imageSha256': 'c' * 64}, 'histories': [history]}
+        saved = {'phase': 'resume', 'pid': 42, 'firstClose': True, 'replayed': False,
+                 'sameSaved': True, 'failedAdmissionAbsent': True}
+        calls = []
+        def run(name, args, **options):
+            calls.append((name, args, options))
+            value = (normal, self.initial(), saved)[len(calls) - 1]
+            return json.dumps(value)
+        with tempfile.TemporaryDirectory() as tmp:
+            ci.accept_installed_fuel(run, Path('/consumer/python'), Path(tmp), 'a' * 40, cohort, {'ORIGINAL': 'env'})
+        self.assertEqual([name for name, _, _ in calls], ['installed-default-fuel-admission',
+                         'installed-fuel-stop-initial', 'installed-fuel-stop-resume'])
+        self.assertTrue(all(args[0] == Path('/consumer/python') for _, args, _ in calls))
+        self.assertTrue(all(options['env'] == {'ORIGINAL': 'env'} for _, _, options in calls))
+        self.assertTrue(all('--expected-default-fuel' not in args for _, args, _ in calls))
+        self.assertEqual(calls[0][1][-1], 'pending:40')
+        for change in ({'acceptedPendingHistory': 39}, {'firstCloseReturned': False}, {'cleanupFailures': ['pending']}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                bad = normal | {'histories': [history | change]}
+                with self.assertRaises(ValueError):
+                    ci.accept_installed_fuel(lambda *a, **k: json.dumps(bad), Path('/consumer/python'),
+                                             Path(tmp), 'a' * 40, cohort, {})
+
+
 class OrchestrationTests(unittest.TestCase):
     def test_transient_release_rejection_retries_same_pinned_get(self):
         error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)

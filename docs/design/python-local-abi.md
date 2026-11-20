@@ -3508,8 +3508,18 @@ Client wire fields and the frozen excluded Rust projection are unchanged.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
-outer Host operation has a finite 32,000,000,000-instruction allowance so that
+outer Host operation has a finite 64,000,000,000-instruction allowance so that
 bounded preparation, saved-original validation and admission share one budget.
+This is an ActQL execution policy, not a Wasmtime default or a language limit.
+Successful installed measurements with one and ten unrelated pending admissions
+used approximately 1.49B and 9.34B instructions through target admission;
+saved-admission inspection accounted for approximately 0.12B and 0.51B. The
+former 32B ceiling could exhaust during a larger finite admission, before its
+target began. The 64B default provides bounded headroom for that complete unit;
+it does not promise every valid input or history fits. Pending-history fixtures
+retire private parents and are distinct from ordinary repeated public Runs.
+The larger ceiling does not remove the measured history-dependent admission
+work, most of which occurred before the final saved-admission inspection.
 Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
 not capacity reservations, permission or a guarantee that every input fits.

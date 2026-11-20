@@ -11,6 +11,28 @@ from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalHostFuelTests(unittest.TestCase):
+    def test_installed_negative_control_reads_the_original_c_api_fuel_code(self):
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).with_name('fixtures') / 'ci-python-installed-fuel.py'
+        spec = importlib.util.spec_from_file_location('installed_fuel_control', path)
+        fixture = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fixture)
+        core = self.core()
+        with self.assertRaises(wasmtime.Trap) as caught:
+            with core._host_operation():
+                core._store.set_fuel(1_000)
+                core._call('probe', 'exhaust')
+        self.assertEqual(fixture.fuel_trap_code(caught.exception), 12)
+        # An unrelated real trap must not pass the fuel classification.
+        other = self.core('''(module
+          (func (export "actql_probe_exhaust") (param i64) (result i32) unreachable))''')
+        with self.assertRaises(wasmtime.Trap) as unrelated:
+            with other._host_operation():
+                other._call('probe', 'exhaust')
+        with self.assertRaises(AssertionError):
+            fixture.fuel_trap_code(unrelated.exception)
+
     def core(self, wat=None, imports=()):
         config = wasmtime.Config()
         config.consume_fuel = True

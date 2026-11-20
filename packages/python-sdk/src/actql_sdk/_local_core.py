@@ -30,7 +30,9 @@ from ._local_native_holding import _NativeHoldingLease
 from ._local_work import OriginalLocalWork
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
-_NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
+# Full admission revalidates saved originals within this one finite operation.
+# This product ceiling includes that work; private ABI calls never refill it.
+_NORMAL_HOST_OPERATION_FUEL = 64_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 

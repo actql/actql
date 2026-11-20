@@ -661,7 +661,7 @@ async def main():
     pending = phase is not None or selection is not None and (selection == 'pending' or selection.startswith('pending:'))
     sizes = [100] if phase is not None else [0] if fault is not None else [1, 10, 100] if selection in (None, 'pending') else [
         int(selection[10:] if persisted else selection[8:] if pending else selection)]
-    assert fault is not None or all(size in (1, 10, 100) for size in sizes)
+    assert fault is not None or all(size in (1, 10, 40, 100) for size in sizes)
     observations = []
     with resolver:
         for size in sizes:
