@@ -662,3 +662,6 @@ target/
 
 /scripts/connector-build-inputs.test.mjs
 /scripts/connector-build-inputs.test.d.mts
+
+/adapters/host-node/installation.mjs
+/adapters/host-node/installation.d.mts

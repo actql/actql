@@ -56211,8 +56211,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -56225,8 +56225,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56239,8 +56239,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -56253,8 +56253,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56267,8 +56267,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -56281,7 +56281,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "if (!Object.hasOwn(descriptor, 'value')) throw new TypeError('Configuration handles must be data properties');"
               },
               {
@@ -56295,8 +56295,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export async function installSelectedContributions(loaders, moon, setup, checked, options, signal) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export async function installSelectedContributions<M extends StrategyRuntime, S, C>(\n  loaders: ReadonlyMap<unknown, () => unknown>, moon: M, setup: S, checked: C,\n  options?: unknown, signal?: Pick<AbortSignal, 'throwIfAborted'>,\n) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56309,7 +56309,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "if (!keys || new Set(keys).size !== keys.length || keys.some(key => !loaders.has(key))) {"
               },
               {
@@ -56323,8 +56323,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export async function installSelectedContributions(loaders, moon, setup, checked, options, signal) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export async function installSelectedContributions<M extends StrategyRuntime, S, C>(\n  loaders: ReadonlyMap<unknown, () => unknown>, moon: M, setup: S, checked: C,\n  options?: unknown, signal?: Pick<AbortSignal, 'throwIfAborted'>,\n) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -56355,8 +56355,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -56369,8 +56369,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56383,8 +56383,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -56397,8 +56397,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56411,8 +56411,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export function snapshotConfigurations(options = {}) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export function snapshotConfigurations(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -56425,7 +56425,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "if (!Object.hasOwn(descriptor, 'value')) throw new TypeError('Configuration handles must be data properties');"
               },
               {
@@ -56439,8 +56439,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export async function installSelectedContributions(loaders, moon, setup, checked, options, signal) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export async function installSelectedContributions<M extends StrategyRuntime, S, C>(\n  loaders: ReadonlyMap<unknown, () => unknown>, moon: M, setup: S, checked: C,\n  options?: unknown, signal?: Pick<AbortSignal, 'throwIfAborted'>,\n) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56453,7 +56453,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "if (!keys || new Set(keys).size !== keys.length || keys.some(key => !loaders.has(key))) {"
               },
               {
@@ -56467,8 +56467,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installation.mjs",
-                "anchor": "export async function installSelectedContributions(loaders, moon, setup, checked, options, signal) {"
+                "path": "adapters/host-node/installation.mts",
+                "anchor": "export async function installSelectedContributions<M extends StrategyRuntime, S, C>(\n  loaders: ReadonlyMap<unknown, () => unknown>, moon: M, setup: S, checked: C,\n  options?: unknown, signal?: Pick<AbortSignal, 'throwIfAborted'>,\n) {"
               },
               {
                 "path": "docs/design/connector-layout.md",

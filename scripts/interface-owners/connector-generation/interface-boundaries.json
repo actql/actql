@@ -324,7 +324,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -366,7 +366,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -424,7 +424,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -482,7 +482,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -532,7 +532,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -586,7 +586,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -640,7 +640,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -686,7 +686,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -744,7 +744,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -943,7 +943,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -965,7 +965,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -987,7 +987,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1009,7 +1009,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1031,7 +1031,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1053,7 +1053,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1075,7 +1075,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1097,7 +1097,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1119,7 +1119,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1204,7 +1204,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1226,7 +1226,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1248,7 +1248,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1270,7 +1270,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1292,7 +1292,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1314,7 +1314,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1336,7 +1336,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1358,7 +1358,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
@@ -1380,7 +1380,7 @@
                 "anchor": "export function checkNodeAssembly"
               },
               {
-                "path": "adapters/host-node/installation.mjs",
+                "path": "adapters/host-node/installation.mts",
                 "anchor": "export async function installSelectedContributions"
               },
               {
