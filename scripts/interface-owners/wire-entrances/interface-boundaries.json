@@ -17339,13 +17339,21 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire-js.mjs",
-      "sha256": "0586d583edfefde71529698b75601673be8392d633cfd1e124bd140253397597",
+      "sha256": "45b4a0e60a86c99703391eb13e2f1746758b880d380b2d487858dbf6f1a32b9c",
       "exports": [
-        "checkpointAnswerJavaScriptSource"
+        "checkpointAnswerJavaScriptSource",
+        "checkpointAnswerTypeScriptSource"
       ],
       "operations": [
         {
           "name": "checkpointAnswerJavaScriptSource",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerTypeScriptSource",
           "parameters": [
             "contract"
           ],
@@ -17365,10 +17373,12 @@
         {
           "operations": [
             "<module>",
-            "checkpointAnswerJavaScriptSource"
+            "checkpointAnswerJavaScriptSource",
+            "checkpointAnswerTypeScriptSource"
           ],
           "exports": [
-            "checkpointAnswerJavaScriptSource"
+            "checkpointAnswerJavaScriptSource",
+            "checkpointAnswerTypeScriptSource"
           ],
           "attributes": {
             "responsibility": [
@@ -17494,7 +17504,8 @@
             ]
           }
         }
-      ]
+      ],
+      "privateOperations": []
     },
     {
       "module": "scripts/checkpoint-answer-wire-python.mjs",
@@ -17655,7 +17666,7 @@
     },
     {
       "module": "scripts/generate-client-host-wire.mjs",
-      "sha256": "976affbf89e67407bc2bcfbbf0e4a66ab59edd01f142f60d840e66bec729cfad",
+      "sha256": "f90a0b9b62f07cf9a4ecfd74a335d030f8016d05da6245970050bf0bf4335f0d",
       "exports": [
         "buildClientHostWire",
         "nativeProgramSchema",
@@ -17780,6 +17791,11 @@
           "async": false
         },
         {
+          "name": "main",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "nativeProgramSchema",
           "parameters": [
             "protocol"
@@ -17790,6 +17806,13 @@
           "name": "projectClientHostOptionalFields",
           "parameters": [
             "registry"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/canonical/canonical",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -17885,8 +17908,10 @@
             "buildClientHostWire/types/types#2",
             "buildClientHostWire/types/types#3",
             "buildClientHostWire/types/types#4",
+            "main",
             "nativeProgramSchema",
             "projectClientHostOptionalFields",
+            "projectClientHostOptionalFields/canonical/canonical",
             "projectClientHostOptionalFields/canonical/canonical/canonical",
             "projectClientHostOptionalFields/expected/expected",
             "projectClientHostOptionalFields/projectClientHostOptionalFields",
@@ -17976,6 +18001,10 @@
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "main",
+        "projectClientHostOptionalFields/canonical/canonical"
       ]
     },
     {
