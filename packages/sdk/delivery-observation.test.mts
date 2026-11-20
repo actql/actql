@@ -1,12 +1,14 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, Client, DeliveryObservationExplanation, ReadOptions, Reader, Result, StandardSchemaV1} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {connectInProcess} from './host-port.mjs';
 import {explainDeliveryAttempt, formatDeliveryAttempt} from './index.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
-const found = JSON.parse(readFileSync(new URL('../client-wire/fixtures/delivery-attempt.found.json', import.meta.url), 'utf8'));
+const found = JSON.parse(readFileSync(new URL('../client-wire/fixtures/delivery-attempt.found.json', import.meta.url), 'utf8')) as {attempt: Record<string, unknown>; record: Record<string, unknown>; hostReleaseReceipt: unknown};
 
 // Fixed wire fixtures test the SDK admission/projection boundary, not an Owner
 // transition. Actual submitted Run/Delivery cases live in the Host acceptance.
@@ -25,7 +27,7 @@ for (const [state, observation] of [['streaming', 'delivery_streaming'], ['faile
         reply.record.cleanup_owner_cids = [cid('7')];
       }
     }
-    const operations = [];
+    const operations: string[] = [];
     const client = await connectInProcess({mode: 'local', owner: 'local'}, {
       async perform(operation) {
         operations.push(operation);
@@ -41,7 +43,10 @@ for (const [state, observation] of [['streaming', 'delivery_streaming'], ['faile
     });
     t.after(() => client.close());
     const lookup = await (await client.attach(ref)).result('answer').deliveryAttempt('read-a');
-    const explanation = explainDeliveryAttempt(lookup);
+    const explanation = explainDeliveryAttempt(lookup) as DeliveryObservationExplanation & {
+      recordSequence: number; hostConfirmedByteCount: number; exposure: string; cleanup?: string;
+      possibleUnconfirmedMaxBytes?: number; hostReleaseReceiptCid?: string; deliveredSha256?: string;
+    };
     assert.equal(explanation.observation, observation, '[check-mutation:delivery-observation-classification]');
     assert.equal(explanation.recordSequence, 0);
     assert.equal(explanation.hostConfirmedByteCount, 17);
@@ -56,7 +61,7 @@ for (const [state, observation] of [['streaming', 'delivery_streaming'], ['faile
     assert.equal(Object.hasOwn(explanation, 'cleanupComplete'), false);
     assert.equal(Object.hasOwn(explanation, 'applicationPersisted'), false);
     const before = [...operations];
-    for (const format of ['text', 'html', 'json']) {
+    for (const format of ['text', 'html', 'json'] as const) {
       assert.ok(formatDeliveryAttempt(lookup, {format}));
     }
     assert.deepEqual(operations, before);

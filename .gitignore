@@ -164,3 +164,15 @@ target/
 /packages/sdk/connection-start-order.test.d.mts
 /packages/sdk/query-single-result.test.mjs
 /packages/sdk/query-single-result.test.d.mts
+
+# Generated maintained Result delivery and accounting regressions.
+/packages/sdk/batch-row-accounting.test.mjs
+/packages/sdk/batch-row-accounting.test.d.mts
+/packages/sdk/typed-result-capture.test.mjs
+/packages/sdk/typed-result-capture.test.d.mts
+/packages/sdk/delivery-observation.test.mjs
+/packages/sdk/delivery-observation.test.d.mts
+/packages/sdk/delivery-lookup-failure.test.mjs
+/packages/sdk/delivery-lookup-failure.test.d.mts
+/packages/sdk/read-progress.test.mjs
+/packages/sdk/read-progress.test.d.mts

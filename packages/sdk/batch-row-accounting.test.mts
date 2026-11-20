@@ -1,24 +1,26 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, Client, DeliveryObservationExplanation, ReadOptions, Reader, Result, StandardSchemaV1} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {connect} from './index.mjs';
 import {submissionEpoch} from './submission-fixture.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'batch-accounting', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const limits = {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
   maxRowRetainedValueBytes: 2048, maxRetainedValueBytes: 4096,
   maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 2048};
 const values = [{batch_marker: 'one', n: 1}, {batch_marker: 'two', n: 2}, {batch_marker: 'three', n: 3}];
 
-async function fixture(t, mode = 'local') {
+async function fixture(t: TestContext, mode: 'local' | 'remote' = 'local') {
   let reads = 0, returns = 0, closes = 0;
   const profile = {version: 'actql-client-host/0.1', mode, owner: mode,
     durability: mode === 'local' ? 'volatile' : 'durable', scopeRef: 'batch-accounting',
     capabilities: [], limits, ...(mode === 'local' ? {submissionEpoch} : {})};
   const admission = {ref, durability: profile.durability, revision: 1};
   const wire = values.map(value => JSON.stringify(value)).join('\n') + '\n\x1e';
-  let client;
+  let client: Client;
   if (mode === 'local') {
     client = await connectInProcess({mode, owner: mode}, {async perform(operation) {
       if (operation === 'connect') return profile;
@@ -30,7 +32,7 @@ async function fixture(t, mode = 'local') {
       })()};
     }});
   } else {
-    t.mock.method(globalThis, 'fetch', async url => {
+    t.mock.method(globalThis, 'fetch', async (url: URL) => {
       const operation = url.pathname.split('/').at(-1);
       if (operation === 'connect') return Response.json(profile);
       if (operation === 'attach') return Response.json(admission);
@@ -42,12 +44,12 @@ async function fixture(t, mode = 'local') {
   return {result: (await client.attach(ref)).result('answer'), counts: () => ({reads, returns, closes})};
 }
 
-for (const mode of ['local', 'remote']) {
+for (const mode of ['local', 'remote'] as const) {
   test(`${mode} batches account each unchanged row once`, async t => {
-    const f = await fixture(t, mode), original = JSON.stringify, counts = new Map();
-    t.mock.method(JSON, 'stringify', function (value, ...args) {
+    const f = await fixture(t, mode), original = JSON.stringify, counts = new Map<unknown, number>();
+    t.mock.method(JSON, 'stringify', function (this: typeof JSON, value: unknown, ...args: unknown[]) {
       if (value !== null && typeof value === 'object' && Object.hasOwn(value, 'batch_marker')) {
-        counts.set(value.batch_marker, (counts.get(value.batch_marker) ?? 0) + 1);
+        counts.set((value as {batch_marker: unknown}).batch_marker, (counts.get((value as {batch_marker: unknown}).batch_marker) ?? 0) + 1);
       }
       return Reflect.apply(original, this, [value, ...args]);
     });
@@ -73,8 +75,8 @@ test('batch ceilings use their first captured option values', async t => {
 
 test('application-transformed rows retain independent batch-size admission', async t => {
   const f = await fixture(t); let validations = 0;
-  const reader = f.result.batches({'~standard': {version: 1, vendor: 'batch-accounting',
+  const reader = (f.result.batches as (schema: StandardSchemaV1) => Reader<unknown[]>)({'~standard': {version: 1, vendor: 'batch-accounting',
     validate() {validations++; return {value: {expanded: 'x'.repeat(4096)}};}}});
-  await assert.rejects(Array.fromAsync(reader), error => error.code === 'ResultBatchLimit' && error.rowsYielded === 0);
+  await assert.rejects(Array.fromAsync(reader), error => (error as SdkFailure).code === 'ResultBatchLimit' && (error as SdkFailure).rowsYielded === 0);
   assert.equal(validations, 1); assert.deepEqual(f.counts(), {reads: 1, returns: 1, closes: 1});
 });

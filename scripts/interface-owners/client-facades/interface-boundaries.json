@@ -11484,7 +11484,7 @@
                 "anchor": "the admitted capture is consumed without a second capture pass"
               },
               {
-                "path": "packages/sdk/query-single-result.test.mjs",
+                "path": "packages/sdk/query-single-result.test.mts",
                 "anchor": "await assert.rejects(target[method](options), {code});"
               },
               {
@@ -11618,19 +11618,19 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/read-progress.test.mjs",
+                "path": "packages/sdk/read-progress.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "path": "packages/sdk/typed-result-capture.test.mts",
                 "anchor": "one typed Result frame captures borrowed fields and its row once"
               },
               {
-                "path": "packages/sdk/batch-row-accounting.test.mjs",
+                "path": "packages/sdk/batch-row-accounting.test.mts",
                 "anchor": "batches account each unchanged row once"
               },
               {
-                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "path": "packages/sdk/typed-result-capture.test.mts",
                 "anchor": "HTTP Result rows reject invalid values and decoded duplicate keys"
               }
             ]
@@ -12106,7 +12106,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/run-control-revisions.test.mjs",
+                "path": "packages/sdk/run-control-revisions.test.mts",
                 "anchor": "test("
               },
               {
@@ -14957,7 +14957,7 @@
                 "anchor": "the admitted capture is consumed without a second capture pass"
               },
               {
-                "path": "packages/sdk/query-single-result.test.mjs",
+                "path": "packages/sdk/query-single-result.test.mts",
                 "anchor": "await assert.rejects(target[method](options), {code});"
               }
             ]
