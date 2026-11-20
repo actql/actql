@@ -707,3 +707,9 @@ target/
 
 /scripts/package-release.mjs
 /scripts/package-release.d.mts
+
+# Emitted from the authored TypeScript package-image builder.
+/scripts/initial-control-package-images.mjs
+/scripts/initial-control-package-images.d.mts
+/scripts/initial-control-package-images.test.mjs
+/scripts/initial-control-package-images.test.d.mts

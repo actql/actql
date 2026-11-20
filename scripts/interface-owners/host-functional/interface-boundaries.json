@@ -55489,7 +55489,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "export function renderInitialControlPackageOriginal"
               },
               {
@@ -55503,7 +55503,7 @@
             ],
             "identity": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "const images = new Map(outputs);"
               },
               {
@@ -55541,7 +55541,7 @@
             ],
             "failure": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "if (inputs.buildInputs !== undefined) return absent;"
               },
               {
@@ -55561,7 +55561,7 @@
             ],
             "resources": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "sourceBytes: facts.reduce"
               },
               {
@@ -55585,11 +55585,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/initial-control-package-images.test.mjs",
+                "path": "scripts/initial-control-package-images.test.mts",
                 "anchor": "unprepared optional SDK coverage does not discard"
               },
               {
-                "path": "scripts/initial-control-package-images.test.mjs",
+                "path": "scripts/initial-control-package-images.test.mts",
                 "anchor": "an aliased runtime ancestor cannot be mistaken"
               },
               {
@@ -55621,7 +55621,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "export function renderInitialControlPackageOriginal"
               },
               {
@@ -55635,7 +55635,7 @@
             ],
             "identity": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "const images = new Map(outputs);"
               },
               {
@@ -55673,7 +55673,7 @@
             ],
             "failure": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "if (inputs.buildInputs !== undefined) return absent;"
               },
               {
@@ -55693,7 +55693,7 @@
             ],
             "resources": [
               {
-                "path": "scripts/initial-control-package-images.mjs",
+                "path": "scripts/initial-control-package-images.mts",
                 "anchor": "sourceBytes: facts.reduce"
               },
               {
@@ -55717,11 +55717,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/initial-control-package-images.test.mjs",
+                "path": "scripts/initial-control-package-images.test.mts",
                 "anchor": "unprepared optional SDK coverage does not discard"
               },
               {
-                "path": "scripts/initial-control-package-images.test.mjs",
+                "path": "scripts/initial-control-package-images.test.mts",
                 "anchor": "an aliased runtime ancestor cannot be mistaken"
               },
               {

@@ -8,11 +8,29 @@ import test from 'node:test';
 import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
   from './initial-control-package-images.mjs';
 
-const sha = value => createHash('sha256').update(value).digest('hex');
-function fixture(t) {
+import type {TestContext} from 'node:test';
+import type {BinaryLike} from 'node:crypto';
+
+type RenderOptions = Parameters<typeof renderInitialControlPackageOriginal>[0];
+type Fact = {path: string; bytes: number; sha256: string};
+type Dependency = {name: string; package: number; local?: boolean};
+type Engine = {node: string; v8: string; openssl: string; platform: string; arch: string;
+  libraries: Record<string, string>; eager: boolean};
+// Unchecked generated DATA read by the original independent fixture assertions.
+type Inventory = {images: Fact[]; nativeImages: Fact[];
+  packages: {name: string; images: Fact[]}[]; dependencies: Dependency[];
+  publicNode: {name: string; images: Fact[]; dependencies: Dependency[]};
+  publicNodeCoverage: string; optionalSdkCoverage: string; optionalSdk: unknown;
+  localPublicModule: string; hostModule: string; hostValidator: string;
+  sourceBytes: number; engine: Engine; ordinaryEngine: Engine;
+  engineProfiles: {engine: Engine; ordinaryEngine: Engine}[]};
+type Fixture = ReturnType<typeof fixture>;
+
+const sha = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-initial-control-image-'));
   t.after(() => rmSync(root, {recursive: true}));
-  const put = (path, bytes) => {
+  const put = (path: string, bytes: string | Uint8Array) => {
     const selected = join(root, path);
     mkdirSync(dirname(selected), {recursive: true});
     writeFileSync(selected, bytes);
@@ -25,7 +43,7 @@ function fixture(t) {
   put('packages/local-node/index.mjs', 'export const selected = "original-local-entry";\n');
   put('packages/local-node/selected-infer-startup.cjs', "module.exports = Object.freeze({});\n");
   for (const [name, source] of [['sdk', 'export const sdk = "original-sdk";\n'],
-    ['client-wire', 'export const wire = "original-wire";\n']]) {
+    ['client-wire', 'export const wire = "original-wire";\n']] as const) {
     put(`packages/${name}/package.json`, JSON.stringify({name: '@actql/' + name,
       version: '0.0.0-development', type: 'module', files: ['index.mjs'], exports: './index.mjs',
       ...(name === 'sdk' ? {dependencies: {'@actql/client-wire': '0.0.0-development'}} : {})}));
@@ -36,22 +54,22 @@ function fixture(t) {
   const runtimePath = 'common/common.js';
   put('packages/local-node/_build/js/release/build/' + runtimePath,
     'export const common = "independent-runtime-fixture";\n');
-  const inputs = {runtimeFiles: [runtimePath]};
+  const inputs: RenderOptions['inputs'] = {runtimeFiles: [runtimePath]};
   const absent = Buffer.from("'use strict';\nmodule.exports = Object.freeze({imageInventory:undefined});\n");
   const outputs = new Map([[initialControlPackageOriginal, absent],
     ['adapters/host-node/embedded-local.mjs', Buffer.from('export function originalHost() {}\n')],
     ['spec/selected.json', Buffer.from('{"original":"exact-data"}\n')]]);
-  const options = {root, destination, inputs, outputs};
+  const options: Omit<RenderOptions, 'nativeOutputs' | 'outputs'> & {outputs: Map<string, Buffer>; nativeOutputs?: Map<string, Buffer>} = {root, destination, inputs, outputs};
   const render = () => renderInitialControlPackageOriginal(options);
-  const read = bytes => {
-    const module = {exports: undefined};
+  const read = (bytes: Buffer) => {
+    const module: {exports?: {imageInventory: Inventory}} = {exports: undefined};
     runInNewContext(bytes.toString('utf8'), {module});
-    return JSON.parse(JSON.stringify(module.exports.imageInventory));
+    return JSON.parse(JSON.stringify(module.exports!.imageInventory)) as Inventory;
   };
   return {root, destination, put, inputs, outputs, absent, options, render, read};
 }
 
-function addPublicNode(f, dependencies = {'@actql/local-node': '0.0.0-development',
+function addPublicNode(f: Fixture, dependencies: Record<string, string> = {'@actql/local-node': '0.0.0-development',
   '@actql/sdk': '0.0.0-development'}) {
   f.put('packages/node/package.json', JSON.stringify({name: '@actql/node',
     version: '0.0.0-development', type: 'module', exports: './index.mjs',
@@ -69,11 +87,11 @@ test('the public Node facade has distinct Source facts and the same Local depend
   assert.equal(value.localPublicModule, 'index.mjs');
   assert.equal(value.publicNodeCoverage, 'prepared');
   assert.equal(value.publicNode.name, '@actql/node');
-  assert.equal(value.publicNode.images.find(item => item.path === 'index.mjs').sha256,
+  assert.equal(value.publicNode.images.find(item => item.path === 'index.mjs')!.sha256,
     sha('export const facade = "original-node-facade";\n'));
   assert.deepEqual(value.publicNode.dependencies.find(item => item.name === '@actql/local-node'),
     {name: '@actql/local-node', local: true});
-  assert.equal(value.packages[value.publicNode.dependencies.find(item => item.name === '@actql/sdk').package].name,
+  assert.equal(value.packages[value.publicNode.dependencies.find(item => item.name === '@actql/sdk')!.package].name,
     '@actql/sdk');
   assert.equal(value.images.some(item => item.sha256 === value.publicNode.images[0].sha256), false);
   assert.equal(f.render().includes(Buffer.from(f.root)), false);
@@ -105,13 +123,13 @@ test('private root implementation files stay in the ordinary Local and public No
       'module.exports=Object.freeze({selectedInitialControlHostPreparation:undefined});\n');
   }
   const first = f.read(f.render());
-  const local = first.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
-  const node = first.publicNode.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
+  const local = first.images.find(value => value.path === 'initial-control-public-dispatch.cjs')!;
+  const node = first.publicNode.images.find(value => value.path === 'initial-control-public-dispatch.cjs')!;
   assert.equal(local.sha256, node.sha256);
   f.put('packages/local-node/initial-control-public-dispatch.cjs', 'module.exports={changed:true};\n');
   const second = f.read(f.render());
-  assert.notEqual(second.images.find(value => value.path === local.path).sha256, local.sha256);
-  assert.equal(second.publicNode.images.find(value => value.path === node.path).sha256, node.sha256);
+  assert.notEqual(second.images.find(value => value.path === local.path)!.sha256, local.sha256);
+  assert.equal(second.publicNode.images.find(value => value.path === node.path)!.sha256, node.sha256);
   unlinkSync(join(f.destination, 'initial-control-public-dispatch.cjs'));
   assert.throws(f.render, /ENOENT/);
 });
@@ -131,7 +149,7 @@ test('ordinary rendered adapter and runtime bytes produce one deterministic priv
   assert.equal(value.optionalSdkCoverage, 'absent');
   assert.equal(value.optionalSdk, null);
   assert.equal(value.images.some(item => item.path === initialControlPackageOriginal), false);
-  assert.equal(value.images.find(item => item.path === 'spec/selected.json').sha256,
+  assert.equal(value.images.find(item => item.path === 'spec/selected.json')!.sha256,
     sha(Buffer.from('{"original":"exact-data"}\n')));
   assert.equal(value.sourceBytes, value.images.reduce((sum, item) => sum + item.bytes, 0));
   assert.equal(value.engine.node, process.versions.node);
@@ -153,7 +171,7 @@ for (const path of ['_build/native/directory-darwin-arm64.node',
     assert.deepEqual(value.nativeImages, [{path, bytes: native.length, sha256: sha(native)}]);
     assert.equal(value.images.some(item => item.path === path), false);
     assert.equal(value.images.some(item => item.path === descriptor), true);
-    f.options.nativeOutputs.set('_build/native/arbitrary.txt', Buffer.from('not a module'));
+    f.options.nativeOutputs!.set('_build/native/arbitrary.txt', Buffer.from('not a module'));
     assert.throws(f.render, /InvalidInitialControlNativeImage/);
   });
 }
@@ -164,9 +182,9 @@ test('the dual-platform original retains both native facts and exact producer en
     registry: 'https://registry.npmjs.org/', access: 'public', tag: 'latest',
     packages: ['client-wire', 'sdk', 'local-node', 'node']};
   f.put('release/client-cohort.json', JSON.stringify(cohort));
-  const outputs = new Map(), targets = [];
+  const outputs = new Map<string, Buffer>(), targets: {platform: string; arch: string; engine: Omit<Engine, 'eager'>; original: {platform: string; arch: string; binary: Fact}; originalSource: string; originalSha256: string}[] = [];
   for (const [platform, arch, filename] of [['darwin', 'arm64', 'directory-darwin-arm64.node'],
-    ['linux', 'x64', 'local-files-linux-x64.node']]) {
+    ['linux', 'x64', 'local-files-linux-x64.node']] as const) {
     const path = '_build/native/' + filename, bytes = Buffer.from(`Independent ${platform} native DATA`);
     const engine = {node: '22.22.0', v8: 'fixture-v8-' + platform, openssl: 'fixture-openssl',
       platform, arch, libraries: {node: '22.22.0', v8: 'fixture-v8-' + platform, openssl: 'fixture-openssl'}};
@@ -186,8 +204,8 @@ test('the dual-platform original retains both native facts and exact producer en
   assert.equal(value.nativeImages.length, 2);
   assert.deepEqual(value.engine, value.engineProfiles[0].engine);
   assert.deepEqual(value.ordinaryEngine, value.engineProfiles[0].ordinaryEngine);
-  assert.equal(value.images.find(item => item.path === '_build/native/directory-original.json').sha256,
-    sha(outputs.get('_build/native/directory-original.json')));
+  assert.equal(value.images.find(item => item.path === '_build/native/directory-original.json')!.sha256,
+    sha(outputs.get('_build/native/directory-original.json')!));
   f.options.nativeOutputs = new Map([...outputs].reverse());
   assert.deepEqual(f.render(), bytes);
   outputs.set('_build/native/local-files-linux-x64.node', Buffer.from('changed native DATA'));
@@ -216,11 +234,11 @@ test('runtime or rewritten adapter changes remain distinct original image facts'
   f.put('packages/local-node/' + path, changed);
   f.outputs.set('adapters/host-node/embedded-local.mjs', Buffer.from('export function changedHost() {}\n'));
   const second = f.read(f.render());
-  assert.equal(second.images.find(item => item.path === path).sha256, sha(changed));
-  assert.notEqual(first.images.find(item => item.path === path).sha256,
-    second.images.find(item => item.path === path).sha256);
-  assert.notEqual(first.images.find(item => item.path === 'adapters/host-node/embedded-local.mjs').sha256,
-    second.images.find(item => item.path === 'adapters/host-node/embedded-local.mjs').sha256);
+  assert.equal(second.images.find(item => item.path === path)!.sha256, sha(changed));
+  assert.notEqual(first.images.find(item => item.path === path)!.sha256,
+    second.images.find(item => item.path === path)!.sha256);
+  assert.notEqual(first.images.find(item => item.path === 'adapters/host-node/embedded-local.mjs')!.sha256,
+    second.images.find(item => item.path === 'adapters/host-node/embedded-local.mjs')!.sha256);
 });
 
 test('aliased runtime and escaped image names never become a selected image original', t => {
@@ -253,7 +271,7 @@ test('an unresolved external composition remains absent rather than importing Co
 test('generated recipe reads the actual same manifest rather than a caller-supplied package flag', t => {
   const f = fixture(t), original = readFileSync(join(f.destination, 'package.json'));
   const value = f.read(f.render());
-  assert.equal(value.images.find(item => item.path === 'package.json').sha256, sha(original));
+  assert.equal(value.images.find(item => item.path === 'package.json')!.sha256, sha(original));
   assert.equal('operationalAdmission' in value, false);
   assert.equal('capacity' in value, false);
   assert.equal('permission' in value, false);
@@ -290,10 +308,10 @@ test('an aliased runtime ancestor cannot be mistaken for a regular selected file
 });
 
 test('an escaped generated module reference cannot mutate any original image or dependency fact', t => {
-  const f = fixture(t), module = {exports: undefined};
+  const f = fixture(t), module: {exports?: {imageInventory: Inventory}} = {exports: undefined};
   runInNewContext(f.render().toString('utf8'), {module});
-  const original = module.exports.imageInventory;
-  const visit = value => {
+  const original = module.exports!.imageInventory;
+  const visit = (value: unknown): void => {
     if (value !== null && typeof value === 'object') {
       assert.ok(Object.isFrozen(value));
       for (const child of Object.values(value)) visit(child);

@@ -4,30 +4,52 @@ import {dirname, isAbsolute, join} from 'node:path';
 import {createRequire} from 'node:module';
 import {admitCohort, releasePackageMetadata} from './package-release.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+
+type Cohort = ReturnType<typeof admitCohort>;
+// Unchecked package and producer DATA; the original runtime checks remain below.
+type Manifest = Parameters<typeof releasePackageMetadata>[0] & {
+  peerDependenciesMeta?: Record<string, {optional?: unknown}>; exports?: unknown};
+type ImageFact = {path: string; bytes: number; sha256: string;
+  npmRelease?: {version: string; bytes: number; sha256: string}};
+type Dependency = {name: string; package: number} | {name: string; local: true};
+type PackageImage = {name: string; version: string; releaseVersion?: string;
+  images: ImageFact[]; dependencies: Dependency[]};
+type Engine = {node: string; v8: string; openssl: string; platform: string; arch: string;
+  libraries: Record<string, string>};
+type EngineProfile = {engine: Engine & {eager: boolean}; ordinaryEngine: Engine & {eager: boolean}};
+type NativeDescriptor = {version: string; source?: {packageVersion?: string}; targets: {
+  platform: string; arch: string; engine: Engine;
+  original: {platform: string; arch: string; binary: ImageFact};
+  originalSource: string; originalSha256: string}[]};
+type RenderOptions = {root: string; destination: string;
+  inputs: {runtimeFiles: readonly string[]; buildInputs?: unknown};
+  outputs: ReadonlyMap<string, Buffer>; nativeOutputs?: ReadonlyMap<string, Buffer>};
+
 export const initialControlPackageOriginal = 'adapters/host-node/initial-control-package-original.cjs';
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const concrete = path => typeof path === 'string' && !isAbsolute(path) &&
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const concrete = (path: unknown): path is string => typeof path === 'string' && !isAbsolute(path) &&
   !path.split('/').some(part => part === '..' || part === '.' || part === '') && !path.includes('\\');
-const fail = name => { throw new Error(name); };
-const fact = (path, bytes) => ({path, bytes: bytes.length, sha256: digest(bytes)});
+const fail: (name: string) => never = name => { throw new Error(name); };
+const fact = (path: string, bytes: Buffer): ImageFact => ({path, bytes: bytes.length, sha256: digest(bytes)});
 // Bind the existing publication transform BEFORE packing, never normalize an
 // installed manifest or infer a release version from it at startup. Every
 // runtime and non-manifest Source retains its one exact byte/hash identity.
-function manifestFact(path, bytes, cohort) {
+function manifestFact(path: string, bytes: Buffer, cohort: Cohort | undefined) {
   const result = fact(path, bytes);
   if (path !== 'package.json' || cohort === undefined) return result;
-  const original = JSON.parse(bytes), name = original.name?.replace(/^@actql\//u, '');
+  const original = JSON.parse(bytes as unknown as string) as Manifest, name = original.name?.replace(/^@actql\//u, '');
   if (original.name !== '@actql/' + name || !cohort.packages.includes(name)) return result;
   const released = Buffer.from(JSON.stringify(releasePackageMetadata(original, name, cohort), null, 2) + '\n');
   result.npmRelease = {version: cohort.packageVersion, bytes: released.length, sha256: digest(released)};
   return result;
 }
-const releaseVersion = (manifest, cohort) => cohort !== undefined &&
+const releaseVersion = (manifest: Manifest, cohort: Cohort | undefined) => cohort !== undefined &&
   cohort.packages.some(name => manifest.name === '@actql/' + name)
   ? {releaseVersion: cohort.packageVersion} : {};
 // Generated nested DATA has no callable factory. Freeze each literal before
 // entry so an escaped module-cache reference cannot rewrite the selected facts.
-function frozenLiteral(value) {
+function frozenLiteral(value: unknown): string | undefined {
   if (Array.isArray(value)) return 'Object.freeze([' + value.map(frozenLiteral).join(',') + '])';
   if (value !== null && typeof value === 'object') {
     return 'Object.freeze({' + Object.entries(value).map(([key, child]) =>
@@ -35,7 +57,7 @@ function frozenLiteral(value) {
   }
   return JSON.stringify(value);
 }
-function regularFile(root, path, code) {
+function regularFile(root: string, path: string, code: string) {
   if (!concrete(path)) fail('InvalidInitialControlImage');
   const parts = path.split('/');
   for (let index = 0; index < parts.length; index++) {
@@ -45,9 +67,9 @@ function regularFile(root, path, code) {
   return readFileSync(join(root, path));
 }
 
-function publicCodeFiles(root, manifest, cohort) {
-  const files = new Map();
-  function walk(path) {
+function publicCodeFiles(root: string, manifest: Manifest, cohort: Cohort | undefined) {
+  const files = new Map<string, Buffer>();
+  function walk(path: string) {
     if (!concrete(path)) fail('InvalidInitialControlPackagePath');
     const info = lstatSync(join(root, path));
     if (info.isSymbolicLink()) fail('AliasedInitialControlPackageImage');
@@ -63,7 +85,7 @@ function publicCodeFiles(root, manifest, cohort) {
     // These are already installed third-party package contents. Include all
     // executable/JSON/wasm files, not an incomplete interpretation of npm globs.
     for (const name of readdirSync(root).sort()) if (name !== 'node_modules') walk(name);
-  } else for (const selected of manifest.files) {
+  } else for (const selected of manifest.files!) {
     const path = selected.endsWith('/') ? selected.slice(0, -1) : selected;
     // Type declarations, readmes and licenses are not executable image inputs.
     if (/\.(?:d\.[cm]?ts|md)$/u.test(path) || !existsSync(join(root, path))) continue;
@@ -74,12 +96,12 @@ function publicCodeFiles(root, manifest, cohort) {
     .map(([path, bytes]) => manifestFact(path, bytes, cohort));
 }
 
-function packageRoot(name, from) {
+function packageRoot(name: string, from: string) {
   const require = createRequire(join(from, 'package.json'));
   let file;
   try { file = require.resolve(name); }
   catch (error) {
-    if (error.code !== 'MODULE_NOT_FOUND' && error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'MODULE_NOT_FOUND' && (error as NodeJS.ErrnoException).code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error;
     // A declared type-only package can have no runtime export. Its actual
     // nearest package manifest still belongs to this dependency selection.
     for (const directory of require.resolve.paths(name) ?? []) {
@@ -103,25 +125,25 @@ function packageRoot(name, from) {
 // Use the installed package's declared dependency graph, not a parallel list of
 // Connector modules. Paths in the recipe are package-relative; build locations
 // and operational receipts never enter the published image inventory.
-function dependencyImages(root, destination, localManifest, cohort) {
-  const packages = [], roots = new Map();
-  function rollback(before) {
+function dependencyImages(root: string, destination: string, localManifest: Manifest, cohort: Cohort | undefined) {
+  const packages: PackageImage[] = [], roots = new Map<string, number>();
+  function rollback(before: number) {
     packages.length = before;
     for (const [directory, index] of roots) if (index >= before) roots.delete(directory);
   }
-  function exactVersion(manifest, expectedVersion, name) {
+  function exactVersion(manifest: Manifest, expectedVersion: string | undefined, name: string) {
     if (expectedVersion !== undefined && /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/u.test(expectedVersion) &&
         manifest.version !== expectedVersion) fail('WrongInitialControlDependencyVersion:' + name);
   }
-  function collect(name, directory, expectedVersion) {
+  function collect(name: string, directory: string, expectedVersion?: string): number {
     directory = realpathSync(directory);
-    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as Manifest;
     if (manifest.name !== name || typeof manifest.version !== 'string') fail('WrongInitialControlDependency');
     exactVersion(manifest, expectedVersion, name);
-    if (roots.has(directory)) return roots.get(directory);
+    if (roots.has(directory)) return roots.get(directory)!;
     const index = packages.length;
     roots.set(directory, index);
-    const item = {name, version: manifest.version, ...releaseVersion(manifest, cohort),
+    const item: PackageImage = {name, version: manifest.version, ...releaseVersion(manifest, cohort),
       images: publicCodeFiles(directory, manifest, cohort), dependencies: []};
     packages.push(item);
     const dependencies = {...manifest.dependencies, ...manifest.peerDependencies};
@@ -133,14 +155,14 @@ function dependencyImages(root, destination, localManifest, cohort) {
     }
     return index;
   }
-  const bindings = [];
+  const bindings: Dependency[] = [];
   for (const name of Object.keys(localManifest.dependencies ?? {}).sort()) {
     // Public ActQL dependencies are Source-owned packages in the same normal
     // build. Their actual installed correspondence is checked again in preload.
     const own = name.startsWith('@actql/') ? join(root, 'packages', name.slice('@actql/'.length)) : undefined;
     const directory = own !== undefined && existsSync(join(own, 'package.json')) ? own : packageRoot(name, destination);
     if (directory === undefined) fail('UnpreparedInitialControlDependency:' + name);
-    bindings.push({name, package: collect(name, directory, localManifest.dependencies[name])});
+    bindings.push({name, package: collect(name, directory, localManifest.dependencies![name])});
   }
   // This is the existing startup's optional SDK resolution, not a new public
   // dependency or a Provider invocation. Missing coverage refuses its adoption.
@@ -150,7 +172,7 @@ function dependencyImages(root, destination, localManifest, cohort) {
     const before = packages.length;
     try { optionalSdk = collect('@actql/provider-ai-sdk', sdk); optionalSdkCoverage = 'prepared'; }
     catch (error) {
-      if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
+      if (!(error as Error).message.startsWith('UnpreparedInitialControlDependency:')) throw error;
       rollback(before);
       optionalSdkCoverage = 'unprepared';
     }
@@ -159,23 +181,23 @@ function dependencyImages(root, destination, localManifest, cohort) {
   // original Sources explicitly, without recursively including the generated
   // Local inventory in itself or treating a package name as a startup issuer.
   const node = join(root, 'packages/node');
-  let publicNode, publicNodeCoverage = 'absent';
+  let publicNode: PackageImage | undefined, publicNodeCoverage = 'absent';
   if (existsSync(join(node, 'package.json'))) {
     const before = packages.length;
     try {
-      const manifest = JSON.parse(readFileSync(join(node, 'package.json'), 'utf8'));
+      const manifest = JSON.parse(readFileSync(join(node, 'package.json'), 'utf8')) as Manifest;
       if (manifest.name !== '@actql/node' || typeof manifest.version !== 'string') {
         fail('WrongInitialControlDependency');
       }
-      const dependencies = [];
+      const dependencies: Dependency[] = [];
       for (const name of Object.keys(manifest.dependencies ?? {}).sort()) {
         if (name === '@actql/local-node') {
-          exactVersion(localManifest, manifest.dependencies[name], name);
+          exactVersion(localManifest, manifest.dependencies![name], name);
           dependencies.push({name, local: true});
         } else {
           const directory = packageRoot(name, node);
           if (directory === undefined) fail('UnpreparedInitialControlDependency:' + name);
-          dependencies.push({name, package: collect(name, directory, manifest.dependencies[name])});
+          dependencies.push({name, package: collect(name, directory, manifest.dependencies![name])});
         }
       }
       if (!dependencies.some(value => value.name === '@actql/local-node')) {
@@ -185,7 +207,7 @@ function dependencyImages(root, destination, localManifest, cohort) {
         images: publicCodeFiles(node, manifest, cohort), dependencies};
       publicNodeCoverage = 'prepared';
     } catch (error) {
-      if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
+      if (!(error as Error).message.startsWith('UnpreparedInitialControlDependency:')) throw error;
       rollback(before);
       publicNodeCoverage = 'unprepared';
     }
@@ -196,17 +218,17 @@ function dependencyImages(root, destination, localManifest, cohort) {
 // The caller supplies exactly the bytes it will publish after its ordinary
 // import rewrite. Normal runtime assets are read from that same destination.
 // This returns only generated Source; it cannot issue or price a scope.
-export function renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs = new Map()}) {
+export function renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs = new Map()}: RenderOptions) {
   if (!(outputs instanceof Map) || !outputs.has(initialControlPackageOriginal)) {
     fail('MissingInitialControlPackageTemplate');
   }
-  const absent = outputs.get(initialControlPackageOriginal);
+  const absent = outputs.get(initialControlPackageOriginal)!;
   if (inputs.buildInputs !== undefined) return absent;
   const images = new Map(outputs);
   images.delete(initialControlPackageOriginal);
   // Native executable bytes are never UTF8 Source and must not pass through
   // the JS image loader. Their separate facts still do not authorize loading.
-  const nativeImages = [];
+  const nativeImages: ImageFact[] = [];
   for (const [path, bytes] of nativeOutputs) {
     if (!concrete(path) || !path.startsWith('_build/native/')) fail('InvalidInitialControlNativeImage');
     if (path.endsWith('.node')) nativeImages.push(fact(path, bytes));
@@ -214,10 +236,10 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
     else fail('InvalidInitialControlNativeImage');
   }
   nativeImages.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-  let engineProfiles, nativeReleaseVersion;
+  let engineProfiles: EngineProfile[] | undefined, nativeReleaseVersion: string | undefined;
   const descriptorBytes = nativeOutputs.get('_build/native/directory-original.json');
   if (descriptorBytes !== undefined) {
-    const descriptor = JSON.parse(descriptorBytes);
+    const descriptor = JSON.parse(descriptorBytes as unknown as string) as NativeDescriptor;
     if (descriptor.version === 'actql-node-directory-native-cohort/0.1') {
       nativeReleaseVersion = descriptor.source?.packageVersion;
       if (!Array.isArray(descriptor.targets) ||
@@ -253,14 +275,14 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   const manifestPath = join(destination, 'package.json');
   if (!existsSync(manifestPath)) return absent;
   const manifestBytes = regularFile(destination, 'package.json', 'AliasedInitialControlManifest');
-  const manifest = JSON.parse(manifestBytes);
+  const manifest = JSON.parse(manifestBytes as unknown as string) as Manifest;
   const cohortPath = join(root, 'release/client-cohort.json');
   const cohort = existsSync(cohortPath) ? admitCohort(JSON.parse(readFileSync(cohortPath, 'utf8'))) : undefined;
   if (engineProfiles !== undefined && nativeReleaseVersion !== cohort?.packageVersion) {
     fail('InvalidInitialControlNativeImage');
   }
   images.set('package.json', manifestBytes);
-  function exported(value) {
+  function exported(value: unknown): void {
     if (typeof value === 'string') {
       if (!value.startsWith('./') || !/\.[cm]?js$/u.test(value)) return;
       const path = value.slice(2);
@@ -298,7 +320,7 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   ...(engineProfiles === undefined ? {} : {engineProfiles}),
   images: facts, nativeImages, packages: dependencies.packages, dependencies: dependencies.bindings,
   localVersion: manifest.version,
-  ...(releaseVersion(manifest, cohort).releaseVersion === undefined ? {} : {localReleaseVersion: cohort.packageVersion}),
+  ...(releaseVersion(manifest, cohort).releaseVersion === undefined ? {} : {localReleaseVersion: cohort!.packageVersion}),
   optionalSdk: dependencies.optionalSdk ?? null, optionalSdkCoverage: dependencies.optionalSdkCoverage,
   publicNode: dependencies.publicNode ?? null, publicNodeCoverage: dependencies.publicNodeCoverage,
   sourceBytes: facts.reduce((sum, value) => sum + value.bytes, 0),
