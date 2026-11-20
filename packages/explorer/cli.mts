@@ -33,7 +33,7 @@ try {
   }
 } catch (error) {
   // Do not print caller strings, Host responses, paths, tokens or stack traces.
-  const code = ['ExplorerInvalidArguments', 'ExplorerExplicitHostRequired'].includes(error.message)
-    ? error.message : 'ExplorerStartupUnavailable';
+  const code = ['ExplorerInvalidArguments', 'ExplorerExplicitHostRequired'].includes((error as Error).message)
+    ? (error as Error).message : 'ExplorerStartupUnavailable';
   process.stderr.write(`${code}\n${help}`); process.exitCode = 1;
 }

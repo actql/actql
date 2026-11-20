@@ -5822,7 +5822,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               },
               {
@@ -5832,7 +5832,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5842,7 +5842,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5852,7 +5852,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5862,7 +5862,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5872,7 +5872,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5882,7 +5882,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5892,7 +5892,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -5902,7 +5902,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/cli.mjs",
+                "path": "packages/explorer/cli.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],

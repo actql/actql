@@ -393,3 +393,9 @@ target/
 # Explorer browser-source authored TypeScript emit
 /packages/explorer/browser-source.mjs
 /packages/explorer/browser-source.d.mts
+
+# Authored executable TypeScript bootstrap emit
+/scripts/typescript-executable-modes.mjs
+/scripts/typescript-executable-modes.d.mts
+/packages/explorer/cli.mjs
+/packages/explorer/cli.d.mts

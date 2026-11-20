@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -30,7 +30,10 @@ async function fixture(t: TestContext, {linkTools = true}: {linkTools?: boolean}
     await copyFile(join(repository, path), join(root, path));
   if (linkTools) await symlink(join(repository, 'node_modules'), join(root, 'node_modules'), 'dir');
   await mkdir(join(root, 'scripts'));
-  await writeFile(join(root, 'scripts/entry.mts'), `import {writeFileSync} from 'node:fs';
+  await copyFile(join(repository, 'scripts/typescript-executable-modes.mts'),
+    join(root, 'scripts/typescript-executable-modes.mts'));
+  await writeFile(join(root, 'scripts/entry.mts'), `#!/usr/bin/env node
+import {writeFileSync} from 'node:fs';
 export const payload: string = 'original';
 writeFileSync(new URL('../executed.json', import.meta.url), JSON.stringify({payload, node: process.versions.node}));
 `);
@@ -55,6 +58,7 @@ export type OriginalProviderInputs = {
   local: EmbeddedLocalOptions;
 };
 `);
+  await chmod(join(f.root, 'scripts/entry.mts'), 0o755);
   const result = f.prepare();
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
@@ -62,6 +66,16 @@ export type OriginalProviderInputs = {
   assert(existsSync(join(f.root, 'scripts/entry.mjs')));
   assert(existsSync(join(f.root, 'scripts/entry.d.mts')));
   assert(existsSync(join(f.root, 'scripts/provider-input.d.mts')));
+  assert.equal((await stat(join(f.root, 'scripts/entry.mjs'))).mode & 0o111,
+    (await stat(join(f.root, 'scripts/entry.mts'))).mode & 0o111);
+  if (process.platform !== 'win32') {
+    await rm(join(f.root, 'executed.json'));
+    const direct = spawnSync(join(f.root, 'scripts/entry.mjs'), [], {
+      cwd: f.root, encoding: 'utf8', timeout: 10_000});
+    assert.equal(direct.error, undefined);
+    assert.equal(direct.signal, null);
+    assert.equal(direct.status, 0, direct.stdout + direct.stderr);
+  }
   assert.deepEqual(JSON.parse(await readFile(join(f.root, 'executed.json'), 'utf8')),
     {payload: 'original', node: process.versions.node});
 });
