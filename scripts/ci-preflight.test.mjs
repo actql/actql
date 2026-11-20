@@ -126,7 +126,7 @@ test('operation evidence consistency is mandatory admission without changing the
   assert.equal(steps[0].if, undefined, 'the complete inventory is checked for every normal admission');
   assert.equal(steps[0]['continue-on-error'], undefined);
   const preflight = commands('preflight');
-  assert(preflight.indexOf(command) < preflight.indexOf('npm ci'));
+  assert(preflight.indexOf('npm ci') >= 0 && preflight.indexOf('npm ci') < preflight.indexOf(command));
   // Keep the original semantic checks and local command intact. This early
   // replay rejects invalid inputs; it is not a successful reduced profile.
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));

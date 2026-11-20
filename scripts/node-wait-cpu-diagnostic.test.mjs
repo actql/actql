@@ -85,7 +85,10 @@ test('Node CPU mode is explicit and keeps default and Native job selection uncha
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with['persist-credentials'], false);
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version'], '22.22.0');
   assert(!job.steps.some(step => step.uses?.includes('performance-matrix')));
-  assert.doesNotMatch(job.steps.map(step => step.run ?? '').join('\n'), /moon build|npm (?:pack|run)|operation-performance\.mjs/u);
+  // The checkout needs its authored tooling emitted before reading artifacts.
+  // The diagnostic still cannot build or package the product it measures.
+  assert.doesNotMatch(job.steps.map(step => step.run ?? '').join('\n'),
+    /moon build|npm (?:pack|run(?! build:typescript\b))|operation-performance\.mjs/u);
   // CI registration, including npm script expansion and non-optional execution,
   // is checked by ordinary-operation-packages.test.mjs's shared inventory.
 });
