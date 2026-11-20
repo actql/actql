@@ -6,21 +6,21 @@ import {productionDependencyClosure, productionPackageImports} from './source-de
 export const concreteDependencies = /^(?:connectors\/|duckdb_)/u;
 export const conformanceDependencies = /^(?:connector_conformance$|connectors\/[^/]+\/conformance(?:\/|$)|node_host_conformance$|workers_conformance$)/u;
 
-export function assertProductionBoundary(name, readManifest, forbidden) {
+export function assertProductionBoundary(name: string, readManifest: (name: string) => string, forbidden: RegExp) {
   for (const dependency of productionDependencyClosure(name, readManifest)) {
     assert.ok(!forbidden.test(dependency),
       `Forbidden production dependency: ${name} -> ${dependency}`);
   }
 }
 
-export function assertProductionImports(name, source, forbidden) {
+export function assertProductionImports(name: string, source: string, forbidden: RegExp) {
   for (const dependency of productionPackageImports(source)) {
     assert.ok(!forbidden.test(dependency),
       `Forbidden production import: ${name} -> ${dependency}`);
   }
 }
 
-export function assertOpaqueHandles(api, handles) {
+export function assertOpaqueHandles(api: string, handles: readonly string[]) {
   for (const handle of handles) {
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`),
       `Public representation: ${handle}`);
@@ -29,18 +29,18 @@ export function assertOpaqueHandles(api, handles) {
   }
 }
 
-export function assertPublicBoundary(name, api, forbidden) {
+export function assertPublicBoundary(name: string, api: string, forbidden: RegExp) {
   assert.doesNotMatch(api, forbidden, `Public responsibility leak: ${name}`);
 }
 
-export function publicFunction(api, name) {
+export function publicFunction(api: string, name: string) {
   const signature = api.split('\n').find(line =>
     new RegExp(`^pub fn(?:\\[[^\\]]*\\])? ${name}\\(`).test(line));
   assert.ok(signature, `Missing public operation: ${name}`);
   return signature;
 }
 
-export function assertCommonAdapterGraph(paths) {
+export function assertCommonAdapterGraph(paths: readonly string[]) {
   for (const path of paths) {
     assert.doesNotMatch(path, /^adapters\/connectors(?:-builtin)?\//u,
       `Connector implementation in common adapter graph: ${path}`);

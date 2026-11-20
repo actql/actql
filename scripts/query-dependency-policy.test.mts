@@ -8,12 +8,13 @@ import {assertCommonAdapterGraph, assertOpaqueHandles, assertProductionBoundary,
   assertProductionImports, assertPublicBoundary, concreteDependencies,
   conformanceDependencies} from './query-dependency-policy.mjs';
 
-const imported = (name, scope = '') => `import { "actql/actql/${name}" @renamed, }${scope}`;
-const manifests = sources => name => {
+const imported = (name: string, scope = '') => `import { "actql/actql/${name}" @renamed, }${scope}`;
+const manifests = (sources: Readonly<Partial<Record<string, string>>>) => (name: string) => {
   assert.ok(Object.hasOwn(sources, name), `Missing test manifest: ${name}`);
-  return sources[name];
+  return sources[name]!;
 };
-const intended = message => error => error?.code === 'ERR_ASSERTION' && message.test(error.message);
+type UncheckedAssertion = {readonly code?: unknown; readonly message: string};
+const intended = (message: RegExp) => (error: unknown) => (error as UncheckedAssertion | null | undefined)?.code === 'ERR_ASSERTION' && message.test((error as UncheckedAssertion).message);
 
 test('test/wbtest imports never become production violations, including transitive composition', () => {
   for (const scope of ['test', 'wbtest']) {
@@ -57,7 +58,7 @@ test('opaque API and provider leakage mutations fail their own assertions', () =
 
 test('actual adapter import closure accepts extraction but rejects hidden Connector/test authority', () => {
   const root = mkdtempSync(join(tmpdir(), 'actql-r2-adapter-'));
-  const write = (file, source) => {
+  const write = (file: string, source: string) => {
     const path = join(root, file);
     mkdirSync(join(path, '..'), {recursive: true});
     writeFileSync(path, source);
@@ -79,15 +80,15 @@ test('actual adapter import closure accepts extraction but rejects hidden Connec
       const marker = target.startsWith('adapters/connectors/')
         ? 'Connector implementation in common adapter graph: '
         : 'Test authority in product adapter graph: ';
-      assert.throws(check, error => error?.code === 'ERR_ASSERTION' &&
-        error.message.includes(marker + target));
+      assert.throws(check, (error: unknown) => (error as UncheckedAssertion | null | undefined)?.code === 'ERR_ASSERTION' &&
+        (error as UncheckedAssertion).message.includes(marker + target));
     }
   } finally { rmSync(root, {recursive: true, force: true}); }
 });
 
 test('packaging retains its adapter-only projection while policy sees the complete relative closure', () => {
   const root = mkdtempSync(join(tmpdir(), 'actql-r2-module-inputs-'));
-  const write = (file, source) => {
+  const write = (file: string, source: string) => {
     const path = join(root, file);
     mkdirSync(dirname(path), {recursive: true});
     writeFileSync(path, source);

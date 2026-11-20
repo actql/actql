@@ -498,3 +498,15 @@ target/
 
 /scripts/portable-core.mjs
 /scripts/portable-core.d.mts
+
+/scripts/source-dependency-closure.mjs
+/scripts/source-dependency-closure.d.mts
+
+/scripts/query-dependency-policy.mjs
+/scripts/query-dependency-policy.d.mts
+
+/scripts/source-dependency-closure.test.mjs
+/scripts/source-dependency-closure.test.d.mts
+
+/scripts/query-dependency-policy.test.mjs
+/scripts/query-dependency-policy.test.d.mts

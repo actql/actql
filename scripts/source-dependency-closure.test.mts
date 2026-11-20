@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {productionDependencyClosure, productionPackageImports, scopedPackageImports} from './source-dependency-closure.mjs';
 
-const imports = (path, scope = '') => `import { "actql/actql/${path}" @renamed, }${scope}`;
-const closure = sources => productionDependencyClosure('root', name => {
+const imports = (path: string, scope = '') => `import { "actql/actql/${path}" @renamed, }${scope}`;
+const closure = (sources: Readonly<Record<string, string>>) => productionDependencyClosure('root', name => {
   assert.ok(Object.hasOwn(sources, name), `Missing manifest ${name}`);
   return sources[name];
 });

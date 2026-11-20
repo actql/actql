@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import {packageImports, tokens} from './portable-core.mjs';
 
-export function scopedPackageImports(source) {
-  const ts = tokens(source), imports = [];
+export function scopedPackageImports(source: string) {
+  const ts = tokens(source), imports: ReturnType<typeof packageImports> = [];
   let depth = 0;
   for (let i = 0; i < ts.length; i++) {
     const token = ts[i];
@@ -25,16 +25,16 @@ export function scopedPackageImports(source) {
   return imports;
 }
 
-export function productionPackageImports(source) {
+export function productionPackageImports(source: string) {
   return scopedPackageImports(source).filter(entry =>
     entry.scope === 'production' && entry.path.startsWith('actql/actql/'))
     .map(entry => entry.path.slice('actql/actql/'.length));
 }
 
-export function productionDependencyClosure(name, readManifest) {
-  const seen = new Set(), pending = productionPackageImports(readManifest(name));
+export function productionDependencyClosure(name: string, readManifest: (name: string) => string) {
+  const seen = new Set<string>(), pending = productionPackageImports(readManifest(name));
   while (pending.length) {
-    const dependency = pending.pop();
+    const dependency = pending.pop()!;
     if (seen.has(dependency)) continue;
     seen.add(dependency);
     pending.push(...productionPackageImports(readManifest(dependency)));
