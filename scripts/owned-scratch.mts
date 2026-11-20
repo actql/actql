@@ -26,13 +26,32 @@ import {join} from 'node:path';
 export const CLEANUP_FAILED_EXIT = 2;
 export const UNCONFIRMED_EXIT = 1;
 
-const quote = path => `'${path.replaceAll("'", "'\\''")}'`;
+export interface ScratchOptions {
+  parent: string;
+  prefix: string;
+  label: string;
+  digests?: () => readonly string[];
+  preserve?: boolean;
+}
+
+export interface ScratchClosure {
+  readonly path: string;
+  readonly state: 'preserved' | 'removed';
+}
+
+export interface OwnedScratch {
+  readonly path: string;
+  passed(): void;
+  close(): ScratchClosure;
+}
+
+const quote = (path: string) => `'${path.replaceAll("'", "'\\''")}'`;
 
 // Regular files below `path`, without following symbolic links.
-function volume(path) {
+function volume(path: string) {
   let bytes = 0;
   let files = 0;
-  const visit = current => {
+  const visit = (current: string): void => {
     for (const entry of readdirSync(current, {withFileTypes: true})) {
       const child = join(current, entry.name);
       if (entry.isDirectory()) visit(child);
@@ -46,24 +65,25 @@ function volume(path) {
   return {bytes, files};
 }
 
-const megabytes = bytes => `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
+const megabytes = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 
 // Create the directory `<parent>/<prefix>XXXXXX`. `label` names the test in
 // the messages; `digests` lists file names at the top of the directory whose
 // sha256 is printed before removal (for example the installed tarballs).
 export async function createOwnedScratch({parent, prefix, label,
-  digests = () => [], preserve = false}) {
+  digests = () => [], preserve = false}: ScratchOptions): Promise<OwnedScratch> {
   if (typeof preserve !== 'boolean') throw new TypeError('Invalid scratch preservation selection');
   await mkdir(parent, {recursive: true});
   const path = await mkdtemp(join(parent, prefix));
   let passed = false;
-  const keep = reason => {
+  const keep = (reason: string) => {
     console.error(`${label}: ${reason}; scratch kept: ${path}`);
     if (!preserve) console.error(`${label}: remove it after inspection with: rm -rf -- ${
       quote(path)}`);
   };
-  let closed, closeFailure;
-  const close = () => {
+  let closed: ScratchClosure | undefined;
+  let closeFailure: unknown;
+  const close = (): ScratchClosure => {
     if (closed) return closed;
     if (closeFailure) throw closeFailure;
     try {
@@ -91,7 +111,7 @@ export async function createOwnedScratch({parent, prefix, label,
       throw error;
     }
   };
-  const onExit = code => {
+  const onExit = (code: number) => {
     if (closed) return;
     if (code !== 0) {keep('test failed'); return;}
     if (!passed) {
@@ -101,7 +121,7 @@ export async function createOwnedScratch({parent, prefix, label,
     }
     try {close();}
     catch (error) {
-      console.error(`${label}: test passed; cleanup failed: ${error.message}`);
+      console.error(`${label}: test passed; cleanup failed: ${(error as {message?: unknown}).message}`);
       keep('cleanup failed');
       process.exitCode = CLEANUP_FAILED_EXIT;
     }

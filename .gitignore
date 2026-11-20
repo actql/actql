@@ -23,3 +23,7 @@ target/
 /scripts/release-version.mjs
 /scripts/release-policy.mjs
 /scripts/release-version-schema.test.mjs
+/scripts/owned-scratch.mjs
+/scripts/owned-scratch.test.mjs
+/scripts/release-test-registry.mjs
+/scripts/release-test-registry.test.mjs

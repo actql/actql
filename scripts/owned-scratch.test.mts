@@ -8,6 +8,8 @@ import {chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync} from
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+import type {ScratchOptions} from './owned-scratch.mjs';
 import {pathToFileURL} from 'node:url';
 
 const helper = pathToFileURL(new URL('./owned-scratch.mjs', import.meta.url)
@@ -15,7 +17,8 @@ const helper = pathToFileURL(new URL('./owned-scratch.mjs', import.meta.url)
 
 // Run a child that creates an owned scratch in `parent`, writes a tarball and
 // a nested file, then does `body` (JavaScript source using `scratch`).
-function child(parent, body, env = {}, options = {}) {
+function child(parent: string, body: string, env: NodeJS.ProcessEnv = {},
+  options: Pick<ScratchOptions, 'preserve'> = {}) {
   const source = `
 import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -32,10 +35,11 @@ ${body}
     source], {encoding: 'utf8', env: {...process.env,
     ACTQL_TEST_PRESERVE_SCRATCH: '', ...env}});
   const path = /PATH=(.*)/u.exec(result.stdout)?.[1];
+  assert(path, 'The actual child must report its original scratch path');
   return {...result, path};
 }
 
-function parent(t) {
+function parent(t: TestContext) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-owned-scratch-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   return directory;

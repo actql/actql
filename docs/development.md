@@ -8,6 +8,14 @@ With Node.js 22 or newer, Python 3.11 or newer, a C compiler and `make`:
 npm ci
 ```
 
+Repository tooling is authored in TypeScript. Root `npm ci` runs the `prepare`
+script, which performs strict checking and emits executable JavaScript at the
+existing command/import paths. After editing TypeScript, run
+`npm run build:typescript` before executing those commands. If dependency setup
+explicitly uses `--ignore-scripts`, run that build as a separate prerequisite.
+Installed public packages contain JavaScript and declarations; consumers do not
+need this repository's compiler or a runtime TypeScript loader.
+
 Node.js is used for documentation and toolchain setup. Product implementation
 is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
 Specification checks also verify generated connector code using the pinned
