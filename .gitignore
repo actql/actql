@@ -456,3 +456,6 @@ target/
 
 /scripts/node-local-compile-cache.test.mjs
 /scripts/node-local-compile-cache.test.d.mts
+
+/packages/sdk/connection-options-diagnostics.test.mjs
+/packages/sdk/connection-options-diagnostics.test.d.mts

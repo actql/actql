@@ -8975,7 +8975,7 @@
                 "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
               },
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test('public option getter failures discard secret-bearing borrowed errors'"
               }
             ]
@@ -9692,7 +9692,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test("
               }
             ]
@@ -10057,7 +10057,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test("
               }
             ]
