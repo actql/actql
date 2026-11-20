@@ -3801,9 +3801,13 @@ The same saved projection keeps the original commit owner, view, and captured
 rows. Each continuation opens a fresh current reader, checks the exact selected
 snapshot and consumed publication rows against their original key, revision and
 bytes, and runs the full cancellation inventory before advancing the existing
-owner. The preparation and observed-commit phases retain the existing limit of
-250000 advances of 256 work units each. A scalar remaining count occupies the
-existing readiness slot. Failure leaves the same preparation for close.
+owner. The actual schema selected at admission is retained with that same
+preparation in the observed-phase scalar. A later unsupported schema gives the
+physical refusal. A different supported schema refuses continuation before
+querying the retained rows. The preparation and observed-commit phases retain
+the existing limit of 250000 advances of 256 work units each. The scalar
+remaining count occupies the existing readiness slot. Failure leaves the same
+preparation for close.
 
 The Host releases the Core lock, current reader and SQLite transaction before
 yielding. Each physical hash turn rechecks the original saved payload row,

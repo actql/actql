@@ -45,6 +45,7 @@ fn observe_submission_lookup(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
   original? : @host.ClientSavedSubmissionSnapshot? = None,
+  admitted_schema? : Int = -1,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
@@ -71,7 +72,13 @@ fn observe_submission_lookup(
   // This is only algorithm-selection DATA; every Account/current/epoch and
   // selected nested-original validator below still runs. Errors never mean
   // legacy absence or permission to prepare another Run.
-  let physical_schema = physical_journal_schema(current.physical)
+  // Only incremental Saved admission supplies the already checked observation
+  // from this same live current reader. All other callers observe it here.
+  let physical_schema = if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
+    admitted_schema
+  } else {
+    physical_journal_schema(current.physical)
+  }
   if physical_schema != 0 && physical_schema != 1 {
     return Err(-41)
   }

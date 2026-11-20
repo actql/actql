@@ -79887,7 +79887,7 @@
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+                "anchor": "physical_journal_schema(current.physical)"
               }
             ],
             "failure": [
@@ -80052,7 +80052,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "c7cc884522c4703ac4f803dcb5e30117511dc9ef41abb8b9b1a19df52c79271f",
+      "sha256": "48f27f922986c0ec62e6c673e56a77bea5deae3416318c933c0c934d7c65391c",
       "exports": [],
       "operations": [
         {
@@ -80152,7 +80152,7 @@
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+                "anchor": "physical_journal_schema(current.physical)"
               }
             ],
             "failure": [
@@ -80401,7 +80401,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "843c6b87096d02e1e91166cb28d8be0d583332e6356a034432ea3781285081f2",
+      "sha256": "1658af9d033a241e86a3bcded4d8ae4b28958c69f56dd6492466afe6b94d628e",
       "exports": [],
       "operations": [
         {
@@ -80431,6 +80431,10 @@
         {
           "name": "produce_incremental_saved_result",
           "declaration": "produce_incremental_saved_result ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "rebind_saved_result_originals",
+          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , ) - > Result [ Unit , Int ]"
         },
         {
           "name": "reobserve_saved_result_read",
@@ -80466,7 +80470,8 @@
             "finish_saved_result_read",
             "produce_incremental_saved_result",
             "reobserve_saved_result_read",
-            "supply_saved_result_read"
+            "supply_saved_result_read",
+            "rebind_saved_result_originals"
           ],
           "exports": [],
           "attributes": {
@@ -80572,6 +80577,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"saved continuation refuses a changed supported schema with identical originals\""
               }
             ]
           }
