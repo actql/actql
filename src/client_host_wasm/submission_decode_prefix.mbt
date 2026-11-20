@@ -32,10 +32,8 @@ fn open_submission_decode_prefix(
   record : StoredSubmissionProjection,
 ) -> Result[@resources.CapacityReservation, Int] {
   if record.kind != 3 ||
-    (
-      record.append_plan is Decoding(_, _) ||
-      record.append_plan is DecodedRows(_, _, _)
-    ) {
+    record.append_plan is Decoding(_, _) ||
+    record.append_plan is DecodedRows(_, _, _) {
     return Err(-9)
   }
   // Every production caller point-selected this SAME private projection from
@@ -174,7 +172,8 @@ fn finish_submission_decode_observation(
   // Fresh insertion consumes its scanned records inside the inventory and
   // emits its original input's new wire. Retained target lookup returns before
   // that scan. Never settle a row prefix beneath an unexpected escaping alias.
-  if record.append_plan is DecodedRows(_, _, _) && result is Ok(@host.Retained(_)) {
+  if record.append_plan is DecodedRows(_, _, _) &&
+    result is Ok(@host.Retained(_)) {
     return Err(-31)
   }
   let settled = close_submission_decode_prefix(value, record)

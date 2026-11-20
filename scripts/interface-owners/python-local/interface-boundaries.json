@@ -94847,7 +94847,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_decode_prefix.mbt",
-      "sha256": "903dc570deb91da2f8be010a83764689adfaf7fee637258c8c5e19c54ec505d2",
+      "sha256": "6e1be8af1d3fe1f62f2eee5ec27cdc18f7ca01c06105a73a4dbeeffeeb9abf54",
       "exports": [],
       "operations": [
         {
