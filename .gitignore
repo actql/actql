@@ -95,3 +95,6 @@ target/
 
 /scripts/native-cli-version.mjs
 /scripts/native-cli-version.d.mts
+
+/scripts/copied-typescript-preparation.mjs
+/scripts/copied-typescript-preparation.d.mts

@@ -13,6 +13,10 @@ script, which performs strict checking and emits executable JavaScript at the
 existing command/import paths. After editing TypeScript, run
 `npm run build:typescript` before executing those commands. If dependency setup
 explicitly uses `--ignore-scripts`, run that build as a separate prerequisite.
+Fresh source-only package producers retain their original input/index checks,
+link their compiler dependencies, and run the same build in the copied root
+before any prepack entry. They do not copy a prior ignored emit or continue
+after a compiler failure.
 Installed public packages contain JavaScript and declarations; consumers do not
 need this repository's compiler or a runtime TypeScript loader.
 
