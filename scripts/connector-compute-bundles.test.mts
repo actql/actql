@@ -5,9 +5,10 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {generateComputeAssembly, checkComputeAssembly} from './connector-compute-bundles.mjs';
+import type {UncheckedComputeManifest} from './connector-compute-bundles.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 
-const entry = name => ({name, manifest: JSON.parse(readFileSync(`src/connectors/${name}/compute-bundle.json`, 'utf8'))});
+const entry = (name: string) => ({name, manifest: JSON.parse(readFileSync(`src/connectors/${name}/compute-bundle.json`, 'utf8')) as UncheckedComputeManifest});
 
 test('the packed external Compute declaration supplies its original binding validator', t => {
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -115,7 +116,7 @@ test('declarations cannot inject code or move implementation ownership into core
     {managed_start_error: {package: good.manifest.package, type: 'Issue); abort()'}},
     {managed_start_error: {package: good.manifest.package, type: 'Issue', extra: true}},
   ]) {
-    assert.throws(() => generateComputeAssembly([{...good, manifest: {...good.manifest, ...update}}]));
+    assert.throws(() => generateComputeAssembly([{...good, manifest: {...good.manifest, ...update} as UncheckedComputeManifest}]));
   }
   assert.throws(() => generateComputeAssembly([good, good]));
 });
@@ -125,7 +126,7 @@ test('managed start has an explicit error type independent of dispatch', () => {
   assert.notDeepEqual(reference.manifest.managed_start_error,
     reference.manifest.dispatch_error);
   assert.doesNotThrow(() => generateComputeAssembly([reference]));
-  for (const key of ['managed_start', 'managed_start_result', 'managed_start_error']) {
+  for (const key of ['managed_start', 'managed_start_result', 'managed_start_error'] as const) {
     const manifest = {...reference.manifest};
     delete manifest[key];
     assert.throws(() => generateComputeAssembly([{...reference, manifest}]),

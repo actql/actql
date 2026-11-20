@@ -656,3 +656,6 @@ target/
 
 /scripts/connector-node-bundles.mjs
 /scripts/connector-node-bundles.d.mts
+
+/scripts/connector-compute-bundles.test.mjs
+/scripts/connector-compute-bundles.test.d.mts
