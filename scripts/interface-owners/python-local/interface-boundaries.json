@@ -93306,7 +93306,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "5ea0e38389d6fae0e3731db16b23db50fa9c3ca28721e2ce1251fa726bb8992c",
+      "sha256": "1b8b1ac6ef1d34724376d232514c8d2663979fcbdc9e2df5e71f7bdc98365b27",
       "exports": [],
       "operations": [
         {
@@ -93495,6 +93495,10 @@
               {
                 "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
                 "anchor": "test \"retained material inventory repeats full scopes and cancellation with original\""
+              },
+              {
+                "path": "src/run_publication_host/client_saved_original_rows_wbtest.mbt",
+                "anchor": "test \"same saved material reobserves the original canonical chunks and propagates the last query refusal\""
               },
               {
                 "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",

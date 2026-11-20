@@ -73,7 +73,7 @@ pub fn[E] reobserve_client_saved_submission_original(
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   guard original.record.run_admission is Some(_) &&
     original.run is Some(run) &&
-    original.inspection is Some(_) else {
+    original.inspection is Some(inspection) else {
     return Ok(None)
   }
   let submission = match
@@ -95,9 +95,11 @@ pub fn[E] reobserve_client_saved_submission_original(
       match original.task_materials {
         None => Ok(Some(original))
         Some(wire) => {
-          let cid = match client_task_material_original_cid(wire) {
-            Ok(cid) => cid
-            Err(_) => return Ok(None)
+          // Snapshot construction checked this inspection's original CID
+          // against the retained wire. Preserve the complete fresh material
+          // read and its hash below without hashing the retained wire again.
+          guard inspection.task_materials_cid is Some(cid) else {
+            return Ok(None)
           }
           match
             read_client_task_material_original(
