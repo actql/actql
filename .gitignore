@@ -74,3 +74,7 @@ target/
 /scripts/typescript-bootstrap.test.d.mts
 /packages/sdk/check-presentation.mjs
 /packages/sdk/check-presentation.d.mts
+/packages/sdk/operation-presentation.mjs
+/packages/sdk/operation-presentation.d.mts
+/packages/sdk/operation-formats.mjs
+/packages/sdk/operation-formats.d.mts

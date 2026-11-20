@@ -1,7 +1,7 @@
 // Shared immutable data capture and comparison, without observation custody.
 export const utf8 = new TextEncoder();
 
-export const freezeInput = <T,>(value: T): T => {
+export const freezeInput = <const T,>(value: T): T => {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value as Record<string, unknown>)) freezeInput(child);
     Object.freeze(value);

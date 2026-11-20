@@ -1,8 +1,42 @@
 import {freezeInput} from './internal/data.mjs';
 // Operation wording is separate from retained observations and wire identity.
 import {getCheckPresentationInfo} from './check-presentation.mjs';
+import type {CancellationExplanation, CancellationReference, ClientError, DeliveryAttemptLookup,
+  HeldRequestExplanation, OwnerObservations, OwnerObservationsExplanation,
+  OperationExplanationOptions, ReadFailureExplanation, RequestCancellationExplanation,
+  RequestLookup, RunReference, RunState, RunObservationFailureExplanation,
+  SubmissionAttempt, SubmissionExplanation, SubmissionOutcome, SubmissionReference} from './index.d.ts';
+import type {WireCancellationAttempt, WireOperationAttemptRef, WireRequestCancellation} from '@actql/client-wire';
 
-const summaries = Object.freeze({
+type LookupContext = NonNullable<ClientError['lookupContext']>;
+type LookupInput = {lookupContext: LookupContext} & (
+  {requestId: string; submissionRef?: undefined} |
+  {submissionRef: SubmissionReference; requestId?: string}
+);
+type SubmissionContext = LookupInput & {submissionRef: SubmissionReference};
+type RequestContext = LookupInput & {requestId: string};
+type OwnerView = OwnerObservations['owners'][number];
+type SnapshotProblem = Extract<OwnerView, {snapshotProblem: unknown}>['snapshotProblem'];
+interface CancellationContext {ref: RunReference; cancelRef: CancellationReference}
+type CancellationInvocation = CancellationContext & {
+  attemptRef: WireOperationAttemptRef & {operation: 'cancel'};
+};
+type SubmissionInvocation = SubmissionContext & {
+  attemptRef: WireOperationAttemptRef & {operation: 'submit'};
+};
+interface DisplayObservation {
+  summary: string; hint?: string; kind?: string; problem?: unknown; observation?: string;
+  preparationState?: string; reason?: string; rowsYielded?: number;
+}
+type Localized<T> = T extends unknown ? Omit<T, 'summary' | 'hint'> & {summary: string} &
+  (T extends {hint: string} ? {hint: string} : {hint?: string}) : never;
+type MutableSubmissionExplanation = SubmissionExplanation & {
+  problem?: {code: string; classification: string};
+  preparationIssue?: {kind: 'analysis_budget_exhausted' | 'implementation_limit'; summary: string; hint: string};
+};
+
+
+const summaries: Readonly<Record<string, string>> = Object.freeze({
   'observation.observation_unavailable': 'Runの観測を完了できませんでした。この失敗は実行・Effect・公開・解放の結果を確定しません。',
   'observation.unknown_state': 'このSDKではRun応答の状態を解釈できません。',
   'observation.contract_mismatch': 'Run応答がこのSDKの登録済み状態契約と一致しません。',
@@ -55,19 +89,20 @@ const summaries = Object.freeze({
 });
 const readHint = 'この読み取り参照を保持してください。先頭から新しく読み取るか判断する前に、元の参照で状態を確認してください。';
 
-export function getOperationPresentationInfo(options) {
+export function getOperationPresentationInfo(options?: OperationExplanationOptions) {
   const {locale} = getCheckPresentationInfo(options);
   return Object.freeze({locale, translationRevision: `2026-10-09.operations.${locale}.13`});
 }
 
-export function localizeOperation(explanation, domain, options) {
+export function localizeOperation<T extends DisplayObservation>(explanation: T | undefined, domain: string,
+  options?: OperationExplanationOptions): Localized<T> | undefined {
   if (explanation === undefined) return undefined;
-  if (getOperationPresentationInfo(options).locale !== 'ja') return explanation;
+  if (getOperationPresentationInfo(options).locale !== 'ja') return explanation as Localized<T>;
   let key = domain + '.' + (domain === 'observation' ? explanation.problem : explanation.observation);
   if ((domain === 'request' || domain === 'submission') && explanation.observation === 'request_held') {
     key = 'request.request_held.' + explanation.preparationState;
   }
-  if ((domain === 'submission' || domain === 'cancellation') && ['refused', 'conflict'].includes(explanation.observation)) {
+  if ((domain === 'submission' || domain === 'cancellation') && ['refused', 'conflict'].includes(explanation.observation as string)) {
     key += '.' + explanation.reason;
   }
   let summary, hint;
@@ -77,9 +112,9 @@ export function localizeOperation(explanation, domain, options) {
   if (domain === 'submission' && explanation.hint !== undefined && explanation.observation !== 'request_held') {
     hint = '元の提出参照を保持し、認可された照会を使ってください。この観測は再送信・実行・資源解放を許可しません。';
   }
-  if (domain === 'submission' && ['refused', 'conflict'].includes(explanation.observation)) hint = '元の提出参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの受理を確定せず、再提出・変更した入力・新しい再開始の判断を許可しません。';
+  if (domain === 'submission' && ['refused', 'conflict'].includes(explanation.observation as string)) hint = '元の提出参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの受理を確定せず、再提出・変更した入力・新しい再開始の判断を許可しません。';
   if (domain === 'requestCancellation') hint = '元の要求参照を保持し、現在の認可で要求または示されたRunを確認してください。この観測は再送信・資源解放・外部Effectの再実行を許可しません。';
-  if (domain === 'cancellation' && ['refused', 'conflict'].includes(explanation.observation)) hint = '元の取消し参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの結果を確定せず、再送信を許可せず、物理停止・外部Effect・資源解放を確認しません。';
+  if (domain === 'cancellation' && ['refused', 'conflict'].includes(explanation.observation as string)) hint = '元の取消し参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの結果を確定せず、再送信を許可せず、物理停止・外部Effect・資源解放を確認しません。';
   if (domain === 'delivery') hint = '元の読み取り参照を保持してください。この観測はアプリケーションでの受領・保存を確認せず、再読取やComputeの再実行も許可しません。';
   if (domain === 'read') hint = readHint;
   if (domain === 'observation') hint = '現在の認可で元のRun状態を確認してください。この観測は実行・Effect・公開・解放の結果を確定せず、書き込みの再試行を許可しません。';
@@ -91,11 +126,11 @@ export function localizeOperation(explanation, domain, options) {
     hint = readHint;
   } else if (Object.hasOwn(summaries, key)) summary = summaries[key];
   // Missing translations retain the same safe English observation.
-  if (summary === undefined) return explanation;
-  return Object.freeze({...explanation, summary, ...(hint === undefined ? {} : {hint})});
+  if (summary === undefined) return explanation as Localized<T>;
+  return Object.freeze({...explanation, summary, ...(hint === undefined ? {} : {hint})}) as Localized<T>;
 }
 
-const ownerHistoryAdvice = {
+const ownerHistoryAdvice: Readonly<Record<string, readonly [string, string]>> = {
   not_provided: ['This Owner provides a current view without transition history.',
     'Earlier transitions are not established by the current snapshot.'],
   retention_expired: ['The Owner reports that the requested history is outside retained history.',
@@ -114,7 +149,7 @@ const ownerHistoryAdvice = {
     'The page is not a global event order or an atomic view of other Owners. A returned cursor grants no execution or retry permission.'],
 };
 
-const ownerUnavailableAdvice = {
+const ownerUnavailableAdvice: Readonly<Record<string, readonly [string, string]>> = {
   acquisition_failed: ['The Owner observations could not be acquired.',
     'The acquisition failure establishes no stream identity, absence or earlier outcome.'],
   limit_exceeded: ['The observation budget could not cover this Owner.',
@@ -125,17 +160,17 @@ const ownerUnavailableAdvice = {
     'A mismatch establishes no stream identity, absence or earlier outcome.'],
 };
 
-const ownerSnapshotAdvice = {
+const ownerSnapshotAdvice: Readonly<Record<string, readonly [string, string]>> = {
   acquisition_failed: ['The current Owner snapshot could not be acquired.',
     'Available history does not substitute for a current snapshot.'],
   limit_exceeded: ['The current Owner snapshot exceeded the observation budget.',
     'Available history does not establish a complete current view.'],
 };
 
-const advice = (facts, messages) => ({...facts, summary: messages[0], hint: messages[1]});
+const advice = <T extends object>(facts: T, messages: readonly string[]) => ({...facts, summary: messages[0], hint: messages[1]});
 
-export const projectOwnerObservations = (answer, input, lookupContext) => {
-  const owners = answer.owners.map(view => {
+export const projectOwnerObservations = (answer: OwnerObservations, input: OwnerObservationsExplanation['requested'], lookupContext: LookupContext) => {
+  const owners = answer.owners.map((view: OwnerView & {snapshotProblem?: SnapshotProblem}) => {
     if (view.kind === 'unavailable') return advice(view, view.problem === undefined ? [
       'This Owner observation is unavailable.',
       'Unavailability establishes no stream identity, absence, execution or release outcome.',
@@ -155,8 +190,9 @@ export const projectOwnerObservations = (answer, input, lookupContext) => {
   });
 };
 
-export const projectCancellationExplanation = (result, context, observation, revision) => {
-  const summaries = {
+export const projectCancellationExplanation = (result: unknown, context: CancellationContext,
+  observation: Exclude<CancellationExplanation['observation'], 'refused' | 'conflict'>, revision?: number) => {
+  const summaries: Readonly<Record<string, string>> = {
     accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
     already_requested: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.',
     already_terminal: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
@@ -169,14 +205,14 @@ export const projectCancellationExplanation = (result, context, observation, rev
       : {operation: 'status', ref: context.ref}});
 };
 
-export const projectCancellationAttemptExplanation = (result, context) => {
+export const projectCancellationAttemptExplanation = (result: WireCancellationAttempt, context: CancellationInvocation) => {
   // The response has already been captured, detached and twice admitted against
   // this invocation. A refusal is not a fact about another invocation's commit.
   if (result.kind !== 'refused' && result.kind !== 'conflict') {
     return projectCancellationExplanation(result, context,
       result.cancellation.kind, result.cancellation.revision);
   }
-  const summaries = result.kind === 'refused' ? {
+  const summaries: Readonly<Record<string, string>> = result.kind === 'refused' ? {
     authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
     admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
   } : {
@@ -193,14 +229,14 @@ export const projectCancellationAttemptExplanation = (result, context) => {
   });
 };
 
-export const projectDeliveryExplanation = (answer, next) => {
+export const projectDeliveryExplanation = (answer: DeliveryAttemptLookup, next: ReadFailureExplanation['next']) => {
   const record = answer.kind === 'found' ? answer.record : null;
   const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
     record === null ? 'attempt_recorded' : {
       streaming: 'delivery_streaming', succeeded: 'host_delivery_succeeded',
       failed: 'delivery_failed', cancelled: 'delivery_cancelled',
     }[record.state];
-  const summaries = {
+  const summaries: Readonly<Record<string, string>> = {
     lookup_unresolved: 'This lookup found no DeliveryAttempt; whether the read opened remains unresolved.',
     attempt_recorded: 'The Host recorded this DeliveryAttempt; no delivery outcome is available yet.',
     delivery_streaming: 'The Host reports that this Delivery is streaming; completion is not confirmed.',
@@ -218,14 +254,15 @@ export const projectDeliveryExplanation = (answer, next) => {
       ...(record.cleanup_owner_cids.length ? {cleanup: 'unresolved'} : {}),
     }),
     ...(record?.state === 'succeeded' ? {
-      hostReleaseReceiptCid: answer.hostReleaseReceipt.result_delivery_receipt_cid,
-      deliveredSha256: answer.hostReleaseReceipt.delivered_sha256,
+      hostReleaseReceiptCid: (answer as Extract<DeliveryAttemptLookup, {kind: 'found'}>).hostReleaseReceipt!.result_delivery_receipt_cid,
+      deliveredSha256: (answer as Extract<DeliveryAttemptLookup, {kind: 'found'}>).hostReleaseReceipt!.delivered_sha256,
     } : {}),
     next,
   });
 };
 
-export const projectReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
+export const projectReadExplanation = (result: unknown, context: Omit<ReadFailureExplanation['next'], 'operation'>,
+  rowsYielded: number, observation: ReadFailureExplanation['observation'], cleanupUnknown = false) => {
   const quantity = `${rowsYielded} ${rowsYielded === 1 ? 'row' : 'rows'}`;
   return freezeInput({observation,
     ...(cleanupUnknown ? {cleanup: 'unknown'} : {}),
@@ -242,7 +279,7 @@ export const projectReadExplanation = (result, context, rowsYielded, observation
   });
 };
 
-export const submissionLookupExplanation = (observation, input) => freezeInput({
+export const submissionLookupExplanation = (observation: string, input: LookupInput) => freezeInput({
   observation,
   summary: 'Submission acceptance is unknown. Work may already have started.',
   next: {operation: input.submissionRef === undefined ? 'lookupRequest' : 'lookupSubmission',
@@ -252,12 +289,12 @@ export const submissionLookupExplanation = (observation, input) => freezeInput({
 
 const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
 
-const submissionTarget = context => ({operation: 'lookupSubmission',
-  submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const submissionTarget = (context: SubmissionContext) => ({operation: 'lookupSubmission',
+  submissionRef: context.submissionRef, lookupContext: context.lookupContext} as const);
 
 const requestObservationHint = 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.';
 
-const heldRequestExplanation = (answer, context) => freezeInput({
+const heldRequestExplanation = (answer: Extract<RequestLookup, {kind: 'held'}>, context: LookupInput): HeldRequestExplanation => freezeInput({
   observation: 'request_held', preparationState: answer.state,
   prepareAttemptId: answer.prepareAttemptId, durability: answer.durability,
   summary: {
@@ -268,14 +305,14 @@ const heldRequestExplanation = (answer, context) => freezeInput({
   next: context.submissionRef === undefined
     ? {operation: 'lookupRequest', requestId: context.requestId, lookupContext: context.lookupContext}
     : {operation: 'lookupSubmission', submissionRef: context.submissionRef, lookupContext: context.lookupContext},
-});
+} as const);
 
 const requestCancellationHint = 'Keep the original request reference and inspect the current request or named Run under current authorization. This observation grants no permission to resubmit, release resources or repeat an external Effect.';
 
-export const projectSubmissionAttemptExplanation = (result, attempt, snapshot) => {
+export const projectSubmissionAttemptExplanation = (result: unknown, attempt: Extract<SubmissionAttempt, {kind: 'refused' | 'conflict'}>, snapshot: SubmissionInvocation) => {
   // This admitted invocation fact is separate from the original durable
   // receipt. Keep only the submitted reference, never a conflicting old intent.
-  const summaries = attempt.kind === 'refused' ? {
+  const summaries: Readonly<Record<string, string>> = attempt.kind === 'refused' ? {
     authorization: 'The Host refused this submission invocation under current authorization. This invocation committed no submission and consumed no operation identity.',
     admission_capacity: 'The Host refused this submission invocation because admission capacity was unavailable. This invocation committed no submission and consumed no operation identity.',
     epoch_expired: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
@@ -294,10 +331,10 @@ export const projectSubmissionAttemptExplanation = (result, attempt, snapshot) =
   });
 };
 
-export const projectSubmissionExplanation = (result, outcome, context) => {
+export const projectSubmissionExplanation = (result: unknown, outcome: SubmissionOutcome, context: SubmissionContext) => {
   // Called only after admitting the exact Owner response and its binding.
   // Acceptance phase follows its typed branch, never its problem code.
-  let explanation;
+  let explanation: MutableSubmissionExplanation;
   if (outcome.kind === 'ready') explanation = {
     observation: 'run_reference_received',
     summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
@@ -306,7 +343,7 @@ export const projectSubmissionExplanation = (result, outcome, context) => {
   else if (outcome.kind === 'held') explanation = heldRequestExplanation(outcome.held, context);
   else {
     const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;
-    const summaries = {
+    const summaries: Readonly<Record<string, string>> = {
       not_accepted: 'The Host durably rejected this submission before acceptance. Its identity is consumed; no Run reference was returned.',
       preparation_failed: 'The Host accepted this submission, then preparation failed. No Run reference was returned; this is not a rejection before acceptance.',
       preparing: 'The Host accepted this submission and preparation is still pending. No Run reference was returned.',
@@ -315,7 +352,7 @@ export const projectSubmissionExplanation = (result, outcome, context) => {
     explanation = {observation, summary: summaries[observation], hint: submissionObservationHint,
       next: submissionTarget(context),
       ...(['not_accepted', 'preparation_failed'].includes(outcome.kind)
-        ? {problem: {code: outcome.problem.code, classification: outcome.problem.classification}} : {})};
+        ? {problem: {code: (outcome as Extract<SubmissionOutcome, {kind: 'not_accepted' | 'preparation_failed'}>).problem.code, classification: (outcome as Extract<SubmissionOutcome, {kind: 'not_accepted' | 'preparation_failed'}>).problem.classification}} : {})} as MutableSubmissionExplanation;
   }
   if (explanation.problem?.code === 'ClientProgramAnalysisLimit' &&
       explanation.problem.classification === 'implementation_limit') {
@@ -332,7 +369,7 @@ export const projectSubmissionExplanation = (result, outcome, context) => {
   return freezeInput(explanation);
 };
 
-export const projectRequestLookupExplanation = (answer, context) => {
+export const projectRequestLookupExplanation = (answer: RequestLookup, context: RequestContext) => {
   const observation = answer.kind === 'found' ? 'run_reference_received' :
     answer.kind === 'not_found' ? 'lookup_unresolved' : 'lookup_unavailable';
   return answer.kind === 'held'
@@ -349,8 +386,9 @@ export const projectRequestLookupExplanation = (answer, context) => {
     });
 };
 
-export const projectRequestCancellationExplanation = (result, context, observation, problem) => {
-  const summaries = {
+export const projectRequestCancellationExplanation = (result: WireRequestCancellation | undefined, context: RequestContext,
+  observation: RequestCancellationExplanation['observation'], problem?: 'exchange_failed' | 'response_uninterpretable') => {
+  const summaries: Readonly<Record<string, string>> = {
     accepted: 'The Host recorded cancellation of this request. This response does not establish physical stop or resource release.',
     already_requested: 'The Host reports a previously recorded cancellation of this request. This response does not establish physical stop or resource release.',
     already_terminal: 'The Host reports that this request is already terminal. This response does not establish its execution outcome, physical stop or resource release.',
@@ -359,15 +397,15 @@ export const projectRequestCancellationExplanation = (result, context, observati
   return freezeInput({observation,
     requestId: context.requestId, ...(problem === undefined ? {} : {problem}),
     summary: summaries[observation], hint: requestCancellationHint,
-    ...(problem === undefined && result.ref !== undefined ? {revision: result.revision} : {}),
-    next: problem === undefined && result.ref !== undefined
-      ? {operation: 'status', ref: {...result.ref}}
+    ...(problem === undefined && result!.ref !== undefined ? {revision: result!.revision} : {}),
+    next: problem === undefined && result!.ref !== undefined
+      ? {operation: 'status', ref: {...result!.ref}}
       : {operation: 'lookupRequest', requestId: context.requestId,
         lookupContext: context.lookupContext},
   });
 };
 
-export const projectDeliveryLookupFailure = (next, observation) => freezeInput({observation,
+export const projectDeliveryLookupFailure = (next: ReadFailureExplanation['next'], observation: 'lookup_unavailable' | 'lookup_uninterpretable') => freezeInput({observation,
     summary: observation === 'lookup_unavailable'
       ? 'The DeliveryAttempt lookup could not be completed. Read opening and delivery remain unresolved.'
       : 'This SDK could not interpret the DeliveryAttempt lookup response. Read opening and delivery remain unresolved.',
@@ -375,13 +413,13 @@ export const projectDeliveryLookupFailure = (next, observation) => freezeInput({
     next,
   });
 
-export const projectSubmissionLookupFailure = (context, observation) => freezeInput({observation,
+export const projectSubmissionLookupFailure = (context: SubmissionContext, observation: 'lookup_unavailable' | 'lookup_uninterpretable') => freezeInput({observation,
     summary: observation === 'lookup_unavailable'
       ? 'The submission lookup could not be completed. Acceptance and execution remain unresolved.'
       : 'This SDK could not interpret the submission lookup response. Acceptance and execution remain unresolved.',
     hint: submissionObservationHint, next: submissionTarget(context)});
 
-export const projectRequestLookupFailure = (context, observation) => freezeInput({observation,
+export const projectRequestLookupFailure = (context: RequestContext, observation: 'lookup_unavailable' | 'lookup_uninterpretable') => freezeInput({observation,
     summary: observation === 'lookup_uninterpretable'
       ? 'This SDK could not interpret the request lookup response. Acceptance and execution remain unresolved.'
       : 'The request lookup could not be completed. Acceptance and execution remain unresolved.',
@@ -390,15 +428,16 @@ export const projectRequestLookupFailure = (context, observation) => freezeInput
       lookupContext: context.lookupContext},
   });
 
-export const projectUnavailableRunObservation = (ref, operation) => freezeInput({kind: 'unavailable',
+export const projectUnavailableRunObservation = (ref: RunReference, operation: RunObservationFailureExplanation['operation']) => freezeInput({kind: 'unavailable',
     problem: 'observation_unavailable', operation,
     next: {operation: 'status', ref: {...ref}},
     summary: 'The Run observation could not be completed. Its execution, Effect, publication and release outcomes are not established by this failure.',
     hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
   });
 
-export const projectRejectedRunObservation = (ref, operation, problem) => {
-  const summaries = {
+export const projectRejectedRunObservation = (ref: RunReference, operation: RunObservationFailureExplanation['operation'],
+  problem: Exclude<RunObservationFailureExplanation['problem'], 'observation_unavailable'>) => {
+  const summaries: Readonly<Record<string, string>> = {
     unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
     contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
     malformed_response: 'The Run reply violates the registered state contract.',
@@ -412,7 +451,7 @@ export const projectRejectedRunObservation = (ref, operation, problem) => {
   });
 };
 
-export const projectEffectUncertainty = (state, ref) => {
+export const projectEffectUncertainty = (state: RunState, ref: RunReference) => {
   if (state.status === 'needs_reconciliation' &&
       state.next_action.kind === 'reconcile') {
     // The observation reader has admitted and detached these exact facts.
@@ -429,6 +468,6 @@ export const projectEffectUncertainty = (state, ref) => {
   }
 };
 
-export const projectSubmissionNotSent = input => freezeInput({observation: 'not_sent',
+export const projectSubmissionNotSent = (input: SubmissionContext) => freezeInput({observation: 'not_sent',
     summary: 'This SDK did not dispatch this submission attempt. This is not an Owner-issued rejection and does not establish the original identity outcome.',
     hint: submissionObservationHint, next: submissionTarget(input)});
