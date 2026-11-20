@@ -3409,7 +3409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3419,7 +3419,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3433,7 +3433,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3447,7 +3447,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3461,7 +3461,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3475,7 +3475,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3489,7 +3489,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3503,7 +3503,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3517,7 +3517,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {

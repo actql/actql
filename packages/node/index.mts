@@ -1,12 +1,19 @@
+import type * as Public from './index.js';
+import type {Client,ConnectionStringOptions} from '@actql/sdk';
+// Static views of the same original SDK/provider namespaces. Runtime options,
+// provider/module resolution and installed Host admission remain unchanged.
+type SDKPort = {connect(options:unknown,stringOptions?:unknown):Promise<Client>};
+type ProviderPort = {connect(options:unknown):Client|Promise<Client>};
+type UncheckedFields = Record<PropertyKey,unknown>;
 import {resolve} from 'node:path';
 import {createRequire} from 'node:module';
 import {ClientError, RequestHeld} from '@actql/sdk/_internal/client-errors';
 
 // Remote connections need no Local provider or process-wide bootstrap.
 const requireSdk = createRequire(import.meta.url);
-let sdk;
-function connectHost(...args) {
-  sdk ??= requireSdk('@actql/sdk');
+let sdk:SDKPort|undefined;
+function connectHost(...args:[unknown,unknown?]) {
+  sdk ??= requireSdk('@actql/sdk') as SDKPort;
   return sdk.connect(...args);
 }
 
@@ -16,25 +23,25 @@ export {ClientError, RequestHeld};
 // Keep callbacks and opaque installation originals, rather than cloning their
 // backing objects or treating a copied value as authority. Unknown own fields
 // and symbols survive for the Host's existing closed validation.
-function captureOptions(original, captured = new Map()) {
-  const fields = Object.getOwnPropertyDescriptors(original);
+function captureOptions(original:object, captured = new Map<PropertyKey,unknown>()):UncheckedFields {
+  const fields = Object.getOwnPropertyDescriptors(original) as Record<PropertyKey,PropertyDescriptor>;
   for (const key of Reflect.ownKeys(fields)) {
     const field = fields[key];
     fields[key] = {value: captured.has(key) ? captured.get(key) :
       Reflect.get(original, key), enumerable: field.enumerable,
       configurable: false, writable: false};
   }
-  return Object.freeze(Object.create(Object.getPrototypeOf(original), fields));
+  return Object.freeze(Object.create(Object.getPrototypeOf(original), fields)) as UncheckedFields;
 }
 
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.
-async function localProvider() {
+async function localProvider():Promise<ProviderPort> {
   let resolved;
   try {
     resolved = import.meta.resolve('@actql/local-node');
   } catch (cause) {
-    if (cause?.code !== 'ERR_MODULE_NOT_FOUND') throw cause;
+    if ((cause as {code?:unknown}|null)?.code !== 'ERR_MODULE_NOT_FOUND') throw cause;
     throw new ClientError('LocalProviderNotInstalled', {
       hint: 'Install the standard Local provider package before selecting embedded Local.',
       cause,
@@ -45,22 +52,24 @@ async function localProvider() {
   // it supplies no ActQL admission, checking result, or execution authority.
   const cache = await import('@actql/local-node/_internal/compile-cache');
   cache.enableNodeCompileCache();
-  const provider = await import(resolved);
+  const provider = await import(resolved) as {connect?:unknown};
   if (typeof provider.connect !== 'function') {
     throw new ClientError('InvalidLocalProvider');
   }
-  return provider;
+  return provider as ProviderPort;
 }
 
-export async function connect(options, stringOptions) {
+export function connect(options:Public.NodeConnectionOptions):Promise<Client>;
+export function connect(connectionString:string,options?:ConnectionStringOptions):Promise<Client>;
+export async function connect(options:unknown, stringOptions?:unknown):Promise<Client> {
   if (typeof options === 'string') return connectHost(options, stringOptions);
   const hint = "For embedded Local, use open() without a Host or token. For Remote, use connect({mode: 'remote', endpoint: 'https://host.example/', token: getAccessToken}).";
   if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions', {hint});
   let embeddedLocal, mode, owner, endpoint;
   try {
-    mode = options?.mode;
-    owner = options?.owner;
-    endpoint = options?.endpoint;
+    mode = (options as UncheckedFields|null|undefined)?.mode;
+    owner = (options as UncheckedFields|null|undefined)?.owner;
+    endpoint = (options as UncheckedFields|null|undefined)?.endpoint;
     embeddedLocal = (mode === 'local' || mode === 'hybrid' &&
       owner === 'local') && endpoint === undefined;
   } catch { throw new ClientError('InvalidConnectionOptions', {hint}); }
@@ -70,20 +79,20 @@ export async function connect(options, stringOptions) {
     try {
       // Only an explicitly captured caller profile can consent to initial
       // Mock setup. A discovered Project profile is not this selection.
-      if ('profile' in options && !Object.hasOwn(options, 'profile')) {
+      if ('profile' in (options as object) && !Object.hasOwn(options as object, 'profile')) {
         throw new ClientError('InvalidConnectionOptions', {hint});
       }
-      options = captureOptions(options, new Map([
+      options = captureOptions(options as object, new Map<PropertyKey,unknown>([
         ['mode', mode], ['owner', owner], ['endpoint', endpoint],
       ]));
-      let installation = options.installation;
+      let installation = (options as UncheckedFields).installation;
       if (installation !== undefined && installation !== null &&
           typeof installation === 'object' && !Array.isArray(installation)) {
         installation = captureOptions(installation);
-        const selected = installation.hostCapacityPolicy;
+        const selected = (installation as UncheckedFields).hostCapacityPolicy;
         // Capture omission as well as selection. Later caller mutations must
         // not choose a different Host policy while the provider is loading.
-        let hostCapacityPolicy;
+        let hostCapacityPolicy:unknown;
         if (selected !== undefined) {
           // Cloning must not turn an inadmissible class instance or null-
           // prototype object into a plain policy before Host admission.
@@ -97,9 +106,9 @@ export async function connect(options, stringOptions) {
         fields.hostCapacityPolicy = {value: hostCapacityPolicy, enumerable: true};
         installation = Object.freeze(Object.create(Object.getPrototypeOf(installation), fields));
       }
-      const fields = Object.getOwnPropertyDescriptors(options);
+      const fields = Object.getOwnPropertyDescriptors(options as object);
       fields.installation = {value: installation, enumerable: true};
-      options = Object.freeze(Object.create(Object.getPrototypeOf(options), fields));
+      options = Object.freeze(Object.create(Object.getPrototypeOf(options as object), fields));
     } catch (error) {
       if (error instanceof ClientError) throw error;
       throw new ClientError('InvalidInstalledHostCapacityPolicy');
@@ -111,14 +120,14 @@ export async function connect(options, stringOptions) {
 
 // The new short Local entry chooses a project-local state directory explicitly.
 // Existing connect() retains its environment/home-directory defaults.
-export async function open(options) {
+export async function open(options?:Public.OpenOptions):Promise<Public.LocalSession> {
   if (options === undefined) options = {};
   if (options === null || typeof options !== 'object' || Array.isArray(options) ||
       Reflect.ownKeys(options).some(key => !['stateDir', 'installation',
-        'durability', 'consentRefs', 'profile'].includes(key))) {
+        'durability', 'consentRefs', 'profile'].includes(key as string))) {
     throw new ClientError('InvalidOpenOptions');
   }
-  options = captureOptions(options);
+  options = captureOptions(options) as Public.OpenOptions;
   if (
       options.stateDir !== undefined &&
         (typeof options.stateDir !== 'string' || !options.stateDir) ||

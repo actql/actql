@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "paths": {
+      "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
       "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
       "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
     },
@@ -21,6 +22,7 @@
   "include": [
     "scripts/**/*.mts",
     "packages/sdk/**/*.mts",
+    "packages/node/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
     "adapters/host-common/**/*.mts",

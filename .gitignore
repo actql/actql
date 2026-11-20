@@ -450,3 +450,6 @@ target/
 
 /scripts/node-selected-connect-input.test.mjs
 /scripts/node-selected-connect-input.test.d.mts
+
+/packages/node/index.mjs
+/packages/node/index.d.mts
