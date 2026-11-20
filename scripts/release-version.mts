@@ -2,23 +2,36 @@ import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+export interface ReleaseVersion {
+  readonly version: string;
+  readonly pythonVersion: string;
+  readonly line: string;
+  readonly gitTag: string;
+  readonly prerelease: boolean;
+}
+
+type ReleaseStage = 'alpha' | 'beta' | 'rc';
+
 // Package versions are independent of language/protocol/ABI/CID versions.
 // No relative bump, whitespace normalization or implicit next version exists.
-export function releaseVersion(value) {
+export function releaseVersion(value: unknown): ReleaseVersion {
   assert.equal(typeof value, 'string', 'A complete explicit release version is required');
-  const match = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$/u.exec(value);
+  // The original runtime typeof guard above owns this refinement.
+  const text = value as string;
+  const match = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$/u.exec(text);
   assert(match && match[0] === value, 'Use X.Y.Z or X.Y.Z-alpha.N, -beta.N, -rc.N without build metadata');
-  const [, major, minor, patch, stage, serial] = match;
+  const [, major, minor, patch, rawStage, serial] = match;
+  const stage = rawStage as ReleaseStage | undefined;
   const base = `${major}.${minor}.${patch}`;
   const suffix = stage ? {alpha: 'a', beta: 'b', rc: 'rc'}[stage] + serial : '';
-  return Object.freeze({version: value, pythonVersion: base + suffix,
+  return Object.freeze({version: text, pythonVersion: base + suffix,
     line: `${major}.${minor}`, gitTag: `v${value}`, prerelease: stage !== undefined});
 }
 
-export function compareReleaseVersions(left, right) {
+export function compareReleaseVersions(left: string, right: string): number {
   releaseVersion(left); releaseVersion(right);
   const a = left.split(/[.-]/u), b = right.split(/[.-]/u);
-  const order = (x, y) => x < y ? -1 : x > y ? 1 : 0;
+  const order = (x: bigint | number, y: bigint | number) => x < y ? -1 : x > y ? 1 : 0;
   for (let index = 0; index < 3; index++) {
     const result = order(BigInt(a[index]), BigInt(b[index]));
     if (result) return result;

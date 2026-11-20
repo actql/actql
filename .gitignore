@@ -18,3 +18,8 @@ target/
 /packages/transfer-core/dist/
 /packages/explorer/dist/
 /packages/explorer-ui/dist/
+
+# Compiler emit keeps existing executable/import paths; .mts is the source.
+/scripts/release-version.mjs
+/scripts/release-policy.mjs
+/scripts/release-version-schema.test.mjs

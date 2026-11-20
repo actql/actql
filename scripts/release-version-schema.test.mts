@@ -6,19 +6,42 @@ import {parse} from 'yaml';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
 
-function assertReadyLintProfiles(step) {
+interface WorkflowStep {
+  name?: string;
+  if?: string;
+  run?: string;
+  uses?: string;
+  with?: Record<string, string>;
+  'continue-on-error'?: boolean;
+}
+interface WorkflowJob {
+  steps: WorkflowStep[];
+  needs: string[];
+  if: string;
+  environment?: string;
+  permissions?: {'id-token'?: string};
+}
+interface Workflow {jobs: Record<string, WorkflowJob>}
+interface ReleaseSchema {
+  properties: {
+    version: {pattern: string};
+    targets: {items: {properties: {channels: {items: {pattern: string}}}}};
+  };
+}
+
+function assertReadyLintProfiles(step: WorkflowStep) {
   const condition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
     .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
   assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition), 'Keep the implicit success prerequisite');
   assert.equal(step['continue-on-error'], undefined);
   for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
     assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}},
-      startsWith: (value, prefix) => value.startsWith(prefix)}, {timeout: 100}),
+      startsWith: (value: string, prefix: string) => value.startsWith(prefix)}, {timeout: 100}),
     ['full', 'maintenance', 'focused-tests'].includes(profile), profile);
 }
 
 test('actual schema version regex and shared parser match independent literal version oracles', () => {
-  const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url)));
+  const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url), 'utf8')) as ReleaseSchema;
   const pattern = new RegExp(schema.properties.version.pattern, 'u');
   // Syntax acceptance is independent of the separately enforced allowed line.
   const supported = ['0.0.0', '0.0.7', '0.0.19-alpha.0', '0.0.19-alpha.12',
@@ -32,13 +55,13 @@ test('actual schema version regex and shared parser match independent literal ve
   }
   for (const version of invalid) {
     assert.equal(pattern.test(version), false, `schema ${JSON.stringify(version)}`);
-    assert.throws(() => releaseVersion(version), undefined, `shared ${JSON.stringify(version)}`);
+    assert.throws(() => releaseVersion(version), `shared ${JSON.stringify(version)}`);
   }
   assert.equal(supported.length + invalid.length, 27);
 });
 
 test('existing public lint selects the release files without new publication authority', () => {
-  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as Workflow;
   const job = workflow.jobs.lint;
   assert.deepEqual(workflow.jobs['native-workloads'].steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
     {name: 'Test immutable Native package-version C mechanism', run: 'node --test scripts/native-cli-version-native.test.mjs'});
@@ -47,6 +70,7 @@ test('existing public lint selects the release files without new publication aut
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
   const [step] = selected;
+  assert(step?.run);
   assertReadyLintProfiles(step);
   assert.equal(step['continue-on-error'], undefined);
   const args = step.run.trim().split(/\s+/u);
@@ -61,7 +85,7 @@ test('existing public lint selects the release files without new publication aut
 });
 
 test('dotted channel schema and shared owner match independent literal channel oracles', () => {
-  const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url)));
+  const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url), 'utf8')) as ReleaseSchema;
   const pattern = new RegExp(schema.properties.targets.items.properties.channels.items.pattern, 'u');
   for (const channel of ['latest', 'next', 'candidate-fixed', 'release-0.0', 'release-0.1']) {
     assert.equal(pattern.test(channel), true); assert.equal(admitReleaseChannel(channel), channel);
@@ -73,12 +97,15 @@ test('dotted channel schema and shared owner match independent literal channel o
 });
 
 test('existing public lint gate selects cross-host packaging controls without runtime or publisher setup', () => {
-  const workflow=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+  const workflow=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8')) as Workflow;
   const job=workflow.jobs.lint;
-  assert.equal(job.steps.find(step=>step.uses==='./.github/actions/setup-toolchain').with.python,'true');
+  const setup = job.steps.find(step=>step.uses==='./.github/actions/setup-toolchain');
+  assert(setup?.with);
+  assert.equal(setup.with.python,'true');
   const selected=job.steps.filter(step=>step.name==='Test cross-host Python release preparation without runtime loading');
   assert.equal(selected.length, 1);
   assertReadyLintProfiles(selected[0]);
+  assert(selected[0].run);
   const command = selected[0].run.trim().split(/\s+/u);
   for (const required of ['pip', 'install', '-e', './packages/python-sdk',
     'packages/python-sdk/tests/run.py', '--pattern', 'test_release_packaging_target.py'])

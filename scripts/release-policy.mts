@@ -1,18 +1,47 @@
 import assert from 'node:assert/strict';
 import {releaseVersion} from './release-version.mjs';
 
-const exact = (value, keys) => {
+export interface ReleasePolicy {
+  schemaVersion: 'actql-release-policy/0.1';
+  allowedLines: string[];
+  publicationAuthority: 'external-owner-approval-required';
+}
+
+export type ReleaseEcosystem = 'npm' | 'pypi' | 'native';
+
+export interface ReleaseTarget {
+  id: string;
+  ecosystem: ReleaseEcosystem;
+  packages: string[];
+  platforms: string[];
+  profiles: string[];
+  destination: string;
+  channels: string[];
+}
+
+export interface ReleaseRequest {
+  schemaVersion: 'actql-release-request/0.1';
+  releaseId: string;
+  version: string;
+  source: {repository: string; commit: string; branch: string};
+  targets: ReleaseTarget[];
+  notes: {summary: string; breakingChanges: string[]; migration: string[]; knownLimitations: string[]};
+}
+
+function exact<K extends string>(value: unknown, keys: readonly K[]): asserts value is Record<K, unknown> {
   assert(value && typeof value === 'object' && !Array.isArray(value), 'Expected an object');
   assert.deepEqual(Object.keys(value).sort(), [...keys].sort(), 'Unexpected or missing release fields');
-};
-const text = value => assert(typeof value === 'string' && value.length &&
-  value === value.trim() && !/[\u0000-\u001f\u007f]/u.test(value), 'Expected nonempty literal text');
-const unique = (values, label) => {
+}
+function text(value: unknown): asserts value is string {
+  assert(typeof value === 'string' && value.length &&
+    value === value.trim() && !/[\u0000-\u001f\u007f]/u.test(value), 'Expected nonempty literal text');
+}
+function unique(values: unknown, label: string): asserts values is unknown[] {
   assert(Array.isArray(values) && values.length, `${label} must be explicit and nonempty`);
   assert.equal(new Set(values).size, values.length, `Duplicate ${label}`);
-};
+}
 
-export function admitReleaseChannel(value) {
+export function admitReleaseChannel(value: unknown): string {
   text(value);
   assert.match(value, /^[a-z][a-z0-9.-]*$/u, 'Select one literal release channel');
   return value;
@@ -20,7 +49,7 @@ export function admitReleaseChannel(value) {
 
 // This validates candidate policy DATA for a local plan. Trust in the protected
 // policy revision and owner approval belongs to the external release executor.
-export function admitReleasePolicy(value) {
+export function admitReleasePolicy(value: unknown): ReleasePolicy {
   exact(value, ['schemaVersion', 'allowedLines', 'publicationAuthority']);
   assert.equal(value.schemaVersion, 'actql-release-policy/0.1');
   unique(value.allowedLines, 'release lines');
@@ -29,10 +58,11 @@ export function admitReleasePolicy(value) {
     assert.match(line, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/u);
   }
   assert.equal(value.publicationAuthority, 'external-owner-approval-required');
-  return structuredClone(value);
+  // All fields and every array member have passed the original guards.
+  return structuredClone(value) as ReleasePolicy;
 }
 
-export function admitReleaseRequest(value, policy) {
+export function admitReleaseRequest(value: unknown, policy: unknown) {
   const selectedPolicy = admitReleasePolicy(policy);
   exact(value, ['schemaVersion', 'releaseId', 'version', 'source', 'targets', 'notes']);
   assert.equal(value.schemaVersion, 'actql-release-request/0.1');
@@ -54,17 +84,17 @@ export function admitReleaseRequest(value, policy) {
     text(target.id);
     assert.match(target.id, /^[a-z0-9][a-z0-9-]{0,127}$/u);
     assert(!targetIds.has(target.id), 'Duplicate target id'); targetIds.add(target.id);
-    assert(['npm', 'pypi', 'native'].includes(target.ecosystem), 'Unknown release ecosystem');
-    for (const field of ['packages', 'platforms', 'profiles']) {
+    assert(['npm', 'pypi', 'native'].includes(target.ecosystem as string), 'Unknown release ecosystem');
+    for (const field of ['packages', 'platforms', 'profiles'] as const) {
       unique(target[field], field);
       target[field].forEach(text);
     }
-    for (const name of target.packages) {
+    for (const name of target.packages as string[]) {
       const key = `${target.ecosystem}:${name}`;
       assert(!packages.has(key), 'A package cannot be assigned to two target groups'); packages.add(key);
     }
     const destination = {npm: 'https://registry.npmjs.org/', pypi: 'https://upload.pypi.org/legacy/',
-      native: 'https://github.com/actql/actql'}[target.ecosystem];
+      native: 'https://github.com/actql/actql'}[target.ecosystem as ReleaseEcosystem];
     assert.equal(target.destination, destination, 'Destination needs a separately reviewed policy extension');
     assert(Array.isArray(target.channels));
     assert.equal(new Set(target.channels).size, target.channels.length, 'Duplicate channels');
@@ -74,14 +104,15 @@ export function admitReleaseRequest(value, policy) {
   }
   exact(value.notes, ['summary', 'breakingChanges', 'migration', 'knownLimitations']);
   text(value.notes.summary);
-  for (const field of ['breakingChanges', 'migration', 'knownLimitations']) {
+  for (const field of ['breakingChanges', 'migration', 'knownLimitations'] as const) {
     assert(Array.isArray(value.notes[field])); value.notes[field].forEach(text);
   }
-  if (value.notes.breakingChanges.length) assert(value.notes.migration.length, 'Breaking changes require migration guidance');
-  return {request: structuredClone(value), version};
+  if ((value.notes.breakingChanges as string[]).length) assert((value.notes.migration as string[]).length, 'Breaking changes require migration guidance');
+  // Keep the original clone rather than reconstructing or normalizing DATA.
+  return {request: structuredClone(value) as ReleaseRequest, version};
 }
 
-export function releasePlan(request, policy) {
+export function releasePlan(request: unknown, policy: unknown) {
   const selected = admitReleaseRequest(request, policy);
   return {qualification: 'local release request validation only; not build, branch admission, registry availability, approval or publication',
     releaseId: selected.request.releaseId, version: selected.version,
