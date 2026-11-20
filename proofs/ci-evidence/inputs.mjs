@@ -15,7 +15,7 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '72c7d9e4fbaf1bb936b45690e71b4675f55c04980efbe755e9c462ee1be446c4',
+  digest: '6acea9bb8f3669853489b481e5f2dc3a986b196f9247be76c51bcb29031301d3',
   legacyDigest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',

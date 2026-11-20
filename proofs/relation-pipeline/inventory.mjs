@@ -9,9 +9,12 @@ export const snapshotDirectories = Object.freeze(['src', 'vendor', 'proofs/bound
 export const scratchRuntime = 'scripts/owned-scratch.mjs';
 export const scratchOriginal = 'scripts/owned-scratch.mts';
 export const scratchCompilerConfigs = Object.freeze(['tsconfig.base.json', 'tsconfig.tooling.json']);
-const snapshotFiles = Object.freeze(['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
+const sharedSnapshotFiles = ['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'];
+// Applicability sees both authored profiles, including removal of a legacy
+// path. A snapshot binds only the members selected for its actual source.
+export const snapshotFiles = Object.freeze([...sharedSnapshotFiles, scratchRuntime, scratchOriginal, ...scratchCompilerConfigs]);
 export function snapshotFilePaths(has) {
-  return [...snapshotFiles, ...(has(scratchOriginal) ? [scratchOriginal, ...scratchCompilerConfigs] : [scratchRuntime])];
+  return [...sharedSnapshotFiles, ...(has(scratchOriginal) ? [scratchOriginal, ...scratchCompilerConfigs] : [scratchRuntime])];
 }
 function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
