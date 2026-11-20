@@ -94,7 +94,7 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
   function rows(value, run) {
     const before = mutateSavedRows ? value.data : run.before;
     if (value.template === 'churn-risk-mock') return before.salesforce.Account.rows.map((row, i) => ({
-      id: row.id, notes: row.description, active_users: before.snowflake.usage_30d.rows[i].active_users,
+      id: row.id, notes: row.description, active_users: String(before.snowflake.usage_30d.rows[i].active_users),
       trend: before.snowflake.usage_30d.rows[i].trend, risk: {input_key: {id: row.id}, outcome: 'ok', value: {level: 'high', reason: i === 0
         ? 'falling usage and a competitor evaluation' : 'support tickets about pricing'}},
     }));
@@ -385,14 +385,32 @@ test('RC Result oracle rejects missing whole fields and changed Model values', (
   const before = {bytes: JSON.stringify(sourceData('churn-risk-mock'))};
   assert.throws(() => assertProjectSequenceRows('churn-risk-mock', [{id: '001Acme'}, {id: '001Globex'}], before));
   const rows = [
-    {id: '001Acme', notes: 'Acme notes', active_users: 4, trend: 'down', risk: {outcome: 'ok', value: {
+    {id: '001Acme', notes: 'Acme notes', active_users: '4', trend: 'down', risk: {outcome: 'ok', value: {
       level: 'high', reason: 'falling usage and a competitor evaluation'}}},
-    {id: '001Globex', notes: 'Globex notes', active_users: 12, trend: 'flat', risk: {outcome: 'ok', value: {
+    {id: '001Globex', notes: 'Globex notes', active_users: '12', trend: 'flat', risk: {outcome: 'ok', value: {
       level: 'high', reason: 'support tickets about pricing'}}},
   ];
   assert.doesNotThrow(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
   rows[0].risk.value.level = 'low';
   assert.throws(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
+});
+
+test('RC Int64 Result oracle requires exact canonical decimal Strings without numeric coercion', () => {
+  const before = {bytes: JSON.stringify(sourceData('churn-risk-mock'))};
+  const rows = [
+    {id: '001Acme', notes: 'Acme notes', active_users: '4', trend: 'down', risk: {outcome: 'ok', value: {
+      level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+    {id: '001Globex', notes: 'Globex notes', active_users: '12', trend: 'flat', risk: {outcome: 'ok', value: {
+      level: 'high', reason: 'support tickets about pricing'}}},
+  ];
+  assert.doesNotThrow(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
+  for (const value of [4, '04', '+4', '-0', '4.0', '4e0', ' 4', '5', null]) {
+    const changed = structuredClone(rows); changed[0].active_users = value;
+    assert.throws(() => assertProjectSequenceRows('churn-risk-mock', changed, before));
+  }
+  const unsafe = sourceData('churn-risk-mock'); unsafe.snowflake.usage_30d.rows[0].active_users = 9007199254740992;
+  const rounded = structuredClone(rows); rounded[0].active_users = '9007199254740992';
+  assert.throws(() => assertProjectSequenceRows('churn-risk-mock', rounded, {bytes: JSON.stringify(unsafe)}));
 });
 
 test('RC template check uses the actual typed runnable verdict and refuses a boolean substitute', () => {

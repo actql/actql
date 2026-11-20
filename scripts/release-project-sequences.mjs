@@ -142,7 +142,10 @@ export function assertProjectSequenceRows(template, rows, before) {
     assert(original);
     if (template === 'churn-risk-mock') {
       const usage = source.snowflake.usage_30d.rows.find(value => value.account_id === update.id);
-      assert.equal(row.notes, original.description); assert.equal(row.active_users, usage.active_users);
+      assert.equal(row.notes, original.description);
+      assert(Number.isSafeInteger(usage.active_users), 'The authored Mock count must be exact before encoding');
+      // The retained int64 contract requires decimal Strings even for small counts.
+      assert.equal(row.active_users, String(usage.active_users));
       assert.equal(row.trend, usage.trend);
     } else {
       assert.equal(row.StageName, original.StageName); assert.equal(row.NextStep, original.NextStep);
