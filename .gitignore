@@ -719,3 +719,9 @@ target/
 /scripts/build-node-directory-native.d.mts
 /scripts/node-directory-native-inputs.test.mjs
 /scripts/node-directory-native-inputs.test.d.mts
+
+# Emitted from the authored adapter packaging boundary and controls.
+/scripts/build-local-node-adapters.mjs
+/scripts/build-local-node-adapters.d.mts
+/scripts/local-node-package-inputs.test.mjs
+/scripts/local-node-package-inputs.test.d.mts

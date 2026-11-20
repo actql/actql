@@ -9,18 +9,20 @@ import {localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
+import type {TestContext} from 'node:test';
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const put = (root, path, content) => {
+const put = (root: string, path: string, content: string) => {
   mkdirSync(dirname(join(root, path)), {recursive: true});
   writeFileSync(join(root, path), content);
 };
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'local-package-inputs-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const manifest = {installation: {
     registration: 'example', revision: 'example/0.1',
-    providerBundle: 'connectors/example/host_node', responseHeaders: [],
-    assets: ['src/connectors/example/views.json'],
+    providerBundle: 'connectors/example/host_node' as string | undefined, responseHeaders: [],
+    assets: ['src/connectors/example/views.json'] as string[] | null,
     source: {profileVersion: 'actql-installed-example-source/0.1',
       module: 'adapters/connectors/example/host/source.mjs',
       exports: {check: 'check', identityParts: 'identity', load: 'load'}},
@@ -49,7 +51,7 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.deepEqual(inputs.providerBundles.map(entry => entry.name),
     ['calendar', 'gcs', 'github', 'gmail', 'hubspot', 'notion', 'salesforce', 'sheets', 'slack']);
   for (const provider of inputs.providerBundles) {
-    assert.ok(inputs.runtimePackages.includes(provider.package));
+    assert.ok(inputs.runtimePackages.includes(provider.package!));
     assert.ok(inputs.runtimeFiles.includes(provider.file));
   }
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/github/host/installed-github-source.mjs'));
@@ -73,7 +75,7 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.dataFiles.includes('src/connectors/github/source-views.json'));
   assert.ok(inputs.dataFiles.includes('src/connectors/github/writes.json'));
   assert.equal(new Set(inputs.runtimeFiles).size, inputs.runtimeFiles.length);
-  const packageManifest = JSON.parse(readFileSync(join(repository, 'packages/local-node/package.json')));
+  const packageManifest = JSON.parse(readFileSync(join(repository, 'packages/local-node/package.json')) as unknown as string) as {peerDependenciesMeta: Record<string, {optional: boolean}>; dependencies: Record<string, unknown>};
   assert.equal(packageManifest.peerDependenciesMeta['@duckdb/node-api'].optional, true);
   assert.equal(packageManifest.dependencies['@duckdb/node-api'], undefined);
 });
@@ -81,12 +83,12 @@ test('real declared providers supply runtime, adapter and static asset inventory
 test('a physical Host installation needs no artificial MoonBit provider bundle', t => {
   const {root, manifest, write, generate} = fixture(t);
   delete manifest.installation.providerBundle;
-  manifest.installation.assets.push('adapters/connectors/example/io/worker.py');
+  manifest.installation.assets!.push('adapters/connectors/example/io/worker.py');
   put(root, 'adapters/connectors/example/io/worker.py', '# independent physical worker\n');
   write(); generate();
   const inputs = localNodePackageInputs(root);
   assert.deepEqual(inputs.providerBundles, []);
-  assert.ok(!inputs.runtimePackages.includes(undefined));
+  assert.ok(!(inputs.runtimePackages as readonly unknown[]).includes(undefined));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/example/host/effect.mjs'));
   assert.ok(inputs.dataFiles.includes('adapters/connectors/example/io/worker.py'));
 });
@@ -99,7 +101,7 @@ test('implementation inventory includes owned transitive imports and physical co
     'export function check() {return helper;}\nexport function identity() {}\nexport function load() {}\n');
   const contract = 'spec/contracts/actql-example-storage.json';
   put(root, contract, '{"physical":"independent"}\n');
-  manifest.installation.assets.push(contract);
+  manifest.installation.assets!.push(contract);
   write(); generate();
   assert.ok(localNodePackageInputs(root).dataFiles.includes(contract));
   const generated = readFileSync(join(root, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');

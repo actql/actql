@@ -9,6 +9,8 @@ import type {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 
 type BuildInputs = ReturnType<typeof resolveConnectorBuildInputs>;
 type CopyDescriptor = {source: string; destination: string; ownerRoot: string};
+export type ExternalLocalNodePackageInputs = ReturnType<typeof externalInputs>;
+
 type RuntimeInput = {package: string; moduleRoot: string; namespace: string;
   qualifiedPackage: string; target: string; compiledFile: string; file: string};
 
