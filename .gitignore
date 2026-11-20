@@ -623,3 +623,12 @@ target/
 
 /adapters/host-node/installed-connectors.mjs
 /adapters/host-node/installed-connectors.d.mts
+
+/scripts/connector-manifest-selection.mjs
+/scripts/connector-manifest-selection.d.mts
+
+/scripts/connector-host-bundles.mjs
+/scripts/connector-host-bundles.d.mts
+
+/adapters/host-node/installed-connectors.test.mjs
+/adapters/host-node/installed-connectors.test.d.mts

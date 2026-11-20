@@ -3954,7 +3954,7 @@
                 "anchor": "\"source\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -4484,7 +4484,7 @@
                 "anchor": "\"registration\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -5422,7 +5422,7 @@
                 "anchor": "\"create\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -5946,7 +5946,7 @@
                 "anchor": "\"source\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -7373,7 +7373,7 @@
                 "anchor": "\"assets\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               }
             ],
@@ -8474,7 +8474,7 @@
                 "anchor": "\"effect\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {

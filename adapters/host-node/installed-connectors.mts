@@ -23,6 +23,7 @@
 // `load` also receives the Host's own `ledgerRoot` and returns the Effect
 // Site hooks (`installed-effect.mjs`).
 import {basename} from 'node:path';
+import type {InstalledConnectorEntry as DeclaredEntry, InstalledConnectorTable} from '../../packages/local-node/index.d.ts';
 import {validInstalledEffectIdentityProfile, validInstalledResponseHeaders}
   from '../host-common/installed-connector-declaration.mjs';
 
@@ -32,12 +33,6 @@ type RoleInput = {profileVersion?: unknown; load?: unknown; identityProfile?: un
 type EntryInput = {name?: unknown; registration?: unknown; revision?: unknown;
   providerBundle?: unknown; responseHeaders?: unknown; implementationFiles?: unknown;
   source?: RoleInput | null; effect?: RoleInput | null};
-type DeclaredRole = Readonly<{profileVersion: string; load(): unknown;
-  identityProfile?: Readonly<Record<string, string>>}>;
-type DeclaredEntry = Readonly<{name: string; registration?: string; revision?: string;
-  providerBundle?: string; responseHeaders?: readonly string[];
-  implementationFiles?: readonly Readonly<{path: string; href: string}>[];
-  source?: DeclaredRole; effect?: DeclaredRole}>;
 type InstallationModule = {check(...args: unknown[]): unknown; identityParts(...args: unknown[]): unknown;
   load(...args: unknown[]): unknown; publish?: (...args: unknown[]) => unknown};
 type ModuleInput = {check?: unknown; identityParts?: unknown; load?: unknown; publish?: unknown};
@@ -146,12 +141,12 @@ export function createInstalledConnectorTable(entries: unknown) {
   const handle = Object.freeze({});
   connectorTables.set(handle, {source, effect});
   for (const entry of snapshots) connectorTableEntries.add(entry);
-  return handle;
+  return handle as InstalledConnectorTable;
 }
 
 export function assertInstalledConnectorTable(handle: unknown) {
   if (!connectorTables.has(handle as object)) fail('InvalidInstalledConnectorTable');
-  return handle;
+  return handle as InstalledConnectorTable;
 }
 
 export function installedConnectorForTable(handle: unknown, role: unknown, profile: unknown,

@@ -58245,7 +58245,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-connectors.test.mjs",
+                "path": "adapters/host-node/installed-connectors.test.mts",
                 "anchor": "test('the installed connector table is keyed by profile version and refuses ambiguity', () => {"
               },
               {
@@ -58389,7 +58389,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-connectors.test.mjs",
+                "path": "adapters/host-node/installed-connectors.test.mts",
                 "anchor": "test('the installed connector table is keyed by profile version and refuses ambiguity', () => {"
               },
               {

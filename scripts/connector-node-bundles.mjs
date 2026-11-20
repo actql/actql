@@ -9,10 +9,10 @@ import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 export {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
-import {readHostBundles, generateInstallations, moduleSpecifier} from './connector-host-bundles.mjs';
+import {readHostBundles, generateInstallations, generateInstallationTypes, moduleSpecifier} from './connector-host-bundles.mjs';
 import {projectCoreLedger} from './generate-ledger-transport-contract.mjs';
 import {generateNotionUserListReadWire} from './notion-user-list-read-wire.mjs';
-export {checkHostBundle, readHostBundles, generateInstallations} from './connector-host-bundles.mjs';
+export {checkHostBundle, readHostBundles, generateInstallations, generateInstallationTypes} from './connector-host-bundles.mjs';
 
 // The Core record owns both field order and primitive width. This is only
 // its generated Int64 bridge projection, not another usage schema.
@@ -66,7 +66,8 @@ for (const entry of selected) {
 }
 const output = join(root, 'adapters', adapter, 'strategy.generated.mjs');
 const installationOutput = join(root, 'adapters', adapter, 'installations.generated.mjs');
-const outputs = [output, ...(withInstallations ? [installationOutput] : []),
+const installationTypesOutput = join(root, 'adapters', adapter, 'installations.generated.d.mts');
+const outputs = [output, ...(withInstallations ? [installationOutput, installationTypesOutput] : []),
   join(sourceRoot, assembly, 'moon.pkg'),
   join(sourceRoot, assembly, 'compute.generated.mbt'),
   join(sourceRoot, bridgePackage, 'bridge.generated.mbt'),
@@ -102,6 +103,8 @@ if (buildInputs === undefined && installations.some(entry =>
 }
 const installationSource = withInstallations
   ? generateInstallations(installations, installationOutput, root) : undefined;
+const installationTypes = withInstallations
+  ? generateInstallationTypes(installations, installationTypesOutput, coreRoot) : undefined;
 const externalModuleSpecifier = path => moduleSpecifier(output, path);
 const entries = buildInputs === undefined ? [] : buildInputs.nodeEntries.map(entry => ({
   name: entry.name, module: externalModuleSpecifier(entry.modulePath),
@@ -458,7 +461,8 @@ bridge = execFileSync(formatter, ['-'], {input: bridge, encoding: 'utf8'});
 const formattedManifest = execFileSync(formatter, ['-', '-file-type', 'pkg'], {input:manifest, encoding:'utf8'});
 checkComputeAssembly(root, write, {names:options.names, directory:assembly, buildInputs});
 for (const [path, text] of [[output, source],
-  ...(installationSource === undefined ? [] : [[installationOutput, installationSource]]),
+  ...(installationSource === undefined ? [] : [[installationOutput, installationSource],
+    [installationTypesOutput, installationTypes]]),
   [join(sourceRoot, bridgePackage, 'bridge.generated.mbt'), bridge],
   [join(sourceRoot, bridgePackage, 'moon.pkg'), formattedManifest]]) {
   if (write) { mkdirSync(dirname(path), {recursive:true}); writeFileSync(path, text); }

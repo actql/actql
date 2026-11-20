@@ -316,7 +316,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -358,7 +358,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -416,7 +416,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -474,7 +474,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -524,7 +524,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -578,7 +578,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -632,7 +632,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -678,7 +678,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -736,7 +736,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -935,7 +935,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -957,7 +957,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -979,7 +979,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1001,7 +1001,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1023,7 +1023,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1045,7 +1045,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1067,7 +1067,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1089,7 +1089,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1111,7 +1111,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1196,7 +1196,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1218,7 +1218,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1240,7 +1240,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1262,7 +1262,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1284,7 +1284,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1306,7 +1306,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1328,7 +1328,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1350,7 +1350,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1372,7 +1372,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1490,7 +1490,7 @@
             ],
             "identity": [
               {
-                "path": "scripts/connector-manifest-selection.mjs",
+                "path": "scripts/connector-manifest-selection.mts",
                 "anchor": "export function connectorManifestSelection"
               }
             ],

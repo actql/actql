@@ -4,20 +4,20 @@
 import {existsSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 
-const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+const identifier = (value: unknown) => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
 const roles = ['compute', 'node', 'host'];
 
-export function connectorManifestSelection(root, {names} = {}) {
+export function connectorManifestSelection(root: string, {names}: {names?: readonly string[]} = {}) {
   if (names !== undefined && (!Array.isArray(names) ||
       new Set(names).size !== names.length || !names.every(identifier))) {
     throw new Error('Invalid explicit Connector composition');
   }
-  const entries = [];
+  const entries: {name: string; compute?: string; node?: string; host?: string}[] = [];
   for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
     if (names !== undefined && !names.includes(name)) continue;
-    const paths = Object.fromEntries(roles.flatMap(role => {
+    const paths = Object.fromEntries<string>(roles.flatMap(role => {
       const path = join(root, 'src/connectors', name, `${role}-bundle.json`);
-      return existsSync(path) ? [[role, path]] : [];
+      return existsSync(path) ? [[role, path] as const] : [];
     }));
     if (Object.keys(paths).length === 0) continue;
     if (!identifier(name)) throw new Error('Invalid Connector manifest name');
