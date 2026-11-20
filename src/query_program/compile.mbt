@@ -1557,6 +1557,8 @@ fn lower_aggregate_resolved(
   max_collection_bytes : Int64,
   order_fields? : Array[String]? = None,
   analytic? : Bool = false,
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   let conditional_count = call.function_name == "COUNTIF" &&
     call.distinct &&
@@ -1564,6 +1566,26 @@ fn lower_aggregate_resolved(
   let name = match aggregate_common_function(call.function_name) {
     Some(name) => if conditional_count { "count" } else { name }
     None => raise Abort(UnsupportedAggregate)
+  }
+  let argument_view = call.argument.bind(argument => {
+    namespace_check.bind(check => check(argument))
+  })
+  if namespace_check is Some(check) {
+    if call.filter is Some(filter) {
+      ignore(check(filter))
+    }
+    for term in call.order_by {
+      ignore(check(term.expression))
+    }
+  }
+  if namespace_out is Some(output) {
+    output.push(
+      if name == "array_agg" {
+        argument_view.map(view => Array(view))
+      } else {
+        None
+      },
+    )
   }
   let entries : Array[(String, @builder.Node)] = [
     ("fn", construction.text(name)),
@@ -1817,6 +1839,8 @@ fn lower_analytic_call(
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
   max_collection_bytes : Int64,
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   if call.window.frame is Some(frame) {
     validate_literal_zero_frame(frame)
@@ -1854,6 +1878,8 @@ fn lower_analytic_call(
         0L,
         max_collection_bytes,
         analytic=true,
+        namespace_check~,
+        namespace_out~,
       )
     }
     None => {
@@ -1881,6 +1907,7 @@ fn lower_analytic_call(
         _ => raise Abort(UnsupportedAnalytic)
       }
       let entries = [("fn", construction.text(wire_name))]
+      let mut argument_view : NamespaceView? = None
       if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
         if !arguments.is_empty() {
           raise Abort(
@@ -1900,6 +1927,7 @@ fn lower_analytic_call(
           raise Abort(UnsupportedAnalytic)
         }
         let argument = @query.expression_child(expression, arguments[0]).unwrap()
+        argument_view = namespace_check.bind(check => check(argument))
         entries.push(
           (
             "expr",
@@ -1929,6 +1957,9 @@ fn lower_analytic_call(
             ),
           )
         }
+      }
+      if namespace_out is Some(output) {
+        output.push(argument_view)
       }
       construction.object(entries)
     }
@@ -2032,6 +2063,8 @@ fn lower_analytic(
   reserved : Array[String],
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
+  namespace_columns? : Array[(String, NamespaceView)]? = None,
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   if projections.any(projection => {
@@ -2043,6 +2076,9 @@ fn lower_analytic(
   }
   let partitions : Array[@builder.Node] = []
   for expression in call.window.partition_by {
+    if namespace_check is Some(check) {
+      ignore(check(expression))
+    }
     let field = analytic_partition_field(
       construction, expression, resolve, reserved, evaluated, derives, max_work,
     )
@@ -2050,6 +2086,9 @@ fn lower_analytic(
   }
   let order : Array[@builder.Node] = []
   for term in call.window.order_by {
+    if namespace_check is Some(check) {
+      ignore(check(term.expression))
+    }
     let field = analytic_order_field(
       construction,
       term.expression,
@@ -2069,6 +2108,7 @@ fn lower_analytic(
   }
   let functions : Array[(String, @builder.Node)] = []
   for projection in projections {
+    let output_view : Array[NamespaceView?]? = namespace_columns.map(_ => [])
     functions.push(
       (
         projection.name.unwrap().value,
@@ -2078,9 +2118,15 @@ fn lower_analytic(
           resolve,
           max_work,
           max_collection_bytes,
+          namespace_check~,
+          namespace_out=output_view,
         ),
       ),
     )
+    if namespace_columns is Some(columns) &&
+      output_view.bind(values => values.get(0)).unwrap_or(None) is Some(view) {
+      columns.push((projection.name.unwrap().value, view))
+    }
   }
   let body = [
     ("partition_by", construction.array(partitions)),
@@ -5607,6 +5653,20 @@ fn compile_steps(
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
+        let alias_namespace_columns : Array[(String, NamespaceView)]? = if order_scope.result_columns
+          is Some(_) {
+          Some([])
+        } else {
+          None
+        }
+        let alias_namespace_check : ((@query.Expression) -> NamespaceView? raise Abort)? = if order_scope.result_columns
+          is Some(_) {
+          Some(expression => {
+            scope_namespace_before_reuse(expression, order_scope, max_work)
+          })
+        } else {
+          None
+        }
         let order_aliases = if select_order_window {
           let selected = if sql_group_projection {
             sql_group_selected_projections
@@ -5688,9 +5748,21 @@ fn compile_steps(
             "aql_order_alias_",
             true,
             aggregate_outputs=sql_group_aggregate_slots,
+            namespace_check=alias_namespace_check,
+            namespace_columns=alias_namespace_columns,
           )
         } else {
           []
+        }
+        if alias_namespace_columns is Some(columns) {
+          for (slot, view) in columns {
+            column_profiles = retain_column_view(
+              column_profiles,
+              { value: slot, quoted: true, },
+              slot,
+              Some(view),
+            )
+          }
         }
         if !alias_derives.is_empty() {
           let fields : Array[(String, @builder.Node)] = []
@@ -5831,13 +5903,52 @@ fn compile_steps(
         let evaluated : Array[(@query.Expression, String)] = []
         let derives : Array[(String, @builder.Node)] = []
         let operations : Array[@builder.Node] = []
+        let namespace_columns : Array[(String, NamespaceView)]? = if order_scope.result_columns
+          is Some(_) {
+          Some([])
+        } else {
+          None
+        }
+        let namespace_profiles = column_profiles
+        let namespace_check : ((@query.Expression) -> NamespaceView? raise Abort)? = if order_scope.result_columns
+          is Some(_) {
+          Some(expression => {
+            scope_namespace_before_reuse(
+              expression,
+              order_scope,
+              max_work,
+              resolve=Some(resolve),
+              profiles=namespace_profiles,
+            )
+          })
+        } else {
+          None
+        }
         for group in groups {
           operations.push(
             lower_analytic(
-              construction, group, resolve, max_work, max_collection_bytes, reserved,
-              evaluated, derives,
+              construction,
+              group,
+              resolve,
+              max_work,
+              max_collection_bytes,
+              reserved,
+              evaluated,
+              derives,
+              namespace_check~,
+              namespace_columns~,
             ),
           )
+        }
+        if namespace_columns is Some(columns) {
+          for (slot, view) in columns {
+            column_profiles = retain_column_view(
+              column_profiles,
+              { value: slot, quoted: true, },
+              slot,
+              Some(view),
+            )
+          }
         }
         if !derives.is_empty() {
           let derive_step : Array[(String, @builder.Node)] = []
@@ -6180,7 +6291,11 @@ fn compile_steps(
                 bindings.push((name, source))
                 if selection_columns is Some(retained_columns) {
                   retained_columns.push(
-                    projection_result_column(projection, name),
+                    projection_result_column(
+                      projection,
+                      name,
+                      name_view=slot_namespace(column_profiles, source),
+                    ),
                   )
                 }
                 selected.push(
@@ -6675,7 +6790,15 @@ fn compile_steps(
                 bindings.push((name, source))
                 if selection_columns is Some(retained_columns) {
                   retained_columns.push(
-                    projection_result_column(projection, name),
+                    projection_result_column(
+                      projection,
+                      name,
+                      name_view=if projection.analytic is Some(_) {
+                        slot_namespace(column_profiles, source)
+                      } else {
+                        None
+                      },
+                    ),
                   )
                 }
                 continue

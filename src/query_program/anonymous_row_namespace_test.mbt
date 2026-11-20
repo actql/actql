@@ -489,3 +489,101 @@ test "computed row star receiver substitution retains authored sibling checks an
     NeedsInputs(_) => fail("the original Values rows remain closed")
   }
 }
+
+///|
+test "window argument key and returned row namespaces reject anonymous DATA members" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) "
+  for
+    suffix in [
+      "FROM r |> EXTEND LAG(row) OVER (ORDER BY row.n) AS previous |> SELECT previous.f0_",
+      "SELECT COALESCE(row, row) AS renamed FROM r ORDER BY LAG(renamed.f0_) OVER (ORDER BY renamed.n)",
+      "SELECT LAG(row.f0_) OVER (ORDER BY row.n) AS n FROM r", "SELECT LAG(row.n) OVER (PARTITION BY row.f0_ ORDER BY row.n) AS n FROM r",
+      "SELECT LAG(row.n) OVER (ORDER BY row.f0_) AS n FROM r", ", s AS (SELECT LAG(row) OVER (ORDER BY row.n) AS previous FROM r) SELECT previous.f0_ FROM s",
+      ", s AS (SELECT FIRST_VALUE(row) OVER (ORDER BY row.n ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first FROM r) SELECT first.f0_ FROM s",
+    ] {
+    let source = prefix + suffix
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(_) => fail("wrong original window namespace refusal: " + source)
+      Ok(_) => fail("window path promoted an anonymous DATA member: " + source)
+    }
+  }
+}
+
+///|
+test "window navigation keeps original named members and row value types" {
+  for
+    call in [
+      "LAG(row) OVER (ORDER BY row.n)", "LEAD(row, 0) OVER (ORDER BY row.n)", "FIRST_VALUE(row) OVER (ORDER BY row.n ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+      "LAST_VALUE(row) OVER (ORDER BY row.n ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+    ] {
+    let source = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t), s AS (SELECT " +
+      call +
+      " AS chosen FROM r) SELECT chosen.n AS value FROM s"
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), ["value"], msg=source)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("the authored row and existing window types remain closed")
+    }
+  }
+  for
+    source in [
+      "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) SELECT COALESCE(row, row) AS renamed FROM r ORDER BY LAG(renamed.n) OVER (ORDER BY renamed.n)",
+      "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) FROM r |> EXTEND LAG(row) OVER (ORDER BY row.n) AS previous |> SELECT previous.n AS value",
+    ] {
+    let program = anonymous_result_program(source)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("existing ORDER aliases and EXTEND retain the original window row")
+    }
+  }
+  let authored = "WITH t AS (SELECT STRUCT(1 AS f0_) AS row, 2 AS n), s AS (SELECT LAG(row) OVER (ORDER BY n) AS previous FROM t) SELECT previous.f0_ AS value FROM s"
+  assert_eq(anonymous_result_fields(anonymous_result_program(authored)), [
+    "value",
+  ])
+}
+
+///|
+test "window reused output slots replace retired row namespaces" {
+  for
+    source in [
+      "WITH u AS (SELECT 1, 2 AS n), t AS (SELECT u AS value, 3 AS key FROM u), s AS (FROM t |> DROP value |> SELECT LAG(STRUCT(7 AS f0_)) OVER (ORDER BY key) AS value) SELECT value.f0_ AS result FROM s",
+      "WITH a AS (SELECT 1, 2 AS n), b AS (SELECT 3, 4 AS m), t AS (SELECT a AS row, b AS other FROM a CROSS JOIN b), s AS (FROM t |> DROP row |> SELECT LAG(other) OVER (ORDER BY other.m) AS row) SELECT row.m AS result FROM s",
+    ] {
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    let program = match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(_) =>
+        fail(
+          "a retired namespace masked a new original window value: " + source,
+        )
+    }
+    assert_eq(anonymous_result_fields(program), ["result"])
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("the replacement window value has a closed original type")
+    }
+  }
+}

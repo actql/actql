@@ -548,15 +548,20 @@ fn scope_namespace_before_reuse(
   scope : JoinChainScope,
   max_work : Int,
   resolve? : ((Array[@query.NamePart]) -> String?)? = None,
+  profiles? : Array[ResultColumn]? = None,
 ) -> NamespaceView? raise Abort {
-  guard scope.result_columns is Some(_) else { return None }
+  let profiles = match profiles {
+    Some(_) => profiles
+    None => scope.result_columns
+  }
+  guard profiles is Some(_) else { return None }
   let value_ranges = value_range_names(scope.receivers, scope.scalar_ranges)
   let resolve = resolve.unwrap_or(path => {
     if path.length() == 1 &&
       ordinary_range_name(path[0], scope.ranges, value_ranges) {
       return None
     }
-    profiled_pipe_slot(path, scope.visible, scope.ranges, scope.result_columns)
+    profiled_pipe_slot(path, scope.visible, scope.ranges, profiles)
   })
   let row_ranges = scope.ranges.filter(range => {
     !value_ranges.any(name => same_name(name, range.0))
@@ -583,7 +588,7 @@ fn scope_namespace_before_reuse(
     path => {
       row_reference_fields(path, name => resolve([name]) is Some(_), row_ranges)
     },
-    scope.result_columns,
+    profiles,
     remaining,
   ).root
 }
