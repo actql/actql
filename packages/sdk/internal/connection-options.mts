@@ -2,16 +2,34 @@
 import {connectionStringCredential, isLoopbackEndpointHostname, parseConnectionString} from '../connection-string.mjs';
 import {fail, ownedClientFailure} from './errors.mjs';
 import {validClientConnection} from '@actql/client-wire';
+import type {WireConnection} from '@actql/client-wire';
+
+// These are unchecked caller fields. The original guards below still decide
+// admission; the array hints never replace Array.isArray or member validation.
+interface UncheckedOptions {
+  [key: string]: unknown;
+  consentRefs?: readonly unknown[];
+  runners?: readonly unknown[];
+}
+
+export interface SelectedConnection {
+  readonly wire: WireConnection;
+  readonly endpoint: string;
+  readonly token?: string | (() => unknown);
+  readonly traceContext?: () => unknown;
+  readonly directLoopbackHttp?: true;
+}
 
 export const connectionObjectExample = "Use connect({mode: 'remote', endpoint: 'https://host.example/', token: getAccessToken}). For embedded Local, use open() from '@actql/node' without a Host or token.";
 
 export const connectionStringExample = "Use connect('actql://host.example/workspace-id', {token: getAccessToken}), or provide a percent-encoded bearer credential in actql://token:<credential>@host.example/workspace-id.";
 // Fixed field names and examples only: never include options, URLs or causes.
-export const connectionFailure = (code, hint) => {
+export const connectionFailure: (code: string, hint: string) => never = (code, hint) => {
   throw ownedClientFailure(code, {hint});
 };
 
-export function inProcessOptions(options) {
+export function inProcessOptions(original: unknown): SelectedConnection {
+  const options = original as UncheckedOptions;
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options) || options.mode !== 'local' ||
       options.owner !== 'local' || options.endpoint !== undefined ||
@@ -21,7 +39,7 @@ export function inProcessOptions(options) {
         'mode', 'owner', 'runtime', 'durability', 'consentRefs',
       ].includes(key)) ||
       options.durability !== undefined &&
-        !['volatile', 'durable'].includes(options.durability) ||
+        !['volatile', 'durable'].includes(options.durability as string) ||
       !Array.isArray(options.consentRefs ?? []) ||
       (options.consentRefs ?? []).some(value =>
         typeof value !== 'string' || !value) ||
@@ -38,8 +56,10 @@ export function inProcessOptions(options) {
   return Object.freeze({wire, endpoint: 'actql:embedded'});
 }
 
-export function connectionStringOptions(input, options = {}) {
-  let keys, parsed, hasToken, token, durability, consentRefs, traceContext;
+export function connectionStringOptions(input: unknown, original: unknown = {}) {
+  const options = original as UncheckedOptions;
+  let keys: string[], parsed: ReturnType<typeof parseConnectionString>, hasToken: boolean;
+  let token: unknown, durability: unknown, consentRefs: unknown, traceContext: unknown;
   if (options === null || typeof options !== 'object' || Array.isArray(options)) {
     connectionFailure('InvalidConnectionOptions', connectionStringExample);
   }
@@ -71,7 +91,8 @@ export function connectionStringOptions(input, options = {}) {
     workspaceId: parsed.workspaceId, token, durability, consentRefs, traceContext};
 }
 
-export function connectionOptions(options, parsedConnectionString = false) {
+export function connectionOptions(original: unknown, parsedConnectionString = false): SelectedConnection {
+  const options = original as UncheckedOptions;
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) connectionFailure('InvalidConnectionOptions', connectionObjectExample);
   const {mode, owner, endpoint, token, durability, consentRefs, runners, workspaceId,
@@ -84,11 +105,11 @@ export function connectionOptions(options, parsedConnectionString = false) {
   }
   if (!(mode === 'remote' && owner === undefined ||
         mode === 'local' && owner === 'local' ||
-        mode === 'hybrid' && ['local', 'cloud'].includes(owner)) ||
+        mode === 'hybrid' && ['local', 'cloud'].includes(owner as string)) ||
       typeof endpoint !== 'string' ||
       typeof token !== 'string' && typeof token !== 'function' ||
       traceContext !== undefined && typeof traceContext !== 'function' ||
-      durability !== undefined && !['volatile', 'durable'].includes(durability) ||
+      durability !== undefined && !['volatile', 'durable'].includes(durability as string) ||
       !Array.isArray(consentRefs ?? []) ||
       (consentRefs ?? []).some(value => typeof value !== 'string' || !value) ||
       new Set(consentRefs ?? []).size !== (consentRefs ?? []).length ||
@@ -145,7 +166,7 @@ export function connectionOptions(options, parsedConnectionString = false) {
       'Check workspaceId and the selected connection profile. ' +
       (parsedConnectionString ? connectionStringExample : connectionObjectExample));
   }
-  return Object.freeze({endpoint: url.href, token, wire,
-    ...(traceContext === undefined ? {} : {traceContext}),
+  return Object.freeze({endpoint: url.href, token: token as string | (() => unknown), wire,
+    ...(traceContext === undefined ? {} : {traceContext: traceContext as () => unknown}),
     ...(parsedConnectionString && loopback ? {directLoopbackHttp: true} : {})});
 }

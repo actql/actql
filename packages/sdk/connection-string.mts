@@ -1,24 +1,28 @@
 // Internal connection-string admission. The returned description is safe to
 // inspect; only the transport boundary explicitly retrieves its credential.
 // This module performs no discovery, authentication, connection or file I/O.
-const credentials = new WeakMap();
+export interface ConnectionDescription {
+  readonly endpoint: string;
+  readonly workspaceId: string;
+}
+const credentials = new WeakMap<object, string>();
 const component = /^(?:[A-Za-z0-9._~!$&'()*+,;=:@-]|%[0-9A-Fa-f]{2})+$/u;
 const credentialComponent = /^(?:[A-Za-z0-9._~!$&'()*+,;=-]|%[0-9A-Fa-f]{2})+$/u;
-const invalid = () => { throw new TypeError('InvalidConnectionString'); };
-const decode = value => {
+const invalid: () => never = () => { throw new TypeError('InvalidConnectionString'); };
+const decode = (value: string): string => {
   try { return decodeURIComponent(value); }
   catch { return invalid(); }
 };
-export const validConnectionStringCredential = value =>
+export const validConnectionStringCredential = (value: unknown): boolean =>
   typeof value === 'string' && value.length > 0 && value.length <= 8192 &&
   !/[^\u0021-\u00ff]|\u007f/u.test(value);
 
 // Canonical numeric targets only. Hostnames are never classified by DNS.
-export const isLoopbackEndpointHostname = hostname => typeof hostname === 'string' &&
+export const isLoopbackEndpointHostname = (hostname: unknown): boolean => typeof hostname === 'string' &&
   (hostname === '[::1]' || /^127(?:\.(?:0|[1-9][0-9]{0,2})){3}$/u.test(hostname) &&
     hostname.split('.').every(part => Number(part) <= 255));
 
-export function parseConnectionString(input) {
+export function parseConnectionString(input: unknown): ConnectionDescription {
   if (typeof input !== 'string' || !input.isWellFormed() ||
       input.length > 16384 || /[\u0000-\u0020\u007f\\]/u.test(input)) invalid();
   // Inspect the original components before URL normalization can remove dot
@@ -36,7 +40,7 @@ export function parseConnectionString(input) {
       workspaceId === '.' || workspaceId === '..' ||
       /[\u0000-\u001f\u007f/\\]/u.test(workspaceId)) invalid();
 
-  let target = authority, credential;
+  let target = authority, credential: string | undefined;
   const separator = authority.indexOf('@');
   if (separator !== -1) {
     if (authority.indexOf('@', separator + 1) !== -1) invalid();
@@ -77,5 +81,5 @@ export function parseConnectionString(input) {
 
 // This internal accessor is deliberately separate from enumerable description
 // data. Cloning, JSON, inspection and diagnostics do not copy the credential.
-export const connectionStringCredential = description =>
-  credentials.get(description);
+export const connectionStringCredential = (description: unknown): string | undefined =>
+  credentials.get(description as object);

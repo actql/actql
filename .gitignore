@@ -52,3 +52,9 @@ target/
 /packages/sdk/internal/transport-response.d.mts
 /packages/sdk/client-close.test.mjs
 /packages/sdk/client-close.test.d.mts
+/packages/sdk/connection-string.mjs
+/packages/sdk/connection-string.d.mts
+/packages/sdk/connection-string.test.mjs
+/packages/sdk/connection-string.test.d.mts
+/packages/sdk/internal/connection-options.mjs
+/packages/sdk/internal/connection-options.d.mts

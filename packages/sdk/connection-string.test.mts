@@ -77,7 +77,8 @@ test('HTTP refuses remote names, noncanonical IPv4 and alternate query spellings
     let failure;
     try { parseConnectionString(`actql://token:private-token@localhost:8080/workspace?${query}`); }
     catch (error) { failure = error; }
-    assert.equal(failure?.message, 'InvalidConnectionString');
+    assert(failure instanceof TypeError);
+    assert.equal(failure.message, 'InvalidConnectionString');
     assert.equal(failure.cause, undefined);
     assert.doesNotMatch(inspect(failure, {showHidden: true}), /private-token/);
   }
@@ -129,6 +130,7 @@ test('invalid connection strings never disclose their input or parser cause', ()
     assert.equal(Object.hasOwn(failure, 'input'), false);
     for (const output of [JSON.stringify(failure), inspect(failure),
       inspect(failure, {showHidden: true}), failure.stack]) {
+      assert(output !== undefined);
       assert.equal(output.includes(privatePart), false);
     }
   }

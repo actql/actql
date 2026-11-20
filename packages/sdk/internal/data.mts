@@ -38,4 +38,4 @@ export const captureResponse = (value: unknown,
   return copy;
 };
 
-export const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
+export const positive = (value: unknown): boolean => Number.isSafeInteger(value) && (value as number) > 0;

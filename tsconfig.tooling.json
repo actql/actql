@@ -8,7 +8,8 @@
       "ES2022",
       "DOM",
       "DOM.Iterable",
-      "ESNext.Array"
+      "ESNext.Array",
+      "ES2024.String"
     ],
     "declaration": true
   },

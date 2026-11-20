@@ -37,7 +37,7 @@ export const ownedClientFailure = (code: string, details?: ClientErrorDetails) =
   return error;
 };
 
-export const fail = (code: string): never => { throw ownedClientFailure(code); };
+export const fail: (code: string) => never = code => { throw ownedClientFailure(code); };
 
 export const requestCancellationCause = (cause: unknown): ClientError => {
   // Preserve only already public Client metadata, not borrowed source or
