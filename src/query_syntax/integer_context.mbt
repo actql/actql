@@ -386,8 +386,14 @@ fn integer_context_operation(
           })
         }
       }
-      for index in wanted {
-        integer_context_spend(budget, amount=projections.length() + 1)
+      // Positional UNION aligns the original producer projection coordinates,
+      // never the order in which independent demands happened to reach it.
+      // Iterating that original coordinate space also avoids a new sort/copy.
+      for index in 0..<projections.length() {
+        integer_context_spend(budget, amount=wanted.length() + 1)
+        if !wanted.contains(index) {
+          continue
+        }
         guard projections.get(index) is Some(p) &&
           p.expression is Some(original) &&
           integer_context_companion(task, index, budget) is Some(name) else {

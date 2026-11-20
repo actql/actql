@@ -1,4 +1,109 @@
 ///|
+test "SQL multiple exact companions retain positional and BY NAME UNION correspondence" {
+  for
+    producer in [
+      "SELECT 5 AS v,8 AS w UNION ALL SELECT 7 AS v,10 AS w", "SELECT 5 AS v,8 AS w UNION ALL BY NAME SELECT 10 AS w,7 AS v",
+    ] {
+    let output = sql_integer_output(
+      timestamp_sql_original(
+        "WITH t AS (" + producer + ") SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      ),
+      expected_columns=[
+        ("m", @contract.Signed64Type),
+        ("n", @contract.Signed64Type),
+      ],
+    )
+    assert_eq(@execution.completed_row_count(output), 2)
+    let actual : Array[(Int64, Int64)] = []
+    for row in 0..<2 {
+      let mut m = None
+      let mut n = None
+      for column in 0..<2 {
+        guard @execution.completed_cell(output, row, column)
+          is Some(Captured(@values.Signed64(value))) else {
+          fail("each original exact output must retain the int64 wire domain")
+        }
+        if @execution.completed_column_name(output, column) == Some("m") {
+          m = Some(value)
+        }
+        if @execution.completed_column_name(output, column) == Some("n") {
+          n = Some(value)
+        }
+      }
+      actual.push((m.unwrap(), n.unwrap()))
+    }
+    actual.sort()
+    assert_eq(actual, [(1L, 2L), (1L, 3L)], msg=producer)
+  }
+}
+
+///|
+test "SQL two exact companions keep both ordinary Number columns and their arithmetic across UNION" {
+  for
+    producer in [
+      "SELECT 5 AS v,8 AS w UNION ALL SELECT 7 AS v,10 AS w", "SELECT 5 AS v,8 AS w UNION ALL BY NAME SELECT 10 AS w,7 AS v",
+    ] {
+    let output = sql_integer_output(
+      timestamp_sql_original(
+        "WITH t AS (" +
+        producer +
+        ") SELECT MOD(v,2) AS m,DIV(w,3) AS n,v AS original,w AS other,v+w AS total FROM t",
+      ),
+      expected_columns=[
+        ("m", @contract.Signed64Type),
+        ("n", @contract.Signed64Type),
+        ("original", @contract.NumberType),
+        ("other", @contract.NumberType),
+        ("total", @contract.NumberType),
+      ],
+    )
+    assert_eq(@execution.completed_row_count(output), 2)
+    let actual : Array[(Int64, Int64, Double, Double, Double)] = []
+    for row in 0..<2 {
+      let mut m = None
+      let mut n = None
+      let mut original = None
+      let mut other = None
+      let mut total = None
+      for column in 0..<5 {
+        match
+          (
+            @execution.completed_column_name(output, column),
+            @execution.completed_cell(output, row, column),
+          ) {
+          (Some("m"), Some(Captured(@values.Signed64(value)))) =>
+            m = Some(value)
+          (Some("n"), Some(Captured(@values.Signed64(value)))) =>
+            n = Some(value)
+          (Some("original"), Some(Number(value))) => original = Some(value)
+          (Some("other"), Some(Number(value))) => other = Some(value)
+          (Some("total"), Some(Number(value))) => total = Some(value)
+          _ =>
+            fail(
+              "complete original and exact views must retain their distinct domains",
+            )
+        }
+      }
+      actual.push(
+        (
+          m.unwrap(),
+          n.unwrap(),
+          original.unwrap(),
+          other.unwrap(),
+          total.unwrap(),
+        ),
+      )
+    }
+    actual.sort()
+    assert_eq(
+      actual,
+      [(1L, 2L, 5.0, 8.0, 13.0), (1L, 3L, 7.0, 10.0, 17.0)],
+      msg=producer,
+    )
+  }
+}
+
+///|
 test "SQL MOD context preserves the same CTE ordinary Number view for coexisting consumers" {
   for
     sql in [
@@ -342,6 +447,34 @@ test "SQL exact companion cannot fabricate an unavailable ordinary Number view" 
       is Err(QueryLowering(Expression({ issue: InvalidNumber, .. }))),
       msg=suffix,
     )
+  }
+}
+
+///|
+test "SQL exact companion is excluded from the original whole-row Number view" {
+  let output = sql_integer_output(
+    timestamp_sql_original(
+      "WITH t AS (SELECT 5 AS v) SELECT t AS original,MOD(v,2) AS m FROM t",
+    ),
+  )
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(@execution.completed_column_count(output), 2)
+  for i in 0..<2 {
+    if @execution.completed_column_name(output, i) == Some("original") {
+      guard @execution.completed_cell(output, 0, i)
+        is Some(Captured(@values.Object(fields))) else {
+        fail("the original range must remain an object of original columns")
+      }
+      assert_eq(@values.element_count(fields), 1)
+      assert_true(
+        @values.element_at(fields, 0) is Some(("v", @values.Number(5.0))),
+      )
+    } else {
+      assert_true(
+        @execution.completed_cell(output, 0, i)
+        is Some(Captured(@values.Signed64(1L))),
+      )
+    }
   }
 }
 
