@@ -1,19 +1,59 @@
 import {Client, buildConnector} from 'undici';
+import type {Dispatcher} from 'undici';
+import type {Socket} from 'node:net';
+import type {PhysicalAcquisitionLimits, PhysicalTransportTimeouts, RequestLimits, ResponseLimits} from '../index.d.ts';
 import {types} from 'node:util';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
+
+type FixedResponseLimits = ReturnType<typeof fixedInferResponseLimits>;
+interface OriginalInstallation {
+  endpoint: string; origin: string; path: string;
+  maxBytes: number; maxHeaderBytes: number; maxHeaders: number;
+  limits: FixedResponseLimits; acquisition: PhysicalAcquisitionLimits;
+  timeouts?: PhysicalTransportTimeouts;
+}
+interface Acquisition {
+  reads: number; backingBytes: number; backings: WeakSet<object> | undefined; refused: boolean;
+}
+interface OriginalRequest {
+  method?: unknown; body?: unknown; redirect?: unknown; signal?: unknown; headers?: unknown;
+}
+interface OriginalReader {
+  read(): Promise<IteratorResult<unknown>>;
+  cancel(): Promise<void>;
+  releaseLock(): void;
+}
+interface OriginalResponse {
+  status: number; headers: {get(name: string): string | null};
+  body: {getReader(): OriginalReader; cancel(): Promise<void>};
+}
+interface PhysicalTransport {
+  invoke(): Promise<OriginalResponse>;
+  cleanup(): Promise<boolean>;
+  finishResponse?(): void;
+}
+// The pinned connector returns its original Socket although its public
+// declaration describes only callback delivery. This private unchecked view
+// adds no Socket creation, ownership, validation or close acknowledgement.
+type OriginalConnector = (options: buildConnector.Options,
+  callback: (error: Error | null, connected?: Socket) => void) => Socket;
+interface NativeReadOptions {
+  buffer: Buffer | undefined;
+  callback: ((this: Socket, length: number, buffer: Buffer) => boolean) | undefined;
+}
 
 // Original physical installation data only. This membership neither admits a
 // Run/Entry nor issues currentness, capacity, completion or send permission.
 // The actual per-call Client/duty is retained in the existing SDK transport.
-const installations = new WeakMap();
-const issue = code => Object.assign(new TypeError(code), {code});
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647;
-const acquisitionSnapshots = new WeakSet();
+const installations = new WeakMap<object, Readonly<OriginalInstallation>>();
+const issue = (code: string) => Object.assign(new TypeError(code), {code});
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2_147_483_647;
+const acquisitionSnapshots = new WeakSet<object>();
 
 // Private DATA membership only, never a capacity loan or currentness receipt.
 // Reuse our own snapshot across material admission/assembler preparation.
-export function fixedOriginalAcquisitionLimits(value) {
-  if (acquisitionSnapshots.has(value)) return value;
+export function fixedOriginalAcquisitionLimits(value: unknown): Readonly<PhysicalAcquisitionLimits> {
+  if (acquisitionSnapshots.has(value as object)) return value as Readonly<PhysicalAcquisitionLimits>;
   const names = ['maxBorrowedBackingBytes', 'maxPlaintextBytes', 'maxReads'];
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
@@ -23,20 +63,20 @@ export function fixedOriginalAcquisitionLimits(value) {
       keys.slice().sort().some((key, index) => key !== names[index])) {
     throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
   }
-  const entries = names.map(name => {
+  const entries: [string, number][] = names.map(name => {
     const descriptor = Object.getOwnPropertyDescriptor(value, name);
     if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor) ||
         !positive(descriptor.value)) throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
     return [name, descriptor.value];
   });
-  const snapshot = Object.freeze(Object.fromEntries(entries));
+  const snapshot = Object.freeze(Object.fromEntries(entries)) as Readonly<PhysicalAcquisitionLimits>;
   acquisitionSnapshots.add(snapshot);
   return snapshot;
 }
 
 // Optional explicit physical phase/idle settings and total request/read clock.
 // Immutable Host DATA, never quantity observation or a dispatch grant.
-export function fixedOriginalTransportTimeouts(value) {
+export function fixedOriginalTransportTimeouts(value: unknown): Readonly<PhysicalTransportTimeouts> | undefined {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value) || types.isProxy(value)) {
     throw issue('UndiciOriginalTimeoutsUnavailable');
@@ -45,17 +85,17 @@ export function fixedOriginalTransportTimeouts(value) {
   const keys = Reflect.ownKeys(value);
   if (keys.some(key => typeof key !== 'string' || ![...names, 'callMs'].includes(key)) ||
       names.some(name => !keys.includes(name))) throw issue('UndiciOriginalTimeoutsUnavailable');
-  const fields = keys.sort().map(name => {
+  const fields: [PropertyKey, number][] = keys.sort().map(name => {
     const field = Object.getOwnPropertyDescriptor(value, name);
     if (!field?.enumerable || !Object.hasOwn(field, 'value') || !positive(field.value)) {
       throw issue('UndiciOriginalTimeoutsUnavailable');
     }
     return [name, field.value];
   });
-  return Object.freeze(Object.fromEntries(fields));
+  return Object.freeze(Object.fromEntries(fields)) as Readonly<PhysicalTransportTimeouts>;
 }
 
-function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
+function bindAcquisitionRead(socket: Socket, limits: PhysicalAcquisitionLimits, acquisition: Acquisition, inputExtent: number) {
   const read = socket.read;
   const descriptor = Object.getOwnPropertyDescriptor(socket, 'read');
   let plaintext = 0;
@@ -64,7 +104,7 @@ function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
   // Node/TLS emission and Readable queue/concat precede this observation:
   // these checks cannot fund or bound that first allocator. Ordinary adoption
   // still requires its original Host coverage and same-Ledger phase envelope.
-  const boundedRead = function (...args) {
+  const boundedRead = function (...args: [number?]) {
     // Node can still consume an already queued buffer after destroy(). Stop
     // another parser read, but retain the SAME queue/socket/close duty until
     // actual cleanup; this flag is never a physical retirement observation.
@@ -95,13 +135,13 @@ function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
       args[0] = Math.min(available, inputExtent);
     }
     acquisition.reads++;
-    const chunk = Reflect.apply(read, socket, args);
+    const chunk: unknown = Reflect.apply(read, socket, args);
     if (chunk === null) return chunk;
     let code;
     if (!Buffer.isBuffer(chunk)) code = 'UndiciOriginalAcquisitionShapeRefused';
     else if (chunk.byteLength > limits.maxPlaintextBytes - plaintext) {
       code = 'UndiciOriginalAcquisitionPlaintextExceeded';
-    } else if (!acquisition.backings.has(chunk.buffer) &&
+    } else if (!acquisition.backings!.has(chunk.buffer) &&
         chunk.buffer.byteLength > limits.maxBorrowedBackingBytes - acquisition.backingBytes) {
       code = 'UndiciOriginalAcquisitionBackingExceeded';
     }
@@ -110,20 +150,20 @@ function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
       socket.destroy(issue(code));
       return null; // Never forward the refused chunk into the HTTP parser.
     }
-    plaintext += chunk.byteLength;
+    plaintext += (chunk as Buffer).byteLength;
     // A conservative lifetime union, not an observed simultaneous peak. No
     // refund at EOF/cancel/Promise completion; aliases may outlive the read.
     // Weak membership adds no strong buffer alias; its controls need funding.
-    if (!acquisition.backings.has(chunk.buffer)) {
-      acquisition.backings.add(chunk.buffer);
-      acquisition.backingBytes += chunk.buffer.byteLength;
+    if (!acquisition.backings!.has((chunk as Buffer).buffer)) {
+      acquisition.backings!.add((chunk as Buffer).buffer);
+      acquisition.backingBytes += (chunk as Buffer).buffer.byteLength;
     }
     return chunk;
   };
   Object.defineProperty(socket, 'read', {value: boundedRead, configurable: true, writable: true});
   return () => {
     if (socket.read === boundedRead) {
-      if (descriptor === undefined) delete socket.read;
+      if (descriptor === undefined) delete (socket as Partial<Socket>).read;
       else Object.defineProperty(socket, 'read', descriptor);
     }
     acquisition.backings = undefined;
@@ -133,7 +173,7 @@ function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
 // Keep validation-only bindings out of the long-lived Call context shared by
 // invoke/connect/cleanup. The comparison remains synchronous and exact; this
 // neither releases physical duties nor changes the original capacity grant.
-function sameResponseLimits(limits, original) {
+function sameResponseLimits(limits: FixedResponseLimits, original: FixedResponseLimits) {
   if (limits.maxBytes !== original.maxBytes ||
       limits.maxChunkBytes !== original.maxChunkBytes ||
       limits.maxChunks !== original.maxChunks ||
@@ -148,7 +188,7 @@ function sameResponseLimits(limits, original) {
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts}) {
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts}: {endpoint: string; requestLimits: RequestLimits; responseLimits: ResponseLimits; physicalAcquisitionLimits: unknown; transportTimeouts?: unknown}) {
   const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   const timeouts = fixedOriginalTransportTimeouts(transportTimeouts);
   let url;
@@ -167,7 +207,7 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   const fetch = Object.freeze(function originalUndiciFetch() {
     throw issue('UndiciOriginalRequestNotPrepared');
   });
-  const original = {endpoint, origin: url.origin,
+  const original: OriginalInstallation = {endpoint, origin: url.origin,
     path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition};
   if (timeouts !== undefined) original.timeouts = timeouts;
   installations.set(fetch, Object.freeze(original));
@@ -177,8 +217,8 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
 // Undefined means the existing generic/native fetch path, not a fallback for
 // malformed selected Undici configuration. No caller-controlled hooks run at
 // transport start. This thin adapter reuses the original SDK/Model lifetime.
-export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, controller) {
-  const original = installations.get(fetch);
+export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init: OriginalRequest, responseLimits: ResponseLimits, controller?: AbortController): Readonly<PhysicalTransport> | undefined {
+  const original = installations.get(fetch as object);
   if (original === undefined) return undefined;
   if (original.timeouts?.callMs !== undefined &&
       (!(controller instanceof AbortController) || controller.signal !== init?.signal)) {
@@ -193,8 +233,8 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
     throw issue('UndiciOriginalRequestMismatch');
   }
   let headerBytes = 0;
-  const headers = [];
-  for (const pair of init.headers) {
+  const headers: string[] = [];
+  for (const pair of init.headers as unknown[]) {
     if (!Array.isArray(pair) || pair.length !== 2 || pair.some(value => typeof value !== 'string')) {
       throw issue('UndiciOriginalRequestMismatch');
     }
@@ -211,21 +251,21 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
   // Do not register unused resumption tickets in Undici's session cache. Its
   // empty cache/registry, listener and TLS/native lifetimes still need funding.
   let connecting = false;
-  let socket;
-  let socketClosed;
-  let connectorFinished;
-  let retireAcquisition;
+  let socket: Socket | undefined;
+  let socketClosed: Promise<boolean> | undefined;
+  let connectorFinished: Promise<boolean> | undefined;
+  let retireAcquisition: (() => void) | undefined;
   // The selected Node listener writes into one dedicated buffer fixed during
   // this original preparation, never a new backing chosen after acquisition.
   // Its extent and all controls must be covered by the existing Model envelope
   // BEFORE entering this function. This selection does not issue that loan.
-  let nativeInput = Buffer.allocUnsafeSlow(Math.min(limits.maxChunkBytes,
+  let nativeInput: Buffer | undefined = Buffer.allocUnsafeSlow(Math.min(limits.maxChunkBytes,
     original.acquisition.maxBorrowedBackingBytes));
   const inputExtent = nativeInput.byteLength;
-  const acquisition = {reads: 0, backingBytes: inputExtent,
+  const acquisition: Acquisition = {reads: 0, backingBytes: inputExtent,
     backings: new WeakSet([nativeInput.buffer]), refused: false};
-  let emittedBytes = 0, socketPush;
-  const onread = {
+  let emittedBytes = 0, socketPush: Socket['push'] | undefined;
+  const onread: NativeReadOptions = {
     buffer: nativeInput,
     callback(length, buffer) {
       if (acquisition.refused || socket?.destroyed) return false;
@@ -254,13 +294,13 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
       acquisition.reads++;
       try {
         const copy = Buffer.allocUnsafeSlow(length);
-        acquisition.backings.add(copy.buffer);
+        acquisition.backings!.add(copy.buffer);
         acquisition.backingBytes += copy.buffer.byteLength;
-        nativeInput.copy(copy, 0, 0, length);
-        return Reflect.apply(socketPush, socket, [copy]);
+        nativeInput!.copy(copy, 0, 0, length);
+        return Reflect.apply(socketPush!, socket, [copy]);
       } catch (error) {
         acquisition.refused = true;
-        socket.destroy(error);
+        socket!.destroy(error as Error);
         return false;
       }
     },
@@ -270,52 +310,52 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
   // SSL/BIO/handshake native and queued/copy controls remain explicit holdings.
   // A custom connector does not inherit Client.connectTimeout. Bind the
   // selected connect setting directly to this SAME connector's existing timer.
-  const connector = original.timeouts === undefined
-    ? buildConnector({allowH2: false, maxCachedSessions: 0, onread})
-    : buildConnector({allowH2: false, maxCachedSessions: 0, onread, timeout: original.timeouts.connectMs});
-  const connect = (options, callback) => {
+  const connector = (original.timeouts === undefined
+    ? buildConnector({allowH2: false, maxCachedSessions: 0, onread} as buildConnector.BuildOptions)
+    : buildConnector({allowH2: false, maxCachedSessions: 0, onread, timeout: original.timeouts.connectMs} as buildConnector.BuildOptions)) as unknown as OriginalConnector;
+  const connect = (options: buildConnector.Options, callback: (error: Error | null, socket?: Socket | null) => void) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
-    let finish;
+    let finish: (value: boolean) => void;
     connectorFinished = new Promise(resolve => { finish = resolve; });
     socket = connector(options, (error, connected) => {
       try {
         if (connected !== undefined && retireAcquisition === undefined) {
           try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition, inputExtent); }
           catch (refusal) {
-            connected.destroy(refusal);
-            callback(refusal, null);
+            connected.destroy(refusal as Error);
+            callback(refusal as Error, null);
             return;
           }
         }
         callback(error, connected);
-      } finally { finish(true); }
+      } finally { finish!(true); }
     });
     socketClosed = socket.closed ? Promise.resolve(true)
-      : new Promise(resolve => socket.once('close', () => resolve(true)));
+      : new Promise(resolve => socket!.once('close', () => resolve(true)));
     socketPush = socket.push;
     return socket;
   };
-  let client = original.timeouts === undefined
+  let client: Client | undefined = original.timeouts === undefined
     ? new Client(original.origin, {allowH2: false, pipelining: 0, connect,
-      maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes})
+      maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes} as Client.Options)
     : new Client(original.origin, {allowH2: false, pipelining: 0, connect,
       maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes,
-      headersTimeout: original.timeouts.headersMs, bodyTimeout: original.timeouts.bodyMs});
+      headersTimeout: original.timeouts.headersMs, bodyTimeout: original.timeouts.bodyMs} as Client.Options);
   const request = Object.freeze({path: original.path, method: 'POST',
     headers: Object.freeze(headers), body: init.body, signal: init.signal,
     highWaterMark: limits.maxChunkBytes, idempotent: false});
   const method = client.request;
-  let pending;
-  let body;
-  let bodyClosed;
-  let destroying;
+  let pending: Promise<void> | undefined;
+  let body: Dispatcher.ResponseData['body'] | undefined;
+  let bodyClosed: Promise<boolean> | undefined;
+  let destroying: Promise<boolean> | undefined;
   let retired = false;
   const invoke = () => {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
-    const response = Reflect.apply(method, client, [request]).then(response => {
+    const response = (Reflect.apply(method, client, [request]) as Promise<Dispatcher.ResponseData>).then(response => {
       const responseBody = response.body;
       body = responseBody;
       // Register settlement immediately, including errors before getReader.
@@ -337,7 +377,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
       // Escaped unread/reader views retain this SAME close observation after
       // the transport drops its own references. Do not make their cancellation
       // consult a mutable cell that physical cleanup can retire first.
-      return originalResponseView(response, responseBody, bodyClosed);
+      return originalResponseView(response, responseBody, bodyClosed!);
     });
     // Cleanup needs settlement of this SAME request, not another retained
     // fulfilled response/header view. Callers keep the original value/error;
@@ -360,7 +400,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
     // until the existing Client/connector/Socket/body observations below agree.
     body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
-    destroying = client.destroy().then(async () => {
+    destroying = client!.destroy().then(async () => {
       if (pending !== undefined) await pending;
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
@@ -390,16 +430,16 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
   };
   const physical = Object.freeze({invoke, cleanup});
   return original.timeouts?.callMs === undefined ? physical
-    : withOriginalCallDeadline(physical, controller, original.timeouts.callMs);
+    : withOriginalCallDeadline(physical, controller!, original.timeouts.callMs);
 }
 
 // Only the explicitly configured physical Call allocates these controls. The
 // normal factory adds their Common quote to its original per-Task Model demand
 // before Plan/Scope admission. This wraps the SAME transport and controller;
 // it is not another lifetime owner, RunCancel, retry or physical cleanup ACK.
-function withOriginalCallDeadline(physical, controller, ms) {
+function withOriginalCallDeadline(physical: Readonly<PhysicalTransport>, controller: AbortController, ms: number): Readonly<PhysicalTransport> {
   const reason = Object.freeze({code: 'UndiciOriginalCallTimeout'});
-  let timer;
+  let timer: NodeJS.Timeout | undefined;
   let finished = false;
   const finishResponse = () => {
     finished = true;
@@ -429,22 +469,22 @@ function withOriginalCallDeadline(physical, controller, ms) {
   });
 }
 
-function originalHeadersView(originalHeaders) {
+function originalHeadersView(originalHeaders: Dispatcher.ResponseData['headers']) {
   // Actual parsed HTTP headers, not SDK defaults or a JSON response parser.
   // Borrow the SAME header map, not the entire response/statusText/trailers/
   // context graph. Duplicate arrays and escaped header views stay borrowed.
-  return Object.freeze({get(name) {
+  return Object.freeze({get(name: string) {
     const value = originalHeaders[name.toLowerCase()];
     return value === undefined ? null : Array.isArray(value) ? value.join(', ') : value;
   }});
 }
 
-function originalResponseView(response, body, closed) {
+function originalResponseView(response: Dispatcher.ResponseData, body: Dispatcher.ResponseData['body'], closed: Promise<boolean>): Readonly<OriginalResponse> {
   // Do not copy the body through Response()/BodyReadable.body/toWeb/text/json.
   const headers = originalHeadersView(response.headers);
-  let iterator;
-  let reader;
-  let reading;
+  let iterator: AsyncIterator<unknown> | undefined;
+  let reader: Readonly<OriginalReader> | undefined;
+  let reading: Promise<IteratorResult<unknown>> | undefined;
   const cancel = async () => {
     body.destroy();
     if (await closed !== true) throw issue('UndiciOriginalBodyCleanupPending');
@@ -452,10 +492,10 @@ function originalResponseView(response, body, closed) {
   const stream = Object.freeze({getReader() {
     if (reader !== undefined) throw issue('UndiciOriginalBodyLocked');
     iterator ??= body[Symbol.asyncIterator]();
-    const originalReader = Object.freeze({read() {
+    const originalReader: Readonly<OriginalReader> = Object.freeze({read() {
       if (reader !== originalReader) throw issue('UndiciOriginalReaderReleased');
       if (reading !== undefined) throw issue('UndiciOriginalReadPending');
-      reading = iterator.next().finally(() => { reading = undefined; });
+      reading = (iterator!.next() as Promise<IteratorResult<unknown>>).finally(() => { reading = undefined; });
       return reading;
     }, cancel, releaseLock() {
       if (reader !== originalReader) throw issue('UndiciOriginalReaderReleased');

@@ -206,3 +206,7 @@ target/
 /scripts/templates/js-compiler-binding.d.mts
 /scripts/js-compiler-binding-generation.test.mjs
 /scripts/js-compiler-binding-generation.test.d.mts
+
+# Generated original optional-provider transport and private declaration.
+/packages/provider-ai-sdk/_internal/original-undici-transport.mjs
+/packages/provider-ai-sdk/_internal/original-undici-transport.d.mts

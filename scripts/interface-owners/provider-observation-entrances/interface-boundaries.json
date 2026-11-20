@@ -1813,7 +1813,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -1961,7 +1961,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -2341,19 +2341,19 @@
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
-                "anchor": "installations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "installations.set(fetch, Object.freeze(original))"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "per-call Client/duty"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "before that allocation"
               }
             ],
@@ -2377,17 +2377,17 @@
                 "anchor": "Promise settles"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "controller.abort(reason)"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "maxBorrowedBackingBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "does not bound native emission"
               },
               {
@@ -2801,7 +2801,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -3324,7 +3324,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
