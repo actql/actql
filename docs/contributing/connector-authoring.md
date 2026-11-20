@@ -184,10 +184,10 @@ provides a definition, a case and a scoped operator Account.
 
 The case supplies a registration, connection, resource and independent field
 schema, one structured Program returning `rows`, and its bound parameters
-(or `null`). The public Check verifies the bound Program before submission.
+(or `null`). The public submission checks the bound Program before provider work.
 The fixture serves the named `seed.pages` in the exact ordered GET exchanges
 listed in `protocol.exchanges`. Supply `expected.rows`, full before and after
-page records, and unchanged control records independently. A failed Check,
+page records, and unchanged control records independently. A failed submission,
 codec, Result or oracle terminates the case with its original failure.
 
 Use a case-relative `connector.path` and exact `connector.sha256` for either

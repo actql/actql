@@ -80,7 +80,7 @@ test('conformance caller captures the actual original pending projection before 
   assert.equal(close.fd.aliveAfterClose, true);
 });
 
-test('author conformance checks the original bound Program before the only submission', async t => {
+test('author conformance submits the original Program and bindings once', async t => {
   const f = await fixture(t), events = [];
   const program = {version: 'synthetic'};
   const parameters = {depth: 9};
@@ -89,12 +89,6 @@ test('author conformance checks the original bound Program before the only submi
     status: async () => ({status: 'succeeded'}), result: () => ({all: async () => [{depth: 9}]}),
   });
   const client = {
-    async check(original, options) {
-      assert.equal(original, program);
-      assert.deepEqual(options, {kind: 'program', scope: 'bound_input', parameters});
-      events.push('check');
-      return {outcome: 'completed', report: {verdict: 'verified'}};
-    },
     startSource(text, options) {
       assert.deepEqual(JSON.parse(text), program);
       assert.deepEqual(options, {format: 'json', parameters});
@@ -104,10 +98,9 @@ test('author conformance checks the original bound Program before the only submi
     async close() {events.push('close');},
   };
   await captureStandardRestRead(client, {publicSdk: {getSubmissionInput: () => ({})}, program,
-    parameters, checkProgram: true, assertRows: rows => assert.deepEqual(rows, [{depth: 9}]),
+    parameters, assertRows: rows => assert.deepEqual(rows, [{depth: 9}]),
     outputRoot: f.outputRoot, stateRoots: [f.state]});
-  assert.deepEqual(events, ['check', 'start', 'close']);
-  assert.equal((await f.read('author-program-check.json')).report.verdict, 'verified');
+  assert.deepEqual(events, ['start', 'close']);
 });
 
 test('a pre-ref public rejection keeps original input and failure without an invented refusal', async t => {

@@ -71,7 +71,7 @@ if (phase === 'read') {
   outcome = await captureStandardRestRead(client, {...common, publicSdk,
     program: author?.program ?? (configuration.family==='notion-users'
       ? notionUsersProgram(configuration.connectorId) : externalRestProgram(configuration.connectorId)),
-    parameters: author?.parameters, checkProgram: author !== undefined});
+    parameters: author?.parameters});
 } else {
   // The parent must spawn this phase asynchronously while it owns TLS. It
   // uses only the successfully completed original, never a failed Run retry.
