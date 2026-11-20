@@ -78,3 +78,8 @@ target/
 /packages/sdk/operation-presentation.d.mts
 /packages/sdk/operation-formats.mjs
 /packages/sdk/operation-formats.d.mts
+
+/packages/sdk/internal/resources.mjs
+/packages/sdk/internal/resources.d.mts
+/packages/sdk/resource-protocol-failures.test.mjs
+/packages/sdk/resource-protocol-failures.test.d.mts

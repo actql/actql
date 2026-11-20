@@ -1,9 +1,15 @@
 // Authorized Resource catalog/metadata/sample views; no execution authority.
+import type {Client} from '../index.d.ts';
+import type {WireConnection} from '@actql/client-wire';
 import {ClientError, fail} from './errors.mjs';
 import {jsonPayloadWireBytes} from './transport-response.mjs';
 import {validClientBody, validResourceInspection, validResourceListing, validResourcePeek} from '@actql/client-wire';
 
-export function createResources(connection, exchange, responseValue) {
+export function createResources(connection: WireConnection,
+  exchange: (operation: 'resources' | 'resource-inspect' | 'resource-peek',
+    body: Record<string, unknown>, signal?: AbortSignal) => Promise<unknown>,
+  responseValue: (response: unknown, maxWireBytes?: number) => unknown | Promise<unknown>
+): Pick<Client, 'resources' | 'inspectResource' | 'peekResource'> {
   const selected = {wire: connection};
   return {
     resources: async (resourceConnection, {query = '', limit = 100,
@@ -50,7 +56,7 @@ export function createResources(connection, exchange, responseValue) {
     // `fields`. `limited` marks a prefix; a preview is never a complete read,
     // Acquisition evidence or a Result.
     peekResource: async (resourceConnection, resource, {fields, maxRows = 10,
-      maxBytes = 64 * 1024, signal} = {}) => {
+      maxBytes = 64 * 1024, signal}: Partial<Parameters<Client['peekResource']>[2]> = {}) => {
       const body = {resourceConnection, resource,
         fields: Array.isArray(fields) ? [...fields] : fields, maxRows,
         maxBytes};
@@ -63,10 +69,10 @@ export function createResources(connection, exchange, responseValue) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourcePeek', {cause});
       }
-      if (!validResourcePeek(peek, body)) fail('InvalidHostResourcePeek');
+      if (!validResourcePeek(peek, body as Parameters<typeof validResourcePeek>[1])) fail('InvalidHostResourcePeek');
       const {rowsJson, ...rest} = peek;
       return Object.freeze({...rest, fields: Object.freeze([...peek.fields]),
-        rows: Object.freeze(JSON.parse(rowsJson).map(row =>
+        rows: Object.freeze((JSON.parse(rowsJson) as Awaited<ReturnType<Client['peekResource']>>['rows']).map(row =>
           Object.freeze(row)))});
     },
   };

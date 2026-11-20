@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {connect} from './index.mjs';
+import {connect, ClientError} from '@actql/sdk';
+import type {Client} from '@actql/sdk';
 
 const profile = {
   version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
@@ -11,7 +12,7 @@ const profile = {
     maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024,
   },
 };
-const operations = [
+const operations: readonly (readonly [string, (client: Client) => Promise<unknown>, string])[] = [
   ['resources', client => client.resources('connection'), 'InvalidHostResourceListing'],
   ['resource-inspect', client => client.inspectResource('connection', 'resource'),
     'InvalidHostResourceInspection'],
@@ -23,9 +24,10 @@ for (const [operation, invoke, malformedCode] of operations) {
   for (const asynchronous of [false, true]) {
     test(`${operation} preserves ${asynchronous ? 'asynchronous' : 'synchronous'} credential provider errors before fetch`, async t => {
       const refusal = new Error('Synthetic resource credential provider refusal');
-      const requests = [];
+      const requests: string[] = [];
       let credentials = 0;
-      t.mock.method(globalThis, 'fetch', async url => {
+      t.mock.method(globalThis, 'fetch', async (url: Parameters<typeof fetch>[0]) => {
+        assert.ok(url instanceof URL);
         requests.push(url.pathname);
         assert.equal(url.pathname, '/actql/client/0.1/connect');
         return Response.json(profile);
@@ -48,9 +50,10 @@ for (const [operation, invoke, malformedCode] of operations) {
   }
 
   test(`${operation} still classifies malformed received JSON after successful credentials`, async t => {
-    const requests = [];
+    const requests: string[] = [];
     let credentials = 0;
-    t.mock.method(globalThis, 'fetch', async url => {
+    t.mock.method(globalThis, 'fetch', async (url: Parameters<typeof fetch>[0]) => {
+      assert.ok(url instanceof URL);
       requests.push(url.pathname);
       if (url.pathname === '/actql/client/0.1/connect') return Response.json(profile);
       assert.equal(url.pathname, `/actql/client/0.1/${operation}`);
@@ -59,6 +62,7 @@ for (const [operation, invoke, malformedCode] of operations) {
     const client = await connect({mode: 'remote', endpoint: 'https://host.example/',
       token() { credentials++; return 'synthetic-resource-token'; }});
     await assert.rejects(invoke(client), error => {
+      assert.ok(error instanceof ClientError);
       assert.equal(error.code, malformedCode, '[resource-protocol:received-json]');
       assert.ok(error.cause instanceof SyntaxError);
       return true;
