@@ -9598,6 +9598,19 @@ fn compile_set_stages(
         result,
         ordered,
       )
+      if term_columns is Some(columns) {
+        // Project the same original left namespace with the exact vector
+        // already used by this physical INNER select, before replacing it.
+        // Some(left) makes the existing merge return Some, even for a subset.
+        columns[0] = merge_set_result_columns(
+          Some(columns[0]),
+          None,
+          ordered,
+          matched,
+          matched,
+          limits.max_expression_work,
+        ).unwrap()
+      }
     }
     outputs[0] = ordered
   }

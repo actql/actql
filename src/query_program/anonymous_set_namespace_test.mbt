@@ -245,3 +245,49 @@ test "first ON rename preserves the original left row namespace" {
     }
   }
 }
+
+///|
+test "first INNER ON subset keeps the original left namespace and exact output spelling" {
+  let source = "FROM pair |> AGGREGATE COUNT(*) AS n GROUP BY x + 1 |> AS captured |> SELECT captured AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain, 9 AS left_only |> INNER UNION ALL BY NAME ON (`pLaIn`, PROTECTED) (SELECT STRUCT(1 AS f0_, 2 AS n) AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain, 10 AS right_only FROM pair) |> ORDER BY "
+  for
+    tail in [
+      "protected.f0_", "LAG(protected.f0_) OVER (ORDER BY plain.f0_)", "(LAG(protected) OVER (ORDER BY plain.f0_)).f0_",
+    ] {
+    match
+      compile(
+        @query.parse_query(source + tail, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(issue) =>
+        fail(
+          "wrong first INNER ON member refusal: " +
+          infer_defaults_issue_tag(issue),
+        )
+      Ok(_) =>
+        fail("first INNER ON discarded the original left namespace: " + tail)
+    }
+  }
+  for tail in ["protected.n", "plain.f0_"] {
+    let program = compile(
+      @query.parse_query(source + tail, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(anonymous_result_fields(program), ["pLaIn", "PROTECTED"])
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("INNER ON retained complete original rows and named sibling")
+    }
+  }
+}
