@@ -447,3 +447,6 @@ target/
 
 /adapters/host-node/compile-cache.mjs
 /adapters/host-node/compile-cache.d.mts
+
+/scripts/node-selected-connect-input.test.mjs
+/scripts/node-selected-connect-input.test.d.mts
