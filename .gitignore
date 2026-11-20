@@ -83,3 +83,6 @@ target/
 /packages/sdk/internal/resources.d.mts
 /packages/sdk/resource-protocol-failures.test.mjs
 /packages/sdk/resource-protocol-failures.test.d.mts
+
+/packages/sdk/checkpoints.mjs
+/packages/sdk/checkpoints.d.mts

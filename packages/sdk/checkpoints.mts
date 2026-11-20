@@ -4,9 +4,23 @@
 // never evaluates accounts or holds a key.
 import {createCheckpointAnswerCodec} from './internal/checkpoint-answer-construction.generated.mjs';
 import {validAnswerEvidence, validAnswerResolution} from './internal/checkpoint-answer-contract.generated.mjs';
+import type {SignedCheckpointAnswer} from './index.d.ts';
+import type {AnswerEvidence} from './internal/checkpoint-answer-contract.generated.mjs';
+
+type OptionalAuthorityApproval = AnswerEvidence['compatibility_approval'] &
+  Partial<Pick<Extract<AnswerEvidence, {kind: 'effect_set'}>['compatibility_approval'],
+    'authority_scope_cid'>>;
+
+interface CheckedSigner {
+  readonly keyId: unknown;
+  readonly reviewerId: unknown;
+  readonly authorityScopeCid?: unknown;
+  sign(bytes: Uint8Array): unknown;
+}
+
 const encoder = new TextEncoder();
 
-function wellFormed(value) {
+function wellFormed(value: string) {
   for (let i = 0; i < value.length; i++) {
     const unit = value.charCodeAt(i);
     if (unit >= 0xd800 && unit <= 0xdbff) {
@@ -17,7 +31,7 @@ function wellFormed(value) {
   return true;
 }
 
-function normalized(value) {
+function normalized(value: string) {
   if (!wellFormed(value)) {
     throw new TypeError('InvalidCanonicalText');
   }
@@ -28,7 +42,7 @@ function normalized(value) {
 // whitespace, NFC/LF object member names, preserved data strings, finite numbers.
 // Opaque JSON data opts into exact member names, like Core data_keys admission.
 // The default artifact/identifier domain and its identities remain unchanged.
-export function canonicalJson(value, {dataKeys = false} = {}) {
+export function canonicalJson(value: unknown, {dataKeys = false}: {dataKeys?: boolean} = {}): string {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || Object.is(value, -0)) {
@@ -50,7 +64,7 @@ export function canonicalJson(value, {dataKeys = false} = {}) {
     .filter(([, item]) => item !== undefined)
     .map(([key, item]) => {
       if (!wellFormed(key)) throw new TypeError('InvalidCanonicalText');
-      return [dataKeys ? key : normalized(key), item];
+      return [dataKeys ? key : normalized(key), item] as const;
     });
   if (new Set(entries.map(([key]) => key)).size !== entries.length) {
     throw new TypeError('CanonicalKeyCollision');
@@ -60,14 +74,14 @@ export function canonicalJson(value, {dataKeys = false} = {}) {
     `${JSON.stringify(key)}:${canonicalJson(item, {dataKeys})}`).join(',')}}`;
 }
 
-const hex = bytes => [...new Uint8Array(bytes)]
+const hex = (bytes: ArrayBuffer) => [...new Uint8Array(bytes)]
   .map(byte => byte.toString(16).padStart(2, '0')).join('');
 
-export async function bytesCid(bytes) {
+export async function bytesCid(bytes: BufferSource) {
   return `sha256:${hex(await crypto.subtle.digest('SHA-256', bytes))}`;
 }
 
-export const contentCid = value =>
+export const contentCid = (value: unknown) =>
   bytesCid(encoder.encode(canonicalJson(value)));
 
 // The existing resolve-item wire ceiling also bounds the maximum possible
@@ -79,7 +93,7 @@ const answerCodec = createCheckpointAnswerCodec({canonicalJson, bytesCid});
 // Model and Effect reviews use the common self-addressed artifact identity. Legacy
 // review envelopes retain their full-byte digest. Never strip an arbitrary
 // field or accept a noncanonical encoding as a semantic-CID proof.
-export async function reviewBytesMatchCid(bytes, artifactCid) {
+export async function reviewBytesMatchCid(bytes: ArrayBuffer | ArrayBufferView, artifactCid: string) {
   // Review transport already enforces its caller's byte ceiling. The wire
   // length also bounds every possible node/container; add no new profile cap.
   const extent = Math.max(2, bytes.byteLength);
@@ -87,7 +101,7 @@ export async function reviewBytesMatchCid(bytes, artifactCid) {
     {maxWireBytes: extent, maxNodes: extent, maxDepth: extent});
 }
 
-const base64 = bytes => {
+const base64 = (bytes: Uint8Array) => {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
@@ -97,17 +111,17 @@ const base64 = bytes => {
 // sign(bytes) -> Uint8Array | base64 string}. It signs the UTF-8 text of an
 // unsigned artifact CID (the pinned Ed25519 preimage). The Client never sees
 // the private key.
-export function checkedSigner(signer) {
+export function checkedSigner(signer: Partial<CheckedSigner>): CheckedSigner {
   const name = /^[A-Za-z0-9._:-]{1,128}$/u;
   if (signer === null || typeof signer !== 'object' ||
-      !name.test(signer.keyId ?? '') || !name.test(signer.reviewerId ?? '') ||
+      !name.test((signer.keyId ?? '') as string) || !name.test((signer.reviewerId ?? '') as string) ||
       typeof signer.sign !== 'function') {
     throw new TypeError('InvalidCheckpointSigner');
   }
-  return signer;
+  return signer as CheckedSigner;
 }
 
-async function signature(signer, text) {
+async function signature(signer: CheckedSigner, text: string) {
   const signed = await signer.sign(encoder.encode(text));
   // Match the existing Common proof codec: canonical Base64 of 64 Ed25519
   // bytes. Bound decoding before inspecting the external signer's output.
@@ -128,7 +142,7 @@ async function signature(signer, text) {
 // One signed answer for one Checkpoint, from its listed safe metadata. An
 // approval carries the evidence profile of this Checkpoint. Nothing covers
 // another Checkpoint, and a whole-set approval does not promise atomic writes.
-export async function signedAnswer(summary, decision, signer, decidedAt) {
+export async function signedAnswer(summary: unknown, decision: string, signer: CheckedSigner, decidedAt: string) {
   if (decision !== 'approved' && decision !== 'rejected') {
     throw new TypeError('InvalidCheckpointDecision');
   }
@@ -139,17 +153,17 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   signer = Object.freeze({keyId: sourceSigner.keyId,
     reviewerId: sourceSigner.reviewerId,
     authorityScopeCid: sourceSigner.authorityScopeCid,
-    sign: bytes => signBytes.call(sourceSigner, bytes)});
+    sign: (bytes: Uint8Array) => signBytes.call(sourceSigner, bytes)});
   return constructSignedAnswer(summary, decision, signer, decidedAt);
 }
 
 // Error presentation keeps existing SDK names; it does not select a profile or
 // admit a claim. The generated constructor owns every candidate decision.
-function candidateError(cause) {
+function candidateError(cause: unknown) {
   let code = 'InvalidCheckpointAnswer';
-  if (cause.code === 'UnsupportedProfile') {
+  if ((cause as {code?: unknown}).code === 'UnsupportedProfile') {
     code = 'UnsupportedCheckpointAnswer';
-  } else if (cause.field === 'authority_scope_cid') {
+  } else if ((cause as {field?: unknown}).field === 'authority_scope_cid') {
     code = 'EffectApprovalAuthorityScopeRequired';
   }
   return new TypeError(code, {cause});
@@ -157,11 +171,11 @@ function candidateError(cause) {
 
 // Private SDK continuation, not a package entry or an authority factory.
 // Candidate construction consumes the same generated Common-owned recipe.
-export async function signedAnswerFromAdmittedSummary(summary, decision, signer, decidedAt) {
+export async function signedAnswerFromAdmittedSummary(summary: unknown, decision: string, signer: CheckedSigner, decidedAt: string) {
   return constructSignedAnswer(summary, decision, signer, decidedAt);
 }
 
-async function constructSignedAnswer(summary, decision, signer, decidedAt) {
+async function constructSignedAnswer(summary: unknown, decision: string, signer: CheckedSigner, decidedAt: string): Promise<SignedCheckpointAnswer> {
   let prepared;
   try {
     prepared = await answerCodec.prepareAnswerCandidate(summary, decision,
@@ -180,13 +194,14 @@ async function constructSignedAnswer(summary, decision, signer, decidedAt) {
 // Compare an external original answer using its actual returned proof bytes.
 // This constructs DATA for comparison only: no signer, reissue or verification
 // authority is obtained from a proof. The Host keeps independent admission.
-export async function checkpointAnswerMatches(answer, summary, decision) {
+export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string) {
   try {
-    const resolution = JSON.parse(answer.resolutionWire);
+    const resolution: unknown = JSON.parse(answer.resolutionWire);
     if (!validAnswerResolution(resolution)) return false;
-    const evidence = decision === 'approved' ? JSON.parse(answer.approvalEvidenceWire) : undefined;
+    const evidence: unknown = decision === 'approved' ? JSON.parse(answer.approvalEvidenceWire) : undefined;
     if (evidence !== undefined && !validAnswerEvidence(evidence)) return false;
-    const approval = evidence?.compatibility_approval;
+    // Preserve the same optional property reads across both admitted profiles.
+    const approval = evidence?.compatibility_approval as OptionalAuthorityApproval | undefined;
     const actor = {keyId: resolution.proof.key_id, reviewerId: resolution.actor,
       ...(approval?.authority_scope_cid === undefined ? {} :
         {authorityScopeCid: approval.authority_scope_cid})};

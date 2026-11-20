@@ -4835,7 +4835,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4857,7 +4857,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4869,7 +4869,7 @@
                 "anchor": "const originalReview = (subjectCid, claims) =>"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
@@ -4883,7 +4883,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4899,7 +4899,7 @@
                 "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
@@ -4913,7 +4913,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4935,7 +4935,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4957,7 +4957,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4979,7 +4979,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -5001,7 +5001,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -5017,7 +5017,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
               },
               {
@@ -5031,7 +5031,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -8366,8 +8366,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "export async function checkpointAnswerMatches(answer, summary, decision)"
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
               },
               {
                 "path": "scripts/generate-client-host-wire.mjs",
@@ -8376,15 +8376,15 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
               }
             ],
@@ -16167,6 +16167,393 @@
       "sha256": "b54912b832f554c137b9191ca91cfe07f06922530eb2e2c58ba3319267943040",
       "imports": [],
       "compilerFields": []
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.d.mts",
+      "sha256": "e80292359cc72f50461f74cc035598b898bfef0580c64f26a350e0a75732e72d",
+      "exports": [
+        "AnswerEvidence",
+        "AnswerResolution",
+        "validAnswerEvidence",
+        "validAnswerResolution"
+      ],
+      "operations": [
+        {
+          "name": "validAnswerEvidence",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is AnswerEvidence"
+        },
+        {
+          "name": "validAnswerResolution",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is AnswerResolution"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
+      "rationale": "Generated structural type projection of the same existing artifact schema and WeakMap original-stage protocol; runtime validation, custody, authority and limits remain with the existing codec and Host.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "exports": [
+            "AnswerEvidence",
+            "AnswerResolution",
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-construction.generated.d.mts",
+      "sha256": "375731e94bbf2dd879da06f819c227dcc7be41b60a79be6f4a371bd9a7a81e96",
+      "exports": [
+        "AnswerCandidate",
+        "AnswerDecision",
+        "AnswerLimits",
+        "AnswerPrimitives",
+        "AnswerResolution",
+        "createCheckpointAnswerCodec"
+      ],
+      "operations": [
+        {
+          "name": "AnswerPrimitives/bytesCid",
+          "parameters": [
+            "bytes: Uint8Array<ArrayBuffer>"
+          ],
+          "result": "string | PromiseLike<string>"
+        },
+        {
+          "name": "AnswerPrimitives/canonicalJson",
+          "parameters": [
+            "value: unknown",
+            "options?: {dataKeys?: boolean}"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec",
+          "parameters": [
+            "primitives: AnswerPrimitives"
+          ],
+          "result": "Readonly<{\n  prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,\n    decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;\n  answerCandidateApprovalPreimage(stage: AnswerCandidate): string | undefined;\n  prepareAnswerResolution(stage: AnswerCandidate,\n    approvalSignature?: unknown): Promise<AnswerResolution>;\n  answerResolutionPreimage(stage: AnswerResolution): string;\n  finishAnswerCandidate(stage: AnswerResolution,\n    resolutionSignature: unknown): Promise<WireResolveItem>;\n  reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;\n}>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+          "parameters": [
+            "stage: AnswerCandidate"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
+          "parameters": [
+            "stage: AnswerResolution"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/finishAnswerCandidate",
+          "parameters": [
+            "stage: AnswerResolution",
+            "resolutionSignature: unknown"
+          ],
+          "result": "Promise<WireResolveItem>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
+          "parameters": [
+            "summary: unknown",
+            "decision: unknown",
+            "actor: unknown",
+            "decidedAt: unknown",
+            "limits: AnswerLimits"
+          ],
+          "result": "Promise<AnswerCandidate>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerResolution",
+          "parameters": [
+            "stage: AnswerCandidate",
+            "approvalSignature?: unknown"
+          ],
+          "result": "Promise<AnswerResolution>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "parameters": [
+            "raw: unknown",
+            "expected: unknown",
+            "limits: AnswerLimits"
+          ],
+          "result": "Promise<boolean>"
+        }
+      ],
+      "imports": [
+        "@actql/client-wire"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated structural type projection of the same existing artifact schema and WeakMap original-stage protocol; runtime validation, custody, authority and limits remain with the existing codec and Host.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "AnswerPrimitives/bytesCid",
+            "AnswerPrimitives/canonicalJson",
+            "createCheckpointAnswerCodec",
+            "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+            "createCheckpointAnswerCodec/answerResolutionPreimage",
+            "createCheckpointAnswerCodec/finishAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid"
+          ],
+          "exports": [
+            "AnswerCandidate",
+            "AnswerDecision",
+            "AnswerLimits",
+            "AnswerPrimitives",
+            "AnswerResolution",
+            "createCheckpointAnswerCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
