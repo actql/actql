@@ -4,14 +4,14 @@ import {dirname, join} from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {test} from 'node:test';
+import {test, type TestContext} from 'node:test';
 import {viteInterfaceInventory} from './vite-interface-inventory.mjs';
 import {assertInterfaceCoverage, interfaceAttributes} from './interface-inventory.mjs';
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const directory = mkdtempSync(join(process.cwd(), '_build/interface-vite-control-'));
   t.after(() => rmSync(directory, {recursive: true}));
-  const put = (path, body) => {
+  const put = (path: string, body: string) => {
     mkdirSync(join(directory, path, '..'), {recursive: true});
     writeFileSync(join(directory, path), body);
   };
@@ -20,7 +20,7 @@ function fixture(t) {
   put('owner.md', 'Existing pure view owner and independent boundary checks');
   put('sdk/entry.mjs', 'export function read(value) {return value;}');
   const ref = {path: 'owner.md', anchor: 'Existing pure view owner'};
-  const declaration = module => ({...module, role: 'observation-presentation', owner: 'existing-view',
+  const declaration = (module: Awaited<ReturnType<typeof viteInterfaceInventory>>['modules'][number]) => ({...module, role: 'observation-presentation', owner: 'existing-view',
     contracts: [{operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
       attributes: Object.fromEntries(interfaceAttributes.map(name => [name, [ref]]))}]});
   return {directory, put, declaration};
@@ -37,7 +37,7 @@ test('configured Vite closure retains neutral outside-directory helpers and reje
   const after = await viteInterfaceInventory(directory, ['vite.config.mjs']);
   assert(after.modules.some(value => value.module === 'outside/neutral.mjs'));
   const current = after.modules.map(module => declared.find(value => value.module === module.module)
-    ? declaration(module) : null).filter(Boolean);
+    ? declaration(module) : null).filter(Boolean) as ReturnType<typeof declaration>[];
   assert.throws(() => assertInterfaceCoverage({root: directory, modules: after.modules, declarations: current}),
     /Unregistered distributed interface: outside\/neutral.mjs/u);
   assert.equal(assertInterfaceCoverage({root: directory, modules: after.modules,
@@ -75,7 +75,7 @@ test('configured Vite dependencies match ordinary manifest working directories w
     {workingDirectories: {'library/vite.config.mjs': 'library'}}), /Mixed configured Vite dependency/u);
 });
 
-function foreignFixture(t) {
+function foreignFixture(t: TestContext) {
   const project = fixture(t);
   const foreign = mkdtempSync(join(process.cwd(), '_build/interface-vite-foreign-'));
   t.after(() => rmSync(foreign, {recursive: true}));

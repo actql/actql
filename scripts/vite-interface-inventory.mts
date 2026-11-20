@@ -9,49 +9,61 @@ import {javascriptInterface} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
-export async function viteInterfaceInventory(root, configs, {workingDirectories = {}} = {}) {
+// Unchecked lock/manifest views retain the existing pin/member/digest checks.
+type LockPin = {link?: unknown; version?: unknown; integrity?: unknown; resolved?: unknown; name?: unknown};
+type SyntaxModule = {module: string; sha256: string} &
+  (ReturnType<typeof javascriptInterface> | ReturnType<typeof typescriptInterface>);
+type SourceAsset = {module: string; sha256: string; qualification: string};
+type Compiled = {config: string; file: string; sha256: string};
+type Generated = {config: string; file?: string; sha256?: string; sourceModules?: string[];
+  virtualModules?: number; qualification: string};
+type External = {installation: string; name: unknown; version: unknown; resolved: unknown;
+  integrity: unknown; member: string; sha256: string};
+type BuildOutput = Extract<Awaited<ReturnType<typeof build>>, {output: unknown}>['output'][number];
+
+export async function viteInterfaceInventory(root: string, configs: readonly string[], {workingDirectories = {}}: {workingDirectories?: Readonly<Record<string, string>>} = {}) {
   root = realpathSync(root);
-  const modules = new Map(), assets = new Map(), generated = [], external = new Map(), buildInputs = [];
-  const compiled = new Map(), copied = new Map(), consumed = new Set();
+  const modules = new Map<string, SyntaxModule>(), assets = new Map<string, SourceAsset>(), generated: Generated[] = [], external = new Map<string, External>(), buildInputs: SourceAsset[] = [];
+  const compiled = new Map<string, Compiled>(), copied = new Map<string, string>(), consumed = new Set<string>();
   // Vite remains the module resolver. These are installed roots from the
   // selected ordinary lock, not a second import resolver or a name-based
   // exemption for arbitrary checkout-external source. Workspace links remain
   // authored inputs. Archive integrity is still the normal release audit's job.
   const lockPath = resolve(root, 'package-lock.json');
   const lockBytes = existsSync(lockPath) ? readFileSync(lockPath) : undefined;
-  const lock = lockBytes ? JSON.parse(lockBytes) : {packages: {}};
+  const lock = (lockBytes ? JSON.parse(lockBytes as unknown as string) : {packages: {}}) as {packages?: Record<string, LockPin>};
   const installed = Object.entries(lock.packages ?? {}).flatMap(([installation, pin]) => {
     const match = /(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)$/u.exec(installation);
     const path = resolve(root, installation);
     if (!match || pin.link || !pin.version || !pin.integrity || !pin.resolved || !existsSync(path)) return [];
     return [{installation, directory: realpathSync(path), name: pin.name ?? match[1], pin}];
   }).sort((a, b) => b.directory.length - a.directory.length);
-  const contains = (parent, path) => {
+  const contains = (parent: string, path: string) => {
     const name = relative(parent, path);
     return !isAbsolute(name) && name !== '..' && !name.startsWith('../');
   };
-  const inside = path => {
+  const inside = (path: string) => {
     const name = relative(root, path);
     return !isAbsolute(name) && name !== '..' && !name.startsWith('../');
   };
-  function source(path) {
+  function source(path: string): void {
     const original = realpathSync(path);
     if (copied.has(original)) {
-      const sourcePath = copied.get(original);
+      const sourcePath = copied.get(original)!;
       assert(readFileSync(original).equals(readFileSync(sourcePath)),
         `Mixed configured Vite source asset: ${relative(root, original)}`);
       source(sourcePath);
       return;
     }
     if (compiled.has(original)) {
-      assert.equal(createHash('sha256').update(readFileSync(original)).digest('hex'), compiled.get(original).sha256,
+      assert.equal(createHash('sha256').update(readFileSync(original)).digest('hex'), compiled.get(original)!.sha256,
         `Mixed configured Vite dependency: ${relative(root, original)}`);
       consumed.add(original);
       return;
     }
     const dependency = installed.find(value => contains(value.directory, original));
     if (dependency) {
-      const manifest = JSON.parse(readFileSync(resolve(dependency.directory, 'package.json'), 'utf8'));
+      const manifest = JSON.parse(readFileSync(resolve(dependency.directory, 'package.json'), 'utf8')) as {name: unknown; version: unknown};
       assert.equal(manifest.name, dependency.name, `Mixed installed Vite dependency: ${dependency.installation}`);
       assert.equal(manifest.version, dependency.pin.version, `Mixed installed Vite dependency: ${dependency.installation}`);
       external.set(original, {installation: dependency.installation, name: manifest.name, version: manifest.version,
@@ -82,8 +94,8 @@ export async function viteInterfaceInventory(root, configs, {workingDirectories 
     assert(inside(workingDirectory), `Escaped Vite working directory: ${config}`);
     buildInputs.push({module: config, sha256: createHash('sha256').update(readFileSync(configPath)).digest('hex'),
       qualification: 'configured-build-input; not-distributed-authored-module'});
-    const virtual = new Set();
-    let outputDirectory;
+    const virtual = new Set<string>();
+    let outputDirectory: string | undefined;
     const result = await build({configFile: configPath, configLoader: 'native', logLevel: 'silent',
       build: {write: false, emptyOutDir: false, reportCompressedSize: false},
       plugins: [{name: 'actql-resolved-interface-inputs', configResolved(config) {
@@ -97,20 +109,20 @@ export async function viteInterfaceInventory(root, configs, {workingDirectories 
           else virtual.add(id);
         }
       }}]});
-    const outputs = (Array.isArray(result) ? result : [result]).flatMap(value => value.output);
+    const outputs = (Array.isArray(result) ? result : [result]).flatMap(value => (value as {output?: BuildOutput[]}).output);
     for (const output of outputs) {
       assert(output, 'Vite watch results are not interface inventory');
       if (output.type === 'chunk') {
-        compiled.set(resolve(outputDirectory, output.fileName), {config, file: output.fileName,
+        compiled.set(resolve(outputDirectory!, output.fileName), {config, file: output.fileName,
           sha256: createHash('sha256').update(output.code).digest('hex')});
         generated.push({config, file: output.fileName,
-          sha256: compiled.get(resolve(outputDirectory, output.fileName)).sha256,
+          sha256: compiled.get(resolve(outputDirectory!, output.fileName))!.sha256,
           sourceModules: Object.keys(output.modules).filter(id => !id.includes('\0') && inside(id))
             .map(id => relative(root, id)).sort(),
           qualification: 'read-only-vite-output; not-installed-artifact'});
       } else {
         const sha256 = createHash('sha256').update(output.source).digest('hex');
-        compiled.set(resolve(outputDirectory, output.fileName), {config, file: output.fileName, sha256});
+        compiled.set(resolve(outputDirectory!, output.fileName), {config, file: output.fileName, sha256});
         generated.push({config, file: output.fileName, sha256,
           qualification: 'configured-vite-asset; not-installed-artifact'});
         for (const path of output.originalFileNames ?? []) {
@@ -118,9 +130,9 @@ export async function viteInterfaceInventory(root, configs, {workingDirectories 
           if (existsSync(absolute)) {
             source(absolute);
             if (/\.[cm]?js$/u.test(absolute)) {
-              assert(Buffer.from(output.source).equals(readFileSync(absolute)),
+              assert(Buffer.from(output.source as unknown as Uint8Array).equals(readFileSync(absolute)),
                 `Changed copied Vite source asset: ${relative(root, absolute)}`);
-              copied.set(resolve(outputDirectory, output.fileName), absolute);
+              copied.set(resolve(outputDirectory!, output.fileName), absolute);
             }
           }
         }

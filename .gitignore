@@ -606,3 +606,9 @@ target/
 
 /scripts/installed-interface-inventory.test.mjs
 /scripts/installed-interface-inventory.test.d.mts
+
+/scripts/vite-interface-inventory.mjs
+/scripts/vite-interface-inventory.d.mts
+
+/scripts/vite-interface-inventory.test.mjs
+/scripts/vite-interface-inventory.test.d.mts
