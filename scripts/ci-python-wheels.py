@@ -283,12 +283,12 @@ def require_installed_repeated_host(events, phase: str, previous_pid: int | None
 def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: dict[str, str]) -> dict:
     """The same original public fixture, fresh owning Home and separate Saved."""
     work = destination / 'ordinary-repeated-host'
-    work.mkdir()
+    work.mkdir(mode=0o700)
     fixture = work / 'python-local-repeated-host.py'
     shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
     home, temporary, workspace = (work / name for name in ('home', 'tmp', 'workspace'))
     for directory in (home, temporary, workspace):
-        directory.mkdir()
+        directory.mkdir(mode=0o700)
     ordinary_env = dict(env, HOME=str(home), TMPDIR=str(temporary))
     previous_pid = None
     pids = []
