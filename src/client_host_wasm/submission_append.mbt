@@ -53,13 +53,13 @@ fn submission_append_current(
   if @authorization.evaluate_account(configuration.account, configuration.tuple)
     is @authorization.Allow(_) {
     match (record.append_plan, decoding_original) {
-      (Decoding(_, _) | DecodedRows(_, _), Some(capacity)) =>
+      (Decoding(_, _) | DecodedRows(_, _, _), Some(capacity)) =>
         if submission_decode_prefix_current(value, record, capacity) {
           Ok(())
         } else {
           Err(-9)
         }
-      (Decoding(_, _) | DecodedRows(_, _), None) | (_, Some(_)) => Err(-9)
+      (Decoding(_, _) | DecodedRows(_, _, _), None) | (_, Some(_)) => Err(-9)
       _ => Ok(())
     }
   } else {

@@ -5,7 +5,7 @@
 priv enum StoredSubmissionAppend {
   Idle
   Decoding(@resources.CapacityReservation, StoredSubmissionAppend)
-  DecodedRows(@resources.CapacityReservation, StoredSubmissionAppend)
+  DecodedRows(@resources.CapacityReservation, StoredSubmissionAppend, Int64)
   Ready(@host.ClientSubmittedJournalAppendPlan)
 }
 

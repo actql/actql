@@ -50,8 +50,8 @@ test "scanned prefix exact existing geometry and one-short refusal before codec 
   assert_eq(units.owned_utf16_units, 786503L)
   assert_eq(units.owned_wire_bytes, 262144L)
   assert_eq(@execution.preparation_representation_cost(units), Some(1836430L))
-  assert_eq(submission_decode_prefix_capacity(), Some(5509370L))
-  println("prefix geometry complete: 5509370")
+  assert_eq(submission_decode_prefix_capacity(), Some(5509754L))
+  println("prefix geometry complete: 5509754")
   let (value, record, source) = submission_decode_prefix_fixture()
   println("prefix original fixture complete")
   let capacity = open_submission_decode_prefix(value, record).unwrap()
@@ -59,7 +59,8 @@ test "scanned prefix exact existing geometry and one-short refusal before codec 
   let remaining = @resources.ledger_limits(value.root).retained_bytes -
     usage.held_bytes -
     usage.reserved_retention_bytes
-  let additional = submission_decode_prefix_capacity().unwrap() - 40L
+  let additional = submission_decode_prefix_capacity().unwrap() -
+    submission_decode_controller_capacity()
   println(
     "prefix original remaining=\{remaining}; required_growth=\{additional}",
   )
@@ -91,7 +92,7 @@ test "scanned prefix exact existing geometry and one-short refusal before codec 
     record.append_plan is Decoding(same, Idle) && physical_equal(same, capacity),
   )
   assert_true(
-    @resources.capacity_reservation_covers(value.root, capacity, 40L, 40L),
+    @resources.capacity_reservation_covers(value.root, capacity, 416L, 416L),
   )
   @resources.settle_capacity(value.root, blocker).unwrap()
   submission_decode_prefix_fixture_close(value, source)
@@ -121,21 +122,26 @@ test "scanned prefix covers constructor failure through original projection clea
   )
   assert_eq(reads.val, 0)
   assert_true(
-    record.append_plan is DecodedRows(same, Idle) &&
-    physical_equal(same, capacity),
+    record.append_plan is DecodedRows(same, Idle, amount) &&
+    physical_equal(same, capacity) &&
+    amount == 5509754L,
   )
   assert_true(
     @resources.capacity_reservation_covers(
       value.root,
       capacity,
-      5509370L,
-      5509370L,
+      5509754L,
+      5509754L,
     ),
   )
   assert_true(open_submission_decode_prefix(value, record) is Err(-9))
+  let same_grown_control = record.append_plan
+  assert_eq(prepare_submission_decode_prefix(value, record, capacity, 2), 0)
+  assert_true(physical_equal(record.append_plan, same_grown_control))
+  assert_true(submission_decode_prefix_current(value, record, capacity))
   assert_eq(
     @resources.ledger_usage(value.root).reserved_retention_bytes,
-    before.reserved_retention_bytes + 5509370L,
+    before.reserved_retention_bytes + 5509754L,
   )
   submission_decode_prefix_fixture_close(value, source)
 }
@@ -156,7 +162,7 @@ test "scanned prefix stays owned after callback return through record consumptio
       submission_append_run_inspection,
       original,
     ).unwrap()
-    assert_true(record.append_plan is DecodedRows(_, _))
+    assert_true(record.append_plan is DecodedRows(_, _, _))
     assert_true(submission_decode_prefix_current(value, record, capacity))
     assert_eq(@host.client_saved_submission_row(observed).revision, 6L)
     assert_true(
@@ -186,7 +192,7 @@ test "scanned prefix foreign settlement cannot hide original cause or clear pool
     retained_bytes: 4096L,
     execution_bytes: 4096L,
   }).unwrap()
-  let impostor = @resources.reserve_capacity(foreign, 40L, 40L).unwrap()
+  let impostor = @resources.reserve_capacity(foreign, 416L, 416L).unwrap()
   // Explicit corruption counter, not a runtime failure or foreign-state adoption.
   record.append_plan = Decoding(impostor, Idle)
   assert_false(submission_decode_prefix_current(value, record, impostor))
@@ -218,8 +224,8 @@ test "scanned prefix restores same previous Ready plan after original-token sett
   // construction; it is not a new product holder or historical reuse route.
   let prior_backing = @resources.reserve_capacity(
     value.root,
-    5509370L,
-    5509370L,
+    5509754L,
+    5509754L,
   ).unwrap()
   let rows = targeted_snapshot_rows()
   let original : @host.ClientTaskMaterialsOriginal[Unit]? = None
@@ -237,9 +243,10 @@ test "scanned prefix restores same previous Ready plan after original-token sett
   let capacity = open_submission_decode_prefix(value, record).unwrap()
   assert_eq(prepare_submission_decode_prefix(value, record, capacity, 2), 0)
   assert_true(
-    record.append_plan is DecodedRows(same, saved) &&
+    record.append_plan is DecodedRows(same, saved, amount) &&
     physical_equal(same, capacity) &&
-    physical_equal(saved, previous),
+    physical_equal(saved, previous) &&
+    amount == 5509754L,
   )
   assert_true(
     finish_submission_decode_observation(value, record, Err(-71)) is Err(-71),
@@ -254,4 +261,24 @@ test "scanned prefix restores same previous Ready plan after original-token sett
   @resources.settle_capacity(value.root, prior_backing).unwrap()
   sdk_row_original_fixture_close(value, source)
   assert_eq(@resources.ledger_usage(value.root).reserved_retention_bytes, 0L)
+}
+
+///|
+test "scanned prefix admits quote carriers before first geometry construction" {
+  let (value, record, source) = submission_decode_prefix_fixture()
+  assert_eq(submission_decode_controller_capacity(), 416L)
+  let usage = @resources.ledger_usage(value.root)
+  let remaining = @resources.ledger_limits(value.root).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  let blocker = @resources.reserve_capacity(value.root, remaining - 415L, 0L).unwrap()
+  let blocked = @resources.ledger_usage(value.root)
+  assert_true(open_submission_decode_prefix(value, record) is Err(-4))
+  assert_true(record.append_plan is Idle)
+  assert_eq(
+    @resources.ledger_usage(value.root).reserved_retention_bytes,
+    blocked.reserved_retention_bytes,
+  )
+  @resources.settle_capacity(value.root, blocker).unwrap()
+  submission_decode_prefix_fixture_close(value, source)
 }

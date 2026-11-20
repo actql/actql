@@ -4654,16 +4654,22 @@ inventory checks retain their existing validators and ordering.
 The original submission projection owns this synchronous construction prefix.
 Its existing optional plan slot becomes Idle/Ready or a temporary token plus
 its prior plan, without a new normal holder or historical cache. Before creating
-that control it reserves 40 retention/execution bytes on the same Root; before
-canonical row construction it grows that same token to the complete bounded
-prefix. The fixed legacy row limit remains 262144 bytes; no construction
+that control it reserves 416 retention/execution bytes on the same Root: the
+40-byte control, 56-byte geometry, six 32-byte checked scalar Some carriers,
+and 128 bytes for the token Result, two private Some(token) carriers and four
+additional callback references. Before canonical row construction it grows that
+same token to the complete bounded prefix. Every production caller already
+point-selects its original projection; no extra projection enumeration is added. The fixed legacy row limit remains 262144 bytes; no construction
 observer selects the wider observed profile. The submitted-row representation
 uses the existing Native geometry: 32 headers, 64 references, 32 scalar words,
 three UTF-16 units per maximum input byte plus 71 fixed units, and the input
 wire extent. Its existing representation cost is 1836430 bytes. Three carriers
 cover the prior loop result, current decode and a differing point-read fallback;
-80 bytes cover old/new temporary control overlap. The resulting 5509370-byte
-prefix is admitted for both retention and execution before construction. Raw
+88 bytes cover old/new temporary control overlap, including the admitted
+amount stored in the grown control. The quote and 128 call-carrier bytes remain
+conservatively covered there. The resulting 5509754-byte prefix is admitted for both retention and execution before construction.
+Later current/prepare checks use that same admitted scalar without reconstructing
+geometry or a quote. Raw
 transfer capacity, retired Run capacity and the VM maximum supply no credit.
 
 The prefix remains owned after the validation callback returns, through the

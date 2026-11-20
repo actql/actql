@@ -1,8 +1,10 @@
 ///|
-// One payload-bearing Decoding variant: header, tag and two references. The
-// original field's Idle/Ready variants retain the old None/Some(plan) shape.
+// Pre-admit quote construction as well as the original control: 40 control,
+// 56 geometry, six 32-byte checked Some carriers, and 128 new call carriers
+// (token Result 32, two private Some(token) 64, four callback captures 32).
+// Existing fixed nonrecursive frames are not credits for allocated carriers.
 fn submission_decode_controller_capacity() -> Int64 {
-  40L
+  40L + 56L + 6L * 32L + 128L
 }
 
 ///|
@@ -18,7 +20,7 @@ fn submission_decode_prefix_capacity() -> Int64? {
     return None
   }
   @execution.checked_preparation_add_product(
-    2L * submission_decode_controller_capacity(),
+    40L + 48L + 56L + 6L * 32L + 128L,
     one,
     3L,
   )
@@ -32,13 +34,13 @@ fn open_submission_decode_prefix(
   if record.kind != 3 ||
     (
       record.append_plan is Decoding(_, _) ||
-      record.append_plan is DecodedRows(_, _)
-    ) ||
-    !value.submissions
-    .values()
-    .any(original => physical_equal(original, record)) {
+      record.append_plan is DecodedRows(_, _, _)
+    ) {
     return Err(-9)
   }
+  // Every production caller point-selected this SAME private projection from
+  // value.submissions before the original current/borrow checks. Do not add a
+  // second live-projection iterator or a new physical/history observation here.
   let controller = submission_decode_controller_capacity()
   let capacity = match
     @resources.reserve_capacity(value.root, controller, controller) {
@@ -65,9 +67,9 @@ fn submission_decode_prefix_current(
         submission_decode_controller_capacity(),
         submission_decode_controller_capacity(),
       )
-    DecodedRows(original, _) =>
+    DecodedRows(original, _, amount) =>
       physical_equal(original, capacity) &&
-      submission_decode_prefix_capacity() is Some(amount) &&
+      amount >= submission_decode_controller_capacity() &&
       @resources.capacity_reservation_covers(
         value.root,
         original,
@@ -93,10 +95,12 @@ fn prepare_submission_decode_prefix(
   if !submission_decode_prefix_current(value, record, capacity) {
     return -9
   }
-  guard submission_decode_prefix_capacity() is Some(amount) else { return -4 }
-  if record.append_plan is DecodedRows(_, _) {
+  // A later row/current check consumes only the already admitted scalar.
+  // No geometry or checked quote is reconstructed on this hot path.
+  if record.append_plan is DecodedRows(_, _, _) {
     return 0
   }
+  guard submission_decode_prefix_capacity() is Some(amount) else { return -4 }
   match
     @resources.grow_capacity_reservation(value.root, capacity, amount, amount) {
     Ok(_) => {
@@ -105,7 +109,7 @@ fn prepare_submission_decode_prefix(
         return -9
       }
       // Both old/new control variants fit the already admitted prefix peak.
-      record.append_plan = DecodedRows(capacity, previous)
+      record.append_plan = DecodedRows(capacity, previous, amount)
       0
     }
     Err(_) => -4
@@ -149,7 +153,7 @@ fn close_submission_decode_prefix(
   record : StoredSubmissionProjection,
 ) -> Int {
   match record.append_plan {
-    Decoding(capacity, previous) | DecodedRows(capacity, previous) =>
+    Decoding(capacity, previous) | DecodedRows(capacity, previous, _) =>
       match @resources.settle_capacity(value.root, capacity) {
         Err(_) => -4
         Ok(_) => {
@@ -170,7 +174,7 @@ fn finish_submission_decode_observation(
   // Fresh insertion consumes its scanned records inside the inventory and
   // emits its original input's new wire. Retained target lookup returns before
   // that scan. Never settle a row prefix beneath an unexpected escaping alias.
-  if record.append_plan is DecodedRows(_, _) && result is Ok(@host.Retained(_)) {
+  if record.append_plan is DecodedRows(_, _, _) && result is Ok(@host.Retained(_)) {
     return Err(-31)
   }
   let settled = close_submission_decode_prefix(value, record)
