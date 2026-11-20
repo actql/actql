@@ -33,6 +33,14 @@ export const keyedScanConstructionInventory = Object.freeze([
   entry('client_keyed_native_page', 'build_client_keyed_native_captured_page'),
   entry('client_keyed_native_sources', 'build_client_keyed_native_whole_source_evidence'),
 ].map(Object.freeze));
+const serialDependencyFunding = new Set([
+  'reserve_keyed_dependency_serial_controls', 'grow_keyed_dependency_body',
+]);
+const serialDependencyModule = directory + 'client_keyed_dependency_serial_cursor.mbt';
+const serialDependencyConsumers = new Set([
+  `${directory}client_keyed_declared_file_journal.mbt:prepare_declared_file_lookup_dependencies`,
+  `${directory}client_effect_generic_keyed_dependency.mbt:prepare_client_effect_keyed_generic_dependencies`,
+]);
 const scanBuilders = new Set([
   'scan_keyed_lookup_identity_bodies', 'scan_client_keyed_native_left_identity',
   'scan_client_keyed_native_page', 'scan_client_keyed_native_whole_source',
@@ -43,7 +51,7 @@ const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keye
 const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
@@ -58,6 +66,8 @@ const lowOwners = new Set([
 // retained at an independently owned predecessor/physical lifetime. The four
 // finished scan portions now use their separate original managed construction.
 const bodyGrowthOwners = new Map([
+  [...entry('client_keyed_dependency_serial_cursor', 'reserve_keyed_dependency_serial_controls'), 'temporary serial cursor and funding closures'],
+  [...entry('client_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body'), 'same-lookup body and cursor allowance'],
   [...entry('client_keyed_protocol_construction', 'with_keyed_body_construction'), 'original scan first-entry backing'],
   [...entry('client_keyed_protocol_construction', 'grow_keyed_body_construction'), 'latched original scan grow port'],
   [...entry('client_keyed_lookup_identity', 'finish_keyed_lookup_protocol_metadata'), 'pre-admitted extent walk'],
@@ -166,6 +176,11 @@ export function resourceLifecycleProblems(sources, {
       }
       if ((token.value === 'grow_keyed_body_construction' || token.value === 'keyed_body_construction_controls') &&
           !(module === common && fn?.name === 'with_keyed_body_construction')) issue('manual-scan-phase', i);
+      if (serialDependencyFunding.has(token.value) &&
+          !(serialDependencyConsumers.has(id) && inScope(i) ||
+            module === serialDependencyModule && bodyGrowthOwners.has(id))) {
+        issue('unclassified-serial-dependency-funding', i);
+      }
       if (scanBuilders.has(token.value) && !inScope(i)) issue('unsettled-scan-builder', i);
       if (rawResource.has(token.value) && (keyedOwner || fn === undefined) && !lowOwners.has(id)) issue('unclassified-reservation-mutation', i);
       if (token.value === 'keyed_lookup_body_grow' && !inScope(i) && !bodyGrowthOwners.has(id)) issue('unclassified-body-growth', i);

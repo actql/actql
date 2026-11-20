@@ -714,8 +714,19 @@ fn prepare_declared_file_lookup_dependencies(
     max_nodes,
     max_depth,
     fn() {
+      match reserve_keyed_dependency_serial_controls(lookup) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let before = (bytes : Int, nodes : Int, depth : Int) => {
+      let cursor : KeyedDependencySerialCursor = { reusable: 0L, pending: -1L, }
+
+      let before = (
+        bytes : Int,
+        nodes : Int,
+        depth : Int,
+        serial : KeyedDependencySerialCursor?,
+      ) => {
         if primary.val is Some(_) ||
           bytes < 0 ||
           nodes < 0 ||
@@ -724,32 +735,7 @@ fn prepare_declared_file_lookup_dependencies(
           lookup.left.lookup_issue is Some(_) {
           return false
         }
-        let capacity = @execution.execution_capacity_inventory(
-          [
-            // Shared capture-recovery units: parsed body, retained typed body and
-            // partial constructor; Strings and canonical/hash writer backing.
-            { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
-            { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-            { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
-            // The same original member's Map/spare-array entries and later opaque
-            // getter/Node DATA aliases use the established fixed Host allowance.
-            { unit: QuotedBytes, count: 4096L, copies: 1, },
-          ],
-          [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
-          RetainedAlongsideExecution,
-        )
-        guard capacity is Some(capacity) else {
-          primary.val = Some(Assembly("capacity_overflow"))
-          return false
-        }
-        match
-          keyed_lookup_body_grow(
-            lookup,
-            lookup.retained_bytes,
-            lookup.execution_bytes,
-            0L,
-            Some(capacity),
-          ) {
+        match grow_keyed_dependency_body(lookup, bytes, nodes, depth, serial) {
           Ok(_) => true
           Err(issue) => {
             primary.val = Some(issue)
@@ -757,6 +743,15 @@ fn prepare_declared_file_lookup_dependencies(
           }
         }
       }
+      let serial_cursor = Some(cursor)
+      let serial = Some(
+        (
+          Some((bytes, nodes, depth) => {
+            before(bytes, nodes, depth, serial_cursor)
+          }),
+          () => cursor.retire(),
+        ),
+      )
       let bodies = match
         keyed_lookup_native_dependency_bodies_from_original(
           lookup,
@@ -771,7 +766,8 @@ fn prepare_declared_file_lookup_dependencies(
           max_nodes,
           max_depth,
           state.physical_source,
-          Some(before),
+          Some((bytes, nodes, depth) => before(bytes, nodes, depth, None)),
+          serial~,
           retain_catalog=!defer_catalog,
         ) {
         Ok(value) => value

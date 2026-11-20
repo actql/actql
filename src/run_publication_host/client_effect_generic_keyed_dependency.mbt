@@ -22,6 +22,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
   max_nodes : Int,
   max_depth : Int,
   before_body : ((Int, Int, Int) -> Bool)?,
+  serial? : (((Int, Int, Int) -> Bool)?, () -> Unit)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -52,6 +53,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     cid : String,
     wire : String,
     wire_extent : (Int, Int)?,
+    serial_member : Bool,
   ) -> Unit raise GenericKeyedDependencyStop {
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
@@ -66,6 +68,11 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     if wire.length() > remaining {
       raise GenericKeyedDependencyStop(Dependency(ByteLimit))
     }
+    let funding = if serial_member && serial is Some((prepare, _)) {
+      prepare
+    } else {
+      before_body
+    }
     let (body, bytes) = require_generic_keyed_dependency(
       admit_client_effect_dependency_capture_body(
         kind,
@@ -74,7 +81,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         remaining,
         max_nodes,
         max_depth,
-        before_body,
+        funding,
         () => {
           !lookup.closed &&
           lookup.left.lookup_issue is None &&
@@ -88,13 +95,18 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     bodies.push(body)
     seen[key] = wire
     remaining -= bytes
+    // The synchronous admission returned. No parser cursor is in the
+    // retained dependency body or the duplicate table.
+    if serial_member && serial is Some((_, completed)) {
+      completed()
+    }
   }
   fn append(
     kind : String,
     cid : String,
     wire : String,
   ) -> Unit raise GenericKeyedDependencyStop {
-    append_measured(kind, cid, wire, None)
+    append_measured(kind, cid, wire, None, false)
   }
   fn append_original(
     kind : String,
@@ -250,7 +262,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     } catch {
       _ => raise GenericKeyedDependencyStop(Dependency(InvalidBody))
     }
-    append_measured(kind, cid, wire, Some((bytes, nodes)))
+    append_measured(kind, cid, wire, Some((bytes, nodes)), false)
   }
   fn carrier(
     original : @carrier.Carrier,
@@ -312,12 +324,14 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       @query.captured_source_relation_logical_cid(source.identity),
       left_body,
       left_usage.map(usage => (usage.logical_bytes, usage.logical_nodes)),
+      false,
     )
     append_measured(
       "relation_schema",
       @query.captured_source_relation_schema_cid(source.identity),
       left_schema,
       left_usage.map(usage => (usage.schema_bytes, usage.schema_nodes)),
+      false,
     )
     let right_schema = @execution.completed_relation_export_schema_identity(
       right_receipt,
@@ -332,6 +346,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       ),
       right_bodies.0,
       Some((right_bytes, right_nodes)),
+      false,
     )
     let (right_schema_bytes, right_schema_nodes, _) = @execution.relation_schema_usage(
       right_schema,
@@ -341,6 +356,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
       Some((right_schema_bytes, right_schema_nodes)),
+      false,
     )
     append(
       "lookup_barrier",
@@ -390,6 +406,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         cid,
         wire,
         Some((history.wire_bytes, history.wire_nodes)),
+        true,
       )
     }
     guard @environment.lookup_execution_policy(
@@ -548,8 +565,19 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
+      match reserve_keyed_dependency_serial_controls(lookup) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let before = (bytes : Int, nodes : Int, depth : Int) => {
+      let cursor : KeyedDependencySerialCursor = { reusable: 0L, pending: -1L, }
+
+      let before = (
+        bytes : Int,
+        nodes : Int,
+        depth : Int,
+        serial : KeyedDependencySerialCursor?,
+      ) => {
         if primary.val is Some(_) ||
           bytes < 0 ||
           nodes < 0 ||
@@ -563,29 +591,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
           primary.val = Some(LookupLimit("work"))
           return false
         }
-        let capacity = @execution.execution_capacity_inventory(
-          [
-            { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
-            { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-            { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
-            // Existing shared capture-recovery member/Map/spare-array allowance.
-            { unit: QuotedBytes, count: 4096L, copies: 1, },
-          ],
-          [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
-          RetainedAlongsideExecution,
-        )
-        guard capacity is Some(capacity) else {
-          primary.val = Some(Assembly("capacity_overflow"))
-          return false
-        }
-        match
-          keyed_lookup_body_grow(
-            lookup,
-            lookup.retained_bytes,
-            lookup.execution_bytes,
-            0L,
-            Some(capacity),
-          ) {
+        match grow_keyed_dependency_body(lookup, bytes, nodes, depth, serial) {
           Ok(_) => true
           Err(issue) => {
             primary.val = Some(issue)
@@ -593,6 +599,15 @@ fn prepare_client_effect_keyed_generic_dependencies(
           }
         }
       }
+      let serial_cursor = Some(cursor)
+      let serial = Some(
+        (
+          Some((bytes, nodes, depth) => {
+            before(bytes, nodes, depth, serial_cursor)
+          }),
+          () => cursor.retire(),
+        ),
+      )
       let bodies = match
         build_client_effect_keyed_generic_dependency_bodies(
           parent,
@@ -601,7 +616,8 @@ fn prepare_client_effect_keyed_generic_dependencies(
           completed,
           max_nodes,
           max_depth,
-          Some(before),
+          Some((bytes, nodes, depth) => before(bytes, nodes, depth, None)),
+          serial~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
