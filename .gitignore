@@ -132,3 +132,9 @@ target/
 # Generated bounded command-evidence implementation.
 /scripts/packed-query-evidence.mjs
 /scripts/packed-query-evidence.d.mts
+
+# Generated nonzero-execution wrapper and structured Node reporter.
+/scripts/test-execution.mjs
+/scripts/test-execution.d.mts
+/scripts/test-execution-reporter.mjs
+/scripts/test-execution-reporter.d.mts

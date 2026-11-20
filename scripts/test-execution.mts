@@ -6,6 +6,22 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createCommandEvidence, redactCommandEvidence, redactCommandArguments} from './packed-query-evidence.mjs';
 
+import type {SpawnSyncOptions} from 'node:child_process';
+
+type CountField = 'tests' | 'passed' | 'failed' | 'cancelled' | 'skipped' | 'todo';
+interface Counts {tests: number; passed: number; failed: number; cancelled: number | null; skipped: number | null; todo: number | null}
+interface ProcessResult {
+  stdout?: string | null; stderr?: string | null; status: number | null;
+  signal?: NodeJS.Signals | null; error?: unknown;
+}
+interface ParsedExecution {counts: Counts; groups: Counts[]; success: boolean}
+interface ExecutionResult {status: number; counts: Counts | null; diagnostic: string}
+type FocusedOptions = Omit<SpawnSyncOptions, 'encoding' | 'stdio' | 'cwd'> & {
+  cwd?: string; evidenceScratch?: string; expectedTests?: number; requireAllPassed?: boolean;
+};
+// JSON summaries are still admitted by the original complete field/count checks.
+interface UncheckedSummary {success?: boolean; counts?: Counts; file?: unknown}
+
 // This module has no command runner. Reject direct invocation so a mistaken
 // verification command cannot report success without executing any tests.
 let directInvocation = false;
@@ -19,11 +35,11 @@ if (directInvocation) {
   process.exitCode = 1;
 }
 
-const fields = ['tests', 'passed', 'failed', 'cancelled', 'skipped', 'todo'];
-const empty = () => Object.fromEntries(fields.map(field => [field, 0]));
+const fields = ['tests', 'passed', 'failed', 'cancelled', 'skipped', 'todo'] as const;
+const empty = (): Counts => Object.fromEntries(fields.map(field => [field, 0])) as unknown as Counts;
 const marker = 'ACTQL_TEST_SUMMARY ';
 
-export function nodeTestArguments(args) {
+export function nodeTestArguments(args: readonly string[]) {
   if (args.some(arg => /^--(?:test-reporter(?:-destination)?|test-isolation|watch|test-only)(?:=|$)/u.test(arg))) {
     throw new Error('Focused verification owns the reporter and requires normal process-isolated test execution');
   }
@@ -33,7 +49,7 @@ export function nodeTestArguments(args) {
 
 // The approved Rust component and its syntax reader use locked library targets. Keep
 // metadata-only, doctest, ignored-only and partial selections out of this gate.
-export function cargoTestArguments(args) {
+export function cargoTestArguments(args: readonly string[]): string[] {
   if (!Array.isArray(args) || args.some(value => typeof value !== 'string'))
     throw new Error('Invalid Cargo test arguments');
   const delimiter = args.indexOf('--'), selected = new Set();
@@ -53,18 +69,18 @@ export function cargoTestArguments(args) {
   return ['test', ...args];
 }
 
-export function parseTestExecution(kind, output) {
-  const groups = [];
+export function parseTestExecution(kind: string, output: string): ParsedExecution {
+  const groups: Counts[] = [];
   let success = true;
   if (kind === 'node') {
     let final = 0;
     const files = new Set();
     for (const line of output.split(/\r?\n/u).filter(line => line.startsWith(marker))) {
-      const summary = JSON.parse(line.slice(marker.length));
+      const summary = JSON.parse(line.slice(marker.length)) as UncheckedSummary;
       const counts = summary?.counts;
       if (typeof summary?.success !== 'boolean' || !counts ||
-          fields.some(field => !Number.isSafeInteger(counts[field]) || counts[field] < 0) ||
-          counts.tests !== fields.slice(1).reduce((sum, field) => sum + counts[field], 0)) {
+          fields.some(field => !Number.isSafeInteger(counts[field]) || (counts[field] as number) < 0) ||
+          counts.tests !== fields.slice(1).reduce((sum, field) => sum + (counts[field] as number), 0)) {
         throw new Error('Malformed Node test summary');
       }
       success &&= summary.success;
@@ -75,7 +91,7 @@ export function parseTestExecution(kind, output) {
           throw new Error('Malformed or duplicate Node file summary');
         }
         files.add(summary.file);
-        groups.push(Object.fromEntries(fields.map(field => [field, counts[field]])));
+        groups.push(Object.fromEntries(fields.map(field => [field, counts[field]])) as unknown as Counts);
       }
     }
     if (final !== 1 || groups.length === 0) throw new Error('Missing or duplicate Node test summaries');
@@ -104,7 +120,7 @@ export function parseTestExecution(kind, output) {
     if (![tests, passed, failed, ignored, measured, filtered].every(Number.isSafeInteger) ||
         tests !== passed + failed + ignored + measured || ignored || measured || filtered)
       throw new Error('Incomplete or inconsistent Rust library execution');
-    const cases = lines.map(line => /^test (\S+)(?: - should panic)? \.\.\. (ok|FAILED|ignored)(?:, .*)?$/u.exec(line)).filter(Boolean);
+    const cases = lines.map(line => /^test (\S+)(?: - should panic)? \.\.\. (ok|FAILED|ignored)(?:, .*)?$/u.exec(line)).filter(Boolean) as RegExpExecArray[];
     if (cases.length !== tests || new Set(cases.map(value => value[1])).size !== tests ||
         cases.filter(value => value[2] === 'ok').length !== passed ||
         cases.filter(value => value[2] === 'FAILED').length !== failed)
@@ -116,28 +132,28 @@ export function parseTestExecution(kind, output) {
   }
   const counts = empty();
   for (const group of groups) for (const field of fields) {
-    counts[field] = group[field] === null ? null : counts[field] + group[field];
+    (counts as Record<CountField, number | null>)[field] = group[field] === null ? null : (counts[field] as number) + (group[field] as number);
   }
   return {counts, groups, success};
 }
 
-export function testExecutionResult(kind, command, args, result) {
-  let evidence;
-  let problem;
+export function testExecutionResult(kind: string, command: string, args: readonly string[], result: ProcessResult): ExecutionResult {
+  let evidence: ParsedExecution | undefined;
+  let problem: string | undefined;
   try { evidence = parseTestExecution(kind, result.stdout ?? ''); }
-  catch (error) { problem = error.message; }
+  catch (error) { problem = (error as Error).message; }
   const signalStatus = result.signal ? 128 + (constants.signals[result.signal] ?? 0) : 1;
   // A failed process never becomes successful because its output looks green.
   let status = result.status ?? signalStatus;
   if (result.error || result.signal || status !== 0) {
     if (status === 0) status = 1;
-    problem = `process failed (${result.error?.code ?? result.signal ?? status})` +
+    problem = `process failed (${(result.error as {code?: unknown} | null | undefined)?.code ?? result.signal ?? status})` +
       (problem ? `; ${problem}` : '');
   } else if (!problem) {
-    if (!evidence.success || evidence.counts.failed > 0 || evidence.counts.cancelled > 0) {
+    if (!evidence!.success || evidence!.counts.failed > 0 || (evidence!.counts.cancelled as number) > 0) {
       problem = 'failed or cancelled test cases';
-    } else if (evidence.counts.passed === 0 ||
-        (kind === 'moon' && evidence.groups.some(group => group.passed === 0))) {
+    } else if (evidence!.counts.passed === 0 ||
+        (kind === 'moon' && evidence!.groups.some(group => group.passed === 0))) {
       problem = 'no successfully executed test cases';
     }
   }
@@ -148,7 +164,7 @@ export function testExecutionResult(kind, command, args, result) {
   return {status, counts, diagnostic};
 }
 
-export function assertTestExecution(kind, command, args, result) {
+export function assertTestExecution(kind: string, command: string, args: readonly string[], result: ProcessResult) {
   const checked = testExecutionResult(kind, command, args, result);
   if (checked.status !== 0) {
     throw Object.assign(new Error(`${checked.diagnostic}\n${result.stdout ?? ''}${result.stderr ?? ''}`), {status: checked.status, signal: result.signal});
@@ -156,7 +172,7 @@ export function assertTestExecution(kind, command, args, result) {
   return checked;
 }
 
-export function runFocusedTests(kind, args, options = {}) {
+export function runFocusedTests(kind: string, args: readonly string[], options: FocusedOptions = {}) {
   const command = kind === 'node' ? process.execPath : kind === 'cargo' ? 'cargo' : 'moon';
   const selected = kind === 'node' ? nodeTestArguments(args)
     : kind === 'cargo' ? cargoTestArguments(args) : ['test', ...args];
@@ -169,19 +185,20 @@ export function runFocusedTests(kind, args, options = {}) {
     throw new Error('Complete discovered-case execution requires Node tests');
   }
   const env = options.env ?? process.env;
-  let evidence, evidenceError, result, checked;
+  let evidence: ReturnType<typeof createCommandEvidence> | undefined, evidenceError: unknown,
+    result: ProcessResult, checked: ExecutionResult;
   try {
     evidence = createCommandEvidence({scratch: evidenceScratch,
       cwd: options.cwd ?? process.cwd(), env, prefix: 'focused-test-'});
   } catch (error) { evidenceError = error; }
-  const classify = result => {
+  const classify = (result: ProcessResult): ExecutionResult => {
     const checked = testExecutionResult(kind, command, selected, result);
     if (expectedTests !== undefined && checked.counts?.tests !== expectedTests) {
       return {...checked, status: checked.status || 1,
         diagnostic: checked.diagnostic + `; expected tests=${expectedTests}`};
     }
     if (requireAllPassed && checked.status === 0 &&
-        checked.counts.tests !== checked.counts.passed) {
+        checked.counts!.tests !== checked.counts!.passed) {
       return {...checked, status: 1,
         diagnostic: checked.diagnostic + '; not every discovered case passed'};
     }
