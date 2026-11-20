@@ -851,3 +851,7 @@ target/
 /scripts/check-actql-spec-family.d.mts
 /scripts/spec-family-imports.test.mjs
 /scripts/spec-family-imports.test.d.mts
+/scripts/check-canonical-json.mjs
+/scripts/check-canonical-json.d.mts
+/scripts/canonical-json.test.mjs
+/scripts/canonical-json.test.d.mts

@@ -3,20 +3,35 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type {loadSpecFamily} from './actql-spec-family.mjs';
+
+// Read-only views of the selected fixture data. The existing canonical
+// computation and independent identity assertions still check the values.
+type Data = Record<string, unknown>;
+type Fixture = {id: string; value: unknown; cid: string; text?: string};
+type Cases<T> = {version: string; cases: T[]};
+type Case<K extends string> = Record<K, unknown> & {id: string; expected_cid: string; expected_canonical_bytes?: string};
+type ChangeCases = Cases<Case<never> & {changes: Data}> & {base: Data};
+type Preimage = Case<'preimage'>;
+type SchemaValue = {version: string; empty_items: unknown; milestone: unknown; producer_node_id: string} & Data;
+type GateSchema = {required: string[];
+  properties: {version: {const: unknown}; empty_items: {const: unknown};
+    milestone: {enum: unknown[]}; producer_node_id: {minLength: number}}};
+type EffectCurrent = {body: unknown; cid: string; canonical: string; id?: string};
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const read = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+const read = <T = unknown,>(path: string): T => JSON.parse(readFileSync(resolve(root, path), 'utf8')) as T;
 const output = resolve(root, 'src/canonical_json/identity_vectors.generated_test.mbt');
-const cid = text => 'sha256:' + createHash('sha256').update(text, 'utf8').digest('hex');
+const cid = (text: string) => 'sha256:' + createHash('sha256').update(text, 'utf8').digest('hex');
 
-function normalize(text) {
+function normalize(text: string) {
   assert.ok(text.isWellFormed(), 'unpaired surrogate');
   return text.normalize('NFC').replace(/\r\n?/g, '\n');
 }
 
 // Independent scalar spelling, normalization, ordering and hashing oracle.
 // Product output is never used to update expectations.
-export function canonicalText(value) {
+export function canonicalText(value: unknown): string {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
     assert.ok(Number.isFinite(value) && !Object.is(value, -0), 'invalid number');
@@ -28,13 +43,13 @@ export function canonicalText(value) {
   }
   if (Array.isArray(value)) return '[' + value.map(canonicalText).join(',') + ']';
   assert.ok(value && typeof value === 'object', 'JSON value');
-  const pairs = Object.entries(value).map(([key, item]) => [normalize(key), item]);
+  const pairs = Object.entries(value).map(([key, item]) => [normalize(key), item] as const);
   assert.equal(new Set(pairs.map(([key]) => key)).size, pairs.length, 'normalized key collision');
   pairs.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
   return '{' + pairs.map(([key, item]) => JSON.stringify(key) + ':' + canonicalText(item)).join(',') + '}';
 }
 
-export function verifyIdentity(value, expectedCid, expectedText) {
+export function verifyIdentity(value: unknown, expectedCid: string, expectedText?: string) {
   assert.match(expectedCid, /^sha256:[0-9a-f]{64}$/);
   const text = canonicalText(value);
   if (expectedText !== undefined) assert.equal(text, expectedText, 'canonical bytes');
@@ -42,26 +57,26 @@ export function verifyIdentity(value, expectedCid, expectedText) {
   return text;
 }
 
-export function resolvePointer(value, pointer) {
+export function resolvePointer(value: unknown, pointer: string) {
   assert.ok(pointer === '' || pointer.startsWith('/'), 'JSON Pointer');
   for (const part of pointer.split('/').slice(1)) {
     assert.ok(!/~(?:[^01]|$)/.test(part), 'JSON Pointer escape');
     const key = part.replace(/~1/g, '/').replace(/~0/g, '~');
     assert.ok(value !== null && typeof value === 'object' && Object.hasOwn(value, key), 'missing pointer');
-    value = value[key];
+    value = (value as Data)[key];
   }
   return value;
 }
 
-function literal(value) {
+function literal(value: string) {
   return '"' + [...value].map(char => {
-    const cp = char.codePointAt(0);
+    const cp = char.codePointAt(0)!;
     if (cp < 32 || cp > 126) return '\\u{' + cp.toString(16) + '}';
     return char === '"' || char === '\\' ? '\\' + char : char;
   }).join('') + '"';
 }
 
-function budget(value, depth = 0) {
+function budget(value: unknown, depth = 0): {nodes: number; depth: number} {
   if (value === null || typeof value !== 'object') return { nodes: 1, depth };
   let nodes = 1;
   let peak = depth + 1;
@@ -73,7 +88,7 @@ function budget(value, depth = 0) {
   return { nodes, depth: peak };
 }
 
-export function generateTests(fixtures) {
+export function generateTests(fixtures: Fixture[]) {
   assert.ok(Array.isArray(fixtures) && fixtures.length > 0);
   const seen = new Set();
   const lines = [
@@ -117,16 +132,16 @@ export function generateTests(fixtures) {
 }
 
 function fixtures() {
-  const localContracts = read('portability/corpus/local-contract-closure.json');
-  const corpus = read('portability/corpus/canonical-json.json');
+  const localContracts = read<Cases<Case<'envelope'>>>('portability/corpus/local-contract-closure.json');
+  const corpus = read<Cases<{id: string; input: unknown; expected_cid: string; expected_json: string}>>('portability/corpus/canonical-json.json');
   assert.equal(corpus.version, 'actql-canonical-json-vectors/0.1');
   assert.ok(Array.isArray(corpus.cases) && corpus.cases.length > 0);
-  const result = corpus.cases.map(c => {
+  const result: Fixture[] = corpus.cases.map(c => {
     assert.ok(typeof c.id === 'string' && c.id.length > 0);
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
-  const sourceRelationKeys = read('portability/corpus/source-relation-keys.json');
+  const sourceRelationKeys = read<Cases<{id: string; body: unknown; bare_body_cid: string; canonical_preimage: string}>>('portability/corpus/source-relation-keys.json');
   assert.equal(sourceRelationKeys.version, 'actql-source-relation-key-vectors/0.1');
   for (const item of sourceRelationKeys.cases) {
     // Identity vectors also cover malformed declarations; canonical equality
@@ -134,7 +149,7 @@ function fixtures() {
     result.push({id: 'Source relation key facts ' + item.id,
       value: item.body, cid: item.bare_body_cid, text: item.canonical_preimage});
   }
-  const collectionMapping = read('portability/corpus/collection-mapping.json');
+  const collectionMapping = read<{version: string; body: Data & {mapping_contract_cid: string}; collection_resource_identity: unknown; collection_resource_identity_cid: string}>('portability/corpus/collection-mapping.json');
   assert.equal(collectionMapping.version, 'actql-collection-mapping-vectors/0.1');
   const {mapping_contract_cid, ...collectionPreimage} = collectionMapping.body;
   result.push({id: 'collection-only Mapping complete preimage',
@@ -142,11 +157,11 @@ function fixtures() {
   result.push({id: 'collection-only Resource typed identity',
     value: collectionMapping.collection_resource_identity,
     cid: collectionMapping.collection_resource_identity_cid});
-  const invocation = read('portability/corpus/invocation-bindings.json');
-  const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
-  const sourceInputs = read('portability/corpus/source-input-logical.json');
-  const modelSlots = read('portability/corpus/model-call-slot.json');
-  const modelObservations = read('portability/corpus/model-slot-observation.json');
+  const invocation = read<Cases<Case<'bindings'>> & {template: Omit<Case<'body'>, 'id'>}>('portability/corpus/invocation-bindings.json');
+  const initialInputs = read<Cases<Case<'body'>>>('portability/corpus/initial-input-artifact-set.json');
+  const sourceInputs = read<Cases<Case<'body'>>>('portability/corpus/source-input-logical.json');
+  const modelSlots = read<Cases<Case<'body'>>>('portability/corpus/model-call-slot.json');
+  const modelObservations = read<Cases<Case<'body'>>>('portability/corpus/model-slot-observation.json');
   assert.equal(modelObservations.version, 'actql-model-slot-observation-vectors/0.1');
   for (const input of modelObservations.cases) {
     result.push({id: 'Model slot observation ' + input.id, value: input.body,
@@ -186,7 +201,7 @@ function fixtures() {
     cid: invocation.template.expected_cid,
     text: invocation.template.expected_canonical_bytes,
   });
-  const previewRows = read('portability/corpus/effect-preview-row.json');
+  const previewRows = read<Cases<Preimage & {expected_canonical_bytes: string}>>('portability/corpus/effect-preview-row.json');
   assert.equal(previewRows.version, 'actql-effect-preview-row-vectors/0.1');
   for (const row of previewRows.cases) {
     assert.equal(canonicalText(row.preimage), row.expected_canonical_bytes);
@@ -195,7 +210,7 @@ function fixtures() {
       value: row.preimage, cid: row.expected_cid,
       text: row.expected_canonical_bytes});
   }
-  const localResultDefinitions = read('portability/corpus/local-result-definition.json');
+  const localResultDefinitions = read<Cases<Preimage>>('portability/corpus/local-result-definition.json');
   assert.equal(localResultDefinitions.version, 'actql-local-result-definition-vectors/0.1');
   for (const item of localResultDefinitions.cases) {
     result.push({
@@ -204,14 +219,14 @@ function fixtures() {
       cid: item.expected_cid,
     });
   }
-  const localEffectIdentities = read('portability/corpus/local-effect-identity.json');
+  const localEffectIdentities = read<Cases<Preimage>>('portability/corpus/local-effect-identity.json');
   assert.equal(localEffectIdentities.version,
     'actql-local-effect-identity-vectors/0.1');
   for (const item of localEffectIdentities.cases) {
     result.push({id: 'local Effect identity ' + item.id,
       value: item.preimage, cid: item.expected_cid});
   }
-  const effectSelections = read('portability/corpus/effect-target-selection.json');
+  const effectSelections = read<Cases<Preimage> & {installation_owners: Preimage[]}>('portability/corpus/effect-target-selection.json');
   assert.equal(effectSelections.version,
     'actql-effect-target-selection-vectors/0.1');
   for (const item of effectSelections.cases) {
@@ -224,14 +239,14 @@ function fixtures() {
       value: item.preimage, cid: item.expected_cid,
       text: item.expected_canonical_bytes});
   }
-  const deleteSelections = read('portability/corpus/effect-target-selection-delete.json');
+  const deleteSelections = read<Cases<Preimage> & {environments: Preimage[]}>('portability/corpus/effect-target-selection-delete.json');
   assert.equal(deleteSelections.version, effectSelections.version);
   for (const item of [...deleteSelections.cases, ...deleteSelections.environments]) {
     result.push({id: 'original DELETE selection ' + item.id,
       value: item.preimage, cid: item.expected_cid,
       text: item.expected_canonical_bytes});
   }
-  const selectionProjections = read(
+  const selectionProjections = read<Cases<Preimage>>(
     'portability/corpus/effect-target-selection-projection.json');
   assert.equal(selectionProjections.version,
     'actql-effect-target-selection-projection-vectors/0.1');
@@ -244,12 +259,12 @@ function fixtures() {
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});
   }
-  const accountConfigs = read('portability/corpus/execution-account-config.json');
+  const accountConfigs = read<Cases<Case<'config'>>>('portability/corpus/execution-account-config.json');
   assert.equal(accountConfigs.version, 'actql-execution-account-config-vectors/0.1');
   for (const c of accountConfigs.cases) {
     result.push({id: 'execution account config ' + c.id, value: c.config, cid: c.expected_cid});
   }
-  const signatures = read('portability/corpus/checkpoint-resolution-signatures.json');
+  const signatures = read<Cases<{id: string; self_field: string; signature_field: string; artifact: Data; expected_unsigned_cid: string; expected_self_cid: string}>>('portability/corpus/checkpoint-resolution-signatures.json');
   assert.equal(signatures.version, 'actql-checkpoint-resolution-signature-vectors/0.1');
   for (const c of signatures.cases) {
     const {[c.self_field]: _self, ...signed} = c.artifact;
@@ -257,22 +272,22 @@ function fixtures() {
     result.push({id: 'checkpoint resolution unsigned ' + c.id, value: unsigned, cid: c.expected_unsigned_cid});
     result.push({id: 'checkpoint resolution signed ' + c.id, value: signed, cid: c.expected_self_cid});
   }
-  const historicalStages = read('portability/corpus/historical/pre-strpos-stage-identities.json');
+  const historicalStages = read<Cases<Case<'envelope'>>>('portability/corpus/historical/pre-strpos-stage-identities.json');
   assert.equal(historicalStages.version, 'actql-historical-stage-identity-vectors/0.1');
   for (const c of historicalStages.cases) result.push({
     id: 'pre-STRPOS historical ' + c.id, value: c.envelope,
     cid: c.expected_cid, text: c.expected_canonical_bytes,
   });
-  const family = read('spec/spec-family.json');
-  const sourceStates = read('portability/corpus/source-state-requirement.json');
+  const family = read<ReturnType<typeof loadSpecFamily>['manifest']>('spec/spec-family.json');
+  const sourceStates = read<ChangeCases>('portability/corpus/source-state-requirement.json');
   for (const c of sourceStates.cases) {
     result.push({id: 'source state requirement ' + c.id, value: {...sourceStates.base, ...c.changes}, cid: c.expected_cid});
   }
-  const interfaces = read('portability/corpus/result-import-interface.json');
+  const interfaces = read<ChangeCases>('portability/corpus/result-import-interface.json');
   for (const c of interfaces.cases) {
     result.push({id: 'Result import interface ' + c.id, value: {...interfaces.base, ...c.changes}, cid: c.expected_cid});
   }
-  const imports = read('portability/corpus/result-import-observation.json');
+  const imports = read<ChangeCases>('portability/corpus/result-import-observation.json');
   for (const c of imports.cases) {
     result.push({id: 'Result import observation ' + c.id,
       value: {...imports.base, ...c.changes}, cid: c.expected_cid});
@@ -286,22 +301,22 @@ function fixtures() {
       });
     }
   }
-  const lookup = read('spec/contracts/actql-lookup-identities.json');
+  const lookup = read<{schema_cids: Record<string, string>; schemas: Data}>('spec/contracts/actql-lookup-identities.json');
   for (const [name, expected] of Object.entries(lookup.schema_cids)) {
     assert.ok(Object.hasOwn(lookup.schemas, name), 'missing lookup schema');
     result.push({ id: 'lookup schema ' + name, value: lookup.schemas[name], cid: expected });
   }
-  const vector = read('spec/lookup-key-encoding-vector.json');
+  const vector = read<{expected_body: unknown; expected_cid: string; expected_canonical_bytes: string}>('spec/lookup-key-encoding-vector.json');
   result.push({ id: 'lookup key envelope', value: vector.expected_body, cid: vector.expected_cid, text: vector.expected_canonical_bytes });
-  const aoa = read('spec/contracts/actql-aoa.json');
+  const aoa = read<{pipeline_registry_file: string; pipeline_registry_cid: string; execution_contracts: Data; target_registry_requirements: Record<string, {execution_contract: {cid: string}}>; kernel_law_manifest_cid: string}>('spec/contracts/actql-aoa.json');
   result.push({ id: 'selected pipeline registry', value: read(aoa.pipeline_registry_file), cid: aoa.pipeline_registry_cid });
   result.push({id: 'Graph constructor execution', value: aoa.execution_contracts['BRIDGE.rows.to_graph'],
     cid: aoa.target_registry_requirements['BRIDGE.rows.to_graph'].execution_contract.cid});
   result.push({ id: 'historical pipeline registry', value: read('portability/fixtures/pipeline-registry-base.json'), cid: 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a' });
   result.push({ id: 'kernel manifest', value: read('spec/dependencies/aoa-kernel-laws.json'), cid: aoa.kernel_law_manifest_cid });
-  result.push({ id: 'inherited text/time base profile', value: read('spec/dependencies/actql-text-time-base.json'), cid: read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid });
-  const base = read('spec/dependencies/actql-text-time-base.json');
-  const dependencies = read('spec/dependencies/actql-text-time-base-dependencies.json');
+  result.push({ id: 'inherited text/time base profile', value: read('spec/dependencies/actql-text-time-base.json'), cid: read<{inherited_text_time_profile_cid: string}>('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid });
+  const base = read<{data_contract_cids: Record<string, string>}>('spec/dependencies/actql-text-time-base.json');
+  const dependencies = read<Data & {regex_grammar: {ast_schema_cid: string; replacement_ast_schema_cid: string}; timestamp_pattern_grammar: {ast_schema_cid: string}; unicode_semantics: {data_cid: string}}>('spec/dependencies/actql-text-time-base-dependencies.json');
   for (const [name, cid] of [
     ['regex_grammar', base.data_contract_cids.regex_grammar_cid],
     ['timestamp_pattern_grammar', base.data_contract_cids.timestamp_pattern_grammar_cid],
@@ -324,14 +339,14 @@ function fixtures() {
     // Retain the complete original STORE-only schema and its identity.
     cid: 'sha256:44fb1d94a435948c6fe63111ce1e55b7e615674835d2214a0ae98cb9d3a92435',
   });
-  const commandSelectors = read('portability/corpus/published-command-selectors.json');
+  const commandSelectors = read<{program_cid: string; programs: {mode: string; program: unknown; cid: string}[]}>('portability/corpus/published-command-selectors.json');
   result.push({id: 'Program source grammar with published Command targets',
     value: read('portability/fixtures/program-grammar-before-command-input-key.json'),
     cid: commandSelectors.program_cid});
   for (const item of commandSelectors.programs) result.push({
     id: 'Original published Command selector ' + item.mode,
     value: item.program, cid: item.cid});
-  const commandKeys = read('portability/corpus/command-input-keys.json');
+  const commandKeys = read<{program_cid: string; programs: {mode: string; program: unknown; cid: string; prior_program: unknown; prior_cid: string}[]}>('portability/corpus/command-input-keys.json');
   result.push({id: 'Program source grammar with original Command input keys',
     // Original 0976aca4 body: later CREATE-value and other Program extensions
     // cannot replace this independent Command-key oracle's input.
@@ -343,8 +358,8 @@ function fixtures() {
     result.push({id: 'Original Command with input key ' + item.mode,
       value: item.program, cid: item.cid});
   }
-  const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
-  for (const item of read('portability/corpus/incoming-gates.json').cases) {
+  const gateSchema = read<{schemas: {gate_requirement: GateSchema}}>('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
+  for (const item of read<Cases<{id: string; preimage: SchemaValue; expected_cid: string}>>('portability/corpus/incoming-gates.json').cases) {
     assert.deepEqual([...Object.keys(item.preimage), 'self_cid'].sort(), [...gateSchema.required].sort());
     assert.equal(item.preimage.version, gateSchema.properties.version.const);
     assert.equal(item.preimage.empty_items, gateSchema.properties.empty_items.const);
@@ -355,7 +370,7 @@ function fixtures() {
     }
     result.push({id: 'incoming gate ' + item.id, value: item.preimage, cid: item.expected_cid});
   }
-  const effectCurrent = read('spec/fixtures/remote-effect-current-vectors.json');
+  const effectCurrent = read<{version: string; query: EffectCurrent; poll: EffectCurrent; replies: (EffectCurrent & {id: string})[]}>('spec/fixtures/remote-effect-current-vectors.json');
   assert.equal(effectCurrent.version, 'actql-remote-effect-current-vectors/0.1');
   for (const item of [{id: 'query', ...effectCurrent.query}, {id: 'poll', ...effectCurrent.poll}, ...effectCurrent.replies]) {
     result.push({id: 'Remote Effect current ' + item.id,

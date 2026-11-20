@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { canonicalText, generateTests, resolvePointer, verifyIdentity } from './check-canonical-json.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
+import type {loadSpecFamily} from './actql-spec-family.mjs';
 
 test('Stage canonical identity dependency matches the adopted kernel manifest', () => {
   const body = JSON.parse(readFileSync('spec/dependencies/aoa-kernel-laws.json', 'utf8'));
@@ -49,7 +50,7 @@ for (const [name, path, pointer] of [
     'spec/contracts/actql-local-signing-public-key.schema.json', ''],
 ]) {
   test(`current ${name} canonical vector matches its schema and pin`, () => {
-    const family = JSON.parse(readFileSync('spec/spec-family.json', 'utf8'));
+    const family = JSON.parse(readFileSync('spec/spec-family.json', 'utf8')) as ReturnType<typeof loadSpecFamily>['manifest'];
     const refs = family.documents.flatMap(owner => owner.machine_contracts ?? [])
       .filter(ref => ref.path === path && ref.pointer === pointer);
     assert.equal(refs.length, 1, 'one authoritative schema pin');
@@ -98,7 +99,7 @@ test('generated chunks preserve complete owned version spellings and JSON bytes'
         const text = canonicalText(value);
         const generated = generateTests([{id: 'chunk-boundary', value,
           cid: 'sha256:' + createHash('sha256').update(text).digest('hex')}]);
-        const input = generated.match(/let input = @json.parse\(\[\n([\s\S]*?)\n  \]\.join/)[1];
+        const input = generated.match(/let input = @json.parse\(\[\n([\s\S]*?)\n  \]\.join/)![1];
         const reconstructed = input.trim().split(',\n    ').map(chunk =>
           JSON.parse(chunk.replace(/,$/u, ''))).join('');
         assert.equal(reconstructed, JSON.stringify(value));
