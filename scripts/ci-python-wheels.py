@@ -255,8 +255,9 @@ def accept_installed_fuel(run, consumer: Path, destination: Path,
     """One changed-default regression and one deliberate fail-closed operation.
 
     The pending-history case is explicitly a private-parent-retirement fixture,
-    separate from ordinary repeated public Runs. Forty crosses the former
-    37-admission failure; it is not a general history/performance threshold.
+    separate from ordinary repeated public Runs. It forwards the original
+    production quantum; independent current/refusal tests retain quantum one.
+    Forty crosses the former admission failure, not a supported-history threshold.
     """
     for name in ('python-local-sdk-current-history.py', 'ci-python-installed-fuel.py'):
         shutil.copyfile(ROOT / 'scripts/fixtures' / name, destination / name)
@@ -264,7 +265,7 @@ def accept_installed_fuel(run, consumer: Path, destination: Path,
     work.mkdir()
     raw = run('installed-default-fuel-admission', [consumer, '-I', '-B',
         destination / 'python-local-sdk-current-history.py', '--installed', source,
-        work, 'pending:40'], cwd=work, env=env, timeout=900)
+        work, 'fuel-pending:40'], cwd=work, env=env, timeout=900)
     observed = json.loads(raw.splitlines()[-1])
     histories = observed.get('histories')
     if (observed.get('fuelMode', {}).get('sourceDeclaredLimit') != 64_000_000_000
@@ -272,6 +273,7 @@ def accept_installed_fuel(run, consumer: Path, destination: Path,
             or observed.get('installedCohort', {}).get('moduleSha256') != cohort['module_sha256']
             or observed.get('installedCohort', {}).get('imageSha256') != cohort['image_sha256']
             or type(histories) is not list or len(histories) != 1
+            or histories[0].get('taskQuantumMode') != 'production-original'
             or histories[0].get('acceptedPendingHistory') != 40
             or histories[0].get('retiredPendingParentLoans') != 40
             or histories[0].get('firstCloseReturned') is not True

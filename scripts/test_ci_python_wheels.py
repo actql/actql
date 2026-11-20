@@ -49,7 +49,8 @@ class InstalledFuelControlTests(unittest.TestCase):
 
     def test_same_cohort_default_case_precedes_distinct_stop_and_saved_processes(self):
         cohort = {'module_sha256': 'b' * 64, 'image_sha256': 'c' * 64}
-        history = {'acceptedPendingHistory': 40, 'retiredPendingParentLoans': 40,
+        history = {'taskQuantumMode': 'production-original',
+                   'acceptedPendingHistory': 40, 'retiredPendingParentLoans': 40,
                    'firstCloseReturned': True, 'cleanupFailures': []}
         normal = {'fuelMode': {'sourceDeclaredLimit': 64_000_000_000},
                   'installedCohort': {'sourceSha': 'a' * 40, 'moduleSha256': 'b' * 64,
@@ -68,13 +69,35 @@ class InstalledFuelControlTests(unittest.TestCase):
         self.assertTrue(all(args[0] == Path('/consumer/python') for _, args, _ in calls))
         self.assertTrue(all(options['env'] == {'ORIGINAL': 'env'} for _, _, options in calls))
         self.assertTrue(all('--expected-default-fuel' not in args for _, args, _ in calls))
-        self.assertEqual(calls[0][1][-1], 'pending:40')
-        for change in ({'acceptedPendingHistory': 39}, {'firstCloseReturned': False}, {'cleanupFailures': ['pending']}):
+        self.assertEqual(calls[0][1][-1], 'fuel-pending:40')
+        for change in ({'taskQuantumMode': 'forced-one'}, {'acceptedPendingHistory': 39},
+                       {'firstCloseReturned': False}, {'cleanupFailures': ['pending']}):
             with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
                 bad = normal | {'histories': [history | change]}
                 with self.assertRaises(ValueError):
                     ci.accept_installed_fuel(lambda *a, **k: json.dumps(bad), Path('/consumer/python'),
                                              Path(tmp), 'a' * 40, cohort, {})
+
+
+    def test_default_role_forwards_original_quantum_and_retains_independent_controls(self):
+        history = load('ci_fuel_quantum_trace', SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+        trace, task, result, calls = history.Trace(), object(), object(), []
+        def original(actual_task, quantum):
+            self.assertIs(actual_task, task)
+            calls.append(quantum)
+            return result
+        self.assertIs(trace.drive(original, task, 19), result)
+        self.assertIs(trace.drive(original, task, 19, production_quantum=True), result)
+        self.assertIs(trace.drive(original, task, 257, production_quantum=True), result)
+        self.assertEqual(calls, [1, 19, 257])
+        failure = RuntimeError('original operation failure')
+        def refused(actual_task, quantum):
+            calls.append(quantum)
+            raise failure
+        with self.assertRaises(RuntimeError) as raised:
+            trace.drive(refused, task, 19, production_quantum=True)
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(calls, [1, 19, 257, 19])
 
 
 class OrchestrationTests(unittest.TestCase):
