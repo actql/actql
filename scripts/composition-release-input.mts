@@ -7,9 +7,11 @@ import {isAbsolute, join, relative, resolve} from 'node:path';
 import {checkoutState} from './packed-client-packages.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 
-const sha256 = value => createHash('sha256').update(value).digest('hex');
+import type {BinaryLike} from 'node:crypto';
 
-export function compositionReleaseDirectory(argv) {
+const sha256 = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
+
+export function compositionReleaseDirectory(argv: readonly string[]) {
   assert(!argv.some(value => value.startsWith('--release-dir') && value !== '--release-dir'),
     'Use --release-dir followed by its absolute directory');
   const positions = argv.flatMap((value, index) => value === '--release-dir' ? [index] : []);
@@ -21,7 +23,7 @@ export function compositionReleaseDirectory(argv) {
   return resolve(directory);
 }
 
-export async function admitCompositionRelease({repository, directory}) {
+export async function admitCompositionRelease({repository, directory}: {repository: string; directory: string}) {
   assert(isAbsolute(directory));
   assert(relative(resolve(repository), resolve(directory)).startsWith('../'),
     'Normal release artifacts must remain outside the source checkout');

@@ -827,3 +827,7 @@ target/
 /scripts/release-channels.d.mts
 /scripts/release-authored-types.test.mjs
 /scripts/release-authored-types.test.d.mts
+/scripts/composition-release-input.mjs
+/scripts/composition-release-input.d.mts
+/scripts/composition-release-input.test.mjs
+/scripts/composition-release-input.test.d.mts

@@ -8,8 +8,13 @@ import test from 'node:test';
 import {admitCompositionRelease, compositionReleaseDirectory} from './composition-release-input.mjs';
 import {stagePackage} from './package-release.mjs';
 
-const digest = value => createHash('sha256').update(value).digest('hex');
-const run = (command, args, cwd) => execFileSync(command, args,
+import type {BinaryLike} from 'node:crypto';
+
+type Cohort = Parameters<typeof stagePackage>[0]['cohort'];
+type PackedItem = Awaited<ReturnType<typeof stagePackage>>;
+
+const digest = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
+const run = (command: string, args: readonly string[], cwd: string) => execFileSync(command, args,
   {cwd, encoding: 'utf8', timeout: 30000});
 
 test('normal composition release selection is explicit and has no implicit fallback', () => {
@@ -34,10 +39,10 @@ test('normal composition admits immutable archives and rejects invalid source or
     '-c', 'user.email=release-fixture@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '--quiet', '-m', 'test: retain independent release source'], repository);
   const revision = run('git', ['rev-parse', 'HEAD'], repository).trim();
-  const cohort = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
+  const cohort = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)) as unknown as string) as Cohort;
   const originals = join(directory, 'development'); await mkdir(originals);
   const license = join(root, 'LICENSE'); await copyFile(new URL('../LICENSE', import.meta.url), license);
-  const packages = [], tarballs = {};
+  const packages: PackedItem[] = [], tarballs: Record<string, string> = {};
   for (const [index, name] of cohort.packages.entries()) {
     const source = join(root, `input-${name}`); await mkdir(source);
     const previous = index === 0 ? undefined : `@actql/${cohort.packages[index - 1]}`;
@@ -74,7 +79,7 @@ test('normal composition admits immutable archives and rejects invalid source or
     assert.equal(run(process.execPath, ['--input-type=module', '-e',
       "const {fixed}=await import('@actql/node'); console.log(fixed);"], consumer).trim(), '7');
     for (const name of cohort.packages) {
-      const installed = JSON.parse(await readFile(join(consumer, 'node_modules/@actql', name, 'package.json')));
+      const installed = JSON.parse(await readFile(join(consumer, 'node_modules/@actql', name, 'package.json')) as unknown as string) as {version: unknown; private: unknown};
       assert.equal(installed.version, cohort.packageVersion);
       assert.equal(installed.private, false);
     }
