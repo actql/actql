@@ -1,6 +1,7 @@
 """Original Local payload transport into the existing SDK JSONL reader."""
 from __future__ import annotations
 
+import asyncio as _asyncio
 from collections.abc import AsyncGenerator, AsyncIterator
 from typing import TYPE_CHECKING
 
@@ -92,6 +93,12 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                         payload = await anext(iterator)
                     except StopAsyncIteration:
                         return
+                # The bounded original advance has returned its operation
+                # frame. Give waiting controls a turn without confirming this
+                # borrowed chunk or carrying a Core/Store lock across an await.
+                await _asyncio.sleep(0)
+                if self._closing:
+                    raise RuntimeError('Original Local SDK response is closing')
                 yield payload
         finally:
             # The original generator only returns its iteration flag here.
