@@ -61,7 +61,7 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
   let ordinal = 0, pid = 100;
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
     computation: {plan_view: {logical_map: {steps: [{operator: 'join'}, {operator: 'infer'}]}}},
-    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'updates'}}]}};
+    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'aql_private_update'}}]}};
   const check = {outcome: 'completed', report: {verdict: 'verified', runnable: {verdict: 'yes', reasons: []}}};
   const current = run => ({version: 'actql-run-state/0.1', run_id: run.original.runId, status: run.status,
     checkpoint: {id: run.original.checkpointId, checkpoint_id: run.original.checkpointId,
@@ -417,8 +417,17 @@ test('RC template check uses the actual typed runnable verdict and refuses a boo
   const check = JSON.parse(readFileSync(new URL('../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
     computation: {plan_view: {logical_map: {steps: [{operator: 'infer'}, {operator: 'join'}]}}},
-    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'updates'}}]}};
+    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'aql_private_update'}}]}};
   assert.doesNotThrow(() => assertTemplateStatic(check, plan));
+  // Both templates lower SET fields into this checked private carrier. The
+  // separately exported updates Result is still checked by full row/schema
+  // and same-original Saved assertions; it cannot replace the Effect input.
+  for (const input of [undefined, {kind: 'result', result_name: 'updates'},
+    {kind: 'result', result_name: ''}, {kind: 'result', result_name: 'foreign'},
+    {kind: 'table', table_name: 'aql_private_update'}, {kind: 'none'}]) {
+    const changed = structuredClone(plan); changed.effect_set.members[0].input = input;
+    assert.throws(() => assertTemplateStatic(check, changed));
+  }
   for (const runnable of [true, {verdict: 'no', reasons: []}, {verdict: 'unknown', reasons: []}])
     assert.throws(() => assertTemplateStatic({...check, report: {...check.report, runnable}}, plan));
   assert.throws(() => assertTemplateStatic(check, {...plan, provider_io: 1}));
