@@ -5076,7 +5076,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               },
               {
@@ -5086,7 +5086,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5096,7 +5096,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5106,7 +5106,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5116,7 +5116,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5126,7 +5126,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5136,7 +5136,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5146,7 +5146,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],
@@ -5156,7 +5156,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer/browser-source.mjs",
+                "path": "packages/explorer/browser-source.mts",
                 "anchor": "import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';"
               }
             ],

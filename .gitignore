@@ -389,3 +389,7 @@ target/
 /packages/explorer/assets.d.mts
 /packages/explorer/launcher.mjs
 /packages/explorer/launcher.d.mts
+
+# Explorer browser-source authored TypeScript emit
+/packages/explorer/browser-source.mjs
+/packages/explorer/browser-source.d.mts
