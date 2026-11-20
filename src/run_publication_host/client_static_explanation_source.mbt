@@ -6,6 +6,7 @@ struct ClientStaticEffectExplanationOriginal {
   prepared : PreparedClientEffectComputation
   compiled : ClientEffectCompilation
   map : @canonical.CanonicalValue
+  declarations : ClientEffectStaticDeclarationSet
 }
 
 ///|
@@ -29,7 +30,7 @@ pub fn capture_client_static_effect_explanation_original(
   (ClientStaticEffectExplanationOriginal, String),
   ClientStaticExplanationSourceIssue,
 ] {
-  let computation = Ref(None)
+  let retained = Ref(None)
   let wire = match
     issue_client_effectful_static_plan_view(
       prepared,
@@ -39,16 +40,16 @@ pub fn capture_client_static_effect_explanation_original(
       max_depth,
       64,
       10000,
-      retained_computation=Some(computation),
+      retained_explanation=Some(retained),
     ) {
     Ok(wire) => wire
     Err(issue) => return Err(Plan(issue))
   }
-  guard computation.val is Some(value) &&
+  guard retained.val is Some((value, declarations)) &&
     @canonical.object_field(value, "logical_map") is Some(map) else {
     return Err(ForeignOriginal)
   }
-  Ok(({ prepared, compiled, map, }, wire))
+  Ok(({ prepared, compiled, map, declarations, }, wire))
 }
 
 ///|
@@ -58,11 +59,14 @@ priv suberror ClientStaticExplanationAbort {
 }
 
 ///|
-fn spend_static_explanation_work(remaining : Ref[Int]) -> Unit raise {
-  if remaining.val <= 0 {
+fn spend_static_explanation_work(
+  remaining : Ref[Int],
+  count? : Int = 1,
+) -> Unit raise {
+  if count < 0 || count > remaining.val {
     raise StaticExplanationWorkLimited
   }
-  remaining.val -= 1
+  remaining.val -= count
 }
 
 ///|
@@ -112,11 +116,12 @@ fn write_static_explanation_consumers(
 }
 
 ///|
-/// Write the Source rows of the structural explanation companion to its
-/// admitted writer. Current read and egress must already have succeeded for the
-/// exact original. The caller discards the writer on any error, including a
-/// late limit, and rechecks authority before handing out any bytes.
-pub fn write_client_static_effect_explanation_sources(
+/// Write the structural Context from the same opaque static Plan original.
+/// The original Request read and egress admission must cover every item,
+/// full writer and simultaneous Plan, map and declaration custody.
+/// The caller discards the writer on any error and rechecks current and
+/// egress before handing out any bytes.
+pub fn write_client_static_effect_explanation_context(
   original : ClientStaticEffectExplanationOriginal,
   prepared : PreparedClientEffectComputation,
   compiled : ClientEffectCompilation,
@@ -139,6 +144,11 @@ pub fn write_client_static_effect_explanation_sources(
   let identity = @checked.source_identity(checked)
   let remaining = Ref(max_work)
   try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "binding")
+    write_static_explanation_binding(writer, original)
+    explanation_text(writer, "disclosure", "structural")
+    @encode.key(writer, "items")
     @encode.begin_array(writer)
     for i in 0..<@checked.source_execution_count(checked) {
       spend_static_explanation_work(remaining)
@@ -151,7 +161,12 @@ pub fn write_client_static_effect_explanation_sources(
         write_static_explanation_source(writer, steps, subject, remaining)
       }
     }
+    write_static_explanation_models(writer, steps, original, remaining)
+    write_static_explanation_results(writer, steps, compiled, remaining)
+    write_static_explanation_effect(writer, original, remaining)
     @encode.end_array(writer)
+    explanation_text(writer, "version", "actql-explanation-context/0.1")
+    @encode.end_object(writer)
     Ok(())
   } catch {
     StaticExplanationWorkLimited => Err(WorkLimit)

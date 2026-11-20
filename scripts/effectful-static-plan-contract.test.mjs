@@ -3,10 +3,44 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
 import {buildControlRegistry} from './interactive-run-control-contract.mjs';
-import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape} from
+import {validWireEffectfulStaticPlanViewShape, validWireExplanationContextShape, validWirePlanViewShape} from
   '../packages/client-wire/interactive-control.generated.js';
 import {effectfulStaticPlan, computationPlan, commandMember,
   positiveEffectfulPlans, negativeEffectfulPlans} from './fixtures/effectful-static-plan-vectors.mjs';
+import {cid} from './fixtures/interactive-run-control-vectors.mjs';
+
+test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {
+  const type = {projection: 'shape_and_nullability', kind: 'string', nullable: false};
+  const unprojected = {state: 'not_projected', reason: 'no_original_port'};
+  const source = {kind: 'source',
+    stage_input: {kind: 'stage_input', stage_ordinal: 0, input_port_ordinal: 0},
+    source_view: {catalog_cid: cid('1'), connector: 'crm', contract_cid: cid('2'),
+      resource: 'account', selection: 'explicit', view: 'records'},
+    request_kind: 'direct', link_state: 'linked', consuming_ports: [{step_id: cid('3'), port_id: cid('4')}]};
+  const model = {kind: 'model_task', task_id: 'model-task:tag.v1', task_version: 'test', contract_cid: cid('5'),
+    dispatch_unit: 'input_row', producer: unprojected,
+    input_bindings: [{role: 'value', binding: {state: 'redacted'}, type}], output_fields: [{name: 'tag', type}]};
+  const result = {kind: 'result', name: 'out', stage_ordinal: 0, producer: unprojected};
+  const effect = {kind: 'effect_set', unit_id: effectfulStaticPlan.effect_set.unit_id,
+    members: [{declaration: effectfulStaticPlan.effect_set.members[0], write_fields: {state: 'declared', fields: ['tag']}}]};
+  const context = {version: 'actql-explanation-context/0.1', disclosure: 'structural',
+    binding: {program_definition_cid: effectfulStaticPlan.program_definition_cid,
+      parameter_values_cid: effectfulStaticPlan.parameter_values_cid,
+      check_environment_cid: effectfulStaticPlan.check_environment_cid,
+      compiled_plan_cid: computationPlan.compiled_plan_cid, logical_map_cid: computationPlan.logical_map.self_cid},
+    items: [source, model, result, effect]};
+  assert.equal(validWireExplanationContextShape(context), true);
+  assert.equal(Object.hasOwn(buildControlRegistry().identity_domains, 'explanation_context'), false);
+  for (const item of [
+    {...source, link_state: 'not_projected'},
+    {...source, consuming_ports: []},
+    {...source, source_view: {...source.source_view, request_body: {}}},
+    {...model, prompt: 'secret'},
+    {...model, input_bindings: [{...model.input_bindings[0], binding: {state: 'redacted', length: 6}}]},
+    {...result, actual_rows: 1},
+    {...effect, current_approval: 'approved'},
+  ]) assert.equal(validWireExplanationContextShape({...context, items: [item]}), false);
+});
 
 test('Effectful static envelope preserves the independent original Plan/map schemas', () => {
   const registry = buildControlRegistry();

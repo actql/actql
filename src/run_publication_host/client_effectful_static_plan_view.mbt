@@ -188,7 +188,9 @@ fn issue_client_effectful_static_plan_view(
   max_depth : Int,
   max_members : Int,
   max_work : Int,
-  retained_computation? : Ref[@canonical.CanonicalValue?]? = None,
+  retained_explanation? : Ref[
+    (@canonical.CanonicalValue, ClientEffectStaticDeclarationSet)?,
+  ]? = None,
 ) -> Result[String, ClientEffectfulStaticPlanIssue] {
   if !physical_equal(compiled.owner, prepared) {
     return Err(ForeignCompilation)
@@ -229,8 +231,8 @@ fn issue_client_effectful_static_plan_view(
       "effectful_static_plan_view", wire, max_bytes, max_nodes, max_depth,
     ) {
     Ok(_) => {
-      if retained_computation is Some(retained) {
-        retained.val = Some(computation)
+      if retained_explanation is Some(retained) {
+        retained.val = Some((computation, declarations))
       }
       Ok(wire)
     }

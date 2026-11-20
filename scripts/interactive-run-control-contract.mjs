@@ -368,7 +368,9 @@ export function interactiveRunControlSchemas() {
       permission: unobserved, gate: unobserved, approval: unobserved,
       preview: object({state: {const: 'unavailable'}, reason: {const: 'not_sealed'}})}),
   });
-  return Object.assign(schemas, explanationFactSchemas({logicalOperators}));
+  const effectDeclaration = schemas.effectful_static_plan_view.properties
+    .effect_set.properties.members.items;
+  return Object.assign(schemas, explanationFactSchemas({logicalOperators, effectDeclaration}));
 }
 
 export const controlErrors = Object.freeze([

@@ -275,12 +275,12 @@ test "README deferred keyed producer completes a Model plan without claiming liv
 ///|
 extern "js" fn static_explanation_source_links_match(
   plan_wire : String,
-  source_wire : String,
+  context_wire : String,
 ) -> Bool =
-  #|(planWire, sourceWire) => {
+  #|(planWire, contextWire) => {
   #|  const view = JSON.parse(planWire);
   #|  const steps = view.computation.plan_view.logical_map.steps;
-  #|  const sources = JSON.parse(sourceWire);
+  #|  const sources = JSON.parse(contextWire).items.filter(item => item.kind === 'source');
   #|  const expected = [['salesforce', 'Opportunity', 'direct'], ['drive', 'files', 'direct'], ['drive', 'contents', 'keyed']];
   #|  if (view.provider_io !== 0 || sources.length !== expected.length) return false;
   #|  return sources.every(({source_view, stage_input, request_kind, link_state, consuming_ports}, stage) => {
@@ -304,7 +304,7 @@ test "Static explanation Source rows retain the exact consuming ports of one Eff
     owner, compiled, 65536, 8192, 64,
   ).unwrap()
   let writer = @encode.writer(65536, 8192, 64)
-  @publication_host.write_client_static_effect_explanation_sources(
+  @publication_host.write_client_static_effect_explanation_context(
     original, owner, compiled, writer, 10000,
   ).unwrap()
   assert_true(
@@ -312,7 +312,7 @@ test "Static explanation Source rows retain the exact consuming ports of one Eff
   )
   let too_small = @encode.writer(65536, 8192, 64)
   assert_true(
-    @publication_host.write_client_static_effect_explanation_sources(
+    @publication_host.write_client_static_effect_explanation_context(
       original, owner, compiled, too_small, 1,
     )
     is Err(WorkLimit),
@@ -320,10 +320,76 @@ test "Static explanation Source rows retain the exact consuming ports of one Eff
   let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
   let rejected = @encode.writer(65536, 8192, 64)
   assert_true(
-    @publication_host.write_client_static_effect_explanation_sources(
+    @publication_host.write_client_static_effect_explanation_context(
       original, owner, foreign, rejected, 10000,
     )
     is Err(ForeignOriginal),
+  )
+}
+
+///|
+extern "js" fn static_explanation_context_matches(
+  plan_wire : String,
+  context_wire : String,
+) -> Bool =
+  #|(planWire, contextWire) => {
+  #|  const plan = JSON.parse(planWire);
+  #|  const context = JSON.parse(contextWire);
+  #|  const view = plan.computation.plan_view;
+  #|  const map = view.logical_map;
+  #|  const b = context.binding;
+  #|  if (context.version !== 'actql-explanation-context/0.1' || context.disclosure !== 'structural' ||
+  #|      b.compiled_plan_cid !== view.compiled_plan_cid || b.logical_map_cid !== map.self_cid ||
+  #|      b.check_environment_cid !== plan.check_environment_cid ||
+  #|      b.parameter_values_cid !== plan.parameter_values_cid || b.program_definition_cid !== plan.program_definition_cid) return false;
+  #|  const kinds = context.items.map(item => item.kind);
+  #|  if (kinds.join(',') !== 'source,source,source,model_task,result,effect_set') return false;
+  #|  const [, , , model, result, effects] = context.items;
+  #|  const modelStep = map.steps.find(step => step.step_id === model.producer.step_id);
+  #|  if (modelStep?.operator !== 'infer' || !modelStep.ports.some(port => port.port_id === model.producer.port_id && port.role === 'output') ||
+  #|      model.task_id !== 'model-task:deal-review.v1' || model.dispatch_unit !== 'input_row' ||
+  #|      model.input_bindings.map(input => [input.role, input.binding.name, input.binding.state].join(':')).sort().join(',') !==
+  #|        'NextStep:NextStep:field,StageName:StageName:field,notes:notes:field' ||
+  #|      model.output_fields.map(field => field.name).join(',') !== 'changed,next_step,stage') return false;
+  #|  const resultStep = map.steps.find(step => step.step_id === result.producer.step_id);
+  #|  if (result.name !== 'updates' || !resultStep?.ports.some(port => port.port_id === result.producer.port_id &&
+  #|        port.role === 'output')) return false;
+  #|  const member = effects.members[0];
+  #|  return effects.unit_id === plan.effect_set.unit_id && effects.members.length === 1 &&
+  #|    member.declaration.effect_id === plan.effect_set.members[0].effect_id &&
+  #|    member.declaration.effect_kind === 'update' &&
+  #|    member.declaration.input.result_name === 'aql_private_update' &&
+  #|    member.write_fields.state === 'declared' &&
+  #|    member.write_fields.fields.slice().sort().join(',') === 'NextStep,StageName' &&
+  #|    !contextWire.includes('review.outcome') && !contextWire.includes('"prompt"') &&
+  #|    !contextWire.includes('"instructions"');
+  #|}
+
+///|
+test "Static Effect explanation Context keeps original Model, Result and write declarations" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let writer = @encode.writer(65536, 8192, 64)
+  @publication_host.write_client_static_effect_explanation_context(
+    original, owner, compiled, writer, 10000,
+  ).unwrap()
+  let context = @encode.finish(writer)
+  assert_true(static_explanation_context_matches(plan, context))
+  assert_true(
+    @publication.parse_interactive_run_control_shape(
+      "explanation_context", context, 65536, 8192, 64,
+    )
+    is Ok(_),
+  )
+  let small_writer = @encode.writer(128, 8192, 64)
+  assert_true(
+    @publication_host.write_client_static_effect_explanation_context(
+      original, owner, compiled, small_writer, 10000,
+    )
+    is Err(Encoding(@encode.OutputLimit)),
   )
 }
 

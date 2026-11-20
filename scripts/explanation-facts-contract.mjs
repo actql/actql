@@ -17,7 +17,7 @@ export const explanationPredicateOperators = Object.freeze([
   'is_null', 'not_null', 'is_distinct_from',
 ]);
 
-export function explanationFactSchemas({logicalOperators}) {
+export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
   const schemas = {};
   // Inferred Text limits can reveal a literal's UTF-8 length. Do not serialize
   // bounds, enumerations or a contract/value CID as a supposedly safe type.
@@ -76,6 +76,47 @@ export function explanationFactSchemas({logicalOperators}) {
         object({state: {const: 'projected'}, facts: ref('explanation_facts')}),
         object({state: {const: 'not_projected'}, reason: choice('not_retained', 'profile_not_supported')}),
       ]}}),
+  };
+  const consumer = object({step_id: cid, port_id: cid});
+  const producer = {oneOf: [
+    object({state: {const: 'projected'}, step_id: cid, port_id: cid}),
+    object({state: {const: 'not_projected'}, reason: {const: 'no_original_port'}}),
+  ]};
+  const modelBinding = {oneOf: [
+    object({state: choice('field', 'parameter'), name: text}),
+    object({state: {const: 'redacted'}}),
+    object({state: {const: 'not_projected'}, reason: {const: 'expression_form_not_projected'}}),
+  ]};
+  const item = {oneOf: [
+    {...object({kind: {const: 'source'}, stage_input: object({kind: {const: 'stage_input'},
+      stage_ordinal: integer, input_port_ordinal: integer}),
+      source_view: object({catalog_cid: cid, connector: text, contract_cid: cid,
+        resource: text, selection: choice('explicit', 'sole_view'), view: text}),
+      request_kind: choice('direct', 'keyed'), link_state: choice('linked', 'not_projected'),
+      consuming_ports: list(consumer)}),
+      allOf: [{if: {type: 'object', properties: {link_state: {const: 'linked'}}, required: ['link_state']},
+        then: {type: 'object', properties: {consuming_ports: {...list(consumer), minItems: 1}}},
+        else: {type: 'object', properties: {consuming_ports: {...list(consumer), maxItems: 0}}}}]},
+    object({kind: {const: 'model_task'}, task_id: text, task_version: text, contract_cid: cid,
+      dispatch_unit: {const: 'input_row'}, producer,
+      input_bindings: list(object({role: text, binding: modelBinding, type: ref('explanation_type')})),
+      output_fields: list(object({name: text, type: ref('explanation_type')}))}),
+    object({kind: {const: 'result'}, name: text, stage_ordinal: integer, producer}),
+    object({kind: {const: 'effect_set'}, unit_id: text, members: list(object({
+      declaration: effectDeclaration,
+      write_fields: {oneOf: [
+        object({state: {const: 'declared'}, fields: {...list(text), uniqueItems: true}}),
+        object({state: {const: 'not_projected'}, reason: {const: 'command_fields_not_projected'}}),
+      ]},
+    }))}),
+  ]};
+  schemas.explanation_context = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://smooth.dev/schemas/actql-explanation-context-0.1.json',
+    ...object({version: {const: 'actql-explanation-context/0.1'}, disclosure: {const: 'structural'},
+      binding: object({program_definition_cid: cid, parameter_values_cid: cid,
+        check_environment_cid: cid, compiled_plan_cid: cid, logical_map_cid: cid}),
+      items: list(item)}),
   };
   return schemas;
 }
