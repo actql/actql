@@ -1,9 +1,11 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, CancellationExplanation, Execution, OperationFormatOptions, RunState} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {ClientError, explainCancellation, formatCancellation} from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 19};
 const original = {ref, cancelRef, kind: 'accepted', revision: 20};
@@ -11,10 +13,10 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   durability: 'durable', scopeRef: 'local-scope', capabilities: [],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
-async function fixture(t, perform) {
-  const calls = [];
+async function fixture(t: TestContext, perform: (operation: string, body: Record<string, unknown>) => unknown) {
+  const calls: {operation: string; body: Record<string, unknown>}[] = [];
   const client = await connectInProcess({mode: 'local', owner: 'local'}, {
-    async perform(operation, body) {
+    async perform(operation: string, body: Record<string, unknown>) {
       calls.push({operation, body});
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref, durability: 'durable', revision: 19};
@@ -33,15 +35,15 @@ test('lost cancel response retains the exact original identity and only looks it
     assert.equal(body.expectedRevision, 19);
     return {kind: 'found', cancellation: original};
   });
-  let failure;
+  let failure!: SdkFailure;
   await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
-    failure = error;
-    assert.equal(error.code, 'CancellationUnknown');
-    assert.deepEqual(error.cancelRef, cancelRef);
-    assert(Object.isFrozen(error.cancelRef));
+    failure = error as SdkFailure;
+    assert.equal((error as SdkFailure).code, 'CancellationUnknown');
+    assert.deepEqual((error as SdkFailure).cancelRef, cancelRef);
+    assert(Object.isFrozen((error as SdkFailure).cancelRef));
     return true;
   });
-  const result = await f.run.lookupCancellation(failure.cancelRef);
+  const result = await f.run.lookupCancellation(failure.cancelRef!);
   assert.deepEqual(result, {kind: 'found', cancellation: original});
   assert(Object.isFrozen(result.cancellation.cancelRef));
   assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'cancel', 'lookup-cancellation']);
@@ -50,8 +52,8 @@ test('lost cancel response retains the exact original identity and only looks it
 test('a transported conflict code is not an owner-issued operation outcome', async t => {
   const f = await fixture(t, () => { throw new ClientError('ClientCancellationIntentConflict', {status: 409}); });
   await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
-    assert.equal(error.code, 'CancellationUnknown');
-    assert.deepEqual(error.cancelRef, cancelRef);
+    assert.equal((error as SdkFailure).code, 'CancellationUnknown');
+    assert.deepEqual((error as SdkFailure).cancelRef, cancelRef);
     return true;
   });
   assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 1);
@@ -63,8 +65,8 @@ for (const code of ['ClientAuthenticationDenied', 'ClientConnectionDenied',
   test(`transported ${code} does not certify an uncommitted cancellation attempt`, async t => {
     const f = await fixture(t, () => { throw new ClientError(code, {status: 403}); });
     await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
-      assert.equal(error.code, 'CancellationUnknown');
-      assert.deepEqual(error.cancelRef, cancelRef);
+      assert.equal((error as SdkFailure).code, 'CancellationUnknown');
+      assert.deepEqual((error as SdkFailure).cancelRef, cancelRef);
       assert.equal(explainCancellation(error)?.observation, 'outcome_unknown');
       return true;
     });
@@ -126,7 +128,7 @@ for (const [kind, reason, summary, localized] of [
       hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
       next: {operation: 'lookupCancellation', cancelRef}};
     assert.deepEqual(explainCancellation(answer), expected, '[check-mutation:cancel-attempt-explanation]');
-    const explanation = explainCancellation(answer);
+    const explanation = explainCancellation(answer) as Extract<CancellationExplanation, {attemptRef: unknown}>;
     assert(Object.isFrozen(explanation));
     assert(Object.isFrozen(explanation.attemptRef));
     assert(Object.isFrozen(explanation.cancelRef));
@@ -143,7 +145,7 @@ for (const [kind, reason, summary, localized] of [
     assert.deepEqual(explainCancellation(answer, {locale: 'ja'}), {...expected,
       summary: localized,
       hint: '元の取消し参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの結果を確定せず、再送信を許可せず、物理停止・外部Effect・資源解放を確認しません。'});
-    for (const format of ['text', 'html', 'json']) {
+    for (const format of ['text', 'html', 'json'] as const) {
       const rendered = formatCancellation(answer, {format});
       assert.ok(rendered);
       assert.doesNotMatch(rendered, /private-reason|other-invocation/);
@@ -166,9 +168,9 @@ for (const change of ['attempt', 'operation', 'guarantee', 'target']) {
     const f = await fixture(t, () => reply);
     await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19,
       attemptId: 'original-attempt'}), error => {
-      assert.equal(error.code, 'CancellationUnknown');
-      assert.deepEqual(error.attemptRef, {operation: 'cancel', attemptId: 'original-attempt'});
-      assert.deepEqual(error.cancelRef, cancelRef);
+      assert.equal((error as SdkFailure).code, 'CancellationUnknown');
+      assert.deepEqual((error as SdkFailure).attemptRef, {operation: 'cancel', attemptId: 'original-attempt'});
+      assert.deepEqual((error as SdkFailure).cancelRef, cancelRef);
       return true;
     });
   });
@@ -178,8 +180,8 @@ for (const change of [{cancelId: 'foreign-cancel'}, {expectedRevision: 20}, {run
   test(`foreign cancellation reply ${Object.keys(change)[0]} is unknown under the original identity`, async t => {
     const f = await fixture(t, () => ({...original, cancelRef: {...cancelRef, ...change}}));
     await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
-      assert.equal(error.code, 'CancellationUnknown');
-      assert.deepEqual(error.cancelRef, cancelRef);
+      assert.equal((error as SdkFailure).code, 'CancellationUnknown');
+      assert.deepEqual((error as SdkFailure).cancelRef, cancelRef);
       return true;
     });
   });
@@ -200,7 +202,7 @@ test('a closed Client refuses an explicit cancellation before any dispatch or un
   f.client.close();
   await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}),
     error => {
-      assert.equal(error.code, 'ClientClosed');
+      assert.equal((error as SdkFailure).code, 'ClientClosed');
       assert.equal(explainCancellation(error), undefined);
       return true;
     });
@@ -212,7 +214,7 @@ test('invalid cancellation identity is refused before observing a revision or di
   for (const options of [{cancelId: ''}, {cancelId: 'bad\ridentity'},
     {cancelId: 'original-cancel', expectedRevision: null},
     {cancelId: 'original-cancel', expectedRevision: 2147483648}]) {
-    await assert.rejects(f.run.cancel(options), {code: 'InvalidCancellationReference'});
+    await assert.rejects(f.run.cancel(options as Parameters<Execution['cancel']>[0]), {code: 'InvalidCancellationReference'});
   }
   assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach']);
 });
@@ -235,12 +237,12 @@ test('original cancellation lookup captures nested identity and outcome exactly 
 test('cancellation lookup uses its captured original with no verification clone', async t => {
   const f = await fixture(t, () => ({kind: 'found', cancellation: original}));
   const nativeClone = globalThis.structuredClone;
-  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+  const clone = t.mock.method(globalThis, 'structuredClone', (value: Record<string, unknown>) => {
     if (Object.hasOwn(value, 'connection')) return nativeClone(value);
     assert.fail('Unexpected response verification clone');
   });
   const answer = await f.run.lookupCancellation(cancelRef);
   assert.deepEqual(answer, {kind: 'found', cancellation: original});
-  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value as object, 'connection')).length, 0);
   assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 0);
 });

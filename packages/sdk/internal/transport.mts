@@ -10,12 +10,20 @@ import {captureSourcePreparation, sourcePreparationPort} from './private-source-
 
 import type {ClientHostOperation} from '@actql/client-wire';
 import type {InProcessHostPort, InProcessHostRequest} from '../host-port.d.ts';
+import type {LifecyclePort} from './client-lifecycle.mjs';
 import type {SelectedConnection} from './connection-options.mjs';
 import type {requestLoopbackClient} from '../loopback-http.mjs';
 
 type CancellationContext = NonNullable<Parameters<typeof retainCancellationExplanation>[1]>;
 type Selected = SelectedConnection & {redactCredentialErrors?: boolean};
 interface SourceProducer {receipt: unknown; body?: unknown}
+// The runtime bridge admits methods before their returned DATA is validated.
+// The public declaration's asynchronous port is a supported subset of this
+// existing await boundary; a synchronous control value is not a certificate.
+export type RuntimeHostPort = LifecyclePort & {
+  perform(...args: Parameters<InProcessHostPort['perform']>): unknown;
+  answerCheckpoint?: (...args: Parameters<NonNullable<InProcessHostPort['answerCheckpoint']>>) => unknown;
+};
 interface TraceContext {traceId?: unknown; spanId?: unknown; traceFlags?: number}
 
 // Return the import promise itself so only the existing loopback branch yields.
@@ -24,7 +32,7 @@ export const loadLoopbackTransport = () => import('#loopback-http');
 const isSubmission = (operation: ClientHostOperation) => operation === 'submit-intent' ||
   operation === 'submit-named-intent' || operation === 'restart-intent';
 
-export function createTransport(selected: Selected, port: InProcessHostPort | undefined,
+export function createTransport(selected: Selected, port: RuntimeHostPort | undefined,
   isClosed: () => boolean, directLoopback?: typeof requestLoopbackClient) {
   // A structural wire port is not selection of the builtin Local provider.
   // Any selected binding, including an inherited one, still uses strict capture.

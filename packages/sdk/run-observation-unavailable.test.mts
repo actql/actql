@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, CancellationExplanation, Execution, OperationFormatOptions, RunState} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
@@ -6,20 +8,20 @@ import {fileURLToPath} from 'node:url';
 import * as sdk from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'original-run', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const hint = 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.';
-const expected = (operation, target = ref) => ({kind: 'unavailable', problem: 'observation_unavailable', operation,
+const expected = (operation: 'status' | 'wait' | 'reconcile', target = ref) => ({kind: 'unavailable', problem: 'observation_unavailable', operation,
   next: {operation: 'status', ref: target},
   summary: 'The Run observation could not be completed. Its execution, Effect, publication and release outcomes are not established by this failure.', hint});
 const running = {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 31, status: 'running',
   updated_at: '2026-10-07T00:00:00.000Z', next_action: {kind: 'none'},
   result_available: false, result_availability: {answer: {state: 'unavailable',
     reason: 'not_published', observed_at: '2026-10-07T00:00:00.000Z'}}};
-async function fixture(t, reply) {
-  const operations = [];
+async function fixture(t: TestContext, reply: (operation: string) => unknown) {
+  const operations: string[] = [];
   const client = await connectInProcess({mode: 'local', owner: 'local'}, {
-    async perform(operation, body) {
+    async perform(operation: string, body: Record<string, unknown>) {
       operations.push(operation);
       if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
         durability: 'durable', scopeRef: 'original-principal', capabilities: [], limits: {
@@ -33,13 +35,13 @@ async function fixture(t, reply) {
   t.after(() => client.close());
   return {client, run: await client.attach(ref), operations};
 }
-const capture = async promise => {
-  let failure;
-  try {await promise;} catch (error) {failure = error;}
+const capture = async (promise: Promise<unknown>) => {
+  let failure!: SdkFailure;
+  try {await promise;} catch (error) {failure = error as SdkFailure;}
   assert.equal(failure instanceof sdk.ClientError, true);
-  return failure;
+  return failure as SdkFailure & {kind?: string; next?: unknown};
 };
-for (const operation of ['status', 'wait', 'reconcile']) {
+for (const operation of ['status', 'wait', 'reconcile'] as const) {
   test(`${operation}: unavailable Run observation retains only the original read-only target`, async t => {
     const borrowed = new sdk.ClientError('ClientConnectionDenied', {status: 403,
       cause: new Error('private-credential-secret')});
@@ -48,18 +50,18 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     const view = sdk.explainRunObservationFailure(error);
     assert.deepEqual(view, expected(operation), '[check-mutation:run-unavailable-facts]');
     assert.notEqual(error, borrowed);
-    assert.equal(error.code, 'ClientConnectionDenied');
-    assert.equal(error.status, 403);
+    assert.equal((error as SdkFailure).code, 'ClientConnectionDenied');
+    assert.equal((error as SdkFailure).status, 403);
     assert.doesNotMatch(inspect({error, view}, {showHidden: true, depth: 8}), /private-credential-secret/,
       '[check-mutation:run-unavailable-disclosure]');
     assert.equal(Object.hasOwn(error, 'cause'), false);
-    assert.ok(Object.isFrozen(view.next.ref));
+    assert.ok(Object.isFrozen(view!.next.ref));
     assert.equal(sdk.explainEffectUncertainty(error), undefined);
     assert.equal(sdk.explainRunObservationFailure({...error}), undefined);
     assert.equal(sdk.explainRunObservationFailure(structuredClone(error)), undefined);
     assert.equal(sdk.explainRunObservationFailure(borrowed), undefined);
     const before = [...f.operations];
-    error.code = 'Succeeded'; error.kind = 'verified'; error.next = {operation: 'reconcile'};
+    (error as {-readonly [K in keyof SdkFailure]: SdkFailure[K]}).code = 'Succeeded'; error.kind = 'verified'; error.next = {operation: 'reconcile'};
     assert.deepEqual(sdk.explainRunObservationFailure(error), expected(operation));
     assert.deepEqual(sdk.explainRunObservationFailure(error, {locale: 'ja'}), {...expected(operation),
       summary: 'Runの観測を完了できませんでした。この失敗は実行・Effect・公開・解放の結果を確定しません。',
@@ -70,7 +72,7 @@ for (const operation of ['status', 'wait', 'reconcile']) {
 
 test('Run observation reused failures and later success do not rebind earlier targets', async t => {
   const borrowed = new Error('private-reused-failure');
-  let reply = () => {throw borrowed;};
+  let reply: () => unknown = () => {throw borrowed;};
   const f = await fixture(t, () => reply());
   const first = await capture(f.run.status());
   const otherRef = {...ref, runDefinitionCid: cid('c')};
@@ -93,7 +95,7 @@ test('a closed Client supplies unavailable observation without claiming dispatch
   await f.client.close();
   const before = [...f.operations];
   const error = await capture(f.run.wait());
-  assert.equal(error.code, 'ClientClosed');
+  assert.equal((error as SdkFailure).code, 'ClientClosed');
   assert.deepEqual(sdk.explainRunObservationFailure(error), expected('wait'));
   assert.deepEqual(f.operations, before);
 });
@@ -114,7 +116,7 @@ for (const field of ['code', 'status']) {
     const error = await capture(f.run.status());
     assert.deepEqual(sdk.explainRunObservationFailure(error), expected('status'),
       '[check-mutation:run-unavailable-metadata]');
-    assert.equal(error.code, 'ClientTransportUnknown');
+    assert.equal((error as SdkFailure).code, 'ClientTransportUnknown');
     assert.equal(Object.hasOwn(error, 'cause'), false);
     assert.equal(reads, 1);
     assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), /private-failure-metadata/);

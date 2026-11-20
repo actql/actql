@@ -142,3 +142,25 @@ target/
 # Generated maintained nonzero-verification regression.
 /scripts/test-execution.test.mjs
 /scripts/test-execution.test.d.mts
+
+# Generated independent submission DATA fixture.
+/packages/sdk/submission-fixture.mjs
+/packages/sdk/submission-fixture.d.mts
+
+# Generated maintained SDK observation and cancellation regressions.
+/packages/sdk/run-control-revisions.test.mjs
+/packages/sdk/run-control-revisions.test.d.mts
+/packages/sdk/run-wait-since.test.mjs
+/packages/sdk/run-wait-since.test.d.mts
+/packages/sdk/run-observation-formats.test.mjs
+/packages/sdk/run-observation-formats.test.d.mts
+/packages/sdk/run-observation-unavailable.test.mjs
+/packages/sdk/run-observation-unavailable.test.d.mts
+/packages/sdk/cancel-identity.test.mjs
+/packages/sdk/cancel-identity.test.d.mts
+/packages/sdk/cancellation-lookup-explanation.test.mjs
+/packages/sdk/cancellation-lookup-explanation.test.d.mts
+/packages/sdk/connection-start-order.test.mjs
+/packages/sdk/connection-start-order.test.d.mts
+/packages/sdk/query-single-result.test.mjs
+/packages/sdk/query-single-result.test.d.mts

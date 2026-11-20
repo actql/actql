@@ -9,7 +9,7 @@ import {explainRequestCancellation, explainRequestLookup, explainSubmission} fro
 import {formatOperationExplanation} from './operation-formats.mjs';
 
 import type {Client, OperationFormatOptions} from './index.d.ts';
-import type {InProcessHostPort} from './host-port.d.ts';
+import type {RuntimeHostPort} from './internal/transport.mjs';
 
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
@@ -51,7 +51,7 @@ export async function connect(options: unknown, stringOptions?: unknown): Promis
 
 // Only an installed Local provider calls this pure Client facade. The port
 // returns typed control values and Result frames; it is never a public URL.
-export async function connectInProcess(options: unknown, port: InProcessHostPort): Promise<Client> {
+export async function connectInProcess(options: unknown, port: RuntimeHostPort): Promise<Client> {
   if (port === null || typeof port !== 'object' ||
       typeof port.perform !== 'function' ||
       port.close !== undefined && typeof port.close !== 'function' ||

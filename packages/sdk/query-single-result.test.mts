@@ -1,26 +1,28 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, CancellationExplanation, Execution, OperationFormatOptions, RunState} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {readySubmissionAttempt, submissionEpoch} from './submission-fixture.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'single-result', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'volatile', scopeRef: 'single-result', capabilities: [], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
 
-for (const entry of ['query', 'result']) {
+for (const entry of ['query', 'result'] as const) {
   for (const [method, rows, options, code] of [
     ['one', [], undefined, 'ExpectedOneRow'],
     ['one', [{n: 1}, {n: 2}], undefined, 'ExpectedOneRow'],
     ['scalar', [{n: 1, other: 2}], undefined, 'ExpectedOneColumn'],
     ['one', [{n: 1}], {maxRowRetainedValueBytes: 1}, 'ResultRowRetainedLimit'],
-  ]) {
+  ] as const) {
     test(`${entry} ${method} retains ${code} for ${rows.length} rows`, async t => {
-      const calls = [];
+      const calls: string[] = [];
       const client = await connectInProcess({mode: 'local', owner: 'local'}, {
-        perform(operation, body) {
+        perform(operation: string, body: Record<string, unknown>) {
           calls.push(operation);
           if (operation === 'connect') return profile;
           if (operation === 'submit-intent') return readySubmissionAttempt(body, {ref, durability: 'volatile', revision: 1});

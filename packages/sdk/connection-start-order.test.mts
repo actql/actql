@@ -1,15 +1,17 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, CancellationExplanation, Execution, OperationFormatOptions, RunState} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connect, connectInProcess} from './index.mjs';
 
-const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,
+const profile = (mode: string) => ({version: 'actql-client-host/0.1', mode, owner: mode,
   durability: 'durable', scopeRef: 'start-order', capabilities: [], limits: {
     maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 2,
     maxBatchRetainedValueBytes: 2048}});
 
 test('in-process connection invokes its original port before yielding', async () => {
-  const calls = [];
+  const calls: string[] = [];
   const pending = connectInProcess({mode: 'local', owner: 'local'}, {
     perform(operation) { calls.push(operation); return profile('local'); },
   });
@@ -21,9 +23,9 @@ test('in-process connection invokes its original port before yielding', async ()
 });
 
 test('Remote connection invokes its original credential provider before yielding', async t => {
-  let credential = 'original', observed = [];
-  const sent = [];
-  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+  let credential = 'original', observed: string[] = [];
+  const sent: (string | undefined)[] = [];
+  t.mock.method(globalThis, 'fetch', async (_url: unknown, options: {headers: {authorization?: string}}) => {
     sent.push(options.headers.authorization);
     return Response.json(profile('remote'));
   });
@@ -39,8 +41,8 @@ test('Remote connection invokes its original credential provider before yielding
 });
 
 test('Remote connection with a fixed credential dispatches before yielding', async t => {
-  const calls = [];
-  t.mock.method(globalThis, 'fetch', async url => {
+  const calls: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: URL) => {
     calls.push(url.pathname);
     return Response.json(profile('remote'));
   });

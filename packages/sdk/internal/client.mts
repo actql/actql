@@ -12,11 +12,11 @@ import {createTransport, loadLoopbackTransport} from './transport.mjs';
 import {validClientProfile} from '@actql/client-wire';
 
 import type {Client} from '../index.d.ts';
-import type {InProcessHostPort} from '../host-port.d.ts';
+import type {RuntimeHostPort} from './transport.mjs';
 import type {SelectedConnection} from './connection-options.mjs';
 
 export async function connectSelected(selected: SelectedConnection & {redactCredentialErrors?: boolean},
-  port?: InProcessHostPort): Promise<Client> {
+  port?: RuntimeHostPort): Promise<Client> {
   // Capture the installed provider's original operation once. Its DATA input
   // is not key custody or authority; the provider owns those current checks.
   const answerCheckpoint = port?.answerCheckpoint;
