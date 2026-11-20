@@ -6,21 +6,33 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {admitCompletedNativeLocalProvider} from './native-cli-completed-provider.mjs';
 
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+import type {BinaryLike} from 'node:crypto';
+import type {TestContext} from 'node:test';
+
+type ProviderReceipt = Awaited<ReturnType<typeof admitCompletedNativeLocalProvider>>['receipt'];
+type FixtureReceipt = Omit<ProviderReceipt, 'allocator' | 'local_stock_file_control'> & {
+  allocator: Omit<ProviderReceipt['allocator'], 'outputs' | 'required_source_parameters'> & {
+    required_source_parameters?: string[];
+    outputs: Record<string, string | {bytes: number; sha256: string}>};
+  local_stock_file_control?: Omit<ProviderReceipt['local_stock_file_control'], 'selected'> &
+    {selected: {kind: string; target: string; stockFileControlBytes: number}};
+};
+
+const sha = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 const source = 'a'.repeat(40);
 
-async function fixture(t, inCheckoutToolchain = false, platform = 'darwin-arm64') {
+async function fixture(t: TestContext, inCheckoutToolchain = false, platform = 'darwin-arm64') {
   const root = await mkdtemp(join(tmpdir(), 'actql-completed-provider-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const repository = join(root, 'source'), moon = inCheckoutToolchain
     ? join(repository, '.toolchains/moonbit-pinned') : join(root, 'moon'), artifact = join(root, 'artifact');
   const provider = join(artifact, 'native-producer');
   await mkdir(provider, {recursive: true});
-  const json = async (path, value) => {
+  const json = async (path: string, value: unknown) => {
     await mkdir(dirname(path), {recursive: true});
     await writeFile(path, JSON.stringify(value));
   };
-  const original = async (path, text) => {
+  const original = async (path: string, text: string) => {
     await mkdir(dirname(path), {recursive: true});
     const bytes = Buffer.from(text); await writeFile(path, bytes);
     return {path, bytes: bytes.length, sha256: sha(bytes)};
@@ -52,7 +64,7 @@ async function fixture(t, inCheckoutToolchain = false, platform = 'darwin-arm64'
   const generated = await original(join(build, 'native_client.c'), 'synthetic-generated-C');
   const command = ['selected-clang', '-o', binary.path, generated.path];
   const step = {original: command.slice(1), selected: command, receipt: join(provider, 'cc-0.json')};
-  const receipt = {source, entry: 'src/cmd/native_client', target: platform === 'darwin-arm64' ? platform : 'linux-x64',
+  const receipt: FixtureReceipt = {source, entry: 'src/cmd/native_client', target: platform === 'darwin-arm64' ? platform : 'linux-x64',
     plan_only: false, moon_build_exit: 0, providers: 1, core_modules: 1,
     commands_completed: 1, completed_c_steps: 1, executable: binary, generated_c: generated,
     allocator: {target: recipe.target, recipe_sha256: sha(Buffer.from(JSON.stringify(recipe))),
@@ -88,12 +100,12 @@ test('completed Linux Local provider retains its exact selected allocator and fi
   assert.equal((await f.admit()).receipt.target, 'linux-x64');
   await assert.rejects(admitCompletedNativeLocalProvider(f.artifact, source, f.repository, f.moon), /target differs/u);
   for (const change of [
-    value => {value.target = 'darwin-arm64';},
-    value => {value.allocator.target = 'aarch64-apple-darwin';},
-    value => {value.allocator.outputs['libmoonbitrun.o'].sha256 = '0'.repeat(64);},
-    value => {value.allocator.required_source_parameters = [];},
-    value => {value.local_stock_file_control.selected.stockFileControlBytes = 8192;},
-    value => {value.local_stock_file_control.source = 'b'.repeat(40);},
+    (value: FixtureReceipt) => {value.target = 'darwin-arm64';},
+    (value: FixtureReceipt) => {value.allocator.target = 'aarch64-apple-darwin';},
+    (value: FixtureReceipt) => {(value.allocator.outputs['libmoonbitrun.o'] as {sha256: string}).sha256 = '0'.repeat(64);},
+    (value: FixtureReceipt) => {value.allocator.required_source_parameters = [];},
+    (value: FixtureReceipt) => {value.local_stock_file_control!.selected.stockFileControlBytes = 8192;},
+    (value: FixtureReceipt) => {value.local_stock_file_control!.source = 'b'.repeat(40);},
   ]) {
     const receipt = structuredClone(f.receipt); change(receipt);
     await f.json(join(f.provider, 'build.json'), receipt);

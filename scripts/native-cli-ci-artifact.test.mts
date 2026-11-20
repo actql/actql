@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {validateNativeCliArtifactInputs} from './native-cli-ci-artifact.mjs';
 
+type MessageOnlyThrows = (block: () => void, expected: undefined, message: string) => void;
+type ArtifactEnvironment = Parameters<typeof validateNativeCliArtifactInputs>[0];
+
 const original = {ARTIFACT_ID: '101', ARTIFACT_RUN_ID: '42', ARTIFACT_RUN_ATTEMPT: '3',
   ARTIFACT_SOURCE_SHA: 'a'.repeat(40), EXPECTED_RUN_ID: '42', EXPECTED_RUN_ATTEMPT: '3',
   EXPECTED_SOURCE_SHA: 'a'.repeat(40)};
@@ -14,7 +17,7 @@ test('Native CLI consumers reject missing malformed and multiple artifact identi
   for (const key of ['ARTIFACT_ID', 'ARTIFACT_RUN_ID', 'ARTIFACT_RUN_ATTEMPT',
     'EXPECTED_RUN_ID', 'EXPECTED_RUN_ATTEMPT']) {
     for (const value of [undefined, '', '0', '-1', '101,102', ' 101', '101\n', 101]) {
-      assert.throws(() => validateNativeCliArtifactInputs({...original, [key]: value}), undefined,
+      (assert.throws as MessageOnlyThrows)(() => validateNativeCliArtifactInputs({...original, [key]: value} as ArtifactEnvironment), undefined,
         `${key}: ${String(value)}`);
     }
   }

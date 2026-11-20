@@ -865,3 +865,11 @@ target/
 /scripts/produce-native-cli-linux-local.d.mts
 /scripts/produce-native-cli-darwin-local.mjs
 /scripts/produce-native-cli-darwin-local.d.mts
+/scripts/native-cli-ci-artifact.test.mjs
+/scripts/native-cli-ci-artifact.test.d.mts
+/scripts/native-cli-default-assets.test.mjs
+/scripts/native-cli-default-assets.test.d.mts
+/scripts/native-cli-fresh-runtime.test.mjs
+/scripts/native-cli-fresh-runtime.test.d.mts
+/scripts/native-cli-completed-provider.test.mjs
+/scripts/native-cli-completed-provider.test.d.mts
