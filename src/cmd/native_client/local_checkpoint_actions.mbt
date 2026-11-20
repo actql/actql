@@ -77,7 +77,12 @@ fn local_checkpoint_answer_by_id(
     prepared is Some((preparation, configuration)) else {
     stop("LocalCheckpointReadUnavailable")
   }
-  preparation.restore_checkpoint_review(original, configuration, selected)
+  preparation.restore_checkpoint_review(
+    original,
+    configuration,
+    selected,
+    bind_project_writes=operation == "approve",
+  )
   preparation.resolve_checkpoint_review(original, configuration, operation)
 }
 
@@ -90,6 +95,7 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
   capture : @local_host.NativeLocalJournalCapture,
   configuration : LocalCommandConfiguration,
   selected : @local_host.NativeLocalCheckpointSelection,
+  bind_project_writes? : Bool = true,
 ) -> Unit raise ClientStop {
   native_timing_begin(38)
   defer native_timing_end(38)
@@ -124,7 +130,9 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
   // Only current implementation metadata is selected here. The Saved
   // Program/Model/Result is restored independently below, never recomputed.
   // The original Runtime/Read/authority supplies the actual installation.
-  self.bind_project_mock_runtime(runtime, capture, settings.principal)
+  if bind_project_writes {
+    self.bind_project_mock_runtime(runtime, capture, settings.principal)
+  }
   let body = local_host_result(
     capture.selected_configuration_in_original_read(run_file),
   )

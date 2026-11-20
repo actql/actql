@@ -1070,62 +1070,67 @@ test "Native finite Store profile retains explicit and legacy object quotas" {
 ///|
 // Actual bounded Project declaration readers, with only the three original
 // metadata documents present. No Host, Run, Account, payload read or IO grant.
-test "Native approval selects write metadata without reopening Model or Source payload" {
-  let directory = @env.get_env_var(
-      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
-    ).unwrap() +
-    "/deal-review-approval"
-  let project = local_project_read_from(
-      command().parse(argv=["check", "never-read.aql"]),
-      directory,
+test "Native checkpoint decisions select original metadata without reopening Model or Source payload" {
+  for operation in ["approve", "reject"] {
+    let directory = @env.get_env_var(
+        "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+      ).unwrap() +
+      "/deal-review-approval"
+    let project = local_project_read_from(
+        command().parse(argv=[operation, "original-checkpoint"]),
+        directory,
+      )
+      .unwrap()
+      .unwrap()
+    let selected = local_project_read_execution_bindings(
+        Some(project),
+        operation,
+      )
+      .unwrap()
+      .unwrap()
+    guard selected.mock_declarations is Some(original) else {
+      fail(operation + " must retain its actual declaration metadata")
+    }
+    defer original.retire()
+    assert_true(
+      physical_equal(project.metadata, original._retained_project.metadata),
     )
-    .unwrap()
-    .unwrap()
-  let selected = local_project_read_execution_bindings(Some(project), "approve")
-    .unwrap()
-    .unwrap()
-  guard selected.mock_declarations is Some(original) else {
-    fail("approval must retain its actual write metadata")
-  }
-  defer original.retire()
-  assert_true(
-    physical_equal(project.metadata, original._retained_project.metadata),
-  )
-  assert_eq(original._retained_tasks.length(), 0)
-  assert_true(original.model_profile is None)
-  assert_false(original.model_started)
-  original.prepare_source_declarations().unwrap()
-  guard original.sources
-    .iter()
-    .find_first(source => source._retained_connection == "salesforce")
-    is Some(source) else {
-    fail("original Salesforce declaration required")
-  }
-  assert_eq(source._retained_writes.length(), 1)
-  assert_true(source._retained_rows.length() > 0)
-  assert_true(
-    source._retained_writes[0].mapping.write_fields.contains("StageName"),
-  )
-  assert_true(
-    source._retained_writes[0].mapping.write_fields.contains("NextStep"),
-  )
-  assert_false(
-    source._retained_writes[0]._retained_observe_permission.is_empty(),
-  )
-  let mut clocks = 0
-  assert_true(
-    original.prepare_models(
-      local_project_mock_task_limits(),
-      local_project_mock_answer_limits(),
-      () => {
-        clocks += 1
-        "2026-01-01T00:00:00Z"
-      },
+    assert_eq(original._retained_tasks.length(), 0)
+    assert_true(original.model_profile is None)
+    assert_false(original.model_started)
+    original.prepare_source_declarations().unwrap()
+    guard original.sources
+      .iter()
+      .find_first(source => source._retained_connection == "salesforce")
+      is Some(source) else {
+      fail("original Salesforce declaration required")
+    }
+    assert_eq(source._retained_writes.length(), 1)
+    assert_true(source._retained_rows.length() > 0)
+    assert_true(
+      source._retained_writes[0].mapping.write_fields.contains("StageName"),
     )
-    is Err(ForeignOriginal),
-  )
-  assert_eq(clocks, 0)
-  assert_false(original.model_started)
-  assert_true(original.model_profile is None)
-  assert_eq(original.models.length(), 0)
+    assert_true(
+      source._retained_writes[0].mapping.write_fields.contains("NextStep"),
+    )
+    assert_false(
+      source._retained_writes[0]._retained_observe_permission.is_empty(),
+    )
+    let mut clocks = 0
+    assert_true(
+      original.prepare_models(
+        local_project_mock_task_limits(),
+        local_project_mock_answer_limits(),
+        () => {
+          clocks += 1
+          "2026-01-01T00:00:00Z"
+        },
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_eq(clocks, 0)
+    assert_false(original.model_started)
+    assert_true(original.model_profile is None)
+    assert_eq(original.models.length(), 0)
+  }
 }
