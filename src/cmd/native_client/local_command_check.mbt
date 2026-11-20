@@ -671,6 +671,16 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
+            // Bind the same installation/lookup metadata before the checking
+            // Environment is cached. This reads no Source payload and invokes
+            // no Model.
+            self.bind_project_mock_runtime(
+              self.runtime.unwrap_or_else(() => {
+                stop("LocalBusinessOriginalUnavailable")
+              }),
+              capture,
+              settings.principal,
+            )
             let context = local_check_context(
               host,
               crypto,

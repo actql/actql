@@ -831,9 +831,11 @@ jobs:
             ${{ runner.temp }}/native-installed/release/*.json
             ${{ runner.temp }}/native-installed/release/approval-*.txt
             ${{ runner.temp }}/native-installed/scratch/**/commands.json
+            ${{ runner.temp }}/native-installed/scratch/**/sequence-cases/*.json
             ${{ runner.temp }}/native-installed/scratch/**/*.stderr
             ${{ runner.temp }}/native-installed/scratch/**/approval-resources-*.txt
             /tmp/actql-native-mock-install-*/commands.json
+            /tmp/actql-native-mock-install-*/sequence-cases/*.json
             /tmp/actql-native-mock-install-*/*.stderr
             /tmp/actql-native-mock-install-*/approval-resources-*.txt
           if-no-files-found: error

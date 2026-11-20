@@ -971,6 +971,7 @@ fn native_mock_readme_request_in_metadata_read(
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
   static_explain? : Bool = false,
+  static_lookup_metadata? : Bool = true,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -982,12 +983,15 @@ fn native_mock_readme_request_in_metadata_read(
   original.prepare_source_declarations().unwrap()
   // SAME selected Native file implementation, with the explicit immutable
   // authority metadata port already disclosed for this source component.
-  original.file_sources = Some([
-    local_project_mock_file_source(
-      original.sources[1],
-      "sha256:" + "8".repeat(64),
-    ).unwrap(),
-  ])
+  if static_lookup_metadata {
+    original.file_sources = Some([
+      local_project_mock_file_source(
+        original.sources[1],
+        "sha256:" + "8".repeat(64),
+      ).unwrap(),
+    ])
+  }
+  assert_eq(original.file_lookup_policy() is Some(_), static_lookup_metadata)
   // Exact metadata-only ports of the existing installation projection. This
   // does not qualify Runtime/Account observations or authorize any operation.
   original.write_installations = Some(
@@ -2130,4 +2134,13 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
 ///|
 test "Native original README static explain retains its same Request compiler without execution" {
   native_project_mock_model_backed_read(false, static_explain=true)
+}
+
+///|
+test "Native original README static explain refuses an Environment without original lookup metadata" {
+  native_project_mock_model_backed_read(
+    false,
+    static_explain=true,
+    static_lookup_metadata=false,
+  )
 }

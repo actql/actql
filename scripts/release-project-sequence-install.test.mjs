@@ -162,6 +162,11 @@ test('RC actual command selects only Mac project sequences and preserves failure
   const formal = readFileSync(new URL('../scripts/test-native-approval-performance.mjs', import.meta.url), 'utf8');
   assert(!ordinary.includes('--release-project-sequences') && !formal.includes('--release-project-sequences'));
   const outputs = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path;
+  const sequenceCases = outputs.trim().split('\n').filter(path => path.includes('sequence-cases'));
+  assert.deepEqual(sequenceCases, [
+    '${{ runner.temp }}/native-installed/scratch/**/sequence-cases/*.json',
+    '/tmp/actql-native-mock-install-*/sequence-cases/*.json',
+  ], 'Retain only the existing bounded synthetic case records from either admitted scratch root');
   for (const forbidden of ['sequence-consumer', 'node_modules', '.actql', '*.request.json', 'keys/', '*.db'])
     assert(!outputs.includes(forbidden), forbidden);
 });
