@@ -3,7 +3,8 @@ import test from 'node:test';
 import {access, mkdtemp, mkdir, readFile, realpath, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {parse as parseModule} from 'acorn';
 import {execFile, spawnSync} from 'node:child_process';
 import {promisify} from 'node:util';
 import {readFileSync, chmodSync} from 'node:fs';
@@ -90,7 +91,7 @@ test('RC companion checks payload/lock on both sides of the original child and p
   t.after(() => rm(root, {recursive: true, force: true}));
   const directory = join(root, 'node-rc'), manifest = nodeManifest(), primary = new Error('original child failed');
   await mkdir(directory); await writeFile(join(directory, 'release.json'), JSON.stringify(manifest));
-  let calls = 0, originalLock, consumer, fail = false;
+  let calls = 0, originalLock, consumer, childEntry, fail = false;
   const prepared = await prepareReleaseProjectNode({directory, nativeManifest: native, root,
     originalNodeManifest: manifest, originalNodeManifestBytes: await readFile(join(directory, 'release.json')),
     repository: fileURLToPath(new URL('../', import.meta.url)), registry,
@@ -112,6 +113,7 @@ test('RC companion checks payload/lock on both sides of the original child and p
         return {code: 0, signal: null};
       }
       assert.equal(command, process.execPath);
+      childEntry = args[0];
       if (fail) {await writeFile(join(directory, 'release.json'), 'changed while failed'); throw primary;}
       await writeFile(args[2], JSON.stringify({pid: 4321, firstClose: {attempted: true, returned: true}}));
       return {code: 0, signal: null, pid: 4321};
@@ -125,7 +127,13 @@ test('RC companion checks payload/lock on both sides of the original child and p
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label));
   assert.equal(calls, before, 'Failed admission cannot start even the fixture child');
   await writeFile(join(consumer, 'package-lock.json'), originalLock);
-  const fixture = join(consumer, 'sequence.mjs'), originalFixture = await readFile(fixture);
+  const fixture = childEntry, originalFixture = await readFile(fixture);
+  const imports = parseModule(originalFixture.toString('utf8'), {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .filter(statement => statement.type === 'ImportDeclaration' && statement.source.value.startsWith('.'));
+  assert.equal(imports.length, 2);
+  const dependencies = await Promise.all(imports.map(statement => import(new URL(statement.source.value, pathToFileURL(fixture)))));
+  assert(dependencies.some(namespace => typeof namespace.runReleaseProjectNodeAction === 'function'));
+  assert(dependencies.some(namespace => typeof namespace.workflowWorkObservation === 'function'));
   await writeFile(fixture, 'foreign fixture implementation');
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label));
   assert.equal(calls, before);

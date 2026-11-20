@@ -921,3 +921,5 @@ target/
 /scripts/native-cli-mock-regressions.test.d.mts
 /adapters/host-node/fixtures/work-observation.fixture.mjs
 /adapters/host-node/fixtures/work-observation.fixture.d.mts
+/scripts/fixtures/release-project-sequence-node.mjs
+/scripts/fixtures/release-project-sequence-node.d.mts

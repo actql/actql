@@ -51,18 +51,21 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
   const installed = await run('npm', ['install', '--save-exact', '--ignore-scripts', '--engine-strict', '--no-audit', '--no-fund',
     `@actql/node@${manifest.cohort.packageVersion}`], consumer);
   assert.equal(installed.code, 0, installed.stderr); assert.equal(installed.signal, null);
+  // Preserve the emitted fixture's relative imports in the installed consumer.
+  const entry = 'scripts/fixtures/release-project-sequence-node.mjs';
   const fixtureBodies = new Map<string, Buffer>();
-  for (const [source, target] of [['scripts/fixtures/release-project-sequence-node.mjs', 'sequence.mjs'],
-    ['scripts/release-project-node-action.mjs', 'release-project-node-action.mjs'],
-    ['adapters/host-node/fixtures/work-observation.fixture.mjs', 'work-observation.fixture.mjs']]) {
-    fixtureBodies.set(target, await readFile(join(repository, source)));
-    await copyFile(join(repository, source), join(consumer, target), constants.COPYFILE_EXCL);
+  for (const member of [entry, 'scripts/release-project-node-action.mjs',
+    'adapters/host-node/fixtures/work-observation.fixture.mjs']) {
+    const source = join(repository, member), destination = join(consumer, member);
+    await mkdir(dirname(destination), {recursive: true});
+    fixtureBodies.set(member, await readFile(source));
+    await copyFile(source, destination, constants.COPYFILE_EXCL);
   }
 
   async function verify() {
     await verifySource();
     for (const [name, bytes] of fixtureBodies) assert.deepEqual(await readFile(join(consumer, name)), bytes,
-      'Original authored sequence fixture changed');
+      'Prepared sequence fixture changed');
     assert.deepEqual(await readFile(join(directory, 'release.json')), originalManifest);
     assert.deepEqual(await verifyManifest(directory), manifest);
     const scope = join(consumer, 'node_modules/@actql');
@@ -96,7 +99,7 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
     await writeFile(input, JSON.stringify(request) + '\n', {flag: 'wx', mode: 0o600});
     let primary: unknown, failed = false, response: Report | undefined;
     try {
-      const child = await run(process.execPath, [join(consumer, 'sequence.mjs'), input, output], project, 30_000);
+      const child = await run(process.execPath, [join(consumer, entry), input, output], project, 30_000);
       assert.equal(child.code, 0, child.stderr); assert.equal(child.signal, null);
       response = JSON.parse(await readFile(output, 'utf8')) as Report;
       assert.equal(response.pid, child.pid, 'Node report belongs to the actual exited child');
