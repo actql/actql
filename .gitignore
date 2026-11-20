@@ -915,3 +915,5 @@ target/
 /scripts/release-project-node-action.test.d.mts
 /scripts/release-project-sequences.mjs
 /scripts/release-project-sequences.d.mts
+/scripts/native-cli-mock-regressions.mjs
+/scripts/native-cli-mock-regressions.d.mts
