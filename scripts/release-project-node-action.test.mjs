@@ -4,18 +4,18 @@ import {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 function ports({decisionFailure, closeFailure, closeObservationFailure, foreignCheckpoint = false,
-  source = 'authored source', checkReply, resolutionFields = {}} = {}) {
+  source = 'authored source', checkReply, resolutionFields = {}, readonly = false} = {}) {
   const ref = {namespaceId: 'original-namespace', authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
   const original = {ref, runId: 'original-run', checkpointId: 'original-checkpoint', checkpointCid: 'sha256:' + 'c'.repeat(64)};
   const calls = [], closes = [], accepted = [];
   const checks = [], checkInputs = new WeakMap();
-  let status = 'waiting_checkpoint';
+  let status = readonly ? 'succeeded' : 'waiting_checkpoint';
   const state = () => ({version: 'actql-run-state/0.1', run_id: original.runId, status,
     checkpoint: {id: original.checkpointId, checkpoint_id: original.checkpointId, checkpoint_cid: original.checkpointCid}});
   const execution = {ref,
     async wait() {calls.push('wait'); return state();},
     async status() {calls.push('status'); return state();},
-    async result(name) {assert.equal(name, 'updates'); calls.push('result'); return {
+    async result(name) {assert.equal(name, readonly ? 'main' : 'updates'); calls.push('result'); return {
       async all() {calls.push('all'); return [{id: 'independent-result'}];},
       async describe() {calls.push('describe'); return {resultName: name, ref};},
     };},
@@ -31,7 +31,9 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
       ...resolutionFields})}]};
   };
   const client = {
-    async startSource(source, options) {assert.equal(source, 'authored source'); assert.equal(options.stopBefore, 'commit'); calls.push('start'); return execution;},
+    async startSource(source, options) {assert.equal(source, 'authored source');
+      assert.deepEqual(options, readonly ? {format: 'aql'} : {format: 'aql', stopBefore: 'commit'});
+      calls.push('start'); return execution;},
     async attach(value) {assert.deepEqual(value, ref); calls.push('attach'); return execution;},
     async checkpoints({checkpointId}) {assert.equal(checkpointId, original.checkpointId); calls.push('checkpoints'); return {items: [{
       checkpointId, checkpointCid: foreignCheckpoint ? 'sha256:' + 'd'.repeat(64) : original.checkpointCid,
@@ -45,6 +47,7 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
       const invalid = text.includes('.outcome = 1');
       const value = {outcome: 'completed', report: {scope: {kind: 'bound_input'},
         verdict: unknown ? 'undetermined' : invalid ? 'invalid' : 'verified',
+        ...(readonly ? {runnable: {verdict: 'yes'}} : {}),
         reasons: invalid ? [{code: 'expression_domain_mismatch', facts: {domain: 'key_comparable_operands'}}] : [],
         requirements: [], coverage: unknown ? {limits: [{code: 'unresolved_protected'}]} : {limits: []}}};
       const result = checkReply ? checkReply(value, text) : value;
@@ -81,6 +84,30 @@ test('RC immediate approval uses the same Client directly after wait without ano
   await assert.rejects(runReleaseProjectNodeAction({...asyncProbe.config,
     assertPendingTarget: async () => {}, request: {kind: 'start', decision: 'approved'}}), /must be synchronous/u);
   assert(!asyncProbe.calls.includes('approved'));
+});
+
+test('RC readonly original checks and starts once without approval, then cold reads main before status', async () => {
+  const f = ports({readonly: true});
+  const value = await runReleaseProjectNodeAction({...f.config, request: {kind: 'read', program: 'original.aql'}});
+  assert.deepEqual(value.original, {ref: f.original.ref, runId: f.original.runId});
+  assert.equal(value.state.status, 'succeeded'); assert.equal(value.description.resultName, 'main');
+  assert.deepEqual(value.rows, [{id: 'independent-result'}]);
+  assert(f.calls.indexOf('check') < f.calls.indexOf('start'));
+  assert(f.calls.indexOf('retain-accepted') < f.calls.indexOf('wait'));
+  for (const operation of ['start', 'wait', 'result', 'close'])
+    assert.equal(f.calls.filter(value => value === operation).length, 1);
+  assert(!f.calls.some(value => ['approved', 'rejected', 'checkpoints', 'review'].includes(value)));
+  const cold = ports({readonly: true});
+  await runReleaseProjectNodeAction({...cold.config, request: {kind: 'result', original: value.original, resultName: 'main'}});
+  assert(cold.calls.indexOf('all') < cold.calls.indexOf('status'));
+  assert(!cold.calls.includes('start')); assert.equal(cold.calls.at(-1), 'close');
+});
+
+test('RC readonly refusal stops before submission and still closes its own Client', async () => {
+  const f = ports({readonly: true, checkReply(value) {value.report.runnable.verdict = 'no'; return value;}});
+  await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}));
+  assert(!f.calls.includes('start')); assert(!f.calls.includes('wait')); assert.equal(f.accepted.length, 0);
+  assert.equal(f.calls.filter(value => value === 'close').length, 1);
 });
 
 for (const decision of ['approved', 'rejected']) for (const field of ['checkpoint_id', 'checkpoint_cid'])

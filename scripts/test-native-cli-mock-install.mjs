@@ -23,22 +23,26 @@ import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/proje
 import {verifyPackageRelease} from './package-release.mjs';
 import {assertReleaseProjectCohort, prepareReleaseProjectNode} from './release-project-sequence-install.mjs';
 import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements, projectCliExpectedExit} from './release-project-sequences.mjs';
+import {runOriginalMockRegressions} from './native-cli-mock-regressions.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 export function nativeMockInstallOptions(extra, platform) {
-  const selected = extra.indexOf('--release-project-sequences');
+  const selected = extra.findIndex(value => ['--release-project-sequences', '--original-mock-regressions'].includes(value));
   assert(selected < 0 || selected === extra.length - 2 && typeof extra[selected + 1] === 'string' && extra[selected + 1].length,
     'RC sequence selection requires exactly its Node RC directory');
   const options = nativeApprovalObservationOptions(selected < 0 ? extra : extra.slice(0, selected), platform);
   if (selected >= 0) {
     assert.equal(platform, 'darwin', 'The additional RC profile is the reported Mac consumer');
     options.projectSequenceNodeRelease = extra[selected + 1];
+    if (extra[selected] === '--original-mock-regressions') options.originalMockRegressions = true;
   }
   return options;
 }
 export async function runNativeCliMockInstall(input, {measureResources = false, diagnoseSyscalls = false,
-  releaseAdmission, projectSequenceNodeRelease} = {}) {
+  releaseAdmission, projectSequenceNodeRelease, originalMockRegressions = false} = {}) {
   assert(input, 'Native mock acceptance requires its fixed release directory');
+  assert(!originalMockRegressions || projectSequenceNodeRelease !== undefined,
+    'Original Mock regressions require the exact Node companion');
   const syscallTool = diagnoseSyscalls ? {
     path: '/usr/bin/strace',
     sha256: createHash('sha256').update(await readFile('/usr/bin/strace')).digest('hex'),
@@ -194,15 +198,17 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
           assert.equal(value.code, projectCliExpectedExit(args, label), value.stderr); assert.equal(value.signal, null);
           const groups = nativeMockAcceptanceObservations(nativeLauncherEnvelope(value.stderr, 'required').native);
           assert(groups.length > 0, 'Missing original Native work observation');
-          value.acceptance = requireNativeMockWork(args, groups, change.rows.length, {minimumWrites});
+          value.acceptance = requireNativeMockWork(args, groups, label.readonly ? 0 : change.rows.length,
+            {minimumWrites: label.readonly ? 0 : minimumWrites});
         } catch (cause) {primary = cause; failed = true;}
         try {await verify();} catch (cause) {if (!failed) {primary = cause; failed = true;}}
         if (failed) throw primary;
         return value;
       };
-      projectSequences = await observe('release-project-sequences', () => runReleaseProjectSequences({
+      projectSequences = await observe(originalMockRegressions ? 'original-mock-regressions' : 'release-project-sequences',
+        () => (originalMockRegressions ? runOriginalMockRegressions : runReleaseProjectSequences)({
         root: preparedNode.projects, cli, node: preparedNode.node,
-        persist: value => writeFile(join(preparedNode.cases, `${value.template}-${value.family}.json`),
+        persist: value => writeFile(join(preparedNode.cases, `${value.template}-${value.family}${value.name ? '-' + value.name : ''}.json`),
           JSON.stringify(value) + '\n', {flag: 'wx', mode: 0o600}),
       }));
       assert(projectSequences.length && projectSequences.every(value => value.complete));
@@ -219,7 +225,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       publicRegistryPublication: 'not-tested', harnessPhases, scenarios, records,
-      ...(projectSequences ? {projectSequences, nodeSourceSha: nodeManifest.sourceSha,
+      ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest.sourceSha,
         nodePackages: nodeManifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
         diagnostic: {purpose: 'native-approval-syscall-summary', tool: syscallTool,
