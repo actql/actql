@@ -67,6 +67,7 @@ const migratedTooling = new Map([
   ['scripts/test-execution.mjs', 'scripts/test-execution.mts'],
   ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
   ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
+  ['scripts/ci-main-base.mjs', 'scripts/ci-main-base.mts'],
 ]);
 const typescriptPreparationInputs = Object.freeze([
   'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',
@@ -88,7 +89,7 @@ export function proofToolingInputs(tree, originalPaths) {
     }
     if (path === 'scripts/ci-main-base.mjs') {
       const runtime = 'scripts/ci-core-partitions.mjs', original = 'scripts/ci-core-partitions.mts';
-      if (tree.entries.has(original)) addTyped(original, runtime);
+      if (tree.entries.has(authored) || tree.entries.has(original)) addTyped(original, runtime);
       else {
         // A legacy Git original retains its existing evidence key. A missing
         // companion cannot be treated as the historical tracked runtime.

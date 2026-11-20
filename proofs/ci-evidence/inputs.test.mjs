@@ -39,7 +39,7 @@ test('unrelated source and provenance changes preserve a closed Session input id
 
 test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no emitted aliases', () => {
   const files = new Map(base);
-  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader'];
+  const moved = ['scripts/test-execution', 'scripts/packed-query-evidence', 'scripts/ci-artifact-reader', 'scripts/ci-main-base'];
   const extra = ['scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts',
     'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts'];
   for (const stem of moved) {

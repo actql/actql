@@ -885,3 +885,5 @@ target/
 /scripts/ci-timing.d.mts
 /scripts/ci-preflight.mjs
 /scripts/ci-preflight.d.mts
+/scripts/ci-main-base.mjs
+/scripts/ci-main-base.d.mts

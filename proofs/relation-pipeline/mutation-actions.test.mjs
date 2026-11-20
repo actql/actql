@@ -26,7 +26,7 @@ test('the source adapter binds the actual committed wide pipeline inventory', ()
   const inputs = mutationSourceInputs({tree: gitTree(root, result.stdout.trim()), source, root});
   assert(inputs.files.length >= Object.keys(source.sources).length);
   assert(inputs.files.some(entry => entry.path === 'proofs/ci-evidence/Reuse.lean'));
-  for (const path of ['scripts/ci-artifact-reader.mts', 'scripts/ci-core-partitions.mts', 'scripts/owned-scratch.mts',
+  for (const path of ['scripts/ci-artifact-reader.mts', 'scripts/ci-main-base.mts', 'scripts/ci-core-partitions.mts', 'scripts/owned-scratch.mts',
     'tsconfig.base.json', 'tsconfig.tooling.json']) {
     assert(inputs.files.some(entry => entry.path === path), path);
   }
