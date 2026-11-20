@@ -35,9 +35,8 @@ import {
   canonicalJson,
   contentCid,
   createLocalAuthorizationGate,
-  localAuthorizationContext,
-  readAccountConfiguration,
 } from '../../../../host-node/local-account-config.mjs';
+import {localHostAccountContext} from './local-account-context.mjs';
 import {ExecutionAuthorizationError, admitResumedDispatch, decisionSubjectCid}
   from '../../../../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
@@ -194,30 +193,11 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   const reviewerIds = config.reviewers.map(item => item.reviewerId);
   const runtime = await loadCheckpointRuntime();
   const privateKey = await loadPrivateEvidenceKey(state);
+  const strategyRuntime = await import(storeRuntimeUrl.href);
 
   // Current trusted context: the admitted configuration text/CID (if any),
   // the context CID and the bound authorization-context CID for resumption.
-  async function currentContext() {
-    let configuration;
-    let unreadable = false;
-    if (config.accountConfig !== undefined) {
-      try { configuration = await readAccountConfiguration(config.accountConfig); }
-      catch { unreadable = true; }
-    }
-    const context = localAuthorizationContext(config.principal,
-      configuration?.accountId);
-    return Object.freeze({
-      configuration,
-      unreadable,
-      context,
-      authorizationContextCid: contentCid({
-        principal: config.principal,
-        context_cid: context.contextCid,
-        configuration_cid: configuration?.configurationCid ??
-          (unreadable ? 'unreadable' : 'missing'),
-      }),
-    });
-  }
+  const currentContext = () => localHostAccountContext(config, strategyRuntime);
   let context = await currentContext();
 
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
@@ -270,8 +250,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
     stateDirectory: state,
     isTerminalRunOutcome: journal.isTerminalRunOutcome,
     ...privateKey,
-    contractControl: runtimeCore(await import(storeRuntimeUrl.href))
-      .publicationControl,
+    contractControl: runtimeCore(strategyRuntime).publicationControl,
     preparation(prepareAttemptId) {
       const current = journal.getPreparation(prepareAttemptId);
       if (current === undefined) return undefined;
@@ -541,6 +520,8 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       try {
         gate = counting(await createLocalAuthorizationGate({
           accountConfiguration: context.configuration?.text,
+          configurationCid: context.configuration?.configurationCid,
+          admitConfiguration: context.configuration?.admitConfiguration,
           context: context.context,
           decide,
           answeringAuthorities: answeringAuthorities ?? [],
@@ -831,6 +812,8 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       };
       const gate = counting(await createLocalAuthorizationGate({
         accountConfiguration: context.configuration?.text,
+        configurationCid: context.configuration?.configurationCid,
+        admitConfiguration: context.configuration?.admitConfiguration,
         context: context.context,
         decide: resumeDecide,
         answeringAuthorities: [...new Set([...reviewerIds,
