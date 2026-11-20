@@ -8217,7 +8217,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-protocol-failures.test.mjs",
+                "path": "packages/sdk/check-protocol-failures.test.mts",
                 "anchor": "test("
               }
             ]

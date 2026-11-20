@@ -1,3 +1,4 @@
+import type {CheckOutcome, Client, ClientError, CheckRequirementFrontier} from './index.d.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCheckSupplementationSession, getCheckRequirementFrontier,
@@ -5,10 +6,10 @@ import {createCheckSupplementationSession, getCheckRequirementFrontier,
 
 test('supplementation requires an explicit finite positive attempt cap', () => {
   for (const maxAttempts of [undefined, 0, -1, 1.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
-    assert.throws(() => createCheckSupplementationSession({check() {}}, {maxAttempts}),
+    assert.throws(() => createCheckSupplementationSession({check() {}} as unknown as Pick<Client, 'check'>, {maxAttempts} as {maxAttempts: number}),
       {code: 'InvalidCheckSupplementationSession'});
   }
-  assert.throws(() => createCheckSupplementationSession({}, {maxAttempts: 1}),
+  assert.throws(() => createCheckSupplementationSession({} as Pick<Client, 'check'>, {maxAttempts: 1}),
     {code: 'InvalidCheckSupplementationSession'});
 });
 
@@ -22,16 +23,16 @@ test('transport failures consume the attempt cap without manufacturing an outcom
     assert.equal(calls, attempt);
   }
   await assert.rejects(session.check('SELECT 1', {kind: 'text', scope: 'bound_input', format: 'sql'}), error =>
-    error.code === 'CheckSupplementationStopped' && error.attempts === 2 &&
-    error.maxAttempts === 2 && error.decision.reason === 'attempt_budget');
+    (error as ClientError).code === 'CheckSupplementationStopped' && (error as {attempts: number}).attempts === 2 &&
+    (error as {maxAttempts: number}).maxAttempts === 2 && (error as {decision: {reason: string}}).decision.reason === 'attempt_budget');
   assert.equal(calls, 2);
 });
 
 test('overlapping supplementation calls refuse before consuming another attempt', async () => {
-  let release, calls = 0;
+  let release!: (value: unknown) => void, calls = 0;
   const response = {outcome: 'completed'};
   const session = createCheckSupplementationSession({check() {
-    calls++; return new Promise(resolve => {release = resolve;});
+    calls++; return new Promise<CheckOutcome>(resolve => {release = resolve as (value: unknown) => void;});
   }}, {maxAttempts: 3});
   const pending = session.check('SELECT 1', {kind: 'text', scope: 'bound_input', format: 'sql'});
   await assert.rejects(session.check('SELECT 2', {kind: 'text', scope: 'bound_input', format: 'sql'}),
@@ -51,6 +52,6 @@ test('overlapping supplementation calls refuse before consuming another attempt'
 
 test('unassociated and copied reports do not create comparable Requirement frontiers', () => {
   const report = {outcome: 'completed', report: {verdict: 'verified'}};
-  assert.equal(getCheckRequirementFrontier(report), undefined);
-  assert.equal(equalCheckRequirementFrontiers(report, structuredClone(report)), undefined);
+  assert.equal(getCheckRequirementFrontier(report as CheckOutcome), undefined);
+  assert.equal(equalCheckRequirementFrontiers(report as unknown as CheckOutcome, structuredClone(report) as unknown as CheckOutcome), undefined);
 });

@@ -184,3 +184,11 @@ target/
 /packages/sdk/original-result-intake.test.d.mts
 /packages/sdk/original-query-intake.test.mjs
 /packages/sdk/original-query-intake.test.d.mts
+
+# Generated maintained Check presentation and refusal regressions.
+/packages/sdk/check-output-formats.test.mjs
+/packages/sdk/check-output-formats.test.d.mts
+/packages/sdk/check-requirement-frontier.test.mjs
+/packages/sdk/check-requirement-frontier.test.d.mts
+/packages/sdk/check-protocol-failures.test.mjs
+/packages/sdk/check-protocol-failures.test.d.mts

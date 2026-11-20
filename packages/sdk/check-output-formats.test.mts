@@ -1,3 +1,4 @@
+import type {CheckFormatOptions} from './index.d.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -5,13 +6,14 @@ import {formatCheckOutcome, explainCheckOutcome} from './index.mjs';
 import {checkOutcomeSchemaCid, checkReasonSchemaCid} from '@actql/client-wire';
 const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
   outcome_schema_cid: checkOutcomeSchemaCid};
-const report = (verdict, reasons = [], requirements = [], limits = [], unresolved = []) =>
+type Entry = {code: string; facts?: Record<string, unknown>};
+const report = (verdict: string, reasons: Entry[] = [], requirements: Entry[] = [], limits: Entry[] = [], unresolved: unknown[] = []) =>
   ({scope: {kind: 'bound_input'}, context_ref: 'ctx:fixture', verdict,
     runnable: verdict === 'verified' ? {verdict: 'yes', reasons: []} :
       {verdict: 'no', reasons: [...reasons, ...requirements, ...limits].slice(0, 1).map(({code}) => ({code}))},
     inputs: [{document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 8}],
-    reasons, requirements, coverage: {limits, unresolved}});
-const completed = (...args) => ({...metadata, outcome: 'completed', report: report(...args)});
+    reasons, requirements, coverage: {limits, unresolved}} as {scope: {kind: string}; context_ref: string; verdict: string; runnable: {verdict: string; reasons: {code: string}[]}; inputs: {document_id: string; kind: string; revision: string; byte_length: number}[]; reasons: Entry[]; requirements: Entry[]; coverage: {limits: Entry[]; unresolved: unknown[]}; omissions?: {requirements: boolean}});
+const completed = (...args: Parameters<typeof report>) => ({...metadata, outcome: 'completed', report: report(...args)});
 
 test('check formats keep invalid, missing and limited observations distinct', () => {
   const fixtures = [
@@ -22,26 +24,26 @@ test('check formats keep invalid, missing and limited observations distinct', ()
     completed('verified'),
   ];
   for (const outcome of fixtures) {
-    const json = JSON.parse(formatCheckOutcome(outcome, {format: 'json'}));
+    const json = JSON.parse(formatCheckOutcome(outcome, {format: 'json'})!);
     assert.deepEqual(json.observation, explainCheckOutcome(outcome), '[check-mutation:format-verdict]');
     assert.equal(json.omittedEntries, 0);
     assert.equal(json.reasonSchemaCid, outcome.reason_schema_cid);
     assert.equal(json.outcomeSchemaCid, outcome.outcome_schema_cid);
-    assert.match(formatCheckOutcome(outcome), new RegExp('^completed/' + outcome.report.verdict));
-    assert.match(formatCheckOutcome(outcome, {format: 'html'}), /^<section><h2>completed\//u);
+    assert.match(formatCheckOutcome(outcome)!, new RegExp('^completed/' + outcome.report.verdict));
+    assert.match(formatCheckOutcome(outcome, {format: 'html'})!, /^<section><h2>completed\//u);
   }
-  assert.equal(JSON.parse(formatCheckOutcome(fixtures[1], {format: 'json'})).entries[0].kind, 'requirement');
-  assert.equal(JSON.parse(formatCheckOutcome(fixtures[2], {format: 'json'})).entries[0].kind, 'limit');
+  assert.equal(JSON.parse(formatCheckOutcome(fixtures[1], {format: 'json'})!).entries[0].kind, 'requirement');
+  assert.equal(JSON.parse(formatCheckOutcome(fixtures[2], {format: 'json'})!).entries[0].kind, 'limit');
 });
 
 test('partial and unavailable formatting never invents verification or a report', () => {
   const partial = {...metadata, outcome: 'failed', correlation_ref: 'corr:a', problem: {code: 'check_internal'},
     partial_report: report('invalid', [{code: 'query_syntax_invalid'}])};
   const unavailable = {...metadata, outcome: 'unavailable', correlation_ref: 'corr:a', problem: {code: 'check_unavailable'}};
-  const first = JSON.parse(formatCheckOutcome(partial, {format: 'json'}));
+  const first = JSON.parse(formatCheckOutcome(partial, {format: 'json'})!);
   assert.equal(first.observation.report.completeness, 'partial');
   assert.equal(first.observation.outcome, 'failed');
-  const second = JSON.parse(formatCheckOutcome(unavailable, {format: 'json'}));
+  const second = JSON.parse(formatCheckOutcome(unavailable, {format: 'json'})!);
   assert.equal(Object.hasOwn(second.observation, 'report'), false);
   assert.deepEqual(second.entries, []);
   assert.equal(formatCheckOutcome({...partial, partial_report: report('verified')}), undefined);
@@ -53,7 +55,7 @@ test('formatting rejects malformed known facts and unknown protocol states', () 
     assert.equal(formatCheckOutcome(outcome), undefined);
   }
   const unknown = completed('invalid', [{code: 'future_reason'}]);
-  const entry = JSON.parse(formatCheckOutcome(unknown, {format: 'json'})).entries[0];
+  const entry = JSON.parse(formatCheckOutcome(unknown, {format: 'json'})!).entries[0];
   assert.equal(entry.explanationKind, 'unknown');
   assert.equal(Object.hasOwn(entry, 'hint'), false);
 });
@@ -62,10 +64,10 @@ test('display formats escape controls, bidi and markup while retaining data', ()
   const parameter = '<img src=x onerror="run()">\u202e\u2066\u061c\u007f\u0085\u001b[2J\u009b2J\n';
   const outcome = completed('invalid', [{code: 'supplied_value_type_mismatch',
     facts: {parameter, expected_type: 'number', actual_type: 'string'}}]);
-  const text = formatCheckOutcome(outcome);
-  const html = formatCheckOutcome(outcome, {format: 'html'});
-  const json = formatCheckOutcome(outcome, {format: 'json'});
-  for (const output of [text, html, json]) assert.doesNotMatch(output, /[\u202e\u2066\u061c\u007f\u0085\u001b\u009b]/u,
+  const text = formatCheckOutcome(outcome)!;
+  const html = formatCheckOutcome(outcome, {format: 'html'})!;
+  const json = formatCheckOutcome(outcome, {format: 'json'})!;
+  for (const output of [text, html, json]) assert.doesNotMatch(output!, /[\u202e\u2066\u061c\u007f\u0085\u001b\u009b]/u,
     '[check-mutation:format-controls]');
   assert.doesNotMatch(html, /<img|onerror="run/u, '[check-mutation:format-markup]');
   assert.match(html, /&lt;img/u);
@@ -77,18 +79,18 @@ test('display formats escape controls, bidi and markup while retaining data', ()
 test('bounded formats explicitly count omitted entries without changing verdict', () => {
   const outcome = completed('invalid', Array.from({length: 30}, () => ({code: 'supplied_value_type_mismatch',
     facts: {parameter: 'é'.repeat(256), expected_type: 'number', actual_type: 'string'}})));
-  for (const format of ['text', 'html', 'json']) {
+  for (const format of ['text', 'html', 'json'] as const) {
     const output = formatCheckOutcome(outcome, {format, maxBytes: 1024});
-    assert.ok(Buffer.byteLength(output) <= 1024);
+    assert.ok(Buffer.byteLength(output!) <= 1024);
     if (format === 'json') {
-      const model = JSON.parse(output);
+      const model = JSON.parse(output!);
       assert.equal(model.observation.report.verdict, 'invalid', '[check-mutation:format-verdict]');
       assert.equal(model.omittedEntries, 30 - model.entries.length, '[check-mutation:format-omitted]');
       assert.ok(model.omittedEntries > 0, '[check-mutation:format-omitted]');
-    } else assert.match(output, /Omitted entries: [1-9][0-9]*\./u, '[check-mutation:format-omitted]');
+    } else assert.match(output!, /Omitted entries: [1-9][0-9]*\./u, '[check-mutation:format-omitted]');
   }
   for (const options of [{format: 'future'}, {maxBytes: 0}, {maxBytes: Infinity}, {maxBytes: 1048577}])
-    assert.equal(formatCheckOutcome(outcome, options), undefined);
+    assert.equal(formatCheckOutcome(outcome, options as CheckFormatOptions), undefined);
 });
 
 test('locale callbacks cannot retarget the captured public observation', () => {
@@ -96,7 +98,7 @@ test('locale callbacks cannot retarget the captured public observation', () => {
   const output = formatCheckOutcome(outcome, {format: 'json', get locale() {
     outcome.report.verdict = 'verified'; outcome.report.reasons = []; return 'ja';
   }});
-  const json = JSON.parse(output);
+  const json = JSON.parse(output!);
   assert.equal(json.observation.report.verdict, 'invalid', '[check-mutation:format-verdict]');
   assert.equal(json.entries[0].code, 'query_syntax_invalid');
   assert.equal(json.presentation.locale, 'ja');
@@ -108,11 +110,11 @@ test('Host Requirement omissions remain distinct from renderer omissions and ver
   const outcome = completed('invalid', [{code: 'query_syntax_invalid'}], [], [{code: 'bound_values_missing'}]);
   outcome.report.omissions = {requirements: true};
   for (const locale of ['en', 'ja']) {
-    const model = JSON.parse(formatCheckOutcome(outcome, {format: 'json', locale}));
+    const model = JSON.parse(formatCheckOutcome(outcome, {format: 'json', locale})!);
     assert.deepEqual(model.observation.report.omissions, {requirements: true}, '[check-mutation:omissions-presentation]');
     assert.equal(model.observation.report.verdict, 'invalid');
     assert.equal(model.omittedEntries, 0);
-    for (const format of ['text', 'html']) assert.match(formatCheckOutcome(outcome, {format, locale}),
+    for (const format of ['text', 'html'] as const) assert.match(formatCheckOutcome(outcome, {format, locale})!,
       locale === 'ja' ? /省略しました/ : /Host omitted/);
   }
   for (const omissions of [{requirements: false}, {requirements: 42}, {requirements: true, count: 512}, {reasons: true}]) {

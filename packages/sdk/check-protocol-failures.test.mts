@@ -1,3 +1,5 @@
+import type {TestContext} from 'node:test';
+import type {CheckOutcome, ClientError as SdkFailure, CheckFailureInput} from './index.d.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -12,14 +14,14 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096, maxRows: 10,
     maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
-const capture = async promise => {
+const capture = async (promise: Promise<unknown>) => {
   try { await promise; assert.fail('Expected protocol rejection'); }
-  catch (error) { assert.equal(error.code, 'InvalidHostCheckOutcome'); return error; }
+  catch (error) { assert.equal((error as SdkFailure).code, 'InvalidHostCheckOutcome'); return error as {-readonly [K in keyof SdkFailure]: SdkFailure[K]} & {kind?: string; severity?: string; problem?: string}; }
 };
-async function client(t, reply) {
-  const calls = [];
+async function client(t: TestContext, reply: (body: Record<string, unknown>) => unknown) {
+  const calls: {operation: string; body: Record<string, unknown>}[] = [];
   const value = await connectInProcess({mode: 'local', owner: 'local'}, {
-    async perform(operation, body) {
+    async perform(operation: string, body: Record<string, unknown>) {
       calls.push({operation, body});
       if (operation === 'connect') return profile;
       if (operation === 'check') return reply(body);
@@ -48,21 +50,21 @@ test('check protocol failures distinguish unknown outcomes from malformed known 
     const {value, calls} = await client(t, () => reply);
     const error = await capture(value.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'}));
     const view = explainCheckFailure(error);
-    assert.deepEqual({kind: view.kind, problem: view.problem}, {kind, problem},
+    assert.deepEqual({kind: view!.kind, problem: view!.problem}, {kind, problem},
       '[check-mutation:protocol-failure-kind]');
     assert.equal(calls.filter(call => call.operation === 'check').length, 1);
     for (const field of ['verdict', 'report', 'scope', 'contextRef', 'correlationRef', 'next', 'ref']) {
-      assert.equal(Object.hasOwn(view, field), false);
+      assert.equal(Object.hasOwn(view!, field), false);
     }
     assert.equal(explainCheckOutcome(error), undefined);
-    assert.equal(getCheckInput(error, 'source'), undefined);
-    assert.equal(resolveCheckLocation(error, fixture.report.reasons[0].location), undefined);
+    assert.equal(getCheckInput(error as unknown as CheckOutcome, 'source'), undefined);
+    assert.equal(resolveCheckLocation(error as unknown as CheckOutcome, fixture.report.reasons[0].location), undefined);
   }
 });
 
 test('check protocol failures retain each original submitted snapshot only under its real error', async t => {
-  let release;
-  const barrier = new Promise(resolve => { release = resolve; });
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
   const reused = {...admittedHeader(), outcome: 'future'};
   const {value, calls} = await client(t, async () => { await barrier; return reused; });
   const declarations = {x: {type: 'string', default: 'e\u0301\r\n😀'}};
@@ -79,8 +81,8 @@ test('check protocol failures retain each original submitted snapshot only under
     parameters: {x: 'private-submitted-value'}}, '[check-mutation:protocol-failure-input]');
   assert.deepEqual(getCheckFailureInput(errors[1]), {kind: 'text', scope: 'bound_input', text: 'SELECT @x AS other', format: 'aql-text',
     parameters: {x: 'edited'}});
-  assert.equal(Object.isFrozen(getCheckFailureInput(errors[0]).parameterDeclarations.x), true);
-  assert.equal(Object.hasOwn(getCheckFailureInput(errors[0]), 'revision'), false);
+  assert.equal(Object.isFrozen((getCheckFailureInput(errors[0]) as {parameterDeclarations: {x: unknown}}).parameterDeclarations.x), true);
+  assert.equal(Object.hasOwn(getCheckFailureInput(errors[0])!, 'revision'), false);
   for (const error of errors) {
     const serialized = JSON.stringify(error);
     for (const secret of [text, 'private-submitted-value', 'parameterDeclarations', 'report', 'future']) {
@@ -101,10 +103,10 @@ test('check protocol failure presentation is immutable across hostile display op
   const en = explainCheckFailure(error);
   error.code = 'Success'; error.message = 'verified'; error.kind = 'verified'; error.severity = 'info';
   const ja = explainCheckFailure(error, {get locale() { error.problem = 'verified'; return 'ja'; }});
-  assert.deepEqual({kind: ja.kind, problem: ja.problem}, {kind: 'uninterpretable', problem: 'unknown_outcome'},
+  assert.deepEqual({kind: ja!.kind, problem: ja!.problem}, {kind: 'uninterpretable', problem: 'unknown_outcome'},
     '[check-mutation:protocol-failure-presentation]');
-  assert.equal(ja.summary, 'このSDKでは検査応答のoutcomeを解釈できません。');
-  assert.deepEqual(explainCheckFailure(error, {get locale() { throw new Error('private locale'); }}), en);
+  assert.equal(ja!.summary, 'このSDKでは検査応答のoutcomeを解釈できません。');
+  assert.deepEqual(explainCheckFailure(error, {get locale(): string { throw new Error('private locale'); }}), en);
   assert.equal(Object.isFrozen(ja), true);
   assert.equal(calls.filter(call => call.operation === 'check').length, 1);
 });
@@ -118,7 +120,7 @@ test('check protocol failure classification does not evaluate rejected reply acc
   const {value} = await client(t, () => reply);
   const error = await capture(value.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'}));
   assert.equal(reads, 1);
-  assert.equal(explainCheckFailure(error).problem, 'malformed_response');
+  assert.equal(explainCheckFailure(error)!.problem, 'malformed_response');
   assert.equal(JSON.stringify(error).includes('private malformed wire'), false);
   assert.equal(error.cause, undefined);
 });
@@ -127,7 +129,7 @@ test('check protocol failures do not brand input or transport refusal as a diagn
   const refusal = new ClientError('ClientHostFailure');
   const {value} = await client(t, () => { throw refusal; });
   await assert.rejects(value.check('\ud800', {kind: 'text', scope: 'bound_input', format: 'sql'}), error => {
-    assert.equal(error.code, 'InvalidCheckRequest');
+    assert.equal((error as SdkFailure).code, 'InvalidCheckRequest');
     assert.equal(explainCheckFailure(error), undefined);
     assert.equal(getCheckFailureInput(error), undefined); return true;
   });
@@ -139,9 +141,9 @@ test('check protocol failures do not brand input or transport refusal as a diagn
 for (const asynchronous of [false, true]) {
   test(`check does not brand ${asynchronous ? 'asynchronous' : 'synchronous'} credential failures as received replies`, async t => {
     const refusal = new Error('Synthetic credential provider refusal');
-    const requests = [];
+    const requests: string[] = [];
     let credentials = 0;
-    t.mock.method(globalThis, 'fetch', async url => {
+    t.mock.method(globalThis, 'fetch', async (url: URL) => {
       requests.push(url.pathname);
       assert.equal(url.pathname, '/actql/client/0.1/connect');
       return Response.json({...profile, mode: 'remote', owner: 'remote'});
@@ -166,9 +168,9 @@ for (const asynchronous of [false, true]) {
 }
 
 test('check still brands malformed received JSON after successful credentials', async t => {
-  const requests = [];
+  const requests: string[] = [];
   let credentials = 0;
-  t.mock.method(globalThis, 'fetch', async url => {
+  t.mock.method(globalThis, 'fetch', async (url: URL) => {
     requests.push(url.pathname);
     if (url.pathname === '/actql/client/0.1/connect') {
       return Response.json({...profile, mode: 'remote', owner: 'remote'});
@@ -182,7 +184,7 @@ test('check still brands malformed received JSON after successful credentials', 
   assert.equal(credentials, 2);
   assert.deepEqual(requests, ['/actql/client/0.1/connect', '/actql/client/0.1/check']);
   const view = explainCheckFailure(error);
-  assert.deepEqual({kind: view.kind, problem: view.problem},
+  assert.deepEqual({kind: view!.kind, problem: view!.problem},
     {kind: 'protocol_failure', problem: 'malformed_response'});
   assert.deepEqual(getCheckFailureInput(error),
     {kind: 'text', scope: 'bound_input', text: 'SELECT 1 AS n', format: 'sql', parameters: null});
