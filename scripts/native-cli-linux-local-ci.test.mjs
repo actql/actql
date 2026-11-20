@@ -347,7 +347,7 @@ test('selected Linux compiler acquisition keeps official signed sources and fini
 
 // Exercise only the selected shell control flow. No APT, network, compiler or
 // system repository is invoked; the absolute paths use private fixtures.
-function compilerAcquisitionControl(failure) {
+function compilerAcquisitionControl(failure, {closedDiagnostic = false} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'actql-compiler-acquisition-'));
   try {
     const bin = join(root, 'bin'), mirror = join(root, 'apt-mirrors.txt');
@@ -360,7 +360,10 @@ function compilerAcquisitionControl(failure) {
     const sudo = join(bin, 'sudo');
     writeFileSync(sudo, `#!/bin/bash
 set -euo pipefail
-if [[ "$1" == tee ]]; then exec /usr/bin/tee "$2"; fi
+if [[ "$1" == tee ]]; then
+  if [[ "$ACQUISITION_FAILURE" == mirror ]]; then exit 97; fi
+  exec /usr/bin/tee "$2"
+fi
 [[ "$1" == apt-get ]] || exit 99
 printf '%s\\n' "$*" >> "$ACQUISITION_CALLS"
 if [[ "$*" == *' update '* && "$ACQUISITION_FAILURE" == update ]]; then exit 100; fi
@@ -377,11 +380,11 @@ fi
       .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
     // Bound the fake-command probe without making shell startup a 3s CI target.
-    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 10000,
+    const result = spawnSync('bash', ['-c', (closedDiagnostic ? 'exec 2>&-\n' : '') + shell], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
         ACQUISITION_COMPILER: compiler, ACQUISITION_FAILURE: failure}});
     assert.equal(result.error, undefined);assert.equal(result.signal, null);
-    return {status: result.status, mirror: readFileSync(mirror, 'utf8'), sources,
+    return {status: result.status, stdout: result.stdout, stderr: result.stderr, mirror: readFileSync(mirror, 'utf8'), sources,
       calls: existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n') : []};
   } finally {rmSync(root, {recursive: true, force: true});}
 }
@@ -389,6 +392,7 @@ fi
 test('compiler acquisition selects the canonical Ubuntu mirror before update and exact clang install', () => {
   const result = compilerAcquisitionControl('none');
   assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
   assert.equal(result.mirror, 'https://archive.ubuntu.com/ubuntu/\n');
   assert.deepEqual(result.calls, [
     `apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=- update --error-on=any`,
@@ -397,11 +401,27 @@ test('compiler acquisition selects the canonical Ubuntu mirror before update and
 });
 
 test('compiler acquisition fails closed on update, fetch and missing selected executable', () => {
-  for (const [failure, code, calls] of [['sources', 1, 0], ['update', 100, 1], ['install', 100, 2], ['missing', 1, 2]]) {
+  for (const [failure, code, calls, stage] of [
+    ['sources', 1, 0, 'require-ubuntu-sources'],
+    ['mirror', 97, 0, 'select-ubuntu-mirror'],
+    ['update', 100, 1, 'update-ubuntu-index'],
+    ['install', 100, 2, 'install-clang'],
+    ['missing', 1, 2, 'verify-selected-clang'],
+  ]) {
     const result = compilerAcquisitionControl(failure);
     assert.equal(result.status, code, failure);
     assert.equal(result.calls.length, calls, failure);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, `ActQL Linux compiler preparation failed: stage=${stage} status=${code}\n`);
   }
+});
+
+test('compiler acquisition diagnostic failure cannot replace the original command status', () => {
+  const result = compilerAcquisitionControl('update', {closedDiagnostic: true});
+  assert.equal(result.status, 100);
+  assert.equal(result.calls.length, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
 });
 
 
