@@ -15,13 +15,24 @@ import {assertNativeLocalFreshRuntimeRecipe} from './native-cli-default-assets.m
 import {admitCompletedNativeLocalProvider} from './native-cli-completed-provider.mjs';
 import {prepareNativeVersionCompiler, observeNativePackageVersion, nativePackageVersion} from './native-cli-version.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+
+type RuntimeRecipe = Parameters<typeof prepareNativeLocalRuntime>[1];
+type Options = {verbose?: boolean; localRuntime?: RuntimeRecipe; compileSeconds?: number;
+  completedLocalProvider?: boolean; packageVersion?: string};
+type CompilerObservation = (tool: string, args: readonly string[], options: {encoding: 'utf8'; maxBuffer: number}) => string;
+type ChildFailure = {stdout?: string | Uint8Array; stderr?: string | Uint8Array;
+  code?: string | number; status?: number | null; signal?: NodeJS.Signals | null};
+type VersionCompiler = Awaited<ReturnType<typeof prepareNativeVersionCompiler>>;
+type ProviderReceipt = Awaited<ReturnType<typeof admitCompletedNativeLocalProvider>>['receipt'];
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const run = (command, args, {timeout = 300_000, env = process.env} = {}) => execFileSync(command, args, {cwd: repository,
+const hash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const run = (command: string, args: readonly string[], {timeout = 300_000, env = process.env} = {}) => execFileSync(command, args, {cwd: repository,
   encoding: 'utf8', timeout, env, maxBuffer: 8 * 1024 * 1024});
 
-export function inspectNativeAbi(binary, platform, execute = execFileSync) {
-  const inspect = (tool, args) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
+export function inspectNativeAbi(binary: string, platform: string, execute: CompilerObservation = execFileSync) {
+  const inspect = (tool: string, args: readonly string[]) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
   if (platform === 'darwin-arm64') {
     const loadCommands = inspect('otool', ['-l', binary]);
     const minimumMacOS = /\bcmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos (\d+\.\d+(?:\.\d+)?)/u.exec(loadCommands)?.[1];
@@ -35,16 +46,16 @@ export function inspectNativeAbi(binary, platform, execute = execFileSync) {
     .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   assert(versions.length, 'No observed executable glibc symbol requirements');
   const dynamic = inspect('readelf', ['-d', binary]);
-  return {format: 'ELF', minimumGlibc: versions.at(-1).join('.'),
+  return {format: 'ELF', minimumGlibc: versions.at(-1)!.join('.'),
     sharedLibraries: [...dynamic.matchAll(/\(NEEDED\).*?\[([^\]]+)\]/gu)].map(v => v[1]),
     versionInfo, dynamic, httpLibrary: 'libcurl.so.4', httpLibraryBundled: false,
     httpLibraryRequirements: 'Separately supplied libcurl and its transitive dependencies may require a newer glibc than the executable.'};
 }
 
 // This bounds compilation time only; it changes neither compiler flags nor admission.
-export function nativeCliCompileBudget(compileSeconds, scoped = false) {
+export function nativeCliCompileBudget(compileSeconds: unknown, scoped: unknown = false) {
   assert.equal(typeof scoped, 'boolean');
-  const seconds = compileSeconds === undefined ? (scoped ? 900 : 300) : compileSeconds;
+  const seconds = compileSeconds === undefined ? (scoped ? 900 : 300) : compileSeconds as number;
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 86400,
     'compileSeconds must be an integer from 1 to 86400');
   return {seconds, timeoutMs: (seconds + (scoped ? 30 : 0)) * 1000};
@@ -52,7 +63,7 @@ export function nativeCliCompileBudget(compileSeconds, scoped = false) {
 
 // Actual producer selection only. The same target's original scoped provider
 // and component observations still decide whether a Local artifact can exist.
-export function nativeLocalCompilerArguments(platform, {clang, sdk}) {
+export function nativeLocalCompilerArguments(platform: string, {clang, sdk}: {clang: unknown; sdk?: unknown}) {
   assert(typeof clang === 'string' && isAbsolute(clang));
   if (platform === 'darwin-arm64') {
     assert(typeof sdk === 'string' && isAbsolute(sdk));
@@ -63,8 +74,8 @@ export function nativeLocalCompilerArguments(platform, {clang, sdk}) {
   return ['--clang', clang, '--target', 'linux-x64'];
 }
 
-export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime, compileSeconds,
-  completedLocalProvider = false, packageVersion} = {}) {
+export async function buildNativeCliArtifact(destination: string, {verbose = false, localRuntime, compileSeconds,
+  completedLocalProvider = false, packageVersion}: Options = {}) {
   const selectedVersion = packageVersion === undefined ? undefined : nativePackageVersion(packageVersion);
   const budget = nativeCliCompileBudget(compileSeconds, localRuntime !== undefined);
   assert.equal(typeof verbose, 'boolean', 'verbose must be an explicit Boolean');
@@ -76,14 +87,14 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   }
   const source = checkoutState(repository); assert(source.clean, 'Native artifact requires clean source HEAD');
   await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
-  const pins = JSON.parse(await readFile(join(repository, 'toolchain.json'), 'utf8'));
+  const pins = JSON.parse(await readFile(join(repository, 'toolchain.json'), 'utf8')) as {moon: string; moonc: string};
   const moon = run('moon', ['version']).trim(), moonc = run('moonc', ['-v']).trim();
   assert(moon.includes(pins.moon)); assert(moonc.includes(pins.moonc));
-  const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+  const glibc = process.platform === 'linux' ? (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime : undefined;
   const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
   destination = resolve(destination);
   const completed = completedLocalProvider ? await admitCompletedNativeLocalProvider(
-    destination, source.revision, repository, await realpath(process.env.MOON_HOME),
+    destination, source.revision, repository, await realpath(process.env.MOON_HOME!),
     {packageVersion: selectedVersion, platform}) : undefined;
   let localMetadata;
   if (localRuntime !== undefined) {
@@ -98,7 +109,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   }
   const buildArgs = ['build', ...(verbose ? ['--verbose'] : []),
     '--target', 'native', '--release', '-j', '1', 'src/cmd/native_client'];
-  let buildCommand = 'moon', selectedBuildArgs = buildArgs, buildEnvironment = process.env, versionCompiler;
+  let buildCommand = 'moon', selectedBuildArgs = buildArgs, buildEnvironment = process.env, versionCompiler: VersionCompiler | undefined;
   let built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
   let c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
   let scopedReceipt = completed?.receipt;
@@ -108,7 +119,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     // A fresh target directory prevents an older macro/object from being
     // silently reused when only the explicitly selected package version changes.
     const emission = join(destination, 'native-build');
-    selectedBuildArgs = [...buildArgs.slice(0, -1), '--target-dir', emission, buildArgs.at(-1)];
+    selectedBuildArgs = [...buildArgs.slice(0, -1), '--target-dir', emission, buildArgs.at(-1)!];
     built = join(emission, 'native/release/build/cmd/native_client/native_client.exe');
     c = join(emission, 'native/release/build/cmd/native_client/native_client.c');
     buildEnvironment = {...process.env, PATH: `${versionCompiler.directory}${delimiter}${process.env.PATH ?? ''}`};
@@ -120,7 +131,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
       : run('sh', ['-c', 'command -v clang']).trim());
     buildCommand = run('python3', ['-c', 'import os,sys;print(os.path.realpath(sys.executable))']).trim();
     selectedBuildArgs = [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
-      '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME),
+      '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME!),
       ...nativeLocalCompilerArguments(platform, {clang, sdk}), '--destination', join(destination, 'native-producer'),
       '--seconds', String(budget.seconds), '--entry', 'src/cmd/native_client',
       ...(selectedVersion === undefined ? [] : ['--package-version', selectedVersion])];
@@ -139,7 +150,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     const output = completed ? '' : run(buildCommand, selectedBuildArgs,
       {timeout: budget.timeoutMs, env: buildEnvironment});
     if (localMetadata !== undefined && !completed) {
-      scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8'));
+      scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8')) as ProviderReceipt;
       assert.equal(scopedReceipt.source, source.revision);
       assert.equal(scopedReceipt.entry, 'src/cmd/native_client');
       assert.equal(scopedReceipt.target, platform === 'darwin-arm64' ? 'darwin-arm64' : 'linux-x64');
@@ -158,12 +169,12 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     if (verbose) {
       // Retain the actual compiler's bounded output on failure. This neither
       // retries compilation nor treats the old executable as a new artifact.
-      if (error.stdout) process.stdout.write(error.stdout);
-      if (error.stderr) process.stderr.write(error.stderr);
+      if ((error as ChildFailure).stdout) process.stdout.write((error as ChildFailure).stdout!);
+      if ((error as ChildFailure).stderr) process.stderr.write((error as ChildFailure).stderr!);
       console.error(JSON.stringify({phase: 'native-cli-build-failed',
         sourceSha: source.revision, elapsedMs: Math.round(performance.now() - startedAt),
-        code: error.code ?? null, status: error.status ?? null,
-        signal: error.signal ?? null}));
+        code: (error as ChildFailure).code ?? null, status: (error as ChildFailure).status ?? null,
+        signal: (error as ChildFailure).signal ?? null}));
     }
     throw error;
   }
@@ -185,7 +196,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     versionObservation = {...observed, binarySha256: hash(bytes), binaryBytes: bytes.length, buildInputSha256};
     assert.deepEqual(await readFile(binary), bytes, 'Version observation cannot change the selected executable');
   }
-  const notices = {};
+  const notices: Record<string, string> = {};
   for (const [filename, coreFile] of [['MOONBIT-CORE-LICENSE', 'LICENSE'], ['MOONBIT-CORE-NOTICE', 'NOTICE']]) {
     const text = await readFile(join(repository, 'packages/local-node', filename));
     assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
@@ -234,7 +245,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     else if (option === '--package-version' && packageVersion === undefined && options.length) packageVersion = nativePackageVersion(options.shift());
     else if (option === '--compile-seconds' && compileSeconds === undefined && options.length) {
       const value = options.shift();
-      assert.match(value, /^[1-9][0-9]*$/u, 'compile-seconds must be a positive integer');
+      assert.match(value!, /^[1-9][0-9]*$/u, 'compile-seconds must be a positive integer');
       compileSeconds = Number(value);
       nativeCliCompileBudget(compileSeconds);
     }
@@ -260,7 +271,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     } finally {await descriptor.close();}
   }
   const record = await buildNativeCliArtifact(destination, {verbose, compileSeconds, completedLocalProvider, packageVersion,
-    ...(wire ? {localRuntime: JSON.parse(wire.toString('utf8'))} : {})});
+    ...(wire ? {localRuntime: JSON.parse(wire.toString('utf8')) as RuntimeRecipe} : {})});
   console.log(JSON.stringify({sourceSha: record.sourceSha, platform: record.platform,
     binarySha256: record.binarySha256, abi: record.abi.sharedLibraries}, null, 2));
 }

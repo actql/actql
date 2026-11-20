@@ -857,3 +857,7 @@ target/
 /scripts/canonical-json.test.d.mts
 /scripts/native-local-scalar-pair-evidence.mjs
 /scripts/native-local-scalar-pair-evidence.d.mts
+/scripts/native-cli-artifact.mjs
+/scripts/native-cli-artifact.d.mts
+/scripts/native-cli-artifact-budget.test.mjs
+/scripts/native-cli-artifact-budget.test.d.mts

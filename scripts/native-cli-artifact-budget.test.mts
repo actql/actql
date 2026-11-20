@@ -11,7 +11,7 @@ test('Local artifact compiler selection preserves the actual platform and SDK bo
     ['linux-x64', {clang: '/clang'}], ['linux-arm64-gnu', {clang: '/clang'}],
     ['linux-x64-gnu', {clang: '/clang', sdk: '/sdk'}],
     ['darwin-arm64', {clang: '/clang'}], ['linux-x64-gnu', {clang: 'clang'}],
-  ]) assert.throws(() => nativeLocalCompilerArguments(platform, options));
+  ] as const) assert.throws(() => nativeLocalCompilerArguments(platform, options));
 });
 
 test('default Native compilation budgets keep the existing selected deadlines', () => {
