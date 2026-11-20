@@ -410,3 +410,6 @@ target/
 
 /packages/explorer-ui/run-observation.mjs
 /packages/explorer-ui/run-observation.d.mts
+
+/packages/explorer-ui/read-model.mjs
+/packages/explorer-ui/read-model.d.mts

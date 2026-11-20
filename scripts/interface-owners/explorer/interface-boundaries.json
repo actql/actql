@@ -3170,7 +3170,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               },
               {
@@ -3180,7 +3180,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3190,7 +3190,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3200,7 +3200,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3210,7 +3210,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3220,7 +3220,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3230,7 +3230,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3240,7 +3240,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
@@ -3250,7 +3250,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
