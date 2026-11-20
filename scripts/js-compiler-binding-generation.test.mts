@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import ts from 'typescript';
 import {compilerBindingTargets, generateCompilerBindings} from './generate-js-compiler-bindings.mjs';
+import {emitInterfaceTypeScript} from './typescript-interface-emit.mjs';
 
 function fixture(t: {after(action: () => void): void}) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-typed-compiler-binding-'));
@@ -93,4 +94,19 @@ test('invalid authored source refuses before writes and ignored bootstrap emit i
   writeFileSync(source, readFileSync(source, 'utf8') + '\nexport const invalid = missingBinding;\n');
   assert.throws(() => generateCompilerBindings(root, true), /Cannot find name 'missingBinding'/u);
   assert.equal(readFileSync(runtime, 'utf8'), original);
+});
+
+test('specialized authored interfaces use strict virtual input and retain real relative imports', t => {
+  const {root} = fixture(t);
+  const source = new URL('scripts/specialized-original.mts', root);
+  writeFileSync(source, 'export const stale = missingIgnoredInput;');
+  writeFileSync(new URL('scripts/field.mts', root), 'export type Original = Readonly<{cid: string}>;');
+  const outputs = emitInterfaceTypeScript(root, source,
+    "import type {Original} from './field.mjs'; export const snapshot = (value: Original): Original => value;");
+  assert.match(outputs.get('.mjs')!, /export const snapshot/u);
+  assert.match(outputs.get('.d.mts')!, /Original/u);
+  assert.throws(() => emitInterfaceTypeScript(root, source,
+    "import type {Original} from './field.mjs'; export const invalid: Original = {cid: 1};"),
+  /not assignable to type 'string'/u);
+  assert.equal(readFileSync(source, 'utf8'), 'export const stale = missingIgnoredInput;');
 });

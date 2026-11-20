@@ -1,6 +1,6 @@
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import ts from 'typescript';
+import {emitInterfaceTypeScript} from './typescript-interface-emit.mjs';
 
 // Independently installed packages must not borrow another package's private
 // module. These copies have one source and are not separate ABI authorities.
@@ -14,32 +14,7 @@ export const compilerBindingTargets = Object.freeze([
 ]);
 
 export function generateCompilerBindings(root: URL, write = false): void {
-  // Compile the authored source once. Both runtime copies and declarations come
-  // from the same strict project options; ignored bootstrap emit is not input.
-  const directory = fileURLToPath(root);
-  const config = ts.readConfigFile(fileURLToPath(new URL('tsconfig.base.json', root)), ts.sys.readFile);
-  const converted = ts.convertCompilerOptionsFromJson(config.config?.compilerOptions ?? {}, directory);
-  const options: ts.CompilerOptions = {...converted.options, declaration: true, types: []};
-  const source = fileURLToPath(new URL('scripts/templates/js-compiler-binding.mts', root));
-  const program = ts.createProgram([source], options);
-  const outputs = new Map<string, string>();
-  const diagnostics = [...(config.error ? [config.error] : []), ...converted.errors,
-    ...ts.getPreEmitDiagnostics(program)];
-  if (!diagnostics.length) {
-    const original = program.getSourceFile(source);
-    if (!original) throw new Error('Missing authored private compiler binding');
-    const emitted = program.emit(original, (path, text) => {
-      if (path.endsWith('.mjs')) outputs.set('.mjs', text);
-      if (path.endsWith('.d.mts')) outputs.set('.d.mts', text);
-    });
-    diagnostics.push(...emitted.diagnostics);
-  }
-  if (diagnostics.length) throw new Error(ts.formatDiagnostics(diagnostics, {
-    getCanonicalFileName: path => path,
-    getCurrentDirectory: () => directory,
-    getNewLine: () => '\n',
-  }));
-  if (outputs.size !== 2) throw new Error('Missing private compiler binding emit');
+  const outputs = emitInterfaceTypeScript(root, new URL('scripts/templates/js-compiler-binding.mts', root));
   for (const path of compilerBindingTargets) {
     for (const [extension, output] of outputs) {
       const relative = path.replace(/\.mjs$/u, extension);

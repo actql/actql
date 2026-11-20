@@ -234,3 +234,11 @@ target/
 # Generated original admitted Chat projection consumer.
 /packages/provider-ai-sdk/_internal/original-openai-chat.mjs
 /packages/provider-ai-sdk/_internal/original-openai-chat.d.mts
+
+# Generated original-material generator/check and shared strict interface emitter.
+/scripts/generate-model-original-materials.mjs
+/scripts/generate-model-original-materials.d.mts
+/scripts/model-original-materials.test.mjs
+/scripts/model-original-materials.test.d.mts
+/scripts/typescript-interface-emit.mjs
+/scripts/typescript-interface-emit.d.mts

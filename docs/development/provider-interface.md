@@ -15,7 +15,7 @@ and Unit Option are not generalized to diagnostic enum tags.
 | Attribute | Existing authority and executable reference |
 | --- | --- |
 | Responsibility | `src/model_execution/physical_call_request.mbt`; Provider `_internal/model-port.mjs`: `start`, `poll`, `cleanup` |
-| Inputs/outputs | `adapters/host-common/model-original-materials.mjs.in`: `admit__PROVIDER__OriginalMaterials`; HTTP `original-chat-request.mjs`: `prepareOriginalHttpChatRequest`; SDK `original-openai-chat.mjs`: `prepareOriginalOpenAIChatRequest` |
+| Inputs/outputs | `adapters/host-common/model-original-materials.mts.in`: `admit__PROVIDER__OriginalMaterials`; HTTP `original-chat-request.mjs`: `prepareOriginalHttpChatRequest`; SDK `original-openai-chat.mjs`: `prepareOriginalOpenAIChatRequest` |
 | Identity | `packages/provider-http/original-materials.test.mjs`: `actual HTTP Common readers`; `packages/provider-ai-sdk/original-materials.test.mjs`: `actual Common` |
 | Ownership | `src/model_execution/raw_capture_save.mbt`; `packages/provider-ai-sdk/original-materials-retirement.test.mjs`; Provider `_internal/model-port.mjs`: `rawCaptureBinder`, `cleanupRaw` |
 | Synchronization | `packages/provider-http/model-port.test.mjs`; `packages/provider-ai-sdk/model-port.test.mjs`; SDK `_internal/native-decision-preflight.mjs`: `advance` |

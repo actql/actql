@@ -204,7 +204,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -266,7 +266,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -280,7 +280,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -455,7 +455,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -517,7 +517,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -531,7 +531,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -759,7 +759,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -821,7 +821,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -835,7 +835,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -935,7 +935,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -997,7 +997,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -1011,7 +1011,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -1280,7 +1280,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -1342,7 +1342,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -1356,7 +1356,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -1498,7 +1498,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               },
               {
@@ -1568,7 +1568,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -1582,7 +1582,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -1804,7 +1804,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -1866,7 +1866,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -1880,7 +1880,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2083,7 +2083,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2145,7 +2145,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -2159,7 +2159,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2455,7 +2455,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2517,7 +2517,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -2531,7 +2531,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2613,7 +2613,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2675,7 +2675,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -2689,7 +2689,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2966,7 +2966,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -3028,7 +3028,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -3042,7 +3042,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -3073,13 +3073,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "One closed DATA snapshot/Common-reader connection"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -3124,7 +3124,7 @@
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
@@ -3138,7 +3138,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]

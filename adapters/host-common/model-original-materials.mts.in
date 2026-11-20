@@ -1,39 +1,52 @@
 import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
-const fail = () => {throw Object.assign(new TypeError('Invalid__PROVIDER__OriginalMaterials'),
+type Scalar = string | bigint | number | boolean | undefined | null;
+type Validator<T = unknown> = (value: unknown) => T;
+type ValidatorMap = Record<string, Validator>;
+type CheckedFields<T extends ValidatorMap> = {[K in keyof T as string extends K ? never : K]: ReturnType<T[K]>} &
+  (string extends keyof T ? {[key: string]: ReturnType<T[string]> | undefined} : {});
+type FieldNames<T extends string> = T extends `${infer First},${infer Rest}` ? First | FieldNames<Rest> : T;
+type FieldMap<N extends string, T> = N extends string ? {[K in FieldNames<N>]: Validator<T>} : never;
+interface OriginalRuntime {
+  clientProgramReadModelResponseProfile?(wire: string, cid: string,
+    maxBytes: number, maxNodes: number, maxDepth: number, maxMembers: number, maxWork: number): unknown;
+  clientProgramAdmitEffectDependencyBody?(kind: string, cid: string, wire: string,
+    maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+}
+const fail: () => never = () => {throw Object.assign(new TypeError('Invalid__PROVIDER__OriginalMaterials'),
   {code:'Invalid__PROVIDER__OriginalMaterials'});};
-const record = (value, required, optional = {}) => {
+const record = <R extends ValidatorMap, O extends ValidatorMap = {}>(value: unknown, required: R, optional: O = {} as O): Readonly<CheckedFields<R> & Partial<CheckedFields<O>>> => {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail();
-  const names = Reflect.ownKeys(value);
+  const names = Reflect.ownKeys(value as object);
   if (names.some(name => typeof name !== 'string' ||
       !Object.hasOwn(required,name) && !Object.hasOwn(optional,name)) ||
       Object.keys(required).some(name => !names.includes(name))) fail();
   const fields = names.map(name => {
     const d = Object.getOwnPropertyDescriptor(value,name);
     if (d === undefined || !d.enumerable || !Object.hasOwn(d,'value')) fail();
-    return [name,(required[name] ?? optional[name])(d.value)];
+    return [name,(required[name as string] ?? optional[name as string])(d!.value)];
   });
-  return Object.freeze(Object.fromEntries(fields));
+  return Object.freeze(Object.fromEntries(fields)) as Readonly<CheckedFields<R> & Partial<CheckedFields<O>>>;
 };
-const scalar = value => {
+const scalar = (value: unknown): Scalar => {
   if (!['string','bigint','number','boolean','undefined'].includes(typeof value) && value !== null) fail();
-  return value;
+  return value as Scalar;
 };
-const integer = value => {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) fail();return value;
+const integer = (value: unknown): number => {
+  if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > 2147483647) fail();return value as number;
 };
-const quantity = value => {
+const quantity = (value: unknown): bigint => {
   if (typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) fail();return value;
 };
-const identity = value => {
+const identity = (value: unknown): string => {
   if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail();return value;
 };
-const fields = (names,check=scalar) => Object.fromEntries(names.split(',').map(name => [name,check]));
-const shape = (names,check=scalar) => value => record(value,fields(names,check));
-const original = value => record(value,{
+const fields = <N extends string, T = Scalar>(names: N,check: Validator<T> = scalar as Validator<T>): FieldMap<N, T> => Object.fromEntries(names.split(',').map(name => [name,check])) as FieldMap<N, T>;
+const shape = <N extends string, T = Scalar>(names: N,check: Validator<T> = scalar as Validator<T>) => (value: unknown) => record(value,fields(names,check));
+const original = (value: unknown) => record(value,{
   cid:identity,
   wire:value => {if (typeof value !== 'string') fail();return value;},
 });
-const installation = value => record(value,{
+const installation = (value: unknown) => record(value,{
   ...fields('build_artifact_cid,builder_id,builder_revision,codec_id,codec_revision,completion_basis,endpoint,http_method,streaming,validator_artifact_cid,validator_id,validator_revision'),
   __SDK_FIELD__
 });
@@ -41,16 +54,17 @@ const installation = value => record(value,{
 // A closed installation DATA snapshot, not a canonical parser, opaque Owner
 // reconstruction or funding proof. Each descriptor is read exactly once;
 // the existing Common readers alone admit the original wire and CID.
-export function snapshot__PROVIDER__OriginalMaterials(value) {
+export function snapshot__PROVIDER__OriginalMaterials(value: unknown) {
+__READ_GUARD__
   return record(value,{
     responseProfile:original,
     policyOriginals:value => record(value,{retention:original,metadata:original,clock:original,data:original}),
     readerLimits:value => record(value,Object.fromEntries(
-      ['maxBytes','maxNodes','maxDepth','maxMembers','maxWork'].map(name => [name,value => {
-        if (!Number.isSafeInteger(value) || value < 1 || value > 2147483647) fail();return value;
-      }]))),
+      ['maxBytes','maxNodes','maxDepth','maxMembers','maxWork'].map(name => [name,(value: unknown) => {
+        if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 2147483647) fail();return value as number;
+      }]))) as Readonly<Record<'maxBytes' | 'maxNodes' | 'maxDepth' | 'maxMembers' | 'maxWork', number>>,
     installation,
-    originalReadInstallation:value => record(value,{
+    __READ_FIELD__:value => record(value,{
       bootstrap:value => record(value,{
         ...fields('bootstrapExecutionBytes,bootstrapRetainedBytes',quantity),
         ...fields('maxDelegations,maxHoldings,maxReservations',integer),
@@ -59,18 +73,18 @@ export function snapshot__PROVIDER__OriginalMaterials(value) {
       nodeInstallation:value => record(value,{
         runtimeArtifactCid:identity,layoutArtifactCid:identity,
         layout:value => record(value,{
-          ...fields('barrier_cid,layout_artifact_cid,parameter_values_cid,program_definition_cid,runtime_artifact_cid',identity),
+          ...fields(__LAYOUT_FIELDS__,identity),
           ...fields('execution_bytes,prepared_rows,retained_bytes',quantity),
         }),
       }),
     },{
       storeBootstrap:shape('maxDirectoryEntries,maxWireBytes',integer),
       publicationCapacity:shape('retainedBytes,workspaceBytes',quantity),
-      metadataAcquisition:value => record(value,{
+      metadataAcquisition:(value: unknown) => record(value,{
         retainedBytes:quantity,workspaceBytes:quantity,
         metadata:shape('maxLedgerEntries,maxWireBytes',integer),directory:shape('maxDirectoryEntries,maxWireBytes',integer),
       }),
-      currentStateCodec:value => record(value,{
+      currentStateCodec:(value: unknown) => record(value,{
         quantum:integer,comparisonWork:integer,decode:value => record(value,{
           maxWork:integer,parse:shape('max_depth,max_input_bytes,max_nodes',integer),
           tree:shape('max_depth,max_nodes,max_string_bytes,max_total_string_bytes',integer),
@@ -84,30 +98,30 @@ export function snapshot__PROVIDER__OriginalMaterials(value) {
   });
 }
 
-export function admit__PROVIDER__OriginalMaterials(moon, materials) {
+export function admit__PROVIDER__OriginalMaterials(moon: OriginalRuntime, materials: ReturnType<typeof snapshot__PROVIDER__OriginalMaterials>) {
   if (moon === null || (typeof moon !== 'object' && typeof moon !== 'function') ||
       typeof moon.clientProgramReadModelResponseProfile !== 'function' ||
       typeof moon.clientProgramAdmitEffectDependencyBody !== 'function') {
     throw Object.assign(new TypeError('__PROVIDER__OriginalRuntimeUnavailable'),{code:'__PROVIDER__OriginalRuntimeUnavailable'});
   }
   const {maxBytes,maxNodes,maxDepth,maxMembers,maxWork} = materials.readerLimits;
-  const checked = result => {
+  const checked = (result: unknown): unknown => {
     if (runtimeIsOk(result) && runtimeField(result, 0) !== undefined && runtimeField(result, 0) !== null) return runtimeField(result, 0);
     throw Object.assign(new TypeError('__PROVIDER__OriginalMaterialsRefused'),{code:'__PROVIDER__OriginalMaterialsRefused'});
   };
-  const profile = checked(moon.clientProgramReadModelResponseProfile(
+  const profile = checked(moon.clientProgramReadModelResponseProfile!(
     materials.responseProfile.wire,materials.responseProfile.cid,maxBytes,maxNodes,maxDepth,maxMembers,maxWork));
-  const policies = Object.fromEntries([
+  const policies = Object.fromEntries(([
     ['retention','retention_contract'],['metadata','metadata_retention_policy'],
     ['clock','clock_contract'],['data','data_policy'],
-  ].map(([name,kind]) => {
+  ] as const).map(([name,kind]) => {
     const body = materials.policyOriginals[name];
-    return [name,checked(moon.clientProgramAdmitEffectDependencyBody(
+    return [name,checked(moon.clientProgramAdmitEffectDependencyBody!(
       kind,body.cid,body.wire,maxBytes,maxNodes,maxDepth))];
   }));
-  const {installation,originalReadInstallation:read,rawCaptureSelection:raw} = materials;
+__READ_BINDING__
   return Object.freeze({
-    originalReadInstallation:Object.freeze({...read,nodeInstallation:Object.freeze({
+    __READ_FIELD__:Object.freeze({...read,nodeInstallation:Object.freeze({
       ...read.nodeInstallation,installation,probability:undefined,
       layout:Object.freeze({...read.nodeInstallation.layout,response_profile:profile}),
     })}),
