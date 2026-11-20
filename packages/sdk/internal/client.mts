@@ -11,7 +11,12 @@ import {createSubmissionOperations} from './submission-observation.mjs';
 import {createTransport, loadLoopbackTransport} from './transport.mjs';
 import {validClientProfile} from '@actql/client-wire';
 
-export async function connectSelected(selected, port) {
+import type {Client} from '../index.d.ts';
+import type {InProcessHostPort} from '../host-port.d.ts';
+import type {SelectedConnection} from './connection-options.mjs';
+
+export async function connectSelected(selected: SelectedConnection & {redactCredentialErrors?: boolean},
+  port?: InProcessHostPort): Promise<Client> {
   // Capture the installed provider's original operation once. Its DATA input
   // is not key custody or authority; the provider owns those current checks.
   const answerCheckpoint = port?.answerCheckpoint;

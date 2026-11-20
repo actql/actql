@@ -118,3 +118,13 @@ target/
 /packages/sdk/internal/private-source-preparation.d.mts
 /packages/sdk/internal/submission-observation.mjs
 /packages/sdk/internal/submission-observation.d.mts
+
+# Generated from maintained SDK transport and assembly entrances.
+/packages/sdk/internal/transport.mjs
+/packages/sdk/internal/transport.d.mts
+/packages/sdk/internal/client.mjs
+/packages/sdk/internal/client.d.mts
+/packages/sdk/index.mjs
+/packages/sdk/index.d.mts
+/packages/sdk/host-port.mjs
+/packages/sdk/host-port.d.mts

@@ -5654,13 +5654,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5670,7 +5670,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5680,7 +5680,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5690,7 +5690,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5700,7 +5700,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5710,7 +5710,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5720,7 +5720,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5730,7 +5730,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -7646,13 +7646,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7662,7 +7662,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7672,7 +7672,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7682,7 +7682,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7692,7 +7692,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7702,7 +7702,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7712,7 +7712,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7722,7 +7722,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -9201,7 +9201,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9211,7 +9211,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9229,7 +9229,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9247,7 +9247,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9265,7 +9265,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9283,7 +9283,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9301,7 +9301,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9319,7 +9319,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9333,7 +9333,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -13385,17 +13385,17 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// A structural wire port is not selection of the builtin Local provider."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13405,7 +13405,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13419,7 +13419,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13433,7 +13433,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13443,7 +13443,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13457,7 +13457,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13467,7 +13467,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13477,7 +13477,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],

@@ -8,13 +8,24 @@ import {retainCancellationExplanation} from './run-observation.mjs';
 import {submissionNotSent, submissionUnknown} from './submission-observation.mjs';
 import {captureSourcePreparation, sourcePreparationPort} from './private-source-preparation.mjs';
 
+import type {ClientHostOperation} from '@actql/client-wire';
+import type {InProcessHostPort, InProcessHostRequest} from '../host-port.d.ts';
+import type {SelectedConnection} from './connection-options.mjs';
+import type {requestLoopbackClient} from '../loopback-http.mjs';
+
+type CancellationContext = NonNullable<Parameters<typeof retainCancellationExplanation>[1]>;
+type Selected = SelectedConnection & {redactCredentialErrors?: boolean};
+interface SourceProducer {receipt: unknown; body?: unknown}
+interface TraceContext {traceId?: unknown; spanId?: unknown; traceFlags?: number}
+
 // Return the import promise itself so only the existing loopback branch yields.
 export const loadLoopbackTransport = () => import('#loopback-http');
 
-const isSubmission = operation => operation === 'submit-intent' ||
+const isSubmission = (operation: ClientHostOperation) => operation === 'submit-intent' ||
   operation === 'submit-named-intent' || operation === 'restart-intent';
 
-export function createTransport(selected, port, isClosed, directLoopback) {
+export function createTransport(selected: Selected, port: InProcessHostPort | undefined,
+  isClosed: () => boolean, directLoopback?: typeof requestLoopbackClient) {
   // A structural wire port is not selection of the builtin Local provider.
   // Any selected binding, including an inherited one, still uses strict capture.
   const capturedSourcePreparation = port !== undefined && sourcePreparationPort in port
@@ -23,11 +34,11 @@ export function createTransport(selected, port, isClosed, directLoopback) {
   // Check the connection lifetime before entering either original Host method.
   const sourcePreparation = capturedSourcePreparation === undefined ? undefined
     : Object.freeze({...capturedSourcePreparation,
-      assertSourceSnapshotCurrent(receipt) {
+      assertSourceSnapshotCurrent(receipt: unknown) {
         if (isClosed()) fail('ClientClosed');
         return capturedSourcePreparation.assertSourceSnapshotCurrent(receipt);
       },
-      beforeResultRead(...args) {
+      beforeResultRead(...args: Parameters<NonNullable<typeof capturedSourcePreparation>['beforeResultRead']>) {
         if (isClosed()) fail('ClientClosed');
         return capturedSourcePreparation.beforeResultRead(...args);
       },
@@ -36,17 +47,18 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         return capturedSourcePreparation.assertResultReadCurrent();
       },
     });
-  const dispatchedCancellations = new WeakSet();
-  const dispatchedSubmissions = new WeakSet();
-  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext, sourceProducer) => {
+  const dispatchedCancellations = new WeakSet<object>();
+  const dispatchedSubmissions = new WeakSet<object>();
+  const exchange = async (operation: ClientHostOperation, body: Record<string, unknown> = {}, signal?: AbortSignal,
+    submitContext?: object, cancellationContext?: CancellationContext, sourceProducer?: SourceProducer): Promise<unknown> => {
     if (isClosed()) fail('ClientClosed');
     if (port !== undefined) {
-      let request;
-      try { request = structuredClone({connection: selected.wire, ...body}); }
+      let request: InProcessHostRequest;
+      try { request = structuredClone({connection: selected.wire, ...body}) as InProcessHostRequest; }
       catch { fail('InvalidClientPayload'); }
       try {
         if (sourceProducer !== undefined) {
-          sourcePreparation.bindSourceRequest(sourceProducer.receipt,
+          sourcePreparation!.bindSourceRequest(sourceProducer.receipt,
             sourceProducer.body, request);
         }
         if (cancellationContext !== undefined) {
@@ -55,7 +67,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         }
         if (isSubmission(operation)) {
           signal?.throwIfAborted();
-          dispatchedSubmissions.add(submitContext);
+          dispatchedSubmissions.add(submitContext!);
         }
         const value = await port.perform(operation, request, signal);
         if (value instanceof Response) {
@@ -66,7 +78,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       }
       catch (cause) {
         if (isSubmission(operation)) {
-          if (!dispatchedSubmissions.has(submitContext)) {
+          if (!dispatchedSubmissions.has(submitContext!)) {
             throw submissionNotSent(submitContext, cause);
           }
           throw submissionUnknown(submitContext, cause);
@@ -103,7 +115,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
     }
     if (isSubmission(operation)) {
       signal?.throwIfAborted();
-      dispatchedSubmissions.add(submitContext);
+      dispatchedSubmissions.add(submitContext!);
     }
     try {
       let traceparent;
@@ -111,12 +123,12 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         // Correlation only: no baggage, tracestate, arbitrary header injection
         // or changed authorization/semantic request identity.
         const parent = selected.traceContext?.();
-        const {traceId, spanId, traceFlags} = parent ?? {};
+        const {traceId, spanId, traceFlags} = (parent ?? {}) as TraceContext;
         if (typeof traceId === 'string' && /^[a-f0-9]{32}$/u.test(traceId) &&
             !/^0+$/u.test(traceId) && typeof spanId === 'string' && /^[a-f0-9]{16}$/u.test(spanId) &&
             !/^0+$/u.test(spanId) && Number.isInteger(traceFlags) &&
-            traceFlags >= 0 && traceFlags <= 255) {
-          traceparent = `00-${traceId}-${spanId}-${(traceFlags & 1)
+            (traceFlags as number) >= 0 && (traceFlags as number) <= 255) {
+          traceparent = `00-${traceId}-${spanId}-${((traceFlags as number) & 1)
             .toString(16).padStart(2, '0')}`;
         }
       } catch { /* Optional correlation cannot reject the request. */ }
@@ -143,9 +155,9 @@ export function createTransport(selected, port, isClosed, directLoopback) {
     if (!response.ok) {
       let error;
       try { error = await boundedHostJson(response); } catch {}
-      const code = typeof error?.code === 'string' &&
-        /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
-        ? error.code : `HostHTTP${response.status}`;
+      const code = typeof (error as {code?: unknown} | null | undefined)?.code === 'string' &&
+        /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test((error as {code: string}).code)
+        ? (error as {code: string}).code : `HostHTTP${response.status}`;
       if (isSubmission(operation)) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
@@ -156,7 +168,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
     }
     return response;
   };
-  const responseValue = async (response, maxWireBytes) => {
+  const responseValue = async (response: unknown, maxWireBytes?: number) => {
     try { return await controlValue(response, maxWireBytes); }
     catch (cause) {
       if (selected.redactCredentialErrors) throw new Error('InvalidHostControlResponse');
@@ -164,6 +176,6 @@ export function createTransport(selected, port, isClosed, directLoopback) {
     }
   };
   return {exchange, responseValue, sourcePreparation, typedRows: port !== undefined,
-    wasSubmissionDispatched: context => dispatchedSubmissions.has(context),
-    wasCancellationDispatched: context => dispatchedCancellations.has(context)};
+    wasSubmissionDispatched: (context: object) => dispatchedSubmissions.has(context),
+    wasCancellationDispatched: (context: CancellationContext) => dispatchedCancellations.has(context)};
 }

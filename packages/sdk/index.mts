@@ -8,6 +8,9 @@ import {explainCancellation, explainEffectUncertainty, explainOwnerObservations,
 import {explainRequestCancellation, explainRequestLookup, explainSubmission} from './internal/submission-observation.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
 
+import type {Client, OperationFormatOptions} from './index.d.ts';
+import type {InProcessHostPort} from './host-port.d.ts';
+
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 export {getOperationPresentationInfo} from './operation-presentation.mjs';
@@ -24,7 +27,7 @@ export {getSubmissionCheckObservation, getSubmissionInput, getSubmissionOutcome,
 export {explainRunObservationFailure, explainOwnerObservations, explainEffectUncertainty,
   explainCancellation} from './internal/run-observation.mjs';
 export {explainReadFailure, explainDeliveryAttempt} from './internal/result-read.mjs';
-export async function connect(options, stringOptions) {
+export async function connect(options: unknown, stringOptions?: unknown): Promise<Client> {
   const connectionString = typeof options === 'string';
   if (!connectionString && stringOptions !== undefined) {
     connectionFailure('InvalidConnectionOptions',
@@ -48,7 +51,7 @@ export async function connect(options, stringOptions) {
 
 // Only an installed Local provider calls this pure Client facade. The port
 // returns typed control values and Result frames; it is never a public URL.
-export async function connectInProcess(options, port) {
+export async function connectInProcess(options: unknown, port: InProcessHostPort): Promise<Client> {
   if (port === null || typeof port !== 'object' ||
       typeof port.perform !== 'function' ||
       port.close !== undefined && typeof port.close !== 'function' ||
@@ -56,32 +59,32 @@ export async function connectInProcess(options, port) {
   return connectSelected(inProcessOptions(options), port);
 }
 /** Display retained operation facts without lookup, retry or execution authority. */
-export function formatSubmission(result, options) {
+export function formatSubmission(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainSubmission(result), 'submission', options);
 }
-export function formatRequestLookup(result, options) {
+export function formatRequestLookup(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainRequestLookup(result), 'request', options);
 }
-export function formatRequestCancellation(result, options) {
+export function formatRequestCancellation(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainRequestCancellation(result), 'requestCancellation', options);
 }
-export function formatCancellation(result, options) {
+export function formatCancellation(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
 }
-export function formatReadFailure(result, options) {
+export function formatReadFailure(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainReadFailure(result), 'read', options);
 }
-export function formatDeliveryAttempt(result, options) {
+export function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainDeliveryAttempt(result), 'delivery', options);
 }
-export function formatEffectUncertainty(result, options) {
+export function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
 }
 
-export function formatRunObservationFailure(error, options) {
+export function formatRunObservationFailure(error: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainRunObservationFailure(error), 'observation', options);
 }
 
-export function formatOwnerObservations(result, options) {
+export function formatOwnerObservations(result: unknown, options?: OperationFormatOptions) {
   return formatOperationExplanation(explainOwnerObservations(result), 'ownerObservations', options);
 }
