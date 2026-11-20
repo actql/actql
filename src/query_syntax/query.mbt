@@ -1333,7 +1333,7 @@ fn QueryParser::sql_operand(
       carry_ranges~,
     )
   } else {
-    self.sql_term()
+    self.sql_term(positional_output~)
   }
 }
 
@@ -1556,6 +1556,7 @@ fn QueryParser::projections(
   ordering? : Array[PipeAggregateOrder]? = None,
   windows? : Array[Projection] = [],
   window_expressions? : Bool = false,
+  positional_output? : Bool = false,
 ) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
   let mut stars = 0
@@ -1599,7 +1600,12 @@ fn QueryParser::projections(
         value
       }
     }
-    if projection.star is None && projection_public_name(projection) is None {
+    // A direct positional RHS SELECT already has a private evaluated-slot
+    // route. Its result takes names from the left operand. Nested queries and
+    // intermediate Pipe projections still record their own namespace needs.
+    if !positional_output &&
+      projection.star is None &&
+      projection_public_name(projection) is None {
       self.source.anonymous_output_required = true
     }
     if projection.star is Some(_) {
@@ -2439,7 +2445,10 @@ fn QueryParser::initial_from(
 }
 
 ///|
-fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::sql_term(
+  self : QueryParser,
+  positional_output~ : Bool,
+) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
   if distinct {
@@ -2452,6 +2461,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     aggregate_expressions=true,
     windows=select_windows,
     window_expressions=true,
+    positional_output~,
   )
   let group_projections = projections +
     embedded.map(pair => {

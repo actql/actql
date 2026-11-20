@@ -82,7 +82,7 @@ test "anonymous display labels never enter SQL expression or BY NAME scope" {
       construction_limits(),
     )
     match result {
-      Err(UnknownColumn) | Err(UnsupportedSet) => ()
+      Err(UnknownColumn) | Err(UnsupportedProjection) => ()
       Err(
         Expression(
           { issue: @expression.UnknownReference, origin: Some(origin), }
@@ -91,7 +91,7 @@ test "anonymous display labels never enter SQL expression or BY NAME scope" {
         assert_true(@origin.belongs_to(@query.script_document(script), origin))
       Err(Expression(diagnostic)) =>
         fail(source + ": " + @debug.to_string(diagnostic.issue))
-      Err(UnsupportedProjection) => fail(source + ": UnsupportedProjection")
+      Err(UnsupportedSet) => fail(source + ": UnsupportedSet")
       Err(UnsupportedOrdering) => fail(source + ": UnsupportedOrdering")
       Err(_) => fail(source + ": another typed refusal")
       Ok(_) => fail(source + ": anonymous display label became an SQL name")

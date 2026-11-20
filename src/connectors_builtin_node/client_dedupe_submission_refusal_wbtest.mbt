@@ -157,5 +157,16 @@ test "Request original accepted Dedupe sibling validates the same input setup" {
     Err(issue) => Err(issue)
   }
   client_program_abort_request_preparation(parent).unwrap()
-  assert_true(result is Ok("effect_free"))
+  let reason = match result {
+    Err(QueryLowering(Request(issue))) =>
+      "query_lowering_request/" + issue.to_repr().to_string()
+    Err(QueryLowering(Overflow)) => "query_lowering_overflow"
+    Err(QueryLowering(issue)) => request_dedupe_original_lowering_cause(issue)
+    Err(QuerySyntax(Request(issue))) =>
+      "query_syntax_request/" + issue.to_repr().to_string()
+    Err(Preparation(issue)) => "preparation/" + issue.to_repr().to_string()
+    Err(_) => "other preparation refusal"
+    Ok(kind) => kind
+  }
+  assert_true(result is Ok("effect_free"), msg=reason)
 }

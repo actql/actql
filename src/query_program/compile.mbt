@@ -3835,21 +3835,27 @@ fn compile_steps(
       Drop(names) => {
         // A positional DROP removes all occurrences of an authored name. Use
         // the star-exclusion correspondence before ordinary physical removal.
-        let names = if positional_projection is Some(projection) &&
-          i > projection {
+        let positional_drop = positional_projection is Some(projection) &&
+          i > projection
+        let names = if positional_drop {
           let physical : Array[@query.NamePart] = []
           for name in names {
             if names.filter(other => same_name(name, other)).length() != 1 {
               raise Abort(DuplicateOutput)
             }
             let matches = pipe_columns.filter(column => {
-              same_name(name, {
-                value: positional_authored_column_name(
-                  column.0,
-                  positional_authored_aliases,
-                ),
-                quoted: false,
-              })
+              match result_column_profile(column_profiles, column.0, column.1) {
+                Some({ name: Some(original), .. }) => same_name(name, original)
+                Some({ name: None, .. }) => false
+                None =>
+                  same_name(name, {
+                    value: positional_authored_column_name(
+                      column.0,
+                      positional_authored_aliases,
+                    ),
+                    quoted: false,
+                  })
+              }
             })
             if matches.is_empty() {
               raise Abort(UnknownColumn)
@@ -3900,9 +3906,15 @@ fn compile_steps(
             same_name(name, { value: current.0, quoted: false, })
           })
         })
-        let target_columns = scope_named_columns(pipe_columns, column_profiles)
         for name in names {
-          if !named_column_exists(target_columns, name) {
+          // Positional targets have already resolved against authored roles.
+          // Their storage names are checked only against the current slots.
+          let exists = if positional_drop {
+            pipe_name_exists(pipe_columns, name)
+          } else {
+            named_column_exists(pipe_columns, name)
+          }
+          if !exists {
             raise Abort(UnknownColumn)
           }
           if names.filter(other => same_name(name, other)).length() != 1 {
@@ -5206,7 +5218,11 @@ fn compile_steps(
                     active_fields.contains(name.value)
                   ) {
                   pipe_physical_name(
-                    order_reserved + result_fields,
+                    if input_namespace_profiles is Some(_) {
+                      order_reserved + result_fields
+                    } else {
+                      result_fields
+                    },
                     "aql_having_aggregate_",
                   )
                 } else {
@@ -9551,7 +9567,7 @@ fn compile_set_stages(
           .unwrap_or(false)
         )
       ) {
-      raise Abort(UnsupportedSet)
+      raise Abort(UnsupportedProjection)
     }
     // Borrow the same first-term alignment vector until its metadata is
     // projected; an ON spelling change must not discard its original view.

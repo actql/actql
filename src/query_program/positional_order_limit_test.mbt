@@ -197,21 +197,22 @@ test "positional ORDER cannot resolve duplicate aliases or generated output name
 }
 
 ///|
-test "ORDER and LIMIT do not grant anonymous public or named-set outputs" {
-  for
-    source in [
-      "SELECT -x FROM t ORDER BY x LIMIT 1", "SELECT 0 AS a UNION ALL BY NAME (SELECT -x FROM t ORDER BY x LIMIT 1) ORDER BY a",
-    ] {
-    let actual = compile_query_script(
-      @query.parse_query_script(source, syntax_limits()).unwrap(),
+test "ORDER and LIMIT preserve anonymous display and refuse named-set outputs" {
+  let source = "SELECT -x FROM t ORDER BY x LIMIT 1"
+  let result = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(anonymous_result_fields(result), ["f0_"])
+  let by_name = "SELECT 0 AS a UNION ALL BY NAME (" + source + ") ORDER BY a"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(by_name, syntax_limits()).unwrap(),
       join_order_context(),
       construction_limits(),
     )
-    match actual {
-      Err(UnsupportedProjection) => ()
-      Err(UnsupportedSet) => fail(source + ": UnsupportedSet")
-      Ok(program) => fail(source + ": accepted " + semantic(program))
-      Err(_) => fail(source + ": another refusal")
-    }
-  }
+    is Err(UnsupportedProjection),
+    msg=by_name,
+  )
 }

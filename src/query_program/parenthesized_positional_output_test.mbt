@@ -109,21 +109,37 @@ test "standalone positional parentheses reach the usual checker" {
 }
 
 ///|
-test "positional permission never grants authored CTE or BY NAME exports" {
-  for
-    source in [
-      "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)",
-      "WITH r AS (SELECT 1 AS x), hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
-      "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
-    ] {
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(source, syntax_limits()).unwrap(),
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
+test "anonymous CTE values survive positional exports without becoming BY NAME aliases" {
+  let by_name = "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(by_name, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
     )
+    is Err(UnsupportedProjection),
+  )
+  for
+    (source, fields) in [
+      (
+        "WITH r AS (SELECT 1 AS x), hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
+        ["a"],
+      ),
+      (
+        "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
+        ["f0_"],
+      ),
+    ] {
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), fields, msg=source)
   }
+  let private_name = "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT p.f0_"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(private_name, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(Expression({ issue: @expression.UnknownReference, .. })),
+  )
 }

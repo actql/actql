@@ -63,7 +63,7 @@ fn lower_script_set_relation(
         .map(columns => columns.any(column => column.name is None))
         .unwrap_or(false)
       }) {
-      raise Abort(UnsupportedSet)
+      raise Abort(UnsupportedProjection)
     }
     Some(
       set_inner_fields(
@@ -118,7 +118,7 @@ fn lower_script_set_relation(
         .map(columns => columns.any(column => column.name is None))
         .unwrap_or(false)
       ) {
-      raise Abort(UnsupportedSet)
+      raise Abort(UnsupportedProjection)
     }
     let (left_matched, left_alignment_needed) = set_alignment_fields(
       output_fields,

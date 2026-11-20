@@ -70,7 +70,7 @@ test "unnamed Pipe grouping output never supplies a later SQL name" {
         { ..fixture_context(), inputs: [], },
         construction_limits(),
       ) {
-      Err(UnknownColumn) | Err(UnsupportedSet) => ()
+      Err(UnknownColumn) | Err(UnsupportedProjection) => ()
       Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
       Err(_) => fail("wrong retained unnamed grouping refusal: " + source)
       Ok(_) =>
