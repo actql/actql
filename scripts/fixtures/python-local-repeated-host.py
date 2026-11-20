@@ -6,8 +6,8 @@ physical acknowledgement. No garbage collection or private retirement is used.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
 import hashlib
+from collections.abc import Mapping
 import json
 import os
 from pathlib import Path
@@ -16,11 +16,6 @@ import time
 
 
 ROOT = Path(__file__).resolve().parent
-SETTLED_COUNTS = (
-    '_physical_work', '_tasks', 'core_task_loans', '_result_exports', '_result_chunks',
-    '_run_loans', 'custody_runs', '_public_run_references', '_run_state_custody',
-    '_prepared_inputs', 'custody_preparations', '_saved_result_reads', '_response_streams',
-)
 
 
 def plain(value):
@@ -54,6 +49,13 @@ def inventory(client):
     counts['custody_preparations'] = len(host._preparation._preparations)
     counts['core_retained_work'] = host._core._host_retained_work is not None
     return counts
+
+
+SETTLED_COUNTS = (
+    '_physical_work', '_tasks', 'core_task_loans', '_result_exports', '_result_chunks',
+    '_run_loans', 'custody_runs', '_public_run_references', '_run_state_custody',
+    '_prepared_inputs', 'custody_preparations', '_saved_result_reads', '_response_streams',
+)
 
 
 def settled_inventory(client, mode, ordinal):
