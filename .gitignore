@@ -893,3 +893,5 @@ target/
 /scripts/ci-rest-actual-common.d.mts
 /scripts/ci-supported-node.mjs
 /scripts/ci-supported-node.d.mts
+/scripts/ci-supported-versions.test.mjs
+/scripts/ci-supported-versions.test.d.mts

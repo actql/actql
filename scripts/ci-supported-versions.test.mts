@@ -1,24 +1,31 @@
 // CI scheduling/fixture controls, not formal tar/wheel compatibility evidence.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile, mkdir, mkdtemp, rm, copyFile} from 'node:fs/promises';
+import {readFile, mkdir, mkdtemp, rm, copyFile, rename} from 'node:fs/promises';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
 import {supportedNodeCases, acceptSupportedNode} from './ci-supported-node.mjs';
+import {prepareCopiedTypeScript} from './copied-typescript-preparation.mjs';
+
+type WorkflowStep = {name?: string; id?: string; run?: string; if?: string;
+  with?: Record<string, string>; 'continue-on-error'?: boolean};
+type WorkflowJob = {steps: WorkflowStep[]; if?: string; needs: string[];
+  strategy: {'fail-fast': boolean; matrix: {include: unknown[]}}};
 const root = fileURLToPath(new URL('../', import.meta.url));
-const {jobs} = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+const {jobs} = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as
+  {jobs: Record<string, WorkflowJob>};
 
 test('supported Node versions consume one explicit normal artifact and retain aggregate refusal', () => {
   const job = jobs['client-supported-versions'];
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.include, supportedNodeCases.map(({profile, version}) => ({profile, node: version})));
-  assert(job.if.includes("outputs.profile == 'full'"));
+  assert(job.if!.includes("outputs.profile == 'full'"));
   const download = job.steps.find(step => step.name === 'Download the exact Client package artifact');
-  assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
+  assert.equal(download!.with!['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   const prepare = job.steps.findIndex(step => step.run === 'npm ci');
   const select = job.steps.findIndex(step => step.with?.['node-version'] === '${{ matrix.node }}');
   const consume = job.steps.findIndex(step => step.run?.includes('scripts/ci-supported-node.mjs'));
@@ -28,7 +35,7 @@ test('supported Node versions consume one explicit normal artifact and retain ag
     assert.equal(job.steps[index]['continue-on-error'], undefined);
   }
   assert(jobs.client.needs.includes('client-supported-versions'));
-  assert(jobs.client.steps[0].run.includes('"client-supported-versions"'));
+  assert(jobs.client.steps[0].run!.includes('"client-supported-versions"'));
   assert(!JSON.stringify(job).includes('continue-on-error'));
   assert(!JSON.stringify(job).includes('moon'));
 });
@@ -37,37 +44,50 @@ test('supported Node selection refuses foreign versions before preparation or pa
   await assert.rejects(acceptSupportedNode({profile: 'local', version: '22.0.0', parent: '/must-not-touch'}),
     {message: 'Unselected supported-version case'});
   const foreign = supportedNodeCases.find(entry => entry.profile === 'sdk' && entry.version !== process.versions.node);
-  await assert.rejects(acceptSupportedNode({...foreign, parent: '/must-not-touch'}),
-    error => error.code === 'ERR_ASSERTION' && error.message.startsWith('Consumer interpreter differs from the selected version'));
+  await assert.rejects(acceptSupportedNode({...foreign!, parent: '/must-not-touch'}),
+    error => (error as NodeJS.ErrnoException).code === 'ERR_ASSERTION' &&
+      (error as Error).message.startsWith('Consumer interpreter differs from the selected version'));
 });
 
 test('Python supported consumers retain the SAME producer cohort and independent failure collection', () => {
   const steps = jobs['python-wheels'].steps;
   const producer = steps.find(step => step.id === 'python-normal-cohort');
-  assert(producer.run.includes('scripts/ci-python-wheels.py'));
+  assert(producer!.run!.includes('scripts/ci-python-wheels.py'));
   for (const [name, version] of [['minimum', '3.11.0'], ['latest', '3.15.2']]) {
     const setup = steps.find(step => step.id === 'python-' + name);
-    assert.equal(setup.with['python-version'], version);
-    assert.equal(setup.if, "${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}");
+    assert.equal(setup!.with!['python-version'], version);
+    assert.equal(setup!.if, "${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}");
     const accept = steps.find(step => step.name === `Accept the ${name} Python version from the same normal wheels`);
-    assert(accept.if.includes(`steps.python-${name}.outcome == 'success'`));
-    assert(accept.run.includes('--cohort "$RUNNER_TEMP/python-wheel-acceptance/cohort"'));
-    assert(!accept.run.includes('build'));
+    assert(accept!.if!.includes(`steps.python-${name}.outcome == 'success'`));
+    assert(accept!.run!.includes('--cohort "$RUNNER_TEMP/python-wheel-acceptance/cohort"'));
+    assert(!accept!.run!.includes('build'));
   }
 });
 
-test('SDK compatibility actor completes the public roundtrip against checked-in SDK Source without a runtime', async t => {
+test('SDK compatibility actor completes the public roundtrip against prepared copied SDK Source without a runtime', async t => {
   const consumer = await mkdtemp(join(tmpdir(), 'actql-sdk-version-source-'));
   t.after(() => rm(consumer, {recursive: true, force: true}));
-  const paths = execFileSync('git', ['ls-files', '-z', 'packages/client-wire', 'packages/sdk'], {cwd: root, encoding: 'utf8'}).split('\0').filter(Boolean);
+  const source = join(consumer, 'source'), installed = join(consumer, 'node_modules/@actql');
+  const paths = execFileSync('git', ['ls-files', '-z', 'packages/client-wire', 'packages/sdk',
+    'package.json', 'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts'],
+  {cwd: root, encoding: 'utf8'}).split('\0').filter(Boolean);
   for (const path of paths) {
-    const [, name, ...parts] = path.split('/');
-    const target = join(consumer, 'node_modules/@actql', name, ...parts);
+    // Repository tests can reference packages outside this SDK-only fixture.
+    // The original tooling project checks them in the main checkout.
+    if (path.endsWith('.test.mts')) continue;
+    const target = join(source, path);
     await mkdir(dirname(target), {recursive: true}); await copyFile(join(root, path), target);
   }
+  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+  await prepareCopiedTypeScript({source: root, root: source, environment: env,
+    run(command, args, cwd, environment, timeout) {
+      const child = spawnSync(command, args, {cwd, env: environment, encoding: 'utf8', timeout});
+      assert.ifError(child.error); assert.equal(child.signal, null); assert.equal(child.status, 0, child.stderr + child.stdout);
+    }});
+  await mkdir(installed, {recursive: true});
+  for (const name of ['client-wire', 'sdk']) await rename(join(source, 'packages', name), join(installed, name));
   const actor = join(consumer, 'acceptance.mjs');
   await copyFile(join(root, 'scripts/fixtures/ci-supported-node.mjs'), actor);
-  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
   const child = spawnSync(process.execPath, [actor, 'sdk', process.versions.node],
     {cwd: consumer, env, encoding: 'utf8', timeout: 10000});
   assert.ifError(child.error); assert.equal(child.signal, null); assert.equal(child.status, 0, child.stderr);
