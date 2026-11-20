@@ -917,3 +917,5 @@ target/
 /scripts/release-project-sequences.d.mts
 /scripts/native-cli-mock-regressions.mjs
 /scripts/native-cli-mock-regressions.d.mts
+/scripts/native-cli-mock-regressions.test.mjs
+/scripts/native-cli-mock-regressions.test.d.mts
