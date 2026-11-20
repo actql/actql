@@ -12,6 +12,7 @@ from pathlib import Path
 import stat
 import sys
 import threading
+from time import monotonic_ns
 from typing import Any
 
 
@@ -245,8 +246,8 @@ def _saved(path: Path, version: str, *, fields: set[str] | None = None) -> dict[
     return body
 
 
-def _sync_initial_phase(enabled: bool, phase: str) -> None:
-    """Optional fixed public-boundary labels, never values or runtime calls."""
+def _sync_initial_phase(enabled: bool, phase: str, origin_ns: int | None = None) -> None:
+    """Optional closed boundaries and elapsed time, never runtime authority."""
     if enabled is not True or type(phase) is not str or phase not in (
             'facade-import-enter', 'facade-import-return', 'factory-enter', 'factory-return',
             'first-start-enter', 'first-start-return',
@@ -255,8 +256,17 @@ def _sync_initial_phase(enabled: bool, phase: str) -> None:
             'second-state-enter', 'second-state-return', 'second-result-enter', 'second-result-return',
             'first-close-enter', 'first-close-return'):
         return
+    if type(origin_ns) is not int or not 0 <= origin_ns <= (1 << 63) - 1:
+        return
     try:
-        sys.stderr.write(json.dumps({'stage': 'installed-sync-initial-phase', 'phase': phase}) + '\n')
+        now_ns = monotonic_ns()
+        if type(now_ns) is not int:
+            return
+        elapsed_ns = now_ns - origin_ns
+        if not 0 <= elapsed_ns <= (1 << 63) - 1:
+            return  # Missing timing is not a fabricated zero or a new origin.
+        sys.stderr.write(json.dumps({'stage': 'installed-sync-initial-phase', 'phase': phase,
+                                     'elapsed_ns': elapsed_ns}) + '\n')
         sys.stderr.flush()
     except BaseException:
         pass  # Optional observation cannot replace an operation or close failure.
@@ -264,21 +274,27 @@ def _sync_initial_phase(enabled: bool, phase: str) -> None:
 
 def _sync(version: str, phase: str, receipt: Path) -> dict[str, Any] | None:
     initial = phase == 'initial'
-    _sync_initial_phase(initial, 'facade-import-enter')
+    origin_ns = None
+    if initial:
+        try:
+            origin_ns = monotonic_ns()
+        except BaseException:
+            pass  # Optional timing cannot replace an original operation failure.
+    _sync_initial_phase(initial, 'facade-import-enter', origin_ns)
     from actql import Client
-    _sync_initial_phase(initial, 'facade-import-return')
+    _sync_initial_phase(initial, 'facade-import-return', origin_ns)
     saved = _saved(receipt, version) if phase == 'resume' else None
-    _sync_initial_phase(initial, 'factory-enter')
+    _sync_initial_phase(initial, 'factory-enter', origin_ns)
     with Client.open() as client:
-        _sync_initial_phase(initial, 'factory-return')
+        _sync_initial_phase(initial, 'factory-return', origin_ns)
         try:
             with (_ClosedTaskDriveObservation(client._client._local_host)
                   if saved is None else nullcontext(None)) as control:
                 if saved is None:
                     submission = client.new_submission()
-                    _sync_initial_phase(initial, 'first-start-enter')
+                    _sync_initial_phase(initial, 'first-start-enter', origin_ns)
                     run = client.start_source('SELECT 1 AS n', format='sql', submission_ref=submission)
-                    _sync_initial_phase(initial, 'first-start-return')
+                    _sync_initial_phase(initial, 'first-start-return', origin_ns)
                 else:
                     submission = saved['submission']
                     observed = client.lookup_submission(submission)
@@ -288,17 +304,17 @@ def _sync(version: str, phase: str, receipt: Path) -> dict[str, Any] | None:
                 if saved is None:
                     _record(receipt.with_name(receipt.name + '.submitted'), version=version,
                             facade='sync', submission=submission, run=_plain(run.ref))
-                _sync_initial_phase(initial, 'first-wait-enter')
+                _sync_initial_phase(initial, 'first-wait-enter', origin_ns)
                 state = run.wait()
-                _sync_initial_phase(initial, 'first-wait-return')
+                _sync_initial_phase(initial, 'first-wait-return', origin_ns)
                 if state['status'] != 'succeeded':
                     raise AssertionError('Original Run did not succeed')
-                _sync_initial_phase(initial, 'first-result-enter')
+                _sync_initial_phase(initial, 'first-result-enter', origin_ns)
                 _rows(run.result('answer').all(max_rows=1))
-                _sync_initial_phase(initial, 'first-result-return')
-                _sync_initial_phase(initial, 'first-reread-enter')
+                _sync_initial_phase(initial, 'first-result-return', origin_ns)
+                _sync_initial_phase(initial, 'first-reread-enter', origin_ns)
                 _rows(run.result('answer').all(max_rows=1))
-                _sync_initial_phase(initial, 'first-reread-return')
+                _sync_initial_phase(initial, 'first-reread-return', origin_ns)
                 original = _plain(run.ref)
                 if saved is not None and original != saved['run']:
                     raise AssertionError('Attach replaced the original Run')
@@ -306,22 +322,22 @@ def _sync(version: str, phase: str, receipt: Path) -> dict[str, Any] | None:
                     second_submission = client.new_submission()
                     if _plain(second_submission) == _plain(submission):
                         raise AssertionError('Second submission must have a distinct original reference')
-                    _sync_initial_phase(initial, 'second-start-enter')
+                    _sync_initial_phase(initial, 'second-start-enter', origin_ns)
                     second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
-                    _sync_initial_phase(initial, 'second-start-return')
+                    _sync_initial_phase(initial, 'second-start-return', origin_ns)
                     _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
                             facade='sync', submission=second_submission, run=_plain(second.ref))
-                    _sync_initial_phase(initial, 'second-state-enter')
+                    _sync_initial_phase(initial, 'second-state-enter', origin_ns)
                     if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
                         raise AssertionError('Second distinct Run did not succeed on the same Host')
-                    _sync_initial_phase(initial, 'second-state-return')
+                    _sync_initial_phase(initial, 'second-state-return', origin_ns)
                     # all() consumes through EOF and refuses any extra row at this bound.
-                    _sync_initial_phase(initial, 'second-result-enter')
+                    _sync_initial_phase(initial, 'second-result-enter', origin_ns)
                     _rows(second.result('answer').all(max_rows=1))
-                    _sync_initial_phase(initial, 'second-result-return')
+                    _sync_initial_phase(initial, 'second-result-return', origin_ns)
         finally:
-            _sync_initial_phase(initial, 'first-close-enter')
-    _sync_initial_phase(initial, 'first-close-return')
+            _sync_initial_phase(initial, 'first-close-enter', origin_ns)
+    _sync_initial_phase(initial, 'first-close-return', origin_ns)
     observed = control.result() if control is not None else None
     if saved is None:
         _record(receipt, version=version, facade='sync', submission=submission, run=original)

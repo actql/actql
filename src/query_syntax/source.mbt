@@ -69,6 +69,9 @@ struct Tokens {
   tokens : Array[Token]
   usage : Array[Int]
   identifiers : Map[String, String]
+  // Set only while constructing actual scalar Call nodes from this source.
+  // Shared CTE/set expressions retain this same parser-owned token original.
+  mut integer_context_required : Bool
 }
 
 ///|
@@ -158,7 +161,13 @@ fn scan_tokens(
         break
       }
     }
-    Ok({ document, tokens, usage: budget.used, identifiers, })
+    Ok({
+      document,
+      tokens,
+      usage: budget.used,
+      identifiers,
+      integer_context_required: false,
+    })
   } catch {
     LexicalAbort(issue, at) =>
       Err({

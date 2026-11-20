@@ -15,7 +15,7 @@ const corpusUrl = new URL(
 // preceding fixed corpus intact; derive only its containing preimages below
 // from independently authored envelopes, never from runtime identities.
 const currentExpressionContractCid =
-  'sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda';
+  'sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46';
 
 // Test/oracle only. JSON keys sort by their exact UTF-16 code units. Writing
 // each field directly also avoids JavaScript's numeric-key re-enumeration.

@@ -66,15 +66,39 @@ fn integer_context_name(
 }
 
 ///|
+fn integer_context_call_name(path : Array[NamePart]) -> Bool {
+  guard path.length() == 1 && path[0].value.length() == 3 else { return false }
+  let name = path[0].value
+  let a = name[0].to_int()
+  let b = name[1].to_int()
+  let c = name[2].to_int()
+  let a = if a >= 97 && a <= 122 { a - 32 } else { a }
+  let b = if b >= 97 && b <= 122 { b - 32 } else { b }
+  let c = if c >= 97 && c <= 122 { c - 32 } else { c }
+  (a == 77 && b == 79 && c == 68) || (a == 68 && b == 73 && c == 86)
+}
+
+///|
 fn integer_context_call(
   path : Array[NamePart],
   budget : IntegerContextBudget,
 ) -> Bool raise IntegerContextStop {
-  path.length() == 1 &&
-  (
-    integer_context_name(path[0], { value: "MOD", quoted: false, }, budget) ||
-    integer_context_name(path[0], { value: "DIV", quoted: false, }, budget)
+  // Preserve the existing short-circuit character Work accounting. The same
+  // fixed predicate supplies both the parser fact and the selected pass.
+  ignore(
+    path.length() == 1 &&
+    (
+      integer_context_name(path[0], { value: "MOD", quoted: false, }, budget) ||
+      integer_context_name(path[0], { value: "DIV", quoted: false, }, budget)
+    ),
   )
+  integer_context_call_name(path)
+}
+
+///|
+/// Completed parser DATA only, never caller authority or a permission cache.
+pub fn integer_function_context_required(query : Query) -> Bool {
+  query.source.integer_context_required
 }
 
 ///|
@@ -795,6 +819,9 @@ pub fn with_integer_function_context(
 ) -> Result[Query, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, span: None, })
+  }
+  if !integer_function_context_required(query) {
+    return Ok(query)
   }
   let budget = { remaining: max_work, rewrites: 0, }
   try {

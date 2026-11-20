@@ -1134,7 +1134,17 @@ pub fn compile_query_script(
     ) {
     Ok(query) => query
     Err({ issue: InvalidLimits, .. }) => return Err(InvalidContext)
-    Err(_) => return Err(Expression({ issue: WorkLimit, origin: None, }))
+    Err(_) => {
+      let document = @query.script_document(script)
+      return Err(
+        Expression({
+          issue: WorkLimit,
+          origin: Some(
+            @origin.range(document, 0, @origin.input_bytes(document)).unwrap(),
+          ),
+        }),
+      )
+    }
   }
   compile_query_script_with_source(
     @query.single_query_script(query),

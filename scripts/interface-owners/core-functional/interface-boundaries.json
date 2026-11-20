@@ -52534,7 +52534,7 @@
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               },
               {
-                "path": "src/client_local_host/preparation_request_integer_context_js_wbtest.mbt",
+                "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
                 "anchor": "test \"original integer context is funded before lowerer entry"
               }
             ]

@@ -1,4 +1,22 @@
 ///|
+test "integer context work refusal retains the same authored Query document" {
+  for text in ["WITH t AS (SELECT 5 AS v) SELECT MOD(v,2) AS value FROM t"] {
+    let original = @query.parse_query(text, syntax_limits()).unwrap()
+    guard compile(original, { ..fixture_context(), inputs: [], }, {
+        ..construction_limits(),
+        max_expression_work: 1,
+      })
+      is Err(Expression({ issue: WorkLimit, origin: Some(origin), })) else {
+      fail("context inventory must retain its original bounded-work refusal")
+    }
+    let document = @query.query_document(original)
+    assert_true(@origin.belongs_to(document, origin))
+    assert_eq(@origin.start(origin).byte_offset, 0)
+    assert_eq(@origin.end(origin).byte_offset, @origin.input_bytes(document))
+  }
+}
+
+///|
 test "BY NAME ON reorders both inputs into the authored Program" {
   let expected = @program.parse(
     (

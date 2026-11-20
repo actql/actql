@@ -7418,7 +7418,20 @@ pub fn compile_with_source(
     @query.with_integer_function_context(query, limits.max_expression_work) {
     Ok(query) => query
     Err({ issue: InvalidLimits, .. }) => return Err(InvalidContext)
-    Err(_) => return Err(Expression({ issue: WorkLimit, origin: None, }))
+    Err(_) => {
+      // Context inventory can exhaust before selecting an expression. Retain
+      // the actual authored Query document, rather than dropping its origin or
+      // attributing that work to an expression the scan has not reached.
+      let document = @query.query_document(query)
+      return Err(
+        Expression({
+          issue: WorkLimit,
+          origin: Some(
+            @origin.range(document, 0, @origin.input_bytes(document)).unwrap(),
+          ),
+        }),
+      )
+    }
   }
   // Terminal operations use the ordinary script compiler's original target
   // selection and private Result capture; none may disappear into a pure query.
