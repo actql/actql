@@ -87,8 +87,9 @@ test('Node CPU mode is explicit and keeps default and Native job selection uncha
   assert(!job.steps.some(step => step.uses?.includes('performance-matrix')));
   // The checkout needs its authored tooling emitted before reading artifacts.
   // The diagnostic still cannot build or package the product it measures.
-  assert.doesNotMatch(job.steps.map(step => step.run ?? '').join('\n'),
-    /moon build|npm (?:pack|run(?! build:typescript\b))|operation-performance\.mjs/u);
+  const body = job.steps.flatMap(step => (step.run ?? '').split('\n'))
+    .map(line => line.trim()).filter(line => line !== 'npm run build:typescript').join('\n');
+  assert.doesNotMatch(body, /moon build|npm (?:pack|run)|operation-performance\.mjs/u);
   // CI registration, including npm script expansion and non-optional execution,
   // is checked by ordinary-operation-packages.test.mjs's shared inventory.
 });
