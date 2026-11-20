@@ -78,10 +78,11 @@ fn request_query_lowering_data_bytes(
 ///|
 // Original token count bounds the added query-local context inventory. Each
 // syntax occurrence has one task/immutable scope link, work/desired-column
-// entries and at most one rebuilt query/operation/expression. The 16H/64R/32W
+// entries and at most one rebuilt query/operation/expression. The 20H/72R/40W
 // envelope includes original/rewritten overlap, Option/tuple tags, compacting
 // subtree maps, nullable typed literals and the already-returned child arrays.
-// 40 UTF16 units cover the two full signed64 spellings per selected literal.
+// 128 UTF16 units cover full signed64 spellings plus collision-free companion
+// identifiers (three bounded Int indices and the fixed private prefix).
 // Immutable scope links (not copied visible-name vectors) and idempotent
 // subtree reuse keep simultaneous storage linear in this original inventory.
 // This is added to, not borrowed from, the existing lowerer/writer quote, and
@@ -91,10 +92,10 @@ fn request_integer_context_data_bytes(tokens : Int64) -> Int64? {
     return None
   }
   @execution.preparation_representation_cost({
-    record_headers: 16L * tokens,
-    reference_slots: 64L * tokens,
-    scalar_words: 32L * tokens,
-    owned_utf16_units: 40L * tokens,
+    record_headers: 20L * tokens,
+    reference_slots: 72L * tokens,
+    scalar_words: 40L * tokens,
+    owned_utf16_units: 128L * tokens,
     owned_wire_bytes: 0L,
   })
 }

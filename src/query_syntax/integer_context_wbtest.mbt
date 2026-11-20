@@ -16,8 +16,11 @@ test "integer context retains original lexemes document and source tree without 
   let before = before[0].expression.unwrap()
   let after = after[0].expression.unwrap()
   assert_true(before.nodes[before.root].kind is Number("9007199254740993"))
+  guard after.nodes[after.root].kind is ContextualIntegerCompanion(child) else {
+    fail("expected the private exact view of the original integer token")
+  }
   assert_true(
-    after.nodes[after.root].kind is ContextualInteger(Some(9007199254740993L)),
+    after.nodes[child].kind is ContextualInteger(Some(9007199254740993L)),
   )
   assert_true(
     physical_equal(

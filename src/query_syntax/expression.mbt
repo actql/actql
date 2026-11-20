@@ -21,6 +21,10 @@ pub(all) enum ExpressionKind {
   Number(String)
   // Compiler-selected from an original integer token, before Number admission.
   ContextualInteger(Int64?)
+  // A checked syntax-only parallel view of the SAME producer row. Neither
+  // node is parsed from an authored function/identifier spelling.
+  ContextualIntegerReference(Array[NamePart], NamePart)
+  ContextualIntegerCompanion(Int)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])
@@ -99,6 +103,8 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
   let node = expression.nodes[index]
   let kind = match node.kind {
     Reference(parts) => Reference(parts.copy())
+    ContextualIntegerReference(parts, name) =>
+      ContextualIntegerReference(parts.copy(), name)
     Call(parts, args) => Call(parts.copy(), args.copy())
     ArrayConstructor(items, target) => ArrayConstructor(items.copy(), target)
     StructConstructor(fields) => StructConstructor(fields.copy())
@@ -155,6 +161,7 @@ fn expression_subtree(
     }
     match expression.nodes[next].kind {
       Unary(_, child)
+      | ContextualIntegerCompanion(child)
       | Parenthesized(child)
       | Cast(child, _)
       | Interval(child, _)
@@ -206,6 +213,8 @@ fn expression_subtree(
         ArrayOffset(left, right, safe) =>
           ArrayOffset(remap[left], remap[right], safe)
         Parenthesized(child) => Parenthesized(remap[child])
+        ContextualIntegerCompanion(child) =>
+          ContextualIntegerCompanion(remap[child])
         Cast(child, target) => Cast(remap[child], target)
         Interval(child, unit) => Interval(remap[child], unit)
         Property(child, name) => Property(remap[child], name)
@@ -223,6 +232,8 @@ fn expression_subtree(
             remap[otherwise],
           )
         Reference(path) => Reference(path.copy())
+        ContextualIntegerReference(path, name) =>
+          ContextualIntegerReference(path.copy(), name)
         kind => kind
       }
     }

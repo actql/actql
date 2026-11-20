@@ -2689,8 +2689,8 @@ The exact-integer function context is an additional constructor under this
 same reservation. Original tokens bound the query-local task/scope links,
 desired projection coordinates, compacting subtree maps, nullable variants,
 rewritten syntax and original/rewritten overlap. Per token, its incremental
-envelope is 16 record headers, 64 reference slots, 32 scalar words and 40
-owned UTF16 units: 1104 logical bytes under the existing representation
+envelope is 20 record headers, 72 reference slots, 40 scalar words and 128
+owned UTF16 units: 1472 logical bytes under the existing representation
 tariff. It is added before the original lowerer call, rather than funded from
 unused writer capacity. Immutable scope links avoid a copied name vector per
 CTE; unchanged/idempotent subtrees retain their original identity. The parsed
@@ -2698,6 +2698,17 @@ document and its original tokens remain the source owner. A short grow keeps
 the same quoted Request and no constructor output; successful cleanup still
 uses its original parent and borrower. This is a logical bound, not a heap
 measurement, policy grant or complete work observation.
+
+Integer demand does not replace a CTE's original Number projection. The
+compiler adds a collision-free private companion over the same producer row
+and directs only the exact function operand to that companion. Original
+columns, arithmetic, other CTE consumers, whole-row references and stars keep
+their independent ordinary view. Private companions are excluded from author
+lookup and star expansion. UNION members share their companion alignment.
+Original lexical ordinary demand is propagated separately before construction;
+an integer lexeme outside the existing Number domain can omit its unavailable
+ordinary view only when no ordinary consumer demands it. Otherwise the original
+Number admission still refuses; a rounded surrogate is never constructed.
 
 The Request retains the exact lowered Program, Catalog and diagnostic source.
 The checker receives those same originals and the supplied Parameter cursor;

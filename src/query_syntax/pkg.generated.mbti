@@ -60,6 +60,8 @@ pub fn graph_source_query(Query) -> Query
 
 pub fn has_sga_relation_lowering(String) -> Bool
 
+pub fn integer_context_companion_columns(Query) -> Array[String]
+
 pub fn is_source_free_scalar_projection(Query) -> Bool
 
 pub fn is_standalone_reference_projection(Query) -> Bool
@@ -230,6 +232,8 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   ContextualInteger(Int64?)
+  ContextualIntegerReference(Array[NamePart], NamePart)
+  ContextualIntegerCompanion(Int)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])

@@ -1,8 +1,8 @@
 ///|
 test "original integer context has an independent incremental representation bound" {
   // Existing tariff: H = 16 bytes; R/W = 8 bytes and a UTF16 code unit = 2 bytes.
-  assert_eq(request_integer_context_data_bytes(1L), Some(1104L))
-  assert_eq(request_integer_context_data_bytes(5L), Some(5520L))
+  assert_eq(request_integer_context_data_bytes(1L), Some(1472L))
+  assert_eq(request_integer_context_data_bytes(5L), Some(7360L))
   assert_eq(request_integer_context_data_bytes(0L), Some(0L))
   assert_eq(request_integer_context_data_bytes(-1L), None)
   assert_eq(request_integer_context_data_bytes(9223372036854775807L), None)
@@ -34,7 +34,7 @@ test "original integer context is funded before lowerer entry and short grow ret
     ).unwrap()
     let bytes = request_query_lowering_data_bytes(selected, None, catalog, copy).unwrap()
     let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
-    assert_true(bytes >= tokens * 1104L)
+    assert_true(bytes >= tokens * 1472L)
     let base = @resources.preparation_capacity_working_extents(
       parent.capacity,
       input,

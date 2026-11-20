@@ -16,6 +16,9 @@ priv struct IntegerQueryContext {
   bindings : Array[Int]
   sets : Array[Int]
   wanted : Array[Int]
+  companions : Array[NamePart]
+  ordinary : Array[Int]
+  omitted : Array[Int]
 }
 
 ///|
@@ -159,10 +162,40 @@ fn integer_context_request(
   target : Int,
   column : Int,
   budget : IntegerContextBudget,
+  companion? : NamePart? = None,
 ) -> Unit raise IntegerContextStop {
   integer_context_spend(budget, amount=tasks[target].wanted.length() + 1)
   if !tasks[target].wanted.contains(column) {
+    let name = match companion {
+      Some(name) => name
+      None => {
+        let mut suffix = 0
+        let mut name = {
+          value: "aql_integer_\{target}_\{column}_0",
+          quoted: false,
+        }
+        let mut collision = true
+        while collision {
+          integer_context_spend(budget)
+          collision = false
+          for task in tasks {
+            if integer_context_column(task.original, name, budget) is Some(_) {
+              collision = true
+            }
+          }
+          if collision {
+            suffix += 1
+            name = {
+              value: "aql_integer_\{target}_\{column}_\{suffix}",
+              quoted: false,
+            }
+          }
+        }
+        name
+      }
+    }
     tasks[target].wanted.push(column)
+    tasks[target].companions.push(name)
     pending.push((target, column))
   }
 }
@@ -192,6 +225,40 @@ fn integer_context_expressions(
     Order(terms) => terms.map(term => term.expression)
     _ => []
   }
+}
+
+///|
+fn integer_context_companion(
+  task : IntegerQueryContext,
+  column : Int,
+  budget : IntegerContextBudget,
+) -> NamePart? raise IntegerContextStop {
+  for i, wanted in task.wanted {
+    integer_context_spend(budget)
+    if wanted == column {
+      return Some(task.companions[i])
+    }
+  }
+  None
+}
+
+///|
+/// Private compiler projection names, derived only from the syntax wrapper.
+/// Author lookup and SELECT * retain the original public column view.
+pub fn integer_context_companion_columns(query : Query) -> Array[String] {
+  let names = []
+  for operation in query.operations {
+    if operation is Select(projections, _) {
+      for p in projections {
+        if p.expression is Some(e) &&
+          e.nodes[e.root].kind is ContextualIntegerCompanion(_) &&
+          p.name is Some(name) {
+          names.push(name.value)
+        }
+      }
+    }
+  }
+  names
 }
 
 ///|
@@ -247,6 +314,8 @@ fn integer_context_expression(
   expression : Expression,
   force : Bool,
   budget : IntegerContextBudget,
+  tasks : Array[IntegerQueryContext],
+  task : IntegerQueryContext,
 ) -> Expression raise IntegerContextStop {
   let targets = if force { [expression.root] } else { [] }
   for node in expression.nodes {
@@ -269,6 +338,18 @@ fn integer_context_expression(
       !(nodes[target].kind is ContextualInteger(_)) {
       nodes[target] = { ..nodes[target], kind: ContextualInteger(value), }
       changed = true
+    } else if integer_context_reference(expression, target, budget)
+      is Some(path) &&
+      integer_context_source(task, path, budget) is Some((producer, column)) &&
+      integer_context_column(tasks[producer].original, column, budget)
+      is Some(column) &&
+      integer_context_companion(tasks[producer], column, budget)
+      is Some(companion) {
+      nodes[target] = {
+        ..nodes[target],
+        kind: ContextualIntegerReference(path.copy(), companion),
+      }
+      changed = true
     }
   }
   if !changed {
@@ -288,43 +369,77 @@ fn integer_context_operation(
   operation : QueryOperation,
   wanted : Array[Int],
   budget : IntegerContextBudget,
+  tasks : Array[IntegerQueryContext],
+  task : IntegerQueryContext,
 ) -> QueryOperation raise IntegerContextStop {
   match operation {
-    Select(projections, distinct) =>
-      Select(
-        projections.mapi((index, p) => {
-          integer_context_spend(budget, amount=wanted.length() + 1)
-          {
+    Select(projections, distinct) => {
+      let selected = []
+      for i, p in projections {
+        integer_context_spend(budget, amount=task.omitted.length() + 1)
+        if wanted.is_empty() || !task.omitted.contains(i) {
+          selected.push({
             ..p,
             expression: p.expression.map(e => {
-              integer_context_expression(e, wanted.contains(index), budget)
+              integer_context_expression(e, false, budget, tasks, task)
             }),
-          }
-        }),
-        distinct,
-      )
+          })
+        }
+      }
+      for index in wanted {
+        integer_context_spend(budget, amount=projections.length() + 1)
+        guard projections.get(index) is Some(p) &&
+          p.expression is Some(original) &&
+          integer_context_companion(task, index, budget) is Some(name) else {
+          continue
+        }
+        let expression = integer_context_expression(
+          original, true, budget, tasks, task,
+        )
+        integer_context_spend(budget, amount=expression.nodes.length() + 1)
+        let nodes = expression.nodes.copy()
+        let root = nodes.length()
+        nodes.push({
+          ..expression.nodes[expression.root],
+          kind: ContextualIntegerCompanion(expression.root),
+        })
+        selected.push({
+          ..p,
+          name: Some(name),
+          expression: Some({ ..expression, nodes, root, }),
+        })
+        budget.rewrites += 1
+      }
+      Select(selected, distinct)
+    }
     Extend(projections) =>
       Extend(
         projections.map(p => {
           ..p,
           expression: p.expression.map(e => {
-            integer_context_expression(e, false, budget)
+            integer_context_expression(e, false, budget, tasks, task)
           }),
         }),
       )
     Where(expression) =>
-      Where(integer_context_expression(expression, false, budget))
+      Where(integer_context_expression(expression, false, budget, tasks, task))
     Having(expression, calls) =>
-      Having(integer_context_expression(expression, false, budget), calls)
+      Having(
+        integer_context_expression(expression, false, budget, tasks, task),
+        calls,
+      )
     Qualify(expression, calls) =>
-      Qualify(integer_context_expression(expression, false, budget), calls)
+      Qualify(
+        integer_context_expression(expression, false, budget, tasks, task),
+        calls,
+      )
     Group(keys, projections, scope) =>
       Group(
-        keys.map(e => integer_context_expression(e, false, budget)),
+        keys.map(e => integer_context_expression(e, false, budget, tasks, task)),
         projections.map(p => {
           ..p,
           expression: p.expression.map(e => {
-            integer_context_expression(e, false, budget)
+            integer_context_expression(e, false, budget, tasks, task)
           }),
         }),
         scope,
@@ -333,10 +448,286 @@ fn integer_context_operation(
       Order(
         terms.map(term => {
           ..term,
-          expression: integer_context_expression(term.expression, false, budget),
+          expression: integer_context_expression(
+            term.expression,
+            false,
+            budget,
+            tasks,
+            task,
+          ),
         }),
       )
     operation => operation
+  }
+}
+
+///|
+fn integer_context_mark(
+  indices : Array[Int],
+  index : Int,
+  budget : IntegerContextBudget,
+) -> Bool raise IntegerContextStop {
+  integer_context_spend(budget, amount=indices.length() + 1)
+  if indices.contains(index) {
+    false
+  } else {
+    indices.push(index)
+    true
+  }
+}
+
+///|
+fn integer_context_ordinary_expression(
+  expression : Expression,
+  task : IntegerQueryContext,
+  tasks : Array[IntegerQueryContext],
+  pending : Array[(Int, Int)],
+  budget : IntegerContextBudget,
+) -> Unit raise IntegerContextStop {
+  integer_context_spend(budget, amount=expression.nodes.length())
+  let exact = Array::make(expression.nodes.length(), false)
+  for node in expression.nodes {
+    integer_context_spend(budget)
+    if node.kind is Call(path, arguments) && integer_context_call(path, budget) {
+      for argument in arguments {
+        let mut index = argument
+        while expression.nodes[index].kind is Parenthesized(child) {
+          integer_context_spend(budget)
+          index = child
+        }
+        exact[index] = true
+      }
+    }
+  }
+  for index, node in expression.nodes {
+    integer_context_spend(budget)
+    if !exact[index] &&
+      node.kind is Reference(path) &&
+      integer_context_source(task, path, budget) is Some((producer, column)) &&
+      integer_context_column(tasks[producer].original, column, budget)
+      is Some(column) &&
+      integer_context_mark(tasks[producer].ordinary, column, budget) {
+      pending.push((producer, column))
+    }
+    // A whole original range receiver also demands every public column; it
+    // cannot silently lose an unrepresentable Number view to an exact sibling.
+    if !exact[index] &&
+      node.kind is Reference([range]) &&
+      task.original.relation is [relation] &&
+      integer_context_name(
+        range,
+        task.original.source_alias.unwrap_or(relation),
+        budget,
+      ) {
+      let mut visible = task.visible
+      while visible is Some(scope) {
+        integer_context_spend(budget)
+        if integer_context_name(scope.name, relation, budget) {
+          let columns = integer_context_projections(
+            tasks[scope.target].original,
+            budget,
+          )
+          for column in 0..<columns.length() {
+            if integer_context_mark(
+                tasks[scope.target].ordinary,
+                column,
+                budget,
+              ) {
+              pending.push((scope.target, column))
+            }
+          }
+          break
+        }
+        visible = scope.parent
+      }
+    }
+  }
+}
+
+///|
+// Trace ordinary demands independently of exact-function demands. This is
+// compiler DATA over original lexical scopes, never an observed Number cast.
+fn integer_context_ordinary_flow(
+  tasks : Array[IntegerQueryContext],
+  budget : IntegerContextBudget,
+) -> Unit raise IntegerContextStop {
+  let pending : Array[(Int, Int)] = []
+  for index, task in tasks {
+    let mut last_select = -1
+    for i, operation in task.original.operations {
+      integer_context_spend(budget)
+      if operation is Select(_, _) {
+        last_select = i
+      }
+    }
+    for i, operation in task.original.operations {
+      integer_context_spend(budget)
+      if i == last_select && index != 0 {
+        continue
+      }
+      for expression in integer_context_expressions(operation, budget) {
+        integer_context_ordinary_expression(
+          expression, task, tasks, pending, budget,
+        )
+      }
+      // A bare or qualified star consumes the original public columns only.
+      if operation is Select(projections, _) &&
+        projections.any(p => p.star is Some(_)) &&
+        task.original.relation is [relation] {
+        let mut visible = task.visible
+        while visible is Some(scope) {
+          integer_context_spend(budget)
+          if integer_context_name(scope.name, relation, budget) {
+            for
+              column in 0..<integer_context_projections(
+                tasks[scope.target].original,
+                budget,
+              ).length() {
+              if integer_context_mark(
+                  tasks[scope.target].ordinary,
+                  column,
+                  budget,
+                ) {
+                pending.push((scope.target, column))
+              }
+            }
+            break
+          }
+          visible = scope.parent
+        }
+      }
+    }
+    for operation in task.original.final_operations {
+      for expression in integer_context_expressions(operation, budget) {
+        integer_context_ordinary_expression(
+          expression, task, tasks, pending, budget,
+        )
+      }
+    }
+  }
+  while pending.pop() is Some((index, column)) {
+    integer_context_spend(budget)
+    let task = tasks[index]
+    let projections = integer_context_projections(task.original, budget)
+    if projections.get(column) is Some({ expression: Some(expression), .. }) {
+      integer_context_ordinary_expression(
+        expression, task, tasks, pending, budget,
+      )
+    }
+    for i, part in task.original.sets {
+      let right = task.sets[i]
+      let position = if part.by_name {
+        if projections.get(column) is Some(p) &&
+          integer_context_projection_name(p) is Some(name) {
+          integer_context_column(tasks[right].original, name, budget)
+        } else {
+          None
+        }
+      } else {
+        Some(column)
+      }
+      if position is Some(position) &&
+        integer_context_mark(tasks[right].ordinary, position, budget) {
+        pending.push((right, position))
+      }
+    }
+  }
+}
+
+///|
+fn integer_context_unsafe_number(
+  expression : Expression,
+  budget : IntegerContextBudget,
+) -> Bool raise IntegerContextStop {
+  guard integer_context_literal(expression, expression.root, budget)
+    is Some(value) else {
+    return false
+  }
+  // An untyped NULL alone has no independently checked ordinary Number view.
+  // Its demanded exact companion retains the selected nullable int64 context.
+  guard value is Some(value) else { return true }
+  // The ordinary NUMBER view did not admit these original integer lexemes.
+  // Do not construct a rounded surrogate merely to populate an unused view.
+  value < -9007199254740991L || value > 9007199254740991L
+}
+
+///|
+fn integer_context_omit_unrepresentable_unused(
+  tasks : Array[IntegerQueryContext],
+  budget : IntegerContextBudget,
+) -> Unit raise IntegerContextStop {
+  let mut changed = true
+  while changed {
+    changed = false
+    for task in tasks {
+      let projections = integer_context_projections(task.original, budget)
+      for column in task.wanted {
+        integer_context_spend(budget, amount=task.ordinary.length() + 1)
+        if task.ordinary.contains(column) {
+          continue
+        }
+        guard projections.get(column)
+          is Some({ expression: Some(expression), .. }) else {
+          continue
+        }
+        let upstream_omitted = if integer_context_reference(
+            expression,
+            expression.root,
+            budget,
+          )
+          is Some(path) &&
+          integer_context_source(task, path, budget) is Some((source, name)) &&
+          integer_context_column(tasks[source].original, name, budget)
+          is Some(source_column) {
+          integer_context_spend(budget, amount=tasks[source].omitted.length())
+          tasks[source].omitted.contains(source_column)
+        } else {
+          false
+        }
+        if (
+            upstream_omitted ||
+            integer_context_unsafe_number(expression, budget)
+          ) &&
+          integer_context_mark(task.omitted, column, budget) {
+          changed = true
+        }
+      }
+      // Every UNION member keeps the identical column alignment. An ordinary
+      // demand propagated above preserves the original invalid-Number refusal.
+      for i, part in task.original.sets {
+        let right = tasks[task.sets[i]]
+        for column in task.wanted {
+          let position = if part.by_name {
+            if projections.get(column) is Some(p) &&
+              integer_context_projection_name(p) is Some(name) {
+              integer_context_column(right.original, name, budget)
+            } else {
+              None
+            }
+          } else {
+            Some(column)
+          }
+          guard position is Some(position) else { continue }
+          integer_context_spend(
+            budget,
+            amount=task.omitted.length() +
+              right.omitted.length() +
+              task.ordinary.length() +
+              right.ordinary.length(),
+          )
+          if !task.ordinary.contains(column) &&
+            !right.ordinary.contains(position) &&
+            (task.omitted.contains(column) || right.omitted.contains(position)) {
+            if integer_context_mark(task.omitted, column, budget) {
+              changed = true
+            }
+            if integer_context_mark(right.omitted, position, budget) {
+              changed = true
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -354,7 +745,16 @@ pub fn with_integer_function_context(
   let budget = { remaining: max_work, rewrites: 0, }
   try {
     let tasks : Array[IntegerQueryContext] = [
-      { original: query, visible: None, bindings: [], sets: [], wanted: [], },
+      {
+        original: query,
+        visible: None,
+        bindings: [],
+        sets: [],
+        wanted: [],
+        companions: [],
+        ordinary: [],
+        omitted: [],
+      },
     ]
     let mut cursor = 0
     while cursor < tasks.length() {
@@ -370,6 +770,9 @@ pub fn with_integer_function_context(
           bindings: [],
           sets: [],
           wanted: [],
+          companions: [],
+          ordinary: [],
+          omitted: [],
         })
         task.bindings.push(index)
         visible = Some({ name: binding.name, target: index, parent: visible, })
@@ -384,6 +787,9 @@ pub fn with_integer_function_context(
           bindings: [],
           sets: [],
           wanted: [],
+          companions: [],
+          ordinary: [],
+          omitted: [],
         })
       }
       cursor += 1
@@ -447,10 +853,19 @@ pub fn with_integer_function_context(
           Some(column)
         }
         if position is Some(position) {
-          integer_context_request(tasks, pending, right, position, budget)
+          integer_context_request(
+            tasks,
+            pending,
+            right,
+            position,
+            budget,
+            companion=integer_context_companion(task, column, budget),
+          )
         }
       }
     }
+    integer_context_ordinary_flow(tasks, budget)
+    integer_context_omit_unrepresentable_unused(tasks, budget)
     integer_context_spend(budget, amount=tasks.length())
     let completed : Array[Query?] = Array::make(tasks.length(), None)
     for index = tasks.length() - 1; index >= 0; index = index - 1 {
@@ -473,10 +888,12 @@ pub fn with_integer_function_context(
             []
           },
           budget,
+          tasks,
+          task,
         )
       })
       let final_operations = task.original.final_operations.map(op => {
-        integer_context_operation(op, [], budget)
+        integer_context_operation(op, [], budget, tasks, task)
       })
       let mut child_changed = false
       let bindings = task.original.bindings.mapi((i, b) => {

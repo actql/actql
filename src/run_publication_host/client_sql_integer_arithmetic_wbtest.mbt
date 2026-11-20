@@ -1,4 +1,50 @@
 ///|
+test "SQL MOD context preserves the same CTE ordinary Number view for coexisting consumers" {
+  for
+    sql in [
+      "WITH t AS (SELECT 5 AS v) SELECT MOD(v,2) AS m, v AS original, v+1 AS n FROM t",
+      "WITH t AS (SELECT 5 AS v), ordinary AS (SELECT v+1 AS n FROM t) SELECT MOD(v,2) AS m, v AS original, v+1 AS n FROM t",
+    ] {
+    let original = timestamp_sql_original(sql)
+    let output = sql_integer_output(original, expected_columns=[
+      ("m", @contract.Signed64Type),
+      ("n", @contract.NumberType),
+      ("original", @contract.NumberType),
+    ])
+    assert_eq(@execution.completed_row_count(output), 1)
+    assert_eq(@execution.completed_column_count(output), 3)
+    for i in 0..<3 {
+      match @execution.completed_column_name(output, i) {
+        Some("m") =>
+          assert_true(
+            @execution.completed_cell(output, 0, i)
+            is Some(Captured(@values.Signed64(1L))),
+          )
+        Some("original") =>
+          assert_true(
+            @execution.completed_cell(output, 0, i) is Some(Number(5.0)),
+          )
+        Some("n") =>
+          assert_true(
+            @execution.completed_cell(output, 0, i) is Some(Number(6.0)),
+          )
+        _ => fail("private exact companion must not enter the original result")
+      }
+    }
+  }
+  let second_consumer = sql_integer_output(
+    timestamp_sql_original(
+      "WITH t AS (SELECT 5 AS v), ordinary AS (SELECT v+1 AS n FROM t), exact AS (SELECT MOD(v,2) AS m FROM t) SELECT n FROM ordinary",
+    ),
+    expected_columns=[("n", @contract.NumberType)],
+  )
+  assert_eq(@execution.completed_row_count(second_consumer), 1)
+  assert_true(
+    @execution.completed_cell(second_consumer, 0, 0) is Some(Number(6.0)),
+  )
+}
+
+///|
 test "original SQL MOD and DIV retain exact integer provenance through the CTE and UNION" {
   let fixture = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
   for
@@ -122,6 +168,7 @@ test "SQL MOD and DIV preserve exact Decimal coefficients and original operand s
 ///|
 fn sql_integer_output(
   original : PreparedClientProgram,
+  expected_columns? : Array[(String, @contract.Primitive)] = [],
 ) -> @execution.CompletedOutput raise {
   let sequence = match
     @lower.prepare_sequence(
@@ -140,6 +187,32 @@ fn sql_integer_output(
     Err(AppendFailure(step, _)) => fail("original Append \{step}")
     Err(SetFailure(step, _)) => fail("original Set \{step}")
     Err(_) => fail("original sequence lowering outside expected operations")
+  }
+  if !expected_columns.is_empty() {
+    let owner = @lower.bound_preparation(@lower.sequence_owner(sequence))
+    let node = @lower.node_at(owner, @lower.sequence_count(sequence) - 1).unwrap()
+    let schema = @lower.node_output_schema(node)
+    assert_eq(@schema.field_count(schema), expected_columns.length())
+    for i in 0..<@schema.field_count(schema) {
+      let field = @schema.field_at(schema, i).unwrap()
+      let name = @schema.reference_name(field.name)
+      let mut found = None
+      for (expected_name, kind) in expected_columns {
+        if expected_name == name {
+          found = Some(kind)
+        }
+      }
+      guard found is Some(kind) else {
+        fail("the full schema contains a private or unexpected column")
+      }
+      assert_true(
+        @contract.type_equal(
+          @schema.field_contract(field),
+          @contract.primitive(kind, nullable=false),
+          32,
+        ),
+      )
+    }
   }
   // Reuse the existing full-sequence driver: a CTE/UNION has multiple original
   // expression kernels, rather than the scalar fixture's single step1.
@@ -183,6 +256,93 @@ test "SQL exact integer context refuses floating spellings and declared Number o
     "SELECT MOD(@v,2) AS x",
     declarations="{\"v\":{\"type\":\"number\",\"default\":5}}",
   )
+}
+
+///|
+test "SQL exact companion remains private under star collision and original alias chains" {
+  let star = sql_integer_output(
+    timestamp_sql_original(
+      "WITH t AS (SELECT 5 AS v) SELECT t.*, MOD(v,2) AS m FROM t",
+    ),
+    expected_columns=[
+      ("v", @contract.NumberType),
+      ("m", @contract.Signed64Type),
+    ],
+  )
+  assert_eq(@execution.completed_column_count(star), 2)
+  for i in 0..<2 {
+    if @execution.completed_column_name(star, i) == Some("v") {
+      assert_true(@execution.completed_cell(star, 0, i) is Some(Number(5.0)))
+    } else {
+      assert_true(
+        @execution.completed_cell(star, 0, i)
+        is Some(Captured(@values.Signed64(1L))),
+      )
+    }
+  }
+  let collision = sql_integer_output(
+    timestamp_sql_original(
+      "WITH t AS (SELECT 5 AS v,99 AS aql_integer_1_0_0) SELECT MOD(v,2) AS m,aql_integer_1_0_0 AS original FROM t",
+    ),
+    expected_columns=[
+      ("m", @contract.Signed64Type),
+      ("original", @contract.NumberType),
+    ],
+  )
+  for i in 0..<2 {
+    if @execution.completed_column_name(collision, i) == Some("original") {
+      assert_true(
+        @execution.completed_cell(collision, 0, i) is Some(Number(99.0)),
+      )
+    }
+  }
+  let chain = sql_integer_output(
+    timestamp_sql_original(
+      "WITH a AS (SELECT 9007199254740993 AS v),b AS (SELECT v AS original FROM a) SELECT MOD(original,2) AS m FROM b",
+    ),
+    expected_columns=[("m", @contract.Signed64Type)],
+  )
+  assert_true(
+    @execution.completed_cell(chain, 0, 0)
+    is Some(Captured(@values.Signed64(1L))),
+  )
+  let environment = string_try_number_test_environment()
+  let context = @source_frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+  ).unwrap()
+  assert_true(
+    @source_frontend.lower(
+      "WITH t AS (SELECT 5 AS v) SELECT MOD(v,2) AS m,aql_integer_1_0_0 AS stolen FROM t",
+      Sql,
+      Some(context),
+    )
+    is Err(QueryLowering(Expression({ issue: UnknownReference, .. }))),
+  )
+}
+
+///|
+test "SQL exact companion cannot fabricate an unavailable ordinary Number view" {
+  let environment = string_try_number_test_environment()
+  let context = @source_frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+  ).unwrap()
+  for
+    suffix in [
+      "SELECT MOD(v,2) AS m,v AS original FROM t", "SELECT t.*,MOD(v,2) AS m FROM t",
+      "SELECT t AS original,MOD(v,2) AS m FROM t",
+    ] {
+    assert_true(
+      @source_frontend.lower(
+        "WITH t AS (SELECT 9007199254740993 AS v) " + suffix,
+        Sql,
+        Some(context),
+      )
+      is Err(QueryLowering(Expression({ issue: InvalidNumber, .. }))),
+      msg=suffix,
+    )
+  }
 }
 
 ///|
