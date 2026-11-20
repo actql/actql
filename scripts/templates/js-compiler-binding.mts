@@ -2,25 +2,25 @@
 // Private pinned-compiler binding, NOT a wire codec or opaque-value issuer.
 // Callers retain their own refusal, Unknown, cleanup and authority policies.
 
-export const runtimeTag = value => value?.$tag;
-export const runtimeIsOk = value => value?.$tag === 1;
-export const runtimeIsOkRequired = value => value.$tag === 1;
-export const runtimeIsError = value => value?.$tag === 0;
+export const runtimeTag = (value: unknown): unknown => (value as {$tag?: unknown} | null | undefined)?.$tag;
+export const runtimeIsOk = (value: unknown): boolean => (value as {$tag?: unknown} | null | undefined)?.$tag === 1;
+export const runtimeIsOkRequired = (value: unknown): boolean => (value as {$tag?: unknown}).$tag === 1;
+export const runtimeIsError = (value: unknown): boolean => (value as {$tag?: unknown} | null | undefined)?.$tag === 0;
 // Layout is qualified by the actual compiled export, not its surface type
 // alone. Generic/specialized reference Options can have different layouts.
-export const runtimeIsBoxedSome = value => value?.$tag === 1;
-export const runtimeIsBoxedNone = value => value?.$tag === 0;
-export const runtimeUnboxedReferenceOption = value => value;
-export const runtimeUnboxedUnitOptionPresent = value => value !== -1;
-export const runtimeField = (value, index) => value[`_${index}`];
-export const runtimeOptionalField = (value, index) => value?.[`_${index}`];
+export const runtimeIsBoxedSome = (value: unknown): boolean => (value as {$tag?: unknown} | null | undefined)?.$tag === 1;
+export const runtimeIsBoxedNone = (value: unknown): boolean => (value as {$tag?: unknown} | null | undefined)?.$tag === 0;
+export const runtimeUnboxedReferenceOption = <T,>(value: T): T => value;
+export const runtimeUnboxedUnitOptionPresent = (value: unknown): boolean => value !== -1;
+export const runtimeField = (value: unknown, index: number | string): unknown => (value as Record<string, unknown>)[`_${index}`];
+export const runtimeOptionalField = (value: unknown, index: number | string): unknown => (value as Record<string, unknown> | null | undefined)?.[`_${index}`];
 
 // Used only by existing MoonBit callback ABIs, never to recreate opaque values.
-export const runtimePair = (first, second) => ({_0: first, _1: second});
-export const runtimeTriple = (first, second, third) => ({_0: first, _1: second, _2: third});
-export const runtimeTupleFromFields = fields => {
-  const tuple = {};
+export const runtimePair = <A, B>(first: A, second: B): {_0: A; _1: B} => ({_0: first, _1: second});
+export const runtimeTriple = <A, B, C>(first: A, second: B, third: C): {_0: A; _1: B; _2: C} => ({_0: first, _1: second, _2: third});
+export const runtimeTupleFromFields = (fields: Record<string, unknown>): Record<string, unknown> => {
+  const tuple: Record<string, unknown> = {};
   for (const key of Object.keys(fields)) tuple[`_${key}`] = fields[key];
   return tuple;
 };
-export const runtimeFailure = cause => ({$tag: 0, _0: cause});
+export const runtimeFailure = <T,>(cause: T): {$tag: 0; _0: T} => ({$tag: 0, _0: cause});

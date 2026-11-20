@@ -162755,7 +162755,7 @@
       "module": "adapters/host-common/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162791,7 +162791,7 @@
       "module": "packages/coordinator-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162803,7 +162803,7 @@
       "module": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162815,7 +162815,7 @@
       "module": "packages/provider-http/_internal/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162827,7 +162827,7 @@
       "module": "packages/run-host-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162851,7 +162851,7 @@
       "module": "packages/transfer-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {

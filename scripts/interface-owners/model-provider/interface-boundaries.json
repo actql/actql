@@ -262,7 +262,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -513,7 +513,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -817,7 +817,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -993,7 +993,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -1338,7 +1338,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -1564,7 +1564,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -1862,7 +1862,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -2141,7 +2141,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -2513,7 +2513,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -2671,7 +2671,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -3024,7 +3024,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
@@ -3120,7 +3120,7 @@
             },
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {

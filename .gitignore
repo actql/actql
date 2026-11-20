@@ -198,3 +198,11 @@ target/
 /packages/provider-ai-sdk/_internal/bounded-response.d.mts
 /packages/provider-ai-sdk/bounded-response.test.mjs
 /packages/provider-ai-sdk/bounded-response.test.d.mts
+
+# Bootstrap emit for the single authored compiler binding source and generator.
+/scripts/generate-js-compiler-bindings.mjs
+/scripts/generate-js-compiler-bindings.d.mts
+/scripts/templates/js-compiler-binding.mjs
+/scripts/templates/js-compiler-binding.d.mts
+/scripts/js-compiler-binding-generation.test.mjs
+/scripts/js-compiler-binding-generation.test.d.mts

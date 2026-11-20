@@ -245,7 +245,7 @@ jobs:
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
-        run: node --test scripts/test-execution.test.mjs
+        run: node --test scripts/test-execution.test.mjs scripts/js-compiler-binding-generation.test.mjs
       - name: Test bounded local execution and optional hook adapters
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs

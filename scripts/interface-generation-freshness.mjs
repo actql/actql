@@ -55,8 +55,8 @@ export function interfaceGenerationFreshness(root) {
     cwd: root, timeout: 60000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const generated = compilerBindingTargets.map(module => ({module,
     sha256: createHash('sha256').update(readFileSync(join(root, module))).digest('hex'),
-    generator: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: 'generateCompilerBindings'},
-    freshness: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: "['--check', '--write']"}}));
+    generator: {path: 'scripts/generate-js-compiler-bindings.mts', anchor: 'generateCompilerBindings'},
+    freshness: {path: 'scripts/generate-js-compiler-bindings.mts', anchor: "['--check', '--write']"}}));
   assert.equal(generated.length, new Set(generated.map(value => value.module)).size, 'Duplicate generated compiler binding');
   for (const proof of generated) {
     Object.freeze(proof.generator); Object.freeze(proof.freshness); Object.freeze(proof);

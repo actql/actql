@@ -1,7 +1,7 @@
 # Provider compiler interface references
 
 The private compiler representation belongs to the single template and generator
-in `scripts/templates/js-compiler-binding.mjs` and
+in `scripts/templates/js-compiler-binding.mts` and
 `scripts/generate-js-compiler-bindings.mjs`. Independently installed Providers use
 byte-identical local copies. Their original-materials generator checks those
 copies before checking its own generated consumers. No opaque value is rebuilt
