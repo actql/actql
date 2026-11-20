@@ -453,3 +453,6 @@ target/
 
 /packages/node/index.mjs
 /packages/node/index.d.mts
+
+/scripts/node-local-compile-cache.test.mjs
+/scripts/node-local-compile-cache.test.d.mts

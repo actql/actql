@@ -1,3 +1,4 @@
+type FixtureOptions = {missing?:boolean;provider?:string;privateExport?:'missing'|'foreign'};
 // Actual public Node/Local entry and optional cache policy, with an explicit
 // Host boundary double. This is module ordering/routing, not Host admission.
 import assert from 'node:assert/strict';
@@ -10,8 +11,8 @@ import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-let owner;
-async function fixture({missing = false, provider, privateExport} = {}) {
+let owner:Awaited<ReturnType<typeof createOwnedScratch>>|undefined;
+async function fixture({missing = false, provider, privateExport}:FixtureOptions = {}) {
   // One test-file Owner retains every child installation until all synchronous
   // children have ended; any failed test preserves the whole original scratch.
   // Keep an absent-provider installation outside this checkout: the root's
@@ -37,7 +38,7 @@ async function fixture({missing = false, provider, privateExport} = {}) {
         await readFile(join(repository, 'packages/local-node', file)));
     }
     if (privateExport !== undefined) {
-      const manifest = JSON.parse(await readFile(join(local, 'package.json')));
+      const manifest = JSON.parse(await readFile(join(local, 'package.json')) as unknown as string) as {exports:Record<string,unknown>};
       if (privateExport === 'missing') delete manifest.exports['./_internal/compile-cache'];
       else manifest.exports['./_internal/compile-cache'] = '../foreign/compile-cache.mjs';
       await writeFile(join(local, 'package.json'), JSON.stringify(manifest));
@@ -69,7 +70,7 @@ export const publishInstalledEffect = () => {throw new Error('Unselected');};
   return {scratch, directory, local};
 }
 
-async function check(body, {mode = 'enabled', coverage = false, ...options} = {}) {
+async function check(body:string, {mode = 'enabled', coverage = false, ...options}:FixtureOptions&{mode?:'enabled'|'disabled'|'unsupported';coverage?:boolean} = {}) {
   const f = await fixture(options), entry = join(f.directory, 'entry.mjs');
   await writeFile(entry, `
 import assert from 'node:assert/strict';
@@ -88,7 +89,7 @@ assert.strictEqual(node.ClientError, ClientError);
 assert.deepEqual(order, [], 'importing the facade does not select Local');
 ${body}
 `);
-  const env = {...process.env, NODE_OPTIONS: ''};
+  const env:NodeJS.ProcessEnv = {...process.env, NODE_OPTIONS: ''};
   delete env.NODE_V8_COVERAGE;
   if (coverage) env.NODE_V8_COVERAGE = join(f.directory, 'coverage');
   const result = spawnSync(process.execPath, [entry], {cwd: f.directory,

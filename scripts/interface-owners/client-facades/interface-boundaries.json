@@ -3527,7 +3527,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/node-local-compile-cache.test.mjs",
+                "path": "scripts/node-local-compile-cache.test.mts",
                 "anchor": "public open enables the existing cache before the actual Local static Host graph"
               },
               {
