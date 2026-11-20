@@ -11,6 +11,63 @@ from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalHostFuelTests(unittest.TestCase):
+    def test_unreturned_physical_input_survives_pool_ack_until_actual_cleanup(self):
+        import os
+        read_fd, write_fd = os.pipe()
+        state = {'stage': 0, 'closed': False}
+        self.addCleanup(os.close, write_fd)
+        self.addCleanup(lambda: None if state['closed'] else os.close(read_fd))
+        core = self.core('''(module
+          (global (export "closedCount") (mut i32) (i32.const 0))
+          (func (export "actql_buffer_reserve") (param i64 i32 i32 i32) (result i32) unreachable)
+          (func (export "actql_buffer_close_pool") (param i64) (result i32)
+            global.get 0 i32.const 1 i32.add global.set 0 i32.const 0))''')
+        for name in ('_inputs', '_native_observers', '_native_loans', '_compute_loans', '_task_loans', '_result_loans'):
+            setattr(core, name, {})
+        core._released = set()
+        core._next_ticket = 1
+        original_store = core._store
+        observed_pool_acks = []
+        cleanup_failure = RuntimeError('original physical cleanup failed')
+
+        def cleanup():
+            os.fstat(read_fd)
+            observed_pool_acks.append(core._exports['closedCount'].value(original_store))
+            if state['stage'] == 0:
+                return False
+            if state['stage'] == 1:
+                raise cleanup_failure
+            # A physical cleanup callback cannot reenter the same Core close.
+            with self.assertRaises(RuntimeError):
+                core.close()
+            os.close(read_fd)
+            state['closed'] = True
+            return True
+
+        with self.assertRaises(wasmtime.Trap) as trapped:
+            with core._host_operation():
+                core.reserve_input(b'original physical input', cleanup=cleanup, stopped=lambda _: True)
+        original_trap = trapped.exception
+        original_input = core._inputs[1]
+        self.assertNotIn(1, core._loans)
+        for stage in (0, 1):
+            state['stage'] = stage
+            self.assertFalse(core.close())
+            self.assertTrue(core._retired)
+            self.assertFalse(core._closed)
+            self.assertIs(core._store, original_store)
+            self.assertIs(core._inputs[1], original_input)
+            self.assertIs(trapped.exception, original_trap)
+            self.assertFalse(core._invoking)
+            os.fstat(read_fd)
+        state['stage'] = 2
+        self.assertTrue(core.close())
+        self.assertEqual(observed_pool_acks, [1, 1, 1])
+        self.assertTrue(state['closed'])
+        self.assertTrue(core._closed)
+        self.assertIsNone(core._store)
+        self.assertEqual(core._inputs, {})
+
     def test_installed_negative_control_reads_the_original_c_api_fuel_code(self):
         import importlib.util
         from pathlib import Path

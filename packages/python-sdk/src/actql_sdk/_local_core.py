@@ -4886,6 +4886,25 @@ class LocalCore:
                     return False
                 self._check('close_pool', code)
                 self._retired = True
+            # A trapped constructor can register a physical prefix before the
+            # guest has registered a buffer or returned a loan. Pool ACK stops
+            # guest borrowers; it does not acknowledge that prefix's cleanup.
+            # Keep the SAME Store until every remaining original callback ACKs.
+            while self._inputs:
+                ticket = next(iter(self._inputs))
+                self._invoking = True  # Physical cleanup cannot reenter Core.
+                try:
+                    complete = self._cleanup(ticket) == 0
+                finally:
+                    self._invoking = False
+                if not complete:
+                    return False
+                if ticket in self._inputs:
+                    # An interrupted callback return may already have recorded
+                    # its physical ACK before removing this same input alias.
+                    if ticket not in self._released:
+                        return False
+                    del self._inputs[ticket]
             self._dispose()
             return True
 

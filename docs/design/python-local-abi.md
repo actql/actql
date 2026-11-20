@@ -3547,6 +3547,13 @@ COMMIT or infer release. Failed or pending cleanup retains its original handles
 and carrier. A later explicit close attempt remains cleanup-only and preserves
 all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
 
+A trapped buffer constructor may register its physical input before Core can
+return a named loan. After the original pool acknowledges retirement, the same
+bridge invokes any remaining original input cleanup callbacks before disposing
+the Store. Pending or throwing cleanup retains that Store and input; callback
+reentry refuses. A later close retries only that retained physical cleanup,
+not the retired pool, normal work or an uncertain request.
+
 Ordinary Result capture and commit preparation advance at most 256 existing
 Owner work units per Host yield. The same current and authorization checks
 still surround every advance, and the original cumulative work, workspace and
