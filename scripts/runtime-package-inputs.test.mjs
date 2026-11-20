@@ -11,6 +11,8 @@ import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {assertInterfaceCoverage, javascriptInterface} from './interface-inventory.mjs';
+import {conformanceModules, finiteConformanceModules, hostModules, finiteRuntimeModules}
+  from '../adapters/workers/artifact.mjs';
 
 function publicFacadeFixture(t, name) {
   const root = process.cwd(), source = join(root, 'packages', name);
@@ -106,7 +108,11 @@ test('ordinary bundled Workers sources and local Host assets remain in source co
   assert(result.modules.some(value => value.module === 'adapters/workers/finite-runtime.mjs'));
   assert(result.artifacts.some(value => value.module === '_build/workers/modules/bridge.mjs' &&
     value.sourcePackages.includes('connectors_workers_bridge')));
-  assert(!result.modules.some(value => /conformance|fixture/u.test(value.module)));
+  const ordinary = new Set([...hostModules, ...finiteRuntimeModules]);
+  const conformanceOnly = new Set([...conformanceModules, ...finiteConformanceModules]
+    .filter(module => !ordinary.has(module)));
+  assert(!result.modules.some(value => conformanceOnly.has(value.module)));
+  assert(!result.artifacts.some(value => conformanceOnly.has(value.module)));
   assert(result.copies.some(value => value.destination === 'packages/local-node/adapters/host-common/observation.mjs'));
   assert(result.modules.some(value => value.module === 'adapters/connectors/local/iceberg/process_worker.py' && value.operations.length));
   assert(result.assets.some(value => value.module === 'spec/contracts/actql-local-table-iceberg.json'));

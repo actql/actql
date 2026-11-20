@@ -692,3 +692,6 @@ target/
 
 /scripts/local-node-package-inputs.mjs
 /scripts/local-node-package-inputs.d.mts
+
+/scripts/source-interface-closure.mjs
+/scripts/source-interface-closure.d.mts

@@ -18,21 +18,36 @@ import {typescriptInterface, typescriptInterfaceClosure} from './typescript-inte
 import {productionRuntimeModules} from '../adapters/workers/moon-runtime.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
 
-export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
-  reportUnresolvedEntrances = false, authoredEntrances = []} = {}) {
+import type {Metafile} from 'esbuild';
+import type {assertInterfaceCoverage} from './interface-inventory.mjs';
+
+type RuntimeReference = Parameters<NonNullable<NonNullable<Parameters<typeof javascriptInterface>[1]>['resolveRuntimeImport']>>[0];
+type SyntaxOrigin = Extract<RuntimeReference, {kind: 'owner-projection'}>['arguments'][number];
+type OwnerCallOrigin = Extract<SyntaxOrigin, {kind: 'owner-call'}>;
+type ModuleInterface = Parameters<typeof assertInterfaceCoverage>[0]['modules'][number];
+type SourceModule = ModuleInterface & {imports: readonly string[]};
+type ArtifactInput = {module: string; sourcePackages: readonly string[]; build: string;
+  package?: string; sourceFiles?: readonly string[]; sha256?: string; target?: string; qualification?: string};
+type SourceOptions = {distributionRoots?: ReturnType<typeof npmInterfaceRoots>;
+  generatedInputs?: readonly ArtifactInput[]; reportUnresolvedEntrances?: boolean; authoredEntrances?: readonly string[]};
+type SourceAsset = {module: string; sha256: string; qualification: string};
+type ProviderEntry = {providerBundle?: string};
+
+export async function sourceInterfaceClosure(root: string, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
+  reportUnresolvedEntrances = false, authoredEntrances = []}: SourceOptions = {}) {
   root = realpathSync(root);
   const roots = distributionRoots, availablePlans = runtimePackageInputs(root);
   const includesLocal = roots.some(value => value.name === '@actql/local-node');
   const plans = Object.fromEntries(Object.keys(availablePlans).filter(name =>
-    roots.some(value => value.name === `@actql/${name}`)).map(name => [name, availablePlans[name]]));
-  const local = includesLocal ? localNodePackageInputs(root) : undefined, artifacts = new Map();
+    roots.some(value => value.name === `@actql/${name}`)).map(name => [name, availablePlans[name as keyof typeof availablePlans]]));
+  const local = includesLocal ? localNodePackageInputs(root) : undefined, artifacts = new Map<string, ArtifactInput>();
   for (const [name, plan] of Object.entries(plans)) {
     for (const file of plan.files) artifacts.set(resolve(root, file), {module: file,
       sourcePackages: plan.sources, build: `scripts/${plan.script}.mjs`, package: name});
   }
   for (const file of local?.runtimeFiles ?? []) {
     artifacts.set(resolve(root, '_build/js/release/build', file), {
-      module: `_build/js/release/build/${file}`, sourcePackages: local.runtimePackages,
+      module: `_build/js/release/build/${file}`, sourcePackages: local!.runtimePackages,
       build: 'scripts/build-local-node-assets.mjs', package: 'local-node'});
   }
   // The existing Local native builder delivers these finite N-API images.
@@ -73,26 +88,26 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
     }
     artifacts.set(path, input);
   }
-  const ownedAssets = includesLocal ? local.dataFiles : [];
+  const ownedAssets = includesLocal ? local!.dataFiles : [];
   const commands = new Set(roots.flatMap(value => value.commands ?? []));
   const declarationEntrances = [...new Set([...roots.flatMap(value => value.entrances),
     ...authoredEntrances].filter(path => /\.d\.[cm]?ts$/u.test(path)))];
   const entrances = [...new Set([...roots.flatMap(value => value.entrances)
     .filter(path => !/\.d\.[cm]?ts$/u.test(path)),
-    ...(includesLocal ? local.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
+    ...(includesLocal ? local!.adapterEntries : []), ...ownedAssets.filter(path => /\.[cm]?js$/u.test(path)),
     ...authoredEntrances.filter(path => !/\.d\.[cm]?ts$/u.test(path))])];
   const native = nativeCliPackageInputs(root);
   if (native && roots.some(value => value.manifest === native.manifest)) {
-    entrances.push(...native.copies.map(value => value.source));
+    entrances.push(...native.copies.map(value => (value as {source: string}).source));
   }
-  const sourceEntrances = [], artifactReferences = new Set(), unresolvedEntrances = [];
-  const dataEntrances = [], pythonEntrances = [], scriptEntrances = new Set();
-  const copyReferences = new Map();
-  function copiedSource(path) {
+  const sourceEntrances: string[] = [], artifactReferences = new Set<string>(), unresolvedEntrances: string[] = [];
+  const dataEntrances: string[] = [], pythonEntrances: string[] = [], scriptEntrances = new Set<string>();
+  const copyReferences = new Map<string, {destination: string; source: string}>();
+  function copiedSource(path: string) {
     const destination = relative(resolve(root, 'packages/local-node'), path);
     if (!destination.startsWith('adapters/') && !destination.startsWith('src/')) return;
     const source = resolve(root, destination);
-    if (destination.startsWith('src/')) assert(local.dataFiles.includes(destination),
+    if (destination.startsWith('src/')) assert(local!.dataFiles.includes(destination),
       `Undeclared local-node source asset: ${destination}`);
     assert(existsSync(source), `Missing local-node copy source: ${destination}`);
     copyReferences.set(path, {destination: relative(root, path), source: destination});
@@ -129,12 +144,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   }
   for (const plan of Object.values(plans)) {
     if (plan.files.some(file => artifactReferences.has(resolve(root, file)))) {
-      sourceEntrances.push(...plan.embeddedSources ?? []);
+      sourceEntrances.push(...(plan as Partial<Pick<ReturnType<typeof runtimePackageInputs>['run-host-core'], 'embeddedSources'>>).embeddedSources ?? []);
     }
   }
-  const runtimeBindings = [], extraEntrances = new Set();
-  const parsed = new Map(), assetMap = new Map();
-  let graph;
+  const runtimeBindings: {module: string; sourceSha256: string; reference: RuntimeReference; targets: string[]}[] = [], extraEntrances = new Set<string>();
+  const parsed = new Map<string, SourceModule>(), assetMap = new Map<string, SourceAsset>();
+  let graph: {metafile: Pick<Metafile, 'inputs'>};
   do {
   for (const entry of extraEntrances) if (!sourceEntrances.includes(entry)) sourceEntrances.push(entry);
   extraEntrances.clear();
@@ -169,7 +184,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       continue;
     }
     if (parsed.has(module)) continue;
-    const admitTarget = specifier => {
+    const admitTarget = (specifier: string) => {
       const target = resolve(dirname(resolve(root, module)), specifier);
       assert(!relative(root, target).startsWith('..'), `Escaped runtime interface: ${module}`);
       if (artifacts.has(target)) artifactReferences.add(target);
@@ -179,8 +194,8 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       else if (!sourceEntrances.includes(relative(root, target))) extraEntrances.add(relative(root, target));
       return specifier;
     };
-    const resolveRuntimeImport = reference => {
-      let targets;
+    const resolveRuntimeImport = (reference: RuntimeReference) => {
+      let targets: string[] | undefined;
       if (reference.kind === 'module-url' || reference.kind === 'literal') {
         if (!reference.specifier.startsWith('./') && !reference.specifier.startsWith('../')) return;
         targets = [admitTarget(reference.specifier)];
@@ -191,9 +206,9 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         targets = [reference.specifier];
       } else if (reference.kind === 'owner-projection') {
         const owner = 'adapters/host-node/installed-connectors.mjs';
-        const importedFrom = (value, expected) => value?.source &&
-          relative(root, resolve(dirname(resolve(root, module)), value.source)) === expected;
-        const ownerCall = (value, name) => value?.kind === 'owner-call' && value.name === name && importedFrom(value, owner);
+        const importedFrom = (value: SyntaxOrigin | RuntimeReference | undefined, expected: string) => (value as {source?: string} | undefined)?.source &&
+          relative(root, resolve(dirname(resolve(root, module)), (value as {source: string}).source)) === expected;
+        const ownerCall = (value: SyntaxOrigin | undefined, name: string) => value?.kind === 'owner-call' && value.name === name && importedFrom(value, owner);
         if (!importedFrom(reference, owner) || reference.name !== 'providerBundleUrl' ||
             ![1, 2].includes(reference.arguments?.length)) return;
         // Reuse the actual installed table Owner and normal checked manifest
@@ -201,12 +216,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
         assert(readFileSync(resolve(root, owner)).equals(readFileSync(new URL('../' + owner, import.meta.url))),
           'Runtime dependency Owner differs from its checked source');
         const declared = () => local?.providerBundles.map(entry => ({providerBundle: entry.package}));
-        const runtimeTable = value => value?.kind === 'runtime-parameter' ||
+        const runtimeTable = (value: SyntaxOrigin | undefined): boolean | 0 => value?.kind === 'runtime-parameter' ||
           value?.kind === 'alternatives' && value.values.length && value.values.every(runtimeTable);
-        function entries(value) {
+        function entries(value: SyntaxOrigin | undefined): ProviderEntry[] | undefined {
           if (value?.kind === 'alternatives') {
             const choices = value.values.map(entries);
-            return choices.every(Array.isArray) ? choices.flat() : undefined;
+            return choices.every(Array.isArray) ? choices.flat() as ProviderEntry[] : undefined;
           }
           if (value?.kind === 'object') {
             const bundle = value.properties.providerBundle;
@@ -217,24 +232,24 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
               importedFrom(value, 'adapters/connectors-builtin/installations.generated.mjs')) return declared();
           if (value?.kind === 'array') {
             const parts = value.values.map(part => entries(part?.kind === 'spread' ? part.value : part));
-            return parts.every(Array.isArray) ? parts.flat() : undefined;
+            return parts.every(Array.isArray) ? parts.flat() as ProviderEntry[] : undefined;
           }
           if ((ownerCall(value, 'installedEffectTable') || ownerCall(value, 'installedConnectorTable')) &&
-              value.arguments.length === 1) return entries(value.arguments[0]);
-          if (ownerCall(value, 'installedConnectorFor') && value.arguments.length >= 2 && value.arguments.length <= 3) {
-            return entries(value.arguments[0]);
+              (value as OwnerCallOrigin).arguments.length === 1) return entries((value as OwnerCallOrigin).arguments[0]);
+          if (ownerCall(value, 'installedConnectorFor') && (value as OwnerCallOrigin).arguments.length >= 2 && (value as OwnerCallOrigin).arguments.length <= 3) {
+            return entries((value as OwnerCallOrigin).arguments[0]);
           }
           // Explicit tables are opaque, Owner-admitted runtime installations.
           // Their selector's original role/handle obligation stays visible;
           // this qualifies only the normal builder's finite compiled set, not
           // an arbitrary foreign table or a new runtime installation.
-          if (ownerCall(value, 'installedConnectorForTable') && value.arguments.length >= 3 && value.arguments.length <= 4 &&
-              runtimeTable(value.arguments[0]) &&
-              value.arguments[1]?.kind === 'value' && ['source', 'effect'].includes(value.arguments[1].value)) return declared();
+          if (ownerCall(value, 'installedConnectorForTable') && (value as OwnerCallOrigin).arguments.length >= 3 && (value as OwnerCallOrigin).arguments.length <= 4 &&
+              runtimeTable((value as OwnerCallOrigin).arguments[0]) &&
+              (value as OwnerCallOrigin).arguments[1]?.kind === 'value' && ['source', 'effect'].includes(((value as OwnerCallOrigin).arguments[1] as Extract<SyntaxOrigin, {kind: 'value'}>).value as string)) return declared();
         }
         const actualEntries = entries(reference.arguments[0]);
         if (!actualEntries) return;
-        let base = pathToFileURL(resolve(root, owner));
+        let base: string | URL = pathToFileURL(resolve(root, owner));
         if (reference.arguments.length === 2) {
           const actualBase = reference.arguments[1];
           if (actualBase.kind === 'module-meta-url') base = pathToFileURL(resolve(root, module));
@@ -266,7 +281,7 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   }
   } while (extraEntrances.size);
   for (const path of artifactReferences) {
-    const artifact = artifacts.get(path);
+    const artifact = artifacts.get(path)!;
     if (!artifact.sourceFiles) continue;
     for (const module of [...artifact.sourceFiles, artifact.build]) {
       const input = realpathSync(resolve(root, module));
@@ -286,11 +301,11 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
       qualification: 'checked-host-manifest-asset'});
   }
   const moon = moonInterfaceClosure(root, [...new Set([...artifactReferences]
-    .flatMap(path => artifacts.get(path).sourcePackages))]);
+    .flatMap(path => artifacts.get(path)!.sourcePackages))]);
   const types = typescriptInterfaceClosure(root, declarationEntrances);
   return {qualification: unresolvedEntrances.length ? 'incomplete-source-input-coverage' : 'source-input-coverage-only',
     unresolvedEntrances, runtimeBindings, roots, modules: modules.sort((a, b) => a.module.localeCompare(b.module)),
     assets: assets.sort((a, b) => a.module.localeCompare(b.module)), types, moon,
     copies: [...copyReferences.values()].sort((a, b) => a.destination.localeCompare(b.destination)),
-    artifacts: [...artifactReferences].sort().map(path => artifacts.get(path))};
+    artifacts: [...artifactReferences].sort().map(path => artifacts.get(path)!)};
 }
