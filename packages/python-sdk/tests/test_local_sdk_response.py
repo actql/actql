@@ -1,5 +1,7 @@
 """Actual File-backed stream with scalar Core/sink/terminal doubles; public0."""
+import asyncio
 import copy
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -73,6 +75,120 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(commit.call_count, 1)
             self.assertNotIn(stream, host._response_streams)
             self.assertTrue(holder.close())
+
+    async def test_control_turn_runs_between_delivery_advances_outside_operation(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, _, reader, holder, _, core, _, _, _, calls = self.bridge(root, final)
+            original_operation = core._host_operation
+            depth, observed = [0], []
+
+            @contextmanager
+            def operation():
+                with original_operation():
+                    depth[0] += 1
+                    try:
+                        yield
+                    finally:
+                        depth[0] -= 1
+
+            def control():
+                observed.append((depth[0], core._lock._is_owned(), stream._reading,
+                                 reader._output is not None,
+                                 any(name == 'confirm_sdk_payload_chunk' for name, _ in calls)))
+
+            try:
+                asyncio.get_running_loop().call_soon(control)
+                with patch.object(core, '_host_operation', operation), patch.object(holder, 'persist_original_terminal'):
+                    chunks = [chunk async for chunk in stream]
+                await asyncio.sleep(0)
+                self.assertEqual(observed, [(0, False, True, True, False)])
+                self.assertEqual([chunk for chunk in chunks if chunk], [b'{"n":1}\n', b'\x1e'])
+            finally:
+                await stream.aclose()
+                self.assertTrue(holder.close())
+
+    async def test_control_cancel_before_delivery_keeps_unconfirmed_child_until_ack(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, core, _, first, state, calls = self.bridge(root, final)
+            delivered, offered = [], []
+
+            async def consume():
+                async for chunk in stream:
+                    delivered.append(chunk)
+
+            task = asyncio.create_task(consume())
+
+            def control():
+                if not task.done():
+                    offered.append((reader._output, reader._input, stream._clock))
+                    state['cleanup'] = False
+                    task.cancel()
+
+            asyncio.get_running_loop().call_soon(control)
+            try:
+                with patch.object(holder, 'persist_original_terminal') as commit:
+                    with self.assertRaises(asyncio.CancelledError):
+                        await task
+                    self.assertEqual(delivered, [])
+                    self.assertEqual(len(offered), 1)
+                    child, source, clock = offered[0]
+                    self.assertIsNotNone(child)
+                    self.assertIsNotNone(source)
+                    self.assertIsNotNone(clock)
+                    self.assertFalse(stream._reading)
+                    self.assertFalse(any(name == 'confirm_sdk_payload_chunk' for name, _ in calls))
+                    with self.assertRaisesRegex(RuntimeError, 'cleanup is pending'):
+                        await stream.aclose()
+                    self.assertIs(reader._output, child)
+                    self.assertIs(reader._input, source)
+                    self.assertIs(stream._clock, clock)
+                    self.assertIs(core._loans[child.ticket], child)
+                    self.assertIs(core._loans[first.ticket], first)
+                    self.assertIn(stream, host._response_streams)
+                    state['cleanup'] = True
+                    await stream.aclose()
+                    self.assertNotIn(stream, host._response_streams)
+                    self.assertNotIn(child.ticket, core._loans)
+                    self.assertNotIn(first.ticket, core._loans)
+                    commit.assert_not_called()
+            finally:
+                state['cleanup'] = True
+                await stream.aclose()
+                self.assertTrue(holder.close())
+
+    async def test_close_during_control_turn_refuses_delivery_without_confirming(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, _, _, _, calls = self.bridge(root, final)
+            close_results, delivered = [], []
+
+            def control():
+                close_results.append(stream._close())
+
+            async def consume():
+                async for chunk in stream:
+                    delivered.append(chunk)
+
+            task = asyncio.create_task(consume())
+            asyncio.get_running_loop().call_soon(control)
+            try:
+                with patch.object(holder, 'persist_original_terminal') as commit:
+                    with self.assertRaisesRegex(RuntimeError, 'response is closing'):
+                        await task
+                    self.assertEqual(close_results, [False])
+                    self.assertEqual(delivered, [])
+                    self.assertFalse(stream._reading)
+                    self.assertIsNotNone(reader._output)
+                    self.assertIn(stream, host._response_streams)
+                    self.assertFalse(any(name == 'confirm_sdk_payload_chunk' for name, _ in calls))
+                    await stream.aclose()
+                    self.assertNotIn(stream, host._response_streams)
+                    commit.assert_not_called()
+            finally:
+                await stream.aclose()
+                self.assertTrue(holder.close())
 
     async def test_interrupted_yield_does_not_confirm_or_commit_and_close_retries_original(self):
         files = files_fixture.ReaderFactsTests()
