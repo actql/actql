@@ -770,6 +770,50 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.previous = (None, None)
         return module, control, core, matches
 
+    def test_unrelated_and_foreign_profile_events_never_read_counts(self):
+        from types import SimpleNamespace
+        _, control, core, _ = self.configured_control()
+        class UnreadableCounts:
+            def __iter__(self):
+                raise AssertionError('An unrelated profile event read counters')
+        def unrelated():
+            return None
+        counts = UnreadableCounts()
+        control.counts = counts
+        for code, receiver in ((unrelated.__code__, core),
+                               (control.drive_code, object()),
+                               (control.export_code, object())):
+            for event in ('call', 'return'):
+                with self.subTest(code=code.co_name, event=event):
+                    frame = SimpleNamespace(f_code=code, f_locals={'self': receiver})
+                    control._profile(frame, event, None)
+                    self.assertIs(control.counts, counts)
+                    self.assertTrue(control.valid)
+                    self.assertIsNone(control.failure)
+                    self.assertEqual(control.refusal_bits, 0)
+                    self.assertEqual(control.span_refusal_bits, 0)
+
+    def test_exact_drive_and_export_events_still_saturate_and_preserve_first_failure(self):
+        from types import SimpleNamespace
+        for target in ('drive', 'export'):
+            with self.subTest(target=target):
+                _, control, core, _ = self.configured_control()
+                first = RuntimeError('Original observation failure')
+                control.failure = first
+                control.counts = [1024] * 5
+                frame = SimpleNamespace(
+                    f_code=control.drive_code if target == 'drive' else control.export_code,
+                    f_locals={'self': core if target == 'drive' else control.export})
+                for event in ('call', 'return'):
+                    control._profile(frame, event, None)
+                self.assertEqual(control.counts, ([1025, 1025, 1024, 1024, 1024]
+                                                 if target == 'drive'
+                                                 else [1024, 1024, 1025, 1025, 1025]))
+                self.assertFalse(control.valid)
+                self.assertIs(control.failure, first)
+                self.assertEqual(control.refusal_bits, 16)
+                self.assertEqual(control.span_refusal_bits, 0)
+
     def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
         module, control, core, matches = self.configured_control()
         original = type(core).drive_task
