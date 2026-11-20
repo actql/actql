@@ -2,26 +2,55 @@ import {types} from 'node:util';
 import {fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
 import {createConfiguredUndiciOpenAIChatRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
+import type {OpenAIChatProviderOptions} from '../index.d.ts';
 
-const refuse = code => {throw Object.assign(new TypeError(code), {code});};
+type Registration = ReturnType<typeof createConfiguredUndiciOpenAIChatRegistration>;
+type Entry = ReturnType<Registration>[number];
+type Runtime = Parameters<Registration>[0] & {
+  clientProgramInstalledNodeModelSdkV4RequestCapacity?(rows: number, bytes: number, nodes: number, depth: number): unknown;
+  clientProgramInstalledNodeModelDeadlineCapacity?(): unknown;
+};
+// Views of the original Host configuration ports and checked Task fields, not
+// constructors, proof receipts or a replacement for the same Host's guards.
+interface Task {name: string; providerId: string; taskCid: string; modelSelector: string;
+  promptCid: string; outputSchemaCid: string; promptPayloadWire: string}
+interface SelectedTasks {
+  tasks: readonly Task[];
+  responseProfileFor(name: string, project: () => string): Promise<{profile: unknown}>;
+  executionOriginalsFor(name: string, limits: Readonly<Record<string, bigint>>): Promise<unknown>;
+  bindingOriginalsFor(providerId: string): unknown;
+  providerEntries<T extends readonly unknown[]>(project: () => T): T | Promise<T>;
+}
+interface ConfigurationContext {
+  [name: string]: unknown;
+  prepareConfiguration<T>(project: () => T): Promise<T>;
+  runtimeIdentity(): Promise<string>;
+  artifactIdentity(path: string): Promise<string>;
+  readText(path: string, limits: {maxBytes: number}): Promise<string>;
+  prepareBindingOriginals(project: () => readonly [string, string, string]): Promise<unknown>;
+  prepareTasks(bindings: readonly {providerId: string; bindingOriginals: unknown}[]): Promise<SelectedTasks>;
+  prepareRawPolicies(originals: typeof policies): Promise<Readonly<Record<string, unknown>>>;
+}
+
+const refuse: (code: string) => never = code => {throw Object.assign(new TypeError(code), {code});};
 const maxInt = 2147483647;
 const maxSafe = 9007199254740991n;
 const builderArtifactUrl = new URL('./openai-chat.mjs', import.meta.url).href;
 const layoutArtifactUrl = import.meta.url;
 const lockArtifactUrl = new URL('../npm-shrinkwrap.json', import.meta.url).href;
-const data = (source, required, optional = []) => {
+const data = (source: unknown, required: readonly string[], optional: readonly string[] = []): Readonly<Record<string, unknown>> => {
   if (source === null || typeof source !== 'object' || Array.isArray(source) || types.isProxy(source)) {
     refuse('InvalidOpenAIProviderConfiguration');
   }
-  const fields = Object.getOwnPropertyDescriptors(source);
+  const fields = Object.getOwnPropertyDescriptors(source as object);
   if (required.some(key => !Object.hasOwn(fields, key)) || Reflect.ownKeys(fields).some(key =>
-    !required.includes(key) && !optional.includes(key) || !fields[key].enumerable ||
-      !Object.hasOwn(fields[key], 'value'))) refuse('InvalidOpenAIProviderConfiguration');
-  return Object.fromEntries(Object.entries(fields).map(([key, field]) => [key, field.value]));
+    !required.includes(key as string) && !optional.includes(key as string) || !fields[key as string].enumerable ||
+      !Object.hasOwn(fields[key as string], 'value'))) refuse('InvalidOpenAIProviderConfiguration');
+  return Object.fromEntries(Object.entries(fields).map(([key, field]) => [key, field.value as unknown]));
 };
-const text = (value, length) => typeof value === 'string' && value.length > 0 && value.length <= length;
-const integer = (value, min, max = maxInt) => Number.isSafeInteger(value) && value >= min && value <= max;
-const amount = value => typeof value === 'bigint' && value > 0n && value <= maxSafe;
+const text = (value: unknown, length: number) => typeof value === 'string' && value.length > 0 && value.length <= length;
+const integer = (value: unknown, min: number, max = maxInt) => Number.isSafeInteger(value) && (value as number) >= min && (value as number) <= max;
+const amount = (value: unknown) => typeof value === 'bigint' && value > 0n && value <= maxSafe;
 const unboundCid = 'sha256:' + '0'.repeat(64);
 // Public policy DATA, with independently pinned canonical identity. It permits
 // provider-contract retention, never training or nonpublic input. The actual
@@ -53,17 +82,17 @@ const controls = Object.freeze({model_requests: 1, retry: false, fallback: false
   sdk_telemetry: false, redirect: false});
 const bodyLimits = Object.freeze({maxBytes: 65536, maxNodes: 4096, maxDepth: 32,
   maxFrames: 4096, maxWork: 2097152});
-const readEnvelopeBytes = (rows, physical = limits) => BigInt(rows) * (16384n +
+const readEnvelopeBytes = (rows: number, physical = limits) => BigInt(rows) * (16384n +
   8n * BigInt(limits.request_bytes + limits.response_bytes + limits.chunk_bytes +
     limits.header_bytes + limits.metadata_bytes) +
   256n * BigInt(limits.parse_nodes + limits.metadata_nodes)) +
   BigInt(physical.adapter_holding_bytes + physical.adapter_workspace_bytes);
 
-function configuration(options) {
+function configuration(options: unknown) {
   const value = data(options, ['providerId', 'modelId', 'apiKeyFile', 'generation', 'budget', 'observeEgress'],
-    ['modelSelector', 'baseURL', 'maxSecretBytes', 'transportTimeouts']);
-  const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']);
-  const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']);
+    ['modelSelector', 'baseURL', 'maxSecretBytes', 'transportTimeouts']) as unknown as OpenAIChatProviderOptions;
+  const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']) as unknown as OpenAIChatProviderOptions['generation'];
+  const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']) as unknown as OpenAIChatProviderOptions['budget'];
   const selector = value.modelSelector ?? value.modelId;
   const baseURL = value.baseURL ?? 'https://api.openai.com/v1';
   const maxSecretBytes = value.maxSecretBytes ?? 4096;
@@ -91,23 +120,24 @@ function configuration(options) {
     ...(transportTimeouts === undefined ? {} : {transportTimeouts})});
 }
 
-function observation(callback) {
+function observation(callback: () => unknown) {
   return () => {
     const value = callback();
     if (value === undefined || value === null || typeof value !== 'object' || types.isProxy(value)) return undefined;
     const fields = ['classification', 'region', 'providerRetention', 'trainingUse']
       .map(key => Object.getOwnPropertyDescriptor(value, key));
     if (fields.some(field => !field?.enumerable || !Object.hasOwn(field, 'value'))) return undefined;
-    return runtimeTupleFromFields(Object.fromEntries(fields.map((field, index) => [index, field.value])));
+    return runtimeTupleFromFields(Object.fromEntries(fields.map((field, index) => [index, field!.value as unknown])));
   };
 }
 
 // Ordinary Host configuration, not a runtime factory. All semantic identities
 // come from the actual initial Common owner and each actual Task declaration.
 // The original low-level explicit-material installers remain unchanged.
-export function createOpenAIChatProvider(options) {
+export function createOpenAIChatProvider(options: unknown):
+  (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
   let used = false;
-  return async (moon, context) => {
+  return async (moon: Runtime, context: ConfigurationContext) => {
     if (used) refuse('OpenAIProviderConfigurationReused');
     used = true;
     if (!['prepareConfiguration', 'runtimeIdentity', 'artifactIdentity', 'readText',
@@ -121,15 +151,15 @@ export function createOpenAIChatProvider(options) {
       }
       const sdkQuote = moon.clientProgramInstalledNodeModelSdkV4RequestCapacity(
         selected.budget.maxRows, limits.request_bytes, bodyLimits.maxNodes, bodyLimits.maxDepth);
-      const validQuote = quote => Array.isArray(quote) && quote.length === 2 && quote.every(value =>
+      const validQuote = (quote: unknown): quote is readonly [bigint, bigint] => Array.isArray(quote) && quote.length === 2 && quote.every((value: unknown) =>
         typeof value === 'bigint' && value >= 0n && value <= BigInt(maxInt)) && quote[1] >= quote[0];
       if (!validQuote(sdkQuote) || sdkQuote[0] === 0n) refuse('OpenAIProviderRequestCapacityUnavailable');
-      let deadline = [0n, 0n];
+      let deadline: readonly [bigint, bigint] = [0n, 0n];
       if (selected.transportTimeouts?.callMs !== undefined) {
         if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
           refuse('OpenAIProviderDeadlineCapacityUnavailable');
         }
-        deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity();
+        deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity() as readonly [bigint, bigint];
         if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
       }
       const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0];
@@ -178,7 +208,7 @@ export function createOpenAIChatProvider(options) {
     const owned = selected.tasks.filter(task => task.providerId === config.providerId);
     if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
     const raw = await context.prepareRawPolicies(policies);
-    const profiles = new Map();
+    const profiles = new Map<string, {profile: unknown}>();
     for (const task of owned) {
       const profile = await selected.responseProfileFor(task.name, () => JSON.stringify({
         version: 'actql-model-response-profile/0.1', adapter: {builder_id: 'actql/openai-chat', builder_revision: '1',
@@ -208,7 +238,7 @@ export function createOpenAIChatProvider(options) {
         endpoint: config.baseURL + '/chat/completions', http_method: 'POST', streaming: false,
         validator_id: 'actql/openai-chat-envelope', validator_revision: '1',
         validator_artifact_cid: runtimeCid, completion_basis: 'generation_finish'});
-      const now = Date.now(), at = ms => new Date(ms).toISOString();
+      const now = Date.now(), at = (ms: number) => new Date(ms).toISOString();
       const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: config.budget.maxTokens,
         costUnits: config.budget.maxCostUnits, durationMs: config.budget.maxDurationMs}),
         perAttempt: Object.freeze({tokens: config.budget.maxTokens, costUnits: config.budget.maxCostUnits,
@@ -220,7 +250,7 @@ export function createOpenAIChatProvider(options) {
       // Keep the adapter's complete declared live holding/workspace in
       // addition to every prepared row; neither minimum can replace the other.
       const entries = owned.map(task => {
-        const profile = profiles.get(task.taskCid).profile;
+        const profile = profiles.get(task.taskCid)!.profile;
         const originalReadRecipe = Object.freeze({
           bootstrap: Object.freeze({bootstrapRetainedBytes: 1048576n, bootstrapExecutionBytes: 1048576n,
             maxReservations: 256, maxHoldings: 256, maxDelegations: 256}),
@@ -256,8 +286,8 @@ export function createOpenAIChatProvider(options) {
           observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts);
         return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
       });
-      return [Object.freeze({...entries[0].entry,
-        validatePrompt: (...args) => entries.some(value => value.entry.validatePrompt(...args)),
+      return [Object.freeze({...entries[0]!.entry,
+        validatePrompt: (...args: Parameters<Entry['validatePrompt']>) => entries.some(value => value.entry.validatePrompt(...args)),
         taskInstallations: Object.freeze(entries)})];
     });
   };

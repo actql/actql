@@ -246,3 +246,7 @@ target/
 # Generated installed Chat registration; authored .mts retains all guards.
 /packages/provider-ai-sdk/_internal/installed-openai-chat.mjs
 /packages/provider-ai-sdk/_internal/installed-openai-chat.d.mts
+
+# Generated ordinary configured provider; original Host ports remain canonical.
+/packages/provider-ai-sdk/_internal/normal-openai-chat.mjs
+/packages/provider-ai-sdk/_internal/normal-openai-chat.d.mts
