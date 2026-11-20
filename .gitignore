@@ -617,3 +617,9 @@ target/
 
 /scripts/model-response-reader.test.mjs
 /scripts/model-response-reader.test.d.mts
+
+/adapters/host-common/installed-connector-declaration.mjs
+/adapters/host-common/installed-connector-declaration.d.mts
+
+/adapters/host-node/installed-connectors.mjs
+/adapters/host-node/installed-connectors.d.mts

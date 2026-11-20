@@ -7058,8 +7058,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -7072,8 +7072,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -7086,7 +7086,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "const identityProfileKeys = ['continuation', 'continuationBinding', 'dispatch',"
               },
               {
@@ -7100,8 +7100,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -7114,8 +7114,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -7128,8 +7128,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/spec/protocols/http.md",
@@ -7142,8 +7142,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -7156,7 +7156,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "return Array.isArray(value) && value.length <= 16 &&"
               },
               {
@@ -7170,7 +7170,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "// process-local installation tables. These checks never load a connector."
               },
               {
@@ -7202,8 +7202,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -7216,8 +7216,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -7230,7 +7230,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "const identityProfileKeys = ['continuation', 'continuationBinding', 'dispatch',"
               },
               {
@@ -7244,8 +7244,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -7258,8 +7258,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -7272,8 +7272,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/spec/protocols/http.md",
@@ -7286,8 +7286,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
-                "anchor": "export function validInstalledEffectIdentityProfile(value) {"
+                "path": "adapters/host-common/installed-connector-declaration.mts",
+                "anchor": "export function validInstalledEffectIdentityProfile(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -7300,7 +7300,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "return Array.isArray(value) && value.length <= 16 &&"
               },
               {
@@ -7314,7 +7314,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/installed-connector-declaration.mjs",
+                "path": "adapters/host-common/installed-connector-declaration.mts",
                 "anchor": "// process-local installation tables. These checks never load a connector."
               },
               {
@@ -58119,8 +58119,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -58133,8 +58133,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -58147,7 +58147,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// bindings. Selecting an entry grants nothing: the selected module checks"
               },
               {
@@ -58161,7 +58161,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// Handles and admitted entries carry owner-held provenance, not an exposed"
               },
               {
@@ -58175,8 +58175,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -58189,7 +58189,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "throw Object.assign(new TypeError(code, {cause}), {code});"
               },
               {
@@ -58203,7 +58203,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "return new URL(`../../_build/js/release/build/${entry.providerBundle}/` +"
               },
               {
@@ -58217,8 +58217,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0;"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -58231,7 +58231,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// The standard Host's installed connector table: which connector-owned"
               },
               {
@@ -58263,8 +58263,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -58277,8 +58277,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -58291,7 +58291,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// bindings. Selecting an entry grants nothing: the selected module checks"
               },
               {
@@ -58305,7 +58305,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// Handles and admitted entries carry owner-held provenance, not an exposed"
               },
               {
@@ -58319,8 +58319,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "export function createInstalledConnectorTable(entries) {"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "export function createInstalledConnectorTable(entries: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -58333,7 +58333,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "throw Object.assign(new TypeError(code, {cause}), {code});"
               },
               {
@@ -58347,7 +58347,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "return new URL(`../../_build/js/release/build/${entry.providerBundle}/` +"
               },
               {
@@ -58361,8 +58361,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0;"
+                "path": "adapters/host-node/installed-connectors.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -58375,7 +58375,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-connectors.mjs",
+                "path": "adapters/host-node/installed-connectors.mts",
                 "anchor": "// The standard Host's installed connector table: which connector-owned"
               },
               {

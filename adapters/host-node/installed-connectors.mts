@@ -26,14 +26,31 @@ import {basename} from 'node:path';
 import {validInstalledEffectIdentityProfile, validInstalledResponseHeaders}
   from '../host-common/installed-connector-declaration.mjs';
 
-const fail = (code, cause) => {
+// Unchecked installation fields keep every original runtime guard. Checked
+// declarations are DATA; only the original WeakMap/WeakSet recognize table custody.
+type RoleInput = {profileVersion?: unknown; load?: unknown; identityProfile?: unknown};
+type EntryInput = {name?: unknown; registration?: unknown; revision?: unknown;
+  providerBundle?: unknown; responseHeaders?: unknown; implementationFiles?: unknown;
+  source?: RoleInput | null; effect?: RoleInput | null};
+type DeclaredRole = Readonly<{profileVersion: string; load(): unknown;
+  identityProfile?: Readonly<Record<string, string>>}>;
+type DeclaredEntry = Readonly<{name: string; registration?: string; revision?: string;
+  providerBundle?: string; responseHeaders?: readonly string[];
+  implementationFiles?: readonly Readonly<{path: string; href: string}>[];
+  source?: DeclaredRole; effect?: DeclaredRole}>;
+type InstallationModule = {check(...args: unknown[]): unknown; identityParts(...args: unknown[]): unknown;
+  load(...args: unknown[]): unknown; publish?: (...args: unknown[]) => unknown};
+type ModuleInput = {check?: unknown; identityParts?: unknown; load?: unknown; publish?: unknown};
+type ConnectorTable = ReadonlyMap<string, DeclaredEntry>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new TypeError(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const registrationPattern = /^[a-z][a-z0-9_]*$/u;
 const profileVersionPattern = /^actql-installed-[a-z0-9-]+\/0\.1$/u;
 
-function checkEntry(entry) {
+function checkEntry(entry: EntryInput) {
   if (!entry || typeof entry !== 'object' || !text(entry.name) ||
       !registrationPattern.test(entry.name) ||
       (entry.source === undefined && entry.effect === undefined) ||
@@ -65,15 +82,15 @@ function checkEntry(entry) {
         typeof entry.effect.load !== 'function'))) {
     fail('InvalidInstalledConnectorEntry');
   }
-  return entry;
+  return entry as DeclaredEntry;
 }
 
 // Handles and admitted entries carry owner-held provenance, not an exposed
 // Map or a structural marker that caller data can copy.
-const connectorTables = new WeakMap();
-const connectorTableEntries = new WeakSet();
+const connectorTables = new WeakMap<object, {source: ConnectorTable; effect: ConnectorTable}>();
+const connectorTableEntries = new WeakSet<object>();
 
-function snapshotRole(section, role) {
+function snapshotRole(section: RoleInput | null | undefined, role: string) {
   if (section === undefined) return undefined;
   if (!section || typeof section !== 'object' || Array.isArray(section)) {
     fail('InvalidInstalledConnectorEntry');
@@ -89,7 +106,7 @@ function snapshotRole(section, role) {
       {identityProfile: Object.freeze({...identityProfile})})});
 }
 
-function snapshotEntry(entry) {
+function snapshotEntry(entry: EntryInput) {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
     fail('InvalidInstalledConnectorEntry');
   }
@@ -121,9 +138,9 @@ function snapshotEntry(entry) {
 // Trusted Host bootstrap code chooses this complete, process-local table.
 // Copy and validate every declaration before returning; loader references
 // remain lazy. This handle provides neither durable identity nor authority.
-export function createInstalledConnectorTable(entries) {
+export function createInstalledConnectorTable(entries: unknown) {
   if (!Array.isArray(entries)) fail('InvalidInstalledConnectorEntry');
-  const snapshots = entries.map(snapshotEntry);
+  const snapshots = (entries as EntryInput[]).map(snapshotEntry);
   const source = installedConnectorTable(snapshots);
   const effect = installedEffectTable(snapshots);
   const handle = Object.freeze({});
@@ -132,15 +149,15 @@ export function createInstalledConnectorTable(entries) {
   return handle;
 }
 
-export function assertInstalledConnectorTable(handle) {
-  if (!connectorTables.has(handle)) fail('InvalidInstalledConnectorTable');
+export function assertInstalledConnectorTable(handle: unknown) {
+  if (!connectorTables.has(handle as object)) fail('InvalidInstalledConnectorTable');
   return handle;
 }
 
-export function installedConnectorForTable(handle, role, profile,
+export function installedConnectorForTable(handle: unknown, role: unknown, profile: unknown,
   code = role === 'effect' ? 'InvalidInstalledEffectProfile' :
     'InvalidInstalledSourceProfile') {
-  const table = connectorTables.get(assertInstalledConnectorTable(handle));
+  const table = connectorTables.get(assertInstalledConnectorTable(handle) as object)!;
   if (role !== 'source' && role !== 'effect') {
     fail('InvalidInstalledConnectorRole');
   }
@@ -149,16 +166,16 @@ export function installedConnectorForTable(handle, role, profile,
 
 // Only the table owner can admit an entry; frozen caller objects and copies
 // of admitted entries cannot supply an Effect identity profile.
-export function isInstalledConnectorTableEntry(entry) {
-  return connectorTableEntries.has(entry);
+export function isInstalledConnectorTableEntry(entry: unknown) {
+  return connectorTableEntries.has(entry as object);
 }
 
 // The table by installed Effect profile version, over the entries that
 // declare an Effect installation.
-export function installedEffectTable(entries) {
+export function installedEffectTable(entries: unknown) {
   if (!Array.isArray(entries)) fail('InvalidInstalledConnectorEntry');
-  const table = new Map();
-  for (const entry of entries) {
+  const table = new Map<string, DeclaredEntry>();
+  for (const entry of entries as EntryInput[]) {
     const checked = checkEntry(entry);
     if (checked.effect === undefined) continue;
     if (table.has(checked.effect.profileVersion)) {
@@ -170,8 +187,8 @@ export function installedEffectTable(entries) {
 }
 
 // Load the selected connector's Effect installation module.
-export async function loadInstalledEffectModule(entry) {
-  const module = await entry.effect.load();
+export async function loadInstalledEffectModule(entry: {effect?: {load(): unknown}}) {
+  const module = await entry.effect!.load() as ModuleInput;
   if (!module || typeof module !== 'object' ||
       typeof module.check !== 'function' ||
       typeof module.identityParts !== 'function' ||
@@ -179,15 +196,15 @@ export async function loadInstalledEffectModule(entry) {
       (module.publish !== undefined && typeof module.publish !== 'function')) {
     fail('InvalidInstalledConnectorModule');
   }
-  return module;
+  return module as InstallationModule;
 }
 
 // The table by installed source profile version; duplicate versions refuse
 // the whole table before any profile is read.
-export function installedConnectorTable(entries) {
+export function installedConnectorTable(entries: unknown) {
   if (!Array.isArray(entries)) fail('InvalidInstalledConnectorEntry');
-  const table = new Map();
-  for (const entry of entries) {
+  const table = new Map<string, DeclaredEntry>();
+  for (const entry of entries as EntryInput[]) {
     const checked = checkEntry(entry);
     if (checked.source === undefined) continue;
     if (table.has(checked.source.profileVersion)) {
@@ -198,16 +215,16 @@ export function installedConnectorTable(entries) {
   return table;
 }
 
-export function installedConnectorFor(table, profile,
+export function installedConnectorFor(table: ConnectorTable, profile: unknown,
   code = 'InvalidInstalledSourceProfile') {
-  const entry = typeof profile?.version === 'string'
-    ? table.get(profile.version) : undefined;
+  const entry = typeof (profile as {version?: unknown} | null | undefined)?.version === 'string'
+    ? table.get((profile as {version: string}).version) : undefined;
   if (entry === undefined) fail(code);
   return entry;
 }
 
 // The connector's compiled provider bundle, next to the standard runtime.
-export function providerBundleUrl(entry, base = import.meta.url) {
+export function providerBundleUrl(entry: Pick<DeclaredEntry, 'providerBundle'>, base: string | URL = import.meta.url) {
   if (entry.providerBundle === undefined) return undefined;
   return new URL(`../../_build/js/release/build/${entry.providerBundle}/` +
     `${basename(entry.providerBundle)}.js`, base);
@@ -215,8 +232,8 @@ export function providerBundleUrl(entry, base = import.meta.url) {
 
 // Load the selected connector's source installation module and check that
 // it is one: every required entry is a function.
-export async function loadInstalledConnectorModule(entry) {
-  const module = await entry.source.load();
+export async function loadInstalledConnectorModule(entry: {source?: {load(): unknown}}) {
+  const module = await entry.source!.load() as ModuleInput;
   if (!module || typeof module !== 'object' ||
       typeof module.check !== 'function' ||
       typeof module.identityParts !== 'function' ||
@@ -224,16 +241,16 @@ export async function loadInstalledConnectorModule(entry) {
       (module.publish !== undefined && typeof module.publish !== 'function')) {
     fail('InvalidInstalledConnectorModule');
   }
-  return module;
+  return module as InstallationModule;
 }
 
 // The declared registration and revision are a claim about the installed
 // implementation, not authority: the loaded adapter must identify itself
 // with the same values, or the installation is refused.
-export function verifyInstalledConnectorRegistration(entry, adapter) {
+export function verifyInstalledConnectorRegistration<T>(entry: Pick<DeclaredEntry, 'registration' | 'revision'>, adapter: T) {
   if (entry.registration === undefined) return adapter;
-  if (adapter?.connectorRegistration !== entry.registration ||
-      adapter?.connectorRevision !== entry.revision) {
+  if ((adapter as {connectorRegistration?: unknown} | null | undefined)?.connectorRegistration !== entry.registration ||
+      (adapter as {connectorRevision?: unknown} | null | undefined)?.connectorRevision !== entry.revision) {
     fail('InstalledConnectorRegistrationMismatch');
   }
   return adapter;
