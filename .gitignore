@@ -407,3 +407,6 @@ target/
 /packages/explorer-ui/cancellation.d.mts
 /packages/explorer-ui/checkpoint-review.mjs
 /packages/explorer-ui/checkpoint-review.d.mts
+
+/packages/explorer-ui/run-observation.mjs
+/packages/explorer-ui/run-observation.d.mts
