@@ -564,3 +564,18 @@ target/
 
 /scripts/interface-inventory.test.mjs
 /scripts/interface-inventory.test.d.mts
+
+/adapters/host-common/source-response-custody.mjs
+/adapters/host-common/source-response-custody.d.mts
+
+/adapters/host-common/source-response-custody.test.mjs
+/adapters/host-common/source-response-custody.test.d.mts
+
+/adapters/host-common/effect-preparation-result.mjs
+/adapters/host-common/effect-preparation-result.d.mts
+
+/adapters/host-common/effect-receipt-custody.mjs
+/adapters/host-common/effect-receipt-custody.d.mts
+
+/adapters/host-common/dispatch-failure-observation.mjs
+/adapters/host-common/dispatch-failure-observation.d.mts

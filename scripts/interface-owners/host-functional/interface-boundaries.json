@@ -4578,8 +4578,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -4592,8 +4592,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -4606,7 +4606,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "identityField: contract.identityField,"
               },
               {
@@ -4620,7 +4620,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "// set owner. Receipt wires alone do not prove saved response custody."
               },
               {
@@ -4634,8 +4634,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -4648,7 +4648,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "throw Object.assign(new Error('EffectSetReceiptEvidenceNotOwned'), {"
               },
               {
@@ -4662,8 +4662,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -4676,7 +4676,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "!Array.isArray(members) || members.length === 0 ||"
               },
               {
@@ -4690,8 +4690,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -4722,8 +4722,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -4736,8 +4736,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -4750,7 +4750,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "identityField: contract.identityField,"
               },
               {
@@ -4764,7 +4764,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "// set owner. Receipt wires alone do not prove saved response custody."
               },
               {
@@ -4778,8 +4778,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -4792,7 +4792,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "throw Object.assign(new Error('EffectSetReceiptEvidenceNotOwned'), {"
               },
               {
@@ -4806,8 +4806,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -4820,7 +4820,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
+                "path": "adapters/host-common/effect-receipt-custody.mts",
                 "anchor": "!Array.isArray(members) || members.length === 0 ||"
               },
               {
@@ -4834,8 +4834,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-receipt-custody.mjs",
-                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}) {"
+                "path": "adapters/host-common/effect-receipt-custody.mts",
+                "anchor": "export function retainIssuedEffectSetReceipt({set, members, ledger, preview}:"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -123488,15 +123488,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('standard response custody retains"
               },
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('non-Unit response custody stays joined"
               },
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('a rejected custody borrow preserves"
               }
             ]
@@ -123633,15 +123633,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('standard response custody retains"
               },
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('non-Unit response custody stays joined"
               },
               {
-                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "path": "adapters/host-common/source-response-custody.test.mts",
                 "anchor": "test('a rejected custody borrow preserves"
               }
             ]

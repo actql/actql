@@ -55,8 +55,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -69,8 +69,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -79,7 +79,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -89,7 +89,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -99,8 +99,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -109,7 +109,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -119,7 +119,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -129,7 +129,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// Transport failures, rate limits and other unobserved outcomes must not be"
               },
               {
@@ -139,8 +139,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -167,8 +167,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -181,8 +181,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -191,7 +191,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -201,7 +201,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -211,8 +211,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -221,7 +221,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -231,7 +231,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -241,7 +241,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// Transport failures, rate limits and other unobserved outcomes must not be"
               },
               {
@@ -251,8 +251,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",

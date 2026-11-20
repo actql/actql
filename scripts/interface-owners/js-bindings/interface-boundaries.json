@@ -15337,7 +15337,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15347,7 +15347,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15357,7 +15357,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15367,7 +15367,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15377,7 +15377,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15387,7 +15387,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15397,7 +15397,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15407,7 +15407,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15417,7 +15417,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15427,7 +15427,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15451,7 +15451,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15461,7 +15461,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15471,7 +15471,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15481,7 +15481,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15491,7 +15491,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15501,7 +15501,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15511,7 +15511,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15521,7 +15521,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15531,7 +15531,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15541,7 +15541,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15565,7 +15565,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15575,7 +15575,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15585,7 +15585,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15595,7 +15595,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15605,7 +15605,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15615,7 +15615,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15625,7 +15625,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15635,7 +15635,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15645,7 +15645,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15655,7 +15655,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15677,7 +15677,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15687,7 +15687,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15697,7 +15697,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15707,7 +15707,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15717,7 +15717,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15727,7 +15727,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15737,7 +15737,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15747,7 +15747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15757,7 +15757,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15767,7 +15767,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {

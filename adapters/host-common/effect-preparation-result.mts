@@ -1,19 +1,19 @@
 import {runtimeIsError} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 
-const refusals = new WeakSet();
+const refusals = new WeakSet<object>();
 
-export const isEffectPreparationRefusal = error =>
+export const isEffectPreparationRefusal = (error: unknown) =>
   error !== null && typeof error === 'object' && refusals.has(error);
 
 // Only use for a semantic check whose inputs have actually been observed.
 // A checked JS bridge error alone says nothing about transport certainty. This
 // marker neither grants dispatch nor proves physical stop or cleanup.
-export function checkedEffectPreparation(result) {
+export function checkedEffectPreparation(result: unknown) {
   try {
     return checked(result);
   } catch (error) {
-    if (runtimeIsError(result)) refusals.add(error);
+    if (runtimeIsError(result)) refusals.add(error as object);
     throw error;
   }
 }
@@ -23,10 +23,10 @@ export function checkedEffectPreparation(result) {
 // pre-send check that found the target is not what the Mapping writes).
 // Transport failures, rate limits and other unobserved outcomes must not be
 // marked. Like `checkedEffectPreparation`, this grants nothing.
-export function refusedEffectPreparation(error) {
+export function refusedEffectPreparation<T>(error: T) {
   if (error === null || typeof error !== 'object') {
     throw new TypeError('InvalidEffectPreparationRefusal');
   }
-  refusals.add(error);
+  refusals.add(error as object);
   return error;
 }

@@ -5,17 +5,17 @@ import {captureSourceResponseCustody} from './source-response-custody.mjs';
 const failure = () => Object.assign(new TypeError('OriginalVendorCustodyFailure'),
   {code: 'OriginalVendorCustodyFailure'});
 const deferred = () => {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
+  let resolve!: (value: unknown) => void, reject!: (reason: unknown) => void;
+  const promise = new Promise<unknown>((yes, no) => {resolve = yes; reject = no;});
   return {promise, resolve, reject};
 };
 
 test('standard response custody retains the exact receiver and original response with synchronous Unit', () => {
   assert.equal(captureSourceResponseCustody(undefined), undefined);
-  const response = {}, calls = [];
-  const holder = Object.freeze({retain(value) {calls.push([this, value]);}});
+  const response = {}, calls: unknown[][] = [];
+  const holder = Object.freeze({retain(value: unknown) {calls.push([this, value]);}});
   const retain = captureSourceResponseCustody(holder, () => assert.fail('valid original holder'));
-  assert.equal(retain(response), undefined, 'the valid synchronous path does not return a Promise');
+  assert.equal(retain!(response), undefined, 'the valid synchronous path does not return a Promise');
   assert.deepEqual(calls, [[holder, response]]);
   assert.strictEqual(calls[0][0], holder);
   assert.strictEqual(calls[0][1], response);
@@ -46,20 +46,20 @@ test('a synchronous original retain throw stays primary without return validatio
   const original = new Error('original retain failure');
   const retain = captureSourceResponseCustody(Object.freeze({retain() {throw original;}}),
     () => assert.fail('a thrown callback has no returned borrow to validate'));
-  assert.throws(() => retain({}), cause => cause === original);
+  assert.throws(() => retain!({}), cause => cause === original);
 });
 
 test('non-Unit response custody stays joined until its exact returned borrow settles then refuses', async () => {
   for (const rejected of [false, true]) {
     const borrow = deferred(), original = failure(), rejection = new Error('original rejected borrow'), response = {};
     let invalidCalls = 0, settled = false;
-    const holder = Object.freeze({retain(value) {
+    const holder = Object.freeze({retain(value: unknown) {
       assert.strictEqual(this, holder); assert.strictEqual(value, response);
       return borrow.promise;
     }});
     const retain = captureSourceResponseCustody(holder, () => {invalidCalls++; return original;});
-    const pending = retain(response);
-    const rejectedReturn = assert.rejects(pending, cause => cause === (rejected ? rejection : original))
+    const pending = retain!(response);
+    const rejectedReturn = assert.rejects(pending as Promise<never>, cause => cause === (rejected ? rejection : original))
       .then(() => {settled = true;});
     await Promise.resolve();
     assert.equal(settled, false);
@@ -75,14 +75,14 @@ test('every non-Unit result refuses including resolved Unit promises and scalar 
   for (const returned of [true, false, 0, null, {}, Promise.resolve(undefined)]) {
     const original = failure();
     const retain = captureSourceResponseCustody(Object.freeze({retain() {return returned;}}), () => original);
-    await assert.rejects(retain({}), cause => cause === original);
+    await assert.rejects(retain!({}) as Promise<never>, cause => cause === original);
   }
   let joined = 0;
   const original = failure();
   const retain = captureSourceResponseCustody(Object.freeze({retain() {
-    return {then(resolve) {joined++; resolve(undefined);}};
+    return {then(resolve: (value: unknown) => void) {joined++; resolve(undefined);}};
   }}), () => original);
-  await assert.rejects(retain({}), cause => cause === original);
+  await assert.rejects(retain!({}) as Promise<never>, cause => cause === original);
   assert.equal(joined, 1, 'the exact invalid thenable still completes its borrowed work');
 });
 
@@ -94,12 +94,12 @@ test('a rejected custody borrow preserves its original Unknown outcome and pendi
   let invalidCalls = 0;
   const retain = captureSourceResponseCustody(Object.freeze({retain() {return borrow.promise;}}),
     () => {invalidCalls++; return failure();});
-  const pending = retain({});
-  const checked = assert.rejects(pending, cause => {
+  const pending = retain!({});
+  const checked = assert.rejects(pending as Promise<never>, cause => {
     assert.strictEqual(cause, original);
-    assert.strictEqual(cause.cleanupHandle, cleanupHandle);
-    assert.equal(cause.outcome, 'unknown');
-    assert.equal(cause.cleanupPending, true);
+    assert.strictEqual((cause as typeof original).cleanupHandle, cleanupHandle);
+    assert.equal((cause as typeof original).outcome, 'unknown');
+    assert.equal((cause as typeof original).cleanupPending, true);
     return true;
   });
   borrow.reject(original);

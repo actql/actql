@@ -2,28 +2,28 @@
 // Capturing or calling this port supplies no grant, charge, retirement or ACK.
 import {types} from 'node:util';
 
-export function captureSourceResponseCustody(holder, invalid, retainUnjoinedNative) {
+export function captureSourceResponseCustody(holder: unknown, invalid?: () => unknown, retainUnjoinedNative?: (returned: Promise<unknown>, cause: unknown) => unknown) {
   if (holder === undefined) return undefined;
-  if (types.isProxy(holder) || holder === null || typeof holder !== 'object') throw invalid();
+  if (types.isProxy(holder) || holder === null || typeof holder !== 'object') throw invalid!();
   const fields = Object.getOwnPropertyDescriptors(holder);
   if (!Object.isFrozen(holder) || Reflect.ownKeys(fields).length !== 1 ||
       !Object.hasOwn(fields.retain ?? {}, 'value') || typeof fields.retain.value !== 'function') {
-    throw invalid();
+    throw invalid!();
   }
   const retain = fields.retain.value;
-  return function retainSourceResponse(response) {
-    const returned = Reflect.apply(retain, holder, [response]);
+  return function retainSourceResponse(response: unknown) {
+    const returned: unknown = Reflect.apply(retain, holder, [response]);
     if (returned === undefined) return;
     // A non-Unit callback may still own an in-flight response borrow. Join
     // that exact result before refusing; never turn its result into an ACK.
     if (types.isPromise(returned)) {
-      let observation, observationFailed = false;
-      let joined;
+      let observation: unknown, observationFailed = false;
+      let joined: Promise<never>;
       try {
         joined = Reflect.apply(Promise.prototype.then, returned, [() => {
           if (observationFailed) throw observation;
-          throw invalid();
-        }, cause => {throw observationFailed ? observation : cause;}]);
+          throw invalid!();
+        }, (cause: unknown) => {throw observationFailed ? observation : cause;}]);
       } catch (cause) {
         // Native then still observes constructor/species before returning its
         // join. If that fails, only the existing physical Owner can retain the
@@ -37,6 +37,6 @@ export function captureSourceResponseCustody(holder, invalid, retainUnjoinedNati
       catch (cause) {observation = cause;observationFailed = true;}
       return joined;
     }
-    return Promise.resolve(returned).then(() => {throw invalid();});
+    return Promise.resolve(returned).then(() => {throw invalid!();});
   };
 }
