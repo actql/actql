@@ -230,3 +230,7 @@ target/
 # Generated existing bounded decision projection preflight.
 /packages/provider-ai-sdk/_internal/native-decision-preflight.mjs
 /packages/provider-ai-sdk/_internal/native-decision-preflight.d.mts
+
+# Generated original admitted Chat projection consumer.
+/packages/provider-ai-sdk/_internal/original-openai-chat.mjs
+/packages/provider-ai-sdk/_internal/original-openai-chat.d.mts

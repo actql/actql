@@ -256,7 +256,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -507,7 +507,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -811,7 +811,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -987,7 +987,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -1332,7 +1332,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -1554,7 +1554,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               },
               {
@@ -1856,7 +1856,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2135,7 +2135,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2507,7 +2507,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2665,7 +2665,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -3018,7 +3018,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
