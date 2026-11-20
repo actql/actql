@@ -301,3 +301,9 @@ target/
 # Generated real SDK request preparation regression.
 /packages/provider-ai-sdk/request-preparation.test.mjs
 /packages/provider-ai-sdk/request-preparation.test.d.mts
+
+# Generated Host result and installed-observer boundaries.
+/adapters/host-common/runtime-result.mjs
+/adapters/host-common/runtime-result.d.mts
+/adapters/host-common/completion-observer.mjs
+/adapters/host-common/completion-observer.d.mts

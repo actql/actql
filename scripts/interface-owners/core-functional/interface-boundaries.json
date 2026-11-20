@@ -19520,8 +19520,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19534,8 +19534,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19544,7 +19544,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19554,8 +19554,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19564,8 +19564,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19574,7 +19574,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19584,8 +19584,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19594,8 +19594,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19604,8 +19604,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19632,8 +19632,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19646,8 +19646,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19656,7 +19656,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19666,8 +19666,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19676,8 +19676,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19686,7 +19686,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19696,8 +19696,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19706,8 +19706,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19716,8 +19716,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",

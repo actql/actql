@@ -18,7 +18,8 @@
     "scripts/**/*.mts",
     "packages/sdk/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
-    "packages/provider-http/**/*.mts"
+    "packages/provider-http/**/*.mts",
+    "adapters/host-common/**/*.mts"
   ],
   "exclude": [
     "**/*.typecheck.mts",

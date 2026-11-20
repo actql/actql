@@ -35204,7 +35204,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35214,7 +35214,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35224,7 +35224,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35234,7 +35234,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35244,7 +35244,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35254,7 +35254,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35264,7 +35264,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35274,7 +35274,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35284,7 +35284,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35294,7 +35294,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35316,7 +35316,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35326,7 +35326,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35336,7 +35336,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35346,7 +35346,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35356,7 +35356,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35366,7 +35366,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35376,7 +35376,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35386,7 +35386,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35396,7 +35396,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35406,7 +35406,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
