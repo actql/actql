@@ -135,6 +135,7 @@ fn native_project_mock_model_backed_read(
   pure_file_budget_refusal? : Bool = false,
   pure_file_query? : String? = None,
   static_disclosure? : Bool = false,
+  static_explain? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -142,6 +143,7 @@ fn native_project_mock_model_backed_read(
   // Project metadata stays retained while its SAME immutable originals are
   // borrowed by the separate Request payload, as in the ordinary command.
   let request_facility = if readme_request ||
+    static_explain ||
     pure_file_source ||
     pure_file_plan ||
     pure_file_control ||
@@ -233,6 +235,7 @@ fn native_project_mock_model_backed_read(
       effect_recipe~,
       effect_material_restore~,
       effect_prepared_restore~,
+      static_explain~,
     )
   } else if account_initialization {
     native_project_mock_account_in_original_read()

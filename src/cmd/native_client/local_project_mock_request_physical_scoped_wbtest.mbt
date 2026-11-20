@@ -307,8 +307,53 @@ fn native_mock_readme_request_payload(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  if static_explain {
+    @local_values.reserve_request_snapshot(
+      facility.parent,
+      facility.input,
+      document.length().to_int64() + 32L,
+      document.length().to_int64() + 32L,
+    ).unwrap()
+    let checked = @local_values.prepare_request_native_document_check(
+      facility.parent,
+      facility.input,
+      document,
+      @frontend.Text,
+      None,
+      None,
+      environment,
+      publication,
+      static_check=false,
+    )
+    match checked {
+      Err(issue) =>
+        return Some(
+          native_mock_readme_request_issue(@local_host.Request(issue)),
+        )
+      Ok(_) => ()
+    }
+    match
+      @local_values.request_native_static_plan_view(
+        facility.parent,
+        facility.input,
+        environment,
+        publication,
+        native_request_manifests,
+      ) {
+      Err(issue) =>
+        return Some(
+          native_mock_readme_request_issue(@local_host.Request(issue)),
+        )
+      Ok(view) => {
+        assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
+        assert_true(view.contains("\"provider_io\":0"))
+        return None
+      }
+    }
+  }
   let wire : Json = {
     "kind": "aql",
     "input": { "text": Json::string(document), "format": "aql-text" },
@@ -861,6 +906,7 @@ fn native_mock_readme_request_in_metadata_read(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -935,6 +981,7 @@ fn native_mock_readme_request_in_metadata_read(
     effect_recipe~,
     effect_material_restore~,
     effect_prepared_restore~,
+    static_explain~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -2014,4 +2061,9 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
     pure_file_control=true,
     pure_file_query=Some("SELECT trend FROM snowflake.usage_30d"),
   )
+}
+
+///|
+test "Native original README static explain retains its same Request compiler without execution" {
+  native_project_mock_model_backed_read(false, static_explain=true)
 }
