@@ -14,9 +14,9 @@ const nativeAssets = new Set([
   'local-node/_build/native/directory-darwin-x64.node',
   'local-node/_build/native/local-files-linux-x64.node',
 ]);
-export function rewriteLocalNodePackageImports(code, path) {
+export function rewriteLocalNodePackageImports(code: string, path: string): string {
   return code.replace(/(['"])((?:\.\.\/)+)packages\/([^'"]+)\1/gu,
-    (_literal, quote, prefix, module) => {
+    (_literal: string, quote: string, prefix: string, module: string) => {
       if (nativeAssets.has(module)) {
         return quote + prefix + module.slice('local-node/'.length) + quote;
       }

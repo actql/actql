@@ -27,3 +27,18 @@ target/
 /scripts/owned-scratch.test.mjs
 /scripts/release-test-registry.mjs
 /scripts/release-test-registry.test.mjs
+/scripts/local-node-package-imports.mjs
+/scripts/ci-core-partitions.mjs
+/packages/sdk/internal/data.mjs
+
+# Declarations emitted from the same maintained TypeScript modules.
+/scripts/release-version.d.mts
+/scripts/release-policy.d.mts
+/scripts/release-version-schema.test.d.mts
+/scripts/owned-scratch.d.mts
+/scripts/owned-scratch.test.d.mts
+/scripts/release-test-registry.d.mts
+/scripts/release-test-registry.test.d.mts
+/scripts/local-node-package-imports.d.mts
+/scripts/ci-core-partitions.d.mts
+/packages/sdk/internal/data.d.mts

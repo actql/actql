@@ -1,9 +1,22 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "declaration": true
   },
-  "include": ["scripts/**/*.mts"],
-  "exclude": ["scripts/fixtures/**/*.typecheck.mts"]
+  "include": [
+    "scripts/**/*.mts",
+    "packages/sdk/internal/**/*.mts"
+  ],
+  "exclude": [
+    "scripts/fixtures/**/*.typecheck.mts",
+    "**/*.d.mts"
+  ]
 }

@@ -10,7 +10,7 @@ export const nativeCoreCiPartitions = Object.freeze([
 // Logical profiles are distinct from runner acquisitions. The first ordinary
 // job retains HTTP and then runs the unchanged Source entrance in a fresh child.
 // Scoped allocation profiles retain their separate original runners.
-export function nativeCoreHostedPartitions(partition) {
+export function nativeCoreHostedPartitions(partition: string): string[] {
   if (!nativeCoreCiPartitions.includes(partition)) throw new Error('Unknown hosted Native Core partition');
   return partition === '1/2' ? [partition, 'source'] : [partition];
 }
