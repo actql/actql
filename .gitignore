@@ -701,3 +701,9 @@ target/
 
 /scripts/runtime-package-inputs.test.mjs
 /scripts/runtime-package-inputs.test.d.mts
+
+/scripts/packed-client-packages.mjs
+/scripts/packed-client-packages.d.mts
+
+/scripts/package-release.mjs
+/scripts/package-release.d.mts

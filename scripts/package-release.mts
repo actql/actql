@@ -10,14 +10,32 @@ import {checkoutState, packClientPackages, packedClientPackage} from './packed-c
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
 
+import type {BinaryLike, BinaryToTextEncoding} from 'node:crypto';
+
+type ReleaseCohort = {version: string; packageVersion: string; registry: string;
+  access: string; tag: string; packages: string[]};
+type PackageMetadata = {name: string; version: string; private?: boolean;
+  license?: string; repository?: unknown; publishConfig?: unknown; files?: string[];
+  dependencies?: Record<string, string>; peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>; scripts?: Record<string, string>;
+  [key: string]: unknown};
+type FileFact = {path: string; bytes: number; mode: number; sha256: string};
+type ReleasePackage = Awaited<ReturnType<typeof stagePackage>>;
+type ReleaseManifest = {version: string; sourceSha: string; preparedAt: string;
+  cohort: ReleaseCohort; recipeSha256: string; cohortSha256: string;
+  toolchain: {node: string; npm: string; moon: string; platform: string; arch: string};
+  generation: string; packages: ReleasePackage[]};
+type MetadataFetcher = (input: string, init: Pick<RequestInit, 'signal' | 'redirect'>) =>
+  Promise<{status: number; json(): Promise<unknown>}>;
+
 const root = fileURLToPath(new URL('../', import.meta.url));
-const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
-const exact = (object, keys) => assert.deepEqual(Object.keys(object).sort(), [...keys].sort());
-const packageName = name => `@actql/${name}`;
-const run = (command, args, cwd) => execFileSync(command, args, {
+const hash = (bytes: BinaryLike, algorithm = 'sha256', encoding: BinaryToTextEncoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
+const exact = (object: object, keys: readonly string[]) => assert.deepEqual(Object.keys(object).sort(), [...keys].sort());
+const packageName = (name: string) => `@actql/${name}`;
+const run = (command: string, args: readonly string[], cwd?: string) => execFileSync(command, args, {
   cwd, encoding: 'utf8', timeout: 600_000, maxBuffer: 16 * 1024 * 1024});
 
-export function admitCohort(value) {
+export function admitCohort(value: ReleaseCohort) {
   exact(value, ['version', 'packageVersion', 'registry', 'access', 'tag', 'packages']);
   assert(['actql-package-release-cohort/0.1', 'actql-explorer-release-cohort/0.1'].includes(value.version));
   releaseVersion(value.packageVersion);
@@ -30,7 +48,7 @@ export function admitCohort(value) {
   return structuredClone(value);
 }
 
-export function releasePackageMetadata(original, name, cohort) {
+export function releasePackageMetadata(original: PackageMetadata, name: string, cohort: ReleaseCohort) {
   assert.equal(original.name, packageName(name));
   const manifest = structuredClone(original);
   manifest.version = cohort.packageVersion;
@@ -39,12 +57,12 @@ export function releasePackageMetadata(original, name, cohort) {
   manifest.repository = {type: 'git', url: 'git+https://github.com/actql/actql.git', directory: `packages/${name}`};
   manifest.publishConfig = {registry: cohort.registry, access: cohort.access};
   manifest.files = [...new Set([...(manifest.files ?? []), 'LICENSE'])];
-  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'])
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const)
     for (const [dependency, version] of Object.entries(manifest[field] ?? {})) {
     if (dependency.startsWith('@actql/')) {
       assert(cohort.packages.map(packageName).includes(dependency), `Missing release dependency: ${dependency}`);
       assert(cohort.packages.indexOf(dependency.slice(7)) < cohort.packages.indexOf(name), 'Cohort must be dependency ordered');
-      manifest[field][dependency] = cohort.packageVersion;
+      manifest[field]![dependency] = cohort.packageVersion;
     } else assert(!/^(?:file:|link:|workspace:)/u.test(version), 'Release dependency must be registry resolvable');
   }
   // Publication consumes the frozen payload, never a consumer checkout build.
@@ -56,9 +74,9 @@ export function releasePackageMetadata(original, name, cohort) {
   return manifest;
 }
 
-export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
+export async function inventory(directory: string, prefix = '', {ignoreInstalledDependencies = false}: {ignoreInstalledDependencies?: boolean} = {}): Promise<FileFact[]> {
   assert.equal(typeof ignoreInstalledDependencies, 'boolean');
-  const files = [];
+  const files: FileFact[] = [];
   for (const name of (await readdir(directory)).sort()) {
     // Only the public consumer asks to separate npm's installed dependency
     // subtree from this package's own frozen payload. Archive checks never do.
@@ -76,7 +94,7 @@ export async function inventory(directory, prefix = '', {ignoreInstalledDependen
   return files;
 }
 
-export async function unpack(archive, destination, {rootName = 'package'} = {}) {
+export async function unpack(archive: string, destination: string, {rootName = 'package'} = {}) {
   assert(typeof rootName === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(rootName) && rootName === rootName.trim(),
     'Archive root must be one literal directory name');
   const names = run('tar', ['-tzf', archive]);
@@ -95,7 +113,9 @@ export async function unpack(archive, destination, {rootName = 'package'} = {}) 
   return join(destination, rootName);
 }
 
-export async function stagePackage({archive, destination, name, cohort, license}) {
+export async function stagePackage({archive, destination, name, cohort, license}: {
+  archive: string; destination: string; name: string; cohort: ReleaseCohort; license: string;
+}) {
   const scratch = await mkdtemp(join(destination, '.stage-'));
   try {
     const directory = await unpack(archive, scratch);
@@ -113,10 +133,10 @@ export async function stagePackage({archive, destination, name, cohort, license}
     const file = packed[0].filename;
     assert.equal(file, `actql-${name}-${cohort.packageVersion}.tgz`);
     const verification = await mkdtemp(join(destination, '.verify-'));
-    let after;
+    let after: FileFact[];
     try {after = await inventory(await unpack(join(destination, file), verification));}
     finally {await rm(verification, {recursive: true});}
-    const payload = entries => entries.filter(v => !['package.json', 'LICENSE'].includes(v.path));
+    const payload = (entries: readonly FileFact[]) => entries.filter(v => !['package.json', 'LICENSE'].includes(v.path));
     assert.deepEqual(payload(after), payload(before), 'Staging must preserve every runtime byte and mode');
     assert(after.some(v => v.path === 'LICENSE'));
     const bytes = await readFile(join(destination, file));
@@ -127,7 +147,7 @@ export async function stagePackage({archive, destination, name, cohort, license}
   } finally {await rm(scratch, {recursive: true});}
 }
 
-export async function preparePackageRelease({repository = root, destination, cohortPath}) {
+export async function preparePackageRelease({repository = root, destination, cohortPath}: {repository?: string; destination: string; cohortPath: string}) {
   assert(typeof cohortPath === 'string' && cohortPath.length, 'Supply an explicit cohort file; no default release version');
   const cohort = admitCohort(JSON.parse(await readFile(cohortPath, 'utf8')));
   const source = checkoutState(repository);
@@ -160,8 +180,8 @@ export async function preparePackageRelease({repository = root, destination, coh
   return manifest;
 }
 
-export async function verifyPackageRelease(directory) {
-  const manifest = JSON.parse(await readFile(join(directory, 'release.json'), 'utf8'));
+export async function verifyPackageRelease(directory: string) {
+  const manifest = JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')) as ReleaseManifest;
   exact(manifest, ['version', 'sourceSha', 'preparedAt', 'cohort', 'recipeSha256', 'cohortSha256', 'toolchain', 'generation', 'packages']);
   assert.equal(manifest.version, 'actql-package-release/0.1');
   assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
@@ -190,7 +210,7 @@ export async function verifyPackageRelease(directory) {
       const originalDirectory = await unpack(original, join(scratch, 'original'));
       const originalMetadata = JSON.parse(await readFile(join(originalDirectory, 'package.json'), 'utf8'));
       assert.deepEqual(releasePackageMetadata(originalMetadata, item.name.slice(7), cohort), metadata);
-      const runtime = entries => entries.filter(v => !['package.json', 'LICENSE'].includes(v.path));
+      const runtime = (entries: readonly FileFact[]) => entries.filter(v => !['package.json', 'LICENSE'].includes(v.path));
       assert.deepEqual(runtime(await inventory(originalDirectory)), runtime(item.files));
     } finally {await rm(scratch, {recursive: true});}
   }
@@ -198,19 +218,19 @@ export async function verifyPackageRelease(directory) {
 }
 
 // A missing immutable version is distinct from registry failure or a mismatch.
-export async function publishedVersion(item, registry, fetchMetadata = fetch) {
+export async function publishedVersion(item: Pick<ReleasePackage, 'name' | 'version' | 'integrity'>, registry: string, fetchMetadata: MetadataFetcher = fetch) {
   const response = await fetchMetadata(`${registry}${encodeURIComponent(item.name)}/${item.version}`,
     {signal: AbortSignal.timeout(15_000), redirect: 'error'});
   if (response.status === 404) return 'absent';
   assert.equal(response.status, 200, `Registry unavailable: ${response.status}`);
-  const metadata = await response.json();
+  const metadata = await response.json() as {name?: unknown; version?: unknown; dist?: {integrity?: unknown}};
   assert.equal(metadata.name, item.name);
   assert.equal(metadata.version, item.version);
   assert.equal(metadata.dist?.integrity, item.integrity, `Occupied version has different bytes: ${item.name}`);
   return 'published-identical';
 }
 
-export async function publicationPlan(manifest, fetchMetadata = fetch) {
+export async function publicationPlan(manifest: Pick<ReleaseManifest, 'packages' | 'cohort'>, fetchMetadata: MetadataFetcher = fetch) {
   const plan = [];
   for (const item of manifest.packages) plan.push({name: item.name, version: item.version,
     file: item.file, integrity: item.integrity,
@@ -225,7 +245,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert(process.argv.length <= 5 && (cohortPath === undefined || command === 'prepare'));
   if (command === 'prepare') assert(cohortPath, 'Supply an explicit cohort file; no default release version');
   const manifest = command === 'prepare' ? await preparePackageRelease({destination: directory,
-    cohortPath: resolve(cohortPath)}) : await verifyPackageRelease(resolve(directory));
+    cohortPath: resolve(cohortPath!)}) : await verifyPackageRelease(resolve(directory));
   console.log(JSON.stringify(command === 'plan' ? await publicationPlan(manifest) : {
     sourceSha: manifest.sourceSha, manifest: join(resolve(directory), 'release.json'),
     packages: manifest.packages.map(({name, version, file, sha256, integrity}) => ({name, version, file, sha256, integrity}))}, null, 2));

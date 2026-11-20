@@ -16,14 +16,21 @@ import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+type PackOperation = (name: string) => unknown | PromiseLike<unknown>;
+type SharedManifest = {revision?: unknown; tarballs?: Record<string, unknown>};
+type CheckoutState = {revision: string; clean: boolean};
+
 export const CLIENT_PACKAGES = Object.freeze(['client-wire', 'sdk',
   'run-host-core', 'local-node', 'node']);
 const MANIFEST = 'packed-client-packages.json';
-const tarball = name => `actql-${name}-0.0.0-development.tgz`;
+const tarball = (name: string) => `actql-${name}-0.0.0-development.tgz`;
 
 // The Run Host consumer and its refusal controls use this same acquisition
 // recipe. A verified retained package never selects the npm fallback.
-export async function acquireRunHostClientPackages({repository, destination, run}) {
+export async function acquireRunHostClientPackages({repository, destination, run}: {
+  repository: string; destination: string;
+  run: (command: string, args: string[], cwd: string) => unknown;
+}) {
   for (const name of ['run-host-core', 'client-wire']) {
     await packedClientPackage({repository, name, destination,
       pack: selected => run('npm', ['pack', '--pack-destination', destination, '--json'],
@@ -33,7 +40,7 @@ export async function acquireRunHostClientPackages({repository, destination, run
 
 // Normal lifecycle-enabled readers need one uncontaminated npm JSON value.
 // Other npm options remain the caller's DATA; npm owns their interpretation.
-export function normalNpmPackJsonArgs(args) {
+export function normalNpmPackJsonArgs(args: readonly string[]) {
   if (!Array.isArray(args) || args.some(value => typeof value !== 'string') ||
       args[0] !== 'pack' || args.filter(value => /^--json(?:=|$)/u.test(value)).length !== 1 ||
       !args.includes('--json') ||
@@ -45,11 +52,11 @@ export function normalNpmPackJsonArgs(args) {
 
 // Never recover a JSON suffix from lifecycle diagnostics. The normal pack
 // argument policy isolates those diagnostics; malformed output still refuses.
-export function parseNpmPackJson(output) {
+export function parseNpmPackJson(output: string): unknown {
   return JSON.parse(output);
 }
 
-function git(repository, args) {
+function git(repository: string, args: readonly string[]) {
   const result = spawnSync('git', args, {cwd: repository, encoding: 'utf8'});
   if (result.status !== 0) {
     throw new Error(`git ${args.join(' ')} failed: ${result.stderr}`);
@@ -67,13 +74,13 @@ export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
 // Fresh CI producers retain the same source-input policy plus the exact
 // references read by the required, original interface validator. This is
 // acquisition DATA, not another interface classifier or admission result.
-export async function normalPackSourceInputs(repository, listed) {
+export async function normalPackSourceInputs(repository: string, listed: readonly string[]) {
   const root = realpathSync(repository), available = new Set(listed);
   const selected = new Set(listed.filter(path => !path.includes('/') ||
     BUILD_INPUTS.some(prefix => path.startsWith(prefix + '/'))));
   const {interfaceOwnerDeclarations} = await import('./interface-owner-discovery.mjs');
   const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
-  const readReference = path => {
+  const readReference = (path: string) => {
     if (!available.has(path)) throw new Error(`UnlistedNormalPackSourceReference:${path}`);
     const actual = realpathSync(resolve(root, path)), child = relative(root, actual);
     if (isAbsolute(child) || child === '..' || child.startsWith('../')) {
@@ -89,7 +96,7 @@ export async function normalPackSourceInputs(repository, listed) {
     for (const owner of owners) {
       // Use the same attribute/reference checks as normal prepack. The real
       // module/primary/generation check still runs in that original entrance.
-      assertInterfaceCoverage({root, modules: [], declarations: owner.declarations, readReference});
+      assertInterfaceCoverage({root, modules: [], declarations: owner.declarations as Parameters<typeof assertInterfaceCoverage>[0]['declarations'], readReference});
       checked.add(owner.id);
     }
   }
@@ -98,7 +105,7 @@ export async function normalPackSourceInputs(repository, listed) {
 
 // A private Git index describes only the files actually copied to this fresh
 // fixture. It has no commit/revision claim and borrows no source Git history.
-export function initializeNormalPackSourceIndex(directory, paths) {
+export function initializeNormalPackSourceIndex(directory: string, paths: readonly string[]) {
   if (existsSync(join(directory, '.git'))) throw new Error('Normal pack source index already exists');
   const environment = Object.fromEntries(Object.entries(process.env)
     .filter(([key]) => !key.startsWith('GIT_')));
@@ -109,7 +116,7 @@ export function initializeNormalPackSourceIndex(directory, paths) {
     }
   }
   if (new Set(paths).size !== paths.length) throw new TypeError('Duplicate normal pack source path');
-  const run = (args, input) => {
+  const run = (args: readonly string[], input?: string) => {
     const result = spawnSync('git', args, {cwd: directory, env: environment,
       encoding: 'utf8', input, maxBuffer: 16 * 1024 * 1024});
     if (result.error || result.status !== 0) throw new Error(
@@ -124,7 +131,7 @@ export function initializeNormalPackSourceIndex(directory, paths) {
 // anything a pack reads differs from it. Any tracked change in the
 // repository counts, as does any untracked, non-ignored file in a build
 // input directory.
-export function checkoutState(repository) {
+export function checkoutState(repository: string) {
   const tracked = git(repository, ['status', '--porcelain',
     '--untracked-files=no']);
   const untracked = git(repository, ['status', '--porcelain',
@@ -133,11 +140,11 @@ export function checkoutState(repository) {
     clean: tracked === '' && untracked === ''};
 }
 
-function sameState(before, after) {
+function sameState(before: CheckoutState, after: CheckoutState) {
   return before.clean && after.clean && before.revision === after.revision;
 }
 
-async function digest(path) {
+async function digest(path: string) {
   return createHash('sha256').update(await readFile(path)).digest('hex');
 }
 
@@ -145,9 +152,11 @@ async function digest(path) {
 // the shared one when available, otherwise `pack(name)`, which must pack it
 // into `destination` itself.
 export async function packedClientPackage({repository, name, destination,
-  pack, shared = process.env.ACTQL_PACKED_CLIENT_PACKAGES}) {
+  pack, shared = process.env.ACTQL_PACKED_CLIENT_PACKAGES}: {
+  repository: string; name: string; destination: string; pack: PackOperation; shared?: string;
+}) {
   if (shared === undefined || shared === '') return pack(name);
-  const manifest = JSON.parse(await readFile(join(shared, MANIFEST), 'utf8'));
+  const manifest = JSON.parse(await readFile(join(shared, MANIFEST), 'utf8')) as SharedManifest;
   const state = checkoutState(repository);
   if (manifest.revision !== state.revision || !state.clean) {
     throw new Error(`Shared Client packages were packed from ${
@@ -172,9 +181,9 @@ export async function packedClientPackage({repository, name, destination,
 
 // Acquired-source consumers opt into the same exact native transport pin as
 // the source adapter. Source-free package consumers leave this peer absent.
-export async function pinnedDuckDBPackage(repository) {
+export async function pinnedDuckDBPackage(repository: string) {
   const manifest = JSON.parse(await readFile(join(repository,
-    'adapters/connectors/duckdb/node/package.json'), 'utf8'));
+    'adapters/connectors/duckdb/node/package.json'), 'utf8')) as {dependencies?: Record<string, unknown>};
   const version = manifest.dependencies?.['@duckdb/node-api'];
   if (typeof version !== 'string' || version === '') {
     throw new Error('MissingPinnedDuckDBDependency');
@@ -184,7 +193,7 @@ export async function pinnedDuckDBPackage(repository) {
 
 // The npm cache a packed acceptance installation uses: shared within one CI
 // job when ACTQL_TEST_NPM_CACHE is set, otherwise private to the root.
-export function packedNpmCache(root) {
+export function packedNpmCache(root: string) {
   const shared = process.env.ACTQL_TEST_NPM_CACHE;
   return shared === undefined || shared === '' ? join(root, 'npm-cache')
     : resolve(shared);
@@ -204,11 +213,11 @@ export async function packClientPackages({repository, destination,
       throw new Error(`npm pack ${name} failed:\n${result.stdout}\n${result.stderr}`,
         {cause: result.error});
     }
-  }}) {
+  }}: {repository: string; destination: string; names?: readonly string[]; pack?: PackOperation}) {
   const state = checkoutState(repository);
   if (!state.clean) throw new Error('Build inputs differ from HEAD');
   await mkdir(destination, {recursive: true});
-  const tarballs = {};
+  const tarballs: Record<string, string> = {};
   for (const name of names) {
     await pack(name);
     tarballs[name] = await digest(join(destination, tarball(name)));
