@@ -413,3 +413,13 @@ target/
 
 /packages/explorer-ui/read-model.mjs
 /packages/explorer-ui/read-model.d.mts
+
+# Layout declarations and runtime emit derive from the same authored input
+/packages/explorer-ui/flow-model.mjs
+/packages/explorer-ui/flow-model.d.mts
+/packages/explorer-ui/flow-layout.mjs
+/packages/explorer-ui/flow-layout.d.mts
+/packages/explorer-ui/flow-layout-engine.mjs
+/packages/explorer-ui/flow-layout-engine.d.mts
+/packages/explorer-ui/flow-layout-worker.mjs
+/packages/explorer-ui/flow-layout-worker.d.mts

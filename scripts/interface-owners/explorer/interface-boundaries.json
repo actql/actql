@@ -1266,7 +1266,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               },
               {
@@ -1276,7 +1276,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1286,7 +1286,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1296,7 +1296,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1306,7 +1306,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1316,7 +1316,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1326,7 +1326,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1336,7 +1336,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1346,7 +1346,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-engine.mjs",
+                "path": "packages/explorer-ui/flow-layout-engine.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';"
               }
             ],
@@ -1383,7 +1383,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               },
               {
@@ -1393,7 +1393,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1403,7 +1403,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1413,7 +1413,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1423,7 +1423,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1433,7 +1433,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1443,7 +1443,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1453,7 +1453,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1463,7 +1463,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout-worker.mjs",
+                "path": "packages/explorer-ui/flow-layout-worker.mts",
                 "anchor": "// The unmodified upstream Worker installs its message dispatcher. The parent"
               }
             ],
@@ -1578,7 +1578,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               },
               {
@@ -1588,7 +1588,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1598,7 +1598,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1608,7 +1608,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1618,7 +1618,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1628,7 +1628,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1638,7 +1638,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1648,7 +1648,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1658,7 +1658,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-layout.mjs",
+                "path": "packages/explorer-ui/flow-layout.mts",
                 "anchor": "import ELK from 'elkjs/lib/elk-api.js';"
               }
             ],
@@ -1733,7 +1733,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               },
               {
@@ -1743,7 +1743,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1753,7 +1753,7 @@
                 "anchor": "It preserves original logical occurrences/ports"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1763,7 +1763,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1773,7 +1773,7 @@
                 "anchor": "invalidates the Gateway on a scope change"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1783,7 +1783,7 @@
                 "anchor": "cannot establish facts for the new scope."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1793,7 +1793,7 @@
                 "anchor": "Closing releases that original Client lease"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1803,7 +1803,7 @@
                 "anchor": "Requests are bounded to 65,536 bytes"
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
@@ -1813,7 +1813,7 @@
                 "anchor": "No private Cloud package is needed."
               },
               {
-                "path": "packages/explorer-ui/flow-model.mjs",
+                "path": "packages/explorer-ui/flow-model.mts",
                 "anchor": "import {graphViewLimits, ExplorerReadError} from './read-model.mjs';"
               }
             ],
