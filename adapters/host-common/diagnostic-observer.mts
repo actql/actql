@@ -1,14 +1,16 @@
 // Best-effort diagnostics have no authority over execution. One bounded queue
 // owns callback delivery; a hung observer occupies its slot until it settles.
 // Saturation drops new diagnostics, never starts another unbounded Promise.
-const sinks = new WeakSet();
-export function createDiagnosticObserver(observe, {maxQueued = 32} = {}) {
+type DiagnosticCallback = (name: unknown, detail: unknown, options: {signal: AbortSignal}) => unknown;
+type DiagnosticSink = ReturnType<typeof createDiagnosticObserver>;
+const sinks = new WeakSet<Function>();
+export function createDiagnosticObserver(observe?: unknown, {maxQueued = 32} = {}) {
   if (observe !== undefined && typeof observe !== 'function' ||
       !Number.isSafeInteger(maxQueued) || maxQueued < 0) {
     throw new TypeError('InvalidDiagnosticObserver');
   }
-  const queue = [];
-  let active;
+  const queue: {name: unknown; detail: unknown}[] = [];
+  let active: AbortController | undefined;
   let closed = false;
   let dropped = 0;
   let failures = 0;
@@ -21,7 +23,7 @@ export function createDiagnosticObserver(observe, {maxQueued = 32} = {}) {
     // are consumed, and the physical delivery slot is not released early.
     Promise.resolve().then(() => {
       if (!controller.signal.aborted) {
-        return observe(item.name, item.detail,
+        return (observe as DiagnosticCallback)(item!.name, item!.detail,
           {signal: controller.signal});
       }
     }).catch(() => { failures++; }).finally(() => {
@@ -29,7 +31,7 @@ export function createDiagnosticObserver(observe, {maxQueued = 32} = {}) {
       pump();
     });
   };
-  const emit = (name, detail) => {
+  const emit = (name: unknown, detail: unknown) => {
     if (observe === undefined) return;
     if (closed || active !== undefined && queue.length >= maxQueued) {
       dropped++;
@@ -54,11 +56,11 @@ export function createDiagnosticObserver(observe, {maxQueued = 32} = {}) {
 
 // Ingress can share a configured callback without building one queue per
 // request. Weak ownership does not keep discarded Host installations alive.
-const installed = new WeakMap();
-export function diagnosticObserver(observe) {
+const installed = new WeakMap<Function, DiagnosticSink>();
+export function diagnosticObserver(observe?: unknown) {
   if (observe === undefined) return createDiagnosticObserver();
   if (typeof observe !== 'function') throw new TypeError('InvalidDiagnosticObserver');
-  if (sinks.has(observe)) return observe;
+  if (sinks.has(observe)) return observe as DiagnosticSink;
   let sink = installed.get(observe);
   if (sink === undefined || sink.status().closed) {
     sink = createDiagnosticObserver(observe);

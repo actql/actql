@@ -323,3 +323,9 @@ target/
 /adapters/connectors/duckdb/node/examples/reader-policy.d.mts
 /adapters/connectors/duckdb/node/test/data-profile.test.mjs
 /adapters/connectors/duckdb/node/test/data-profile.test.d.mts
+
+# Generated bounded private Host diagnostics; callback delivery remains optional.
+/adapters/host-common/diagnostic-observer.mjs
+/adapters/host-common/diagnostic-observer.d.mts
+/adapters/host-node/client-authentication-observation.mjs
+/adapters/host-node/client-authentication-observation.d.mts
