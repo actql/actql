@@ -659,3 +659,6 @@ target/
 
 /scripts/connector-compute-bundles.test.mjs
 /scripts/connector-compute-bundles.test.d.mts
+
+/scripts/connector-build-inputs.test.mjs
+/scripts/connector-build-inputs.test.d.mts

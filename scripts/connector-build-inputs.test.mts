@@ -7,10 +7,22 @@ import {resolveConnectorBuildInputs, packageMetadata} from './connector-build-in
 import {readHostBundles} from './connector-node-bundles.mjs';
 import {inspectCore, copyProductionCore, tokens, readPackageTargetOptions} from './portable-core.mjs';
 
-function fixture(t) {
+import type {TestContext} from 'node:test';
+import type {UncheckedComputeManifest} from './connector-compute-bundles.mjs';
+
+type MessageOnlyThrows = (block: () => unknown, expected: undefined, message: string) => void;
+
+type Configuration = Parameters<typeof resolveConnectorBuildInputs>[0];
+type UncheckedFixtureSection = {profileVersion: string; module: string;
+  exports: Record<string, string>; identityProfile?: unknown};
+type UncheckedFixtureInstallation = {registration: string; revision: string;
+  providerBundle?: string; responseHeaders: string[]; assets: string[];
+  source: UncheckedFixtureSection; effect: UncheckedFixtureSection; extra?: unknown};
+
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-connector-inputs-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  const put = (path, contents) => {
+  const put = (path: string, contents: Parameters<typeof writeFileSync>[1]) => {
     mkdirSync(dirname(path), {recursive: true});
     writeFileSync(path, contents);
   };
@@ -19,7 +31,7 @@ function fixture(t) {
     {namespace: 'example/numeric', version: '1.2.3', root: join(root, 'connector')},
     {namespace: 'example/host', version: '0.1.0', root: join(root, 'host')},
   ];
-  const mod = (index, imports = [], extra = '') => {
+  const mod = (index: number, imports: readonly string[] = [], extra = '') => {
     const module = modules[index];
     put(join(module.root, 'moon.mod'),
       `name = "${module.namespace}"\nversion = "${module.version}"\nsource = "src"\n` +
@@ -34,7 +46,7 @@ function fixture(t) {
   put(join(connector, 'src/driver/moon.pkg'),
     'supported_targets = "js"\nimport { "actql/actql/connector_sdk" @connector, }\n');
   put(join(modules[0].root, 'src/connector_sdk/moon.pkg'), 'supported_targets = "+js+wasm+native"\n');
-  const compute = {
+  const compute: UncheckedComputeManifest = {
     package: 'example/numeric/driver', module: 'NumericModule', configuration: 'NumericSettings',
     configure: 'configure', registration: 'registration', contribution: 'contribution',
     validate_binding: 'validate_binding',
@@ -45,15 +57,15 @@ function fixture(t) {
   };
   const manifest = join(connector, 'src/compute-bundle.json');
   put(manifest, JSON.stringify(compute));
-  const configuration = {target: 'js', modules, host: 'example/host',
+  const configuration: Configuration = {target: 'js', modules, host: 'example/host',
     connectors: [{name: 'numeric', module: 'example/numeric', directory: 'src'}]};
   return {root, put, mod, modules, connector, compute, manifest, configuration};
 }
 
-function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
+function hostFixture(f: ReturnType<typeof fixture>, roles: readonly ('source' | 'effect')[] = ['source', 'effect'], name = 'numeric') {
   const installation = {registration: name, revision: `${name}/0.1`,
     providerBundle: `connectors/${name}/host_node`, responseHeaders: ['link'],
-    assets: [`src/connectors/${name}/views.json`]};
+    assets: [`src/connectors/${name}/views.json`]} as UncheckedFixtureInstallation;
   for (const role of roles) {
     installation[role] = {profileVersion: `actql-installed-${name}-${role}/0.1`,
       module: `adapters/connectors/${name}/host/${role}.mjs`,
@@ -61,13 +73,13 @@ function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
     f.put(join(f.connector, installation[role].module),
       'export function check() {}\nexport function identity() {}\nexport function load() {}\n');
   }
-  const providerPath = join(f.connector, 'src', installation.providerBundle, 'moon.pkg');
+  const providerPath = join(f.connector, 'src', installation.providerBundle!, 'moon.pkg');
   f.put(providerPath, 'supported_targets = "js"\npkgtype(kind: "foreign_library")\n' +
     'import { "actql/actql/connector_sdk" @connector, }\n');
   f.put(join(f.connector, installation.assets[0]), '{}');
   const directory = `src/connectors/${name}`;
   const path = join(f.connector, directory, 'host-bundle.json');
-  const write = (value = installation) => f.put(path, JSON.stringify({installation: value}));
+  const write = (value: unknown = installation) => f.put(path, JSON.stringify({installation: value}));
   write();
   const selection = {name, module: 'example/numeric', directory};
   f.configuration.connectors = f.configuration.connectors.filter(entry => entry.name !== name);
@@ -75,7 +87,7 @@ function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
   return {installation, path, write, providerPath, selection};
 }
 
-function npmFixture(t) {
+function npmFixture(t: TestContext) {
   const f = fixture(t);
   f.configuration.modules = [f.modules[0], f.modules[2]];
   f.mod(2, ['actql/actql@0.0.1']);
@@ -88,7 +100,7 @@ function npmFixture(t) {
   const metadata = {name: pin.name, version: pin.version, type: 'module',
     peerDependencies: {'@actql/local-node': '0.0.1'}};
   const packagePath = join(f.connector, 'package.json');
-  const writePackage = (value = metadata) => f.put(packagePath, JSON.stringify(value));
+  const writePackage = (value: unknown = metadata) => f.put(packagePath, JSON.stringify(value));
   f.put(join(f.modules[0].root, 'packages/local-node/package.json'),
     JSON.stringify({name: '@actql/local-node', version: '0.0.1'}));
   writePackage();
@@ -110,7 +122,7 @@ test('npm-only Source resolves exact pinned ownership without a MoonBit contribu
   assert.equal(entry.root, f.connector);
   assert.equal(entry.sourceRoot, f.connector);
   assert.equal(entry.revision, 'numeric/0.1');
-  assert.equal(entry.source.modulePath, join(f.connector, f.h.installation.source.module));
+  assert.equal(entry.source!.modulePath, join(f.connector, f.h.installation.source.module));
   assert.equal(entry.effect, undefined);
   assert.equal(entry.providerBundle, undefined);
   assert.equal(entry.providerPackagePath, undefined);
@@ -118,7 +130,7 @@ test('npm-only Source resolves exact pinned ownership without a MoonBit contribu
   assert.deepEqual(resolved.nodeEntries, []);
   assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved}), resolved.hostEntries);
   assert.ok(Object.isFrozen(owner.dependencies));
-  assert.ok(Object.isFrozen(entry.source.exports));
+  assert.ok(Object.isFrozen(entry.source!.exports));
   f.writePackage({...f.metadata, version: '9.9.9'});
   f.h.write({...f.h.installation, revision: 'numeric/0.2'});
   assert.equal(owner.version, '1.2.3');
@@ -264,8 +276,8 @@ test('shared module option recognition refuses unknown malformed duplicate and e
     valid + '\nunknown = "hidden"',
   ]) {
     writeFileSync(modulePath, original + invalid);
-    assert.throws(() => resolveConnectorBuildInputs(f.configuration), undefined, invalid);
-    assert.throws(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
+    (assert.throws as unknown as MessageOnlyThrows)(() => resolveConnectorBuildInputs(f.configuration), undefined, invalid);
+    (assert.throws as unknown as MessageOnlyThrows)(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
   }
 });
 
@@ -301,10 +313,10 @@ test('shared module recognition leaves Core source purity and foreign file check
   assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreForeignFile/);
 });
 
-function targetClause(source) {
+function targetClause(source: string) {
   const list = tokens(source);
   let index = 0;
-  const take = (kind, value) => {
+  const take = (kind: ReturnType<typeof tokens>[number]['kind'], value?: string) => {
     const token = list[index++];
     assert.equal(token?.kind, kind);
     if (value !== undefined) assert.equal(token.value, value);
@@ -372,9 +384,9 @@ test('shared package target reader refuses unknown duplicate malformed and nonli
     'options(targets: {})\noptions(targets: {})', valid + '\nunknown = "hidden"',
   ]) {
     f.put(path, 'supported_targets = "+js+wasm+native"\n' + invalid);
-    assert.throws(() => resolveConnectorBuildInputs(f.configuration)
+    (assert.throws as unknown as MessageOnlyThrows)(() => resolveConnectorBuildInputs(f.configuration)
       .resolvePackage('actql/actql/connector_sdk'), undefined, invalid);
-    assert.throws(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
+    (assert.throws as unknown as MessageOnlyThrows)(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
   }
 });
 
@@ -621,7 +633,7 @@ test('selection and module ownership are explicit and unambiguous', t => {
   assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
     modules: [...f.modules, f.modules[1]]}), /Duplicate or overlapping/);
   assert.throws(() => resolveConnectorBuildInputs({...f.configuration, host: 'actql/actql'}), /separate explicit Host/);
-  assert.throws(() => resolveConnectorBuildInputs({...f.configuration, program: {url: 'https://example.com'}}), /Invalid Connector/);
+  assert.throws(() => resolveConnectorBuildInputs({...f.configuration, program: {url: 'https://example.com'}} as Configuration), /Invalid Connector/);
   const resolved = resolveConnectorBuildInputs(f.configuration);
   assert.throws(() => resolved.packagePath('example/numeric/missing'), /Missing/);
   assert.throws(() => resolved.resolvePackage('example/numeric/driver', 'actql/actql'), /Undeclared/);
@@ -645,7 +657,7 @@ test('Host outputs permit fresh paths and refuse symlink, file-ancestor and trav
 });
 
 test('external Read-only and Effect-only Host snapshots preserve exact package owners', t => {
-  for (const role of ['source', 'effect']) {
+  for (const role of ['source', 'effect'] as const) {
     const f = fixture(t), h = hostFixture(f, [role]);
     const resolved = resolveConnectorBuildInputs(f.configuration);
     const [entry] = resolved.hostEntries;
@@ -657,8 +669,8 @@ test('external Read-only and Effect-only Host snapshots preserve exact package o
     assert.equal(entry.providerBundle, 'connectors/numeric/host_node');
     assert.equal(entry.providerPackage, 'example/numeric/connectors/numeric/host_node');
     assert.equal(entry.providerPackagePath, h.providerPath);
-    assert.equal(entry[role].module, h.installation[role].module);
-    assert.equal(entry[role].modulePath, join(f.connector, h.installation[role].module));
+    assert.equal(entry[role]!.module, h.installation[role].module);
+    assert.equal(entry[role]!.modulePath, join(f.connector, h.installation[role].module));
     assert.equal(entry[role === 'source' ? 'effect' : 'source'], undefined);
     assert.deepEqual(entry.assetSources, [{path: 'src/connectors/numeric/views.json',
       sourcePath: join(f.connector, 'src/connectors/numeric/views.json')}]);
@@ -666,9 +678,9 @@ test('external Read-only and Effect-only Host snapshots preserve exact package o
     assert.equal(resolved.nodeEntries.length, 0);
     assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved}), resolved.hostEntries);
     assert.ok(Object.isFrozen(entry));
-    assert.ok(Object.isFrozen(entry[role].exports));
-    assert.ok(Object.isFrozen(entry.assetSources[0]));
-    assert.throws(() => { entry[role].exports.load = 'replaced'; }, TypeError);
+    assert.ok(Object.isFrozen(entry[role]!.exports));
+    assert.ok(Object.isFrozen(entry.assetSources![0]));
+    assert.throws(() => { entry[role]!.exports.load = 'replaced'; }, TypeError);
     h.write({...h.installation, revision: 'numeric/0.2'});
     f.put(join(f.connector, 'src/connectors/broken/host-bundle.json'), '{ invalid');
     assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved})[0].revision, 'numeric/0.1');
@@ -692,18 +704,18 @@ test('external Host declarations validate every present role and require at leas
 test('external Host validation shares profile, header, export and ownership restrictions', t => {
   const f = fixture(t), h = hostFixture(f);
   for (const change of [
-    value => { value.extra = 'unrecognized'; },
-    value => { value.providerBundle = 'connectors/other/host_node'; },
-    value => { value.responseHeaders = ['set-cookie']; },
-    value => { value.responseHeaders = ['link', 'link']; },
-    value => { value.source.profileVersion = 'unversioned'; },
-    value => { value.source.exports.load = 'notExported'; },
-    value => { delete value.effect.exports.identityParts; },
-    value => { value.effect.identityProfile = {source: 'actql-source/0.1'}; },
-    value => { value.source.module = 'adapters/connectors/numeric/host/../source.mjs'; },
-    value => { value.effect.module = 'adapters/connectors/other/host/effect.mjs'; },
-    value => { value.assets = ['src/connectors/numeric/../views.json']; },
-    value => { value.assets.push(value.assets[0]); },
+    (value: UncheckedFixtureInstallation) => { value.extra = 'unrecognized'; },
+    (value: UncheckedFixtureInstallation) => { value.providerBundle = 'connectors/other/host_node'; },
+    (value: UncheckedFixtureInstallation) => { value.responseHeaders = ['set-cookie']; },
+    (value: UncheckedFixtureInstallation) => { value.responseHeaders = ['link', 'link']; },
+    (value: UncheckedFixtureInstallation) => { value.source.profileVersion = 'unversioned'; },
+    (value: UncheckedFixtureInstallation) => { value.source.exports.load = 'notExported'; },
+    (value: UncheckedFixtureInstallation) => { delete value.effect.exports.identityParts; },
+    (value: UncheckedFixtureInstallation) => { value.effect.identityProfile = {source: 'actql-source/0.1'}; },
+    (value: UncheckedFixtureInstallation) => { value.source.module = 'adapters/connectors/numeric/host/../source.mjs'; },
+    (value: UncheckedFixtureInstallation) => { value.effect.module = 'adapters/connectors/other/host/effect.mjs'; },
+    (value: UncheckedFixtureInstallation) => { value.assets = ['src/connectors/numeric/../views.json']; },
+    (value: UncheckedFixtureInstallation) => { value.assets.push(value.assets[0]); },
   ]) {
     const value = structuredClone(h.installation);
     change(value); h.write(value);
@@ -734,7 +746,7 @@ test('external provider packages require the exact path, compatible target, kind
 });
 
 test('external Host adapter, asset and provider package paths refuse symlink aliases', t => {
-  for (const role of ['source', 'effect', 'asset', 'provider']) {
+  for (const role of ['source', 'effect', 'asset', 'provider'] as const) {
     const f = fixture(t), h = hostFixture(f);
     const path = role === 'provider' ? h.providerPath : join(f.connector,
       role === 'asset' ? h.installation.assets[0] : h.installation[role].module);
@@ -753,7 +765,7 @@ test('external Host adapter, asset and provider package paths refuse symlink ali
 });
 
 test('duplicate installed source and Effect profiles are refused by the shared snapshot', t => {
-  for (const role of ['source', 'effect']) {
+  for (const role of ['source', 'effect'] as const) {
     const f = fixture(t), first = hostFixture(f, [role]);
     const second = hostFixture(f, [role], 'another');
     second.write({...second.installation, [role]: {...second.installation[role],
@@ -798,7 +810,7 @@ test('selected packages preserve compiler-owned literal targets and refuse struc
     'options(targets: {"file.mbt": ["js"]} ',
   ]) {
     f.put(path, original + option);
-    assert.throws(() => resolveConnectorBuildInputs(f.configuration), undefined, option);
+    (assert.throws as unknown as MessageOnlyThrows)(() => resolveConnectorBuildInputs(f.configuration), undefined, option);
   }
 });
 
@@ -856,7 +868,7 @@ test('compiler input Native-stub DATA refuses malformed hooks missing aliased an
     'options("native-stub":[]) options(targets:{})',
     'options("native-stub":["observer.c"],targets:{},targets:{})',
     'options("native-stub":["observer.c"]) import {"unavailable/driver"}',
-  ]) {f.put(path,original+clause);assert.throws(()=>resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),undefined,clause);}
+  ]) {f.put(path,original+clause);(assert.throws as unknown as MessageOnlyThrows)(()=>resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),undefined,clause);}
   rmSync(stub);symlinkSync(join(f.modules[0].root,'src/connector_sdk/moon.pkg'),stub);
   f.put(path,original+'options("native-stub":["observer.c"])');
   assert.throws(()=>resolveConnectorBuildInputs(f.configuration).resolvePackage('example/numeric/driver'),/aliased or nonregular/);
