@@ -98818,7 +98818,7 @@
         },
         {
           "name": "[I]request_prepared_static_plan_view",
-          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , infers ? : Array [ @ publication_host . ClientInferPlanGraph ]"
         },
         {
           "name": "[I]reserve_request_native_document_read",
@@ -99162,7 +99162,7 @@
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "4af982cc2f6bcca3f27e76e00aed819da73c8abb375f4b37b51940dad51dc40e"
+      "sha256": "fbc6b3c5c565d64b64de0961dbfe01664ac1476a39452e770f1110bc3954ee04"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
