@@ -10,11 +10,16 @@ import {dirname, join, resolve} from 'node:path';
 // unknown/oversized subjects instead of trusting partial discovery or stat-only
 // observations. Bounds do not admit new product inputs.
 const MAX_FILES = 200000, MAX_BYTES = 2 * 1024 ** 3;
-function describe(repository, controller, files) {
-  const selected = new Map(), directories = new Set();
+type CampaignInputs = {repository: string; controller: string; files: readonly string[]};
+type FileIdentity = {resolvedPath: string; dev: string; ino: string; mode: string};
+type ObservedPath = FileIdentity | (FileIdentity & {link: string; target: string}) |
+  (FileIdentity & {bytes: number; sha256: string; integrity?: string});
+
+function describe(repository: string, controller: string, files: readonly string[]) {
+  const selected = new Map<string, ObservedPath>(), directories = new Set<string>();
   const archives = new Set(files.filter(path => path.endsWith('.tgz')).map(path => resolve(path)));
   let total = 0;
-  const visit = path => {
+  const visit = (path: string) => {
     path = resolve(path);
     if (selected.has(path)) return;
     assert(selected.size < MAX_FILES, 'Native Mock campaign input inventory exceeds its bound');
@@ -42,7 +47,7 @@ function describe(repository, controller, files) {
       try {
         const opened = fstatSync(fd, {bigint: true}), bytes = readFileSync(fd), after = fstatSync(fd, {bigint: true});
         const named = lstatSync(path, {bigint: true});
-        for (const key of ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs']) {
+        for (const key of ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs'] as const) {
           assert.equal(opened[key], before[key]); assert.equal(after[key], opened[key]);
           assert.equal(named[key], opened[key]);
         }
@@ -80,7 +85,7 @@ function describe(repository, controller, files) {
   return [...selected].sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function retainNativeMockCampaignInputs({repository, controller, files}) {
+export function retainNativeMockCampaignInputs({repository, controller, files}: CampaignInputs) {
   assert(!process.env.NODE_OPTIONS && !process.env.NODE_PATH,
     'Native Mock admission reuse requires the ordinary Node loader');
   assert(process.execArgv.every(arg => !/loader|import|require|eval|inspect/u.test(arg)),

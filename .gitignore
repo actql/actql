@@ -819,3 +819,7 @@ target/
 /scripts/native-cli-interface-check.d.mts
 /scripts/release-interface-check.mjs
 /scripts/release-interface-check.d.mts
+/scripts/native-mock-campaign-inputs.mjs
+/scripts/native-mock-campaign-inputs.d.mts
+/scripts/release-authority.mjs
+/scripts/release-authority.d.mts
