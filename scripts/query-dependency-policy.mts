@@ -44,7 +44,7 @@ export function assertCommonAdapterGraph(paths: readonly string[]) {
   for (const path of paths) {
     assert.doesNotMatch(path, /^adapters\/connectors(?:-builtin)?\//u,
       `Connector implementation in common adapter graph: ${path}`);
-    assert.doesNotMatch(path, /(?:\.fixture|\.test)\.mjs$/u,
+    assert.doesNotMatch(path, /(?:\.fixture|\.test)\.(?:mjs|mts|cts|tsx?)$/u,
       `Test authority in product adapter graph: ${path}`);
   }
 }

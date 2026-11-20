@@ -109,3 +109,33 @@ test('packaging retains its adapter-only projection while policy sees the comple
       /IncompleteLocalNodeAdapterGraph/u);
   } finally { rmSync(root, {recursive: true, force: true}); }
 });
+
+
+test('authored TypeScript adapter graph refuses fixture and test authority', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-r2-ts-authority-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const write = (file: string, source: string) => {
+    const path = join(root, file);
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(path, source);
+  };
+  const entry = 'adapters/host-common/entry.mts';
+  write(entry, 'export {value} from "./owner.mjs";');
+  write('adapters/host-common/owner.mts', 'export const value = 1;');
+  const ordinary = localModuleGraphInputs(root, [entry]);
+  assert.deepEqual(ordinary, [entry, 'adapters/host-common/owner.mts']);
+  assertCommonAdapterGraph(ordinary);
+  for (const [suffix, extension] of [
+    ['mts', 'mjs'], ['cts', 'cjs'], ['ts', 'js'], ['tsx', 'jsx'],
+  ] as const) {
+    for (const kind of ['fixture', 'test']) {
+      const stem = `control-${suffix}.${kind}`;
+      const target = `adapters/host-common/${stem}.${suffix}`;
+      write(target, 'export const value = 1;');
+      write(entry, `export {value} from "./${stem}.${extension}";`);
+      const graph = localModuleGraphInputs(root, [entry]);
+      assert.ok(graph.includes(target), target);
+      assert.throws(() => assertCommonAdapterGraph(graph), intended(/Test authority in product adapter graph/u));
+    }
+  }
+});
