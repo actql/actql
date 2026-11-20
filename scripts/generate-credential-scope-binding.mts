@@ -20,9 +20,9 @@ const separate = Object.freeze({
   max_uses: 'durable use quota',
   grant_cid: 'derived grant identity',
 });
-const camel = name => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
+const camel = (name: string) => name.replace(/_([a-z])/gu, (_: string, letter: string) => letter.toUpperCase());
 
-export function credentialInvocationFields(source) {
+export function credentialInvocationFields(source: string) {
   const match = /^struct RemoteCredentialGrant \{\n([^}]+)\n\}/mu.exec(source);
   if (match === null) throw new Error('CredentialGrantOwnerDeclarationMissing');
   const fields = match[1].trim().split('\n').map(line => {
@@ -37,7 +37,7 @@ export function credentialInvocationFields(source) {
   return fields.filter(field => !Object.hasOwn(separate, field)).map(camel);
 }
 
-export function renderCredentialScopeBinding(source) {
+export function renderCredentialScopeBinding(source: string) {
   const fields = credentialInvocationFields(source);
   return '// Generated from src/remote_credential/credential.mbt#RemoteCredentialGrant.\n' +
     '// Run scripts/generate-credential-scope-binding.mjs; do not edit the field list.\n' +
@@ -55,7 +55,7 @@ export function checkCredentialScopeBinding(root = repository, source = readFile
 // These are the actual Common declarations, not another scope schema. The
 // original opaque subject travels separately; primitive fields cannot recreate
 // its operational Host/Site/credential custody or provide authority.
-function preparationOwnerFields(source, name, opaque = false) {
+function preparationOwnerFields(source: string, name: string, opaque = false) {
     const match = new RegExp(`^pub\\(all\\) struct ${name} \\{\\n([^}]+)\\n\\}`, 'mu').exec(source);
     if (match === null) throw new Error('InstallationPreparationOwnerDeclarationMissing');
     const fields = match[1].trim().split('\n').map(line => {
@@ -76,27 +76,27 @@ function preparationOwnerFields(source, name, opaque = false) {
     return fields.filter(field => field.type !== 'InstallationPreparationSubject');
 }
 
-export function installationPreparationFields(subjectSource, grantSource) {
+export function installationPreparationFields(subjectSource: string, grantSource: string) {
   return {subject: preparationOwnerFields(subjectSource, 'InstallationPreparationSubjectFields').map(field => field.key),
     request: preparationOwnerFields(grantSource, 'InstallationPreparationCredentialScope', true).map(field => field.key)};
 }
 
-export function renderInstallationPreparationBinding(subjectSource, grantSource) {
+export function renderInstallationPreparationBinding(subjectSource: string, grantSource: string) {
   const fields = installationPreparationFields(subjectSource, grantSource);
   return '// Generated from the existing remote_credential installation preparation declarations.\n' +
     '// DATA binding only; original opaque custody and per-use authority stay separate.\n' +
     ['subject', 'request'].map(kind =>
       `export const installationPreparation${kind === 'subject' ? 'Subject' : 'Request'}Keys = Object.freeze([\n` +
-      fields[kind].map(field => `  '${field}',`).join('\n') + '\n]);\n').join('') +
+      fields[kind as keyof typeof fields].map(field => `  '${field}',`).join('\n') + '\n]);\n').join('') +
     'export const installationPreparationSubjectKinds = Object.freeze([\n' +
     preparationOwnerFields(subjectSource, 'InstallationPreparationSubjectFields')
       .map(field => `  '${field.type}',`).join('\n') + '\n]);\n';
 }
 
-export function renderInstallationPreparationBridge(subjectSource, grantSource) {
+export function renderInstallationPreparationBridge(subjectSource: string, grantSource: string) {
   const subjects = preparationOwnerFields(subjectSource, 'InstallationPreparationSubjectFields');
   const requests = preparationOwnerFields(grantSource, 'InstallationPreparationCredentialScope', true);
-  const prepare = (name, fields, subject) => `///|\n#export_name("clientInstallationPreparation${name}Prepare")\n` +
+  const prepare = (name: string, fields: ReturnType<typeof preparationOwnerFields>, subject: boolean) => `///|\n#export_name("clientInstallationPreparation${name}Prepare")\n` +
     `pub fn client_installation_preparation_${name.toLowerCase()}_prepare(\n` +
     (subject ? '  subject : @credential.InstallationPreparationSubject,\n' : '') +
     fields.map(field => `  ${field.name} : ${field.type},`).join('\n') +
@@ -104,7 +104,7 @@ export function renderInstallationPreparationBridge(subjectSource, grantSource) 
     `  match\n    @credential.${subject ? 'admit_installation_preparation_credential_scope' : 'prepare_installation_preparation_subject'}({\n` +
     (subject ? '      subject,\n' : '') + fields.map(field => `      ${field.name},`).join('\n') +
     '\n    }) {\n    Ok(value) => value\n    Err(issue) => raise RemoteCredential(issue)\n  }\n}\n';
-  const projection = (name, fields) => `\n///|\n#export_name("clientInstallationPreparation${name}Fields")\n` +
+  const projection = (name: string, fields: ReturnType<typeof preparationOwnerFields>) => `\n///|\n#export_name("clientInstallationPreparation${name}Fields")\n` +
     `pub fn client_installation_preparation_${name.toLowerCase()}_fields(\n` +
     `  value : @credential.InstallationPreparation${name === 'Subject' ? 'Subject' : 'CredentialScope'},\n` +
     ') -> Array[String] {\n' + (name === 'Subject' ? '  let value = value.fields()\n' : '') +

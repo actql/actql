@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
@@ -70,7 +70,7 @@ test('actual prepack freshness CLI preserves machine stdout and reports its diag
 });
 
 test('actual stale freshness CLI remains nonzero and cannot emit success or rewrite its binding', () => {
-  const scratch = mkdtempSync(join(tmpdir(), 'credential-scope-cli-'));
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'credential-scope-cli-')));
   try {
     for (const path of cliInputs) {
       const target = join(scratch, path);

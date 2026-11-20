@@ -516,3 +516,18 @@ target/
 
 /scripts/interface-inventory.mjs
 /scripts/interface-inventory.d.mts
+
+/scripts/generate-credential-scope-binding.mjs
+/scripts/generate-credential-scope-binding.d.mts
+
+/scripts/interface-generation-freshness.mjs
+/scripts/interface-generation-freshness.d.mts
+
+/scripts/distribution-interface-roots.mjs
+/scripts/distribution-interface-roots.d.mts
+
+/scripts/interface-owner-discovery.mjs
+/scripts/interface-owner-discovery.d.mts
+
+/scripts/interface-owner-coverage.mjs
+/scripts/interface-owner-coverage.d.mts

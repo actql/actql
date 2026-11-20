@@ -78173,7 +78173,7 @@
                 "anchor": "test_selected_generated_abi_and_default_signature_tables"
               },
               {
-                "path": "scripts/interface-generation-freshness.mjs",
+                "path": "scripts/interface-generation-freshness.mts",
                 "anchor": "pythonInitialABI"
               }
             ]

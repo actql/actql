@@ -5,10 +5,14 @@ import assert from 'node:assert/strict';
 import {assertInterfaceCoverage} from './interface-inventory.mjs';
 import {trustedCompilerBindingOutputs} from './interface-generation-freshness.mjs';
 
-export function replaceInterfaceDeclarations(base, overlay) {
-  const values = new Map();
-  for (const [name, declarations] of [['base', base], ['overlay', overlay]]) {
-    const seen = new Set();
+type CoverageInput = Parameters<typeof assertInterfaceCoverage>[0];
+type FacetDeclaration = CoverageInput['declarations'][number] & {responsibilityFacet?: unknown};
+type OwnerFacet = {id: unknown; declarations: readonly unknown[]; qualification?: unknown; readReference?: CoverageInput['readReference']};
+
+export function replaceInterfaceDeclarations<T extends {module: string}>(base: readonly T[], overlay: readonly T[]) {
+  const values = new Map<string, T>();
+  for (const [name, declarations] of [['base', base], ['overlay', overlay]] as const) {
+    const seen = new Set<string>();
     for (const declaration of declarations) {
       assert(!seen.has(declaration.module), `Duplicate ${name} interface declaration: ${declaration.module}`);
       seen.add(declaration.module);
@@ -18,8 +22,8 @@ export function replaceInterfaceDeclarations(base, overlay) {
   return [...values.values()].sort((a, b) => a.module.localeCompare(b.module));
 }
 
-export function interfaceOwnerCoverage({root, modules, owners, requireComplete = true, generated}) {
-  const actual = new Map(), covered = new Set(), primary = new Set(), ids = new Set(), facets = [];
+export function interfaceOwnerCoverage({root, modules, owners, requireComplete = true, generated}: {root: string; modules: CoverageInput['modules']; owners: readonly OwnerFacet[]; requireComplete?: boolean; generated?: unknown}) {
+  const actual = new Map<string, CoverageInput['modules'][number]>(), covered = new Set<string>(), primary = new Set<string>(), ids = new Set<string>(), facets: {owner: string; modules: number; primary: number; qualification: unknown}[] = [];
   const checkedGenerated = trustedCompilerBindingOutputs(root, generated);
   for (const module of modules) {
     const previous = actual.get(module.module);
@@ -31,14 +35,14 @@ export function interfaceOwnerCoverage({root, modules, owners, requireComplete =
     ids.add(owner.id);
     // The original declaration validator checks duplicates, all ten attribute
     // references and exact operation/export coverage inside each owner facet.
-    const selected = owner.declarations.filter(value => actual.has(value.module));
+    const selected = (owner.declarations as readonly FacetDeclaration[]).filter(value => actual.has(value.module));
     for (const declaration of selected) {
-      assert(['primary', 'supplemental'].includes(declaration.responsibilityFacet),
+      assert(['primary', 'supplemental'].includes(declaration.responsibilityFacet as string),
         `Unclassified interface responsibility facet: ${declaration.module}`);
       if (declaration.responsibilityFacet === 'primary') primary.add(declaration.module);
     }
-    const selectedModules = selected.map(value => actual.get(value.module));
-    assertInterfaceCoverage({root, modules: selectedModules, declarations: owner.declarations,
+    const selectedModules = selected.map(value => actual.get(value.module)!);
+    assertInterfaceCoverage({root, modules: selectedModules, declarations: owner.declarations as CoverageInput['declarations'],
       generated: checkedGenerated, readReference: owner.readReference});
     selected.forEach(value => covered.add(value.module));
     facets.push({owner: owner.id, modules: selected.length,

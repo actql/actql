@@ -13,15 +13,15 @@ import {checkCredentialScopeBinding, checkInstallationPreparationBinding, checkI
 
 // In-process evidence from this existing checker, not serialized sidecar data.
 // Retain original-root identity and immutable output records after checks run.
-const checkedBindings = new WeakMap();
-export function trustedCompilerBindingOutputs(root, generated) {
+const checkedBindings = new WeakMap<object, string>();
+export function trustedCompilerBindingOutputs(root: string, generated: unknown): ReturnType<typeof interfaceGenerationFreshness>['generated'] {
   if (generated === undefined || generated === null || Array.isArray(generated) && generated.length === 0) return [];
-  assert(checkedBindings.has(generated), 'Untrusted generated interface qualification');
-  assert.equal(checkedBindings.get(generated), realpathSync(root), 'Generated interface qualification belongs to another source root');
-  return generated;
+  assert(checkedBindings.has(generated as object), 'Untrusted generated interface qualification');
+  assert.equal(checkedBindings.get(generated as object), realpathSync(root), 'Generated interface qualification belongs to another source root');
+  return generated as ReturnType<typeof interfaceGenerationFreshness>['generated'];
 }
 
-export function interfaceGenerationFreshness(root) {
+export function interfaceGenerationFreshness(root: string) {
   const url = pathToFileURL(join(root, '/'));
   generateCompilerBindings(url, false);
   generateActionBindings(url, false);

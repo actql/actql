@@ -21243,7 +21243,7 @@
                 "anchor": "export function createInstallationPreparationMetadata(moon)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
@@ -21309,7 +21309,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
