@@ -53,6 +53,66 @@ pub fn capture_client_static_effect_explanation_original(
 }
 
 ///|
+/// Measure both Facts forms on the retained map under the Request's existing
+/// measuring-writer reservation. The geometry grants no disclosure.
+pub fn measure_client_static_effect_explanation_facts(
+  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue] {
+  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+    return Err(ForeignOriginal)
+  }
+  measure_client_explanation_facts_from_map(
+    compiled.compiled.owner,
+    compiled.compiled.compiled_plan,
+    original.map,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Seal the existing Facts family over the same computation and map as the
+/// static Effect Plan and Context. The Request must fund the writer and
+/// canonical codec before this call, and authorize the entire disclosure.
+pub fn seal_client_static_effect_explanation_facts(
+  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientExplanationFactsIssue] {
+  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+    return Err(ForeignOriginal)
+  }
+  seal_client_explanation_facts_from_map(
+    compiled.compiled.owner,
+    compiled.compiled.compiled_plan,
+    original.map,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn client_static_effect_explanation_matches(
+  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+) -> Bool {
+  physical_equal(original.prepared, prepared) &&
+  physical_equal(original.compiled, compiled) &&
+  physical_equal(compiled.owner, prepared)
+}
+
+///|
 priv suberror ClientStaticExplanationAbort {
   StaticExplanationWorkLimited
   StaticExplanationForeignSubject
@@ -128,9 +188,7 @@ pub fn write_client_static_effect_explanation_context(
   writer : @encode.Writer,
   max_work : Int,
 ) -> Result[Unit, ClientStaticExplanationSourceIssue] {
-  if !physical_equal(original.prepared, prepared) ||
-    !physical_equal(original.compiled, compiled) ||
-    !physical_equal(compiled.owner, prepared) {
+  if !client_static_effect_explanation_matches(original, prepared, compiled) {
     return Err(ForeignOriginal)
   }
   if max_work <= 0 {

@@ -394,6 +394,70 @@ test "Static Effect explanation Context keeps original Model, Result and write d
 }
 
 ///|
+extern "js" fn static_explanation_facts_mismatch(
+  plan_wire : String,
+  facts_wire : String,
+) -> String =
+  #|(planWire, factsWire) => {
+  #|  const plan = JSON.parse(planWire);
+  #|  const facts = JSON.parse(factsWire);
+  #|  const view = plan.computation.plan_view;
+  #|  const map = view.logical_map;
+  #|  if (facts.version !== 'actql-explanation-facts/0.1' || facts.disclosure !== 'structural') return 'profile';
+  #|  if (facts.program_definition_cid !== plan.program_definition_cid ||
+  #|      facts.parameter_values_cid !== plan.parameter_values_cid ||
+  #|      facts.compiled_plan_cid !== view.compiled_plan_cid ||
+  #|      facts.logical_map_cid !== map.self_cid) return 'original binding';
+  #|  if (facts.steps.length !== map.steps.length) return 'step count';
+  #|  const joins = facts.steps.filter(step => step.meaning.kind === 'join');
+  #|  const rightKeys = step => step.meaning.keys.map(key => key.right).join(',');
+  #|  // Two authored Source JOINs plus the compiler's INFER join-back on id.
+  #|  if (joins.map(rightKeys).join(';') !== 'name;resource,version;id' ||
+  #|      joins[0].meaning.keys[0].left !== 'name' ||
+  #|      joins[2].meaning.keys[0].left !== 'id') return 'checked JOIN keys';
+  #|  for (let index = 0; index < facts.steps.length; index++) {
+  #|    const step = facts.steps[index], original = map.steps[index];
+  #|    const ports = role => original.ports.filter(port => port.role === role).map(port => port.port_id);
+  #|    if (step.step_id !== original.step_id || step.operator !== original.operator ||
+  #|        JSON.stringify(step.input_ports) !== JSON.stringify(ports('input')) ||
+  #|        JSON.stringify(step.output_ports) !== JSON.stringify(ports('output'))) return 'step or ports: ' + index;
+  #|  }
+  #|  return '';
+  #|}
+
+///|
+test "Static Effect Facts keep the original Source JOINs and INFER join-back" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let geometry = @publication_host.measure_client_static_effect_explanation_facts(
+    original, owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let (bytes, nodes, depth) = geometry.complete
+  let facts = @publication_host.seal_client_static_effect_explanation_facts(
+    original, owner, compiled, bytes, nodes, depth,
+  ).unwrap()
+  let wire = @publication.run_evidence_value_json(facts)
+  assert_eq(wire.length(), bytes)
+  assert_eq(static_explanation_facts_mismatch(plan, wire), "")
+  assert_true(
+    @publication_host.seal_client_static_effect_explanation_facts(
+      original, owner, compiled, 128, 8192, 64,
+    )
+    is Err(Encoding(@encode.OutputLimit)),
+  )
+  let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  assert_true(
+    @publication_host.seal_client_static_effect_explanation_facts(
+      original, owner, foreign, 65536, 8192, 64,
+    )
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
 // Inspect the original exported Array representation without a conversion.
 #warnings("-deprecated")
 extern "js" fn direct_source_coordinates_js_arrays(
