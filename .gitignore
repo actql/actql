@@ -104,3 +104,7 @@ target/
 
 /packages/sdk/internal/result-read.mjs
 /packages/sdk/internal/result-read.d.mts
+
+# Generated from the maintained Run observation source.
+/packages/sdk/internal/run-observation.mjs
+/packages/sdk/internal/run-observation.d.mts

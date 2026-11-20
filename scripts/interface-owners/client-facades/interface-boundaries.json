@@ -5382,7 +5382,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -5542,7 +5542,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -6960,8 +6960,8 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -6976,7 +6976,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -7253,7 +7253,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -8617,7 +8617,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -8784,7 +8784,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -9237,7 +9237,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -9397,7 +9397,7 @@
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -11880,7 +11880,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11898,7 +11898,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11914,7 +11914,7 @@
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "beforeResultRead"
               }
             ],
@@ -11924,19 +11924,19 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -11954,7 +11954,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11980,7 +11980,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12006,7 +12006,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12032,7 +12032,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12058,7 +12058,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12084,7 +12084,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
