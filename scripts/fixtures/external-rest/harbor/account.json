@@ -4,6 +4,29 @@
     {
       "connection": {
         "any_of": [
+          "harbor:harbor_berth_reader"
+        ]
+      },
+      "entry_id": "harbor-berths-read",
+      "exclusions": [],
+      "operation": {
+        "any_of": [
+          "read"
+        ]
+      },
+      "outcome": "allow",
+      "principal": {
+        "all": true
+      },
+      "resource": {
+        "any_of": [
+          "berths"
+        ]
+      }
+    },
+    {
+      "connection": {
+        "any_of": [
           "actql-remote-host"
         ]
       },
@@ -67,29 +90,6 @@
       "resource": {
         "any_of": [
           "run"
-        ]
-      }
-    },
-    {
-      "connection": {
-        "any_of": [
-          "harbor:harbor_berth_reader"
-        ]
-      },
-      "entry_id": "harbor-berths-read",
-      "exclusions": [],
-      "operation": {
-        "any_of": [
-          "read"
-        ]
-      },
-      "outcome": "allow",
-      "principal": {
-        "all": true
-      },
-      "resource": {
-        "any_of": [
-          "berths"
         ]
       }
     }
