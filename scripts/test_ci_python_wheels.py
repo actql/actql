@@ -837,6 +837,50 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.previous = (None, None)
         return module, control, core, matches
 
+    def test_unrelated_and_foreign_profile_events_never_read_counts(self):
+        from types import SimpleNamespace
+        _, control, core, _ = self.configured_control()
+        class UnreadableCounts:
+            def __iter__(self):
+                raise AssertionError('An unrelated profile event read counters')
+        def unrelated():
+            return None
+        counts = UnreadableCounts()
+        control.counts = counts
+        for code, receiver in ((unrelated.__code__, core),
+                               (control.drive_code, object()),
+                               (control.export_code, object())):
+            for event in ('call', 'return'):
+                with self.subTest(code=code.co_name, event=event):
+                    frame = SimpleNamespace(f_code=code, f_locals={'self': receiver})
+                    control._profile(frame, event, None)
+                    self.assertIs(control.counts, counts)
+                    self.assertTrue(control.valid)
+                    self.assertIsNone(control.failure)
+                    self.assertEqual(control.refusal_bits, 0)
+                    self.assertEqual(control.span_refusal_bits, 0)
+
+    def test_exact_drive_and_export_events_still_saturate_and_preserve_first_failure(self):
+        from types import SimpleNamespace
+        for target in ('drive', 'export'):
+            with self.subTest(target=target):
+                _, control, core, _ = self.configured_control()
+                first = RuntimeError('Original observation failure')
+                control.failure = first
+                control.counts = [1024] * 5
+                frame = SimpleNamespace(
+                    f_code=control.drive_code if target == 'drive' else control.export_code,
+                    f_locals={'self': core if target == 'drive' else control.export})
+                for event in ('call', 'return'):
+                    control._profile(frame, event, None)
+                self.assertEqual(control.counts, ([1025, 1025, 1024, 1024, 1024]
+                                                 if target == 'drive'
+                                                 else [1024, 1024, 1025, 1025, 1025]))
+                self.assertFalse(control.valid)
+                self.assertIs(control.failure, first)
+                self.assertEqual(control.refusal_bits, 16)
+                self.assertEqual(control.span_refusal_bits, 0)
+
     def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
         module, control, core, matches = self.configured_control()
         original = type(core).drive_task
@@ -1122,6 +1166,87 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
         self.assertTrue(result['observation_failed'])
         self.assertEqual(result['tasks'], [])
         self.assertEqual(len(calls), 2)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_survives_cleared_host_lists_without_core_entry(self):
+        module, core, work, observer, _, primary = self.run_original()
+        host = work._invoke.host
+        host._physical_work, host._public_run_references = [], []
+        host._closing, host._installation = True, None
+        core._closing = core._closed = True
+        core._task_loans.clear()
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(type(core), '_call', side_effect=AssertionError('No retired Core entry')) as call, \
+                patch.object(type(work), 'wait', side_effect=AssertionError('No work wait')) as wait:
+            module.report_contexts(primary, output, task_retirement=observer)
+        call.assert_not_called()
+        wait.assert_not_called()
+        record = json.loads(output.getvalue().splitlines()[0])
+        captured = record['captured_task_retirement']
+        self.assertEqual(captured['association'], 'same-original-worker-traceback')
+        self.assertEqual(captured['sample_timing'], 'original-task-close-return-before-worker-exit')
+        self.assertFalse(captured['live_selection'])
+        self.assertEqual(captured['snapshot'], observer.snapshot(work))
+        self.assertTrue(captured['snapshot']['available'])
+        self.assertNotIn('local_work', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_refuses_foreign_identity_and_preserves_unavailable_samples(self):
+        for settings in ({}, {'outside_lock': True}, {'observation_error': True}, {'closes': 17}):
+            with self.subTest(settings=settings):
+                module, _, work, observer, _, primary = self.run_original(**settings)
+                expected = observer.snapshot(work)
+                captured = module.captured_task_retirement(primary, observer)
+                self.assertEqual(captured['snapshot'], expected)
+                self.assertEqual(captured['snapshot']['available'], not settings)
+                owner = work._owner
+                work._owner = object()
+                self.assertIsNone(module.captured_task_retirement(primary, observer))
+                work._owner = owner
+                copied = type(primary)(work._invoke.host)
+                copied.__traceback__, copied.__context__ = primary.__traceback__, primary.__context__
+                self.assertIsNone(module.captured_task_retirement(copied, observer))
+                self.assertIsNone(module.captured_task_retirement(primary, object()))
+                self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_traceback_visits_are_bounded(self):
+        module, _, _, observer, _, primary = self.run_original()
+        def raise_with_prefix(depth):
+            if depth:
+                return raise_with_prefix(depth - 1)
+            raise primary
+        try:
+            raise_with_prefix(module.MAX_FRAMES + 4)
+        except type(primary):
+            pass
+        walk = module.traceback.walk_tb
+        visited = []
+        def bounded_walk(trace):
+            for frame in walk(trace):
+                visited.append(None)
+                if len(visited) > module.MAX_FRAMES:
+                    raise AssertionError('Unbounded diagnostic traceback traversal')
+                yield frame
+        with patch.object(module.traceback, 'walk_tb', bounded_walk):
+            self.assertIsNone(module.captured_task_retirement(primary, observer))
+        self.assertEqual(len(visited), module.MAX_FRAMES)
+
+    def test_captured_retirement_observation_error_never_replaces_primary(self):
+        module, _, work, observer, _, primary = self.run_original()
+        class OpaqueFailure(BaseException):
+            def __str__(self):
+                raise AssertionError('No optional diagnostic formatting')
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(module, 'captured_task_retirement', side_effect=OpaqueFailure(), create=True):
+            module.report_contexts(primary, output, task_retirement=observer)
+        record = json.loads(output.getvalue().splitlines()[0])
+        self.assertNotIn('captured_task_retirement', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
         self.assertIs(work._future.exception(timeout=0), primary)
 
     def test_absent_outer_retirement_lock_refuses_without_an_observer_entry(self):
