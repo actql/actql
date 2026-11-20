@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "6726a00f052469348952b3f8beca68d01504872ff76d0da8c52b4dc5fb080502",
+      "sha256": "46ddba04f0af94841afc42a979263d72cd6d35f3737d9756f64667ec33420345",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -549,9 +549,19 @@
         {
           "name": "snapshotClientRequest",
           "parameters": [
-            "value: unknown"
+            "value: unknown",
+            "observe?: (reservedUnits: number, document: string | undefined,\n    reservedValues: number) => void"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "snapshotClientRequest/<call>",
+          "parameters": [
+            "reservedUnits: number",
+            "document: string | undefined",
+            "reservedValues: number"
+          ],
+          "result": "void"
         },
         {
           "name": "validCancellation",
@@ -1393,7 +1403,8 @@
         },
         {
           "operations": [
-            "snapshotClientRequest"
+            "snapshotClientRequest",
+            "snapshotClientRequest/<call>"
           ],
           "exports": [
             "snapshotClientRequest"

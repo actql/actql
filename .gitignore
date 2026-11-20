@@ -89,3 +89,6 @@ target/
 
 /packages/sdk/internal/checkpoint-operations.mjs
 /packages/sdk/internal/checkpoint-operations.d.mts
+
+/packages/sdk/internal/plan.mjs
+/packages/sdk/internal/plan.d.mts

@@ -67293,7 +67293,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67303,7 +67303,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67317,7 +67317,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67331,7 +67331,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67345,7 +67345,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67359,7 +67359,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67373,7 +67373,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67387,7 +67387,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67401,7 +67401,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
