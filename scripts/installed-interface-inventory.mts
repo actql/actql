@@ -9,13 +9,21 @@ import {javascriptInterface, packageEntrances} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
 
-function artifactDigest(path) {
+// Unchecked manifest/proof views do not replace the original artifact digest,
+// regular-file, entrance and syntax checks or the caller's adoption authority.
+type CompiledArtifact = {module: string; sourceSha: string; target: string; verification: unknown; sha256: string};
+type NativeSource = {exports: string[]; operations: {name: string}[]; imports: string[]; qualification: string};
+type Syntax = ReturnType<typeof javascriptInterface> | ReturnType<typeof typescriptInterface> |
+  ReturnType<typeof pythonModuleInterfaces>[number] | NativeSource;
+type InstalledModule = Syntax & {module: string; sha256: string};
+
+function artifactDigest(path: string) {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = fstatSync(fd);
     assert(before.isFile(), 'Compiled interface must be a regular file');
     const digest = createHash('sha256'), buffer = Buffer.alloc(1024 * 1024);
-    let read;
+    let read: number;
     while ((read = readSync(fd, buffer, 0, buffer.length, null))) digest.update(buffer.subarray(0, read));
     const after = fstatSync(fd);
     assert(before.size === after.size && before.mtimeMs === after.mtimeMs,
@@ -24,14 +32,14 @@ function artifactDigest(path) {
   } finally { closeSync(fd); }
 }
 
-export function installedInterfaceInventory(directory, {artifacts = []} = {}) {
+export function installedInterfaceInventory(directory: string, {artifacts = []}: {artifacts?: readonly CompiledArtifact[]} = {}) {
   assert(!lstatSync(directory).isSymbolicLink(), 'Installed interface root must not be a link');
-  const root = realpathSync(directory), files = [], modules = [], generated = [];
-  const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
+  const root = realpathSync(directory), files: string[] = [], modules: InstalledModule[] = [], generated: CompiledArtifact[] = [];
+  const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as Parameters<typeof packageEntrances>[0] & {name: unknown; bin: unknown};
   const entrances = packageEntrances(manifest, root).map(path => relative(root, path));
   const commands = new Set(packageEntrances({bin: manifest.bin}, root).map(path => relative(root, path)));
-  const executableMembers = new Set();
-  function walk(path) {
+  const executableMembers = new Set<string>();
+  function walk(path: string) {
     for (const entry of readdirSync(path, {withFileTypes: true})) {
       const file = resolve(path, entry.name), stat = lstatSync(file);
       assert(!stat.isSymbolicLink(), `Linked distributed member: ${relative(root, file)}`);
@@ -46,7 +54,7 @@ export function installedInterfaceInventory(directory, {artifacts = []} = {}) {
   walk(root);
   for (const entrance of entrances) assert(files.includes(entrance), `Missing installed interface entrance: ${entrance}`);
   const binary = /\.(?:wasm|cwasm|node|dylib|so|dll|exe)$/u;
-  const python = [];
+  const python: string[] = [];
   for (const module of files.sort()) {
     const proof = artifacts.find(value => value.module === module);
     if (proof || binary.test(module)) {

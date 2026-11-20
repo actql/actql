@@ -3,15 +3,15 @@ import {createHash} from 'node:crypto';
 import {chmodSync, mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {test} from 'node:test';
+import {test, type TestContext} from 'node:test';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {pythonInterfaceSources} from './python-interface-sources.mjs';
 import {assertInterfaceCoverage} from './interface-inventory.mjs';
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-if-installed-'));
   t.after(() => rmSync(root, {recursive: true}));
-  const put = (name, text) => {
+  const put = (name: string, text: string | Buffer) => {
     mkdirSync(join(root, name, '..'), {recursive: true});
     writeFileSync(join(root, name), text);
   };
@@ -29,7 +29,7 @@ test('actual members include dormant JavaScript, Python and native helper additi
   assert.equal(result.qualification, 'installed-member-syntax-only');
   assert.deepEqual(result.modules.map(value => value.module),
     ['entry.mjs', 'outside/helper.c', 'outside/private-helper.mjs', 'outside/python_helper.py']);
-  assert.equal(result.modules.at(-1).operations[0].name, 'decide_unknown');
+  assert.equal(result.modules.at(-1)!.operations[0].name, 'decide_unknown');
 });
 
 test('compiled artifact mixing fails the declared artifact assertion, not a parser error', t => {
@@ -55,9 +55,9 @@ test('extensionless Node and Python commands remain actual inventoried interface
   put('bin/policy', '#!/usr/bin/env node\nexport function decideUnknown(value) {return value;}\n');
   put('bin/probe', '#!/usr/bin/env python3\ndef decide_unknown(value):\n    return value\n');
   const result = installedInterfaceInventory(root);
-  assert.deepEqual(result.modules.find(value => value.module === 'bin/policy').operations.map(value => value.name),
+  assert.deepEqual(result.modules.find(value => value.module === 'bin/policy')!.operations.map(value => value.name),
     ['decideUnknown']);
-  assert.deepEqual(result.modules.find(value => value.module === 'bin/probe').operations.map(value => value.name),
+  assert.deepEqual(result.modules.find(value => value.module === 'bin/probe')!.operations.map(value => value.name),
     ['decide_unknown']);
   assert.throws(() => assertInterfaceCoverage({root, modules: result.modules, declarations: []}),
     /Unregistered distributed interface: bin\/policy/u);

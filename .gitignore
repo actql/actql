@@ -600,3 +600,9 @@ target/
 
 /scripts/local-table-data-interface.test.mjs
 /scripts/local-table-data-interface.test.d.mts
+
+/scripts/installed-interface-inventory.mjs
+/scripts/installed-interface-inventory.d.mts
+
+/scripts/installed-interface-inventory.test.mjs
+/scripts/installed-interface-inventory.test.d.mts
