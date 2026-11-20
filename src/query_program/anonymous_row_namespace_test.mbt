@@ -697,3 +697,162 @@ test "Pipe aggregate namespace projection preserves named keys and scalar siblin
       fail("the existing key scalar and row array fixtures remain closed")
   }
 }
+
+///|
+test "group nested HAVING and ORDER inputs do not promote anonymous row members" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) "
+  for
+    suffix in [
+      "SELECT COUNT(*) AS n FROM r HAVING COUNT(row.f0_) > 0", "SELECT COUNT(*) AS n FROM r ORDER BY COUNT(row.f0_)",
+      "SELECT COALESCE(row, row) AS alias FROM r GROUP BY row ORDER BY COUNT(alias.f0_)",
+    ] {
+    let source = prefix + suffix
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(_) =>
+        fail("wrong original hidden aggregate namespace refusal: " + source)
+      Ok(_) =>
+        fail("hidden aggregate promoted an anonymous DATA member: " + source)
+    }
+  }
+}
+
+///|
+test "group nested scalar array expressions retain anonymous element roles" {
+  let source = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row, n AS sort_key FROM t), keyed AS (FROM r |> ASSERT UNIQUE BY (sort_key)) SELECT ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)].f0_ AS value FROM keyed"
+  let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+  match
+    compile_query_script(
+      script,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ) {
+    Err(UnknownColumn)
+    | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+    Err(UnsupportedProjection) => fail("grouped array UnsupportedProjection")
+    Err(UnsupportedAggregate) => fail("grouped array UnsupportedAggregate")
+    Err(ExpressionTyping(_)) => fail("grouped array ExpressionTyping")
+    Err(BindingPreparation(LocalProgram(Pipeline(_, issue))))
+    | Err(BindingPreparationSource(LocalProgram(Pipeline(_, issue)), _)) =>
+      fail("grouped array Pipeline: " + @debug.to_string(issue.kind))
+    Err(BindingPreparation(LocalProgram(Order(_, _))))
+    | Err(BindingPreparationSource(LocalProgram(Order(_, _)), _)) =>
+      fail("grouped array ResultOrder")
+    Err(BindingPreparation(_)) | Err(BindingPreparationSource(_, _)) =>
+      fail("grouped array other BindingPreparation")
+    Err(_) => fail("wrong grouped array expression namespace refusal")
+    Ok(_) =>
+      fail(
+        "grouped scalar expression promoted an anonymous array element member",
+      )
+  }
+}
+
+///|
+test "group nested HAVING ORDER and computed alias keep named members" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) "
+  for
+    (suffix, fields) in [
+      ("SELECT COUNT(*) AS n FROM r HAVING COUNT(row.n) > 0", ["n"]),
+      ("SELECT COUNT(*) AS n FROM r ORDER BY COUNT(row.n)", ["n"]),
+      (
+        "SELECT COALESCE(row.n, row.n) AS alias FROM r GROUP BY row.n ORDER BY COUNT(alias)",
+        ["alias"],
+      ),
+    ] {
+    let source = prefix + suffix
+    let program = match
+      compile_query_script(
+        @query.parse_query_script(source, syntax_limits()).unwrap(),
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(UnknownColumn) => fail("hidden named UnknownColumn: " + source)
+      Err(UnsupportedProjection) =>
+        fail("hidden named UnsupportedProjection: " + source)
+      Err(UnsupportedGrouping) =>
+        fail("hidden named UnsupportedGrouping: " + source)
+      Err(Expression(_)) => fail("hidden named Expression: " + source)
+      Err(ExpressionTyping(_)) =>
+        fail("hidden named ExpressionTyping: " + source)
+      Err(BindingPreparation(LocalProgram(Pipeline(_, issue))))
+      | Err(BindingPreparationSource(LocalProgram(Pipeline(_, issue)), _)) =>
+        fail(
+          "hidden named Pipeline: " +
+          @debug.to_string(issue.kind) +
+          ": " +
+          source,
+        )
+      Err(BindingPreparation(LocalProgram(Order(_, _))))
+      | Err(BindingPreparationSource(LocalProgram(Order(_, _)), _)) =>
+        fail("hidden named ResultOrder: " + source)
+      Err(BindingPreparation(_)) | Err(BindingPreparationSource(_, _)) =>
+        fail("hidden named other BindingPreparation: " + source)
+      Err(_) => fail("hidden named other refusal: " + source)
+    }
+    assert_eq(anonymous_result_fields(program), fields)
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("the original typed aggregate input and alias remain closed")
+    }
+  }
+}
+
+///|
+test "group scalar row arrays preserve named members in SQL Pipe and retained results" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row, n AS sort_key FROM t), keyed AS (FROM r |> ASSERT UNIQUE BY (sort_key)) "
+  for
+    suffix in [
+      "SELECT ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)].n AS value FROM keyed",
+      ", s AS (SELECT ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)] AS first FROM keyed) SELECT first.n AS value FROM s",
+      "FROM keyed |> AGGREGATE ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)] AS first |> SELECT first.n AS value",
+    ] {
+    let source = prefix + suffix
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), ["value"])
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail(
+          "the existing asserted scalar order and bounded row element remain closed",
+        )
+    }
+  }
+  for
+    suffix in [
+      ", s AS (SELECT ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)] AS first FROM keyed) SELECT first.f0_ AS bad FROM s",
+      "FROM keyed |> AGGREGATE ARRAY_AGG(row ORDER BY sort_key)[OFFSET(0)] AS first |> SELECT first.f0_ AS bad",
+    ] {
+    let source = prefix + suffix
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(_) => fail("wrong retained scalar row namespace refusal")
+      Ok(_) => fail("scalar result lost its original anonymous element role")
+    }
+  }
+}

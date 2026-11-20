@@ -4987,6 +4987,7 @@ fn compile_steps(
             }
           }
           let aliases : Array[(String, String)] = []
+          let mut hidden_namespace_profiles = input_namespace_profiles
           let physical = active_fields +
             key_names +
             projections.filter_map(projection => {
@@ -5024,6 +5025,7 @@ fn compile_steps(
               }) {
               continue
             }
+            let name_view = namespace_check.bind(check => check(expression))
             // HAVING/ORDER arguments use pre-group SELECT alias values.
             // Evaluate each needed alias once in the original input snapshot.
             let mut slot : String? = None
@@ -5055,6 +5057,9 @@ fn compile_steps(
                 slot
               }
             }
+            hidden_namespace_profiles = retain_column_view(
+              hidden_namespace_profiles, column_name, slot, name_view,
+            )
             aliases.push((column_name.value, slot))
           }
           let resolve = fn(path : Array[@query.NamePart]) -> String? {
@@ -5077,6 +5082,17 @@ fn compile_steps(
                 return Some(slot)
               }
             }
+            None
+          }
+          let alias_profiles = hidden_namespace_profiles
+          let hidden_namespace_check : ((@query.Expression) -> NamespaceView? raise Abort)? = if namespace_ranges
+            is Some(ranges) {
+            Some(expression => {
+              resolved_namespace_before_reuse(
+                expression, resolve, ranges, alias_profiles, max_work,
+              )
+            })
+          } else {
             None
           }
           let known : Array[(@query.AggregateCall, String, Bool)] = []
@@ -5104,16 +5120,38 @@ fn compile_steps(
               }
             }
             let slot = match reuse {
-              Some(slot) => slot
+              Some(slot) => {
+                ignore(
+                  aggregate_namespace_inputs(call, hidden_namespace_check, true),
+                )
+                slot
+              }
               None => {
-                let slot = if result_fields.contains(name.value) {
-                  pipe_physical_name(result_fields, "aql_having_aggregate_")
+                let slot = if result_fields.contains(name.value) ||
+                  (
+                    input_namespace_profiles is Some(_) &&
+                    active_fields.contains(name.value)
+                  ) {
+                  pipe_physical_name(
+                    order_reserved + result_fields,
+                    "aql_having_aggregate_",
+                  )
                 } else {
                   name.value
                 }
                 let order_fields = aggregate_order_fields(
-                  construction, call, resolve, order_reserved, hidden_order_evaluated,
-                  hidden_order_derives, max_work,
+                  construction,
+                  call,
+                  resolve,
+                  order_reserved,
+                  hidden_order_evaluated,
+                  hidden_order_derives,
+                  max_work,
+                  namespace_check=hidden_namespace_check,
+                )
+                let namespace_out : Array[NamespaceView?]? = hidden_namespace_check.map(_ => {
+                    []
+                  },
                 )
                 aggregates.push(
                   (
@@ -5126,8 +5164,16 @@ fn compile_steps(
                       max_collection_items,
                       max_collection_bytes,
                       order_fields=Some(order_fields),
+                      namespace_check=hidden_namespace_check,
+                      namespace_out~,
                     ),
                   ),
+                )
+                group_namespace_profiles = retain_column_view(
+                  group_namespace_profiles,
+                  { value: slot, quoted: true, },
+                  slot,
+                  namespace_out.bind(values => values.get(0)).unwrap_or(None),
                 )
                 result_fields.push(slot)
                 known.push((call, slot, true))
@@ -5281,12 +5327,35 @@ fn compile_steps(
               let mut suffix = scalar_derives.length()
               let mut slot = "aql_pipe_aggregate_" + suffix.to_string()
               while active_fields.contains(slot) ||
+                    (
+                      input_namespace_profiles is Some(_) &&
+                      order_reserved.contains(slot)
+                    ) ||
                     names.contains(slot) ||
                     scalar_derives.any(entry => entry.0 == slot) {
                 suffix += 1
                 slot = "aql_pipe_aggregate_" + suffix.to_string()
               }
               let expression = projection.expression.unwrap()
+              let view = if input_namespace_profiles is Some(_) ||
+                group_namespace_profiles is Some(_) {
+                grouped_namespace_before_reuse(
+                  expression,
+                  resolve_input,
+                  input_ranges,
+                  input_namespace_profiles,
+                  scalar_visible,
+                  scalar_ranges,
+                  pipe_embedded_slots,
+                  group_namespace_profiles,
+                  value_range_names(
+                    value_table_receivers, scalar_value_table_ranges,
+                  ),
+                  max_work,
+                )
+              } else {
+                None
+              }
               scalar_derives.push(
                 (
                   slot,
@@ -5295,6 +5364,12 @@ fn compile_steps(
                     scalar_ranges, max_work,
                   ),
                 ),
+              )
+              group_namespace_profiles = retain_column_view(
+                group_namespace_profiles,
+                { value: slot, quoted: true, },
+                slot,
+                view,
               )
               slot
             }
@@ -6170,6 +6245,29 @@ fn compile_steps(
         ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
+            let view = if input_scope.result_columns is Some(_) ||
+              column_profiles is Some(_) {
+              grouped_namespace_before_reuse(
+                expression,
+                path => scope_expression_slot(path, input_scope),
+                input_scope.ranges,
+                input_scope.result_columns,
+                expression_scope.visible + private_columns,
+                expression_scope.ranges,
+                analytic_expression_bindings + private_columns,
+                column_profiles,
+                value_range_names(
+                  input_scope.receivers,
+                  input_scope.scalar_ranges,
+                ),
+                max_work,
+              )
+            } else {
+              None
+            }
+            if namespace_out is Some(output) {
+              output.push(view)
+            }
             append_private_grouped_expression(
               construction,
               expression,
@@ -6712,6 +6810,29 @@ fn compile_steps(
           if sql_group_projection {
             let scope = sql_group_select_scope.unwrap()
             let original_scope = sql_group_expression_input_scope.unwrap()
+            let view = if original_scope.result_columns is Some(_) ||
+              column_profiles is Some(_) {
+              grouped_namespace_before_reuse(
+                expression,
+                path => scope_expression_slot(path, original_scope),
+                original_scope.ranges,
+                original_scope.result_columns,
+                scope.visible,
+                scope.ranges,
+                analytic_expression_bindings + private_columns,
+                column_profiles,
+                value_range_names(
+                  original_scope.receivers,
+                  original_scope.scalar_ranges,
+                ),
+                max_work,
+              )
+            } else {
+              None
+            }
+            if namespace_out is Some(output) {
+              output.push(view)
+            }
             append_private_grouped_expression(
               construction,
               expression,
