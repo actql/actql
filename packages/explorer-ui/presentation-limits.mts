@@ -1,5 +1,6 @@
 export class ExplorerReadError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  declare readonly code:string;
+  constructor(code:string) { super(code); this.code = code; }
 }
 
 // Presentation bounds refuse the whole original map rather than truncating
