@@ -907,3 +907,5 @@ target/
 /scripts/release-native-install.d.mts
 /scripts/native-cli-union-rows.mjs
 /scripts/native-cli-union-rows.d.mts
+/scripts/release-project-sequence-install.mjs
+/scripts/release-project-sequence-install.d.mts

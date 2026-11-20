@@ -6,7 +6,21 @@ import {dirname, join, resolve} from 'node:path';
 import {constants} from 'node:fs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
 
-export function assertReleaseProjectCohort(native, node) {
+type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type CohortIdentity = {sourceSha: NodeManifest['sourceSha'];
+  cohort: Pick<NodeManifest['cohort'], 'packageVersion'>};
+type Report = {pid: number; [field: string]: unknown};
+type Run<Output> = (command: string, args: readonly string[], cwd: string, timeout?: number) => Output;
+type Exit = {code: number | null; signal: NodeJS.Signals | null; stderr?: string; pid?: number};
+type Label = {template: string; family: string; ordinal: number; phase: string};
+type Preparation = {directory: string; nativeManifest: CohortIdentity;
+  originalNodeManifest: NodeManifest; originalNodeManifestBytes: Buffer; root: string;
+  repository: string; registry: {url: string}; run: Run<Promise<Exit>>;
+  verifySource: () => void | Promise<void>; verifyManifest?: typeof verifyPackageRelease};
+type Lock = {packages: Record<string, {dependencies?: Record<string, string>; version?: string;
+  integrity?: string; link?: boolean; resolved: string}>};
+
+export function assertReleaseProjectCohort(native: CohortIdentity, node: NodeManifest) {
   assert.equal(node.sourceSha, native.sourceSha, 'Sequence Node and Native must share the exact candidate');
   assert.equal(node.cohort.packageVersion, native.cohort.packageVersion);
   assert.deepEqual(node.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
@@ -14,14 +28,14 @@ export function assertReleaseProjectCohort(native, node) {
     ['@actql/client-wire', '@actql/local-node', '@actql/node', '@actql/sdk']);
 }
 
-export function runReleaseProjectCli(run, launcher, args, project) {
+export function runReleaseProjectCli<Output>(run: Run<Output>, launcher: string, args: readonly string[], project: string) {
   // The original initializer creates the project; its cwd must already exist.
   // All later commands remain in that same independently owned project.
   return run(process.execPath, [launcher, ...args], args[0] === 'init' ? dirname(project) : project);
 }
 
 export async function prepareReleaseProjectNode({directory, nativeManifest, originalNodeManifest, originalNodeManifestBytes, root, repository,
-  registry, run, verifySource, verifyManifest = verifyPackageRelease}) {
+  registry, run, verifySource, verifyManifest = verifyPackageRelease}: Preparation) {
   assert.equal(typeof verifySource, 'function');
   await verifySource();
   directory = resolve(directory);
@@ -37,7 +51,7 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
   const installed = await run('npm', ['install', '--save-exact', '--ignore-scripts', '--engine-strict', '--no-audit', '--no-fund',
     `@actql/node@${manifest.cohort.packageVersion}`], consumer);
   assert.equal(installed.code, 0, installed.stderr); assert.equal(installed.signal, null);
-  const fixtureBodies = new Map();
+  const fixtureBodies = new Map<string, Buffer>();
   for (const [source, target] of [['scripts/fixtures/release-project-sequence-node.mjs', 'sequence.mjs'],
     ['scripts/release-project-node-action.mjs', 'release-project-node-action.mjs'],
     ['adapters/host-node/fixtures/work-observation.fixture.mjs', 'work-observation.fixture.mjs']]) {
@@ -56,7 +70,7 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
       const value = await lstat(path); assert(value.isDirectory() && !value.isSymbolicLink());
     }
     assert.deepEqual((await readdir(scope)).sort(), [...manifest.cohort.packages].sort());
-    const lock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
+    const lock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8')) as Lock;
     assert.deepEqual(lock.packages[''].dependencies, {'@actql/node': manifest.cohort.packageVersion});
     assert.deepEqual(Object.keys(lock.packages).filter(path => /(?:^|\/)node_modules\/@actql\//u.test(path)).sort(),
       manifest.packages.map(item => 'node_modules/' + item.name).sort());
@@ -75,16 +89,16 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
   }
   await verify();
   let serial = 0;
-  const node = async (request, project, label) => {
+  const node = async (request: unknown, project: string, label: Label) => {
     await verify();
     const base = join(observations, `${label.template}-${label.family}-${label.ordinal}-${label.phase}-${++serial}`);
     const input = base + '.request.json', output = base + '.response.json';
     await writeFile(input, JSON.stringify(request) + '\n', {flag: 'wx', mode: 0o600});
-    let primary, failed = false, response;
+    let primary: unknown, failed = false, response: Report | undefined;
     try {
       const child = await run(process.execPath, [join(consumer, 'sequence.mjs'), input, output], project, 30_000);
       assert.equal(child.code, 0, child.stderr); assert.equal(child.signal, null);
-      response = JSON.parse(await readFile(output, 'utf8'));
+      response = JSON.parse(await readFile(output, 'utf8')) as Report;
       assert.equal(response.pid, child.pid, 'Node report belongs to the actual exited child');
     } catch (cause) {primary = cause; failed = true;}
     try {await verify();} catch (cause) {if (!failed) {primary = cause; failed = true;}}
