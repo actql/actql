@@ -372,3 +372,218 @@ fn expression_namespace(
   }
   { root: views[@query.expression_root(expression)], rows, remaining, }
 }
+
+///|
+// Resolve only the original row/type-join links needed by this checked Object
+// star. DATA keys select its values; optional names retain the SQL namespace.
+// The first original row keeps its local field order across a type join.
+fn namespace_object_columns(
+  view : NamespaceView?,
+  checked_names : Array[String],
+  max_work : Int,
+) -> (Array[ResultColumn]?, Int) raise Abort {
+  guard view is Some(view) else { return (None, max_work) }
+  let mut remaining = max_work
+  let spend = fn(amount : Int) -> Unit raise Abort {
+    if amount < 0 || amount > remaining {
+      raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+    }
+    remaining -= amount
+  }
+  let path : Array[NamespaceAccess] = []
+  let undo : Array[NamespaceUndo] = []
+  let pending : Array[NamespaceVisit] = [Enter(view)]
+  let mut selected : Array[ResultColumn]? = None
+  while pending.pop() is Some(visit) {
+    spend(1)
+    match visit {
+      Restore(mark) =>
+        while undo.length() > mark {
+          spend(1)
+          match undo.pop().unwrap() {
+            Pop => ignore(path.pop())
+            Push(original) => path.push(original)
+          }
+        }
+      Enter(view) => {
+        spend(1)
+        pending.push(Restore(undo.length()))
+        match view {
+          Joined(left, right) => {
+            spend(2)
+            pending.push(Enter(right))
+            pending.push(Enter(left))
+          }
+          Member(receiver, name) => {
+            spend(2)
+            path.push(Field(name))
+            undo.push(Pop)
+            pending.push(Enter(receiver))
+          }
+          Element(receiver) => {
+            spend(2)
+            path.push(Item)
+            undo.push(Pop)
+            pending.push(Enter(receiver))
+          }
+          Array(item) =>
+            if path.last() is Some(Item) {
+              spend(2)
+              ignore(path.pop())
+              undo.push(Push(Item))
+              pending.push(Enter(item))
+            }
+          Row(_) | Captured(_, _) => {
+            let columns : Array[ResultColumn] = match view {
+              Row(fields) => {
+                spend(fields.length())
+                fields.map(field => {
+                  label: "",
+                  slot: "",
+                  name: field.name,
+                  name_view: field.name_view,
+                })
+              }
+              Captured(fields, profiles) => {
+                spend(fields.length())
+                fields.map(field => {
+                  spend(profiles.map(columns => columns.length()).unwrap_or(0))
+                  result_column_profile(profiles, field.0, field.1).unwrap_or({
+                    label: field.0,
+                    slot: field.1,
+                    name: Some({ value: field.0, quoted: false, }),
+                    name_view: None,
+                  })
+                })
+              }
+              _ => raise Abort(InvalidContext)
+            }
+            if path.last() is Some(Field(name)) {
+              for column in columns {
+                spend(1)
+                if column.name is Some(original) {
+                  spend(original.value.length())
+                  spend(name.value.length())
+                  if same_name(original, name) {
+                    spend(2)
+                    ignore(path.pop())
+                    undo.push(Push(Field(name)))
+                    if column.name_view is Some(child) {
+                      pending.push(Enter(child))
+                    }
+                    break
+                  }
+                }
+              }
+            } else if path.is_empty() {
+              let (names, after_names) = match
+                result_column_display_names_work(columns, remaining) {
+                Ok(result) => result
+                Err(issue) => raise Abort(Expression({ issue, origin: None, }))
+              }
+              remaining = after_names
+              spend(columns.length())
+              let incoming = columns.mapi((index, column) => {
+                ..column,
+                label: names[index],
+                slot: names[index],
+              })
+              match selected {
+                None => selected = Some(incoming)
+                Some(original) => {
+                  if original.length() != incoming.length() {
+                    raise Abort(InvalidContext)
+                  }
+                  for index, column in original {
+                    spend(incoming.length())
+                    let mut matched : ResultColumn? = None
+                    for candidate in incoming {
+                      if candidate.label == column.label {
+                        matched = Some(candidate)
+                        break
+                      }
+                    }
+                    guard matched is Some(matched) else {
+                      raise Abort(InvalidContext)
+                    }
+                    original[index] = {
+                      ..column,
+                      name: if matched.name is None {
+                        None
+                      } else {
+                        column.name
+                      },
+                      name_view: merge_namespace_views(
+                        column.name_view,
+                        matched.name_view,
+                        spend,
+                      ),
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if selected is Some(columns) {
+    if columns.length() != checked_names.length() {
+      raise Abort(InvalidContext)
+    }
+    for column in columns {
+      spend(checked_names.length())
+      if !checked_names.contains(column.label) {
+        raise Abort(InvalidContext)
+      }
+    }
+  }
+  (selected, remaining)
+}
+
+///|
+fn scope_namespace_before_reuse(
+  expression : @query.Expression,
+  scope : JoinChainScope,
+  max_work : Int,
+  resolve? : ((Array[@query.NamePart]) -> String?)? = None,
+) -> NamespaceView? raise Abort {
+  guard scope.result_columns is Some(_) else { return None }
+  let value_ranges = value_range_names(scope.receivers, scope.scalar_ranges)
+  let resolve = resolve.unwrap_or(path => {
+    if path.length() == 1 &&
+      ordinary_range_name(path[0], scope.ranges, value_ranges) {
+      return None
+    }
+    profiled_pipe_slot(path, scope.visible, scope.ranges, scope.result_columns)
+  })
+  let row_ranges = scope.ranges.filter(range => {
+    !value_ranges.any(name => same_name(name, range.0))
+  })
+  let (lowered, slots, remaining) = bind_range_property_expression(
+    expression,
+    resolve,
+    name => resolve([name]) is Some(_),
+    max_work,
+  )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve(path)
+  }
+  expression_namespace(
+    lowered,
+    bound_resolve,
+    path => {
+      row_reference_fields(path, name => resolve([name]) is Some(_), row_ranges)
+    },
+    scope.result_columns,
+    remaining,
+  ).root
+}

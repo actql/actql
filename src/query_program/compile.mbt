@@ -2339,6 +2339,11 @@ fn compile_steps(
   } else {
     None
   }
+  let object_expansions : Array[ExpandedObjectColumn]? = if columns_required {
+    Some([])
+  } else {
+    None
+  }
   let positional_projection = if positional_set_output || columns_required {
     positional_set_terminal_projection(query)
   } else {
@@ -2509,6 +2514,7 @@ fn compile_steps(
       authored_aliases=positional_authored_aliases,
       column_profiles~,
       expansions_out=star_expansions,
+      object_expansions~,
       object_columns=Some(receiver => {
         let prefix = if prefix_steps.is_empty() &&
           input.source is GeneratedValues(seed) {
@@ -2519,6 +2525,12 @@ fn compile_steps(
         prefix.append(step_entries.map(entries => construction.object(entries)))
         let probe = pipe_physical_name(active_fields, "aql_object_star_probe_")
         let entries : Array[(String, @builder.Node)] = []
+        let namespace_out : Array[NamespaceView?]? = if column_profiles
+          is Some(_) {
+          Some([])
+        } else {
+          None
+        }
         if step_entries.is_empty() {
           entries.push(("from", construction.text(input_from)))
         }
@@ -2540,6 +2552,7 @@ fn compile_steps(
                     value_table_receivers, scalar_value_table_ranges,
                   ),
                   column_profiles~,
+                  namespace_out~,
                 ),
               ),
             ]),
@@ -2576,7 +2589,18 @@ fn compile_steps(
             }),
           )
         }
-        @contract.fields(fields).map(field => field.name)
+        let names = @contract.fields(fields).map(field => field.name)
+        let (profiles, _) = namespace_object_columns(
+          namespace_out.bind(values => values.get(0)).unwrap_or(None),
+          names,
+          expression_work,
+        )
+        (
+          profiles
+          .map(columns => columns.map(column => column.label))
+          .unwrap_or(names),
+          profiles,
+        )
       }),
     )
   }
@@ -4221,6 +4245,7 @@ fn compile_steps(
               max_work,
               column_profiles~,
               expansions=star_expansions,
+              object_expansions~,
             ),
           )
         } else {
@@ -4382,10 +4407,12 @@ fn compile_steps(
               column_profiles~,
               max_work~,
               expansions=star_expansions,
+              object_expansions~,
             )
           }
           let expression = match key {
             Expression(expression) => expression
+            ObjectColumn(original) => original.projection.expression.unwrap()
             StarColumn(column) => {
               if key_names.contains(column.1) {
                 continue
@@ -4487,7 +4514,31 @@ fn compile_steps(
               derives.push(
                 (
                   name,
-                  if scoped {
+                  if key is ObjectColumn(original) {
+                    let receiver = append_pipe_expression(
+                      construction,
+                      original.receiver,
+                      unnest_expression_columns(
+                        pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                        pipe_columns,
+                      ),
+                      pipe_ranges,
+                      max_work,
+                      value_ranges=value_range_names(
+                        value_table_receivers, scalar_value_table_ranges,
+                      ),
+                      column_profiles~,
+                    )
+                    construction.object([
+                      (
+                        "property",
+                        construction.object([
+                          ("value", receiver),
+                          ("name", construction.text(original.column.label)),
+                        ]),
+                      ),
+                    ])
+                  } else if scoped {
                     append_pipe_expression(
                       construction,
                       expression,
@@ -5932,6 +5983,7 @@ fn compile_steps(
             )
           },
           max_work,
+          object_expansions~,
         )
         if !receiver_derives.is_empty() {
           let receiver_step : Array[(String, @builder.Node)] = []
@@ -6160,6 +6212,23 @@ fn compile_steps(
               } else {
                 None
               }
+              if sql_group_projection &&
+                grouped_slot is Some(_) &&
+                expanded_object_column(
+                  expanded_projections[projection_index],
+                  object_expansions,
+                  max_work,
+                )
+                is None {
+                let view = scope_namespace_before_reuse(
+                  expression,
+                  sql_group_expression_input_scope.unwrap(),
+                  max_work,
+                )
+                if namespace_result is Some(values) {
+                  values.push(view)
+                }
+              }
               let source = if (match cached {
                   Some(_) => cached
                   None => grouped_slot
@@ -6229,9 +6298,18 @@ fn compile_steps(
                   projection_result_column(
                     projection,
                     name,
-                    name_view=namespace_result
-                      .bind(result => result.get(0))
-                      .unwrap_or(slot_namespace(column_profiles, source)),
+                    name_view=match
+                      expanded_object_column(
+                        expanded_projections[projection_index],
+                        object_expansions,
+                        max_work,
+                      ) {
+                      Some(original) => original.name_view
+                      None =>
+                        namespace_result
+                        .bind(result => result.get(0))
+                        .unwrap_or(slot_namespace(column_profiles, source))
+                    },
                   ),
                 )
               }
@@ -6432,6 +6510,7 @@ fn compile_steps(
             having_values.any(pair => same_expression(pair.0, expression))
           },
           max_work,
+          object_expansions~,
         )
         if !receiver_derives.is_empty() {
           let receiver_step : Array[(String, @builder.Node)] = []
@@ -6648,6 +6727,23 @@ fn compile_steps(
               } else {
                 None
               }
+              if sql_group_projection &&
+                grouped_slot is Some(_) &&
+                expanded_object_column(
+                  expanded_projections[projection_index],
+                  object_expansions,
+                  max_work,
+                )
+                is None {
+                let view = scope_namespace_before_reuse(
+                  expression,
+                  sql_group_expression_input_scope.unwrap(),
+                  max_work,
+                )
+                if namespace_result is Some(values) {
+                  values.push(view)
+                }
+              }
               let source = if (match cached {
                   Some(_) => cached
                   None => direct
@@ -6687,9 +6783,18 @@ fn compile_steps(
                   projection_result_column(
                     projection,
                     name,
-                    name_view=namespace_result
-                      .bind(result => result.get(0))
-                      .unwrap_or(slot_namespace(column_profiles, source)),
+                    name_view=match
+                      expanded_object_column(
+                        expanded_projections[projection_index],
+                        object_expansions,
+                        max_work,
+                      ) {
+                      Some(original) => original.name_view
+                      None =>
+                        namespace_result
+                        .bind(result => result.get(0))
+                        .unwrap_or(slot_namespace(column_profiles, source))
+                    },
                   ),
                 )
               }
@@ -6884,6 +6989,14 @@ fn compile_steps(
         }
         for term in terms {
           let expression = term.expression
+          ignore(
+            scope_namespace_before_reuse(
+              expression,
+              sql_group_expression_input_scope.unwrap_or(selected_input_scope),
+              max_work,
+              resolve=Some(resolve),
+            ),
+          )
           let mut selected : String? = None
           if pipe_selected {
             selected = reusable_order_expression(
@@ -7054,6 +7167,13 @@ fn compile_steps(
         let derives : Array[(String, @builder.Node)] = []
         let reserved = active_fields + output
         for term in terms {
+          ignore(
+            scope_namespace_before_reuse(
+              term.expression,
+              sql_group_expression_input_scope.unwrap_or(selected_input_scope),
+              max_work,
+            ),
+          )
           let kind = @query.expression_node(
               term.expression,
               @query.expression_root(term.expression),

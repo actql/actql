@@ -127,3 +127,94 @@ test "expanded star occurrence is tied to the same projection and still visible 
     _ => fail("one-short expansion scan must refuse")
   }
 }
+
+///|
+test "computed object layout retains original row order and private SQL names" {
+  let fields = [("private", "slot0"), ("f0_", "slot1"), ("n", "slot2")]
+  let profiles : Array[ResultColumn] = [
+    { label: "private", slot: "slot0", name: None, name_view: None, },
+    {
+      label: "f0_",
+      slot: "slot1",
+      name: Some({ value: "f0_", quoted: false, }),
+      name_view: None,
+    },
+  ]
+  let original : NamespaceView = Captured(fields, Some(profiles))
+  let (layout, _) = namespace_object_columns(
+    Some(original),
+    ["f0_", "f0__", "n"],
+    1000,
+  )
+  let columns = layout.unwrap()
+  assert_eq(columns.map(column => column.label), ["f0__", "f0_", "n"])
+  assert_eq(columns.map(column => column.name.map(name => name.value)), [
+    None,
+    Some("f0_"),
+    Some("n"),
+  ])
+  let nested = Row([
+    { name: Some({ value: "row", quoted: false, }), name_view: Some(original), },
+  ])
+  let (nested_layout, _) = namespace_object_columns(
+    Some(Member(nested, { value: "row", quoted: false, })),
+    ["n", "f0__", "f0_"],
+    1000,
+  )
+  assert_eq(nested_layout.unwrap().map(column => column.label), [
+    "f0__", "f0_", "n",
+  ])
+  let (joined, _) = namespace_object_columns(
+    Some(Joined(original, original)),
+    ["n", "f0_", "f0__"],
+    1000,
+  )
+  assert_eq(
+    joined.unwrap().map(column => column.name.map(name => name.value)),
+    [None, Some("f0_"), Some("n")],
+  )
+  assert_true(namespace_object_columns(None, [], 0).0 is None)
+  try namespace_object_columns(Some(original), ["foreign"], 1000) catch {
+    Abort(InvalidContext) => ()
+    _ => fail("wrong foreign layout refusal")
+  } noraise {
+    _ => fail("checked Object keys must match the original layout")
+  }
+  try namespace_object_columns(Some(original), ["f0_", "f0__", "n"], 0) catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => ()
+    _ => fail("wrong layout Work refusal")
+  } noraise {
+    _ => fail("layout traversal must consume original Work")
+  }
+}
+
+///|
+test "computed object occurrence lookup never accepts a foreign projection" {
+  let query = @query.parse_query("SELECT (t).* FROM t", mapping_syntax_limits()).unwrap()
+  let projection = selected_projections(query)[0]
+  let receiver = projection.expression.unwrap()
+  let generated = @query.star_column_projection(
+    query,
+    projection,
+    "f0_",
+    object_field=true,
+    anonymous=true,
+  )
+  assert_true(projection_alias(generated) is None)
+  let column : ResultColumn = {
+    label: "f0_",
+    slot: "f0_",
+    name: None,
+    name_view: None,
+  }
+  let retained = Some([{ projection: generated, receiver, column, }])
+  assert_true(expanded_object_column(generated, retained, 1) is Some(_))
+  let foreign = { ..generated, replacements: [], }
+  assert_true(expanded_object_column(foreign, retained, 1) is None)
+  try expanded_object_column(generated, retained, 0) catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => ()
+    _ => fail("wrong occurrence lookup Work refusal")
+  } noraise {
+    _ => fail("the actual occurrence scan must be bounded")
+  }
+}

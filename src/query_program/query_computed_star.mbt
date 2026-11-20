@@ -9,19 +9,12 @@ fn materialize_computed_star_receivers(
   lower : (@query.Expression) -> @builder.Node raise Abort,
   already_evaluated : (@query.Expression) -> Bool,
   max_work : Int,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
 ) -> (
   Array[@query.Projection],
   Array[(String, String)],
   Array[(String, @builder.Node)],
 ) raise Abort {
-  if !original.any(projection => {
-      projection.star == Some("*") &&
-      projection.expression is Some(receiver) &&
-      !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-      is Reference(_))
-    }) {
-    return (expanded, [], [])
-  }
   let receivers : Array[@query.Expression] = []
   let reserved = physical.copy()
   let mut remaining = max_work
@@ -31,12 +24,31 @@ fn materialize_computed_star_receivers(
     }
     remaining -= count
   }
+  let retained_receiver = fn(receiver : @query.Expression) -> Bool raise Abort {
+    guard object_expansions is Some(values) else { return false }
+    spend(values.length())
+    values.any(value => physical_equal(value.receiver, receiver))
+  }
+  if !original.any(projection => {
+      projection.star == Some("*") &&
+      projection.expression is Some(receiver) &&
+      (
+        retained_receiver(receiver) ||
+        !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+        is Reference(_))
+      )
+    }) {
+    return (expanded, [], [])
+  }
   for projection in original {
     spend(1)
     if projection.star == Some("*") &&
       projection.expression is Some(receiver) &&
-      !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-      is Reference(_)) {
+      (
+        retained_receiver(receiver) ||
+        !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+        is Reference(_))
+      ) {
       receivers.push(receiver)
     }
   }
@@ -72,7 +84,12 @@ fn materialize_computed_star_receivers(
       spend(1)
       if values[index].expression is Some(expression) &&
         !already_evaluated(expression) &&
-        @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
+        (match
+          @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+          Parenthesized(child) =>
+            @query.expression_node(expression, child).unwrap().kind
+          other => other
+        })
         is Property(child, _) {
         spend(
           @query.expression_node_count(expression) +

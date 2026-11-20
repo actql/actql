@@ -381,3 +381,89 @@ test "range star replacements preserve anonymous occurrences and their original 
     ),
   )
 }
+
+///|
+test "computed row stars retain anonymous roles order and nested row views" {
+  for
+    (source, fields) in [
+      ("WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t", ["f0_", "n"]),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2",
+        ["f0_", "n"],
+      ),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY ALL",
+        ["f0_", "n"],
+      ),
+      ("WITH t AS (SELECT 1, 2 AS f0_) SELECT (t).* FROM t", ["f0__", "f0_"]),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT IF(TRUE, t, t).* FROM t",
+        ["f0_", "n"],
+      ),
+      (
+        "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) SELECT r.row.* FROM r",
+        ["f0_", "n"],
+      ),
+      ("WITH t AS (SELECT 1, 2 AS n) SELECT (t).* EXCEPT(n) FROM t", ["f0_"]),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* REPLACE(3 AS n) FROM t",
+        ["f0_", "n"],
+      ),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2 ORDER BY n",
+        ["f0_", "n"],
+      ),
+      (
+        "WITH t AS (SELECT 1, 2 AS n) SELECT STRUCT(3 AS f0_) AS t FROM t ORDER BY t.f0_",
+        ["t"],
+      ),
+    ] {
+    let program = match
+      compile_query_script(
+        @query.parse_query_script(source, syntax_limits()).unwrap(),
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(Expression({ issue: @expression.UnknownReference, .. })) =>
+        fail("private member lost: " + source)
+      Err(UnsupportedGrouping) => fail("group correspondence lost: " + source)
+      Err(_) => fail("computed star compilation failed: " + source)
+    }
+    assert_eq(anonymous_result_fields(program), fields, msg=source)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) => fail("the original Values rows are closed")
+    }
+  }
+}
+
+///|
+test "computed row stars never grant generated keys as SQL aliases" {
+  for
+    source in [
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).*, ((t).f0_) AS bad FROM t GROUP BY 1, 2",
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t GROUP BY 1, 2 ORDER BY (t).f0_",
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t ORDER BY (t).f0_", "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* FROM t ORDER BY f0_",
+      "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT (t).* FROM t) SELECT r.f0_ FROM r",
+      "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* EXCEPT(f0_) FROM t", "WITH t AS (SELECT 1, 2 AS n) SELECT (t).* REPLACE(3 AS f0_) FROM t",
+      "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT STRUCT(t AS nested) AS row FROM t), s AS (SELECT r.row.* FROM r) SELECT s.nested.f0_ FROM s",
+    ] {
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(_) => fail("wrong generated object-star key refusal: " + source)
+      Ok(_) => fail("generated Object key became a SQL name: " + source)
+    }
+  }
+  let positive = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT STRUCT(t AS nested) AS row FROM t), s AS (SELECT r.row.* FROM r) SELECT s.nested.n AS n FROM s"
+  assert_eq(anonymous_result_fields(anonymous_result_program(positive)), ["n"])
+}

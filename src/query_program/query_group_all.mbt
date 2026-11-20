@@ -11,6 +11,7 @@ fn inferred_group_keys(
   max_work : Int,
   column_profiles? : Array[ResultColumn]? = None,
   expansions? : Array[ExpandedStarColumn]? = None,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
 ) -> Array[GroupKeyReference] raise Abort {
   let mut remaining = max_work
   let spend = fn(count : Int) -> Unit raise Abort {
@@ -72,6 +73,21 @@ fn inferred_group_keys(
       }
       guard item.expression is Some(expression) else {
         raise Abort(UnsupportedGrouping)
+      }
+      if object_expansions is Some(values) {
+        spend(values.length())
+        let mut original : ExpandedObjectColumn? = None
+        for value in values {
+          if physical_equal(value.projection, item) {
+            original = Some(value)
+            break
+          }
+        }
+        if original is Some(original) {
+          expressions.push(ObjectColumn(original))
+          paths.push([])
+          continue
+        }
       }
       spend(@query.expression_node_count(expression))
       let authored_paths = join_reference_paths(expression)
@@ -199,6 +215,12 @@ fn inferred_group_keys(
     }
   }
   for position in 0..<expressions.length() {
+    // A privately retained Object field has a checked receiver, not a public
+    // property path. Keep that exact value as a key; never resolve its DATA key.
+    if expressions[position] is ObjectColumn(_) {
+      chosen.push(position)
+      continue
+    }
     spend(simple.length() + 1)
     if simple.any(item => item.0 == position) {
       continue

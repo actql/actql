@@ -140,7 +140,7 @@ pub fn sga_predicate_expression(SgaPredicate) -> Expression
 
 pub fn single_query_script(Query) -> QueryScript
 
-pub fn star_column_projection(Query, Projection, String) -> Projection
+pub fn star_column_projection(Query, Projection, String, object_field? : Bool, anonymous? : Bool) -> Projection
 
 pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 

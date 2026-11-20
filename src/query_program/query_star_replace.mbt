@@ -1,4 +1,29 @@
 ///|
+priv struct ExpandedObjectColumn {
+  projection : @query.Projection
+  receiver : @query.Expression
+  column : ResultColumn
+}
+
+///|
+fn expanded_object_column(
+  projection : @query.Projection,
+  expanded : Array[ExpandedObjectColumn]?,
+  max_work : Int,
+) -> ResultColumn? raise Abort {
+  guard expanded is Some(expanded) else { return None }
+  if expanded.length() > max_work {
+    raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
+  }
+  for original in expanded {
+    if physical_equal(original.projection, projection) {
+      return Some(original.column)
+    }
+  }
+  None
+}
+
+///|
 // All replacements see one input snapshot. Ordinary SELECT/GROUP/ORDER owns
 // their evaluation and physical slots; this does not execute expression trees.
 fn expanded_replacement_projections(
@@ -7,7 +32,11 @@ fn expanded_replacement_projections(
   visible : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
-  object_columns? : ((@query.Expression) -> Array[String] raise Abort)? = None,
+  object_columns? : ((@query.Expression) -> (
+    Array[String],
+    Array[ResultColumn]?,
+  ) raise Abort)? = None,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
   authored_aliases? : Array[(String, String)] = [],
   column_profiles? : Array[ResultColumn]? = None,
   expansions_out? : Array[ExpandedStarColumn]? = None,
@@ -53,18 +82,27 @@ fn expanded_replacement_projections(
     guard projection.star == Some("*") else {
       raise Abort(UnsupportedProjection)
     }
+    let mut object_profiles : Array[ResultColumn]? = None
     let columns = if object_star {
       guard object_columns is Some(resolve) else {
         raise Abort(UnsupportedProjection)
       }
-      let fields = resolve(projection.expression.unwrap())
+      let (fields, profiles) = resolve(projection.expression.unwrap())
+      object_profiles = profiles
       spend(fields.length())
       // The contract owner supplies names/order. Exclusion and replacement use
       // the same SELECT snapshot and ordinary field-name rules as range stars.
       for excluded in projection.except_columns {
         spend(fields.length())
         if !fields.any(field => {
-            same_name(excluded, { value: field, quoted: false, })
+            spend(
+              object_profiles.map(profiles => profiles.length()).unwrap_or(0),
+            )
+            match result_column_profile(object_profiles, field, field) {
+              Some(column) =>
+                column.name is Some(name) && same_name(excluded, name)
+              None => same_name(excluded, { value: field, quoted: false, })
+            }
           }) {
           raise Abort(UnknownColumn)
         }
@@ -75,7 +113,12 @@ fn expanded_replacement_projections(
       fields
       .filter(field => {
         !projection.except_columns.any(excluded => {
-          same_name(excluded, { value: field, quoted: false, })
+          spend(object_profiles.map(profiles => profiles.length()).unwrap_or(0))
+          match result_column_profile(object_profiles, field, field) {
+            Some(column) =>
+              column.name is Some(name) && same_name(excluded, name)
+            None => same_name(excluded, { value: field, quoted: false, })
+          }
         })
       })
       .map(field => (field, field))
@@ -101,7 +144,13 @@ fn expanded_replacement_projections(
       let mut count = 0
       for column in columns {
         let matches = if object_star {
-          same_name(replacement.name, { value: column.0, quoted: false, })
+          spend(object_profiles.map(profiles => profiles.length()).unwrap_or(0))
+          match result_column_profile(object_profiles, column.0, column.1) {
+            Some(original) =>
+              original.name is Some(name) && same_name(replacement.name, name)
+            None =>
+              same_name(replacement.name, { value: column.0, quoted: false, })
+          }
         } else {
           spend(column_profiles.map(profiles => profiles.length()).unwrap_or(0))
           star_column_matches_name(
@@ -123,6 +172,39 @@ fn expanded_replacement_projections(
       }
     }
     for column in columns {
+      if object_star && object_profiles is Some(profiles) {
+        spend(profiles.length())
+        guard result_column_profile(object_profiles, column.0, column.1)
+          is Some(original) else {
+          raise Abort(InvalidContext)
+        }
+        spend(projection.replacements.length())
+        let replaced = original.name is Some(name) &&
+          projection.replacements.any(value => same_name(value.name, name))
+        if !replaced {
+          guard object_expansions is Some(retained) else {
+            raise Abort(InvalidContext)
+          }
+          spend(
+            @query.expression_node_count(projection.expression.unwrap()) + 2,
+          )
+          let generated = @query.star_column_projection(
+            query,
+            projection,
+            column.0,
+            object_field=true,
+            anonymous=original.name is None,
+          )
+          let generated = { ..generated, name: original.name, }
+          retained.push({
+            projection: generated,
+            receiver: projection.expression.unwrap(),
+            column: original,
+          })
+          values.push(generated)
+          continue
+        }
+      }
       if object_star && projection.expression is Some(receiver) {
         spend(@query.expression_node_count(receiver) + 1)
       }
