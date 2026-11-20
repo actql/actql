@@ -1,16 +1,16 @@
 // Build-time adaptation of one audited pinned builtin, not a global polyfill.
 // The runtime's physical hash seed is supplied by its Host, never used as an
 // identity, authorization token or replacement for canonical SHA-256.
-import {parse} from 'acorn';
+import {parse, type AnyNode} from 'acorn';
 import {createHash} from 'node:crypto';
 import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
 const entropyDeclaration = 'b726a2e5b8f133516e86e50677140d78b3e08831b242c0367dfe0fab13f1fd58';
 
-export function walk(node, visit) {
+export function walk(node: unknown, visit: (node: AnyNode) => void) {
   if (!node || typeof node !== 'object') return;
-  if (typeof node.type === 'string') visit(node);
+  if (typeof (node as {type?: unknown}).type === 'string') visit(node as AnyNode);
   for (const [key, value] of Object.entries(node)) {
     if (key === 'start' || key === 'end') continue;
     if (Array.isArray(value)) value.forEach(child => walk(child, visit));
@@ -18,7 +18,7 @@ export function walk(node, visit) {
   }
 }
 
-export function checkPureRuntime(source) {
+export function checkPureRuntime(source: string) {
   const ast = parse(source, {ecmaVersion:'latest', sourceType:'module'});
   const denied = new Set(['globalThis', 'fetch', 'process', 'require', 'crypto',
     'Date', 'performance', 'setTimeout', 'setInterval', 'WebSocket', 'XMLHttpRequest',
@@ -28,25 +28,25 @@ export function checkPureRuntime(source) {
       throw new Error('GeneratedRuntimeImport');
     }
     if (node.type === 'Identifier' && denied.has(node.name)) throw new Error(`GeneratedRuntimeIO: ${node.name}`);
-    if (node.type === 'MemberExpression' && node.object.name === 'Math' &&
-        (node.property.name === 'random' || node.property.value === 'random')) {
+    if (node.type === 'MemberExpression' && (node.object as {name?: unknown}).name === 'Math' &&
+        ((node.property as {name?: unknown}).name === 'random' || (node.property as {value?: unknown}).value === 'random')) {
       throw new Error('GeneratedRuntimeIO: Math.random');
     }
   });
 }
 
-export function explicitSeedRuntime(source) {
+export function explicitSeedRuntime(source: string) {
   const ast = parse(source, {ecmaVersion:'latest', sourceType:'module'});
-  const exports = [], edits = [];
+  const exports: string[] = [], edits: {start: number; end: number; text: string}[] = [];
   let count = 0;
   for (const node of ast.body) {
     if (node.type === 'ExportNamedDeclaration') {
       if (node.source || node.declaration || node.specifiers.some(x => x.type !== 'ExportSpecifier')) {
         throw new Error('UnknownMoonExport');
       }
-      exports.push(...node.specifiers.map(x => `${x.exported.name}: ${x.local.name}`));
+      exports.push(...node.specifiers.map(x => `${(x.exported as {name?: unknown}).name}: ${(x.local as {name?: unknown}).name}`));
       edits.push({start:node.start,end:node.end,text:''});
-    } else if (node.type === 'VariableDeclaration' && node.declarations.some(x => x.id.name === '_M0FPB12random__seed')) {
+    } else if (node.type === 'VariableDeclaration' && node.declarations.some(x => (x.id as {name?: unknown}).name === '_M0FPB12random__seed')) {
       const digest = createHash('sha256').update(source.slice(node.start,node.end)).digest('hex');
       if (digest !== entropyDeclaration) throw new Error('UnauditedMoonEntropyBuiltin');
       count++;
@@ -64,7 +64,7 @@ export function explicitSeedRuntime(source) {
     source + `\nreturn Object.freeze({${exports.join(',')}});\n}\n`;
 }
 
-function prepareSelectedRuntimeModules(entries) {
+function prepareSelectedRuntimeModules(entries: readonly (readonly [string, string])[]) {
   const root = fileURLToPath(new URL('../../',import.meta.url));
   const directory = `${root}_build/workers/modules`;
   mkdirSync(directory,{recursive:true});
@@ -76,7 +76,7 @@ function prepareSelectedRuntimeModules(entries) {
 
 // Package production must not read or require a conformance/test runtime.
 export const productionRuntimeModules = Object.freeze([
-  Object.freeze(['bridge', 'connectors_workers_bridge']),
+  Object.freeze(['bridge', 'connectors_workers_bridge'] as const),
 ]);
 export function prepareProductionRuntimeModule() {
   prepareSelectedRuntimeModules(productionRuntimeModules);

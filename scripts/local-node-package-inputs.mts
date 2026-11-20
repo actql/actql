@@ -5,6 +5,13 @@ import {readFileSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {generateInstallations, readHostBundles} from './connector-node-bundles.mjs';
 
+import type {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
+
+type BuildInputs = ReturnType<typeof resolveConnectorBuildInputs>;
+type CopyDescriptor = {source: string; destination: string; ownerRoot: string};
+type RuntimeInput = {package: string; moduleRoot: string; namespace: string;
+  qualifiedPackage: string; target: string; compiledFile: string; file: string};
+
 // These are Host infrastructure, not a second list of provider manifests.
 // DuckDB is still an explicit built-in binding (installed-source.mjs); its
 // JS bridge does not install or load the optional native transport.
@@ -53,14 +60,14 @@ const hostContracts = [
   'spec/contracts/actql-query-process-evidence.json',
   'spec/contracts/actql-query-two-receipt.json',
 ];
-const unique = values => Object.freeze([...new Set(values)]);
+const unique = <T,>(values: Iterable<T>) => Object.freeze([...new Set(values)]);
 
-const inside = (root, path) => {
+const inside = (root: string, path: string) => {
   const value = relative(root, path);
   return value === '' || !isAbsolute(value) && value !== '..' && !value.startsWith('..' + sep);
 };
-const descriptors = entries => {
-  const byDestination = new Map();
+const descriptors = (entries: readonly CopyDescriptor[]) => {
+  const byDestination = new Map<string, Readonly<CopyDescriptor>>();
   for (const entry of entries) {
     const prior = byDestination.get(entry.destination);
     if (prior && prior.source !== entry.source) {
@@ -75,7 +82,7 @@ const descriptors = entries => {
 // external composition carries concrete source owners separately from those
 // same destination names; callers never reinterpret a destination as a path
 // in the Core checkout.
-export function localNodePackageInputs(root, {buildInputs} = {}) {
+export function localNodePackageInputs(root: string, {buildInputs}: {buildInputs?: BuildInputs} = {}) {
   if (buildInputs !== undefined) return externalInputs(root, buildInputs);
   const installations = readHostBundles(root);
   const table = join(root, 'adapters/connectors-builtin/installations.generated.mjs');
@@ -83,34 +90,34 @@ export function localNodePackageInputs(root, {buildInputs} = {}) {
     throw new Error('StaleLocalNodeInstallationTable');
   }
   const runtimePackages = unique([...hostRuntimes,
-    ...installations.map(entry => entry.providerBundle).filter(Boolean)]);
+    ...installations.map(entry => entry.providerBundle).filter(Boolean) as string[]]);
   return Object.freeze({
     runtimePackages,
     runtimeFiles: Object.freeze(runtimePackages.map(path =>
       `${path}/${basename(path)}.js`)),
     adapterEntries: unique([...hostAdapters, ...installations.flatMap(entry =>
-      [entry.source, entry.effect].filter(Boolean).map(role => role.module))]),
+      [entry.source, entry.effect].filter(Boolean).map(role => role!.module))]),
     dataFiles: unique([...hostContracts, ...installations.flatMap(entry => entry.assets)]),
     providerBundles: Object.freeze(installations.filter(entry => entry.providerBundle !== undefined)
       .map(entry => Object.freeze({
       name: entry.name, package: entry.providerBundle,
-      file: `${entry.providerBundle}/${basename(entry.providerBundle)}.js`,
+      file: `${entry.providerBundle}/${basename(entry.providerBundle!)}.js`,
     }))),
   });
 }
 
-function externalInputs(root, buildInputs) {
+function externalInputs(root: string, buildInputs: BuildInputs) {
   if (resolve(root) !== buildInputs.host.root) throw new Error('InvalidLocalNodeBuildRoot');
-  const installations = readHostBundles(root, {buildInputs});
+  const installations = readHostBundles(root, {buildInputs}) as BuildInputs['hostEntries'];
   const tablePath = 'adapters/connectors-builtin/installations.generated.mjs';
   const table = buildInputs.resolveFile(buildInputs.host.namespace, tablePath);
   if (readFileSync(table, 'utf8') !== generateInstallations(installations, table, root)) {
     throw new Error('StaleLocalNodeInstallationTable');
   }
-  const core = buildInputs.modules.find(module => module.namespace === 'actql/actql');
-  const runtimeInputs = [];
+  const core = buildInputs.modules.find(module => module.namespace === 'actql/actql')!;
+  const runtimeInputs: RuntimeInput[] = [];
   const runtimes = new Set();
-  const addRuntime = (name, module, packageName, packagePath) => {
+  const addRuntime = (name: string, module: Pick<BuildInputs['modules'][number], 'root' | 'namespace'>, packageName: string, packagePath: string) => {
     if (runtimes.has(name)) throw new Error(`ConflictingLocalNodeRuntime:${name}`);
     runtimes.add(name);
     runtimeInputs.push(Object.freeze({package: name, moduleRoot: module.root,
@@ -124,27 +131,27 @@ function externalInputs(root, buildInputs) {
     addRuntime(name, core, packageName, buildInputs.resolvePackage(packageName));
   }
   for (const entry of installations.filter(entry => entry.providerBundle !== undefined)) {
-    addRuntime(entry.providerBundle, entry, entry.providerPackage, entry.providerPackagePath);
+    addRuntime(entry.providerBundle!, entry as typeof entry & {root: string}, entry.providerPackage!, entry.providerPackagePath!);
   }
-  const coreFile = path => ({source: buildInputs.resolveFile(core.namespace, path),
+  const coreFile = (path: string) => ({source: buildInputs.resolveFile(core.namespace, path),
     destination: path, ownerRoot: core.root});
   const adapterInputs = descriptors([...hostAdapters.map(coreFile),
     ...installations.flatMap(entry => [entry.source, entry.effect].filter(Boolean)
-      .map(role => ({source: role.modulePath, destination: role.module, ownerRoot: entry.root}))),
+      .map(role => ({source: role!.modulePath!, destination: role!.module, ownerRoot: entry.root!}))),
     {source: table, destination: tablePath, ownerRoot: buildInputs.host.root}]);
   const dataInputs = descriptors([...hostContracts.map(coreFile),
-    ...installations.flatMap(entry => entry.assetSources.map(asset =>
-      ({source: asset.sourcePath, destination: asset.path, ownerRoot: entry.root})))]);
+    ...installations.flatMap(entry => entry.assetSources!.map(asset =>
+      ({source: asset.sourcePath, destination: asset.path, ownerRoot: entry.root!})))]);
   const assetPaths = new Map(dataInputs.map(entry => [entry.source, entry.destination]));
-  const destinationForAdapter = source => {
+  const destinationForAdapter = (source: string) => {
     if (source === table) return tablePath;
     if (inside(join(core.root, 'adapters'), source)) return relative(core.root, source).split(sep).join('/');
     for (const entry of installations) {
-      if (inside(join(entry.root, 'adapters/connectors', entry.name), source)) {
-        return relative(entry.root, source).split(sep).join('/');
+      if (inside(join(entry.root!, 'adapters/connectors', entry.name), source)) {
+        return relative(entry.root!, source).split(sep).join('/');
       }
     }
-    if (assetPaths.has(source)) return assetPaths.get(source);
+    if (assetPaths.has(source)) return assetPaths.get(source)!;
     throw new Error(`UndeclaredLocalNodeAdapterInput:${source}`);
   };
   return Object.freeze({
@@ -158,11 +165,11 @@ function externalInputs(root, buildInputs) {
     providerBundles: Object.freeze(installations.filter(entry => entry.providerBundle !== undefined)
       .map(entry => Object.freeze({
       name: entry.name, package: entry.providerBundle,
-      file: `${entry.providerBundle}/${basename(entry.providerBundle)}.js`,
+      file: `${entry.providerBundle}/${basename(entry.providerBundle!)}.js`,
     }))),
     destinationForAdapter,
     installationTable: Object.freeze({source: table, destination: tablePath,
-      render: destination => generateInstallations(installations, join(destination, tablePath), root,
+      render: (destination: string) => generateInstallations(installations, join(destination, tablePath), root,
         {resolveModule: (_entry, section) => join(destination, section.module),
           resolveImplementationFile: (_entry, path) => join(destination, path)})}),
   });

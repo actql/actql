@@ -677,3 +677,18 @@ target/
 
 /adapters/host-node/installation.test.mjs
 /adapters/host-node/installation.test.d.mts
+
+/adapters/workers/moon-runtime.mjs
+/adapters/workers/moon-runtime.d.mts
+
+/adapters/workers/artifact.mjs
+/adapters/workers/artifact.d.mts
+
+/scripts/runtime-package-inputs.mjs
+/scripts/runtime-package-inputs.d.mts
+
+/adapters/workers/moon-runtime.test.mjs
+/adapters/workers/moon-runtime.test.d.mts
+
+/scripts/local-node-package-inputs.mjs
+/scripts/local-node-package-inputs.d.mts

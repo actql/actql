@@ -3,16 +3,22 @@
 import {builtinModules} from 'node:module';
 import {parse} from 'acorn';
 import {walk} from './moon-runtime.mjs';
+import type {Metafile} from 'esbuild';
+
+type ArtifactGraph = {
+  inputs: Readonly<Record<string, {imports: readonly Pick<Metafile['inputs'][string]['imports'][number], 'path' | 'kind' | 'external'>[]}>>;
+  outputs: Readonly<Record<string, {imports: readonly unknown[]}>>;
+};
 
 const builtins = new Set(builtinModules.flatMap(name => [name, name.replace(/^node:/, '')]));
-function forbidden(path) {
+function forbidden(path: string) {
   return path.startsWith('node:') || builtins.has(path) ||
     /(?:^|\/)(?:host-node|duckdb-node|connectors-builtin)(?:\/|$)/.test(path) ||
     /(?:^|\/)connectors\/duckdb\/node(?:\/|$)/.test(path) ||
     /(?:^|\/)node_modules(?:\/|$)/.test(path) || /\.(?:node|dll|dylib|so)$/.test(path);
 }
 
-export function checkWorkersArtifact(metafile, source, allowedModules) {
+export function checkWorkersArtifact(metafile: ArtifactGraph, source: string, allowedModules: Iterable<string>) {
   const allow = new Set(allowedModules);
   for (const [path, module] of Object.entries(metafile.inputs)) {
     if (forbidden(path) || !allow.has(path)) throw new Error(`WorkersModuleRejected: ${path}`);

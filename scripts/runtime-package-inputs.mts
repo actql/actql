@@ -2,7 +2,7 @@
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {finiteRuntimeEntry} from '../adapters/workers/artifact.mjs';
 
-export function runtimePackageInputs(root) {
+export function runtimePackageInputs(root: string) {
 return {
   'run-host-core': {sources: ['client_values_host_abi', 'checkpoint_runtime_node',
     'connectors_workers_bridge'],
