@@ -9472,12 +9472,18 @@ fn compile_set_stages(
       ) {
       raise Abort(UnsupportedSet)
     }
+    // Borrow the same first-term alignment vector until its metadata is
+    // projected; an ON spelling change must not discard its original view.
+    let mut profile_sources : Array[String]? = None
     let mut output = compiled_output
     let mut term_result = term_name
     if index == 0 && !@query.set_part_at(query, 0).unwrap().inner_by_name {
       let part = @query.set_part_at(query, 0).unwrap()
       let ordered = set_output_fields(output, part, query)
       let (matched, needed) = set_alignment_fields(ordered, output, true)
+      if term_columns is Some(_) {
+        profile_sources = Some(matched)
+      }
       if needed {
         term_result = term_name + "_ordered"
         term_steps.push(
@@ -9518,9 +9524,13 @@ fn compile_set_stages(
     outputs.push(output)
     if term_columns is Some(retained_columns) {
       retained_columns.push(
-        output.map(field => {
-          match result_column_profile(original_columns, field, field) {
-            Some(column) => column
+        output.mapi((index, field) => {
+          let original = match profile_sources {
+            Some(fields) => fields[index]
+            None => field
+          }
+          match result_column_profile(original_columns, original, original) {
+            Some(column) => { ..column, label: field, slot: field, }
             None =>
               {
                 slot: field,

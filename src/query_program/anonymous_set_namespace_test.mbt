@@ -146,3 +146,102 @@ test "standalone set window retains legal named arguments and result members" {
     assert_eq(semantic(first), semantic(second))
   }
 }
+
+///|
+test "explicit uppercase ON keeps original SQL names physical slots and window views" {
+  let source = "FROM pair |> SELECT STRUCT(1 AS f0_, 2 AS n) AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain |> UNION ALL BY NAME (SELECT STRUCT(1 AS f0_, 2 AS n) AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain FROM pair) |> UNION ALL BY NAME ON (PLAIN, PROTECTED) (FROM pair |> AGGREGATE COUNT(*) AS n GROUP BY x + 1 |> AS captured |> SELECT STRUCT(3 AS f0_, 4 AS n) AS plain, captured AS protected) |> ORDER BY "
+  for
+    tail in [
+      "protected.f0_", "LAG(protected.f0_) OVER (ORDER BY plain.f0_)", "(LAG(protected) OVER (ORDER BY plain.f0_)).f0_",
+    ] {
+    match
+      compile(
+        @query.parse_query(source + tail, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(issue) =>
+        fail(
+          "wrong uppercase ON original member refusal: " +
+          infer_defaults_issue_tag(issue),
+        )
+      Ok(_) =>
+        fail("uppercase ON lost the protected original row namespace: " + tail)
+    }
+  }
+  for tail in ["plain.f0_", "protected.n"] {
+    let program = compile(
+      @query.parse_query(source + tail, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(anonymous_result_fields(program), ["PLAIN", "PROTECTED"])
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("uppercase ON retained the same closed original operands")
+    }
+  }
+  for
+    tail in [
+      "LAG(plain.f0_) OVER (ORDER BY protected.n)", "(LAG(protected) OVER (ORDER BY plain.f0_)).n",
+    ] {
+    let program = compile(
+      @query.parse_query(source + tail, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(anonymous_result_fields(program), ["PLAIN", "PROTECTED"])
+    let wire = semantic(program)
+    assert_true(!wire.contains("\"field\":\"plain\""))
+    assert_true(!wire.contains("\"field\":\"protected\""))
+  }
+}
+
+///|
+test "first ON rename preserves the original left row namespace" {
+  let source = "FROM pair |> AGGREGATE COUNT(*) AS n GROUP BY x + 1 |> AS captured |> SELECT captured AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain |> UNION ALL BY NAME ON (PLAIN, PROTECTED) (SELECT STRUCT(1 AS f0_, 2 AS n) AS protected, STRUCT(3 AS f0_, 4 AS n) AS plain FROM pair) |> ORDER BY "
+  match
+    compile(
+      @query.parse_query(source + "protected.f0_", syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ) {
+    Err(UnknownColumn)
+    | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+    Err(issue) =>
+      fail(
+        "wrong first ON original member refusal: " +
+        infer_defaults_issue_tag(issue),
+      )
+    Ok(_) => fail("first ON rename discarded the original left row namespace")
+  }
+  for tail in ["protected.n", "plain.f0_"] {
+    let program = compile(
+      @query.parse_query(source + tail, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(anonymous_result_fields(program), ["PLAIN", "PROTECTED"])
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) => fail("first ON keeps the same complete original rows")
+    }
+  }
+}

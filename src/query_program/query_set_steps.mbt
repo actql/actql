@@ -215,10 +215,9 @@ fn append_set_final_steps(
         }
         let derives : Array[(String, @builder.Node)] = []
         let evaluated : Array[(@query.Expression, String)] = []
-        let visible = scope_named_columns(
-          left_fields.map(field => (field, field)),
-          profiles,
-        )
+        // Keep the physical labels aligned with profiles. The resolver reads
+        // each original optional SQL name without relabelling its value slot.
+        let visible = left_fields.map(field => (field, field))
         let input_profiles = profiles
         let resolve = path => {
           profiled_pipe_slot(path, visible, [], input_profiles)
@@ -305,15 +304,19 @@ fn append_set_final_steps(
         // every public field for the final projection. Window input keys
         // continue to resolve against left_fields above, not this output scope.
         let visible = order_windows +
-          scope_named_columns(
-            left_fields.map(field => (field, field)),
-            profiles,
-          )
-          .map(field => field.0)
+          left_fields
           .filter(field => {
-            !order_windows.any(window => {
-              ascii_upper(window.0) == ascii_upper(field)
-            })
+            match result_column_profile(profiles, field, field) {
+              Some({ name: None, .. }) => false
+              Some({ name: Some(name), .. }) =>
+                !order_windows.any(window => {
+                  ascii_upper(window.0) == ascii_upper(name.value)
+                })
+              None =>
+                !order_windows.any(window => {
+                  ascii_upper(window.0) == ascii_upper(field)
+                })
+            }
           })
           .map(field => (field, field))
         for term in terms {
@@ -329,7 +332,7 @@ fn append_set_final_steps(
             ordinal
           } else {
             match root.kind {
-              Reference(path) => pipe_slot(path, visible, [])
+              Reference(path) => profiled_pipe_slot(path, visible, [], profiles)
               _ => None
             }
           }
