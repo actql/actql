@@ -37,7 +37,7 @@ join_field = ( "left" | "right" ), ".", identifier ;
    Quoted "left" is an ordinary field; neither production consults a schema. *)
 array = "[", [ expression, { ",", expression } ], "]" ;
 cast = "CAST", "(", expression, "AS", cast_type, ")" ;
-cast_type = "NUMBER" | "STRING" | "BOOLEAN" | "TIMESTAMP"
+cast_type = "NUMBER" | "INT64" | "STRING" | "BOOLEAN" | "TIMESTAMP"
           | "DECIMAL", "(", integer, ",", integer, ")" ;
 searched_case = "CASE", case_arm, { case_arm }, [ "ELSE", expression ], "END" ;
 case_arm = "WHEN", expression, "THEN", expression ;

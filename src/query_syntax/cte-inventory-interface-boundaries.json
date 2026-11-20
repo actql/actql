@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/query_syntax/query.mbt",
-      "sha256": "44232b78b542b261cff2ad1c6691a2f8909c2803a6c2c4bd045bf61b91cc5c0a",
+      "sha256": "487d3bc408f7f684dfeb89aded9d9efb21a92f0d9f66ff99ecb4ccf50ca53691",
       "exports": [],
       "operations": [
         {

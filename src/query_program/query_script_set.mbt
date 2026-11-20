@@ -96,7 +96,7 @@ fn lower_script_set_relation(
     let output_fields = if index < sql_inner_count {
       sql_inner_fields.unwrap()
     } else {
-      set_output_fields(fields, part, right_fields=right.visible_fields)
+      set_output_fields(fields, part, query, right_fields=right.visible_fields)
     }
     let (left_matched, left_alignment_needed) = set_alignment_fields(
       output_fields,

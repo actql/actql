@@ -52309,7 +52309,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6eae30859ff3582c478ab8d2d14ae74d9dda65e5d84a6dbb66a161476c2f14e9",
+      "sha256": "dbd69108e00bebbabff5fb71dd5302266d142eb283d64dbb357513890326d5ed",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -52329,6 +52329,10 @@
         {
           "name": "request_query_lowering_data_bytes",
           "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , request_copy : ( Int , Int64 ) , ) - > Int64 ?"
+        },
+        {
+          "name": "request_integer_context_data_bytes",
+          "declaration": "request_integer_context_data_bytes ( tokens : Int64 ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -52337,7 +52341,8 @@
             "<module>",
             "[I]lower_request_published_query",
             "[I]prepared_request_query_lowering",
-            "request_query_lowering_data_bytes"
+            "request_query_lowering_data_bytes",
+            "request_integer_context_data_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -52527,6 +52532,10 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_integer_context_js_wbtest.mbt",
+                "anchor": "test \"original integer context is funded before lowerer entry"
               }
             ]
           }

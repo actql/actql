@@ -706,6 +706,11 @@ test "expression corpus accepted: 141" {
 }
 
 ///|
+test "expression corpus accepted: 142" {
+  assert_tree("CAST('9007199254740993' AS INT64)", "{\"cast\":{\"value\":{\"literal\":\"9007199254740993\"},\"target\":{\"type\":\"int64\"}}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }

@@ -10,7 +10,9 @@ fn Parser::cast_target(
     Word(name) => name.to_lower()
     _ => raise SyntaxFailure(type_token.start, type_token.end)
   }
-  if !["number", "string", "boolean", "timestamp", "decimal"].contains(name) {
+  if !["number", "int64", "string", "boolean", "timestamp", "decimal"].contains(
+      name,
+    ) {
     raise SyntaxFailure(type_token.start, type_token.end)
   }
   let fields = [("type", self.node(@map.String(name)))]
