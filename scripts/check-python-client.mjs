@@ -14,6 +14,7 @@ export const remotePythonClientTests = Object.freeze([
   'test_checkpoint_convenience.py',
   'test_checkpoints.py',
   'test_connection_string.py',
+  'test_context_cleanup.py',
   'test_domain_carrier_presentation.py',
   'test_effect_review_integrity.py',
   'test_named_submission.py',
