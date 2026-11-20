@@ -11,10 +11,17 @@ import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {interfaceGenerationFreshness} from './interface-generation-freshness.mjs';
 
+import type {viteInterfaceInventory} from './vite-interface-inventory.mjs';
+
+type Module = Parameters<typeof interfaceOwnerCoverage>[0]['modules'][number];
+type ViteInputs = Pick<Awaited<ReturnType<typeof viteInterfaceInventory>>,
+  'modules' | 'sourceArtifacts' | 'generated' | 'buildInputs'>;
+type CheckOptions = {manifests?: readonly string[]; authoredEntrances?: readonly string[]};
+
 // Validation evidence stays with this checker instance and original root. A
 // serialized report cannot supply a different runtime-dependency resolution.
-const checkedSources = new WeakMap();
-export function checkedOriginalInterface(root, module, checked) {
+const checkedSources = new WeakMap<object, {root: string; modules: Map<string, Module>}>();
+export function checkedOriginalInterface(root: string, module: string, checked: object) {
   const original = checkedSources.get(checked);
   assert(original && original.root === realpathSync(root), 'Untrusted checked interface source');
   const value = original.modules.get(module);
@@ -22,7 +29,7 @@ export function checkedOriginalInterface(root, module, checked) {
   return structuredClone(value);
 }
 
-export async function checkInterfaceOwners(root, {manifests = [], authoredEntrances = []} = {}) {
+export async function checkInterfaceOwners(root: string, {manifests = [], authoredEntrances = []}: CheckOptions = {}) {
   root = resolve(root);
   const files = repositoryFiles(root), allRoots = npmInterfaceRoots(root, files);
   const python = pythonInterfaceSources(root);
@@ -37,18 +44,18 @@ export async function checkInterfaceOwners(root, {manifests = [], authoredEntran
   }
   const configs = files.filter(path => /(?:^|\/)vite\.config\.[cm]?[jt]s$/u.test(path) &&
     roots.some(value => dirname(value.manifest) === dirname(path)));
-  let vite = {modules: [], sourceArtifacts: [], generated: [], buildInputs: []};
+  let vite: ViteInputs = {modules: [], sourceArtifacts: [], generated: [], buildInputs: []};
   if (configs.length) {
     const {viteInterfaceInventory} = await import('./vite-interface-inventory.mjs');
     vite = await viteInterfaceInventory(root, configs, {workingDirectories:
       Object.fromEntries(configs.map(config => [config,
-        dirname(roots.find(value => dirname(value.manifest) === dirname(config)).manifest)]))});
+        dirname(roots.find(value => dirname(value.manifest) === dirname(config))!.manifest)]))});
   }
   const source = await sourceInterfaceClosure(root, {distributionRoots: roots, generatedInputs: vite.sourceArtifacts, authoredEntrances});
   assert.deepEqual(source.unresolvedEntrances, [], 'Unresolved normal distribution entrances');
   const pythonRoots = manifests.length ? python.roots.filter(value => manifests.includes(value.manifest)) : python.roots;
   const pythonMembers = new Set(pythonRoots.flatMap(value => value.entrances));
-  const modules = new Map();
+  const modules = new Map<string, Module>();
   for (const module of [...source.modules, ...source.types, ...vite.modules,
     ...python.modules.filter(value => pythonMembers.has(value.module))]) {
     const previous = modules.get(module.module);

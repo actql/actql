@@ -9,12 +9,16 @@ import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-owners.mjs';
 
+import type {TestContext} from 'node:test';
+import type {BinaryLike} from 'node:crypto';
+type RuntimeReference = Parameters<NonNullable<NonNullable<Parameters<typeof javascriptInterface>[1]>['resolveRuntimeImport']>>[0];
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const hash = source => createHash('sha256').update(source).digest('hex');
-function fixture(t) {
+const hash = (source: BinaryLike) => createHash('sha256').update(source).digest('hex');
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-required-interface-'));
   t.after(() => rmSync(root, {recursive: true}));
-  const put = (path, value) => {
+  const put = (path: string, value: string) => {
     mkdirSync(dirname(join(root, path)), {recursive: true});
     writeFileSync(join(root, path), value);
   };
@@ -22,7 +26,7 @@ function fixture(t) {
   put('outside/sdk/entry.mjs', "export {read} from './owner.mjs';\n");
   put('outside/sdk/owner.mjs', 'export function read(value) {return value;}\n');
   put('owner.md', 'Existing original source, authority, Unknown and cleanup responsibility');
-  const declaration = path => {
+  const declaration = (path: string) => {
     const source = readFileSync(join(root, path), 'utf8'), syntax = javascriptInterface(source);
     return {module: path, sha256: hash(source), ...syntax, role: 'physical-io',
       responsibilityFacet: 'primary', owner: 'original physical boundary',
@@ -32,7 +36,7 @@ function fixture(t) {
   };
   const declarations = ['outside/sdk/entry.mjs', 'outside/sdk/owner.mjs'].map(declaration);
   const save = () => put('elsewhere/interface-boundaries.json', JSON.stringify(declarations));
-  const check = (policy, manifests = []) => {
+  const check = (policy?: RegExp, manifests: readonly string[] = []) => {
     save();
     const result = spawnSync('npm', ['--prefix', repository, 'run', 'check:interfaces', '--', '--root', root,
       ...manifests.flatMap(value => ['--manifest', value])], {cwd: root, encoding: 'utf8', timeout: 8000});
@@ -104,8 +108,8 @@ test('the ordinary required command discovers new Python distribution helpers wi
 });
 
 test('lexical runtime references need their actual builder target mapping and preserve unknown/shadowed refusals', async () => {
-  const calls = [];
-  const resolveRuntimeImport = reference => {calls.push(reference); return reference.kind === 'module-url' ? [reference.specifier] : undefined;};
+  const calls: RuntimeReference[] = [];
+  const resolveRuntimeImport = (reference: RuntimeReference) => {calls.push(reference); return reference.kind === 'module-url' ? [reference.specifier] : undefined;};
   const source = "const target = new URL('./retained.mjs', import.meta.url); export const load = () => import(target.href);";
   const positive = javascriptInterface(source, {resolveRuntimeImport});
   assert.deepEqual(positive.imports, ['./retained.mjs']);
@@ -116,10 +120,10 @@ test('lexical runtime references need their actual builder target mapping and pr
     assert(javascriptInterface(text, {resolveRuntimeImport}).unresolvedSyntax.length, text);
   }
   assert(javascriptInterface(source).unresolvedSyntax.length, 'a lexical hint alone never qualifies an artifact');
-  const packageCalls = [];
+  const packageCalls: RuntimeReference[] = [];
   const packageSource = "export async function load() {let resolved; try {resolved = import.meta.resolve('@owner/runtime');} catch {} return import(resolved);}";
   assert.deepEqual(javascriptInterface(packageSource, {resolveRuntimeImport: reference => {
-    packageCalls.push(reference); return [reference.specifier];
+    packageCalls.push(reference); return [(reference as {specifier?: unknown}).specifier];
   }}).unresolvedSyntax, []);
   assert.deepEqual(packageCalls, [{kind: 'package-resolution', specifier: '@owner/runtime'}]);
 });
@@ -137,6 +141,6 @@ test('actual member-derived dormant inputs need primary coverage and checked sou
   assert.equal(original.module, 'neutral/dormant.mjs');
   assert.throws(() => checkedOriginalInterface(f.root, original.module, structuredClone(checked)),
     /Untrusted checked interface source/u);
-  checked.modules.find(value => value.module === original.module).sha256 = '0'.repeat(64);
+  checked.modules.find(value => value.module === original.module)!.sha256 = '0'.repeat(64);
   assert.equal(checkedOriginalInterface(f.root, original.module, checked).sha256, original.sha256);
 });

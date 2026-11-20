@@ -731,3 +731,9 @@ target/
 /scripts/check-owned-contract-versions.d.mts
 /scripts/generated-owned-contracts.mjs
 /scripts/generated-owned-contracts.d.mts
+
+# Emitted from the authored required interface command.
+/scripts/check-interface-owners.mjs
+/scripts/check-interface-owners.d.mts
+/scripts/required-interface-check.test.mjs
+/scripts/required-interface-check.test.d.mts
