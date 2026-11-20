@@ -110,6 +110,11 @@ test('test workers are excluded but a common implementation cannot import their 
   assert.equal(isConnectorTestFixture('adapters/host-node/fixtures/process.mjs'), true);
   assert.equal(isConnectorTestFixture('adapters/host-node/finalizer-fixture.mjs'), true);
   assert.equal(isConnectorTestFixture('adapters/host-node/fixture-owner.mjs'), false);
+  for (const suffix of ['mjs', 'mts', 'cts', 'ts', 'tsx']) {
+    assert.equal(isConnectorTestFixture(`adapters/host-node/process.fixture.${suffix}`), true);
+    assert.equal(isConnectorTestFixture(`adapters/host-node/process-fixture.${suffix}`), true);
+    assert.equal(isConnectorTestFixture(`adapters/host-node/fixture-owner.${suffix}`), false);
+  }
   const root = mkdtempSync(join(tmpdir(), 'actql-dispatch-boundary-'));
   try {
     for (const directory of ['src/connectors/local', 'src/connector_sdk',

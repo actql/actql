@@ -93,3 +93,27 @@ test('actual TypeScript config aliases retain authored helpers and JSON input id
   writeFileSync(join(root, 'sdk/entry.ts'), 'export {decide} from "@/missing";');
   assert.throws(() => typescriptInterfaceInputs(root, ['sdk/entry.ts']), /Unresolved TypeScript configured alias/u);
 });
+
+
+test('authored TypeScript fixture forms refuse direct and resolved interface authority', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-fixture-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({compilerOptions: {
+    moduleResolution: 'Bundler', allowJs: true}}));
+  writeFileSync(join(root, 'entry.ts'), 'export {value} from "./owner.mjs";');
+  writeFileSync(join(root, 'owner.mts'), 'export const value = 1;');
+  assert.deepEqual(typescriptInterfaceInputs(root, ['entry.ts']).modules.map(value => value.module),
+    ['entry.ts', 'owner.mts']);
+  for (const [filename, specifier] of [
+    ['esm.fixture.mts', './esm.fixture.mjs'],
+    ['common-fixture.cts', './common-fixture.cjs'],
+    ['plain.fixture.ts', './plain.fixture.js'],
+    ['component-fixture.tsx', './component-fixture.jsx'],
+    ['original.fixture.mjs', './original.fixture.mjs'],
+  ] as const) {
+    writeFileSync(join(root, filename), 'export const value = 1;');
+    assert.throws(() => typescriptInterfaceInputs(root, [filename]), /Test authority in TypeScript interface/u);
+    writeFileSync(join(root, 'entry.ts'), `export {value} from "${specifier}";`);
+    assert.throws(() => typescriptInterfaceInputs(root, ['entry.ts']), /Test authority in TypeScript interface/u);
+  }
+});

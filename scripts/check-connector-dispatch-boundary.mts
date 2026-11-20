@@ -102,7 +102,7 @@ export function connectorDispatchViolations(source: string, connectorNames: read
 }
 
 export const isConnectorTestFixture = (path: string) => /(?:^|\/)fixtures\//u.test(path) ||
-  /(?:\.|-)fixture\.mjs$/u.test(path);
+  /(?:\.|-)fixture\.(?:mjs|mts|cts|tsx?)$/u.test(path);
 
 export function checkConnectorDispatchBoundary(root: string) {
   const connectors = readdirSync(join(root, 'src/connectors'), {withFileTypes: true})
