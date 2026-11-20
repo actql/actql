@@ -785,3 +785,15 @@ target/
 /packages/native-cli/lib/project-scaffold.d.mts
 /packages/native-cli/lib/project-template.mjs
 /packages/native-cli/lib/project-template.d.mts
+
+# Emitted from the authored Native product census and staging metadata.
+/packages/native-cli/lib/product-members.mjs
+/packages/native-cli/lib/product-members.d.mts
+/scripts/native-cli-product-members.mjs
+/scripts/native-cli-product-members.d.mts
+/scripts/native-cli-product-members.test.mjs
+/scripts/native-cli-product-members.test.d.mts
+/scripts/native-cli-product-member-staging.test.mjs
+/scripts/native-cli-product-member-staging.test.d.mts
+/scripts/native-cli-common-product-members.test.mjs
+/scripts/native-cli-common-product-members.test.d.mts

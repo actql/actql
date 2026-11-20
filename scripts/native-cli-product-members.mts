@@ -9,14 +9,21 @@ import {inventory} from './package-release.mjs';
 import {PRODUCT_MEMBERS_FILE, DUAL_LOCAL_LAUNCHER_PLATFORM, productMembersBody, readProductMembers,
   productMembersCensus} from '../packages/native-cli/lib/product-members.mjs';
 
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+import type {Stats} from 'node:fs';
+import type {BinaryLike} from 'node:crypto';
+type ProductMembers = Parameters<typeof productMembersBody>[0];
+type Member = ProductMembers['files'][number];
+type Selected = Omit<ProductMembers, 'files'>;
+type Census = ReturnType<typeof productMembersCensus>;
 
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+
+const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
   a.mode === b.mode && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs;
 
 // Only bounded producer/verification scratch is observed here. This does not
 // retain an OriginalRoot or substitute for Native generation/current fences.
-async function observeMember(directory, item, collect = false) {
+async function observeMember(directory: string, item: Member, collect = false) {
   const path = join(directory, item.path), before = await lstat(path);
   assert(before.isFile() && !before.isSymbolicLink() && before.size === item.bytes &&
     (before.mode & 0o7777) === item.mode);
@@ -31,7 +38,7 @@ async function observeMember(directory, item, collect = false) {
       if (bytesRead === 0) break;
       assert(count + bytesRead <= item.bytes);
       hasher.update(chunk.subarray(0, bytesRead));
-      if (collect) chunk.copy(body, count, 0, bytesRead);
+      if (collect) chunk.copy(body!, count, 0, bytesRead);
       count += bytesRead;
     }
     assert.equal(count, item.bytes);
@@ -44,7 +51,7 @@ async function observeMember(directory, item, collect = false) {
   }
 }
 
-async function stageCensus(directory, census) {
+async function stageCensus(directory: string, census: Census) {
   for (const selected of census) {
     const path = join(directory, selected.path), before = await lstat(path);
     assert(before.isDirectory() && !before.isSymbolicLink());
@@ -68,7 +75,7 @@ async function stageCensus(directory, census) {
 
 // Called on the producer's own complete, private stage before ordinary pack.
 // Its original formal inventory is unchanged; only the one descriptor is added.
-export async function stageProductMembers(directory, selected) {
+export async function stageProductMembers(directory: string, selected: Selected) {
   const files = await inventory(directory);
   const body = productMembersBody({...selected, files});
   // Detect file/directory conflicts before writing the new private descriptor.
@@ -82,14 +89,14 @@ export async function stageProductMembers(directory, selected) {
 
 // The existing formal release verifier owns the extracted stage. A successful
 // comparison is package verification, not an opaque Native OriginalRoot fact.
-export async function verifyStagedProductMembers(directory, selected, metadata) {
+export async function verifyStagedProductMembers(directory: string, selected: Selected, metadata: Omit<Member, 'mode'>) {
   assert(metadata && typeof metadata === 'object' && !Array.isArray(metadata));
   assert.deepEqual(Object.keys(metadata).sort(), ['bytes', 'path', 'sha256']);
   assert.equal(metadata.path, PRODUCT_MEMBERS_FILE);
   assert(Number.isSafeInteger(metadata.bytes) && metadata.bytes > 0 && metadata.bytes <= 65536);
   assert.match(metadata.sha256, /^[a-f0-9]{64}$/u);
   const bytes = await observeMember(directory, {...metadata, mode: 0o644}, true);
-  const value = readProductMembers(bytes.toString('utf8'), selected);
+  const value = readProductMembers(bytes!.toString('utf8'), selected);
   await stageCensus(directory, productMembersCensus(value));
   for (const item of value.files) await observeMember(directory, item);
   return value;
@@ -97,7 +104,7 @@ export async function verifyStagedProductMembers(directory, selected, metadata) 
 
 // Preserve singular legacy descriptors and ordinary multi-Remote packaging.
 // The only shared Local selector is the closed original Darwin/Linux pair.
-export function launcherMemberPlatform(records) {
+export function launcherMemberPlatform(records: {platform: string; localRuntime?: unknown}[]) {
   assert(Array.isArray(records) && records.length > 0 && records.length <= 2);
   assert(records.every(record => ['darwin-arm64', 'linux-x64-gnu'].includes(record.platform)));
   assert.equal(new Set(records.map(record => record.platform)).size, records.length, 'Duplicate platform artifact');

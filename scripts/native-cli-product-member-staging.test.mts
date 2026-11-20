@@ -8,11 +8,14 @@ import test from 'node:test';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 import {DUAL_LOCAL_LAUNCHER_PLATFORM, installedProductCensus} from '../packages/native-cli/lib/product-members.mjs';
 
+import type {TestContext} from 'node:test';
+import type {BinaryLike} from 'node:crypto';
+
 const selected = {sourceSha: 'a'.repeat(40), platform: 'darwin-arm64', packageName: 'actql'};
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const sha = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 const descriptorName = 'local-product-members.json';
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-member-stage-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   await mkdir(join(root, 'bin'));
@@ -84,7 +87,7 @@ test('descriptor source/platform/package and external hash stay separate compari
     await assert.rejects(verifyStagedProductMembers(root, expected, metadata));
   }
   await assert.rejects(verifyStagedProductMembers(root, selected, {...metadata, sha256: 'b'.repeat(64)}));
-  await assert.rejects(verifyStagedProductMembers(root, selected, {...metadata, bytes: '355'}));
+  await assert.rejects((verifyStagedProductMembers as (directory: string, selected: unknown, metadata: unknown) => Promise<unknown>)(root, selected, {...metadata, bytes: '355'}));
 });
 
 test('self descriptor rewrite cannot borrow a previous external binding', async t => {

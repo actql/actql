@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {test} from 'node:test';
 import {productMembersBody,readProductMembers} from '../packages/native-cli/lib/product-members.mjs';
-const fixtures=JSON.parse(readFileSync(new URL('../spec/contracts/fixtures/native-product-members.json',import.meta.url)));
+const fixtures=JSON.parse(readFileSync(new URL('../spec/contracts/fixtures/native-product-members.json',import.meta.url)) as unknown as string) as {wire: string; sha256: string; selectors: Parameters<typeof readProductMembers>[1]; members: ReturnType<typeof readProductMembers>['files']}[];
 test('independent Common descriptor vectors match the existing formal Node codec',()=>{
   assert.equal(fixtures.length,2);
   for(const fixture of fixtures){

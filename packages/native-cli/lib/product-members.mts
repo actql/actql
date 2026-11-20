@@ -3,15 +3,22 @@
 import assert from 'node:assert/strict';
 import {dirname, join} from 'node:path';
 
+type Selectors = {sourceSha: string; platform: string; packageName: string};
+type Member = {path: string; bytes: number; mode: number; sha256: string};
+// Unchecked metadata views. Exact shape, selector and canonical-wire checks stay below.
+type ProductMembers = Selectors & {files: Member[]};
+type Kind = 'file' | 'directory';
+type Directory = {path: string; entries: {name: string; kind: Kind}[]};
+
 export const PRODUCT_MEMBERS_FILE = 'local-product-members.json';
 // One closed private launcher selector. OS-package selectors remain singular.
 export const DUAL_LOCAL_LAUNCHER_PLATFORM = 'darwin-arm64+linux-x64-gnu';
 const component = /^[A-Za-z0-9_.-]{1,128}$/u;
-const exact = (value, names) => {
+const exact = (value: unknown, names: readonly string[]) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
   assert.deepEqual(Object.keys(value).sort(), [...names].sort());
 };
-const parts = path => {
+const parts = (path: string) => {
   assert.equal(typeof path, 'string');
   const result = path.split('/');
   // The formal CLI payload consists of root files and one-level directories.
@@ -20,7 +27,7 @@ const parts = path => {
   for (const part of result) assert(component.test(part) && part !== '.' && part !== '..');
   return result;
 };
-const selectors = value => {
+const selectors = (value: Selectors) => {
   assert.match(value.sourceSha, /^[a-f0-9]{40}$/u);
   const single = ['darwin-arm64', 'linux-x64-gnu'].includes(value.platform);
   assert(single || (value.platform === DUAL_LOCAL_LAUNCHER_PLATFORM && value.packageName === 'actql'));
@@ -30,7 +37,7 @@ const selectors = value => {
 // The input entries are the existing formal inventory's path/bytes/mode/hash.
 // Canonical private bytes bind metadata only; source labels need independent
 // release/runtime correspondence and every member still needs physical checks.
-export function productMembersBody(value) {
+export function productMembersBody(value: ProductMembers) {
   exact(value, ['sourceSha', 'platform', 'packageName', 'files']);
   selectors(value);
   assert(Array.isArray(value.files) && value.files.length > 0);
@@ -56,14 +63,14 @@ export function productMembersBody(value) {
 
 // Reject duplicates, alternate encodings and extra fields before returning
 // metadata. The expected selectors are comparison inputs, not trusted permits.
-export function readProductMembers(wire, expected) {
+export function readProductMembers(wire: string, expected: Selectors) {
   assert.equal(typeof wire, 'string');
   assert(Buffer.byteLength(wire) <= 65536);
   exact(expected, ['sourceSha', 'platform', 'packageName']);
   selectors(expected);
-  const value = JSON.parse(wire);
+  const value = JSON.parse(wire) as ProductMembers;
   assert.equal(productMembersBody(value), wire);
-  for (const field of ['sourceSha', 'packageName']) assert.equal(value[field], expected[field]);
+  for (const field of ['sourceSha', 'packageName'] as const) assert.equal(value[field], expected[field]);
   assert(value.platform === expected.platform || (value.platform === DUAL_LOCAL_LAUNCHER_PLATFORM &&
     value.packageName === 'actql' && ['darwin-arm64', 'linux-x64-gnu'].includes(expected.platform)),
   'Launcher descriptor does not include the exact selected platform');
@@ -73,15 +80,15 @@ export function readProductMembers(wire, expected) {
 // Derived bounded census inputs only. No arbitrary directory names are read or
 // retained here. The descriptor's one self-hash exception is still a required
 // file, whose bytes/generation/digest must be verified by the physical Owner.
-export function productMembersCensus(value) {
-  const descriptor = JSON.parse(productMembersBody(value));
-  const directories = new Map([['', new Map([[PRODUCT_MEMBERS_FILE, 'file']])]]);
+export function productMembersCensus(value: ProductMembers): Directory[] {
+  const descriptor = JSON.parse(productMembersBody(value)) as ProductMembers;
+  const directories = new Map<string, Map<string, Kind>>([['', new Map<string, Kind>([[PRODUCT_MEMBERS_FILE, 'file']])]]);
   for (const entry of descriptor.files) {
     const names = parts(entry.path);
     let parent = '';
     for (let index = 0; index < names.length; index++) {
       const name = names[index], kind = index + 1 === names.length ? 'file' : 'directory';
-      const entries = directories.get(parent), existing = entries.get(name);
+      const entries = directories.get(parent)!, existing = entries.get(name);
       assert(existing === undefined || existing === kind, 'A file cannot also be a directory');
       entries.set(name, kind);
       if (kind === 'directory') {
@@ -95,7 +102,7 @@ export function productMembersCensus(value) {
       .map(([name, kind]) => ({name, kind}))}));
 }
 
-const absolute = path => {
+const absolute = (path: string) => {
   assert.equal(typeof path, 'string');
   assert(path.startsWith('/') && !path.endsWith('/') && !path.includes('//') && !path.includes('\0'));
   assert(!path.split('/').some(v => v === '.' || v === '..'));
@@ -104,7 +111,7 @@ const absolute = path => {
 // Compare the existing launcher's exact selected optional package location.
 // These strings do not authenticate a Root, permit node_modules generally or
 // verify a symlink. Physical OriginalRoots must independently establish them.
-export function selectedPlatformPlacement(launcherRoot, platformRoot, platform) {
+export function selectedPlatformPlacement(launcherRoot: string, platformRoot: string, platform: string) {
   absolute(launcherRoot);
   absolute(platformRoot);
   assert(['darwin-arm64', 'linux-x64-gnu'].includes(platform));
@@ -121,9 +128,9 @@ export function selectedPlatformPlacement(launcherRoot, platformRoot, platform) 
 // opened and no OriginalRoot/witness is constructed. In the nested layout the
 // dependency route is checked separately from the platform payload Root; it is
 // not an exemption for arbitrary node_modules content or another package.
-export function installedProductCensus(launcher, platform, launcherRoot, platformRoot) {
-  const launcherValue = JSON.parse(productMembersBody(launcher));
-  const platformValue = JSON.parse(productMembersBody(platform));
+export function installedProductCensus(launcher: ProductMembers, platform: ProductMembers, launcherRoot: string, platformRoot: string) {
+  const launcherValue = JSON.parse(productMembersBody(launcher)) as ProductMembers;
+  const platformValue = JSON.parse(productMembersBody(platform)) as ProductMembers;
   assert.equal(launcherValue.packageName, 'actql');
   assert.equal(platformValue.packageName, `@actql/cli-${platformValue.platform}`);
   assert.equal(platformValue.sourceSha, launcherValue.sourceSha);

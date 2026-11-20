@@ -4,6 +4,10 @@ import test from 'node:test';
 import {PRODUCT_MEMBERS_FILE, productMembersBody, readProductMembers,
   productMembersCensus, selectedPlatformPlacement, installedProductCensus} from '../packages/native-cli/lib/product-members.mjs';
 
+// Deliberately malformed fixture DATA still reaches the unchanged runtime validators.
+type UncheckedBody = (value: unknown) => ReturnType<typeof productMembersBody>;
+type UncheckedReader = (wire: string, expected: unknown) => ReturnType<typeof readProductMembers>;
+
 const expected = {sourceSha: 'a'.repeat(40), platform: 'darwin-arm64', packageName: 'actql'};
 const record = {...expected, files: [
   {path: 'LICENSE', bytes: 3, mode: 420, sha256: 'b'.repeat(64)},
@@ -26,7 +30,7 @@ test('reader preserves exact source, platform, package and canonical input', () 
     literal.replace('"bytes":3', '"bytes":3.0'), literal.replace('LICENSE', '\\u004cICENSE')]) {
     assert.throws(() => readProductMembers(wire, expected));
   }
-  assert.throws(() => readProductMembers(literal, {...expected, allow: true}));
+  assert.throws(() => (readProductMembers as UncheckedReader)(literal, {...expected, allow: true}));
 });
 
 test('self exclusion is one exact root path but physical census still requires it', () => {
@@ -42,16 +46,16 @@ test('self exclusion is one exact root path but physical census still requires i
   extra.files[2].path = `${PRODUCT_MEMBERS_FILE}.bak`;
   assert(productMembersCensus(extra)[0].entries.some(v => v.name === `${PRODUCT_MEMBERS_FILE}.bak`));
   extra.files[2].path = `lib/${PRODUCT_MEMBERS_FILE}`;
-  assert(productMembersCensus(extra).find(v => v.path === 'lib').entries.some(v => v.name === PRODUCT_MEMBERS_FILE));
+  assert(productMembersCensus(extra).find(v => v.path === 'lib')!.entries.some(v => v.name === PRODUCT_MEMBERS_FILE));
 });
 
 test('closed inventory rejects unknown, duplicate, unsorted or malformed fields', () => {
-  assert.throws(() => productMembersBody({...record, grant: true}));
+  assert.throws(() => (productMembersBody as UncheckedBody)({...record, grant: true}));
   assert.throws(() => productMembersBody({...record, packageName: '@actql/cli-linux-x64-gnu'}));
   assert.throws(() => productMembersBody({...record, sourceSha: 'A'.repeat(40)}));
   assert.throws(() => productMembersBody({...record, files: [...record.files].reverse()}));
   assert.throws(() => productMembersBody({...record, files: [record.files[0], record.files[0]]}));
-  assert.throws(() => productMembersBody({...record, files: [{...record.files[0], unknown: 0}]}));
+  assert.throws(() => (productMembersBody as UncheckedBody)({...record, files: [{...record.files[0], unknown: 0}]}));
   for (const sha256 of ['B'.repeat(64), 'c'.repeat(63), `sha256:${'c'.repeat(64)}`]) {
     assert.throws(() => productMembersBody({...record, files: [{...record.files[0], sha256}]}));
   }
@@ -72,10 +76,10 @@ test('same-root finite paths cannot escape, recurse or conflict with file kinds'
 
 test('intake/numeric limits never coerce invalid values or declare workspace Allow', () => {
   for (const bytes of [-1, 67108865, '3', NaN, Infinity]) {
-    assert.throws(() => productMembersBody({...record, files: [{...record.files[0], bytes}]}));
+    assert.throws(() => (productMembersBody as UncheckedBody)({...record, files: [{...record.files[0], bytes}]}));
   }
   for (const mode of [-1, 512, '420', 420.5]) {
-    assert.throws(() => productMembersBody({...record, files: [{...record.files[0], mode}]}));
+    assert.throws(() => (productMembersBody as UncheckedBody)({...record, files: [{...record.files[0], mode}]}));
   }
   assert.throws(() => readProductMembers(' '.repeat(65537), expected));
   assert.throws(() => productMembersBody({...record, files: Array(1638).fill(record.files[0])}));
