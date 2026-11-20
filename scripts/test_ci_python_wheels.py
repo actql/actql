@@ -958,12 +958,14 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
         self.assertEqual(result['refusal_code'], -3)
         self.assertIs(work._future.exception(timeout=0), primary)
 
-    def test_only_failed_sync_initial_cancellation_selects_optional_observer(self):
+    def test_only_initial_local_cancellation_facades_select_optional_observer(self):
         module, *_ = self.fixture()
         primary = RuntimeError('same consumer failure')
         base = ['python-product-installed.py', '--mode', 'local', '--facade', 'sync',
                 '--case', 'cancellation', '--phase', 'initial']
-        for replacements, expected in [({}, True), ({'sync': 'async'}, False),
+        for replacements, expected in [({}, True), ({'sync': 'async'}, True),
+                                        ({'sync': 'unknown'}, False),
+                                        ({'local': 'remote'}, False),
                                         ({'initial': 'resume'}, False),
                                         ({'cancellation': 'execution'}, False)]:
             args = [replacements.get(value, value) for value in base]

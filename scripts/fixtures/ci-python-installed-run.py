@@ -493,14 +493,14 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
 
 
 def run_consumer(target: Path) -> None:
-    # Only this original failed case selects the optional observation. Existing
+    # Only these original failed cases select the optional observation. Existing
     # profilers are never replaced, and setup failure cannot prevent execution.
     args = sys.argv[1:]
     selected = target.name == 'python-product-installed.py' and all(
         args.count(flag) == 1 and args.index(flag) + 1 < len(args)
-        and args[args.index(flag) + 1] == expected
-        for flag, expected in (('--mode', 'local'), ('--facade', 'sync'),
-                               ('--case', 'cancellation'), ('--phase', 'initial')))
+        and args[args.index(flag) + 1] in expected
+        for flag, expected in (('--mode', ('local',)), ('--facade', ('sync', 'async')),
+                               ('--case', ('cancellation',)), ('--phase', ('initial',))))
     observer = None
     if selected:
         try:
