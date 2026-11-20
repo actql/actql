@@ -8,6 +8,7 @@ import {readSourceProfileJson} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
+import {retainBoundInstalledSourceFailure} from './installed-host-services.mjs';
 
 async function fixture(t, {body = '{}', mode = 'false', failOpen = 1,
   failRead = false, readFailure,
@@ -237,3 +238,59 @@ for (const afterLoad of [false, true]) {
     assert.equal(closed, afterLoad ? 1 : 0);
   });
 }
+
+test('standalone Source identity failure retains the same adapter through pending close', async t => {
+  const version = 'actql-installed-custody-counter/0.1';
+  const f = await fixture(t, {body: JSON.stringify({version}), failOpen: 2});
+  const closeFailure = Object.freeze(new Error('OriginalAdapterCloseFailure'));
+  let loads = 0, closes = 0, allowAdapterClose = false;
+  const adapter = Object.freeze({close() {
+    assert.equal(this, adapter);
+    closes++;
+    if (!allowAdapterClose) throw closeFailure;
+  }});
+  const connectorTable = createInstalledConnectorTable([{name: 'custody_counter', source: {
+    profileVersion: version, load: async () => ({
+      check: value => value,
+      identityParts: async profile => [profile],
+      load: async () => {loads++; return adapter;},
+    }),
+  }}]);
+  let failure;
+  await assert.rejects(loadInstalledSource(f.path, {connectorTable}), error => {
+    failure = error;
+    assert.equal(error.cleanupPending, true);
+    return true;
+  });
+  const originalFailure = failure.primaryFailure;
+  assert.equal(loads, 1);
+  assert.equal(closes, 0, 'the original configuration FD must retire first');
+  f.state.allowClose = true;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.primaryFailure, originalFailure);
+  assert.equal(failure.cleanupPending, true);
+  assert.deepEqual(failure.cleanupHandle.status().owners, ['source-profile']);
+  assert.equal(closes, 1);
+  assert.equal(failure.cleanupHandle.status().errors.at(-1).error, closeFailure);
+  await assert.rejects(f.state.handles[0].stat(), {code: 'EBADF'});
+  const opens = f.state.opens, reads = f.state.reads;
+  allowAdapterClose = true;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupPending, false);
+  assert.equal(closes, 2);
+  await failure.cleanupHandle.retry();
+  assert.equal(closes, 2, 'completed retirement never repeats adapter close');
+  assert.equal(loads, 1);
+  assert.equal(f.state.opens, opens);
+  assert.equal(f.state.reads, reads);
+});
+
+test('an unrecognized bound Source context cannot claim a returned adapter', async () => {
+  const primary = Object.freeze(new Error('OriginalBoundInitializationFailure'));
+  let closes = 0;
+  const foreign = Object.freeze({close() {closes++;}});
+  const failure = await retainBoundInstalledSourceFailure(Object.freeze({}), primary, foreign);
+  assert.equal(failure.primaryFailure, primary);
+  assert.equal(failure.cleanupPending, false);
+  assert.equal(closes, 0);
+});
