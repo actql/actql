@@ -15,39 +15,52 @@ import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {checkedOriginalInterface} from './check-interface-owners.mjs';
 
-const inside = path => typeof path === 'string' && path.length && !isAbsolute(path) &&
+import type {BinaryLike} from 'node:crypto';
+import type {BuildResult, Metafile, PluginBuild} from 'esbuild';
+
+type Inventory = ReturnType<typeof installedInterfaceInventory>;
+type Artifacts = Inventory['artifacts'];
+type Coverage = Parameters<typeof interfaceOwnerCoverage>[0];
+type Binding = {member: string; source: string; transform?: 'local-node-public-imports'};
+type CorrespondenceOptions = {repository: string; directory: string; source: string;
+  bindings: readonly Binding[]; artifacts?: readonly Artifacts[number][]; owners: Coverage['owners'];
+  generated?: Coverage['generated']; checkedSource?: object};
+type DependencyOptions = {directory: string; modules: readonly {module: string}[];
+  artifacts?: readonly Artifacts[number][]; runtimeBindings?: readonly {module: string; targets: readonly string[]}[]};
+
+const inside = (path: string) => typeof path === 'string' && path.length && !isAbsolute(path) &&
   !path.split(/[\\/]/u).includes('..');
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 
 // Runtime paths remain package identities. For emitted members, derive the
 // expected bytes from the selected Git source and the same compiler options
 // as preparation. The working .mjs is never an input to this derivation.
-function installedOriginalBytes(repository, source, selected) {
-  const git = args => execFileSync('git', args,
+function installedOriginalBytes(repository: string, source: string, selected: readonly string[]) {
+  const git = (args: readonly string[]) => execFileSync('git', args,
     {cwd: repository, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
-  const blob = path => git(['show', `${source}:${path}`]);
+  const blob = (path: string) => git(['show', `${source}:${path}`]);
   const runtimePaths = [...new Set(selected.filter(path => path.endsWith('.mjs')))];
-  const authoredPath = path => path.slice(0, -4) + '.mts';
-  let tracked, config, included;
-  return path => {
+  const authoredPath = (path: string) => path.slice(0, -4) + '.mts';
+  let tracked: Set<string> | undefined, config: ts.ParsedCommandLine | undefined, included: Set<string> | undefined;
+  return (path: string) => {
     try { return blob(path); }
     catch (error) {
-      if (!path.endsWith('.mjs') || error.status !== 128) throw error;
+      if (!path.endsWith('.mjs') || (error as {status?: number}).status !== 128) throw error;
       tracked ??= new Set(git(['--literal-pathspecs', 'ls-tree', '-r', '--name-only', '-z',
         source, '--', ...runtimePaths, ...runtimePaths.map(authoredPath)]).toString('utf8').split('\0'));
       if (tracked.has(path) || !tracked.has(authoredPath(path))) throw error;
     }
     if (!config) {
-      const preparation = new Map();
+      const preparation = new Map<string, string>();
       for (const file of ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json']) {
         const path = resolve(repository, file), original = blob(file);
         assert(readFileSync(path).equals(original), `Changed TypeScript preparation input: ${file}`);
         preparation.set(path, original.toString('utf8'));
       }
-      const lock = JSON.parse(preparation.get(resolve(repository, 'package-lock.json')));
+      const lock = JSON.parse(preparation.get(resolve(repository, 'package-lock.json'))!) as {packages: Record<string, {version: string}>};
       assert.equal(ts.version, lock.packages['node_modules/typescript'].version,
         'TypeScript emitter differs from the original package lock');
-      const readConfig = path => preparation.get(resolve(repository, path));
+      const readConfig = (path: string) => preparation.get(resolve(repository, path));
       const file = resolve(repository, 'tsconfig.tooling.json');
       const read = ts.readConfigFile(file, readConfig);
       assert(!read.error, 'Invalid original TypeScript preparation config');
@@ -59,7 +72,7 @@ function installedOriginalBytes(repository, source, selected) {
       included = new Set(config.fileNames);
     }
     const authored = authoredPath(path), fileName = resolve(repository, authored);
-    assert(included.has(fileName), `Unselected TypeScript package source: ${authored}`);
+    assert(included!.has(fileName), `Unselected TypeScript package source: ${authored}`);
     const emitted = ts.transpileModule(blob(authored).toString('utf8'), {
       fileName, compilerOptions: config.options, reportDiagnostics: true,
     });
@@ -70,9 +83,9 @@ function installedOriginalBytes(repository, source, selected) {
 }
 
 export function installedInterfaceCorrespondence({repository, directory, source,
-  bindings, artifacts = [], owners, generated = [], checkedSource}) {
+  bindings, artifacts = [], owners, generated = [], checkedSource}: CorrespondenceOptions) {
   assert.match(source, /^[a-f0-9]{40}$/u);
-  const byMember = new Map();
+  const byMember = new Map<string, Binding>();
   for (const binding of bindings) {
     assert(inside(binding.member) && inside(binding.source), 'Escaped installed interface binding');
     assert(!byMember.has(binding.member), `Duplicate installed interface binding: ${binding.member}`);
@@ -99,7 +112,7 @@ export function installedInterfaceCorrespondence({repository, directory, source,
   const bySource = new Map(original.map(module => [module.module, module]));
   const originalBytes = installedOriginalBytes(repository, source, selected);
   const actual = installed.modules.map(module => {
-    const binding = byMember.get(module.module), input = bySource.get(binding.source);
+    const binding = byMember.get(module.module)!, input = bySource.get(binding.source);
     assert(input, `Missing original authored interface: ${binding.source}`);
     const bytes = originalBytes(binding.source);
     if (checkedSource) assert.equal(input.sha256, digest(bytes),
@@ -109,7 +122,7 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert.equal(module.sha256, digest(expected), `Changed installed interface bytes: ${module.module}`);
     assert.deepEqual(module.exports, input.exports, `Changed installed interface exports: ${module.module}`);
     assert.deepEqual(module.operations, input.operations, `Changed installed interface operations: ${module.module}`);
-    assert.deepEqual(module.compilerFields ?? [], input.compilerFields ?? [],
+    assert.deepEqual((module as {compilerFields?: readonly string[]}).compilerFields ?? [], input.compilerFields ?? [],
       `Changed installed compiler representation: ${module.module}`);
     return input;
   });
@@ -121,9 +134,9 @@ export function installedInterfaceCorrespondence({repository, directory, source,
 
 // Resolve real installed files with the existing packaging resolver. Compiled
 // members are exact, already admitted artifact references, never parsed helpers.
-export async function assertInstalledDependencyClosure({directory, modules, artifacts = [], runtimeBindings = []}) {
+export async function assertInstalledDependencyClosure({directory, modules, artifacts = [], runtimeBindings = []}: DependencyOptions) {
   const root = realpathSync(directory), compiled = new Set(artifacts.map(value => resolve(root, value.module)));
-  const inside = path => !isAbsolute(relative(root, path)) && !relative(root, path).startsWith('..');
+  const inside = (path: string) => !isAbsolute(relative(root, path)) && !relative(root, path).startsWith('..');
   // Declaration files retain their full syntax/source/Owner correspondence,
   // but do not emit runtime code. Actual value imports still use the resolver
   // below, so this cannot exempt a runtime dependency on a declaration file.
@@ -136,19 +149,19 @@ export async function assertInstalledDependencyClosure({directory, modules, arti
     if (!compiled.has(path) && !entries.includes(path)) entries.push(path);
   }
   if (!entries.length) return {modules: 0, qualification: 'no-JavaScript-installed-members'};
-  let graph;
+  let graph: BuildResult<{metafile: true}>;
   try {
     graph = await build({absWorkingDir: root, entryPoints: entries, bundle: true, packages: 'external',
       platform: 'node', format: 'esm', target: 'node22', write: false, metafile: true,
       outdir: resolve(root, '.unused-interface-dependency-graph'), logLevel: 'silent',
-      plugins: [{name: 'original-installed-compiled-members', setup(builder) {
+      plugins: [{name: 'original-installed-compiled-members', setup(builder: PluginBuild) {
         builder.onResolve({filter: /^\./}, argument => {
           const path = resolve(dirname(argument.importer), argument.path);
           if (compiled.has(path)) return {path, external: true};
         });
       }}]});
   } catch (failure) {
-    if (failure.errors?.length && failure.errors.every(value => /^Could not resolve /u.test(value.text))) {
+    if ((failure as {errors?: {text: string}[]}).errors?.length && (failure as {errors: {text: string}[]}).errors.every(value => /^Could not resolve /u.test(value.text))) {
       assert.fail('Unresolved installed interface dependency');
     }
     throw failure;
@@ -165,7 +178,7 @@ export async function assertInstalledDependencyClosure({directory, modules, arti
 
 // Validate the actual bundled graph, not the SDK's private module inventory.
 // Generated pure codecs may grow inside these two lightweight packages.
-export function assertRemoteBrowserDependencyBoundary(metadata) {
+export function assertRemoteBrowserDependencyBoundary(metadata: Pick<Metafile, 'inputs' | 'outputs'>) {
   const inputs = Object.entries(metadata.inputs), outputs = Object.values(metadata.outputs);
   assert(inputs.length && outputs.length, 'Remote browser bundle graph must be nonempty');
   assert(inputs.some(([path]) => path.replaceAll('\\', '/') ===

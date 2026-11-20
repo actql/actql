@@ -803,3 +803,9 @@ target/
 /scripts/native-cli-project-cleanup.test.d.mts
 /scripts/native-cli-project-scaffold.test.mjs
 /scripts/native-cli-project-scaffold.test.d.mts
+
+# Emitted from the authored interface projection and correspondence.
+/scripts/interface-owner-source-projection.mjs
+/scripts/interface-owner-source-projection.d.mts
+/scripts/installed-interface-correspondence.mjs
+/scripts/installed-interface-correspondence.d.mts
