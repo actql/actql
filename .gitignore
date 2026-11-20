@@ -855,3 +855,5 @@ target/
 /scripts/check-canonical-json.d.mts
 /scripts/canonical-json.test.mjs
 /scripts/canonical-json.test.d.mts
+/scripts/native-local-scalar-pair-evidence.mjs
+/scripts/native-local-scalar-pair-evidence.d.mts

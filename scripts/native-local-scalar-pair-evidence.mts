@@ -9,28 +9,48 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, resolvePointer} from './check-canonical-json.mjs';
+import type {BinaryLike} from 'node:crypto';
+import type {validateLocalRuntimeManifest} from '../packages/native-cli/lib/local-runtime.mjs';
+
+// The fixture bytes and exact identity/closure checks establish these
+// originals. Structural views only describe the JSON accessed here.
+type Data = Record<string, unknown>;
+type EvidenceRecord = {role: string; path: string; fixture: string; bytes: number; sha256: string};
+type EvidenceIndex = {source: string; runtime_sha256: string; receipt_sha256: string;
+  records: EvidenceRecord[]; implementation_records: EvidenceRecord[]};
+type TextTimeDependencies = Data & {unicode_semantics: {data_cid: string; expansion: unknown};
+  regex_grammar: {ast_schema_cid: string; replacement_ast_schema_cid: string};
+  timestamp_pattern_grammar: {ast_schema_cid: string}};
+type ScalarSide = Data & {registry: Data; ordered: {dependencies: {derive_binding: {cid: string}};
+  schemas: {context: {$defs: unknown}; shape: {$defs: unknown}}};
+  'value-contract': {$defs: unknown}; 'text-time-dependencies': TextTimeDependencies;
+  'text-time': {data_contract_cids: Record<string, string>}; 'unicode-data': {expansion: unknown}};
+type ReviewedSide = {version: string; source: string; bodies: ScalarSide; assets: Record<string, string>};
+type LocalRuntime = Parameters<typeof validateLocalRuntimeManifest>[0];
+type IdentityPairs = Readonly<Record<string, readonly [string, string]>>;
+type Edge = readonly [string, string, string];
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const predecessor = '109564ef9a4f8241096292843b875d4c81fbb6f3';
 const fixtureDirectory = 'scripts/fixtures/native-local-scalar-predecessor';
-const sha = value => createHash('sha256').update(value).digest('hex');
-const cid = hash => 'sha256:' + hash;
+const sha = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
+const cid = (hash: string) => 'sha256:' + hash;
 // This is the reviewed side of a historical pair, not the installation's
 // latest default assets. Keep the complete original bodies and bytes bound
 // to their source; newer contracts require an independent compatibility proof.
-function reviewedCurrentSide(sourceRoot) {
+function reviewedCurrentSide(sourceRoot: string) {
   const packed = readFileSync(resolve(sourceRoot,
     'scripts/fixtures/native-local-scalar-reviewed-current.json.gz'));
   assert.equal(sha(packed), '934bb2c194ff7c668fe91d6b30e8b5b2167a3cb542d38f7de751cba10cfa81d1');
   const bytes = gunzipSync(packed, {maxOutputLength: 773119});
   assert.equal(bytes.length, 773119);
   assert.equal(sha(bytes), '0cfad9f8abef5795b79b6be2e8078ffc06423cabef90027e0fb17b19ff41cc3b');
-  const side = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes));
+  const side = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes)) as ReviewedSide;
   assert.equal(side.version, 'actql-native-local-reviewed-scalar-pair-side/0.1');
   assert.equal(side.source, 'd062aa0f5992d3e2bf3fe4b9acac1f0ff34d26d0');
   return side;
 }
-function reviewedCurrentAssets(sourceRoot) {
+function reviewedCurrentAssets(sourceRoot: string) {
   const {assets} = reviewedCurrentSide(sourceRoot);
   assert.deepEqual(Object.keys(assets).sort(), Object.keys(assetIdentities).sort());
   return new Map(Object.entries(assets).map(([role, wire]) => {
@@ -40,7 +60,7 @@ function reviewedCurrentAssets(sourceRoot) {
 }
 // These complete identities are witnesses of the reviewed pair, not a
 // registry of interchangeable CIDs. A different body requires another proof.
-const identities = Object.freeze({
+const identities: IdentityPairs = Object.freeze({
   registry: ['b79f24b0c777c4b9d533ef01289587e666caa7a6ba00159f6b45f3e57265f04e', 'a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041'],
   values: ['9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b', '6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7'],
   fragment: ['9f0694ddd7c76d720024297fce02652bb15f5dad8b278d3db9ff58936a976b87', '1e327eb9f007372c835c82f8c2e17b3ad7feed8bf45ddee035340892d973cbeb'],
@@ -54,7 +74,7 @@ const identities = Object.freeze({
   'rows-to-graph': ['b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210', 'd567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282'],
 });
 
-const assetIdentities = Object.freeze({
+const assetIdentities: IdentityPairs = Object.freeze({
   "environment": [
     "e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c",
     "e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c"
@@ -82,7 +102,7 @@ const assetIdentities = Object.freeze({
 });
 
 const referenceSuffix = '/$defs/value_contract/oneOf/7/properties/type/const';
-const referenceChanges = Object.freeze({
+const referenceChanges: Readonly<Record<string, readonly string[]>> = Object.freeze({
   registry: [], values: [], fragment: [],
   ordered: ['/schemas/context' + referenceSuffix, '/schemas/shape' + referenceSuffix],
   expression: [
@@ -103,7 +123,7 @@ const referenceChanges = Object.freeze({
 
 // Resolve every changed dependency from its actual before/after body, rather
 // than masking CID fields or ignoring the inherited profile pin.
-const changedEdges = Object.freeze({
+const changedEdges: Readonly<Record<string, readonly Edge[]>> = Object.freeze({
   registry: [
     ['/REL.derive/execution_extensions/ordered_bindings/cid', 'ordered', ''],
     ['/BRIDGE.rows.to_graph/execution_contract/cid', 'rows-to-graph', ''],
@@ -127,16 +147,16 @@ const changedEdges = Object.freeze({
   'rows-to-graph': [['/dependencies/canonical_value_contract/cid', 'value-contract', '']],
 });
 
-function loadReviewedScalarPairBodies(sourceRoot, requireCurrentImplementation) {
-  const read = path => readFileSync(resolve(sourceRoot, path));
+function loadReviewedScalarPairBodies(sourceRoot: string, requireCurrentImplementation: boolean) {
+  const read = (path: string) => readFileSync(resolve(sourceRoot, path));
   const manifest = read(fixtureDirectory + '/manifest.json');
   assert.equal(sha(manifest), '75bee505552e9e6958be5a20bac877b2d69664ba70aad7f7970bc506bfbc992b', 'Changed predecessor fixture metadata');
-  const index = JSON.parse(manifest);
+  const index = JSON.parse(manifest as unknown as string) as EvidenceIndex;
   assert.equal(index.source, predecessor);
   assert.equal(index.receipt_sha256, '7442fb6637fef2b797116c6d87d89d25351cef5dd686b3120910e528af1ef0d1');
   assert.equal(index.runtime_sha256, '80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd');
   assert.deepEqual(index.records.map(row => row.role).sort(), Object.keys(identities).sort());
-  const old = {}, current = reviewedCurrentSide(sourceRoot).bodies;
+  const old = {} as ScalarSide, current = reviewedCurrentSide(sourceRoot).bodies;
   const implementations = [];
   for (const row of index.implementation_records) {
     assert.match(row.fixture, /^scalar-code-[0-9]+\.mbt\.gz$/);
@@ -160,12 +180,12 @@ function loadReviewedScalarPairBodies(sourceRoot, requireCurrentImplementation) 
   return {old, current, implementations};
 }
 
-function replaceExact(body, pointer, before, after) {
+function replaceExact(body: unknown, pointer: string, before: unknown, after: unknown) {
   assert.deepEqual(resolvePointer(body, pointer), before, 'Wrong original proof leaf ' + pointer);
   const parts = pointer.split('/').slice(1).map(x => x.replaceAll('~1', '/').replaceAll('~0', '~'));
   let parent = body;
-  for (const part of parts.slice(0, -1)) parent = parent[part];
-  parent[parts.at(-1)] = after;
+  for (const part of parts.slice(0, -1)) parent = (parent as Data)[part];
+  (parent as Data)[parts.at(-1)!] = after;
 }
 
 // Frozen proof integrity has a different subject from operational eligibility.
@@ -178,7 +198,7 @@ export function loadScalarPairBodies(sourceRoot = repository) {
   return loadReviewedScalarPairBodies(sourceRoot, true);
 }
 
-export function verifyScalarPairBodies({old, current}) {
+export function verifyScalarPairBodies({old, current}: {old: ScalarSide; current: ScalarSide}) {
   assert.deepEqual(Object.keys(old).sort(), Object.keys(identities).sort());
   assert.deepEqual(Object.keys(current).sort(), Object.keys(identities).sort());
   for (const [role, [before, after]] of Object.entries(identities)) {
@@ -245,10 +265,10 @@ export function scalarPairEvidence(sourceRoot = repository) {
   const bodies = loadHistoricalScalarPairBodies(sourceRoot);
   const records = verifyScalarPairBodies(bodies);
   const currentAssets = reviewedCurrentAssets(sourceRoot);
-  const index = JSON.parse(readFileSync(resolve(sourceRoot, fixtureDirectory + '/manifest.json')));
+  const index = JSON.parse(readFileSync(resolve(sourceRoot, fixtureDirectory + '/manifest.json')) as unknown as string) as EvidenceIndex;
   for (const [role, pair] of Object.entries(assetIdentities)) {
-    assert.equal(sha(currentAssets.get(role)), pair[1], 'Unknown current asset bytes: ' + role);
-    if (bodies.old[role]) assert.equal(index.records.find(row => row.role === role).sha256, pair[0]);
+    assert.equal(sha(currentAssets.get(role)!), pair[1], 'Unknown current asset bytes: ' + role);
+    if (bodies.old[role]) assert.equal(index.records.find(row => row.role === role)!.sha256, pair[0]);
   }
   return {
     version: 'actql-native-local-scalar-pair-evidence/0.1',
@@ -287,42 +307,42 @@ export function scalarPairSource(sourceRoot = repository) {
     '// Build-time body proof only; no physical custody or authority is issued.\n\n///|\n' +
     'fn native_local_scalar_pair_evidence_wire() -> String {\n  ' + JSON.stringify(wire) + '\n}\n\n///|\n' +
     'fn native_local_scalar_pair_evidence_cid() -> String {\n  ' + JSON.stringify(machineCid(evidence)) + '\n}\n' +
-    ['original', 'current'].map(side => '\n///|\nfn native_local_scalar_pair_' + side + '_asset_hash(role : String) -> String? {\n  match role {\n' +
-      evidence.asset_pairs.map(row => '    ' + JSON.stringify(row.role) + ' =>\n      Some(' + JSON.stringify(row[side + '_sha256']) + ')\n').join('') +
+    (['original', 'current'] as const).map(side => '\n///|\nfn native_local_scalar_pair_' + side + '_asset_hash(role : String) -> String? {\n  match role {\n' +
+      evidence.asset_pairs.map(row => '    ' + JSON.stringify(row.role) + ' =>\n      Some(' + JSON.stringify(row[(side + '_sha256') as 'original_sha256' | 'current_sha256']) + ')\n').join('') +
       '    _ => None\n  }\n}\n').join('');
 }
 
 // Retained inputs for metadata tests, never authenticated installation state.
 export function scalarPairRuntimeFixture(sourceRoot = repository) {
-  const read = name => gunzipSync(readFileSync(resolve(sourceRoot, fixtureDirectory + '/' + name + '.json.gz')));
+  const read = (name: string) => gunzipSync(readFileSync(resolve(sourceRoot, fixtureDirectory + '/' + name + '.json.gz')));
   const originalRuntime = read('local-runtime');
   assert.equal(sha(originalRuntime), '80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd');
   const originalAssets = new Map(Object.keys(assetIdentities).map(role => [role, read(role)]));
   const currentAssets = reviewedCurrentAssets(sourceRoot);
   for (const [role, pair] of Object.entries(assetIdentities)) {
-    assert.equal(sha(originalAssets.get(role)), pair[0]);
-    assert.equal(sha(currentAssets.get(role)), pair[1]);
+    assert.equal(sha(originalAssets.get(role)!), pair[0]);
+    assert.equal(sha(currentAssets.get(role)!), pair[1]);
   }
-  const candidate = JSON.parse(originalRuntime);
+  const candidate = JSON.parse(originalRuntime as unknown as string) as LocalRuntime;
   // This source identity is deliberately synthetic. No current physical
   // package or installed compatibility success is claimed by these tests.
   candidate.sourceSha = 'b'.repeat(40);
   for (const asset of candidate.assets) {
-    asset.bytes = currentAssets.get(asset.role).length;
-    asset.sha256 = sha(currentAssets.get(asset.role));
+    asset.bytes = currentAssets.get(asset.role)!.length;
+    asset.sha256 = sha(currentAssets.get(asset.role)!);
   }
   const fields = ['environment', 'registry', 'values', 'fragment'];
   return '// Generated retained test inputs; not adoption originals or runtime authority.\n' +
     '\n///|\nfn scalar_pair_test_original_runtime_wire() -> String {\n  ' + JSON.stringify(originalRuntime.toString('utf8')) + '\n}\n' +
     '\n///|\nfn scalar_pair_test_current_runtime_wire() -> String {\n  ' + JSON.stringify(JSON.stringify(candidate)) + '\n}\n' +
     '\n///|\nfn scalar_pair_test_original_assets() -> ClientLocalProductAssets {\n  {\n' +
-    fields.map(role => '    ' + role + ': ' + JSON.stringify(originalAssets.get(role).toString('utf8')) + ',\n').join('') +
-    '    ordered: Some(\n      ' + JSON.stringify(originalAssets.get('ordered').toString('utf8')) + ',\n    ),\n' +
-    '    result_policy: ' + JSON.stringify(originalAssets.get('result-policy').toString('utf8')) + ',\n  }\n}\n' +
+    fields.map(role => '    ' + role + ': ' + JSON.stringify(originalAssets.get(role)!.toString('utf8')) + ',\n').join('') +
+    '    ordered: Some(\n      ' + JSON.stringify(originalAssets.get('ordered')!.toString('utf8')) + ',\n    ),\n' +
+    '    result_policy: ' + JSON.stringify(originalAssets.get('result-policy')!.toString('utf8')) + ',\n  }\n}\n' +
     '\n///|\nfn scalar_pair_test_reviewed_current_assets() -> ClientLocalProductAssets {\n  {\n' +
-    fields.map(role => '    ' + role + ': ' + JSON.stringify(currentAssets.get(role).toString('utf8')) + ',\n').join('') +
-    '    ordered: Some(\n      ' + JSON.stringify(currentAssets.get('ordered').toString('utf8')) + ',\n    ),\n' +
-    '    result_policy: ' + JSON.stringify(currentAssets.get('result-policy').toString('utf8')) + ',\n  }\n}\n';
+    fields.map(role => '    ' + role + ': ' + JSON.stringify(currentAssets.get(role)!.toString('utf8')) + ',\n').join('') +
+    '    ordered: Some(\n      ' + JSON.stringify(currentAssets.get('ordered')!.toString('utf8')) + ',\n    ),\n' +
+    '    result_policy: ' + JSON.stringify(currentAssets.get('result-policy')!.toString('utf8')) + ',\n  }\n}\n';
 }
 
 // One independently retained installed a3b manifest, not latest defaults or
@@ -331,7 +351,7 @@ const historicalSource = 'a3b1643fbedc5180db38b6e08459a188f05b1135';
 const historicalManifestHash = '585e5959c972a801335103217d2dede6cb12f72333a58f6b88bf88c85075fd85';
 const historicalEvidenceCid = 'sha256:8bdf483589d04809f0e2e198708adc8335b38179f332e58d25a8a09497633a22';
 
-export function verifyHistoricalScalarPairManifests(originalBytes, historicalBytes, sourceRoot = repository) {
+export function verifyHistoricalScalarPairManifests(originalBytes: Buffer, historicalBytes: Buffer, sourceRoot = repository) {
   // Revalidate all complete bodies, inherited/external dependencies, scalar
   // implementation inputs and every original/current asset byte before emit.
   const evidence = scalarPairEvidence(sourceRoot);
@@ -339,8 +359,8 @@ export function verifyHistoricalScalarPairManifests(originalBytes, historicalByt
   assert.equal(machineCid(evidence), historicalEvidenceCid);
   assert.equal(sha(originalBytes), evidence.predecessor_runtime_sha256);
   assert.equal(sha(historicalBytes), historicalManifestHash);
-  const original = JSON.parse(originalBytes.toString('utf8'));
-  const historical = JSON.parse(historicalBytes.toString('utf8'));
+  const original = JSON.parse(originalBytes.toString('utf8')) as LocalRuntime;
+  const historical = JSON.parse(historicalBytes.toString('utf8')) as LocalRuntime;
   assert.equal(original.sourceSha, predecessor);
   assert.equal(historical.sourceSha, historicalSource);
   const assets = reviewedCurrentAssets(sourceRoot);
@@ -350,8 +370,8 @@ export function verifyHistoricalScalarPairManifests(originalBytes, historicalByt
   assert.equal(expected.assets.length, 6);
   for (const asset of expected.assets) {
     assert(assets.has(asset.role));
-    asset.bytes = assets.get(asset.role).length;
-    asset.sha256 = sha(assets.get(asset.role));
+    asset.bytes = assets.get(asset.role)!.length;
+    asset.sha256 = sha(assets.get(asset.role)!);
   }
   // This also binds every original/current role/path/library/ABI/license and
   // dependency closure; extra entries and fields do not get masked away.
@@ -370,7 +390,7 @@ export function historicalScalarPairInputs(sourceRoot = repository) {
 
 export function scalarPairHistoricalSource(sourceRoot = repository) {
   const {evidence, assets} = historicalScalarPairInputs(sourceRoot);
-  const index = JSON.parse(readFileSync(resolve(sourceRoot, fixtureDirectory + '/manifest.json')));
+  const index = JSON.parse(readFileSync(resolve(sourceRoot, fixtureDirectory + '/manifest.json')) as unknown as string) as EvidenceIndex;
   const originalAssets = new Map(Object.keys(assetIdentities).map(role => {
     const bytes = gunzipSync(readFileSync(resolve(sourceRoot, fixtureDirectory + '/' + role + '.json.gz')));
     assert.equal(sha(bytes), assetIdentities[role][0]);
@@ -383,7 +403,7 @@ export function scalarPairHistoricalSource(sourceRoot = repository) {
     ['source', historicalSource], ['manifest_hash', historicalManifestHash]]) {
     source += '\n///|\nfn native_local_scalar_historical_' + name + '() -> String {\n  ' + JSON.stringify(value) + '\n}\n';
   }
-  for (const [name, side] of [['original', originalAssets], ['current', assets]]) {
+  for (const [name, side] of [['original', originalAssets], ['current', assets]] as const) {
     source += '\n///|\nfn native_local_scalar_historical_' + name + '_asset_bytes(role : String) -> Int64? {\n  match role {\n' +
       [...side].map(([role, bytes]) => '    ' + JSON.stringify(role) + ' => Some(' + bytes.length + 'L)\n').join('') +
       '    _ => None\n  }\n}\n';
@@ -394,7 +414,7 @@ export function scalarPairHistoricalSource(sourceRoot = repository) {
 export function scalarPairHistoricalFixture(sourceRoot = repository) {
   const {historicalBytes, evidence, original} = historicalScalarPairInputs(sourceRoot);
   const vector = JSON.parse(readFileSync(resolve(sourceRoot,
-    'scripts/fixtures/native-local-scalar-historical-pair-vector.json')));
+    'scripts/fixtures/native-local-scalar-historical-pair-vector.json')) as unknown as string) as {body: string; cid: string; sha256: string};
   assert.deepEqual(Object.keys(vector).sort(), ['body', 'cid', 'sha256']);
   assert.equal(vector.sha256, '2b06a81d8266f98c954a76556c3312e3abba0acb8615f19c501ce3df920d367b');
   assert.equal(sha(vector.body), vector.sha256);
