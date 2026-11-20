@@ -5,7 +5,7 @@ import {buildSync} from 'esbuild';
 
 // Preserve every resolved source input before a caller applies an ownership
 // projection. Bare package imports remain external, as in ordinary packaging.
-export function localModuleGraphInputs(root, entries, {external = []} = {}) {
+export function localModuleGraphInputs(root: string, entries: string[], {external = []}: {external?: string[]} = {}) {
   entries = [...new Set(entries)];
   const graph = buildSync({entryPoints: entries, bundle: true,
     packages: 'external', external, platform: 'node', format: 'esm', target: 'node22',
@@ -16,7 +16,7 @@ export function localModuleGraphInputs(root, entries, {external = []} = {}) {
 
 // Packaging and Connector binding intentionally own only adapter inputs.
 // Keep this projection and its entry validation unchanged.
-export function adapterModuleGraph(root, entries) {
+export function adapterModuleGraph(root: string, entries: string[]) {
   entries = [...new Set(entries)];
   const paths = localModuleGraphInputs(root, entries)
     .filter(path => path.startsWith('adapters/'));

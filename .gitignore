@@ -489,3 +489,9 @@ target/
 
 /scripts/connector-dispatch-boundary.test.mjs
 /scripts/connector-dispatch-boundary.test.d.mts
+
+/scripts/adapter-module-graph.mjs
+/scripts/adapter-module-graph.d.mts
+
+/scripts/executable-test-cases.mjs
+/scripts/executable-test-cases.d.mts

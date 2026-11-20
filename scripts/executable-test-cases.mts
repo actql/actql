@@ -1,6 +1,6 @@
 // Stable references identify actual canonical MoonBit test declarations.
 // They do not establish execution, coverage, resource funding or authority.
-export function hasExecutableTestCase(source, id) {
+export function hasExecutableTestCase(source: string, id: unknown) {
   if (typeof id !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(id)) return false;
   // A commented example is not an executable declaration. Raw-string lines
   // are single lexical units, so their comment delimiters cannot hide code.
