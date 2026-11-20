@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {ClientError as SdkFailure, CancellationExplanation, Execution, OperationFormatOptions, RunState} from './index.d.ts';
+import type {ClientError as SdkFailure, OperationFormatOptions} from './index.d.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as sdk from './index.mjs';

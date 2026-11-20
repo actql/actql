@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {CheckOutcome, ClientError as SdkFailure, CheckFailureInput} from './index.d.ts';
+import type {CheckOutcome, ClientError as SdkFailure} from './index.d.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';

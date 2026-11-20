@@ -9,9 +9,7 @@ import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
   requestCancellationCause} from './errors.mjs';
 import {resultDescriptionLimits, validDeliveryAttemptLookup, validResultDescription} from '@actql/client-wire';
-import type {ConfirmedProfile, DeliveryAttemptLookup, DeliveryObservationExplanation,
-  DynamicRow, Execution, OperationExplanationOptions, ReadFailureExplanation,
-  ReadOptions, Reader, Result, ResultDescriptionOptions, RunReference} from '../index.d.ts';
+import type {ConfirmedProfile, DeliveryAttemptLookup, DeliveryObservationExplanation, DynamicRow, Execution, OperationExplanationOptions, ReadFailureExplanation, ReadOptions, Reader, Result, RunReference} from '../index.d.ts';
 import type {LocalResultRows, LocalResultFrame} from '../host-port.d.ts';
 import type {CapturedResultRead} from '../result-schema.mjs';
 import type {ActiveReader} from './client-lifecycle.mjs';

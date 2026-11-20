@@ -1,4 +1,4 @@
-import type {CheckOutcome, Client, ClientError, CheckRequirementFrontier} from './index.d.ts';
+import type {CheckOutcome, Client, ClientError} from './index.d.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCheckSupplementationSession, getCheckRequirementFrontier,

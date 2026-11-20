@@ -1,5 +1,5 @@
 import type {TestContext} from 'node:test';
-import type {Client, ClientError as SdkFailure, ReadOptions, StandardSchemaV1} from './index.d.ts';
+import type {Client, ClientError as SdkFailure, StandardSchemaV1} from './index.d.ts';
 import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
