@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {connectInProcess} from '../packages/sdk/index.mjs';
 
 function ports({decisionFailure, closeFailure, closeObservationFailure, closeObservationFailureAfterClose, foreignCheckpoint = false,
   source = 'authored source', checkReply, resolutionFields = {}, readonly = false} = {}) {
@@ -104,6 +105,41 @@ test('RC readonly original checks and starts once without approval, then cold re
   assert(!cold.calls.includes('start')); assert.equal(cold.calls.at(-1), 'close');
 });
 
+test('RC static and readonly checks reach actual SDK bound-text admission and preserve the first Host failure', async () => {
+  const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+    durability: 'volatile', scopeRef: 'rc-check-admission', capabilities: [],
+    limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+      maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+      maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
+  for (const kind of ['static', 'read']) {
+    const source = 'SELECT 1 AS n |> RESULT main', calls = [], closes = [];
+    const primary = new Error('original Host check failure');
+    await assert.rejects(runReleaseProjectNodeAction({request: {kind, program: 'original.aql'},
+      async connect(options) {
+        assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
+        return connectInProcess({mode: 'local', owner: 'local'}, {async perform(operation, body) {
+          calls.push({operation, body});
+          if (operation === 'connect') return profile;
+          if (operation === 'check') throw primary;
+          assert.fail('Failed check must not plan, submit, decide or read Results');
+        }, async close() {calls.push({operation: 'close'});}});
+      },
+      async readProgram() {return source;},
+      retainAccepted() {assert.fail('Failed check must not create an accepted Run');},
+      assertPendingTarget() {assert.fail('Failed check must not reach approval');},
+      retainClose(value) {closes.push(value);},
+    }), cause => cause.code === 'ClientTransportUnknown' && cause.cause === primary);
+    assert.deepEqual(calls.map(value => value.operation), ['connect', 'check', 'close']);
+    assert.equal(calls[1].body.kind, 'text');
+    assert.equal(calls[1].body.scope, 'bound_input');
+    assert.deepEqual(calls[1].body.input, {text: source, format: 'aql'});
+    assert.equal(calls[1].body.parameters, null);
+    assert.equal(closes.length, 2);
+    assert.deepEqual(closes.map(({attempted, returned}) => ({attempted, returned})),
+      [{attempted: true, returned: false}, {attempted: true, returned: true}]);
+  }
+});
+
 test('RC readonly refusal stops before submission and still closes its own Client', async () => {
   const f = ports({readonly: true, checkReply(value) {value.report.runnable.verdict = 'no'; return value;}});
   await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'read'}}));
@@ -188,7 +224,7 @@ for (const template of ['churn-risk-mock', 'deal-review-mock']) test(`RC static 
   const variable = template === 'churn-risk-mock' ? 'risk' : 'review';
   assert.equal(f.checks[1].text, source.replace(variable + ".outcome = 'ok'", variable + '.outcome = 1'));
   assert.equal(f.checks[2].text, 'SELECT 1 AS id |> RESULT out |> EFFECT UPDATE private.unknown FROM RESULT out ID id SET (Name = 1)');
-  for (const call of f.checks.slice(1)) assert.deepEqual(call.options, {kind: 'text', format: 'aql', scope: 'bound_input'});
+  for (const call of f.checks) assert.deepEqual(call.options, {kind: 'text', format: 'aql', scope: 'bound_input'});
   assert.deepEqual(result.staticChecks.map(value => value.check.report.verdict), ['invalid', 'undetermined']);
   assert.equal(f.calls.filter(value => value === 'close').length, 1);
   assert(!f.calls.includes('start') && !f.calls.includes('approved'));

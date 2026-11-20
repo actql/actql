@@ -42,7 +42,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
     client = await connect({mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
     if (request.kind === 'static') {
       const source = await readProgram();
-      response = {check: await client.check(source, {format: 'aql'}),
+      response = {check: await client.check(source, {kind: 'text', format: 'aql', scope: 'bound_input'}),
         plan: await client.plan(source, {format: 'aql'})};
       response.staticChecks = [];
       for (const control of projectStaticCheckControls(request.program, source)) {
@@ -58,7 +58,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
       if (request.kind === 'start' || request.kind === 'read') {
         const source = await readProgram();
         if (request.kind === 'read') {
-          const check = await client.check(source, {format: 'aql'});
+          const check = await client.check(source, {kind: 'text', format: 'aql', scope: 'bound_input'});
           assert.equal(check.outcome, 'completed');
           assert.equal(check.report?.verdict, 'verified');
           assert.equal(check.report.runnable?.verdict, 'yes');
