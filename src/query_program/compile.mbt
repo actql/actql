@@ -1548,6 +1548,27 @@ fn group_key_expression(
 }
 
 ///|
+
+///|
+fn aggregate_namespace_inputs(
+  call : @query.AggregateCall,
+  check : ((@query.Expression) -> NamespaceView? raise Abort)?,
+  include_order : Bool,
+) -> NamespaceView? raise Abort {
+  guard check is Some(check) else { return None }
+  let argument = call.argument.bind(expression => check(expression))
+  if call.filter is Some(filter) {
+    ignore(check(filter))
+  }
+  if include_order {
+    for term in call.order_by {
+      ignore(check(term.expression))
+    }
+  }
+  argument
+}
+
+///|
 fn lower_aggregate_resolved(
   construction : Construction,
   call : @query.AggregateCall,
@@ -1567,17 +1588,11 @@ fn lower_aggregate_resolved(
     Some(name) => if conditional_count { "count" } else { name }
     None => raise Abort(UnsupportedAggregate)
   }
-  let argument_view = call.argument.bind(argument => {
-    namespace_check.bind(check => check(argument))
-  })
-  if namespace_check is Some(check) {
-    if call.filter is Some(filter) {
-      ignore(check(filter))
-    }
-    for term in call.order_by {
-      ignore(check(term.expression))
-    }
-  }
+  let argument_view = aggregate_namespace_inputs(
+    call,
+    namespace_check,
+    order_fields is None,
+  )
   if namespace_out is Some(output) {
     output.push(
       if name == "array_agg" {
@@ -1755,6 +1770,8 @@ fn lower_aggregate(
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   order_fields? : Array[String]? = None,
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   lower_aggregate_resolved(
     construction,
@@ -1764,6 +1781,8 @@ fn lower_aggregate(
     max_collection_items,
     max_collection_bytes,
     order_fields~,
+    namespace_check~,
+    namespace_out~,
   )
 }
 
@@ -4760,6 +4779,30 @@ fn compile_steps(
             resolve_column(path, query, input, input_fields)
           }
         }
+        let input_namespace_profiles = column_profiles
+        let mut group_namespace_profiles = column_profiles
+        let namespace_ranges = if input_namespace_profiles is Some(_) {
+          let values = value_range_names(
+            value_table_receivers, scalar_value_table_ranges,
+          )
+          Some(
+            input_ranges.filter(range => {
+              !values.any(name => same_name(name, range.0))
+            }),
+          )
+        } else {
+          None
+        }
+        let namespace_check : ((@query.Expression) -> NamespaceView? raise Abort)? = if namespace_ranges
+          is Some(ranges) {
+          Some(expression => {
+            resolved_namespace_before_reuse(
+              expression, resolve_input, ranges, input_namespace_profiles, max_work,
+            )
+          })
+        } else {
+          None
+        }
         for projection in projections {
           if order_calls.any(pair => projection.name == Some(pair.0)) {
             // ORDER arguments use the same alias-aware input snapshot as
@@ -4801,12 +4844,21 @@ fn compile_steps(
                 }
               }
               let slot = match reused {
-                Some(slot) => slot
+                Some(slot) => {
+                  ignore(
+                    aggregate_namespace_inputs(call, namespace_check, true),
+                  )
+                  slot
+                }
                 None => {
                   let output_name = if (
                       embedded && active_fields.contains(name)
                     ) ||
                     result_fields.contains(name) ||
+                    (
+                      input_namespace_profiles is Some(_) &&
+                      active_fields.contains(name)
+                    ) ||
                     (
                       positional_set_output &&
                       sql_group_projection &&
@@ -4825,8 +4877,18 @@ fn compile_steps(
                     raise Abort(DuplicateOutput)
                   }
                   let order_fields = aggregate_order_fields(
-                    construction, call, resolve_input, order_reserved, order_evaluated,
-                    derives, max_work,
+                    construction,
+                    call,
+                    resolve_input,
+                    order_reserved,
+                    order_evaluated,
+                    derives,
+                    max_work,
+                    namespace_check~,
+                  )
+                  let namespace_out : Array[NamespaceView?]? = namespace_check.map(_ => {
+                      []
+                    },
                   )
                   aggregates.push(
                     (
@@ -4840,6 +4902,8 @@ fn compile_steps(
                           max_collection_items,
                           max_collection_bytes,
                           order_fields=Some(order_fields),
+                          namespace_check~,
+                          namespace_out~,
                         )
                       } else {
                         lower_aggregate(
@@ -4852,9 +4916,17 @@ fn compile_steps(
                           max_collection_items,
                           max_collection_bytes,
                           order_fields=Some(order_fields),
+                          namespace_check~,
+                          namespace_out~,
                         )
                       },
                     ),
+                  )
+                  group_namespace_profiles = retain_column_view(
+                    group_namespace_profiles,
+                    { value: output_name, quoted: true, },
+                    output_name,
+                    namespace_out.bind(values => values.get(0)).unwrap_or(None),
                   )
                   result_fields.push(output_name)
                   select_calls.push((call, output_name))
@@ -5254,6 +5326,16 @@ fn compile_steps(
         pipe_value_table = false
         scalar_value_table_ranges = scalar_value_table_ranges.filter(receiver => {
           key_names.contains(receiver.1)
+        })
+        column_profiles = group_namespace_profiles.bind(profiles => {
+          let retained = profiles.filter(column => {
+            active_fields.contains(column.slot)
+          })
+          if retained.is_empty() {
+            None
+          } else {
+            Some(retained)
+          }
         })
         grouped = true
       }
@@ -6236,7 +6318,11 @@ fn compile_steps(
                 bindings.push((name, slot))
                 if selection_columns is Some(retained_columns) {
                   retained_columns.push(
-                    projection_result_column(projection, name),
+                    projection_result_column(
+                      projection,
+                      name,
+                      name_view=slot_namespace(column_profiles, slot),
+                    ),
                   )
                 }
                 selected.push(
@@ -6793,11 +6879,7 @@ fn compile_steps(
                     projection_result_column(
                       projection,
                       name,
-                      name_view=if projection.analytic is Some(_) {
-                        slot_namespace(column_profiles, source)
-                      } else {
-                        None
-                      },
+                      name_view=slot_namespace(column_profiles, source),
                     ),
                   )
                 }

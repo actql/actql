@@ -566,6 +566,20 @@ fn scope_namespace_before_reuse(
   let row_ranges = scope.ranges.filter(range => {
     !value_ranges.any(name => same_name(name, range.0))
   })
+  resolved_namespace_before_reuse(
+    expression, resolve, row_ranges, profiles, max_work,
+  )
+}
+
+///|
+fn resolved_namespace_before_reuse(
+  expression : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  row_ranges : Array[(@query.NamePart, Array[(String, String)])],
+  profiles : Array[ResultColumn]?,
+  max_work : Int,
+) -> NamespaceView? raise Abort {
+  guard profiles is Some(_) else { return None }
   let (lowered, slots, remaining) = bind_range_property_expression(
     expression,
     resolve,

@@ -587,3 +587,65 @@ test "window reused output slots replace retired row namespaces" {
     }
   }
 }
+
+///|
+test "group aggregate arguments filter ordering and row elements keep original namespaces" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) "
+  for
+    suffix in [
+      "SELECT COUNT(row.f0_) AS n FROM r", "SELECT COUNT(* WHERE row.f0_ > 0) AS n FROM r",
+      "SELECT ARRAY_AGG(row.n ORDER BY row.f0_) AS items FROM r", ", s AS (SELECT ARRAY_AGG(row ORDER BY row.n) AS items FROM r) SELECT items[OFFSET(0)].f0_ AS value FROM s",
+    ] {
+    let source = prefix + suffix
+    let script = @query.parse_query_script(source, syntax_limits()).unwrap()
+    match
+      compile_query_script(
+        script,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(_) => fail("wrong original aggregate namespace refusal: " + source)
+      Ok(_) =>
+        fail("aggregate path promoted an anonymous DATA member: " + source)
+    }
+  }
+}
+
+///|
+test "group aggregate named members and row arrays retain their original types" {
+  let prefix = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row FROM t) "
+  let counted = anonymous_result_program(
+    prefix + "SELECT COUNT(row.n WHERE row.n > 0) AS n FROM r",
+  )
+  assert_eq(anonymous_result_fields(counted), ["n"])
+  match
+    @check.check_parsed(
+      counted,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) =>
+      fail("the existing numeric fixture supplies the named comparison")
+  }
+  for output in ["items", "row"] {
+    let source = "WITH t AS (SELECT 1, 2 AS n), r AS (SELECT t AS row, n AS sort_key FROM t), keyed AS (FROM r |> ASSERT UNIQUE BY (sort_key)), s AS (SELECT ARRAY_AGG(row ORDER BY sort_key) AS " +
+      output +
+      " FROM keyed) SELECT " +
+      output +
+      "[OFFSET(0)].n AS value FROM s"
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), ["value"])
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("the explicit original key and bounded row array remain closed")
+    }
+  }
+}
