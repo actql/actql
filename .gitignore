@@ -923,3 +923,7 @@ target/
 /adapters/host-node/fixtures/work-observation.fixture.d.mts
 /scripts/fixtures/release-project-sequence-node.mjs
 /scripts/fixtures/release-project-sequence-node.d.mts
+/scripts/layout-measurement-support.mjs
+/scripts/layout-measurement-support.d.mts
+/scripts/layout-measurement-support.test.mjs
+/scripts/layout-measurement-support.test.d.mts
