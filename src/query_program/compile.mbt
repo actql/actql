@@ -6464,7 +6464,7 @@ fn compile_steps(
                       (name.value, matches[0].1)
                     }
                   None => {
-                    if positional_projection != Some(i) {
+                    if !columns_required && positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     (
@@ -6514,7 +6514,7 @@ fn compile_steps(
                 let name = match projection.name {
                   Some(name) => name.value
                   None => {
-                    if positional_projection != Some(i) {
+                    if !columns_required && positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     anonymous_set_projection_name(
@@ -6525,12 +6525,15 @@ fn compile_steps(
                     )
                   }
                 }
-                let source = if positional_projection == Some(i) &&
+                let source = if (columns_required && projection.name is None) ||
                   (
-                    projection.name is None ||
+                    positional_projection == Some(i) &&
                     (
-                      positional_set_output &&
-                      duplicate_projection_alias(projections, name)
+                      projection.name is None ||
+                      (
+                        positional_set_output &&
+                        duplicate_projection_alias(projections, name)
+                      )
                     )
                   ) {
                   positional_set_analytic_slot(
@@ -6652,7 +6655,9 @@ fn compile_steps(
                   }
                 }
               }
-              let name = if positional_projection == Some(i) &&
+              let name = if (
+                  columns_required || positional_projection == Some(i)
+                ) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(
                   projections,
@@ -6996,7 +7001,9 @@ fn compile_steps(
               // after GROUP retains only its evaluated key. This naming
               // snapshot does not authorize reading the original receiver:
               // grouped expression lowering below still owns value access.
-              let name = if positional_projection == Some(i) &&
+              let name = if (
+                  columns_required || positional_projection == Some(i)
+                ) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(
                   projections,
@@ -7026,12 +7033,15 @@ fn compile_steps(
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
                 let source = if projection.analytic is Some(call) {
-                  if positional_projection == Some(i) &&
+                  if (columns_required && projection.name is None) ||
                     (
-                      projection.name is None ||
+                      positional_projection == Some(i) &&
                       (
-                        positional_set_output &&
-                        duplicate_projection_alias(projections, name)
+                        projection.name is None ||
+                        (
+                          positional_set_output &&
+                          duplicate_projection_alias(projections, name)
+                        )
                       )
                     ) {
                     positional_set_analytic_slot(
