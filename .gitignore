@@ -307,3 +307,7 @@ target/
 /adapters/host-common/runtime-result.d.mts
 /adapters/host-common/completion-observer.mjs
 /adapters/host-common/completion-observer.d.mts
+
+# Generated Host completion metadata snapshots.
+/adapters/host-node/completion-record.mjs
+/adapters/host-node/completion-record.d.mts
