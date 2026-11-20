@@ -6,9 +6,12 @@ import {constants, openSync, closeSync, readSync, fstatSync, lstatSync, mkdirSyn
   writeFileSync, chmodSync, utimesSync, opendirSync, readlinkSync, symlinkSync, realpathSync} from 'node:fs';
 import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash, mutationSnapshotExtras, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
-import {snapshotDirectories as pipelineDirectories, snapshotFiles as pipelineFiles} from '../relation-pipeline/inventory.mjs';
+import {snapshotDirectories as pipelineDirectories, snapshotFilePaths, scratchCompilerConfigs,
+  scratchOriginal, scratchRuntime} from '../relation-pipeline/inventory.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
@@ -66,9 +69,10 @@ export function pipelinePristineSourcePaths(tree) { return pipelineSourcePaths(t
 export function pipelineFixedJsSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-fixed-js'); }
 function pipelineSourcePaths(tree, profile) {
   const generated = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
+  assert(!(tree.entries.has(scratchOriginal) && tree.entries.has(scratchRuntime)), 'Ambiguous authored pipeline scratch input');
   const paths = [...new Set([...tree.entries.keys()].filter(path =>
     pipelineDirectories.some(directory => path.startsWith(`${directory}/`)) && path !== generated)
-    .concat(pipelineFiles, isolatedSourceFiles, isolatedChild(profile)))].sort();
+    .concat(snapshotFilePaths(path => tree.entries.has(path)), isolatedSourceFiles, isolatedChild(profile)))].sort();
   assert(paths.includes('proofs/relation-pipeline/pristine-replay.mjs'), 'Missing registered pristine executor');
   for (const directory of pipelineDirectories)
     assert(paths.some(path => path.startsWith(`${directory}/`)), 'Missing pipeline snapshot root');
@@ -80,19 +84,47 @@ function pipelineSourcePaths(tree, profile) {
 }
 
 export function stagePipelinePristineSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
-  return stageSource({tree, destination, maxBytes, paths: pipelinePristineSourcePaths(tree)});
+  const paths = pipelinePristineSourcePaths(tree);
+  return stageSource({tree, destination, maxBytes, paths, emitted: pipelineScratchEmit(tree, 'pipeline-pristine')});
 }
 export function stagePipelineFixedJsSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
   return stageSource({tree, destination, maxBytes, paths: pipelineFixedJsSourcePaths(tree)});
 }
 
-function stageSource({tree, destination, maxBytes, paths}) {
+// Pristine replay imports the scratch owner. Its runtime member is derived
+// from the selected authored bytes, never read from the working checkout's
+// emit. Only this local profile needs the compiler during image preparation.
+export function pipelineScratchEmit(tree, profile) {
+  if (profile !== 'pipeline-pristine' || !tree.entries.has(scratchOriginal)) return null;
+  const ts = createRequire(import.meta.url)('typescript');
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const inputs = new Map(scratchCompilerConfigs.map(path => [resolve(root, path), tree.read(path).toString('utf8')]));
+  const lock = JSON.parse(tree.read('package-lock.json').toString('utf8'));
+  assert.equal(ts.version, lock.packages['node_modules/typescript'].version, 'Wrong locked pipeline compiler');
+  const file = resolve(root, 'tsconfig.tooling.json'), readFile = path => inputs.get(resolve(path));
+  const read = ts.readConfigFile(file, readFile);
+  assert(!read.error, 'Invalid pipeline compiler configuration');
+  const config = ts.parseJsonConfigFileContent(read.config, {...ts.sys, readFile}, root, undefined, file);
+  const fileName = resolve(root, scratchOriginal);
+  assert(!config.errors.length && config.fileNames.includes(fileName) && config.options.noEmitOnError &&
+    !config.options.noEmit && !config.options.emitDeclarationOnly && !config.options.outDir && !config.options.outFile,
+  'Expected the canonical in-place pipeline compiler configuration');
+  const result = ts.transpileModule(tree.read(scratchOriginal).toString('utf8'), {
+    fileName, compilerOptions: config.options, reportDiagnostics: true,
+  });
+  assert(!result.diagnostics.some(item => item.category === ts.DiagnosticCategory.Error), 'Cannot emit original pipeline scratch owner');
+  return {path: scratchRuntime, mode: 0o644, bytes: Buffer.from(result.outputText)};
+}
+
+function stageSource({tree, destination, maxBytes, paths, emitted = null}) {
   assert(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'Invalid source byte bound');
   const files = [];
   tree.prefetch?.(paths);
   let bytes = 0;
-  for (const path of paths) {
-    const data = tree.read(path), mode = Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
+  for (const path of (emitted ? [...paths, emitted.path].sort() : paths)) {
+    const derived = emitted?.path === path ? emitted : null;
+    const data = derived ? derived.bytes : tree.read(path);
+    const mode = derived ? derived.mode : Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
     bytes += data.length; assert(bytes <= maxBytes, 'Isolated source exceeds bounded size');
     const target = join(destination, 'source', path);
     mkdirSync(dirname(target), {recursive: true}); writeFileSync(target, data, {flag: 'wx', mode});

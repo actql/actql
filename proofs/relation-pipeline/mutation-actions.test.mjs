@@ -26,10 +26,12 @@ test('the source adapter binds the actual committed wide pipeline inventory', ()
   const inputs = mutationSourceInputs({tree: gitTree(root, result.stdout.trim()), source, root});
   assert(inputs.files.length >= Object.keys(source.sources).length);
   assert(inputs.files.some(entry => entry.path === 'proofs/ci-evidence/Reuse.lean'));
-  for (const path of ['scripts/ci-artifact-reader.mts', 'scripts/ci-core-partitions.mts', 'tsconfig.tooling.json']) {
+  for (const path of ['scripts/ci-artifact-reader.mts', 'scripts/ci-core-partitions.mts', 'scripts/owned-scratch.mts',
+    'tsconfig.base.json', 'tsconfig.tooling.json']) {
     assert(inputs.files.some(entry => entry.path === path), path);
   }
   assert(!inputs.files.some(entry => entry.path === 'scripts/ci-artifact-reader.mjs'));
+  assert(!inputs.files.some(entry => entry.path === 'scripts/owned-scratch.mjs'));
   assert(inputs.unresolved.length > 0);
 });
 
@@ -127,6 +129,8 @@ test('Git bytes, mode and membership remain input dependencies outside the compi
   }
   const next = inputTree(); next.entries.delete('proofs/ci-evidence/Claims.lean');
   assert.throws(() => mutationSourceInputs({tree: next, source: snapshot(next)}), /Missing\/nonregular/);
+  const missingPartition = inputTree(); missingPartition.entries.delete('scripts/ci-core-partitions.mjs');
+  assert.throws(() => mutationSourceInputs({tree: missingPartition, source: snapshot(missingPartition)}), /Missing\/nonregular/);
   assert(!before.files.some(entry => entry.path === fixturePath));
 });
 

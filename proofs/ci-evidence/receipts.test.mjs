@@ -22,6 +22,7 @@ const expected = {repository: 'actql/actql', repositoryId: 1, workflowId: 2,
   ancestors: [revision], candidateRevision: candidate, runHeadRevision: 'c'.repeat(40), runId: 30, runAttempt: 1};
 function sourceTree(catalog = null) {
   const files = new Map([...sharedFiles.map(path => [path, path]),
+    ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
     ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'kernel'],
     ['proofs/bounded-session/a.mjs', 'proof'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);

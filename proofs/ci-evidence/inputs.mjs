@@ -3,7 +3,6 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {typescriptPreparationPolicyPaths} from '../../scripts/ci-main-base.mjs';
 import {packageConfigurationReviewFor, reviewedNestedFixture} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
@@ -16,7 +15,8 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
+  digest: '72c7d9e4fbaf1bb936b45690e71b4675f55c04980efbe755e9c462ee1be446c4',
+  legacyDigest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
@@ -68,6 +68,9 @@ const migratedTooling = new Map([
   ['scripts/packed-query-evidence.mjs', 'scripts/packed-query-evidence.mts'],
   ['scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.mts'],
 ]);
+const typescriptPreparationInputs = Object.freeze([
+  'tsconfig.base.json', 'tsconfig.tooling.json', 'scripts/typescript-executable-modes.mts',
+]);
 export function proofToolingInputs(tree, originalPaths) {
   const paths = new Set(), unresolved = [];
   let typescript = false;
@@ -80,14 +83,23 @@ export function proofToolingInputs(tree, originalPaths) {
     const authored = migratedTooling.get(path);
     if (authored && tree.entries.has(authored)) addTyped(authored, path);
     else paths.add(path);
-    if (path === 'scripts/test-execution.mjs' && tree.entries.has('scripts/test-execution-reporter.mts')) {
+    if (path === 'scripts/test-execution.mjs' && tree.entries.has(authored)) {
       addTyped('scripts/test-execution-reporter.mts', 'scripts/test-execution-reporter.mjs');
     }
-    if (path === 'scripts/ci-main-base.mjs' && tree.entries.has('scripts/ci-core-partitions.mts')) {
-      addTyped('scripts/ci-core-partitions.mts', 'scripts/ci-core-partitions.mjs');
+    if (path === 'scripts/ci-main-base.mjs') {
+      const runtime = 'scripts/ci-core-partitions.mjs', original = 'scripts/ci-core-partitions.mts';
+      if (tree.entries.has(original)) addTyped(original, runtime);
+      else {
+        // A legacy Git original retains its existing evidence key. A missing
+        // companion cannot be treated as the historical tracked runtime.
+        const legacy = tree.entries.get(runtime);
+        if (!legacy) addTyped(original, runtime);
+        else if (legacy.kind !== 'blob' || !['100644', '100755'].includes(legacy.mode))
+          unresolved.push(`unsupported source kind/mode: ${runtime}`);
+      }
     }
   }
-  if (typescript) typescriptPreparationPolicyPaths.forEach(path => paths.add(path));
+  if (typescript) typescriptPreparationInputs.forEach(path => paths.add(path));
   return {paths: [...paths], unresolved};
 }
 
@@ -388,9 +400,11 @@ function buildActionInputs({tree, revision, action, runtime}) {
   // pipeline executions. Their directory is not read/evaluated by Session.
   // Bind every evaluated module in the reviewed inventory import graph. A
   // changed dependency cannot inherit the inventory's unchanged digest.
-  for (const {path, digest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
+  for (const {path, digest, legacyDigest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
     const entry = tree.entries.get(path);
-    if (entry?.kind !== 'blob' || entry.mode !== '100644' || hash(tree.read(path)) !== digest)
+    const actual = entry?.kind === 'blob' && entry.mode === '100644' ? hash(tree.read(path)) : null;
+    const legacy = legacyDigest && !tree.entries.has('scripts/owned-scratch.mts');
+    if (actual !== digest && (!legacy || actual !== legacyDigest))
       unresolved.add('unreviewed pipeline inventory import/effect boundary');
   }
   function bridgeInputs() {

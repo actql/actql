@@ -6,7 +6,7 @@ import {join, dirname} from 'node:path';
 import {mutationSourcePaths, stageMutationSource, pipelinePristineSourcePaths, stagePipelinePristineSource, pipelineChild, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
-import {snapshotFiles} from '../relation-pipeline/inventory.mjs';
+import {scratchCompilerConfigs, scratchOriginal, scratchRuntime, snapshotFilePaths} from '../relation-pipeline/inventory.mjs';
 import {pipelineFixedJsSourcePaths, stagePipelineFixedJsSource, pipelineFixedJsChild, localIsolatedRunArguments} from './isolation.mjs';
 
 const temporary = t => {
@@ -211,9 +211,9 @@ test('the actual image definition rejects changed environment, hooks, volumes, i
 
 function pipelineSources() {
   const {tree, bodies} = sources();
-  for (const path of [...snapshotFiles, 'src/query_integration/extra.mbt', 'vendor/native/input.h',
+  for (const path of [...snapshotFilePaths(() => false), 'src/query_integration/extra.mbt', 'vendor/native/input.h',
     'proofs/relation-chain/input.mjs', 'proofs/relation-capacity/input.mjs',
-    'proofs/relation-pipeline/pristine-replay.mjs', 'scripts/owned-scratch.mjs',
+    'proofs/relation-pipeline/pristine-replay.mjs',
     'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'docs/spec/execution.md',
     'package.json', 'package-lock.json', 'moon.mod', pipelineChild,
     'src/query_integration/relation_pipeline_batch_wbtest.mbt', '_build/dirty.js']) {
@@ -266,4 +266,26 @@ test('pipeline staging refuses incomplete roots, linked sources, unsafe paths an
   }
   const {tree} = pipelineSources();
   assert.throws(() => stagePipelinePristineSource({tree, destination: temporary(t), maxBytes: 1}), /bounded size/u);
+});
+
+test('typed pristine staging derives just its scratch runtime from the exact selected originals', t => {
+  const {tree, bodies} = pipelineSources(), destination = temporary(t);
+  tree.entries.delete(scratchRuntime);
+  bodies.delete(scratchRuntime);
+  for (const path of [...scratchCompilerConfigs, 'package-lock.json', scratchOriginal]) {
+    tree.entries.set(path, {kind: 'blob', mode: '100644'});
+    bodies.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
+  }
+  // The fixture deliberately selects a different authored body at the same
+  // path, so a copied or stale working .mjs cannot satisfy the expectation.
+  bodies.set(scratchOriginal, 'export const selected: number = 17;\n');
+  const paths = pipelinePristineSourcePaths(tree);
+  assert(paths.includes(scratchOriginal) && !paths.includes(scratchRuntime));
+  const staged = stagePipelinePristineSource({tree, destination});
+  const bytes = readFileSync(join(destination, 'source', scratchRuntime), 'utf8');
+  assert.equal(bytes, 'export const selected = 17;\n');
+  assert.equal(staged.files.length, paths.length + 1);
+  assert.equal(readFileSync(join(destination, 'source', scratchOriginal), 'utf8'), bodies.get(scratchOriginal));
+  tree.entries.set(scratchRuntime, {kind: 'blob', mode: '100644'});
+  assert.throws(() => pipelinePristineSourcePaths(tree), /Ambiguous authored pipeline scratch input/u);
 });

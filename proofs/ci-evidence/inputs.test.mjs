@@ -11,6 +11,7 @@ const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
 const base = new Map([
   ...sharedFiles.map(path => [path, path]),
+  ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
   ...[pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]
     .map(({path}) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')]),
   ['proofs/ci-evidence/actions.mjs', 'actions'], ['proofs/ci-evidence/inputs.mjs', 'inputs'],
@@ -46,18 +47,22 @@ test('migrated tooling binds Git-authored TypeScript, its compiler inputs and no
     files.set(stem + '.mts', stem + ' original typed source');
   }
   for (const path of extra) files.set(path, path + ' original');
+  files.delete('scripts/ci-core-partitions.mjs');
   const typed = inventory(files);
   const paths = new Set(typed.inputs.files.map(member => member.path));
   assert.deepEqual(typed.unresolved, []);
   assert(moved.every(stem => paths.has(stem + '.mts') && !paths.has(stem + '.mjs')));
   assert(extra.every(path => paths.has(path)));
+  assert(!inventory().inputs.files.some(member => member.path === 'scripts/ci-core-partitions.mjs'));
   assert.equal(compareInputs(inventory(), typed).eligible, false, 'A legacy key is unchanged, never equivalent to the migration');
   for (const path of [...moved.map(stem => stem + '.mts'), ...extra, 'package-lock.json']) {
     const changed = new Map(files); changed.set(path, 'independent mutation');
     assert.equal(compareInputs(typed, inventory(changed)).eligible, false, path);
   }
-  const missing = new Map(files); missing.delete('tsconfig.tooling.json');
-  assert(inventory(missing).unresolved.includes('missing source input: tsconfig.tooling.json'));
+  for (const path of ['tsconfig.tooling.json', 'scripts/test-execution-reporter.mts', 'scripts/ci-core-partitions.mts']) {
+    const missing = new Map(files); missing.delete(path);
+    assert(inventory(missing).unresolved.includes(`missing source input: ${path}`));
+  }
   const ambiguous = new Map(files); ambiguous.set('scripts/ci-artifact-reader.mjs', 'tracked duplicate');
   assert(inventory(ambiguous).unresolved.includes('ambiguous authored tooling input: scripts/ci-artifact-reader.mjs'));
   assert.equal(compareInputs(typed, inventory(ambiguous)).eligible, false);
