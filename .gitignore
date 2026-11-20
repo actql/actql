@@ -831,3 +831,11 @@ target/
 /scripts/composition-release-input.d.mts
 /scripts/composition-release-input.test.mjs
 /scripts/composition-release-input.test.d.mts
+/scripts/native-cli-default-assets.mjs
+/scripts/native-cli-default-assets.d.mts
+/scripts/native-cli-completed-provider.mjs
+/scripts/native-cli-completed-provider.d.mts
+/scripts/native-cli-original-input.mjs
+/scripts/native-cli-original-input.d.mts
+/scripts/native-cli-ci-artifact.mjs
+/scripts/native-cli-ci-artifact.d.mts

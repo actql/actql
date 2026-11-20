@@ -8,15 +8,35 @@ import {lstat, open, readFile, readdir} from 'node:fs/promises';
 import {isAbsolute, join, resolve} from 'node:path';
 import {releaseVersion} from './release-version.mjs';
 
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+import type {BinaryLike} from 'node:crypto';
+
+// Unchecked producer DATA. The same-source, file and command checks below
+// establish the usable original rather than these structural views.
+type Member = {path: string; bytes: number; sha256: string};
+type AllocatorSelection = {required_defines: unknown; required_source_parameters: unknown};
+type LocalStockFileControl = {source: unknown; recipe: Member; header: Member; selected: unknown;
+  recipeSha256: unknown; permission: unknown; physicalAcquired: unknown};
+type Receipt = {source: string; entry: string; target: string; plan_only: boolean; moon_build_exit: number;
+  providers: number; core_modules: number; commands_completed: number; completed_c_steps: number;
+  package_version?: string; executable: Member; generated_c: Member;
+  allocator: AllocatorSelection & {recipe_sha256: unknown; patch_sha256: unknown; target: unknown; outputs: unknown};
+  local_stock_file_control: LocalStockFileControl};
+type CPlan = {steps: {original: string[]; selected: string[]; receipt: string}[]};
+type CResult = {exit: unknown; original: string[]; selected: unknown; output: Member};
+type SourceRecipe = {patch: {sha256: unknown}; target: unknown; required_defines: unknown;
+  outputs: Record<string, unknown>; inputs: {root: string; path: string; output: string}[];
+  source_targets: Record<string, AllocatorSelection & {binary_inputs: Record<string, unknown>}>};
+type ProviderOptions = {packageVersion?: string; platform?: string};
+
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 // Match the pinned compiler driver's checkout-source/runtime spelling adjustment.
 // Include order/options, outputs and all other arguments remain unchanged.
-const canonicalCArguments = (arguments_, repository) => arguments_.map(value =>
+const canonicalCArguments = (arguments_: readonly string[], repository: string) => arguments_.map(value =>
   value.startsWith('-I./.toolchains/') ? `-I${resolve(repository, value.slice(2))}`
     : ((value.startsWith('./src/') && value.endsWith('.c')) || value.startsWith('./.toolchains/'))
     ? resolve(repository, value) : value);
 
-async function observedFile(path, expected, maximum = 512 * 1024 * 1024) {
+async function observedFile(path: string, expected: Member, maximum = 512 * 1024 * 1024) {
   assert.equal(expected.path, path);
   assert(Number.isSafeInteger(expected.bytes) && expected.bytes >= 0 && expected.bytes <= maximum);
   assert.match(expected.sha256, /^[a-f0-9]{64}$/u);
@@ -42,7 +62,7 @@ async function observedFile(path, expected, maximum = 512 * 1024 * 1024) {
   } finally {await fd.close();}
 }
 
-async function jsonMember(path, maximum) {
+async function jsonMember<T>(path: string, maximum: number): Promise<T> {
   const fd = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = await fd.stat();
@@ -51,12 +71,12 @@ async function jsonMember(path, maximum) {
     assert(bytes.length === before.size && after.size === before.size &&
       after.mtimeMs === before.mtimeMs && after.ctimeMs === before.ctimeMs);
     assert(named.isFile() && !named.isSymbolicLink() && named.dev === before.dev && named.ino === before.ino);
-    return JSON.parse(bytes.toString('utf8'));
+    return JSON.parse(bytes.toString('utf8')) as T;
   } finally {await fd.close();}
 }
 
-export async function admitCompletedNativeLocalProvider(destination, source, repository, moonHome,
-  {packageVersion, platform = 'darwin-arm64'} = {}) {
+export async function admitCompletedNativeLocalProvider(destination: string, source: string, repository: string, moonHome: string,
+  {packageVersion, platform = 'darwin-arm64'}: ProviderOptions = {}) {
   const selectedVersion = packageVersion === undefined ? undefined : releaseVersion(packageVersion).version;
   assert(['darwin-arm64', 'linux-x64-gnu'].includes(platform), 'No selected Local provider platform');
   const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
@@ -70,7 +90,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   const provider = join(destination, 'native-producer');
   const original = await lstat(provider);
   assert(original.isDirectory() && !original.isSymbolicLink());
-  const receipt = await jsonMember(join(provider, 'build.json'), 65536);
+  const receipt = await jsonMember<Receipt>(join(provider, 'build.json'), 65536);
   assert.equal(receipt.source, source, 'Completed provider must have the exact current source');
   assert.equal(receipt.entry, 'src/cmd/native_client');
   assert.equal(receipt.target, target, 'Completed provider target differs from the actual producer');
@@ -78,12 +98,12 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   assert.equal(receipt.moon_build_exit, 0);
   assert.equal(receipt.providers, 1);
   assert.equal(receipt.core_modules, 1);
-  const commands = await jsonMember(join(provider, 'commands.json'), 16 * 1024 * 1024);
+  const commands = await jsonMember<string[][]>(join(provider, 'commands.json'), 16 * 1024 * 1024);
   assert(Array.isArray(commands) && commands.length > 0 && commands.length <= 10000);
   assert(commands.every(command => Array.isArray(command) && command.every(part => typeof part === 'string')));
   const commandSignatures = new Set(commands.map(command => JSON.stringify(command)));
   assert.equal(receipt.commands_completed, commands.length);
-  const plan = await jsonMember(join(provider, 'cc-plan.json'), 4 * 1024 * 1024);
+  const plan = await jsonMember<CPlan>(join(provider, 'cc-plan.json'), 4 * 1024 * 1024);
   assert(Array.isArray(plan.steps) && plan.steps.length > 0 && plan.steps.length <= 256);
   assert.equal(receipt.completed_c_steps, plan.steps.length);
   if (selectedVersion !== undefined) {
@@ -99,7 +119,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
     assert(Array.isArray(step.selected) && commandSignatures.has(JSON.stringify(step.selected)));
     assert(isAbsolute(step.receipt) && resolve(step.receipt).startsWith(provider + '/'));
     assert(!executed.has(step.receipt)); executed.add(step.receipt);
-    const actual = await jsonMember(step.receipt, 1024 * 1024);
+    const actual = await jsonMember<CResult>(step.receipt, 1024 * 1024);
     assert.equal(actual.exit, 0);
     assert.deepEqual(canonicalCArguments(actual.original, repository),
       canonicalCArguments(step.original, repository));
@@ -110,7 +130,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
     assert(output >= 0 && actual.output.path === step.selected[output + 1]);
     await observedFile(actual.output.path, actual.output);
   }
-  const inputs = await jsonMember(join(provider, 'inputs.json'), 16 * 1024 * 1024);
+  const inputs = await jsonMember<Member[]>(join(provider, 'inputs.json'), 16 * 1024 * 1024);
   assert(Array.isArray(inputs) && inputs.length > 0 && inputs.length <= 20000);
   const paths = new Set();
   for (const input of inputs) {
@@ -128,7 +148,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
     assert(paths.has(join(repository, path)), 'Completed versioned provider lacks its original version projection');
   const recipe = await readFile(join(repository, 'packages/python-local-runtime/native/pre-root/scoped-read-source.json'));
   assert.equal(receipt.allocator.recipe_sha256, digest(recipe));
-  const parsed = JSON.parse(recipe.toString('utf8'));
+  const parsed = JSON.parse(recipe.toString('utf8')) as SourceRecipe;
   assert.equal(receipt.allocator.patch_sha256, parsed.patch.sha256);
   if (target === 'darwin-arm64') {
     assert.equal(receipt.allocator.target, parsed.target);
@@ -167,7 +187,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   const binary = join(build, 'native_client.exe'), generatedC = join(build, 'native_client.c');
   await observedFile(binary, receipt.executable, 64 * 1024 * 1024);
   await observedFile(generatedC, receipt.generated_c);
-  const generation = await jsonMember(join(provider, 'moon-build-command.json'), 65536);
+  const generation = await jsonMember<[string, ...string[]]>(join(provider, 'moon-build-command.json'), 65536);
   assert.deepEqual(generation, [join(moonHome, 'bin/moon'), 'build', '--target', 'native', '--release',
     '--target-dir', join(provider, 'emission'), '-j', '1', 'src/cmd/native_client', '--verbose']);
   return {receipt, binary, generatedC, generation};

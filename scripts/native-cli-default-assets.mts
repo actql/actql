@@ -6,6 +6,12 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+// Unchecked source and recipe data still pass the original byte/role checks.
+type SigningPolicy = {max_issue_interval_ms: number; max_uses: number; version: string};
+type AoaSource = {pipeline_registry_file: string; execution_contracts: Record<string, unknown>};
+type FreshRuntimeRecipe = {sourceSha: string;
+  assets: {role: string; original: {bytes: number; sha256: string}}[]};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const policy = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
@@ -13,7 +19,7 @@ const policy = '{"classification":"unknown","source_data_policy_cids":[],"source
 // profile, Submission TTL, generic issue permission or initialization itself.
 export function nativeLocalDefaultSigningPolicy(sourceRoot = root) {
   const value = JSON.parse(readFileSync(resolve(sourceRoot,
-    'spec/contracts/local-signing-bootstrap-policy.json'), 'utf8'));
+    'spec/contracts/local-signing-bootstrap-policy.json'), 'utf8')) as SigningPolicy;
   assert.deepEqual(Object.keys(value), ['max_issue_interval_ms', 'max_uses', 'version']);
   assert.equal(value.max_issue_interval_ms, 300000);
   assert.equal(value.max_uses, 1);
@@ -22,20 +28,20 @@ export function nativeLocalDefaultSigningPolicy(sourceRoot = root) {
 }
 
 export function nativeLocalDefaultAssets(sourceRoot = root) {
-  const read = path => readFileSync(resolve(sourceRoot, path));
-  const aoa = JSON.parse(read('spec/contracts/actql-aoa.json'));
-  const json = value => Buffer.from(JSON.stringify(value));
+  const read = (path: string) => readFileSync(resolve(sourceRoot, path));
+  const aoa = JSON.parse(read('spec/contracts/actql-aoa.json') as unknown as string) as AoaSource;
+  const json = (value: unknown) => Buffer.from(JSON.stringify(value));
   const assets = new Map([
     // The environment Owner requires canonical envelope bytes. Serializing
     // the source JSON removes file formatting only; no string normalization.
-    ['environment', json(JSON.parse(read('spec/local-check-environment.json')))],
-    ['registry', json(JSON.parse(read(aoa.pipeline_registry_file)))],
+    ['environment', json(JSON.parse(read('spec/local-check-environment.json') as unknown as string))],
+    ['registry', json(JSON.parse(read(aoa.pipeline_registry_file) as unknown as string))],
     ['values', json(aoa.execution_contracts['REL.values'])],
     ['fragment', json(aoa.execution_contracts['ACTQL.expression_fragment/0.1'])],
     ['ordered', json(aoa.execution_contracts['REL.derive.ordered'])],
     ['result-policy', Buffer.from(policy)],
-    ['query', json(JSON.parse(read('spec/contracts/actql-query-acquisition.json')))],
-    ['query-evidence', json(JSON.parse(read('spec/contracts/actql-query-process-evidence.json')))],
+    ['query', json(JSON.parse(read('spec/contracts/actql-query-acquisition.json') as unknown as string))],
+    ['query-evidence', json(JSON.parse(read('spec/contracts/actql-query-process-evidence.json') as unknown as string))],
   ]);
   for (const [role, bytes] of assets) {
     assert(bytes.length > 0 && bytes.length <= 65536, `Bounded original required: ${role}`);
@@ -50,7 +56,7 @@ export function nativeLocalDefaultFixture(sourceRoot = root) {
   // lowering-registry generator. Generate only the two additional inputs;
   // expectations in the tests are independent of the product assembler.
   return '// Generated inputs by scripts/native-cli-default-assets.mjs --write. Do not edit.\n' +
-    ['environment', 'fragment'].map(role => `\n///|\nfn product_test_${role}_wire() -> String {\n  ${JSON.stringify(assets.get(role).toString('utf8'))}\n}\n`).join('');
+    ['environment', 'fragment'].map(role => `\n///|\nfn product_test_${role}_wire() -> String {\n  ${JSON.stringify(assets.get(role)!.toString('utf8'))}\n}\n`).join('');
 }
 
 export function localProductDefaultAssets(sourceRoot = root) {
@@ -63,9 +69,9 @@ export function localProductDefaultAssets(sourceRoot = root) {
     '\n///|\n/// Packaged source-free originals for explicit first adoption only.\n' +
     '/// Existing Account, Policy, Store and custody Owners still decide admission.\n' +
     'pub fn client_local_product_assets() -> ClientLocalProductAssets {\n  {\n' +
-    fields.map(role => `    ${role}: ${JSON.stringify(assets.get(role).toString('utf8'))},\n`).join('') +
-    `    ordered: Some(\n      ${JSON.stringify(assets.get('ordered').toString('utf8'))},\n    ),\n` +
-    `    result_policy: ${JSON.stringify(assets.get('result-policy').toString('utf8'))},\n` +
+    fields.map(role => `    ${role}: ${JSON.stringify(assets.get(role)!.toString('utf8'))},\n`).join('') +
+    `    ordered: Some(\n      ${JSON.stringify(assets.get('ordered')!.toString('utf8'))},\n    ),\n` +
+    `    result_policy: ${JSON.stringify(assets.get('result-policy')!.toString('utf8'))},\n` +
     '  }\n}\n' +
     '\n///|\n// Packaged DATA only; the actual Host retains authenticated first-adoption custody.\n' +
     'fn client_local_default_signing_policy_wire() -> String {\n  ' +
@@ -86,7 +92,7 @@ export function assertNativeLocalDefaultAssetsFresh(sourceRoot = root) {
     'stale source-bound Local asset inputs');
 }
 
-export function assertNativeLocalFreshRuntimeRecipe(recipe, expectedSource, sourceRoot = root) {
+export function assertNativeLocalFreshRuntimeRecipe(recipe: FreshRuntimeRecipe, expectedSource: string, sourceRoot = root) {
   assert.match(expectedSource, /^[a-f0-9]{40}$/u);
   assert.equal(recipe.sourceSha, expectedSource, 'Fresh runtime requires the exact producer source');
   assertNativeLocalDefaultAssetsFresh(sourceRoot);
@@ -97,7 +103,7 @@ export function assertNativeLocalFreshRuntimeRecipe(recipe, expectedSource, sour
   for (const asset of recipe.assets) {
     assert(originals.has(asset.role) && !seen.has(asset.role), 'Unknown or duplicate fresh asset role');
     seen.add(asset.role);
-    const bytes = originals.get(asset.role);
+    const bytes = originals.get(asset.role)!;
     assert.equal(asset.original.bytes, bytes.length, 'Fresh asset size differs from its current original');
     assert.equal(asset.original.sha256, createHash('sha256').update(bytes).digest('hex'),
       'Fresh asset differs from its current generated original');

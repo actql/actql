@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {constants, closeSync, fstatSync, lstatSync, openSync, readSync, realpathSync} from 'node:fs';
 import {dirname} from 'node:path';
 
-export function original(path, maximum, capture = false) {
+export function original(path: string, maximum: number, capture = false) {
   assert.equal(realpathSync(dirname(path)), dirname(path), `Original parent required: ${path}`);
   const before = lstatSync(path);
   assert(before.isFile() && !before.isSymbolicLink() && before.size > 0 && before.size <= maximum,
@@ -22,7 +22,7 @@ export function original(path, maximum, capture = false) {
     }
     assert.equal(bytes, opened.size);
     const after = fstatSync(fd), named = lstatSync(path);
-    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'ctimeMs']) {
+    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'ctimeMs'] as const) {
       assert.equal(after[key], opened[key]); assert.equal(named[key], opened[key]);
     }
     assert(named.isFile() && !named.isSymbolicLink());
@@ -30,7 +30,10 @@ export function original(path, maximum, capture = false) {
   } finally {closeSync(fd);}
 }
 
-export function requireNativeLocalHeader(bytes, sqlite, sourceRecipe) {
+type HeaderReceipt = {stage?: {outputs?: {'sqlite3.h'?: unknown}}};
+type HeaderRecipe = {upstream?: {members?: {'sqlite3.h'?: {bytes: unknown; sha256: unknown}}}};
+
+export function requireNativeLocalHeader(bytes: Uint8Array, sqlite: HeaderReceipt, sourceRecipe: HeaderRecipe) {
   const selected = {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')};
   const pin = sourceRecipe.upstream?.members?.['sqlite3.h'];
   assert(pin, 'Original SQLite header pin required');
