@@ -225,7 +225,7 @@ test "post-close task diagnostic keeps original causes and pending snapshot dist
     0,
   )
   let value = selected(nonce).unwrap()
-  let original_issue = @local_run.UnsupportedCapability
+  let original_issue : @local_run.LocalComputeIssue = @local_run.UnsupportedCapability
   let record : StoredManagedTask = {
     compute: 1,
     current_configuration: 2,
