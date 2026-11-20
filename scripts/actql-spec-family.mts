@@ -3,16 +3,32 @@ import { dirname, relative, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { normalizedParagraphs } from './actql-requirement-extraction.mjs';
 
-export const fingerprint = entry => createHash('sha256').update(`${entry.text}\0${entry.keyword}\0${entry.keyword_index}`).digest('hex');
-const canonical = value => value && typeof value === 'object'
+import type {BinaryLike} from 'node:crypto';
+
+type Paragraph = ReturnType<typeof normalizedParagraphs>[number];
+type MachineRef = {path: string; pointer: string; cid: string; version?: string};
+type DocumentRef = {owner: string; version: string; document_cid: string};
+type Descriptor = {document_id: string; spec_id: string; path: string; evidence: string; owns: string[];
+  normative_dependencies: string[]; machine_contracts?: MachineRef[]; normative_imports?: DocumentRef[]};
+type Requirement = {requirement_id: string; statement_sha256: string; source: {anchor: string; kind: string};
+  status: string; reason?: string; next_action?: string};
+type Registry = {document_id: string; version: string; requirements: Requirement[]};
+type FamilyManifest = {version: string; documents: Descriptor[]};
+type FamilyDocument = Descriptor & {source: string; registry: Registry};
+type MachineDocument = Pick<FamilyDocument, 'source' | 'path' | 'machine_contracts'>;
+type NormativeDocument = Pick<FamilyDocument, 'source' | 'path' | 'normative_dependencies' |
+  'normative_imports' | 'document_id' | 'spec_id'>;
+
+export const fingerprint = (entry: Pick<Paragraph, 'text' | 'keyword' | 'keyword_index'>) => createHash('sha256').update(`${entry.text}\0${entry.keyword}\0${entry.keyword_index}`).digest('hex');
+const canonical = (value: unknown): string => value && typeof value === 'object'
   ? Array.isArray(value) ? '['+value.map(canonical).join(',')+']'
-    : '{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonical(value[key])).join(',')+'}'
+    : '{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonical((value as Record<string, unknown>)[key])).join(',')+'}'
   : JSON.stringify(value);
-export const machineCid = value => 'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
-export const documentCid = source => 'sha256:'+createHash('sha256').update(source).digest('hex');
+export const machineCid = (value: unknown) => 'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
+export const documentCid = (source: BinaryLike) => 'sha256:'+createHash('sha256').update(source).digest('hex');
 
 /** Check both directions: validating registered bodies alone misses new markers. */
-export function validateMachineImports(documents) {
+export function validateMachineImports(documents: readonly MachineDocument[]) {
   for (const d of documents) {
     const explicit = [...d.source.matchAll(/<!-- machine-import: ([^\n]+) -->/gu)].map(m => m[1]);
     const markers = explicit.map(marker => {
@@ -34,7 +50,7 @@ export function validateMachineImports(documents) {
 }
 
 /** Explicit imports, never inferred from prose or a nearby hyperlink. */
-export function validateNormativeImports(documents) {
+export function validateNormativeImports(documents: readonly NormativeDocument[]) {
   const imports = [];
   for (const d of documents) {
     const declared = d.normative_imports ?? [];
@@ -53,11 +69,11 @@ export function validateNormativeImports(documents) {
   return imports;
 }
 export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const documents = manifest.documents.map(d => ({ ...d, source: readFileSync(d.path, 'utf8'), registry: JSON.parse(readFileSync(d.evidence, 'utf8')) }));
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as FamilyManifest;
+  const documents = manifest.documents.map(d => ({ ...d, source: readFileSync(d.path, 'utf8'), registry: JSON.parse(readFileSync(d.evidence, 'utf8')) as Registry }));
   const ids = new Set(documents.map(d => d.document_id));
   if (ids.size !== documents.length || !ids.size) throw new Error('duplicate or empty specification owners');
-  const visit = (id, stack = []) => {
+  const visit = (id: string, stack: string[] = []) => {
     if (stack.includes(id)) throw new Error(`normative dependency cycle: ${[...stack,id].join(' -> ')}`);
     const d = documents.find(d => d.document_id === id);
     if (!d) throw new Error(`missing normative owner ${id}`);
@@ -72,15 +88,15 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
   const machineOwners = new Set();
   for (const d of documents) {
     if (d.registry.document_id !== d.spec_id) throw new Error(`wrong evidence owner ${d.evidence}`);
-    const dependencies=d.normative_dependencies.map(id=>documents.find(other=>other.document_id===id).spec_id);
+    const dependencies=d.normative_dependencies.map(id=>documents.find(other=>other.document_id===id)!.spec_id);
     if(!d.source.includes(`spec_id: ${d.spec_id}\n`) || !d.source.includes(`normative_dependencies: [${dependencies.join(', ')}]`)) throw new Error(`descriptor/frontmatter mismatch ${d.path}`);
     for(const ref of d.machine_contracts ?? []) {
       const key=ref.path+'#'+ref.pointer;
       if(machineOwners.has(key))throw new Error(`machine contract has multiple owners: ${key}`);
       machineOwners.add(key);
-      const object=JSON.parse(readFileSync(ref.path,'utf8'));
+      const object=JSON.parse(readFileSync(ref.path,'utf8')) as Record<string, unknown>;
       if (ref.version !== undefined && ref.version !== object.version) throw new Error(`machine import version mismatch ${key}`);
-      const value=ref.pointer.split('/').slice(1).reduce((v,k)=>v?.[k.replace(/~1/g,'/').replace(/~0/g,'~')],object);
+      const value=ref.pointer.split('/').slice(1).reduce<unknown>((v,k)=>(v as Record<string, unknown> | undefined)?.[k.replace(/~1/g,'/').replace(/~0/g,'~')],object);
       if(value===undefined || machineCid(value)!==ref.cid)throw new Error(`owned machine contract identity mismatch ${key}`);
       if(!d.source.includes(`${relative(dirname(d.path),ref.path)}#${ref.pointer} ${ref.cid}`))throw new Error(`missing explicit machine reference ${key}`);
     }
@@ -110,7 +126,7 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
     if (matched.size !== byHash.size) throw new Error(`stale owner-local registry ${d.evidence}`);
   }
   for(const file of new Set(documents.flatMap(d=>(d.machine_contracts ?? []).map(r=>r.path)))) {
-    const source=JSON.parse(readFileSync(file,'utf8'));
+    const source=JSON.parse(readFileSync(file,'utf8')) as Record<string, unknown>;
     for(const collection of ['schemas','artifact_schemas'])for(const key of Object.keys(source[collection]??{})) {
       if(!machineOwners.has(`${file}#/${collection}/${key}`))throw new Error(`unowned machine schema ${file}#/${collection}/${key}`);
     }
@@ -125,7 +141,7 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
     informative_references:informativeReferences},registry:{version:'actql-requirement-evidence/0.1',generated_from:manifestPath,requirements}};
 }
 
-export function validateFamilyLinks(family) {
+export function validateFamilyLinks(family: {documents: readonly Pick<FamilyDocument, 'path' | 'source'>[]}) {
   const byPath = new Map(family.documents.map(d=>[resolve(d.path),d]));
   for (const d of family.documents) {
     const anchors=[...d.source.matchAll(/<a id="([^"]+)"><\/a>/gu)].map(m=>m[1]);

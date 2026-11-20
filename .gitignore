@@ -843,3 +843,11 @@ target/
 /scripts/native-cli-local-recipe.d.mts
 /scripts/native-cli-linux-local-recipe.mjs
 /scripts/native-cli-linux-local-recipe.d.mts
+/scripts/actql-requirement-extraction.mjs
+/scripts/actql-requirement-extraction.d.mts
+/scripts/actql-spec-family.mjs
+/scripts/actql-spec-family.d.mts
+/scripts/check-actql-spec-family.mjs
+/scripts/check-actql-spec-family.d.mts
+/scripts/spec-family-imports.test.mjs
+/scripts/spec-family-imports.test.d.mts

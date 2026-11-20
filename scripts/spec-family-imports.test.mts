@@ -42,7 +42,7 @@ test('root imports, escaped pointers and source order do not weaken matching', (
 test('every explicit machine-import marker has a pinned owner registration', () => {
   const family = loadSpecFamily();
   const execution = family.documents.find(d => d.document_id === 'execution');
-  const analytic = execution.machine_contracts.filter(r => r.path === 'spec/contracts/actql-analytic-numeric-slot.json');
+  const analytic = execution!.machine_contracts!.filter(r => r.path === 'spec/contracts/actql-analytic-numeric-slot.json');
   assert.deepEqual(analytic.map(r => r.pointer).toSorted(), ['', '/schemas/analytic_slot']);
   validateMachineImports(family.documents);
 });
@@ -59,7 +59,7 @@ test('run publication schemas retain their existing normative owners', () => {
   ];
   for (const pointer of [...schemas.map(name => `/schemas/${name}`), '/laws']) {
     const owners = family.documents.filter(document =>
-      document.machine_contracts.some(ref =>
+      document.machine_contracts!.some(ref =>
         ref.path === 'spec/contracts/actql-run-publication.json' &&
         ref.pointer === pointer));
     // The compilation envelope belongs to static planning contracts. The

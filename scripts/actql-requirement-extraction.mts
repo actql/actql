@@ -1,16 +1,18 @@
 const normative = /\b(?:MUST(?: NOT)?|SHALL(?: NOT)?|REQUIRED)\b/u;
-export function normalizedParagraphs(source) {
+type Paragraph = {section: string; heading: string; text: string; keyword: string; keyword_index: number};
+
+export function normalizedParagraphs(source: string) {
   const lines = source.split(/\r?\n/u);
-  const paragraphs = [];
+  const paragraphs: Paragraph[] = [];
   let section = '0';
   let heading = 'Preamble';
-  let buffer = [];
+  let buffer: string[] = [];
   let inFence = false;
-  let table = [];
+  let table: string[] = [];
   let informativeTable = false;
   let anchor = 'preamble';
-  let normativeFence;
-  let fenceLines = [];
+  let normativeFence: string | undefined;
+  let fenceLines: string[] = [];
   const flushTable = () => {
     if (table.length && !informativeTable) {
       paragraphs.push({ section, heading, text: table.join('\n'), keyword: 'NORMATIVE_TABLE', keyword_index: 0 });
