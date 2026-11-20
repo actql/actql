@@ -823,3 +823,5 @@ target/
 /scripts/native-mock-campaign-inputs.d.mts
 /scripts/release-authority.mjs
 /scripts/release-authority.d.mts
+/scripts/release-channels.mjs
+/scripts/release-channels.d.mts

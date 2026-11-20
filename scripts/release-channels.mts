@@ -4,13 +4,34 @@ import assert from 'node:assert/strict';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {compareReleaseVersions, releaseVersion} from './release-version.mjs';
 
-const exact = (value, keys) => {
+// These views describe candidate and observation data. The existing exact
+// shape, original selection and current-state checks establish their use.
+type Artifact = {ecosystem: string; targetId: string; name: string; version: string;
+  file: string; bytes: number; sha256: string};
+type FixedRelease = {sha256: string; manifest: {request: unknown; policy: unknown; artifacts: Artifact[]}};
+type FixedNativeRelease = FixedRelease & {manifest: {cohorts: {targetId: string; kind: string}[]}};
+type ChannelKey = {targetId: string; name: string; channel: string};
+type Move = ChannelKey & {expectedVersion: string | null};
+type ChannelObservation = ChannelKey & ({state: 'present'; version: string} | {state: 'absent' | 'unknown'});
+type ChannelReport = {schemaVersion: unknown; manifestSha256: unknown; observations: ChannelObservation[]};
+type NativeCurrent = {state: 'present'; releaseId: number; tag: string} |
+  {state: 'unassigned-or-selected'; releaseId: number; tag?: never} |
+  {state: 'unknown'; releaseId?: number; tag?: never};
+type NativeMove = {targetId: string; before: unknown};
+type NativeReport = {schemaVersion: unknown; state: unknown; manifestSha256: unknown; targetId: unknown;
+  candidate: {releaseId: number}; current: NativeCurrent;
+  inventory: {releaseId: number; tag: string; draft: boolean; prerelease: boolean}[];
+  publication: {manifestSha256: unknown; targetId: unknown; state: unknown; releaseId: unknown;
+    observations: {file: string; state: unknown; identity: unknown; assetId: number}[];
+    immutableSetting?: {enabled: unknown}}};
+
+const exact = (value: unknown, keys: readonly string[]) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
   assert.deepEqual(Object.keys(value).sort(), [...keys].sort());
 };
-const key = value => JSON.stringify([value.targetId, value.name, value.channel]);
+const key = (value: ChannelKey) => JSON.stringify([value.targetId, value.name, value.channel]);
 
-export function promotionPlan(fixed, moves, report, reportSha256) {
+export function promotionPlan(fixed: FixedRelease, moves: Move[], report: ChannelReport, reportSha256: string) {
   assert.match(fixed.sha256, /^[a-f0-9]{64}$/u);
   assert.match(reportSha256, /^[a-f0-9]{64}$/u);
   const selected = admitReleaseRequest(fixed.manifest.request, fixed.manifest.policy);
@@ -20,7 +41,7 @@ export function promotionPlan(fixed, moves, report, reportSha256) {
   assert(Array.isArray(report.observations));
   const expected = fixed.manifest.artifacts.filter(value => value.ecosystem === 'npm').flatMap(artifact => {
     const target = selected.request.targets.find(value => value.id === artifact.targetId);
-    return target.channels.map(channel => ({targetId: target.id, name: artifact.name, channel}));
+    return target!.channels.map(channel => ({targetId: target!.id, name: artifact.name, channel}));
   });
   assert.equal(report.observations.length, expected.length, 'Incomplete selected channel observation');
   const seen = new Set();
@@ -38,7 +59,7 @@ export function promotionPlan(fixed, moves, report, reportSha256) {
     const artifact = fixed.manifest.artifacts.find(value => value.targetId === move.targetId && value.name === move.name);
     assert(artifact && artifact.ecosystem === 'npm', 'No selected npm artifact/channel route');
     const target = selected.request.targets.find(value => value.id === move.targetId);
-    assert(target.channels.includes(move.channel), 'Channel is outside the fixed release scope');
+    assert(target!.channels.includes(move.channel), 'Channel is outside the fixed release scope');
     const observation = report.observations.find(value => key(value) === key(move));
     assert(observation && observation.state !== 'unknown', 'Selected channel current value is unknown');
     const before = observation.state === 'present' ? observation.version : null;
@@ -63,7 +84,7 @@ export function promotionPlan(fixed, moves, report, reportSha256) {
     qualification: 'local channel-transition DATA for owner review only; no mutation, credential, approval or lease'};
 }
 
-export function nativeLatestPromotionPlan(fixed, move, report, reportSha256) {
+export function nativeLatestPromotionPlan(fixed: FixedNativeRelease, move: NativeMove, report: NativeReport, reportSha256: string) {
   assert.match(fixed.sha256,/^[a-f0-9]{64}$/u);assert.match(reportSha256,/^[a-f0-9]{64}$/u);
   const selected=admitReleaseRequest(fixed.manifest.request,fixed.manifest.policy);
   exact(move,['targetId','before']);
@@ -95,7 +116,7 @@ export function nativeLatestPromotionPlan(fixed, move, report, reportSha256) {
   }
   assert.equal(report.publication.immutableSetting?.enabled,true);
   assert.deepEqual(move.before,report.current,'Latest changed from the explicit original transition');
-  let expectedVersion=null;
+  let expectedVersion: string | null=null;
   if(report.current.state==='present'){
     exact(report.current,['state','releaseId','tag']);assert(Number.isSafeInteger(report.current.releaseId)&&report.current.releaseId>0);
     assert(report.inventory.some(value=>value.releaseId===report.current.releaseId&&value.tag===report.current.tag&&!value.draft&&!value.prerelease));
