@@ -42,3 +42,11 @@ target/
 /scripts/local-node-package-imports.d.mts
 /scripts/ci-core-partitions.d.mts
 /packages/sdk/internal/data.d.mts
+/packages/sdk/internal/errors.mjs
+/packages/sdk/internal/errors.d.mts
+/packages/sdk/internal/client-errors.mjs
+/packages/sdk/internal/client-errors.d.mts
+/packages/sdk/internal/client-lifecycle.mjs
+/packages/sdk/internal/client-lifecycle.d.mts
+/packages/sdk/internal/transport-response.mjs
+/packages/sdk/internal/transport-response.d.mts

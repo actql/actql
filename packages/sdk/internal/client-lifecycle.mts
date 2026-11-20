@@ -2,14 +2,25 @@
 // Sealing is immediate; failed cleanup remains retryable on this same connection.
 import {ClientError} from './errors.mjs';
 
-export function createClientLifecycle(port) {
+export interface LifecyclePort {
+  seal?(): unknown;
+  close?(): unknown | Promise<unknown>;
+}
+
+export interface ActiveReader {
+  abort(): void;
+  finish(): unknown | Promise<unknown>;
+  cleanupFailure?: unknown;
+}
+
+export function createClientLifecycle(port?: LifecyclePort) {
   let closed = false;
-  let closeFlight;
+  let closeFlight: Promise<void> | undefined;
   let released = false;
-  const activeReaders = new Set();
-  const readerCleanups = new Set();
-  const readCleanupFailures = [];
-  function close() {
+  const activeReaders = new Set<ActiveReader>();
+  const readerCleanups = new Set<() => unknown | Promise<unknown>>();
+  const readCleanupFailures: unknown[] = [];
+  function close(): Promise<void> {
     // Revoke new use before returning, including while physical cleanup waits.
     closed = true;
     let sealFailed = false;
@@ -29,7 +40,7 @@ export function createClientLifecycle(port) {
           readCleanupFailures.push(reader.cleanupFailure);
         }
       }
-      const failures = [];
+      const failures: unknown[] = [];
       for (const cleanup of [...readerCleanups]) {
         try { await cleanup(); readerCleanups.delete(cleanup); }
         catch (error) { failures.push(error); }

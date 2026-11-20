@@ -9,10 +9,10 @@ const resourceEnvelopeBytes = 102 * (256 * 6 + 3) + 1024;
 
 export const reviewEnvelopeBytes = 1024;
 
-export const jsonPayloadWireBytes = bytes => 6 * bytes + resourceEnvelopeBytes;
+export const jsonPayloadWireBytes = (bytes: number): number => 6 * bytes + resourceEnvelopeBytes;
 
-export async function boundedHostJson(response,
-  maxWireBytes = maxControlResponseBytes) {
+export async function boundedHostJson(response: Pick<Response, 'headers' | 'body'>,
+  maxWireBytes = maxControlResponseBytes): Promise<unknown> {
   const declared = response.headers.get('content-length');
   const reader = response.body?.getReader();
   if (!reader) throw new Error('InvalidHostControlResponse');
@@ -21,7 +21,7 @@ export async function boundedHostJson(response,
     if (declared !== null && Number(declared) > maxWireBytes) {
       throw new Error('HostControlResponseLimit');
     }
-    const chunks = [];
+    const chunks: Uint8Array[] = [];
     let size = 0;
     while (true) {
       const {done, value} = await reader.read();
@@ -38,7 +38,7 @@ export async function boundedHostJson(response,
       bytes.set(chunk, offset);
       offset += chunk.byteLength;
     }
-    const parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true})
+    const parsed: unknown = JSON.parse(new TextDecoder('utf-8', {fatal: true})
       .decode(bytes));
     complete = true;
     return parsed;
@@ -50,5 +50,5 @@ export async function boundedHostJson(response,
   }
 }
 
-export const controlValue = (response, maxWireBytes) => response instanceof Response
+export const controlValue = <T,>(response: T, maxWireBytes?: number): T | Promise<unknown> => response instanceof Response
   ? boundedHostJson(response, maxWireBytes) : response;
