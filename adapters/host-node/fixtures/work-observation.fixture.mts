@@ -3,21 +3,39 @@
 import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import type {createHostObservationConnection, HostObservationConnection} from '../../../packages/local-node/observation.d.ts';
+import type {DynamicRow, Execution, RunReference} from '../../../packages/sdk/index.d.ts';
 
-export function workflowObservationComplete(status) {
+type ObservationStatus = ReturnType<HostObservationConnection['status']>;
+type CreateObservation = typeof createHostObservationConnection;
+type Counts = {sourceAcquisitionStarts: number; modelCallStarts: number; effectReplacementReturns: number};
+type Failure = Readonly<{available: true; code: string; kind: string; phase: string}>;
+type AttributedFailure = Failure & {occurrence: Readonly<{task: number; unit: number; step: number}>};
+type RunCounts = Counts & {primaryFailure?: AttributedFailure; effectPreflightFailure?: Failure};
+type RecordWork = Counts & {complete: boolean; totals: Counts};
+type RecordVariant = 'whole-input' | 'binary-source' | 'three-source';
+type ResultReader = Pick<Execution, 'result'>;
+// The authored row oracles assert the exact values and resource shape below.
+type OrderedRow = DynamicRow & {id: string};
+type JoinedRow = OrderedRow & {resource: Readonly<Record<string, string>>};
+type ReviewRow = OrderedRow & {confirmation?: unknown};
+
+export function workflowObservationComplete(status: ObservationStatus | null) {
   // Suppressed repeats of the same charged Owner fact are not lost delivery.
   return status !== undefined && status !== null && status.closed === true && status.cleanupPending === false &&
     Number.isSafeInteger(status.repeated) && status.repeated >= 0 &&
     ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited',
-      'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
+      'queued', 'active', 'activeSegments'].every(name => status[name as keyof NonNullable<ObservationStatus>] === 0) &&
     status.loss !== undefined && status.loss !== null && Object.values(status.loss).every(value => value === 0);
 }
 
 // Authored no-Model fixture expectations, established by their checked Source
 // occurrences and the one-start-per-selected-Source dispatch boundary. Counts
 // from a previous execution never supply these expectations.
-export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
-  assert(['capture', 'approve', 'recover'].includes(phase));
+export function assertRecordWorkflowWork(work: RecordWork, {phase, variant}: {
+  phase?: 'capture' | 'approve' | 'recover'; variant?: RecordVariant;
+} = {}) {
+  assert(['capture', 'approve', 'recover'].includes(phase!));
   const sourceStarts = {'whole-input': 1, 'binary-source': 2, 'three-source': 3};
   if (variant !== undefined) assert(Object.hasOwn(sourceStarts, variant));
   assert.equal(work.complete, true, 'Unbound or lost starts cannot establish original-Run reuse');
@@ -32,15 +50,17 @@ export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
   assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
 }
 
-export function workflowWorkObservation({trackOriginal = false, createObservation} = {}) {
+export function workflowWorkObservation({trackOriginal = false, createObservation}: {
+  trackOriginal?: boolean; createObservation?: CreateObservation;
+} = {}) {
   // DATA-only oracles also run before runtime staging. Only an actual observer
   // resolves the same installed observation namespace used by the public Host.
-  const makeConnection = createObservation ??
+  const makeConnection: CreateObservation = createObservation ??
     createRequire(import.meta.url)('@actql/local-node/observation').createHostObservationConnection;
   const empty = () => ({sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
-  const counts = empty(), unbound = empty(), runs = new Map();
-  let limited = false, primaryFailure, effectPreflightFailure;
-  const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
+  const counts = empty(), unbound = empty(), runs = new Map<string, RunCounts>();
+  let limited = false, primaryFailure: AttributedFailure | undefined, effectPreflightFailure: Failure | undefined;
+  const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
   const connection = makeConnection({
     include: ['source', 'infer', 'effect'],
     correlation: {include: trackOriginal ? ['run', 'task'] : ['task']},
@@ -64,7 +84,7 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
             if (runs.size === 8) {limited = true;return;}
             runs.set(key, empty());
           }
-          runs.get(key).effectPreflightFailure ??= failure;
+          runs.get(key)!.effectPreflightFailure ??= failure;
         }
         return;
       }
@@ -74,11 +94,11 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
             typeof a?.['actql.failure.kind'] !== 'string' ||
             typeof a?.['actql.failure.phase'] !== 'string' ||
             !['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal']
-              .every(key => Number.isSafeInteger(a[key]) && a[key] >= 0)) return;
+              .every(key => Number.isSafeInteger(a[key]) && (a[key] as number) >= 0)) return;
         const failure = Object.freeze({available: true, code: a['error.type'],
           kind: a['actql.failure.kind'], phase: a['actql.failure.phase'],
-          occurrence: Object.freeze({task: a['actql.task.ordinal'],
-            unit: a['actql.unit.ordinal'], step: a['actql.step.ordinal']})});
+          occurrence: Object.freeze({task: a['actql.task.ordinal'] as number,
+            unit: a['actql.unit.ordinal'] as number, step: a['actql.step.ordinal'] as number})});
         primaryFailure ??= failure;
         if (trackOriginal) {
           const key = a['actql.run.definition_cid'];
@@ -87,7 +107,7 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
             if (runs.size === 8) {limited = true;return;}
             runs.set(key, empty());
           }
-          runs.get(key).primaryFailure ??= failure;
+          runs.get(key)!.primaryFailure ??= failure;
         }
         return;
       }
@@ -103,7 +123,7 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
         if (runs.size === 8) {limited = true;return;}
         runs.set(key, empty());
       }
-      runs.get(key)[field]++;
+      runs.get(key)![field]++;
     },
   });
   function snapshot() {
@@ -115,7 +135,7 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
       complete: workflowObservationComplete(status)};
   }
   return {connection, snapshot,
-    forOriginal(ref) {
+    forOriginal(ref: Pick<RunReference, 'runDefinitionCid'>) {
       const total = snapshot(), bound = trackOriginal && cid(ref?.runDefinitionCid);
       return {...total, totals: {...counts}, ...(bound ? runs.get(ref.runDefinitionCid) ?? empty() : empty()),
         primaryFailure: bound ? runs.get(ref.runDefinitionCid)?.primaryFailure ?? {available: false}
@@ -126,19 +146,19 @@ export function workflowWorkObservation({trackOriginal = false, createObservatio
     }};
 }
 
-export async function readWholeResults(execution, updates) {
+export async function readWholeResults(execution: ResultReader, updates: readonly ReviewRow[]) {
   const sourceRows = await execution.result('answer').all();
-  assert.deepEqual([...sourceRows].sort((left, right) => left.id.localeCompare(right.id)), [
+  assert.deepEqual([...sourceRows].sort((left, right) => (left.id as string).localeCompare(right.id as string)), [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
   ]);
   const reviewed = await execution.result('main').all();
-  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  const ordered = (rows: readonly DynamicRow[]) => [...rows].sort((left, right) => (left.id as string).localeCompare(right.id as string));
   assert.deepEqual(ordered(reviewed), ordered(updates.map(({confirmation, ...row}) => row)));
   return {answer: sourceRows, main: reviewed};
 }
 
-export function checkJoinedSourceRows(rows) {
+export function checkJoinedSourceRows(rows: readonly DynamicRow[]) {
   const expected = [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
       version: 'sha256:3fdf0d901072bf1f3660dc0dfdbf5f6161cec18c459fdac7fed8b4c47d0fdd4e'},
@@ -146,7 +166,7 @@ export function checkJoinedSourceRows(rows) {
       version: 'sha256:ee260c4ffcd3129c8950438225a62d46fa6078f63464ba4aed6f0d034f7ebdb2'},
   ];
   const fileIds = ['file-acme-notes', 'file-globex-notes'];
-  const ordered = [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  const ordered = [...rows as readonly JoinedRow[]].sort((left, right) => (left.id as string).localeCompare(right.id as string));
   assert.equal(ordered.length, expected.length);
   const identities = new Set();
   for (const [index, row] of ordered.entries()) {
@@ -169,11 +189,11 @@ export function checkJoinedSourceRows(rows) {
   }
   assert.equal(identities.size, 2);
 }
-export async function readJoinedWholeResults(execution, updates) {
+export async function readJoinedWholeResults(execution: ResultReader, updates: readonly ReviewRow[]) {
   const answer = await execution.result('answer').all();
   checkJoinedSourceRows(answer);
   const main = await execution.result('main').all();
-  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  const ordered = (rows: readonly DynamicRow[]) => [...rows].sort((left, right) => (left.id as string).localeCompare(right.id as string));
   assert.deepEqual(ordered(main), ordered(updates.map(({confirmation, ...row}) => row)));
   return {answer, main};
 }
