@@ -22,7 +22,7 @@ test('completion limit intake refuses frozen accessors without invoking them', (
 });
 
 test('completion limit intake requires individual own keys, not joined spelling', () => {
-  const input = Object.create(limits());
+  const input = Object.create(limits()) as Record<string, unknown>;
   input['maxColumns,maxCompletions,maxInputs'] = true;
   assert.throws(() => completionRecordLimits(input), /InvalidCompletionRecordLimits/);
 });
@@ -48,14 +48,14 @@ test('completion task intake never invokes a task or input accessor', () => {
 });
 
 test('completion task intake refuses holes, accessor elements and extra array properties', () => {
-  for (const field of ['inputs', 'controls']) {
+  for (const field of ['inputs', 'controls'] as const) {
     for (const kind of ['hole', 'accessor', 'extra']) {
       let calls = 0;
       const input = task();
       if (kind === 'hole') delete input[field][0];
       else if (kind === 'accessor') Object.defineProperty(input[field], '0',
         {enumerable: true, get() { calls++; return field === 'inputs' ? task().inputs[0] : 0; }});
-      else input[field].extra = true;
+      else (input[field] as unknown as {extra?: boolean}).extra = true;
       assert.throws(() => snapshotCompletionTask(input, limits()), /InvalidCompletionTask/);
       assert.equal(calls, 0);
     }
@@ -63,7 +63,7 @@ test('completion task intake refuses holes, accessor elements and extra array pr
 });
 
 test('completion DATA snapshots preserve valid plain and null-prototype metadata', () => {
-  const input = Object.assign(Object.create(null), descriptor());
+  const input = Object.assign(Object.create(null), descriptor()) as ReturnType<typeof descriptor>;
   const kept = snapshotCompletionDescriptor(input, completionRecordLimits(limits()));
   input.values.nodes = 999;
   input.columns = 999;
@@ -88,7 +88,7 @@ test('completion DATA intake refuses hidden and symbolic own metadata', () => {
 });
 
 test('completion DATA uses each inspected descriptor once rather than rereading original properties', () => {
-  const reads = new Map();
+  const reads = new Map<PropertyKey, number>();
   const input = new Proxy(limits(), {
     get() { assert.fail('Original property reread'); },
     getOwnPropertyDescriptor(target, key) {

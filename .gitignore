@@ -311,3 +311,7 @@ target/
 # Generated Host completion metadata snapshots.
 /adapters/host-node/completion-record.mjs
 /adapters/host-node/completion-record.d.mts
+
+# Generated maintained completion DATA regression.
+/adapters/host-node/completion-record-data.test.mjs
+/adapters/host-node/completion-record-data.test.d.mts
