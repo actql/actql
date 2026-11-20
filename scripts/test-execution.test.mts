@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import type {TestContext} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -31,13 +32,14 @@ test('direct library invocation cannot succeed without executing tests', t => {
   assert.equal(imported.stdout, 'function');
 });
 
-const counts = (values = {}) => ({tests: 0, passed: 0, failed: 0,
+type Counts = ReturnType<typeof parseTestExecution>['counts'];
+const counts = (values: Partial<Counts> = {}) => ({tests: 0, passed: 0, failed: 0,
   cancelled: 0, skipped: 0, todo: 0, ...values});
-const summary = (values, file) => 'ACTQL_TEST_SUMMARY ' + JSON.stringify({
+const summary = (values: Partial<Counts>, file?: string) => 'ACTQL_TEST_SUMMARY ' + JSON.stringify({
   success: true, counts: counts(values), ...(file ? {file} : {}),
 }) + '\n';
-const output = values => summary(values, 'selected.test.mjs') + summary(values);
-const checked = (kind, stdout, extra = {}) => testExecutionResult(kind,
+const output = (values: Partial<Counts>) => summary(values, 'selected.test.mjs') + summary(values);
+const checked = (kind: string, stdout: string, extra: Partial<Parameters<typeof testExecutionResult>[3]> = {}) => testExecutionResult(kind,
   kind, ['--filter', 'selected'], {status: 0, stdout, ...extra});
 
 const cargoOutput = 'running 2 tests\n' +
@@ -58,7 +60,7 @@ test('Cargo gate forwards one locked unfiltered library selection without changi
     args.map(value => value === 'packages/rust/Cargo.toml' ? '../other/Cargo.toml' : value),
     ['--doc', ...args], ['--no-run', ...args], ['--locked', ...args],
     [...args.slice(0, -1), '--ignored'], [...args.slice(0, -1), '--list']]) {
-    assert.throws(() => cargoTestArguments(bad), undefined, JSON.stringify(bad));
+    assert.throws(() => cargoTestArguments(bad), undefined!, JSON.stringify(bad));
   }
 });
 
@@ -86,7 +88,7 @@ test('Cargo gate refuses compilation-only, zero tests, ignored tests and filtere
 
 test('Cargo process failure and signals remain primary even with green execution text', () => {
   for (const extra of [{status: 101}, {status: 0, signal: 'SIGTERM'},
-    {status: 0, error: {code: 'ETIMEDOUT'}}]) assert.notEqual(checked('cargo', cargoOutput, extra).status, 0);
+    {status: 0, error: {code: 'ETIMEDOUT'}}]) assert.notEqual(checked('cargo', cargoOutput, extra as Partial<Parameters<typeof testExecutionResult>[3]>).status, 0);
   const failed = cargoOutput.replace('same_host_owner ... ok', 'same_host_owner ... FAILED')
     .replace('result: ok. 2 passed; 0 failed', 'result: FAILED. 1 passed; 1 failed');
   assert.equal(checked('cargo', failed).status, 1);
@@ -109,7 +111,7 @@ for (const [name, values, status] of [
   ['skip-only', {tests: 2, skipped: 2}, 1],
   ['todo-only', {tests: 1, todo: 1}, 1],
   ['cancellation', {tests: 1, cancelled: 1}, 1],
-]) {
+] as const) {
   test(`Node ${name} fixture`, () => {
     const result = checked('node', output(values));
     assert.equal(result.status, status);
@@ -134,11 +136,11 @@ test('MoonBit exact pinned summary, zero/skip-only and failure fixtures', () => 
     ['Total tests: 0, passed: 0, failed: 0.\nWarning: no test entry found.\n', 1, 0],
     ['Total tests: 2, passed: 2, failed: 0.\n', 0, 2],
     ['Total tests: 2, passed: 1, failed: 1.\n', 1, 2],
-  ]) {
+  ] as const) {
     const result = checked('moon', text);
     assert.equal(result.status, status);
-    assert.equal(result.counts.tests, total);
-    assert.equal(result.counts.skipped, null, 'the tool does not report skipped counts');
+    assert.equal(result.counts!.tests, total);
+    assert.equal(result.counts!.skipped, null, 'the tool does not report skipped counts');
   }
   const mixed = 'Total tests: 1, passed: 1, failed: 0.\nTotal tests: 0, passed: 0, failed: 0.\n';
   assert.equal(checked('moon', mixed).status, 1, 'one target cannot hide another zero target');
@@ -163,7 +165,7 @@ test('unsupported reporter, watch and isolation overrides cannot bypass the guar
   }
 });
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-test-execution-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   return root;
@@ -186,7 +188,7 @@ test('real Node focused selection passes, unmatched/empty/skip/cancel/failure do
     ['selected skip', false, {tests: 1, skipped: 1}],
     ['selected failure', false, {tests: 1, failed: 1}],
     ['selected cancel', false, {tests: 1, cancelled: 1}],
-  ]) {
+  ] as const) {
     const args = nodeTestArguments(['--test-name-pattern', pattern, file]);
     const child = spawnSync(process.execPath, args, {encoding: 'utf8', env: childEnv, timeout: 10_000});
     const result = testExecutionResult('node', process.execPath, args, child);
@@ -204,7 +206,7 @@ test('local-checks integrates real selected and unmatched Node tests', t => {
   const file = join(root, 'selected.mjs');
   writeFileSync(file, `import {test} from 'node:test'; test('selected', () => {});\n`);
   const script = fileURLToPath(new URL('./local-checks.mjs', import.meta.url));
-  for (const [pattern, status] of [['selected', 0], ['missing-selection', 1]]) {
+  for (const [pattern, status] of [['selected', 0], ['missing-selection', 1]] as const) {
     const child = spawnSync(process.execPath, [script, 'test', 'node', '--',
       '--test-name-pattern', pattern, file], {encoding: 'utf8', env: {...childEnv, HOME: root}, timeout: 10_000});
     assert.equal(child.status, status, child.stdout + child.stderr);
@@ -224,7 +226,7 @@ test('pinned MoonBit real pass, unmatched, skip-only and failure selections', t 
   for (const [filter, success, total] of [
     ['selected pass', true, 1], ['does-not-exist', false, 0],
     ['selected skip', false, 0], ['selected failure', false, 1],
-  ]) {
+  ] as const) {
     const args = ['test', '--target', 'js', '--filter', filter];
     const child = spawnSync('moon', args, {cwd: root, encoding: 'utf8'});
     const result = testExecutionResult('moon', 'moon', args, child);
@@ -235,7 +237,7 @@ test('pinned MoonBit real pass, unmatched, skip-only and failure selections', t 
 
 import {readFileSync, readdirSync} from 'node:fs';
 
-function runRecorded(root, file, extra = {}) {
+function runRecorded(root: string, file: string, extra: Record<string, unknown> = {}) {
   const helper = new URL('./test-execution.mjs', import.meta.url).href;
   return spawnSync(process.execPath, ['--input-type=module', '-e',
     `import {runFocusedTests} from ${JSON.stringify(helper)};
@@ -253,7 +255,7 @@ test('required execution count rejects a passing subset and is recorded as failu
   assert.equal(subset.status, 1, subset.stderr);
   assert.match(subset.stderr, /expected tests=2/u);
   const summaries = readdirSync(join(root, 'evidence')).map(name =>
-    JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json'))));
+    JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json')) as unknown as string) as {complete: boolean; commands: {verificationStatus: number}[]});
   assert.equal(summaries.filter(value => value.complete).length, 1);
   assert.equal(summaries.filter(value => value.commands[0].verificationStatus === 1).length, 1);
   for (const expectedTests of [0, -1, 1.5, '1']) {
@@ -265,7 +267,7 @@ test('required execution count rejects a passing subset and is recorded as failu
 
 test('whole-file execution requires every discovered case without a historical count', t => {
   const root = fixture(t), file = join(root, 'selected.mjs');
-  const check = (body, status) => {
+  const check = (body: string, status: number) => {
     writeFileSync(file, "import {test} from 'node:test';\n" + body);
     const result = runRecorded(root, file, {requireAllPassed: true});
     assert.equal(result.status, status, result.stderr);
@@ -295,7 +297,7 @@ test('focused assertion failure survives an explicitly requested successful reru
   assert.equal(passed.status, 0, passed.stderr);
   assert.equal(readdirSync(join(root, 'evidence')).length, 2);
   assert.equal(readFileSync(path, 'utf8'), before, 'failed attempt bytes are immutable across reruns');
-  const summaries = readdirSync(join(root, 'evidence')).map(name => JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json'))));
+  const summaries = readdirSync(join(root, 'evidence')).map(name => JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json')) as unknown as string) as {complete: boolean; commands: {verificationStatus: number}[]});
   assert.equal(summaries.filter(summary => summary.complete).length, 1);
 });
 

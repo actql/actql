@@ -138,3 +138,7 @@ target/
 /scripts/test-execution.d.mts
 /scripts/test-execution-reporter.mjs
 /scripts/test-execution-reporter.d.mts
+
+# Generated maintained nonzero-verification regression.
+/scripts/test-execution.test.mjs
+/scripts/test-execution.test.d.mts
