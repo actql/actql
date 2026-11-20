@@ -2961,11 +2961,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "packages/provider-http/_internal/bounded-response.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "packages/provider-http/_internal/bounded-response.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -2981,7 +2981,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "packages/provider-http/_internal/bounded-response.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -3009,11 +3009,11 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "packages/provider-http/_internal/bounded-response.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "packages/provider-http/_internal/bounded-response.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],

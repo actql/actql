@@ -275,3 +275,7 @@ target/
 # Generated HTTP original request projection; no authored TS is packed.
 /packages/provider-http/_internal/original-chat-request.mjs
 /packages/provider-http/_internal/original-chat-request.d.mts
+
+# Generated HTTP bounded response reader.
+/packages/provider-http/_internal/bounded-response.mjs
+/packages/provider-http/_internal/bounded-response.d.mts
