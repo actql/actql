@@ -66,3 +66,5 @@ target/
 /packages/sdk/loopback-http.test.d.mts
 /packages/sdk/loopback-http-browser.test.mjs
 /packages/sdk/loopback-http-browser.test.d.mts
+/packages/sdk/result-schema.mjs
+/packages/sdk/result-schema.d.mts
