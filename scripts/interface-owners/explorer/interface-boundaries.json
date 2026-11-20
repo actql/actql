@@ -135,7 +135,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -278,7 +278,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "shared cancellation panel keeps original references separate"
               }
             ]
@@ -425,7 +425,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -583,7 +583,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/cancellation-panel.test.mjs",
+                "path": "packages/explorer-ui/cancellation-panel.test.mts",
                 "anchor": "Owner accepted and history found do not claim physical stop"
               }
             ]
@@ -727,7 +727,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer-ui/checkpoint-panel.test.mjs",
+                "path": "packages/explorer-ui/checkpoint-panel.test.mts",
                 "anchor": "shared review shows original subject"
               }
             ]

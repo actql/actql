@@ -431,3 +431,9 @@ target/
 /packages/explorer/cancellation.test.d.mts
 /packages/explorer/gateway-navigation.test.mjs
 /packages/explorer/gateway-navigation.test.d.mts
+/packages/explorer-ui/checkpoint-review.fixture.mjs
+/packages/explorer-ui/checkpoint-review.fixture.d.mts
+/packages/explorer-ui/checkpoint-panel.test.mjs
+/packages/explorer-ui/checkpoint-panel.test.d.mts
+/packages/explorer-ui/cancellation-panel.test.mjs
+/packages/explorer-ui/cancellation-panel.test.d.mts
