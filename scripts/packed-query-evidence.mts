@@ -6,13 +6,46 @@ import {appendFileSync, constants, closeSync, fstatSync, ftruncateSync, lstatSyn
   mkdtempSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, join, resolve} from 'node:path';
 
+import type {SpawnSyncOptions, SpawnSyncReturns} from 'node:child_process';
+import type {Stats} from 'node:fs';
+
+type Environment = NodeJS.ProcessEnv;
+type FileIdentity = Pick<Stats, 'dev' | 'ino'>;
+type SpawnOptions = Omit<SpawnSyncOptions, 'encoding' | 'stdio' | 'cwd'> & {cwd?: string};
+interface Classification {status: number; counts?: unknown}
+interface CommandOutcome {
+  id: string; command: string; args: string[]; cwd: ReturnType<typeof cwdIdentity>;
+  source: ReturnType<typeof commandSource>; startedAt: string; endedAt: string | null;
+  elapsedMs: number | null; status: number | null; signal: NodeJS.Signals | null;
+  error: {code: string} | null; complete: boolean; verificationStatus: number | null;
+  outputComplete: boolean; outputLimitBytes?: number; counts?: unknown;
+}
+interface EvidenceSummary {
+  version: string; invocationId: string; revision: string | null; source: ReturnType<typeof commandSource>;
+  github: ReturnType<typeof githubIdentity>; startedAt: string; endedAt: string | null;
+  status: string; complete: boolean; commands: CommandOutcome[];
+  tarballs: {name: string; sha256: string}[]; artifactsRemoved: boolean;
+  evidenceErrors: {stage: string; code: string}[]; keepArtifacts?: boolean;
+}
+interface EvidenceOptions {
+  scratch: string; revision?: string | null; cwd?: string; env?: Environment;
+  githubOutput?: string; prefix?: string;
+}
+interface CapturedCommand<T> {
+  result: SpawnSyncReturns<string>; checked: T; outcome: CommandOutcome; writeFailure: unknown;
+}
+interface PackedEvidenceContext {
+  root: string; directory: string; recordTarball(path: string): void;
+  run(command: string, args: readonly string[], options?: {cwd?: string; env?: Environment; timeout?: number}): string;
+}
+
 export const COMMAND_OUTPUT_LIMIT = 8 * 1024 * 1024;
 const MAX_COMMAND_OUTPUT_LIMIT = 64 * 1024 * 1024;
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
+const same = (a: FileIdentity, b: FileIdentity) => a.dev === b.dev && a.ino === b.ino;
 const timestamp = () => new Date().toISOString();
-const errorCode = error => /^[A-Z][A-Z0-9_]+$/u.test(error?.code ?? '') ? error.code : 'EVIDENCE_WRITE_FAILED';
+const errorCode = (error: unknown): string => /^[A-Z][A-Z0-9_]+$/u.test((error as {code?: string} | null | undefined)?.code ?? '') ? (error as {code: string}).code : 'EVIDENCE_WRITE_FAILED';
 
-export function redactCommandEvidence(value, env = process.env) {
+export function redactCommandEvidence(value: unknown, env: Environment = process.env) {
   let text = String(value);
   // Read only secret-labelled values for exact masking; no names or values are emitted.
   for (const [key, secret] of Object.entries(env)) {
@@ -25,7 +58,7 @@ export function redactCommandEvidence(value, env = process.env) {
     .replace(/(https?:\/\/)[^/\s@]+@/giu, '$1[REDACTED]@')
     .replace(/((?:--)?(?:access[-_]token|api[-_]key|password|secret|token|authorization)["']?\s*[:=]\s*["']?)[^\s,"'}]+/giu, '$1[REDACTED]');
 }
-export function redactCommandArguments(args, env = process.env) {
+export function redactCommandArguments(args: readonly string[], env: Environment = process.env) {
   let secretNext = false;
   return args.map(arg => {
     const redact = secretNext;
@@ -34,8 +67,8 @@ export function redactCommandArguments(args, env = process.env) {
   });
 }
 
-export function commandSource(cwd) {
-  const git = args => spawnSync('git', ['--no-replace-objects', ...args], {
+export function commandSource(cwd: string) {
+  const git = (args: readonly string[]) => spawnSync('git', ['--no-replace-objects', ...args], {
     cwd, encoding: 'utf8', maxBuffer: 1024 * 1024, timeout: 10_000,
   });
   const head = git(['rev-parse', '--verify', 'HEAD']);
@@ -45,13 +78,13 @@ export function commandSource(cwd) {
     root: root.status === 0 ? root.stdout.trim() : null,
     dirty: dirty.status === 0 && !dirty.error ? dirty.stdout.length > 0 : null};
 }
-function cwdIdentity(cwd) {
+function cwdIdentity(cwd: string) {
   try {
     const path = realpathSync(cwd), stat = lstatSync(path);
     return {path: resolve(cwd), realpath: path, device: String(stat.dev), inode: String(stat.ino)};
   } catch { return {path: resolve(cwd), realpath: null, device: null, inode: null}; }
 }
-function githubIdentity(env) {
+function githubIdentity(env: Environment) {
   return {runId: /^\d+$/u.test(env.GITHUB_RUN_ID ?? '') ? env.GITHUB_RUN_ID : null,
     runAttempt: /^\d+$/u.test(env.GITHUB_RUN_ATTEMPT ?? '') ? env.GITHUB_RUN_ATTEMPT : null,
     eventSha: /^[0-9a-f]{40}$/u.test(env.GITHUB_SHA ?? '') ? env.GITHUB_SHA : null,
@@ -62,18 +95,18 @@ function githubIdentity(env) {
 // per-command start records are written before spawn; abrupt runner death leaves
 // complete:false. spawnSync's in-memory streams cannot be recovered after that.
 export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
-  env = process.env, githubOutput, prefix = 'public-query-evidence-'}) {
+  env = process.env, githubOutput, prefix = 'public-query-evidence-'}: EvidenceOptions) {
   const source = commandSource(cwd);
   mkdirSync(scratch, {recursive: true});
   if (!lstatSync(scratch).isDirectory() || lstatSync(scratch).isSymbolicLink()) throw new Error('InvalidEvidenceScratchDirectory');
   const directory = realpathSync(mkdtempSync(join(scratch, prefix)));
-  const owned = lstatSync(directory), files = new Map();
+  const owned = lstatSync(directory), files = new Map<string, Stats>();
   function checkDirectory() {
     const current = lstatSync(directory);
     if (!current.isDirectory() || current.isSymbolicLink() || !same(owned, current) ||
         realpathSync(directory) !== directory) throw new Error('EvidenceDirectoryOwnershipChanged');
   }
-  function write(name, value) {
+  function write(name: string, value: string | Uint8Array) {
     checkDirectory();
     const path = join(directory, name), previous = files.get(name);
     const fd = openSync(path, constants.O_WRONLY | constants.O_NOFOLLOW |
@@ -89,7 +122,7 @@ export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
       files.set(name, current);
     } finally { closeSync(fd); }
   }
-  const summary = {version: 'actql-command-evidence/0.1', invocationId: basename(directory),
+  const summary: EvidenceSummary = {version: 'actql-command-evidence/0.1', invocationId: basename(directory),
     revision: revision ?? source.revision, source, github: githubIdentity(env),
     startedAt: timestamp(), endedAt: null, status: 'running', complete: false,
     commands: [], tarballs: [], artifactsRemoved: false, evidenceErrors: []};
@@ -124,21 +157,25 @@ export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
     if (/[\r\n]/u.test(directory)) throw new Error('InvalidEvidenceDirectory');
     appendFileSync(githubOutput, `evidence-directory=${directory}\n`);
   }
-  function noteError(error, stage = 'write') {
+  function noteError(error: unknown, stage = 'write') {
     summary.evidenceErrors.push({stage, code: errorCode(error)});
     summary.complete = false;
     summary.status = 'failed';
     console.error(`Command evidence write failed (${errorCode(error)}); evidence: ${directory}`);
   }
-  function capture(command, args, options = {}, classify) {
+  function capture<T extends Classification>(command: string, args: readonly string[], options: SpawnOptions | undefined,
+    classify: (result: SpawnSyncReturns<string>) => T): CapturedCommand<T>;
+  function capture(command: string, args: readonly string[], options?: SpawnOptions): CapturedCommand<undefined>;
+  function capture(command: string, args: readonly string[], options: SpawnOptions = {},
+    classify?: (result: SpawnSyncReturns<string>) => Classification): CapturedCommand<Classification | undefined> {
     const {cwd: workingDirectory = cwd, env: childEnv = env, ...spawnOptions} = options;
     const id = String(summary.commands.length + 1).padStart(3, '0');
-    const outcome = {id, command: redactCommandEvidence(command, childEnv), args: redactCommandArguments(args, childEnv),
+    const outcome: CommandOutcome = {id, command: redactCommandEvidence(command, childEnv), args: redactCommandArguments(args, childEnv),
       cwd: cwdIdentity(workingDirectory), source: commandSource(cwd),
       startedAt: timestamp(), endedAt: null, elapsedMs: null, status: null, signal: null,
       error: null, complete: false, verificationStatus: null, outputComplete: false};
     summary.commands.push(outcome);
-    let writeFailure;
+    let writeFailure: unknown;
     try { write(`${id}.started.json`, JSON.stringify(outcome, null, 2) + '\n'); persist(); }
     catch (error) { writeFailure = error; noteError(error); }
     const limit = Math.min(spawnOptions.maxBuffer ?? COMMAND_OUTPUT_LIMIT, MAX_COMMAND_OUTPUT_LIMIT);
@@ -154,17 +191,17 @@ export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
       complete: !result.error && !result.signal,
       verificationStatus: checked?.status ?? (result.error || result.signal ? result.status || 1 : result.status),
       counts: checked?.counts ?? null,
-      outputComplete: result.error?.code !== 'ENOBUFS'});
+      outputComplete: (result.error as NodeJS.ErrnoException | undefined)?.code !== 'ENOBUFS'});
     try {
       for (const stream of ['stdout', 'stderr']) write(`${id}.${stream}.log`,
-        Buffer.from(redactCommandEvidence(result[stream] ?? '', childEnv)).subarray(0, limit));
+        Buffer.from(redactCommandEvidence(result[stream as 'stdout' | 'stderr'] ?? '', childEnv)).subarray(0, limit));
       write(`${id}.result.json`, JSON.stringify(outcome, null, 2) + '\n');
       persist();
     } catch (error) { writeFailure ??= error; noteError(error); }
     return {result, checked, outcome, writeFailure};
   }
   return {directory, summary, persist, capture, checkDirectory, noteError,
-    finish(status) {
+    finish(status: string) {
       summary.endedAt = timestamp();
       summary.status = status;
       summary.complete = status === 'passed' && summary.evidenceErrors.length === 0 &&
@@ -175,7 +212,8 @@ export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
 }
 
 export async function withPackedQueryEvidence({scratch, revision,
-  keepArtifacts = false, githubOutput}, body) {
+  keepArtifacts = false, githubOutput}: EvidenceOptions & {keepArtifacts?: boolean},
+  body: (context: PackedEvidenceContext) => unknown | Promise<unknown>) {
   const evidence = createCommandEvidence({scratch, revision, githubOutput});
   const {directory, summary, persist} = evidence;
   const root = join(directory, 'artifacts');
@@ -183,15 +221,16 @@ export async function withPackedQueryEvidence({scratch, revision,
   const ownedRoot = lstatSync(root);
   summary.keepArtifacts = keepArtifacts;
   persist();
-  let failure;
+  let failure: unknown;
   try {
     await body({root, directory,
-      recordTarball(path) {
+      recordTarball(path: string) {
         summary.tarballs.push({name: basename(path), sha256:
           createHash('sha256').update(readFileSync(path)).digest('hex')});
         persist();
       },
-      run(command, args, {cwd = root, env = process.env, timeout = 240_000} = {}) {
+      run(command: string, args: readonly string[], {cwd = root, env = process.env, timeout = 240_000}:
+        {cwd?: string; env?: Environment; timeout?: number} = {}) {
         const {result, outcome, writeFailure} = evidence.capture(command, args,
           {cwd, env, timeout, killSignal: 'SIGKILL'});
         if (result.error || result.signal || result.status !== 0) {
@@ -225,7 +264,7 @@ export async function withPackedQueryEvidence({scratch, revision,
       try { persist(); } catch (writeError) { evidence.noteError(writeError); }
       failure = failure === undefined ? cleanupError :
         Object.assign(new AggregateError([failure, cleanupError], 'PackedQueryEvidenceCleanupFailed', {cause: failure}),
-          {code: failure.code, outcome: failure.outcome});
+          {code: (failure as {code?: unknown}).code, outcome: (failure as {outcome?: unknown}).outcome});
     }
   }
   if (failure !== undefined) throw failure;
@@ -235,7 +274,7 @@ export async function withPackedQueryEvidence({scratch, revision,
 
 // The uploader consumes only this helper's diagnostic files. Reject links and
 // oversized files before upload; artifacts/ and arbitrary scratch payloads are excluded.
-export function checkCommandEvidenceUpload(directory) {
+export function checkCommandEvidenceUpload(directory: string) {
   const root = lstatSync(directory);
   if (!root.isDirectory() || root.isSymbolicLink() || realpathSync(directory) !== resolve(directory)) {
     throw new Error('InvalidEvidenceUploadDirectory');

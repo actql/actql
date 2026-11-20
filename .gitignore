@@ -128,3 +128,7 @@ target/
 /packages/sdk/index.d.mts
 /packages/sdk/host-port.mjs
 /packages/sdk/host-port.d.mts
+
+# Generated bounded command-evidence implementation.
+/scripts/packed-query-evidence.mjs
+/scripts/packed-query-evidence.d.mts
