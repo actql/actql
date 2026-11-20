@@ -233,6 +233,119 @@ def accept_installed_cancellation(run, consumer: Path, destination: Path,
             previous_pid = observed['pid']
 
 
+def require_installed_fuel_fault(observed, phase: str, previous_pid: int | None) -> None:
+    """Require the explicit negative control, never a normal-budget override."""
+    if (type(observed) is not dict or observed.get('phase') != phase
+            or type(observed.get('pid')) is not int or observed['pid'] <= 0
+            or observed['pid'] == previous_pid or observed.get('firstClose') is not True
+            or observed.get('replayed') is not False):
+        raise ValueError('Incomplete installed fuel-stop control')
+    if phase == 'initial':
+        if (observed.get('intentionalFuel') != 1_000
+                or observed.get('defaultFuel') != 64_000_000_000
+                or type(observed.get('actualAttempts')) is not int or observed['actualAttempts'] != 1
+                or any(observed.get(key) is not True for key in ('outOfFuel', 'normalFenced', 'sameStore'))):
+            raise ValueError('Incomplete installed original fuel exhaustion')
+    elif phase != 'resume' or any(observed.get(key) is not True for key in ('sameSaved', 'failedAdmissionAbsent')):
+        raise ValueError('Incomplete installed fuel-stop Saved recovery')
+
+
+def require_installed_repeated_host(events, phase: str, previous_pid: int | None) -> int:
+    """Read only the maintained public consumer's bounded phase/close events."""
+    if (phase not in ('warm', 'saved') or type(events) is not list
+            or not 0 < len(events) <= 256 or any(type(event) is not dict for event in events)):
+        raise ValueError('Incomplete ordinary repeated-Host event record')
+    opened = [event for event in events if event.get('phase') == 'opened' and event.get('mode') == phase]
+    if len(opened) != 1:
+        raise ValueError('Missing unique ordinary owning factory')
+    pid = opened[0].get('pid')
+    if type(pid) is not int or pid <= 0 or pid == previous_pid:
+        raise ValueError('Ordinary Saved requires a distinct consumer process')
+    current = [event for event in events if type(event.get('pid')) is int and event['pid'] == pid]
+    names = [event.get('phase') for event in current]
+    complete = [event for event in current if event.get('phase') == phase + '-complete']
+    result_phase = 'result-complete' if phase == 'warm' else 'saved-result-complete'
+    ordinals = [event.get('ordinal') for event in current if event.get('phase') == result_phase]
+    if (len(complete) != 1 or type(complete[0].get('runs')) is not int or complete[0]['runs'] != 10
+            or any(type(ordinal) is not int for ordinal in ordinals) or ordinals != list(range(1, 11))
+            or names.count('first-close-attempted') != 1 or names.count('first-close-returned') != 1
+            or 'primary-failure' in names or 'first-close-failed' in names
+            or names[-1] != 'first-close-returned'):
+        raise ValueError('Incomplete ordinary Run/Result or original first close')
+    checkpoints = [event.get('ordinal') for event in current
+                   if event.get('phase') == 'checkpoint-complete']
+    if phase == 'warm' and (any(type(ordinal) is not int for ordinal in checkpoints)
+                            or checkpoints != [1, 3, 10]):
+        raise ValueError('Missing original ordinary reread/attach checkpoints')
+    return pid
+
+
+def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: dict[str, str]) -> dict:
+    """The same original public fixture, fresh owning Home and separate Saved."""
+    work = destination / 'ordinary-repeated-host'
+    work.mkdir(mode=0o700)
+    fixture = work / 'python-local-repeated-host.py'
+    shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
+    home, temporary, workspace = (work / name for name in ('home', 'tmp', 'workspace'))
+    for directory in (home, temporary, workspace):
+        directory.mkdir(mode=0o700)
+    ordinary_env = dict(env, HOME=str(home), TMPDIR=str(temporary))
+    previous_pid = None
+    pids = []
+    for phase, timeout in (('warm', 900), ('saved', 180)):
+        run('installed-ordinary-repeated-' + phase, [consumer, '-I', '-B', fixture, phase],
+            cwd=workspace, env=ordinary_env, timeout=timeout)
+        events = work / 'events.jsonl'
+        if not events.is_file() or events.stat().st_size > 262144:
+            raise ValueError('Missing bounded ordinary repeated-Host events')
+        previous_pid = require_installed_repeated_host(
+            [json.loads(line) for line in events.read_bytes().splitlines()], phase, previous_pid)
+        pids.append(previous_pid)
+    return {'runs': 10, 'warm_pid': pids[0], 'saved_pid': pids[1],
+            'original_first_closes_returned': True}
+
+
+def accept_installed_fuel(run, consumer: Path, destination: Path,
+                          source: str, cohort, env: dict[str, str]) -> None:
+    """One changed-default regression and one deliberate fail-closed operation.
+
+    The pending-history case is explicitly a private-parent-retirement fixture,
+    separate from ordinary repeated public Runs. It forwards the original
+    production quantum; independent current/refusal tests retain quantum one.
+    Forty crosses the former admission failure, not a supported-history threshold.
+    """
+    for name in ('python-local-sdk-current-history.py', 'ci-python-installed-fuel.py'):
+        shutil.copyfile(ROOT / 'scripts/fixtures' / name, destination / name)
+    work = destination / 'fuel-default'
+    work.mkdir()
+    raw = run('installed-default-fuel-admission', [consumer, '-I', '-B',
+        destination / 'python-local-sdk-current-history.py', '--installed', source,
+        work, 'fuel-pending:40'], cwd=work, env=env, timeout=900)
+    observed = json.loads(raw.splitlines()[-1])
+    histories = observed.get('histories')
+    if (observed.get('fuelMode', {}).get('sourceDeclaredLimit') != 64_000_000_000
+            or observed.get('installedCohort', {}).get('sourceSha') != source
+            or observed.get('installedCohort', {}).get('moduleSha256') != cohort['module_sha256']
+            or observed.get('installedCohort', {}).get('imageSha256') != cohort['image_sha256']
+            or type(histories) is not list or len(histories) != 1
+            or histories[0].get('taskQuantumMode') != 'production-original'
+            or histories[0].get('acceptedPendingHistory') != 40
+            or histories[0].get('retiredPendingParentLoans') != 40
+            or histories[0].get('firstCloseReturned') is not True
+            or histories[0].get('cleanupFailures') != []):
+        raise ValueError('Incomplete installed default-fuel admission')
+    work = destination / 'fuel-stop'
+    work.mkdir()
+    previous_pid = None
+    for phase in ('initial', 'resume'):
+        observed = json.loads(run('installed-fuel-stop-' + phase, [consumer, '-I', '-B',
+            destination / 'ci-python-installed-fuel.py', '--phase', phase,
+            '--state', work / 'state', '--receipt', work / 'original.json'],
+            cwd=work, env=env, timeout=180))
+        require_installed_fuel_fault(observed, phase, previous_pid)
+        previous_pid = observed['pid']
+
+
 def require_closed_task_drive(observed) -> None:
     """Require the existing installed initial case's same-Core call witness."""
     witness = observed.get('closed_task_drive') if type(observed) is dict else None
@@ -349,6 +462,8 @@ def run_acceptance(destination: Path) -> None:
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     accept_installed_cancellation(run, consumer, destination, version, env)
+    repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
+    accept_installed_fuel(run, consumer, destination, source, cohort, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
@@ -358,6 +473,7 @@ def run_acceptance(destination: Path) -> None:
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
         'context_close': True, 'installed_active_cancellation': True,
+        'ordinary_repeated_host': repeated_host,
         'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
         'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
