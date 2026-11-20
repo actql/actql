@@ -3686,6 +3686,17 @@ its reading flag outside the cleanup frame. Its actual payload/Store/parent
 retirement remains the separate synchronous close, including Unknown and
 pending-child retention.
 
+Each original SDK Result delivery advance yields one cooperative event-loop
+turn after its Host operation frame has exited and before exposing the borrowed
+chunk. This includes empty progress chunks: a buffered consumer cannot starve a
+waiting control merely by repeatedly requesting the next chunk. The suspension
+holds no Core/Store lock or active fuel frame, creates no worker or permission,
+and confirms no bytes. Cancellation returns the original iteration flag; the
+same response still owns its unconfirmed output, input and clock until actual
+child-first close succeeds. A close requested during that turn refuses delivery
+and retains pending custody. This safe-point handoff is not preemption of a
+synchronous Core call or a wall-clock latency guarantee.
+
 ### Original observation data within one Host operation
 
 The ordinary Host records a private monotone operation generation only after
