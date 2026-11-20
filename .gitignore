@@ -333,3 +333,9 @@ target/
 # Generated bounded original-directory physical acquisition adapter.
 /adapters/host-node/bounded-continuation-directory.mjs
 /adapters/host-node/bounded-continuation-directory.d.mts
+
+# Generated maintained original-directory bound and close-ACK controls.
+/adapters/host-node/bounded-continuation-directory.test.mjs
+/adapters/host-node/bounded-continuation-directory.test.d.mts
+/adapters/host-node/bounded-continuation-directory-close-ack.test.mjs
+/adapters/host-node/bounded-continuation-directory-close-ack.test.d.mts

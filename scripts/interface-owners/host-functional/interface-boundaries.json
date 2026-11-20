@@ -17128,7 +17128,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.test.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.test.mts",
                 "anchor": "test('bounded ledger directory real empty and exact count/name bytes preserve sorted existing names', async t => {"
               },
               {
@@ -17272,7 +17272,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/bounded-continuation-directory.test.mjs",
+                "path": "adapters/host-node/bounded-continuation-directory.test.mts",
                 "anchor": "test('bounded ledger directory real empty and exact count/name bytes preserve sorted existing names', async t => {"
               },
               {
@@ -17420,7 +17420,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
+                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17564,7 +17564,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
+                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",

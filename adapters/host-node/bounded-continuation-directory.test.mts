@@ -5,21 +5,34 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {listContinuationLedgerNamesBounded} from './bounded-continuation-directory.mjs';
+import type {TestContext} from 'node:test';
 
-async function fixture(t) {
+// Test views over the SAME actual Dir prototype and original thrown carrier.
+interface TestDirectory {
+  path: string | Buffer;
+  read(this: TestDirectory, ...args: unknown[]): Promise<unknown>;
+  close(this: TestDirectory, ...args: unknown[]): Promise<unknown>;
+}
+interface CleanupFailure {
+  code?: unknown; cause?: unknown; cleanupError?: unknown;
+  cleanupHandle: {status(): Readonly<{pending: boolean}>; retry(): Promise<Readonly<{pending: boolean}>>};
+}
+
+
+async function fixture(t: TestContext) {
   const path = await mkdtemp(join(tmpdir(), 'actql-c-bounded-ledger-directory-'));
   t.after(() => rm(path, {recursive: true, force: true}));
   return path;
 }
 const source = await readFile(new URL('./bounded-continuation-directory.mjs', import.meta.url), 'utf8');
 const body = source.slice(source.indexOf('export async function ')).replace('export async', 'async');
-function synthetic(entries, options = {}) {
+function synthetic(entries: readonly {name: Uint8Array}[], options: {onRead?: (reads: number) => void} = {}) {
   let opens = 0, reads = 0, closes = 0;
   const fn = runInNewContext(`(${body})`, {
     Uint8Array, TextDecoder, AbortSignal,
-    count: n => Number.isSafeInteger(n) && n >= 0,
-    fail: code => { throw Object.assign(new Error(code), {code}); },
-    async opendir(_path, selected) {
+    count: (n: number) => Number.isSafeInteger(n) && n >= 0,
+    fail: (code: string) => { throw Object.assign(new Error(code), {code}); },
+    async opendir(_path: string, selected: {encoding: string; bufferSize: number}) {
       opens++;
       assert.deepEqual({...selected}, {encoding: 'buffer', bufferSize: 1});
       return {
@@ -31,7 +44,7 @@ function synthetic(entries, options = {}) {
         async close() { closes++; },
       };
     },
-  });
+  }) as typeof listContinuationLedgerNamesBounded;
   return {fn, counts: () => ({opens, reads, closes})};
 }
 
@@ -84,18 +97,18 @@ test('bounded ledger directory strict names reject malformed UTF8 and missing di
   const path = await fixture(t);
   await assert.rejects(listContinuationLedgerNamesBounded(join(path, 'missing'),
     {maxDirectoryEntries: 0, maxWireBytes: 0}), error =>
-    error.code === 'ContinuationDirectoryUnavailable' && error.cause.code === 'ENOENT');
+    (error as {code: unknown}).code === 'ContinuationDirectoryUnavailable' && (error as {cause: {code: unknown}}).cause.code === 'ENOENT');
 });
 
 test('bounded ledger directory actual cancellation plus failed close retains original Dir single-flight', async t => {
   const path = await fixture(t);
   await writeFile(join(path, 'a.json'), '');
   const probe = await opendir(path);
-  const prototype = Object.getPrototypeOf(probe), read = prototype.read, close = prototype.close;
+  const prototype = Object.getPrototypeOf(probe) as TestDirectory, read = prototype.read, close = prototype.close;
   await probe.close();
   const abort = new AbortController(), reason = Object.freeze(new Error('OriginalCancelled'));
   const closeFailure = new Error('OriginalDirClosePending');
-  let original, failure, reads = 0, closes = 0, rejectClose = true;
+  let original: TestDirectory | undefined, failure: CleanupFailure | undefined, reads = 0, closes = 0, rejectClose = true;
   t.after(async () => {
     prototype.read = read;
     prototype.close = close;
@@ -103,7 +116,7 @@ test('bounded ledger directory actual cancellation plus failed close retains ori
     if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
     else if (original) await Reflect.apply(close, original, []).catch(() => {});
   });
-  prototype.read = async function(...args) {
+  prototype.read = async function(this: TestDirectory, ...args: unknown[]) {
     if (this.path !== path) return Reflect.apply(read, this, args);
     original = this;
     reads++;
@@ -111,7 +124,7 @@ test('bounded ledger directory actual cancellation plus failed close retains ori
     abort.abort(reason);
     return value;
   };
-  prototype.close = function(...args) {
+  prototype.close = function(this: TestDirectory, ...args: unknown[]) {
     // Dir.close() uses its callback overload internally when making a Promise.
     // Observe outer close requests once, not that internal callback dispatch.
     if (typeof args[0] === 'function') return Reflect.apply(close, this, args);
@@ -122,12 +135,12 @@ test('bounded ledger directory actual cancellation plus failed close retains ori
   };
   await assert.rejects(listContinuationLedgerNamesBounded(path,
     {maxDirectoryEntries: 1, maxWireBytes: 6}, abort.signal), error => {
-    failure = error;
-    return error.cause === reason && error.cleanupError === closeFailure;
+    failure = error as CleanupFailure;
+    return (error as CleanupFailure).cause === reason && (error as CleanupFailure).cleanupError === closeFailure;
   });
   assert.equal(reads, 1);
   assert.equal(closes, 1);
-  const cleanup = failure.cleanupHandle;
+  const cleanup = failure!.cleanupHandle;
   const flight = cleanup.retry();
   assert.strictEqual(cleanup.retry(), flight);
   await assert.rejects(flight, error => error === closeFailure);

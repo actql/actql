@@ -7,25 +7,37 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {listContinuationLedgerNamesBounded} from './bounded-continuation-directory.mjs';
 
+// Test views over the SAME actual Dir prototype and original thrown carrier.
+interface TestDirectory {
+  path: string | Buffer;
+  read(this: TestDirectory, ...args: unknown[]): Promise<unknown>;
+  close(this: TestDirectory, ...args: unknown[]): Promise<unknown>;
+}
+interface CleanupFailure {
+  code?: unknown; cause?: unknown; cleanupError?: unknown;
+  cleanupHandle: {status(): Readonly<{pending: boolean}>; retry(): Promise<Readonly<{pending: boolean}>>};
+}
+
+
 for (const cancelled of [false, true]) {
   test(`bounded ledger directory false close keeps the same ${cancelled ? 'cancelled' : 'completed'} scan pending`,
     async t => {
       const path = await mkdtemp(join(tmpdir(), 'actql-c-directory-false-close-'));
       await writeFile(join(path, 'a.json'), '');
       const probe = await opendir(path);
-      const prototype = Object.getPrototypeOf(probe);
+      const prototype = Object.getPrototypeOf(probe) as TestDirectory;
       const read = prototype.read, close = prototype.close;
       await probe.close();
       const abort = new AbortController();
       const reason = Object.freeze(new Error('OriginalDirectoryCancelled'));
-      let original, failure, reads = 0, closes = 0, falseClose = true;
+      let original: TestDirectory | undefined, failure: CleanupFailure | undefined, reads = 0, closes = 0, falseClose = true;
       let physicallyClosed = false, passed = false;
       t.after(async () => {
         prototype.read = read;
         prototype.close = close;
         falseClose = false;
         if (failure?.cleanupHandle?.status().pending) {
-          await failure.cleanupHandle.retry();
+          await failure!.cleanupHandle.retry();
           physicallyClosed = true;
         } else if (original !== undefined && !physicallyClosed) {
           await Reflect.apply(close, original, []);
@@ -34,7 +46,7 @@ for (const cancelled of [false, true]) {
         if (passed && physicallyClosed) await rm(path, {recursive: true});
         else t.diagnostic(`Preserved original directory failure: ${path}`);
       });
-      prototype.read = async function(...args) {
+      prototype.read = async function(this: TestDirectory, ...args: unknown[]) {
         if (this.path !== path) return Reflect.apply(read, this, args);
         if (original === undefined) original = this;
         assert.strictEqual(this, original);
@@ -43,7 +55,7 @@ for (const cancelled of [false, true]) {
         if (cancelled) abort.abort(reason);
         return value;
       };
-      prototype.close = function(...args) {
+      prototype.close = function(this: TestDirectory, ...args: unknown[]) {
         // Native Dir.close's Promise overload re-enters its callback overload.
         if (typeof args[0] === 'function' || this.path !== path) {
           return Reflect.apply(close, this, args);
@@ -59,12 +71,12 @@ for (const cancelled of [false, true]) {
       try {
         await listContinuationLedgerNamesBounded(path,
           {maxDirectoryEntries: 1, maxWireBytes: 6}, abort.signal);
-      } catch (error) { failure = error; }
+      } catch (error) { failure = error as CleanupFailure; }
       assert.notEqual(failure, undefined, 'false close is not publication of completed names');
-      if (cancelled) assert.strictEqual(failure.cause, reason);
-      else assert.equal(failure.code, 'ContinuationDirectoryCleanupPending');
-      assert.equal(failure.cleanupPending, true);
-      const cleanup = failure.cleanupHandle;
+      if (cancelled) assert.strictEqual(failure!.cause, reason);
+      else assert.equal(failure!.code, 'ContinuationDirectoryCleanupPending');
+      assert.equal((failure as CleanupFailure & {cleanupPending: boolean}).cleanupPending, true);
+      const cleanup = failure!.cleanupHandle;
       assert.equal(cleanup.status().pending, true);
       const expectedReads = cancelled ? 1 : 2;
       assert.equal(reads, expectedReads);
