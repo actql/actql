@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -93,6 +94,7 @@ test('both Node native originals feed one four-package RC and all four compiler-
 
 test('Native keeps both same-source inputs in one joint RC and measures only that Linux distribution', () => {
   const production = jobs['native-production'], packages = jobs['native-packages'], installed = jobs['native-installed'];
+  assert.deepEqual(new Set(installed.needs), new Set(['source', 'native-packages', 'node-packages']));
   assert.deepEqual(new Set(production.strategy.matrix.include.map(row => row.platform)), new Set(['linux-x64-gnu', 'darwin-arm64']));
   assert.equal(production.env.SELECTED_SOURCE, sourceRef);
   const upload = action(production, 'upload-artifact');
@@ -113,9 +115,70 @@ test('Native keeps both same-source inputs in one joint RC and measures only tha
   assert(formal.run.includes('env -u TMPDIR -u TMP -u TEMP'));
   assert(calls(installed, 'test-native-cli-source-free-install.mjs'));
   assert(calls(installed, 'test-native-cli-mock-install.mjs').run.includes('--measure-approval-resources'));
+  const mac = "matrix.platform == 'darwin-arm64'";
+  const companion = installed.steps.find(step => isAction(step, 'download-artifact') &&
+    step.with['artifact-ids'] === '${{ needs.node-packages.outputs.artifact-id }}');
+  assert(companion, 'Mac sequences consume the existing exact Node artifact');
+  assert.equal(companion.if, mac);
+  assert.equal(companion.with['run-id'], undefined, 'No cross-run companion substitution');
+  assert.equal(companion.with.path, '${{ runner.temp }}/native-installed/node-release-input');
+  assert.equal(companion.with['merge-multiple'], true);
+  const node24 = installed.steps.find(step => isAction(step, 'setup-node'));
+  assert.equal(node24?.if, mac);
+  assert.equal(node24.with['node-version'], '24');
+  const functional = calls(installed, 'test-native-cli-mock-install.mjs');
+  assert(installed.steps.indexOf(node24) > installed.steps.indexOf(calls(installed, 'test-native-cli-source-free-install.mjs')));
+  assert(installed.steps.indexOf(node24) < installed.steps.indexOf(functional));
+  assert.equal(functional['timeout-minutes'], 30);
+  assert.equal(installed.strategy.matrix.include.find(row => row.platform === 'darwin-arm64').minutes, 65);
   const evidence = action(installed, 'upload-artifact'); assert.equal(evidence.if, 'always()');
   assert(evidence.with.path.includes('/tmp/actql-native-mock-install-*/commands.json'));
   assert(evidence.with.path.includes('native-installed/release/*.json'));
+});
+
+test('Mac project companion uses the original artifact and refuses foreign manifest bindings', t => {
+  const installed = jobs['native-installed'], mac = "matrix.platform == 'darwin-arm64'";
+  const id = installed.steps.find(step => step.env?.ARTIFACT_ID === '${{ needs.node-packages.outputs.artifact-id }}');
+  const binding = installed.steps.find(step => step.env?.MANIFEST_SHA256 === '${{ needs.node-packages.outputs.manifest-sha256 }}');
+  assert(id, 'Require the existing Node artifact ID before download');
+  assert(binding, 'Bind the original Node manifest before the installed sequence consumer');
+  assert.equal(id.if, mac); assert.equal(binding.if, mac);
+  assert.equal(binding.env.CANDIDATE_SHA, sourceRef);
+  const download = installed.steps.find(step => isAction(step, 'download-artifact') &&
+    step.with['artifact-ids'] === '${{ needs.node-packages.outputs.artifact-id }}');
+  assert(installed.steps.indexOf(id) < installed.steps.indexOf(download));
+  assert(installed.steps.indexOf(download) < installed.steps.indexOf(binding));
+  assert(installed.steps.indexOf(binding) < installed.steps.indexOf(calls(installed, 'test-native-cli-mock-install.mjs')));
+  const originalInputs = action(jobs['node-packages'], 'upload-artifact').with.path;
+  assert(originalInputs.includes('/node-release-rc/development/packed-client-packages.json'));
+  for (const role of ['client-wire', 'sdk', 'local-node', 'node']) {
+    assert(originalInputs.includes(`/node-release-rc/actql-${role}-0.0.2.tgz`));
+    assert(originalInputs.includes(`/node-release-rc/development/actql-${role}-0.0.0-development.tgz`));
+  }
+  const root = mkdtempSync(join(tmpdir(), 'actql-rc-project-binding-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  const directory = join(root, 'native-installed/node-release-input/node-release-rc');
+  mkdirSync(directory, {recursive: true});
+  const sha = 'a'.repeat(40);
+  const context = (artifact, digest) => ({needs: {source: {outputs: {sha}},
+    'node-packages': {outputs: {'artifact-id': artifact, 'manifest-sha256': digest}}}});
+  for (const artifact of ['123', '', 'latest', '1;exit 0']) {
+    const result = run(id, context(artifact, ''), {RUNNER_TEMP: root});
+    assert.equal(result.error, undefined);
+    assert.equal(result.status === 0, artifact === '123', artifact);
+  }
+  for (const variant of ['same', 'wrong-digest', 'wrong-source', 'missing-source', 'missing-file']) {
+    const manifest = join(directory, 'release.json');
+    const bytes = Buffer.from(JSON.stringify(variant === 'missing-source' ? {} :
+      {sourceSha: variant === 'wrong-source' ? 'b'.repeat(40) : sha}));
+    writeFileSync(manifest, bytes);
+    const digest = variant === 'wrong-digest' ? 'c'.repeat(64)
+      : createHash('sha256').update(bytes).digest('hex');
+    if (variant === 'missing-file') rmSync(manifest);
+    const result = run(binding, context('123', digest), {RUNNER_TEMP: root});
+    assert.equal(result.error, undefined);
+    assert.equal(result.status === 0, variant === 'same', result.stderr);
+  }
 });
 
 test('the actual always-gate recipes reject failure, cancellation, skip and missing dependencies', () => {

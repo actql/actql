@@ -86,7 +86,7 @@ test('RC companion checks payload/lock on both sides of the original child and p
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label), value => value === primary);
 });
 
-test('RC actual command preserves failures and leaves project sequences explicitly opt-in', async t => {
+test('RC actual command selects only Mac project sequences and preserves failures', async t => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/release-candidate.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['native-installed'];
   assert(job.needs.includes('native-packages'));
@@ -105,9 +105,10 @@ test('RC actual command preserves failures and leaves project sequences explicit
     const args = (await readFile(calls, 'utf8')).trim().split('\n');
     assert.equal(args[0], 'scripts/test-native-cli-mock-install.mjs');
     assert(args.includes('--measure-approval-resources'));
-    // The optional Source harness is not an already selected installed RC
-    // campaign. Its source/version/payload guards are exercised above.
-    assert(!args.includes('--release-project-sequences'));
+    const options = nativeMockInstallOptions(args.slice(2), platform === 'darwin-arm64' ? 'darwin' : 'linux');
+    assert.equal(options.projectSequenceNodeRelease, platform === 'darwin-arm64'
+      ? join(scratch, 'native-installed/node-release-input/node-release-rc') : undefined);
+    assert.equal(options.measureResources, true);
   }
   const ordinary = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const formal = readFileSync(new URL('../scripts/test-native-approval-performance.mjs', import.meta.url), 'utf8');

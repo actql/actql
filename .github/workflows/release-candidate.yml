@@ -670,7 +670,7 @@ jobs:
           retention-days: 14
 
   native-installed:
-    needs: [source, native-packages]
+    needs: [source, native-packages, node-packages]
     name: Native installed functional acceptance (${{ matrix.platform }})
     strategy:
       fail-fast: false
@@ -741,6 +741,41 @@ jobs:
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '0'
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-installed/release"
+      - name: Require the exact Node companion artifact ID for Mac project sequences
+        if: matrix.platform == 'darwin-arm64'
+        env:
+          ARTIFACT_ID: ${{ needs.node-packages.outputs.artifact-id }}
+        shell: bash
+        run: |
+          if ! [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then exit 1; fi
+      - name: Download the same-candidate Node RC for Mac project sequences
+        if: matrix.platform == 'darwin-arm64'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.node-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/native-installed/node-release-input
+          merge-multiple: true
+      - name: Bind the Mac companion to the original Node release manifest
+        if: matrix.platform == 'darwin-arm64'
+        env:
+          CANDIDATE_SHA: ${{ needs.source.outputs.sha }}
+          MANIFEST_SHA256: ${{ needs.node-packages.outputs.manifest-sha256 }}
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const bytes = readFileSync(join(process.env.RUNNER_TEMP, 'native-installed/node-release-input/node-release-rc/release.json'));
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), process.env.MANIFEST_SHA256);
+          assert.equal(JSON.parse(bytes).sourceSha, process.env.CANDIDATE_SHA);
+          JS
+      - name: Select actual Node24 for the Mac project sequence consumer
+        if: matrix.platform == 'darwin-arm64'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
       - name: Functional README approval and recovery with OS resource observations
         timeout-minutes: 30
         shell: bash
@@ -748,7 +783,16 @@ jobs:
         # cleanup oracles and CPU/RSS; do not add a Mac latency requirement.
         # The Linux row separately assesses this same RC with the approved
         # formal30+30, p95<=6s/max<=10s. This receipt does not replace that gate.
-        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-installed/release" --measure-approval-resources
+        # Mac also consumes the same-source Node RC in the existing isolated
+        # project sequences; Linux keeps its original functional command.
+        run: |
+          if [ "$SELECTED_PLATFORM" = darwin-arm64 ]; then
+            node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-installed/release" \
+              --measure-approval-resources \
+              --release-project-sequences "$RUNNER_TEMP/native-installed/node-release-input/node-release-rc"
+          else
+            node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-installed/release" --measure-approval-resources
+          fi
       - name: Assess thirty approvals per template from this exact Linux RC
         id: approval_profile
         if: matrix.platform == 'linux-x64-gnu'
