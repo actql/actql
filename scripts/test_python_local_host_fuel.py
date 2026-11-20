@@ -71,10 +71,12 @@ class LocalHostFuelTests(unittest.TestCase):
     def test_installed_negative_control_reads_the_original_c_api_fuel_code(self):
         import importlib.util
         from pathlib import Path
+        from unittest.mock import patch
         path = Path(__file__).with_name('fixtures') / 'ci-python-installed-fuel.py'
         spec = importlib.util.spec_from_file_location('installed_fuel_control', path)
         fixture = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(fixture)
+        with patch.dict('sys.modules', {'actql': None}):
+            spec.loader.exec_module(fixture)
         core = self.core()
         with self.assertRaises(wasmtime.Trap) as caught:
             with core._host_operation():

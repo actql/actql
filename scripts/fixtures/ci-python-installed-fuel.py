@@ -12,7 +12,6 @@ import os
 import sys
 from unittest.mock import patch
 
-from actql import Client, ClientError
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._values import thaw
@@ -36,6 +35,7 @@ def rows(run):
 
 
 def initial(state, receipt, expected_fuel):
+    from actql import Client, ClientError
     assert not receipt.exists() and not state.exists()
     client = Client.open(state_dir=state)
     host = client._client._local_host
@@ -183,6 +183,7 @@ def initial(state, receipt, expected_fuel):
 
 
 def resume(state, receipt, expected_fuel):
+    from actql import Client
     assert _NORMAL_HOST_OPERATION_FUEL == expected_fuel
     saved = json.loads(receipt.read_text())
     assert saved['pid'] != os.getpid()
