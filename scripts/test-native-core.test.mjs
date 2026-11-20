@@ -1413,7 +1413,7 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
     assert.equal(process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT, undefined);
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
-    assert(Number.isInteger(index) && index >= 0 && index < 4);
+    assert(Number.isInteger(index) && index >= 0 && index < 5);
     const resolution = JSON.parse(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE);
     assert.equal(resolution.checkpoint_cid, 'sha256:' + '9'.repeat(64));
     assert.equal(resolution.required_artifact_cid, 'sha256:' + '8'.repeat(64));
@@ -2683,7 +2683,7 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     for (const call of selected.filter(call => !targets.includes(call) && !lineage.includes(call))) assert.equal(call.targetRoot, undefined);
     const responses = selected.filter(call => call.args.includes(responseFile));
-    assert.deepEqual(responses.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : fileZero ? ['0', '1'] : ['0', '1', '2', '3']);
+    assert.deepEqual(responses.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : fileZero ? ['0', '1'] : ['0', '1', '2', '3', '4']);
     assert.equal(new Set(responses.slice(1).map(call => call.fileReceiptRoot)).size, Math.max(0, responses.length - 1));
     for (const [index, call] of responses.entries()) {
       assert.equal(call.profile, 'scoped-review-values');
@@ -2698,9 +2698,9 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!failed) {
-      assert.equal(calls.length, 20 + 4 + 3 + 4 + 11,
-        'all old cases plus three lineage/four file-response cases and their original signing producer');
-      assert.match(result.stdout, /"scoped":38,"physical":37,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 20 + 4 + 3 + 5 + 11,
+        'all old cases plus three lineage/five file-response cases and their original signing producer');
+      assert.match(result.stdout, /"scoped":39,"physical":38,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

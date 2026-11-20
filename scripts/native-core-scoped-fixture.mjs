@@ -164,7 +164,7 @@ function nativeRelationTargetFiles(namespace, suffix, foreignCopy = false) {
   return {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root};
 }
 
-// Index zero exports only the current Source's signing reference. The three
+// Index zero exports only the current Source's signing reference. The four
 // actual file/Journal cases each acquire their own original physical inputs.
 export function nativeClientFileResponseFixture(namespace, index) {
   assert(Number.isInteger(index) && index >= 0 && index < 5,
