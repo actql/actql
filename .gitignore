@@ -477,3 +477,15 @@ target/
 
 /adapters/host-common/acquisition-outcome.test.mjs
 /adapters/host-common/acquisition-outcome.test.d.mts
+
+/scripts/typescript-interface-inventory.mjs
+/scripts/typescript-interface-inventory.d.mts
+
+/scripts/check-connector-dispatch-boundary.mjs
+/scripts/check-connector-dispatch-boundary.d.mts
+
+/scripts/typescript-interface-inventory.test.mjs
+/scripts/typescript-interface-inventory.test.d.mts
+
+/scripts/connector-dispatch-boundary.test.mjs
+/scripts/connector-dispatch-boundary.test.d.mts

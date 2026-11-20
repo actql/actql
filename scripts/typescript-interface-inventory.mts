@@ -7,9 +7,16 @@ import {dirname, relative, resolve} from 'node:path';
 import ts from 'typescript';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
+// Unchecked parser-node views expose existing optional syntax fields; the
+// TypeScript parser and the same syntax-kind checks remain authoritative.
+type UncheckedNamedNode = ts.Node & {readonly modifiers?: readonly ts.ModifierLike[]; readonly name?: ts.DeclarationName};
+type ParsedSource = ts.SourceFile & {readonly parseDiagnostics: readonly ts.DiagnosticWithLocation[]};
+type Literal = string | number | boolean;
+type Operation = {name: string; parameters: string[]; result: string | null};
+
 // Fold only bounded, closed literal syntax. Unknown expressions remain syntax,
 // and no callback, property getter or product function is ever evaluated.
-function literalValue(node, depth = 0) {
+function literalValue(node: ts.Node | undefined, depth = 0): Literal | undefined {
   if (!node || depth > 8) return undefined;
   if (ts.isStringLiteralLike(node)) return node.text;
   if (ts.isNumericLiteral(node)) return Number(node.text);
@@ -19,7 +26,8 @@ function literalValue(node, depth = 0) {
   if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
     const left = literalValue(node.left, depth + 1), right = literalValue(node.right, depth + 1);
     if (left !== undefined && right !== undefined) {
-      const value = left + right;
+      // Static operand views preserve JavaScript's original mixed-primitive +.
+      const value = (left as string) + (right as string);
       return typeof value === 'string' && value.length > 128 ? undefined : value;
     }
   }
@@ -34,16 +42,16 @@ function literalValue(node, depth = 0) {
     return value;
   }
 }
-function compilerField(node) {
+function compilerField(node: ts.Node | undefined) {
   const value = literalValue(node);
   if (value !== undefined) return typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value) ? value : undefined;
   if (node && ts.isTemplateExpression(node) && node.head.text === '_' &&
-      node.templateSpans.at(-1).literal.text === '') return '_<dynamic>';
+      node.templateSpans.at(-1)!.literal.text === '') return '_<dynamic>';
   if (node && ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
       literalValue(node.left) === '_') return '_<dynamic>';
 }
 
-function bindingNames(node) {
+function bindingNames(node: ts.Node): string[] {
   if (ts.isIdentifier(node)) return [node.text];
   if (ts.isObjectBindingPattern(node) || ts.isArrayBindingPattern(node)) {
     return node.elements.flatMap(value => ts.isOmittedExpression(value) ? [] : bindingNames(value.name));
@@ -51,17 +59,17 @@ function bindingNames(node) {
   return [];
 }
 
-export function typescriptInterface(source, filename = 'interface.ts') {
+export function typescriptInterface(source: string, filename = 'interface.ts') {
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
-  assert.equal(tree.parseDiagnostics.length, 0, `Invalid TypeScript interface: ${filename}`);
-  const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
+  assert.equal((tree as ParsedSource).parseDiagnostics.length, 0, `Invalid TypeScript interface: ${filename}`);
+  const operations: Operation[] = [], exports: string[] = [], imports: string[] = [], compilerFields: string[] = [], unresolvedSyntax: string[] = [], occurrences = new Map<string, number>();
   const globalDeclarations = tree.isDeclarationFile && !ts.isExternalModule(tree);
-  function visit(node, scope = []) {
-    const exported = node.modifiers?.some(value => value.kind === ts.SyntaxKind.ExportKeyword) ||
+  function visit(node: ts.Node, scope: string[] = []) {
+    const exported = (node as UncheckedNamedNode).modifiers?.some(value => value.kind === ts.SyntaxKind.ExportKeyword) ||
       globalDeclarations && node.parent === tree;
-    const defaultExport = node.modifiers?.some(value => value.kind === ts.SyntaxKind.DefaultKeyword);
-    const name = node.name?.getText(tree) ??
-      ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) ? node.parent?.name?.getText(tree) : undefined);
+    const defaultExport = (node as UncheckedNamedNode).modifiers?.some(value => value.kind === ts.SyntaxKind.DefaultKeyword);
+    const name = (node as UncheckedNamedNode).name?.getText(tree) ??
+      ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) ? (node.parent as UncheckedNamedNode | undefined)?.name?.getText(tree) : undefined);
     let next = scope;
     if (ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node) || ts.isModuleDeclaration(node)) {
       next = [...scope, name ?? '<anonymous>'];
@@ -83,12 +91,12 @@ export function typescriptInterface(source, filename = 'interface.ts') {
     if (exported && ts.isVariableStatement(node)) exports.push(...node.declarationList.declarations.flatMap(value => bindingNames(value.name)));
     if (ts.isExportAssignment(node)) exports.push('default');
     if (ts.isExportDeclaration(node)) {
-      if (!node.exportClause) exports.push(`*:${node.moduleSpecifier?.text}`);
+      if (!node.exportClause) exports.push(`*:${(node.moduleSpecifier as ts.StringLiteral | undefined)?.text}`);
       else if (ts.isNamespaceExport(node.exportClause)) exports.push(node.exportClause.name.text);
       else exports.push(...node.exportClause.elements.map(value => value.name.text));
     }
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
-      imports.push(node.moduleSpecifier.text);
+      imports.push((node.moduleSpecifier as ts.StringLiteral).text);
     }
     if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) &&
         ts.isStringLiteral(node.argument.literal)) imports.push(node.argument.literal.text);
@@ -102,7 +110,7 @@ export function typescriptInterface(source, filename = 'interface.ts') {
       if (typeof target === 'string') imports.push(target);
       else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
     }
-    const key = node.name && (ts.isComputedPropertyName(node.name) ? node.name.expression : node.name);
+    const key = (node as UncheckedNamedNode).name && (ts.isComputedPropertyName((node as UncheckedNamedNode).name!) ? ((node as UncheckedNamedNode).name as ts.ComputedPropertyName).expression : (node as UncheckedNamedNode).name);
     const field = ts.isPropertyAccessExpression(node) ? node.name.text
       : ts.isElementAccessExpression(node) ? compilerField(node.argumentExpression)
         : ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
@@ -111,7 +119,7 @@ export function typescriptInterface(source, filename = 'interface.ts') {
           ? compilerField(node.arguments[1])
           : ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)
             ? ts.isComputedPropertyName(node.propertyName ?? node.name)
-              ? compilerField((node.propertyName ?? node.name).expression) : (node.propertyName ?? node.name).text
+              ? compilerField(((node.propertyName ?? node.name) as ts.ComputedPropertyName).expression) : ((node.propertyName ?? node.name) as ts.Identifier).text
             : ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)
               ? compilerField(key) ?? (key && ts.isIdentifier(key) ? key.text : undefined) : undefined;
     if (field && /^(?:\$tag|_\d+|_<dynamic>)$/u.test(field)) compilerFields.push(field);
@@ -125,31 +133,31 @@ export function typescriptInterface(source, filename = 'interface.ts') {
     ...(unresolvedSyntax.length ? {unresolvedSyntax: [...new Set(unresolvedSyntax)].sort()} : {})};
 }
 
-export function typescriptInterfaceClosure(root, entrances) {
+export function typescriptInterfaceClosure(root: string, entrances: readonly string[]) {
   return typescriptInterfaceInputs(root, entrances).modules;
 }
 
 // Keep TypeScript's real config/path resolution and non-code inputs visible.
 // Actual web asset/plugin inputs still come from the configured Vite build.
-export function typescriptInterfaceInputs(root, entrances) {
-  const base = realpathSync(root), pending = [...entrances], modules = new Map(), assets = new Map();
-  const configs = new Map(), external = [];
-  const options = path => {
+export function typescriptInterfaceInputs(root: string, entrances: readonly string[]) {
+  const base = realpathSync(root), pending = [...entrances], modules = new Map<string, ReturnType<typeof typescriptInterface> & {module: string; sha256: string}>(), assets = new Map<string, {module: string; sha256: string}>();
+  const configs = new Map<string, ts.CompilerOptions>(), external: {module: string; specifier: string; qualification: string}[] = [];
+  const options = (path: string): ts.CompilerOptions => {
     const file = ts.findConfigFile(dirname(path), ts.sys.fileExists);
     if (!file) return {moduleResolution: ts.ModuleResolutionKind.Bundler, allowJs: true, resolveJsonModule: true};
     const local = relative(base, realpathSync(file));
     assert(!local.startsWith('..'), `Escaped TypeScript config: ${local}`);
     if (!configs.has(file)) {
-      const errors = [];
+      const errors: ts.Diagnostic[] = [];
       const config = ts.getParsedCommandLineOfConfigFile(file, {}, {...ts.sys,
         onUnRecoverableConfigFileDiagnostic: error => errors.push(error)});
       assert(config && !errors.length, `Invalid TypeScript interface config: ${local}`);
       configs.set(file, config.options);
     }
-    return configs.get(file);
+    return configs.get(file)!;
   };
   while (pending.length) {
-    const path = realpathSync(resolve(base, pending.pop()));
+    const path = realpathSync(resolve(base, pending.pop()!));
     const module = relative(base, path);
     assert(!module.startsWith('..'), `Escaped TypeScript interface: ${module}`);
     assert(!isConnectorTestFixture(module) && !/(?:\.test|_test|_wbtest|_bbtest)\.[^/]+$/u.test(module),

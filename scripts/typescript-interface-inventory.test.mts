@@ -9,7 +9,7 @@ for (const [name, source] of [
   ['import type query', 'export type View = import("../outside/owner.js").Host;'],
   ['triple slash reference', '/// <reference path="../outside/owner.d.ts" />\nexport interface View {}'],
   ['external module reference', 'import Host = require("../outside/owner.cjs"); export {Host};'],
-]) {
+] as const) {
   test(`actual TypeScript closure retains ${name} outside the entry directory`, t => {
     const root = mkdtempSync(join(tmpdir(), 'actql-if-types-'));
     t.after(() => rmSync(root, {recursive: true}));
@@ -50,7 +50,7 @@ for (const [name, source, expected] of [
   ['multiple declarations and private bindings',
     'const {hidden} = protocol; export const {a: publicA} = protocol, [publicB] = items;',
     ['publicA', 'publicB']],
-]) {
+] as const) {
   test(`TS binding-pattern exports retain local names: ${name}`, () => {
     assert.deepEqual(typescriptInterface(source).exports, expected);
   });
@@ -64,7 +64,7 @@ test('TS and reflective compiler field access require the same generated authori
 test('TS closed literal and computed compiler fields cannot bypass the existing representation policy', () => {
   for (const source of ['value[`$tag`]', "value['_' + 0]", "Object.getOwnPropertyDescriptor(value, '$tag')?.value",
     'const {_0: item} = value;', 'const {_0} = value;', 'const item = {_0: value};', 'value[`_${index}`]',
-    "Reflect.get(value, '_' + index)"]) {
+    "Reflect.get(value, '_' + index)"] as const) {
     assert(typescriptInterface(source).compilerFields.length, `Missing TS compiler representation: ${source}`);
   }
   assert.deepEqual(typescriptInterface('export const wire = {name: "_0", text: "$tag"};').compilerFields, []);

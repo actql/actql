@@ -5,14 +5,14 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-function literalValue(token) {
+function literalValue(token: string) {
   return token.slice(1, -1).replace(/\\(?:u\{([0-9a-fA-F]+)\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2})|(.))/gs,
-    (_whole, point, unit, byte, escaped) => point || unit || byte
-      ? String.fromCodePoint(parseInt(point ?? unit ?? byte, 16))
-      : ({n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', '0': '\0'}[escaped] ?? escaped));
+    (_whole: string, point: string | undefined, unit: string | undefined, byte: string | undefined, escaped: string) => point || unit || byte
+      ? String.fromCodePoint(parseInt((point ?? unit ?? byte)!, 16))
+      : (({n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', '0': '\0'} as Readonly<Record<string, string>>)[escaped] ?? escaped));
 }
 
-function sourceTokens(source) {
+function sourceTokens(source: string) {
   const pattern = /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|[A-Za-z_][A-Za-z0-9_]*|[^\s]/g;
   return [...source.matchAll(pattern)].filter(match =>
     !match[0].startsWith('//') && !match[0].startsWith('/*'));
@@ -67,14 +67,14 @@ const measurementChecks = new Map([
   `],
 ]);
 
-export function connectorDispatchViolations(source, connectorNames, relativePath = '') {
+export function connectorDispatchViolations(source: string, connectorNames: readonly string[], relativePath = '') {
   const registrationNames = new Set(connectorNames);
   const names = new Set([...connectorNames, 'native']);
   const variants = new Set(['Local', 'DuckDB', 'Native', ...connectorNames.map(name =>
     name.split(/[_-]/).map(part => part[0].toUpperCase() + part.slice(1)).join(''))]);
   const tokens = sourceTokens(source);
   const measurementTokens = sourceTokens(measurementChecks.get(relativePath) ?? '');
-  const measurementLabels = new Set();
+  const measurementLabels = new Set<number>();
   if (measurementTokens.length > 0) {
     for (let start = 0; start <= tokens.length - measurementTokens.length; start++) {
       if (measurementTokens.every((token, offset) => token[0] === tokens[start + offset][0])) {
@@ -86,7 +86,7 @@ export function connectorDispatchViolations(source, connectorNames, relativePath
       }
     }
   }
-  const violations = [];
+  const violations: {line: number; token: string}[] = [];
   for (let index = 0; index < tokens.length; index++) {
     const match = tokens[index];
     const token = match[0];
@@ -101,19 +101,19 @@ export function connectorDispatchViolations(source, connectorNames, relativePath
   return violations;
 }
 
-export const isConnectorTestFixture = path => /(?:^|\/)fixtures\//u.test(path) ||
+export const isConnectorTestFixture = (path: string) => /(?:^|\/)fixtures\//u.test(path) ||
   /(?:\.|-)fixture\.mjs$/u.test(path);
 
-export function checkConnectorDispatchBoundary(root) {
+export function checkConnectorDispatchBoundary(root: string) {
   const connectors = readdirSync(join(root, 'src/connectors'), {withFileTypes: true})
     .filter(entry => entry.isDirectory()).map(entry => entry.name);
   const roots = ['src/connector_sdk', 'src/query_planning', 'src/physical_host', 'src/physical_host_dispatch',
     'src/physical_strategy', 'src/physical_strategy_host', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node',
     'adapters/host-common',
     'scripts/templates'];
-  const failures = [];
+  const failures: {path: string; token: string; line?: number; reason?: string}[] = [];
   let count = 0;
-  function inspect(directory) {
+  function inspect(directory: string) {
     for (const entry of readdirSync(join(root, directory), {withFileTypes: true})) {
       if (isConnectorTestFixture(directory + '/' + entry.name + (entry.isDirectory() ? '/' : ''))) continue;
       if (entry.isDirectory()) { inspect(directory + '/' + entry.name); continue; }
