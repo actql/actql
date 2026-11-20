@@ -1396,6 +1396,7 @@ jobs:
           artifact-ids: ${{ needs.pipeline-mutations-rest-second.outputs.artifact-id }}
           path: ${{ runner.temp }}/pipeline-ci/L-M5
           merge-multiple: true
+      - run: npm ci
       - name: Validate every part before constructing the immutable complete union
         env:
           PIPELINE_NEEDS: ${{ toJSON(needs) }}
@@ -1747,6 +1748,7 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/main-performance/packages
+      - run: npm ci
       - name: Bind normal artifacts and install the existing benchmark consumer
         env:
           PACKAGE_ARTIFACT_ID: ${{ needs.client-packages.outputs.artifact-id }}

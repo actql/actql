@@ -1670,7 +1670,13 @@ test('record-only trend lane reuses exact normal packages without dispatch, rebu
   assert.equal(job['timeout-minutes'], 15);
   const download = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
   assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
-  const commands = job.steps.map(step => step.run ?? '').join('\n');
+  const preparations = job.steps.filter(step => step.run === 'npm ci');
+  assert.equal(preparations.length, 1);
+  const [prepare] = preparations;
+  assert(job.steps.indexOf(prepare) < job.steps.findIndex(step => step.run?.includes('ordinary-operation-packages.mjs prepare')));
+  assert.equal(prepare.if, undefined);
+  assert.equal(prepare['continue-on-error'], undefined);
+  const commands = job.steps.filter(step => step !== prepare).map(step => step.run ?? '').join('\n');
   assert.match(commands, /ordinary-operation-packages.mjs prepare/u);
   assert.match(commands, /benchmark-node-operations.mjs/u);
   assert.match(commands, /benchmark-node-process-operations.mjs/u);
