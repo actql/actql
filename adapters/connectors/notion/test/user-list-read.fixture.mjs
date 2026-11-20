@@ -145,7 +145,7 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
   await writeAccount(account);
   const configuration=await readAccountConfiguration(accountPath);
   const gate=createAuthorizationGate({runtime:common,configuration:configuration.text,
-    configurationCid:configuration.configurationCid,readConfiguration:()=>readFileSync(accountPath,'utf8'),
+    readConfiguration:()=>readFileSync(accountPath,'utf8'),
     context:{principal:'operator',contextCid:cid('d')}});
   const current=async()=>{const decision=await gate.authorize('acquisition',{connection:'notion:fixture',resource:'users',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};

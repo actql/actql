@@ -142,7 +142,7 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
   await writeAccount(account);
   const configuration=await readAccountConfiguration(accountPath);
   const gate=createAuthorizationGate({runtime:common,configuration:configuration.text,
-    configurationCid:configuration.configurationCid,readConfiguration:()=>readFileSync(accountPath,'utf8'),
+    readConfiguration:()=>readFileSync(accountPath,'utf8'),
     context:{principal:'operator',contextCid:cid('d')}});
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'calendars',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
