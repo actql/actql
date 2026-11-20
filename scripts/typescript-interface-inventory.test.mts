@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
+import {assertInterfaceCoverage, interfaceAttributes} from './interface-inventory.mjs';
 import {typescriptInterface, typescriptInterfaceClosure, typescriptInterfaceInputs} from './typescript-interface-inventory.mjs';
 
 for (const [name, source] of [
@@ -146,4 +148,49 @@ test('actual TS closure resolves type-wrapped literal imports and still refuses 
   writeFileSync(join(root, 'owner.fixture.mts'), 'export const value = 1;');
   writeFileSync(join(root, 'entry.mts'), 'export const read = () => import("./owner.fixture.mjs" as string);');
   assert.throws(() => typescriptInterfaceInputs(root, ['entry.mts']), /Test authority in TypeScript interface/u);
+});
+
+
+test('TS erased dynamic compiler fields retain the original bounded representation policy', () => {
+  for (const source of [
+    'value[("_" + selected) as string]',
+    'value[("_" + selected)!]',
+    'value[<string>("_" + selected)]',
+    'Reflect.get(value, (`_${selected}` satisfies string))',
+    'Object.getOwnPropertyDescriptor(value, (`_${selected}` as string))',
+  ]) {
+    assert.deepEqual(typescriptInterface(source).compilerFields, ['_<dynamic>'], source);
+  }
+  for (const source of ['value[selected as "_0"]', 'Reflect.get(value, selected satisfies "_0")',
+    'value[("column_" + selected) as string]']) {
+    assert.deepEqual(typescriptInterface(source).compilerFields, [], source);
+  }
+});
+
+test('TS wrapped dynamic field access still requires actual generated-binding proof', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-dynamic-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  writeFileSync(join(root, 'owner.md'), 'Existing generator and freshness boundary');
+  const ref = {path: 'owner.md', anchor: 'Existing generator and freshness boundary'};
+  for (const expression of ['input[("_" + selected) as string]',
+    'Reflect.get(input, (`_${selected}` satisfies string))']) {
+    const source = `export const value = ${expression};`;
+    const module = {module: 'entry.mts', sha256: createHash('sha256').update(source).digest('hex'),
+      ...typescriptInterface(source, 'entry.mts')};
+    const declaration = {module: module.module, role: 'physical-io', owner: 'original-generator',
+      exports: module.exports, operations: module.operations, contracts: [{
+        operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
+        attributes: Object.fromEntries(interfaceAttributes.map(key => [key, [ref]])),
+      }]};
+    assert.throws(() => assertInterfaceCoverage({root, modules: [module], declarations: [declaration]}),
+      /Compiler representation outside generated binding/u);
+    declaration.role = 'generated-binding';
+    assert.throws(() => assertInterfaceCoverage({root, modules: [module], declarations: [declaration]}),
+      /Unverified generated binding/u);
+    const proof = {module: module.module, sha256: module.sha256, generator: ref, freshness: ref};
+    assert.equal(assertInterfaceCoverage({root, modules: [module], declarations: [declaration],
+      generated: [proof]}), 1);
+    assert.throws(() => assertInterfaceCoverage({root, modules: [module], declarations: [declaration],
+      generated: [{...proof, sha256: '0'.repeat(64)}]}), /Unverified generated binding/u);
+  }
 });

@@ -44,13 +44,19 @@ function literalValue(node: ts.Node | undefined, depth = 0): Literal | undefined
     return value;
   }
 }
-function compilerField(node: ts.Node | undefined) {
-  const value = literalValue(node);
+function compilerField(node: ts.Node | undefined, depth = 0): string | undefined {
+  if (!node || depth > 8) return undefined;
+  // Erased wrappers must preserve both closed literals and dynamic prefixes.
+  // The asserted type supplies no value; only the same bounded expression is read.
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) ||
+      ts.isTypeAssertionExpression(node) || ts.isSatisfiesExpression(node) ||
+      ts.isNonNullExpression(node)) return compilerField(node.expression, depth + 1);
+  const value = literalValue(node, depth);
   if (value !== undefined) return typeof value === 'string' && /^(?:\$tag|_\d+)$/u.test(value) ? value : undefined;
   if (node && ts.isTemplateExpression(node) && node.head.text === '_' &&
       node.templateSpans.at(-1)!.literal.text === '') return '_<dynamic>';
   if (node && ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
-      literalValue(node.left) === '_') return '_<dynamic>';
+      literalValue(node.left, depth) === '_') return '_<dynamic>';
 }
 
 function bindingNames(node: ts.Node): string[] {
