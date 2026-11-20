@@ -3,24 +3,32 @@ import {mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'no
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {startNativeGroups, validateGroups, waitNativeGroups} from './ci-native-background-groups.mjs';
 
-const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
-function fixture(t) {
+type GroupStart = Parameters<typeof startNativeGroups>[0];
+type Groups = GroupStart['groups'];
+type Step = Groups[number]['steps'][number];
+type Result = Awaited<ReturnType<typeof waitNativeGroups>>['result'];
+type Case = Result['groups'][number]['cases'][number];
+type ChangedCase = Omit<Case, 'status'> & {status: string};
+
+const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
+function fixture(t: TestContext) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-ci-native-groups-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  const step = (name, body, extra = {}) => {
+  const step = (name: string, body: string, extra: Partial<Step> = {}) => {
     const path = join(root, name + '.cjs');
     writeFileSync(path, body);
     return {name, run: quote(process.execPath) + ' ' + quote(path), ...extra};
   };
-  const start = (groups, options = {}) => startNativeGroups({root,
+  const start = (groups: Groups, options: Partial<GroupStart> = {}) => startNativeGroups({root,
     directory: join(root, 'control'), groups, slots: 2, deadline: Date.now() + 10_000, ...options});
   return {root, step, start};
 }
 
 test('two background slots retain original per-group order, complete census and independent output files', async t => {
-  const f = fixture(t), messages = [];
+  const f = fixture(t), messages: string[] = [];
   const groups = ['runtime', 'controls', 'product'].map(name => ({name, steps: [
     f.step(name + '-first', "setTimeout(() => console.log('original'), 200);"),
     f.step(name + '-second', "require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'evidence-directory=' + process.cwd() + '\\n');require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, " + JSON.stringify(name + ' original summary\n') + ");",
@@ -34,9 +42,9 @@ test('two background slots retain original per-group order, complete census and 
     groups.map(group => group.steps.map(item => item.name)));
   assert.equal(result.result.groups.flatMap(group => group.cases).length, 6);
   const [first, second, third] = result.result.groups.map(group => group.cases);
-  assert(first[0].startedAt < second[0].completedAt && second[0].startedAt < first[0].completedAt);
-  assert(third[0].startedAt >= Math.min(first[1].completedAt, second[1].completedAt));
-  for (const group of result.result.groups) assert(group.cases[1].startedAt >= group.cases[0].completedAt);
+  assert(first[0].startedAt! < second[0].completedAt! && second[0].startedAt! < first[0].completedAt!);
+  assert(third[0].startedAt! >= Math.min(first[1].completedAt!, second[1].completedAt!));
+  for (const group of result.result.groups) assert(group.cases[1].startedAt! >= group.cases[0].completedAt!);
   assert.deepEqual(Object.values(result.outputs), [f.root, f.root, f.root]);
   assert.equal(readFileSync(summaryFile, 'utf8'), ['runtime', 'controls', 'product']
     .map(name => name + ' original summary\n').join(''));
@@ -84,11 +92,12 @@ test('split HTTP success requires both original package and CLI control owners',
 });
 
 test('buffered Native consumer reports retain the original child execution bounds', async t => {
-  const f = fixture(t), messages = [], before = Date.now();
+  const f = fixture(t), messages: string[] = [], before = Date.now();
   const directory = f.start([{name: 'runtime', steps: [f.step('timed', 'setTimeout(() => {}, 30);')]}]);
   const result = await waitNativeGroups(directory, {report: value => messages.push(value)});
   const prefix = 'ACTQL_NATIVE_CI_PHASE ';
-  const phase = JSON.parse(messages.find(value => value.startsWith(prefix)).slice(prefix.length));
+  const phase = JSON.parse(messages.find(value => value.startsWith(prefix))!.slice(prefix.length)) as
+    {startedAt: number; completedAt: number; milliseconds: number; outcome: string};
   const child = result.result.groups[0].cases[0];
   assert.equal(phase.startedAt, child.startedAt);
   assert.equal(phase.completedAt, child.completedAt);
@@ -114,9 +123,9 @@ test('duplicate selection, missing results and foreign result identity remain re
   assert.throws(() => validateGroups([{name: 'runtime', steps: [step, step]}]), /Duplicate/u);
   const directory = f.start([{name: 'runtime', steps: [step]}]);
   await waitNativeGroups(directory, {report() {}});
-  const path = join(directory, 'result.json'), result = JSON.parse(readFileSync(path));
-  for (const change of [value => { value.groups = []; }, value => { value.token = 'foreign'; },
-    value => { value.groups[0].cases = []; }]) {
+  const path = join(directory, 'result.json'), result = JSON.parse(readFileSync(path) as unknown as string) as Result;
+  for (const change of [(value: Result) => { value.groups = []; }, (value: Result) => { value.token = 'foreign'; },
+    (value: Result) => { value.groups[0].cases = []; }]) {
     const changed = structuredClone(result); change(changed); writeFileSync(path, JSON.stringify(changed));
     await assert.rejects(waitNativeGroups(directory, {report() {}}));
   }
@@ -126,11 +135,11 @@ test('a successful join requires the original case identity and actual zero exit
   const f = fixture(t);
   const directory = f.start([{name: 'runtime', steps: [f.step('original', '', {id: 'original-case'})]}]);
   await waitNativeGroups(directory, {report() {}});
-  const path = join(directory, 'result.json'), result = JSON.parse(readFileSync(path));
-  for (const change of [value => { value.code = 7; }, value => { value.signal = 'SIGTERM'; },
-    value => { value.failure = 'original'; }, value => { value.id = 'foreign'; },
-    value => { value.group = 'foreign'; }, value => { value.status = 'skipped'; },
-    value => { delete value.completedAt; }]) {
+  const path = join(directory, 'result.json'), result = JSON.parse(readFileSync(path) as unknown as string) as Result;
+  for (const change of [(value: ChangedCase) => { value.code = 7; }, (value: ChangedCase) => { value.signal = 'SIGTERM'; },
+    (value: ChangedCase) => { value.failure = 'original'; }, (value: ChangedCase) => { value.id = 'foreign'; },
+    (value: ChangedCase) => { value.group = 'foreign'; }, (value: ChangedCase) => { value.status = 'skipped'; },
+    (value: ChangedCase) => { delete value.completedAt; }]) {
     const changed = structuredClone(result); change(changed.groups[0].cases[0]);
     writeFileSync(path, JSON.stringify(changed));
     await assert.rejects(waitNativeGroups(directory, {report() {}}));
@@ -139,10 +148,10 @@ test('a successful join requires the original case identity and actual zero exit
 
 test('timeout waits for the known TERM-ignoring descendant after its leader exits and cannot accept exit zero', async t => {
   const f = fixture(t), pidFile = join(f.root, 'original-descendant.pid');
-  let descendant;
+  let descendant: number | undefined;
   t.after(() => {
     if (descendant) try { process.kill(descendant, 'SIGKILL'); } catch (error) {
-      if (error.code !== 'ESRCH') throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
     }
   });
   const body = 'process.on("SIGTERM",()=>process.exit(0));' +
@@ -156,7 +165,7 @@ test('timeout waits for the known TERM-ignoring descendant after its leader exit
   assert(Number.isSafeInteger(descendant) && descendant > 0);
   let alive;
   try { process.kill(descendant, 0); alive = true; } catch (error) {
-    if (error.code !== 'ESRCH') throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
     alive = false;
   }
   assert.equal(alive, false, 'Joining the closed leader must not abandon its known live descendant');
@@ -169,9 +178,9 @@ test('timeout waits for the known TERM-ignoring descendant after its leader exit
 
 test('a failed original leader also closes its known group without changing the original exit code', async t => {
   const f = fixture(t), pidFile = join(f.root, 'failed-descendant.pid');
-  let descendant;
+  let descendant: number | undefined;
   t.after(() => { if (descendant) try { process.kill(descendant, 'SIGKILL'); } catch (error) {
-    if (error.code !== 'ESRCH') throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
   }});
   const body = 'require("child_process").spawn(process.execPath,["-e",' + JSON.stringify(
     'process.on("SIGTERM",()=>{});require("fs").writeFileSync(' + JSON.stringify(pidFile) + ',String(process.pid));setInterval(()=>{},1000);') +
@@ -180,7 +189,7 @@ test('a failed original leader also closes its known group without changing the 
   const result = await waitNativeGroups(directory, {report() {}});
   descendant = Number(readFileSync(pidFile, 'utf8'));
   assert(Number.isSafeInteger(descendant) && descendant > 0);
-  assert.throws(() => process.kill(descendant, 0), {code: 'ESRCH'});
+  assert.throws(() => process.kill(descendant!, 0), {code: 'ESRCH'});
   assert.equal(result.status, 1);
   const item = result.result.groups[0].cases[0];
   assert.equal(item.code, 7); assert.equal(item.timedOut, false);

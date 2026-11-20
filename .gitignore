@@ -901,3 +901,5 @@ target/
 /scripts/ci-session-controls.d.mts
 /scripts/ci-native-background-groups.mjs
 /scripts/ci-native-background-groups.d.mts
+/scripts/ci-native-background-groups.test.mjs
+/scripts/ci-native-background-groups.test.d.mts
