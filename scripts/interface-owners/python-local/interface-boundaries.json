@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "f7142506d64a439e7869e535e082ec59c5e1b46a9ae10e97092f54d69a2bd871",
+  "syntaxProjectionSha256": "2b548dc0278f65d1bbfcc7f0944cbcd119df6eb8f351634f3e0f33244d85bdf7",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -6739,6 +6739,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/produce_and_read_submission_append",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/produce_and_read_submission_lookup",
           "parameters": [
             "self",
@@ -8293,7 +8302,7 @@
           ]
         }
       ],
-      "sha256": "1fe5153be7d6f37d58fd0d96fbb000a32d497a7c072c521b782a82b972b92c96",
+      "sha256": "e771fbbef9e5b734f7bbdd11bd901234396198b2c559018c0d19801dc1733954",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -15685,6 +15694,126 @@
               {
                 "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
                 "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/produce_and_read_submission_append"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_counter_and_original_intent_commit_together_after_same_snapshot_core_reinspection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_current_refusal_after_transfer_keeps_original_borrow_and_prevents_write("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_core_candidate_change_inside_write_transaction_rolls_back_without_run("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_commit_after_reply_loss_keeps_original_rows_and_loans_without_repeating_write("
               }
             ]
           }
@@ -53866,7 +53995,7 @@
           "async": false
         }
       ],
-      "sha256": "7d05ed2c40a3f269c81f71a5f65f1fb9e627fb924552a3bbfe8f90278f21e8c8",
+      "sha256": "f7989916838c20f1d79fd3bc00967777ac4b61949f0890804a4e28acffc16f4c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

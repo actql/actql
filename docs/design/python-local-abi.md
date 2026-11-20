@@ -3527,6 +3527,26 @@ The prior single 100M lifetime allowance does not cover ordinary initialization
 of the complete packaged contracts. The raw diagnostic retains that original
 lifetime policy; its evidence does not establish ordinary operation acceptance.
 
+### Adjacent submission append validation
+
+Within one synchronous `OriginalHostBinding.inspect` reader frame, the Local
+Core facade may produce and copy the original submission-append candidate under
+one Core lock. Production's complete postcheck also serves as the immediately
+adjacent transfer precheck; the standalone produce and read methods retain their
+existing checks. The combined handoff still performs the complete validation
+after copying the candidate, including a cached candidate. The physical append
+then validates again inside its own fresh write transaction before compare and
+exchange. No validation result, reader, permission or current assertion is reused
+across operations or snapshots.
+
+The same candidate, current carrier, input loan and output remain with their
+existing owners. A post-copy refusal prevents the physical write; a conflicting
+or uncertain physical write keeps its original outcome and does not reissue the
+append. Existing finite fuel, transfer limits and cleanup apply without an extra
+cache, retained history or allowance. Sharing this adjacent check removes one
+redundant validation; it does not bound all history-dependent preparation or
+execution work.
+
 The serialized Host boundary installs fuel before new work only. Every private
 ABI call, callback and nested phase shares that operation's remaining fuel.
 Each already bounded Result delivery advance is an admitted phase: accepting

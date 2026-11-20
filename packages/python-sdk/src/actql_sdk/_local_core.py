@@ -2431,6 +2431,20 @@ class LocalCore:
             self.validate_submission_append(value, current)
             return result
 
+    def produce_and_read_submission_append(self, value: _Output, current: _Output) -> bytes:
+        """One synchronous handoff in the original protected Store snapshot.
+
+        Production's postcheck is the adjacent transfer precheck under this
+        same Core lock and current reader. Full post-copy validation remains;
+        standalone methods retain both of their existing checks. No successful
+        validation or permission is reused by another operation or snapshot.
+        """
+        with self._lock:
+            self.produce_submission_append(value, current)
+            raw = self._read_output(value, 'submission_append', 'length', abi_family='submission')
+            self.validate_submission_append(value, current)
+            return raw
+
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
 

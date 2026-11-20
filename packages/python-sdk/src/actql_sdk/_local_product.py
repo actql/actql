@@ -1660,8 +1660,7 @@ class InstalledLocalHost:
             self._append_sources[output.ticket] = source
             captured: list[dict[str, Any]] = []
             def observe(current: _Output) -> None:
-                self._core.produce_submission_append(output, current)
-                captured.append(_object(self._core.read_submission_append(output, current), 1048576))
+                captured.append(_object(self._core.produce_and_read_submission_append(output, current), 1048576))
             installation.binding.inspect(observe)
             candidate = captured[0]
             kind = candidate.get('kind')
