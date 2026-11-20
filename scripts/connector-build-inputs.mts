@@ -6,29 +6,48 @@ import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {tokens, reviewedEsmModuleOptionEnd, readPackageCompilerInputOptions} from './portable-core.mjs';
 import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
+import type {UncheckedComputeManifest} from './connector-compute-bundles.mjs';
+
+type ModulePin = {namespace: string; version: string; root: string};
+type NpmPin = {name: string; version: string; root: string};
+type SelectedConnector = {name: string; package?: string; module?: string; directory: string; revision?: string};
+type UncheckedConfiguration = {target: unknown; modules: ModulePin[]; packages?: NpmPin[];
+  host: string; connectors: SelectedConnector[]};
+type ModuleOwner = ModulePin & {source: string; sourceRoot: string;
+  dependencies: Record<string, string>; kind?: string};
+type ModuleMetadata = {name?: string; version?: string; source?: string; supported_targets?: string;
+  dependencies: Record<string, string>; [key: string]: unknown};
+type ManifestInputs = {compute?: UncheckedComputeManifest;
+  node?: {strategy: {module: string; export: string}};
+  host?: {installation?: {providerBundle?: unknown}}};
+type ConnectorEntry = {name: string; namespace: string; root: string; sourceRoot: string;
+  directory: string; manifests: ManifestInputs; compute?: string; node?: string; host?: string; revision?: string};
+type HostEntry = ReturnType<typeof checkHostBundle> & {namespace: string; sourceRoot: string;
+  providerPackage?: string; providerPackagePath?: string};
+
 const coreNamespace = 'actql/actql';
-const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
-const namespace = value => typeof value === 'string' &&
+const identifier = (value: unknown) => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+const namespace = (value: unknown) => typeof value === 'string' &&
   /^[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)+$/.test(value);
-const version = value => typeof value === 'string' &&
+const version = (value: unknown) => typeof value === 'string' &&
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value);
-const contains = (parent, child) => {
+const contains = (parent: string, child: string) => {
   const path = relative(parent, child);
   return path === '' || !isAbsolute(path) && path !== '..' && !path.startsWith('..' + sep);
 };
-const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const shape = (value, required, optional = []) => record(value) &&
-  required.every(key => Object.hasOwn(value, key)) &&
-  Object.keys(value).every(key => required.includes(key) || optional.includes(key));
-const freeze = value => {
+const record = (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const shape = (value: unknown, required: readonly string[], optional: readonly string[] = []) => record(value) &&
+  required.every(key => Object.hasOwn(value as object, key)) &&
+  Object.keys(value as object).every(key => required.includes(key) || optional.includes(key));
+const freeze = <T,>(value: T): T => {
   if (record(value) || Array.isArray(value)) {
-    for (const child of Object.values(value)) freeze(child);
+    for (const child of Object.values(value as object)) freeze(child);
     Object.freeze(value);
   }
   return value;
 };
 
-function relativePath(value, allowRoot = false) {
+function relativePath(value: unknown, allowRoot = false) {
   if (allowRoot && value === '.') return value;
   if (typeof value !== 'string' ||
       !/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(value) ||
@@ -38,15 +57,17 @@ function relativePath(value, allowRoot = false) {
   return value;
 }
 
-function stat(path) {
+function stat(path: string) {
   try { return lstatSync(path); }
   catch (error) {
-    if (error.code === 'ENOENT') return undefined;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
     throw error;
   }
 }
 
-function ownedPath(root, path, kind, optional = false) {
+function ownedPath(root: string, path: string, kind: 'file' | 'directory', optional?: false): string;
+function ownedPath(root: string, path: string, kind: 'file' | 'directory', optional: true): string | undefined;
+function ownedPath(root: string, path: string, kind: 'file' | 'directory', optional = false) {
   relativePath(path, kind === 'directory');
   let current = root;
   const parts = path === '.' ? [] : path.split('/');
@@ -63,7 +84,7 @@ function ownedPath(root, path, kind, optional = false) {
   return current;
 }
 
-function supportsJS(value, label) {
+function supportsJS(value: string | undefined, label: string) {
   if (value === undefined) return;
   const targets = /^(?:js|wasm|wasm-gc|native)$/.test(value) ? [value]
     : /^(?:\+(?:js|wasm|wasm-gc|native))+$/.test(value) ? value.slice(1).split('+') : [];
@@ -73,19 +94,19 @@ function supportsJS(value, label) {
   if (!targets.includes('js')) throw new Error(`Incompatible JS target: ${label}`);
 }
 
-function reader(source, label) {
+function reader(source: string, label: string) {
   const list = tokens(source);
   let index = 0;
   return {
     done: () => index === list.length,
-    peek: value => list[index]?.value === value,
+    peek: (value: string) => list[index]?.value === value,
     takeReviewedModuleOption() {
       const end = reviewedEsmModuleOptionEnd(list, index);
       if (end === undefined) return false;
       index = end;
       return true;
     },
-    take(kind, value) {
+    take(kind: ReturnType<typeof tokens>[number]['kind'], value?: string) {
       const token = list[index++];
       if (!token || token.kind !== kind || (value !== undefined && token.value !== value)) {
         throw new Error(`Unsupported build metadata syntax: ${label}`);
@@ -95,11 +116,11 @@ function reader(source, label) {
   };
 }
 
-function moduleMetadata(root) {
+function moduleMetadata(root: string) {
   if (stat(join(root, 'moon.mod.json'))) throw new Error('Unsupported or ambiguous module metadata');
   const path = ownedPath(root, 'moon.mod', 'file');
   const input = reader(readFileSync(path, 'utf8'), path);
-  const result = {dependencies: {}};
+  const result: ModuleMetadata = {dependencies: {}};
   const fields = new Set(['name', 'version', 'source', 'supported_targets',
     'preferred_target', 'license', 'readme', 'repository', 'description']);
   let reviewedEsm = false;
@@ -134,11 +155,11 @@ function moduleMetadata(root) {
 
 // Inspect only the selected package's metadata. The compiler still owns
 // parsing and type checking; no transitive source discovery happens here.
-export function packageMetadata(path) {
+export function packageMetadata(path: string) {
   const input = reader(readFileSync(path, 'utf8'), path);
   const imports = [], productionImports = [];
   let target;
-  let targets = null, nativeStubs = null, optionsSeen = false;
+  let targets: ReturnType<typeof readPackageCompilerInputOptions>['targets'] = null, nativeStubs: string[] | null = null, optionsSeen = false;
   while (!input.done()) {
     const directive = input.take('word');
     if (directive === 'supported_targets') {
@@ -189,11 +210,11 @@ export function packageMetadata(path) {
     ...(nativeStubs === null ? {} : {nativeStubs})};
 }
 
-export function resolveConnectorBuildInputs(configuration) {
+export function resolveConnectorBuildInputs(configuration: UncheckedConfiguration) {
   if (!shape(configuration, ['target', 'modules', 'host', 'connectors'], ['packages']) ||
       configuration.target !== 'js' || !Array.isArray(configuration.modules) ||
       !Array.isArray(configuration.connectors)) throw new Error('Invalid Connector build inputs');
-  const modules = new Map();
+  const modules = new Map<string, ModuleOwner>();
   for (const pin of configuration.modules) {
     if (!shape(pin, ['namespace', 'version', 'root']) || !namespace(pin.namespace) ||
         !version(pin.version) || typeof pin.root !== 'string' || !isAbsolute(pin.root)) {
@@ -258,34 +279,34 @@ export function resolveConnectorBuildInputs(configuration) {
   if (!host || !core || host === core || npmOwners.has(host.namespace)) throw new Error('A separate explicit Host module and Core are required');
   for (const module of modules.values()) {
     for (const [name, pinnedVersion] of Object.entries(module.dependencies)) {
-      if (!modules.has(name) || modules.get(name).version !== pinnedVersion) {
+      if (!modules.has(name) || modules.get(name)!.version !== pinnedVersion) {
         throw new Error(`Missing or mismatched declared module dependency: ${module.namespace} -> ${name}`);
       }
     }
   }
   const checked = new Set(), checking = new Set();
-  const checkGraph = name => {
+  const checkGraph = (name: string): void => {
     if (checking.has(name)) throw new Error('Cyclic module dependency graph');
     if (checked.has(name)) return;
     checking.add(name);
-    for (const dependency of Object.keys(modules.get(name).dependencies)) checkGraph(dependency);
+    for (const dependency of Object.keys(modules.get(name)!.dependencies)) checkGraph(dependency);
     checking.delete(name); checked.add(name);
   };
   for (const name of modules.keys()) checkGraph(name);
-  const canImport = (from, to) => {
-    if (!modules.has(from) || (from !== to && !Object.hasOwn(modules.get(from).dependencies, to))) {
+  const canImport = (from: string, to: string) => {
+    if (!modules.has(from) || (from !== to && !Object.hasOwn(modules.get(from)!.dependencies, to))) {
       throw new Error(`Undeclared module dependency: ${from} -> ${to}`);
     }
   };
   canImport(host.namespace, coreNamespace);
-  const ownerOf = name => {
+  const ownerOf = (name: string) => {
     if (!namespace(name)) throw new Error('Invalid package identifier');
     const owner = [...modules.values()].find(module =>
       name === module.namespace || name.startsWith(module.namespace + '/'));
     if (!owner) throw new Error(`Unavailable package namespace: ${name}`);
     return owner;
   };
-  const resolvePackage = (name, fromNamespace = host.namespace) => {
+  const resolvePackage = (name: string, fromNamespace = host.namespace) => {
     const owner = ownerOf(name);
     canImport(fromNamespace, owner.namespace);
     const suffix = name.slice(owner.namespace.length + 1);
@@ -303,12 +324,12 @@ export function resolveConnectorBuildInputs(configuration) {
     // No target expression selects files here or rewrites its import closure.
     return path;
   };
-  const resolveFile = (name, path) => {
+  const resolveFile = (name: string, path: string) => {
     const module = modules.get(name);
     if (!module) throw new Error(`Unavailable module namespace: ${name}`);
     return ownedPath(module.root, path, 'file');
   };
-  const outputPath = path => {
+  const outputPath = (path: string) => {
     relativePath(path);
     ownedPath(host.root, '.', 'directory');
     const parts = path.split('/');
@@ -324,31 +345,33 @@ export function resolveConnectorBuildInputs(configuration) {
     }
     return join(host.root, path);
   };
-  const entries = [], computeEntries = [], nodeEntries = [], hostEntries = [], names = new Set();
+  const entries: ConnectorEntry[] = [], computeEntries: {name: string; manifest: UncheckedComputeManifest; packagePrefix: string}[] = [],
+    nodeEntries: {name: string; modulePath: string; symbol: string; compute: UncheckedComputeManifest}[] = [],
+    hostEntries: HostEntry[] = [], names = new Set<string>();
   for (const selected of configuration.connectors) {
     const npm = Object.hasOwn(selected ?? {}, 'package');
-    const ownerName = npm ? selected.package : selected.module;
+    const ownerName = (npm ? selected.package : selected.module)!;
     if (!shape(selected, ['name', npm ? 'package' : 'module', 'directory'], ['revision']) ||
         !identifier(selected.name) || names.has(selected.name) || !modules.has(ownerName) ||
         npm !== npmOwners.has(ownerName)) {
       throw new Error('Invalid or duplicate Connector selection');
     }
     names.add(selected.name);
-    const module = modules.get(ownerName);
+    const module = modules.get(ownerName)!;
     if (!npm) canImport(host.namespace, module.namespace);
     if (module === host) throw new Error('Connector implementation must be separate from Host composition');
     const pending = Object.keys(core.dependencies), visited = new Set();
     while (pending.length) {
-      const name = pending.pop();
+      const name = pending.pop()!;
       if (name === module.namespace) throw new Error('Core cannot depend on a selected external Connector');
       if (visited.has(name)) continue;
       visited.add(name);
-      pending.push(...Object.keys(modules.get(name).dependencies));
+      pending.push(...Object.keys(modules.get(name)!.dependencies));
     }
     const directory = ownedPath(module.root, selected.directory, 'directory');
-    const entry = {name: selected.name, namespace: module.namespace,
+    const entry: ConnectorEntry = {name: selected.name, namespace: module.namespace,
       root: module.root, sourceRoot: module.sourceRoot, directory, manifests: {}};
-    for (const role of ['compute', 'node', 'host']) {
+    for (const role of ['compute', 'node', 'host'] as const) {
       const path = ownedPath(directory, `${role}-bundle.json`, 'file', true);
       if (path === undefined) continue;
       entry[role] = path;
@@ -362,7 +385,7 @@ export function resolveConnectorBuildInputs(configuration) {
     }
     if (entry.manifests.host !== undefined) {
       let providerPackagePath;
-      const checkedHost = checkHostBundle(module.root, selected.name, entry.host, {
+      const checkedHost = checkHostBundle(module.root, selected.name, entry.host!, {
         manifest: entry.manifests.host,
         resolveProviderPackage: bundle => {
           providerPackagePath = resolvePackage(`${module.namespace}/${bundle}`);

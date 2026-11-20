@@ -320,7 +320,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -362,7 +362,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -420,7 +420,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -478,7 +478,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -528,7 +528,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -582,7 +582,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -636,7 +636,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -682,7 +682,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -740,7 +740,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -939,7 +939,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -961,7 +961,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -983,7 +983,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1005,7 +1005,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1027,7 +1027,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1049,7 +1049,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1071,7 +1071,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1093,7 +1093,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1115,7 +1115,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1200,7 +1200,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1222,7 +1222,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1244,7 +1244,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1266,7 +1266,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1288,7 +1288,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1310,7 +1310,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1332,7 +1332,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1354,7 +1354,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {
@@ -1376,7 +1376,7 @@
                 "anchor": "// Installed Host bindings."
               },
               {
-                "path": "scripts/connector-node-bundles.mjs",
+                "path": "scripts/connector-node-bundles.mts",
                 "anchor": "export function checkNodeAssembly"
               },
               {

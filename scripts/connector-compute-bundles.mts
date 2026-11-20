@@ -6,25 +6,48 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 
-const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value)
-  && Object.keys(value).sort().join() === [...expected].sort().join();
-const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
-const typeName = value => typeof value === 'string' && /^[A-Z][A-Za-z0-9]*$/.test(value);
-const builtinPackageName = value => typeof value === 'string' && /^actql\/actql\/[a-z][a-z0-9_]*(?:\/[a-z][a-z0-9_]*)*$/.test(value);
+import type {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 
-export function generateComputeAssembly(entries, {buildInputs} = {}) {
+// Unchecked declaration views. The existing shape, identifier, ownership and
+// result guards below remain the admission boundary for these JSON inputs.
+export type ComputeTypeReference = {package: string; type: string};
+type ComputePolicy = {configuration: string; prepare: string; install: string; work_slots: string};
+export type UncheckedComputeManifest = {
+  package: string; module: string; configuration: string; configure: string;
+  registration: string; validate_binding: string; contribution: string; dispatch: string;
+  dispatch_result: 'Unit' | ComputeTypeReference | ComputeTypeReference[];
+  dispatch_error: ComputeTypeReference; estimate_error: ComputeTypeReference;
+  estimate_policy: ComputePolicy | null; resource_policy: ComputePolicy | null;
+  synchronous_dispatch?: string; completion_dispatch?: string;
+  managed_dispatch?: string; managed_dispatch_result?: ComputeTypeReference;
+  managed_dispatch_optional?: boolean; managed_start?: string;
+  managed_start_result?: ComputeTypeReference; managed_start_error?: ComputeTypeReference;
+  managed_duration?: string; managed_capacity?: string;
+};
+type ComputeEntry = {name: string; manifest: UncheckedComputeManifest};
+type BuildInputs = ReturnType<typeof resolveConnectorBuildInputs>;
+type ComputeOptions = {buildInputs?: BuildInputs; names?: readonly string[]; directory?: string};
+type Alias = (path: string) => string;
+
+const keys = (value: unknown, expected: readonly string[]) => value && typeof value === 'object' && !Array.isArray(value)
+  && Object.keys(value).sort().join() === [...expected].sort().join();
+const identifier = (value: unknown) => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+const typeName = (value: unknown) => typeof value === 'string' && /^[A-Z][A-Za-z0-9]*$/.test(value);
+const builtinPackageName = (value: unknown) => typeof value === 'string' && /^actql\/actql\/[a-z][a-z0-9_]*(?:\/[a-z][a-z0-9_]*)*$/.test(value);
+
+export function generateComputeAssembly(entries: readonly ComputeEntry[], {buildInputs}: Pick<ComputeOptions, 'buildInputs'> = {}) {
   const names = new Set();
   const dependencies = new Map([
     ['actql/actql/connector_sdk', 'connector'],
     ['actql/actql/physical_host_dispatch', 'host'],
     ['actql/actql/execution_relation', 'execution'],
   ]);
-  const alias = path => {
+  const alias: Alias = path => {
     if (!dependencies.has(path)) dependencies.set(path, `binding${dependencies.size}`);
-    return dependencies.get(path);
+    return dependencies.get(path)!;
   };
-  const typed = value => `@${alias(value.package)}.${value.type}`;
-  const resultType = value => value === 'Unit' ? 'Unit'
+  const typed = (value: ComputeTypeReference) => `@${alias(value.package)}.${value.type}`;
+  const resultType = (value: UncheckedComputeManifest['dispatch_result']) => value === 'Unit' ? 'Unit'
     : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
     const resolved = buildInputs?.computeEntries.find(entry =>
@@ -34,7 +57,7 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
     }
     const packagePrefix = resolved?.packagePrefix ?? `actql/actql/connectors/${name}`;
     const namespace = buildInputs?.entries.find(entry => entry.name === name)?.namespace;
-    const packageName = value => {
+    const packageName = (value: unknown) => {
       if (buildInputs === undefined) return builtinPackageName(value);
       if (typeof value !== 'string') return false;
       buildInputs.resolvePackage(value, namespace);
@@ -56,15 +79,15 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
           (!managed || typeof m.managed_dispatch_optional !== 'boolean')) ||
         (managed && (!identifier(m.managed_dispatch) ||
           !keys(m.managed_dispatch_result, ['package', 'type']) ||
-          !packageName(m.managed_dispatch_result.package) ||
-          !typeName(m.managed_dispatch_result.type))) ||
+          !packageName(m.managed_dispatch_result!.package) ||
+          !typeName(m.managed_dispatch_result!.type))) ||
         (managedStart && (!managed || !identifier(m.managed_start) ||
           !keys(m.managed_start_result, ['package', 'type']) ||
-          !packageName(m.managed_start_result.package) ||
-          !typeName(m.managed_start_result.type) ||
+          !packageName(m.managed_start_result!.package) ||
+          !typeName(m.managed_start_result!.type) ||
           !keys(m.managed_start_error, ['package', 'type']) ||
-          !packageName(m.managed_start_error.package) ||
-          !typeName(m.managed_start_error.type))) ||
+          !packageName(m.managed_start_error!.package) ||
+          !typeName(m.managed_start_error!.type))) ||
         (managedDuration && (!managed || !identifier(m.managed_duration))) ||
         (managedCapacity && (!managed || !identifier(m.managed_capacity))) ||
         !packageName(m.package) || !(m.package === packagePrefix || m.package.startsWith(`${packagePrefix}/`)) ||
@@ -94,8 +117,8 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
       }
       alias(result.package);
     }
-    if (managed) alias(m.managed_dispatch_result.package);
-    if (managedStart) alias(m.managed_start_result.package);
+    if (managed) alias(m.managed_dispatch_result!.package);
+    if (managedStart) alias(m.managed_start_result!.package);
     for (const error of [m.dispatch_error, m.estimate_error]) {
       if (!keys(error, ['package', 'type']) || !packageName(error.package) || !typeName(error.type)) {
         throw new Error('Invalid Compute error projection');
@@ -129,7 +152,7 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
   };
 }
 
-function configurationAssembly(entries, alias, typed, resultType) {
+function configurationAssembly(entries: readonly ComputeEntry[], alias: Alias, typed: (value: ComputeTypeReference) => string, resultType: (value: UncheckedComputeManifest['dispatch_result']) => string) {
   const fields = entries.map(({name, manifest: m}) =>
     `  installed_${name} : (@${alias(m.package)}.${m.module}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)?\n`).join('');
   const parameters = entries.map(({name, manifest: m}) =>
@@ -175,7 +198,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
   const managedDispatches = entries.filter(({manifest:m}) => m.managed_dispatch)
     .map(({name, manifest:m}) =>
       `\n///|\n/// Prepare one managed task through the configured implementation.\n` +
-    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : Array[@execution.ManagedCompletedOutput[Int]], obligations : @execution.ManagedObligations, output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int]${m.managed_dispatch_optional === true ? '?' : ''}, ConfiguredDispatchIssue[E]] {\n` +
+    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : Array[@execution.ManagedCompletedOutput[Int]], obligations : @execution.ManagedObligations, output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result!)}[Int]${m.managed_dispatch_optional === true ? '?' : ''}, ConfiguredDispatchIssue[E]] {\n` +
     `  match value.installed_${name} {\n` +
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.managed_dispatch}(installed, completed, obligations, output_file_bytes).map_err(issue => Implementation(project(issue)))\n` +
@@ -208,7 +231,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + managedDispatches + estimateAssembly(entries, alias) + hostAssembly() + synchronousAssembly(entries, alias);
 }
 
-function synchronousAssembly(entries, alias) {
+function synchronousAssembly(entries: readonly ComputeEntry[], alias: Alias) {
   return `
 ///|
 /// Invoke an installed in-process implementation by exact registration. External
@@ -257,11 +280,11 @@ pub fn[E] configured_host_driver(value : ConfiguredComputeHost[E]) -> @host.Disp
 `;
 }
 
-function estimateAssembly(entries, alias) {
+function estimateAssembly(entries: readonly ComputeEntry[], alias: Alias) {
   if (!entries.some(({manifest}) => manifest.estimate_policy || manifest.resource_policy)) return '';
   return '\n///|\nstruct ConfiguredEstimatePolicy[E] {\n  install : () -> Result[Unit, E]\n}\n' +
     '\n///|\npub fn[E] install_configured_estimate_policy(policy : ConfiguredEstimatePolicy[E]) -> Result[Unit, E] {\n  (policy.install)()\n}\n' +
-    entries.flatMap(({name, manifest: m}) => ['estimate', 'resource'].flatMap(kind => {
+    entries.flatMap(({name, manifest: m}) => (['estimate', 'resource'] as const).flatMap(kind => {
       const p = m[`${kind}_policy`];
       if (p === null) return [];
       const pkg = `@${alias(m.package)}`;
@@ -276,7 +299,7 @@ function estimateAssembly(entries, alias) {
     })).join('');
 }
 
-export function checkComputeAssembly(root, write = false, options = {}) {
+export function checkComputeAssembly(root: string, write = false, options: ComputeOptions = {}) {
   const buildInputs = options.buildInputs;
   if (buildInputs !== undefined && (options.names !== undefined ||
       resolve(root) !== buildInputs.host.root)) {
@@ -284,7 +307,7 @@ export function checkComputeAssembly(root, write = false, options = {}) {
   }
   const entries = buildInputs?.computeEntries ?? connectorManifestSelection(root, {names: options.names})
     .filter(entry => entry.compute !== undefined)
-    .map(entry => ({name: entry.name, manifest: JSON.parse(readFileSync(entry.compute, 'utf8'))}));
+    .map(entry => ({name: entry.name, manifest: JSON.parse(readFileSync(entry.compute!, 'utf8')) as UncheckedComputeManifest}));
   const generated = generateComputeAssembly(entries, {buildInputs});
   // Use the pinned formatter as a pure stdin/stdout transformation. Check mode
   // never edits the source tree or invokes contribution factories.
@@ -296,7 +319,7 @@ export function checkComputeAssembly(root, write = false, options = {}) {
       : Array.isArray(manifest.dispatch_result) ? manifest.dispatch_result : [manifest.dispatch_result];
     for (const pkg of [manifest.package, manifest.dispatch_error.package, manifest.estimate_error.package, ...results.map(value => value.package)]) {
       if (buildInputs !== undefined) {
-        buildInputs.resolvePackage(pkg, buildInputs.entries.find(entry => entry.name === name).namespace);
+        buildInputs.resolvePackage(pkg, buildInputs.entries.find(entry => entry.name === name)!.namespace);
       } else if (!existsSync(join(root, 'src', pkg.slice('actql/actql/'.length), 'moon.pkg'))) {
         throw new Error(`Missing declared Compute dependency: ${pkg}`);
       }

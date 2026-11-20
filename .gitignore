@@ -647,3 +647,12 @@ target/
 
 /scripts/generate-ledger-transport-contract.test.mjs
 /scripts/generate-ledger-transport-contract.test.d.mts
+
+/scripts/connector-build-inputs.mjs
+/scripts/connector-build-inputs.d.mts
+
+/scripts/connector-compute-bundles.mjs
+/scripts/connector-compute-bundles.d.mts
+
+/scripts/connector-node-bundles.mjs
+/scripts/connector-node-bundles.d.mts
