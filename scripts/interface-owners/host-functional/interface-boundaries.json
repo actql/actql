@@ -77114,7 +77114,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "// NFC text. Used for the configuration CID and Local Host records."
+                "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
                 "path": "docs/spec/execution.md",
@@ -77304,7 +77304,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "// NFC text. Used for the configuration CID and Local Host records."
+                "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
                 "path": "docs/spec/execution.md",
@@ -77492,7 +77492,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "// NFC text. Used for the configuration CID and Local Host records."
+                "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
                 "path": "docs/spec/execution.md",
