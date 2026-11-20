@@ -112,3 +112,9 @@ target/
 # Generated from the maintained eager Source query source.
 /packages/sdk/source-query.mjs
 /packages/sdk/source-query.d.mts
+
+# Generated from maintained original Source and Submission owners.
+/packages/sdk/internal/private-source-preparation.mjs
+/packages/sdk/internal/private-source-preparation.d.mts
+/packages/sdk/internal/submission-observation.mjs
+/packages/sdk/internal/submission-observation.d.mts

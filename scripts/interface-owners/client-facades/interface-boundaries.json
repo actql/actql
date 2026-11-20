@@ -10514,8 +10514,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "beforeResultRead(schemaOrOptions, options)"
+                "path": "packages/sdk/internal/private-source-preparation.mts",
+                "anchor": "beforeResultRead(schemaOrOptions: unknown, options?: unknown)"
               }
             ],
             "identity": [
@@ -10598,29 +10598,29 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Private in-process transport connection, not a wire field, receipt issuer"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "export function captureSourcePreparation(port) {"
+                "path": "packages/sdk/internal/private-source-preparation.mts",
+                "anchor": "export function captureSourcePreparation(port?: object) {"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
               },
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "const value = apply(intent, receiver, [receipt, originalBody]);"
               }
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// connection. A generic Host port implementing these methods gains no grant."
               },
               {
@@ -10630,7 +10630,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Do not defer the original synchronous SDK capture until an await."
               },
               {
@@ -10640,7 +10640,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "{code: 'NodeSourceManagedAdmissionUnavailable'});"
               }
             ],
@@ -10652,7 +10652,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// or proof of capacity. Only the selected Host/Resource owner authenticates"
               }
             ],
@@ -10696,7 +10696,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10706,7 +10706,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10716,7 +10716,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10726,7 +10726,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10736,7 +10736,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10746,7 +10746,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10756,7 +10756,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10766,7 +10766,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10776,7 +10776,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10869,7 +10869,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "export {freezeInput} from './data.mjs';"
               },
               {
@@ -10899,7 +10899,7 @@
                 "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
               },
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Reuse the SDK's exact snapshot freeze through this existing private bridge."
               }
             ],
@@ -12718,7 +12718,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12740,7 +12740,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12752,7 +12752,7 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "beforeResultRead"
               },
               {
@@ -12766,7 +12766,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12800,7 +12800,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12834,7 +12834,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12860,7 +12860,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12890,7 +12890,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12916,7 +12916,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12936,7 +12936,7 @@
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// The body is already SDK-deep-frozen."
               },
               {
@@ -12950,7 +12950,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -13026,7 +13026,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13036,7 +13036,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13046,7 +13046,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13056,7 +13056,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13066,7 +13066,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13076,7 +13076,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13086,7 +13086,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13096,7 +13096,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13106,7 +13106,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
