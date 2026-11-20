@@ -513,3 +513,6 @@ target/
 
 /scripts/portable-core.test.mjs
 /scripts/portable-core.test.d.mts
+
+/scripts/interface-inventory.mjs
+/scripts/interface-inventory.d.mts
