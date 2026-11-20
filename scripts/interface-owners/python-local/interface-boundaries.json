@@ -11234,7 +11234,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -54444,7 +54444,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -58387,7 +58387,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62821,7 +62821,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               }
             ],
             "extension": [
