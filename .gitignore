@@ -259,3 +259,7 @@ target/
 # canonical public contract selected by package exports and files.
 /packages/provider-ai-sdk/index.mjs
 /packages/provider-ai-sdk/index.d.mts
+
+# Generated maintained normal configuration regression.
+/packages/provider-ai-sdk/normal-deadline-configuration.test.mjs
+/packages/provider-ai-sdk/normal-deadline-configuration.test.d.mts
