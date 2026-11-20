@@ -106,6 +106,8 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
         assert.equal(answer.signed.length, 1);
         const resolution = JSON.parse(answer.signed[0].resolutionWire);
         assert.equal(resolution.decision, request.decision);
+        assert.equal(resolution.checkpoint_id, original.checkpointId);
+        assert.equal(resolution.checkpoint_cid, original.checkpointCid);
         assert.equal(resolution.run_id, original.runId);
         assert.equal(resolution.run_definition_cid, original.ref.runDefinitionCid);
         response.state = await execution.wait();

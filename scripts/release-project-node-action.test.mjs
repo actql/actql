@@ -4,7 +4,7 @@ import {runReleaseProjectNodeAction} from './release-project-node-action.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 function ports({decisionFailure, closeFailure, closeObservationFailure, foreignCheckpoint = false,
-  source = 'authored source', checkReply} = {}) {
+  source = 'authored source', checkReply, resolutionFields = {}} = {}) {
   const ref = {namespaceId: 'original-namespace', authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
   const original = {ref, runId: 'original-run', checkpointId: 'original-checkpoint', checkpointCid: 'sha256:' + 'c'.repeat(64)};
   const calls = [], closes = [], accepted = [];
@@ -20,12 +20,15 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
       async describe() {calls.push('describe'); return {resultName: name, ref};},
     };},
   };
-  const resolve = async decision => {
+  const resolve = async (decision, args) => {
+    assert.deepEqual(args, [original.checkpointId], 'Decide exactly the original first-wait Checkpoint');
     calls.push(decision);
     if (decisionFailure) throw decisionFailure;
     status = decision === 'approved' ? 'succeeded' : 'cancelled';
     return {results: [{status: 'committed'}], signed: [{resolutionWire: JSON.stringify({decision,
-      run_id: original.runId, run_definition_cid: ref.runDefinitionCid})}]};
+      run_id: original.runId, run_definition_cid: ref.runDefinitionCid,
+      checkpoint_id: original.checkpointId, checkpoint_cid: original.checkpointCid,
+      ...resolutionFields})}]};
   };
   const client = {
     async startSource(source, options) {assert.equal(source, 'authored source'); assert.equal(options.stopBefore, 'commit'); calls.push('start'); return execution;},
@@ -35,7 +38,7 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
       subject: {kind: 'run_unit', runId: original.runId, runDefinitionCid: ref.runDefinitionCid},
     }]};},
     async reviewCheckpoint() {calls.push('review'); return {bytes: new TextEncoder().encode('original sealed review')};},
-    approve: () => resolve('approved'), reject: () => resolve('rejected'),
+    approve: (...args) => resolve('approved', args), reject: (...args) => resolve('rejected', args),
     async check(text, options) {
       calls.push('check'); checks.push({text, options});
       const unknown = text.includes('EFFECT UPDATE private.unknown');
@@ -61,18 +64,41 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
 }
 
 test('RC immediate approval uses the same Client directly after wait without another async read', async () => {
-  const f = ports();
-  const result = await runReleaseProjectNodeAction({...f.config, request: {kind: 'start', decision: 'approved'}});
-  assert.equal(result.state.status, 'succeeded'); assert.deepEqual(result.original.ref, f.original.ref);
-  assert(f.calls.indexOf('retain-accepted') < f.calls.indexOf('wait'));
-  assert(!f.calls.includes('checkpoints') && !f.calls.includes('review'));
-  for (const operation of ['start', 'approved', 'close']) assert.equal(f.calls.filter(value => value === operation).length, 1);
-  assert.deepEqual(f.accepted, [{ref: f.original.ref}]);
-  assert.deepEqual(result.firstClose, {attempted: true, returned: true});
+  for (const decision of ['approved', 'rejected']) {
+    const f = ports();
+    const result = await runReleaseProjectNodeAction({...f.config, request: {kind: 'start', decision}});
+    assert.equal(result.state.status, decision === 'approved' ? 'succeeded' : 'cancelled');
+    assert.deepEqual(result.original, f.original);
+    assert(f.calls.indexOf('retain-accepted') < f.calls.indexOf('wait'));
+    assert(!f.calls.includes('checkpoints') && !f.calls.includes('review'));
+    assert.deepEqual(f.calls.slice(f.calls.indexOf('wait') + 1, f.calls.indexOf(decision)), ['pending-target']);
+    for (const operation of ['start', decision, 'close']) assert.equal(f.calls.filter(value => value === operation).length, 1);
+    assert.equal(f.calls.filter(value => value === 'wait').length, 2);
+    assert.deepEqual(f.accepted, [{ref: f.original.ref}]);
+    assert.deepEqual(result.firstClose, {attempted: true, returned: true});
+  }
   const asyncProbe = ports();
   await assert.rejects(runReleaseProjectNodeAction({...asyncProbe.config,
     assertPendingTarget: async () => {}, request: {kind: 'start', decision: 'approved'}}), /must be synchronous/u);
   assert(!asyncProbe.calls.includes('approved'));
+});
+
+for (const decision of ['approved', 'rejected']) for (const field of ['checkpoint_id', 'checkpoint_cid'])
+test(`RC immediate decision refuses foreign ${field} for ${decision}`, async () => {
+  const foreign = field === 'checkpoint_id' ? 'foreign-checkpoint' : 'sha256:' + 'd'.repeat(64);
+  const f = ports({resolutionFields: {[field]: foreign},
+    closeFailure: new Error('later close failure'), closeObservationFailure: new Error('later observation failure')});
+  await assert.rejects(runReleaseProjectNodeAction({...f.config, request: {kind: 'start', decision}}), error => {
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.actual, foreign);
+    assert.equal(error.expected, field === 'checkpoint_id' ? f.original.checkpointId : f.original.checkpointCid);
+    return true;
+  });
+  for (const operation of ['start', decision, 'close', 'wait'])
+    assert.equal(f.calls.filter(value => value === operation).length, 1);
+  assert(!f.calls.includes('checkpoints') && !f.calls.includes('review'));
+  assert.deepEqual(f.accepted, [{ref: f.original.ref}]);
+  assert.equal(f.closes.at(-1).returned, false); assert.equal(f.closes.at(-1).outcome, 'threw');
 });
 
 test('RC original resolution failure remains primary across failed close and observation', async () => {
