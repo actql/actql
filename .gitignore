@@ -271,3 +271,7 @@ target/
 # Generated maintained original acquisition boundary controls.
 /packages/provider-ai-sdk/original-acquisition-limits.test.mjs
 /packages/provider-ai-sdk/original-acquisition-limits.test.d.mts
+
+# Generated HTTP original request projection; no authored TS is packed.
+/packages/provider-http/_internal/original-chat-request.mjs
+/packages/provider-http/_internal/original-chat-request.d.mts
