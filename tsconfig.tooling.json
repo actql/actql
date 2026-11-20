@@ -22,7 +22,8 @@
     "adapters/host-common/**/*.mts",
     "adapters/host-node/**/*.mts",
     "adapters/connectors/duckdb/node/**/*.mts",
-    "packages/client-wire/**/*.mts"
+    "packages/client-wire/**/*.mts",
+    "packages/explorer/**/*.mts"
   ],
   "exclude": [
     "**/*.typecheck.mts",

@@ -1,10 +1,13 @@
 import {constants} from 'node:fs';
 import {open} from 'node:fs/promises';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
+import type {ExplorerLaunchInput} from './gateway.js';
+type LaunchFormat = Extract<ExplorerLaunchInput, {kind: 'program'}>['format'];
+
 
 const invalid = () => {throw new Error('ExplorerInvalidArguments');};
-export function explorerArguments(args) {
-  let local = false, allowCancellation = false, stateDir, program, run, format;
+export function explorerArguments(args: readonly string[]) {
+  let local = false, allowCancellation = false, stateDir: string | undefined, program: string | undefined, run: string | undefined, format: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const flag = args[i], value = args[i + 1];
     if (flag === '--local' && !local) local = true;
@@ -23,13 +26,13 @@ export function explorerArguments(args) {
   if (program !== undefined && run !== undefined ||
       format !== undefined && (program === undefined || !['sql', 'aql', 'aql-text', 'program'].includes(format))) invalid();
   return Object.freeze({...(allowCancellation ? {allowCancellation:true} : {}), local: stateDir === undefined ? {} : {stateDir},
-    ...(program === undefined ? {} : {program, format: format ?? 'sql'}),
+    ...(program === undefined ? {} : {program, format: (format ?? 'sql') as LaunchFormat}),
     ...(run === undefined ? {} : {run})});
 }
 
 // Read only the explicitly named regular authoring/reference file. No directory
 // is served, no input is printed, and this happens before opening a Local Host.
-async function readLaunchFile(path) {
+async function readLaunchFile(path: Parameters<typeof open>[0]) {
   const limit = 65536;
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
@@ -49,7 +52,7 @@ async function readLaunchFile(path) {
   } finally {await file.close();}
 }
 
-export async function explorerLaunchInput(selection) {
+export async function explorerLaunchInput(selection: Pick<ReturnType<typeof explorerArguments>, 'program' | 'run' | 'format'>) {
   if (selection.program !== undefined) return copyExplorerLaunchInput({
     kind: 'program', text: await readLaunchFile(selection.program), format: selection.format});
   if (selection.run !== undefined) return copyExplorerLaunchInput({

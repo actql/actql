@@ -367,3 +367,13 @@ target/
 # Generated maintained publication schema projection controls.
 /scripts/generate-client-publication-wire.test.mjs
 /scripts/generate-client-publication-wire.test.d.mts
+
+# Generated Explorer launch intake and maintained controls; existing imports stay JS.
+/packages/explorer/launch-input.mjs
+/packages/explorer/launch-input.d.mts
+/packages/explorer/cli-input.mjs
+/packages/explorer/cli-input.d.mts
+/packages/explorer/launch-input.test.mjs
+/packages/explorer/launch-input.test.d.mts
+/packages/explorer/vite.config.mjs
+/packages/explorer/vite.config.d.mts

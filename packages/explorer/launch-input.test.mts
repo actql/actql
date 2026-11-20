@@ -9,7 +9,7 @@ import {explorerArguments, explorerLaunchInput} from './cli-input.mjs';
 
 const ref = {namespaceId: 'original', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
-const hash = value => createHash('sha256').update(value).digest('hex');
+const hash = (value: string | Uint8Array) => createHash('sha256').update(value).digest('hex');
 
 test('launch metadata copies only original text or complete Run reference and has no credential fields', () => {
   assert.equal(copyExplorerLaunchInput(undefined), null);
@@ -17,7 +17,7 @@ test('launch metadata copies only original text or complete Run reference and ha
   const original = copyExplorerLaunchInput(selected);
   selected.ref.namespaceId = 'changed';
   assert.deepEqual(original, {kind: 'run', ref});
-  assert(Object.isFrozen(original) && Object.isFrozen(original.ref));
+  assert(Object.isFrozen(original) && Object.isFrozen((original as Extract<NonNullable<ReturnType<typeof copyExplorerLaunchInput>>, {kind: 'run'}>).ref));
   const text = '\uFEFFSELECT \'e\u0301\' AS n\r\n';
   assert.deepEqual(copyExplorerLaunchInput({kind: 'program', text, format: 'sql'}),
     {kind: 'program', text, format: 'sql'});
@@ -81,7 +81,7 @@ test('launch file intake rejects symlinks, directories, oversize, invalid UTF-8 
   t.after(() => rm(path, {recursive: true, force: true}));
   const file = join(path, 'query'), link = join(path, 'link');
   await writeFile(file, 'SELECT 1'); await symlink(file, link);
-  const read = p => explorerLaunchInput(explorerArguments(['--local', '--program', p]));
+  const read = (p: string) => explorerLaunchInput(explorerArguments(['--local', '--program', p]));
   await assert.rejects(read(link)); await assert.rejects(read(path));
   await writeFile(file, Buffer.alloc(65537, 65)); await assert.rejects(read(file));
   await writeFile(file, Buffer.from([255])); await assert.rejects(read(file));
