@@ -29,6 +29,7 @@ for (const [template, program, target] of [
       const plan = await client.plan(source, {format: 'aql'});
       assert.equal(plan.version, 'actql-effectful-static-plan-view/0.1');
       assert.equal(plan.computation.scope, 'computation_component');
+      assert.equal(plan.computation.plan_view.logical_map.steps.filter(step => step.operator === 'infer').length, 1);
       assert.equal(plan.effect_set.members.length, 1);
       assert.equal(plan.effect_set.members[0].effect_kind, 'update');
       assert.equal(plan.effect_set.members[0].contract.declared_target, target);
