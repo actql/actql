@@ -21327,7 +21327,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]

@@ -27,7 +27,7 @@ test('generated subject fields match the actual credential Owner and independent
 
 for (const field of Object.keys(subject)) {
   test(`original invocation refuses a missing or substituted ${field}`, () => {
-    const missing = {...subject}; delete missing[field];
+    const missing = {...subject} as Partial<typeof subject>; delete missing[field as keyof typeof subject];
     assert.equal(invocationBindingsMatch(missing, subject), false);
     assert.equal(invocationBindingsMatch(subject, missing), false);
     assert.equal(invocationBindingsMatch({...subject, [field]: 'foreign'}, subject), false);

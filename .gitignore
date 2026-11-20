@@ -546,3 +546,9 @@ target/
 
 /adapters/host-common/owned-invocation-context.mjs
 /adapters/host-common/owned-invocation-context.d.mts
+
+/scripts/generate-credential-scope-binding.test.mjs
+/scripts/generate-credential-scope-binding.test.d.mts
+
+/scripts/installation-preparation-binding.test.mjs
+/scripts/installation-preparation-binding.test.d.mts
