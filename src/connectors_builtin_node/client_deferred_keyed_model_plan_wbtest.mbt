@@ -156,9 +156,90 @@ test "README deferred keyed producer completes a Model plan without claiming liv
       ", prefix=" +
       @debug.to_string(@strategy.graph_task_prefix_end(graph, task)),
   )
+  let checked = @strategy.graph_program(graph)
+  let identity = @program_check.source_identity(checked)
+  let sources = []
+  for i in 0..<@program_check.source_execution_count(checked) {
+    let original = @program_check.source_execution_at(checked, i).unwrap()
+    if @program_check.source_execution_kind(original)
+      is @program_check.CarrierResponse {
+      let subject = @program_check.source_execution_subject(original)
+      assert_true(physical_equal(subject.owner, identity))
+      let declaration = @acquisition.declaration(subject.source)
+      assert_eq(declaration.stage_index, subject.stage)
+      sources.push(
+        (
+          subject.stage,
+          subject.input,
+          declaration.connector,
+          declaration.resource,
+          @acquisition.selected_cid(subject.source),
+          subject.request is @acquisition.Keyed(_, _),
+        ),
+      )
+    }
+  }
+  assert_eq(sources, [
+    (
+      0, 0, "salesforce", "Opportunity", "sha256:3dfd92bc95dda82beeb5416b54a4a7994f8637a8d142272d5b92de7c50d83fb9",
+      false,
+    ),
+    (
+      1, 0, "drive", "files", "sha256:82bf54fe47cc1c4e4f1cecc7350c189e9f7d94dd354e1fd2330becf45d659f7b",
+      false,
+    ),
+    (
+      2, 0, "drive", "contents", "sha256:6ced0971e3bc0fe2dfa5980f093e88431833a61fc31f76194279c98cdc5e680e",
+      true,
+    ),
+  ])
+  let compiled = client_program_compile_local_effects_with_infer(
+    owner, component,
+  ).unwrap()
+  let wire = @publication_host.client_effectful_static_plan_view(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
   assert_true(
-    client_program_compile_local_effects_with_infer(owner, component) is Ok(_),
+    @publication_host.check_client_effectful_static_plan_view_binding(
+      owner, compiled, wire, 65536, 8192, 64,
+    )
+    is Ok(_),
   )
+  let view = @publication.parse_interactive_run_control_shape(
+    "effectful_static_plan_view", wire, 65536, 8192, 64,
+  ).unwrap()
+  let computation = @identity.object_field(view, "computation").unwrap()
+  let plan = @identity.object_field(computation, "plan_view").unwrap()
+  let map = @identity.object_field(plan, "logical_map").unwrap()
+  guard @identity.object_field(map, "steps") is Some(@identity.Array(steps)) else {
+    fail("Missing original logical steps")
+  }
+  let matched = [false, false, false]
+  for step_index in 0..<@identity.array_count(steps) {
+    let logical_step = @identity.array_at(steps, step_index).unwrap()
+    guard @identity.object_field(logical_step, "ports")
+      is Some(@identity.Array(ports)) else {
+      fail("Missing original logical ports")
+    }
+    for port_index in 0..<@identity.array_count(ports) {
+      let port = @identity.array_at(ports, port_index).unwrap()
+      guard @identity.object_field(port, "source") is Some(source) &&
+        @identity.object_field(source, "kind")
+        is Some(@identity.String("stage_input")) &&
+        @identity.object_field(source, "stage_ordinal")
+        is Some(@identity.Number(stage)) &&
+        @identity.object_field(source, "input_port_ordinal")
+        is Some(@identity.Number(input)) &&
+        input == 0.0 else {
+        continue
+      }
+      let index = stage.to_int()
+      if index >= 0 && index < matched.length() {
+        matched[index] = true
+      }
+    }
+  }
+  assert_eq(matched, [true, true, true])
   assert_eq(graph.supplied_slots_count(), slots)
   assert_false(@strategy.graph_ordered_inputs_complete(graph))
   assert_false(
