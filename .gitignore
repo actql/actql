@@ -495,3 +495,6 @@ target/
 
 /scripts/executable-test-cases.mjs
 /scripts/executable-test-cases.d.mts
+
+/scripts/portable-core.mjs
+/scripts/portable-core.d.mts

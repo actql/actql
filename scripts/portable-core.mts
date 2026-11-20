@@ -31,19 +31,25 @@ const numericKernelExternal = Object.freeze({
   'moonbitlang/core/float': 'Pinned Float constants and representations for the portable scalar kernel.',
   'moonbitlang/core/int': 'Pinned integer representation operations for the portable scalar kernel.',
 });
-function reviewedExternal(owner, path) {
-  if (Object.hasOwn(pureExternal, path)) return pureExternal[path];
+function reviewedExternal(owner: string, path: string) {
+  if (Object.hasOwn(pureExternal, path)) return pureExternal[path as keyof typeof pureExternal];
   if (owner === 'scalar_numeric_kernel' && Object.hasOwn(numericKernelExternal, path)) {
-    return numericKernelExternal[path];
+    return numericKernelExternal[path as keyof typeof numericKernelExternal];
   }
   return undefined;
 }
 
+type TokenKind = 'word' | 'string' | 'symbol';
+type SourceToken = {kind: TokenKind; value: string; begin?: number; end?: number};
+type LiteralReader = {take(kind: TokenKind, value?: string): string; peek(value: string): boolean};
+type TargetMap = [string, string[]][];
+type ManifestImport = {path: string; alias: string | undefined; scope: string};
+
 // Source overlays may request spans; ordinary inspection retains its exact
 // existing token DATA and refusal rules.
-export function tokens(source, sourceCode = false, withRanges = false) {
-  const result = [];
-  const push = (token, begin, end) => result.push(withRanges ? {...token, begin, end} : token);
+export function tokens(source: string, sourceCode = false, withRanges = false) {
+  const result: SourceToken[] = [];
+  const push = (token: SourceToken, begin: number, end: number) => result.push(withRanges ? {...token, begin, end} : token);
   let i = 0;
   while (i < source.length) {
     if (/\s/.test(source[i])) { i++; continue; }
@@ -85,7 +91,7 @@ export function tokens(source, sourceCode = false, withRanges = false) {
       }
       if (i === source.length) throw new Error('UnclosedString');
       const raw = source.slice(start, ++i);
-      push({kind:'string', value:sourceCode ? raw.slice(1, -1) : JSON.parse(raw)}, start, i);
+      push({kind:'string', value:sourceCode ? raw.slice(1, -1) : JSON.parse(raw) as string}, start, i);
       continue;
     }
     const word = /^[A-Za-z_][A-Za-z_0-9]*/.exec(source.slice(i));
@@ -98,7 +104,7 @@ export function tokens(source, sourceCode = false, withRanges = false) {
 
 // One reviewed module-level linker spelling. This is metadata inspection,
 // not a general options parser or authority to change compiler/target policy.
-export function reviewedEsmModuleOptionEnd(list, start) {
+export function reviewedEsmModuleOptionEnd(list: readonly SourceToken[], start: number) {
   const literal = [
     ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
     ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
@@ -117,17 +123,17 @@ export function reviewedEsmModuleOptionEnd(list, start) {
 
 // Read the existing literal target clause as compiler-owned DATA. Neither
 // consumer evaluates its string expressions or uses them to hide dependencies.
-function readPackageTargetMap({take, peek}) {
-  const symbol = value => take('symbol', value);
+function readPackageTargetMap({take, peek}: LiteralReader) {
+  const symbol = (value: string) => take('symbol', value);
   symbol('{');
-  const targets = [];
-  const files = new Set();
+  const targets: TargetMap = [];
+  const files = new Set<string>();
   while (!peek('}')) {
     const file = take('string');
     if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
     files.add(file);
     symbol(':'); symbol('[');
-    const expression = [];
+    const expression: string[] = [];
     while (!peek(']')) {
       expression.push(take('string'));
       if (!peek(']')) symbol(',');
@@ -140,8 +146,8 @@ function readPackageTargetMap({take, peek}) {
   return targets;
 }
 
-export function readPackageTargetOptions({take, peek}) {
-  const symbol = value => take('symbol', value);
+export function readPackageTargetOptions({take, peek}: LiteralReader) {
+  const symbol = (value: string) => take('symbol', value);
   symbol('('); take('word', 'targets'); symbol(':');
   const targets = readPackageTargetMap({take, peek});
   if (peek(',')) symbol(','); symbol(')');
@@ -151,10 +157,10 @@ export function readPackageTargetOptions({take, peek}) {
 // Compiler-input inventory has a distinct reviewed metadata purpose. Retain
 // Native stub DATA here without admitting it to the portable target-only
 // inspector/copier or evaluating any compiler/build option.
-export function readPackageCompilerInputOptions({take, peek}) {
-  const symbol = value => take('symbol', value);
+export function readPackageCompilerInputOptions({take, peek}: LiteralReader) {
+  const symbol = (value: string) => take('symbol', value);
   symbol('(');
-  let targets = null, nativeStubs = null;
+  let targets: TargetMap | null = null, nativeStubs: string[] | null = null;
   if (peek(')')) throw new Error('UnknownManifestOptions: empty options');
   while (!peek(')')) {
     if (peek('targets')) {
@@ -179,20 +185,20 @@ export function readPackageCompilerInputOptions({take, peek}) {
   return {targets, nativeStubs};
 }
 
-function packageMetadata(source) {
+function packageMetadata(source: string) {
   const ts = tokens(source);
   let i = 0;
-  const result = [];
-  let targets = null;
-  const take = (kind, value) => {
+  const result: ManifestImport[] = [];
+  let targets: TargetMap | null = null;
+  const take = (kind: TokenKind, value?: string) => {
     const t = ts[i++];
     if (!t || t.kind !== kind || (value !== undefined && t.value !== value)) {
       throw new Error(`UnknownManifestSyntax at token ${i - 1}`);
     }
     return t.value;
   };
-  const symbol = value => take('symbol', value);
-  const peek = value => ts[i]?.value === value;
+  const symbol = (value: string) => take('symbol', value);
+  const peek = (value: string) => ts[i]?.value === value;
   while (i < ts.length) {
     const directive = take('word');
     if (directive === 'supported_targets') {
@@ -200,10 +206,10 @@ function packageMetadata(source) {
       if (take('string') !== '+js+wasm+native') throw new Error('UnsupportedCoreTargets');
     } else if (directive === 'import') {
       symbol('{');
-      const imports = [];
+      const imports: {path: string; alias: string | undefined}[] = [];
       while (!peek('}')) {
         const path = take('string');
-        let alias;
+        let alias: string | undefined;
         if (peek('@')) { symbol('@'); alias = take('word'); }
         imports.push({path, alias});
         if (!peek('}')) symbol(',');
@@ -233,12 +239,12 @@ function packageMetadata(source) {
 // Dependency inspection keeps the established resolved-alias projection. The
 // materializer separately retains whether the author declared an alias: an
 // invented explicit builtin alias changes strict compiler admission.
-export function packageImports(source) {
+export function packageImports(source: string) {
   return packageMetadata(source).imports.map(({path, alias, scope}) =>
     ({path, alias: alias ?? path.split('/').at(-1), scope}));
 }
 
-function inspectSource(source, path) {
+function inspectSource(source: string, path: string) {
   // Literal DATA and comments do not trigger name checks. Foreign declarations,
   // embedded target code and unsupported interpolated lines still fail closed.
   const ts = tokens(source, true);
@@ -261,7 +267,7 @@ function inspectSource(source, path) {
   }
 }
 
-export function inspectCore(root, roots = coreRoots) {
+export function inspectCore(root: string, roots: readonly string[] = coreRoots) {
   if (existsSync(join(root, 'moon.mod.json'))) throw new Error('AmbiguousCoreModule');
   const module = tokens(readFileSync(join(root,'moon.mod'),'utf8'));
   const metadata = new Set(['name','version','license','source','preferred_target','supported_targets']);
@@ -283,10 +289,10 @@ export function inspectCore(root, roots = coreRoots) {
     if (key.value === 'source' && value.value !== 'src') throw new Error('UnsupportedCoreSourceRoot');
     i += 3;
   }
-  const packages = new Map(), external = new Map(), publicImports = [];
+  const packages = new Map<string, ReturnType<typeof packageImports>>(), external = new Map<string, string>(), publicImports: [string, string][] = [];
   const pending = [...roots];
   while (pending.length) {
-    const name = pending.pop();
+    const name = pending.pop()!;
     if (packages.has(name)) continue;
     if (hostCustodyPackages.has(name)) throw new Error(`HostCustodyCoreDependency: ${name}`);
     if (!/^[a-z][a-z_0-9]*$/.test(name) || /^(duckdb_|connectors_|.*_node$|.*_workers$)/.test(name)) {
@@ -360,7 +366,7 @@ export function inspectCore(root, roots = coreRoots) {
 
 // Materialize exactly the audited production closure. Test manifests must not
 // make the isolated build depend on packages outside that closure.
-export function copyProductionCore(root, destination, roots = coreRoots) {
+export function copyProductionCore(root: string, destination: string, roots: readonly string[] = coreRoots) {
   const audit = inspectCore(root, roots);
   mkdirSync(destination, {recursive: true});
   copyFileSync(join(root, 'moon.mod'), join(destination, 'moon.mod'));
