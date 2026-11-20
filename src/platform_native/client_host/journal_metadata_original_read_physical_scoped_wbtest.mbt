@@ -317,10 +317,14 @@ test "Journal metadata retains multiple decoded originals on one real Read throu
 }
 
 ///|
-fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
+fn effect_route_original_read_quote_case(
+  one_short : Bool,
+  signing? : Bool = false,
+) -> Unit raise {
   let limit = 4194304L // Existing fixture default, not a product allowance.
   let initial = 65536L + 65536L // Original bootstrap + initial Read consumer.
-  let controls = 2432L // Independent 64 headers, 160 references, 16 words.
+  // Independent routing 64H/160R/16W plus signing wrapper 24H/64R/32W.
+  let controls = if signing { 3584L } else { 2432L }
   let fixture = journal_metadata_original_read_fixture(retained_limit=limit)
   // The absolute construction entrance adds the original 65536-byte consumer
   // to metadata; its same ledger also retains the 65536-byte bootstrap. Reserve
@@ -340,7 +344,11 @@ fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
   .unwrap()
   fixture.original.metadata_retained = previous
   let result = fixture.original.stage(@arena.HostRead, fn() {
-    fixture.original.retain_effect_journal_route_controls()
+    if signing {
+      fixture.original.retain_initial_signing_journal_controls()
+    } else {
+      fixture.original.retain_effect_journal_route_controls()
+    }
   })
   if one_short {
     assert_true(result is Err(OriginalResources(_)))
@@ -369,4 +377,14 @@ test "Effect Journal routing controls fit the exact same real Read retained boun
 ///|
 test "Effect Journal routing one short refuses before retained controls change" {
   effect_route_original_read_quote_case(true)
+}
+
+///|
+test "Initial signing Journal routing fits the exact same real Read retained boundary" {
+  effect_route_original_read_quote_case(false, signing=true)
+}
+
+///|
+test "Initial signing Journal routing one short refuses before retained controls change" {
+  effect_route_original_read_quote_case(true, signing=true)
 }

@@ -144,6 +144,7 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
   original : NativeLocalGrantOriginal,
   expected_run : String,
   capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) else { return Err(CustodyLost) }
   match
@@ -151,6 +152,7 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
       grant,
       original.request,
       expected_run,
+      reads~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -160,10 +162,16 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
     return self.check_initial_host_attestation_grant_after_submission_locked(
       original,
       capture~,
+      reads~,
     )
   }
   let control = match
-    self.database.read("client_local_installation_custody", "host") {
+    read_client_journal_value(
+      self.database,
+      "client_local_installation_custody",
+      "host",
+      reads,
+    ) {
     Ok(value) if value.revision == 0L => value
     _ => return Err(CustodyLost)
   }
@@ -237,6 +245,7 @@ fn local_initial_signing_grant_original_locked(
   operation_id : String,
   sampled_at : Int64,
   earlier_valid_until : Int64?,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalGrantOriginal, NativeClientRunJournalIssue] {
   let host = key.original.host
   if InitialReviewerKey(key).require_signing_key_scope(scope) is Err(_) {
@@ -309,6 +318,7 @@ fn local_initial_signing_grant_original_locked(
       authenticated,
       scope.run_definition_cid,
       capture=key.original.original_read.map(value => value.0),
+      reads~,
     ) {
     Ok(_) => Ok(authenticated)
     Err(issue) => Err(issue)

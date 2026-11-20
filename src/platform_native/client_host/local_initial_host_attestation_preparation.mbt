@@ -29,8 +29,9 @@ struct NativeLocalInitialHostAttestationPreparation {
 fn local_initial_host_attestation_current_locked(
   reviewer : NativeLocalInitialSigningCurrent,
   account : NativeLocalInitialHostSigningAccount,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  match reviewer.require_locked() {
+  match reviewer.require_locked(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -65,6 +66,52 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
   NativeLocalInitialHostAttestationPreparation,
   NativeLocalInitialHostAttestationIssue,
 ] {
+  match account.original.reviewer.original_read {
+    None =>
+      self.prepare_initial_host_attestation_with_operations(
+        account,
+        materials,
+        operation_id,
+        approval_evidence_wire~,
+        earlier_valid_until~,
+      )
+    Some((capture, _)) => {
+      if materials.reviewer.approval_scope is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(HostAttestationUnavailable)
+      }
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
+      }
+      capture.with_initial_host_signing_operations(self.binding.host, operations => {
+        self.prepare_initial_host_attestation_with_operations(
+          account,
+          materials,
+          operation_id,
+          approval_evidence_wire~,
+          earlier_valid_until~,
+          operations=Some(operations),
+        )
+      })
+    }
+  }
+}
+
+///|
+fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation_with_operations(
+  self : NativeLocalAuthenticatedEffectReviewer,
+  account : NativeLocalInitialHostSigningAccount,
+  materials : NativeLocalReviewerProofMaterials,
+  operation_id : String,
+  approval_evidence_wire? : String? = None,
+  earlier_valid_until? : Int64? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[
+  NativeLocalInitialHostAttestationPreparation,
+  NativeLocalInitialHostAttestationIssue,
+] {
+  let reads = operations.map(value => value.reads)
   let binding = self.binding
   let host = binding.host
   guard materials.proof is ResolutionOriginal(_) &&
@@ -108,187 +155,219 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
     Err(_) => return Err(HostAttestationUnavailable)
   }
   let body_failure : Ref[@checkpoint.ResolutionIssue?] = Ref(None)
-  let prepared = host.journal.transaction(() => {
-    match
-      local_initial_host_attestation_current_locked(reviewer_current, account) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    match
-      host.local_grant_custody(
-        host.epoch.crypto,
-        capture=account.original.reviewer.original_read.map(value => value.0),
-      ) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let row_key = match
-      local_grant_original_key(host.epoch.crypto, binding.request, operation_id) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let retained = match
-      host.database.read("client_local_grant_originals", row_key) {
-      Err(@sqlite.NotFound) => None
-      Err(issue) => return Err(Physical(issue))
-      Ok(row) =>
-        match
-          read_local_grant_original(host.epoch.crypto, {
-            key: row_key,
-            body: row.body,
-            revision: row.revision,
-          }) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    // The retained original is selected before the only clock sample. A
-    // claimed/Unknown/failed operation cannot refresh its preparation/expiry.
-    let sampled_at = match retained {
-      None => @env.now().reinterpret_as_int64()
-      Some(original) => {
-        guard original.grant is SigningGrant(grant) &&
-          original.initial_issue is Some(_) &&
-          @credential.local_signing_credential_grant_scope(grant).purpose ==
-          @credential.HostAttestation &&
-          original.operation_id == operation_id &&
-          @host.client_request_identity_relation(
-            original.request,
-            binding.request,
-          )
-          is @host.SameRequest else {
-          return Err(ChangedIntent)
-        }
-        let fields = match
-          read_local_initial_host_signing_control(
-            host,
-            account.original.reviewer.control_body,
-          ) {
-          Ok(value) => value
-          Err(_) => return Err(CustodyLost)
-        }
-        let metadata = match
-          read_local_initial_signing_issue_record(host, original, fields) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        if metadata.connection != account.connection ||
-          metadata.signing_resource != Some(account.resource) ||
-          metadata.host_configuration_file != account.installed.file ||
-          metadata.earlier_valid_until != earlier_valid_until {
-          return Err(ChangedIntent)
-        }
-        metadata.sampled_at
+  let prepared = host.journal.transaction_with_reads(
+    () => {
+      match
+        local_initial_host_attestation_current_locked(
+          reviewer_current,
+          account,
+          reads~,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
-    }
-    guard @values.epoch_milliseconds_timestamp(sampled_at) is Some(verified_at) else {
-      return Err(Encoding)
-    }
-    let admitted = match
-      @checkpoint.admit_checkpoint_resolution(
-        materials.original.artifact,
-        self.resolution_wire,
-        approval_evidence_wire,
-        self.authentication,
-        [
-          {
-            key_id: self.registration.key_id,
-            reviewer_id: self.registration.reviewer_id,
-          },
-        ],
-        verified_at,
-        self.limits,
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        body_failure.val = Some(issue)
+      match
+        host.local_grant_custody(
+          host.epoch.crypto,
+          capture=account.original.reviewer.original_read.map(value => value.0),
+          operations~,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let row_key = match
+        local_grant_original_key(
+          host.epoch.crypto,
+          binding.request,
+          operation_id,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let retained = match
+        read_client_journal_value(
+          host.database,
+          "client_local_grant_originals",
+          row_key,
+          reads,
+        ) {
+        Err(@sqlite.NotFound) => None
+        Err(issue) => return Err(Physical(issue))
+        Ok(row) =>
+          match
+            read_local_grant_original(host.epoch.crypto, {
+              key: row_key,
+              body: row.body,
+              revision: row.revision,
+            }) {
+            Ok(value) => Some(value)
+            Err(issue) => return Err(issue)
+          }
+      }
+      // The retained original is selected before the only clock sample. A
+      // claimed/Unknown/failed operation cannot refresh its preparation/expiry.
+      let sampled_at = match retained {
+        None => @env.now().reinterpret_as_int64()
+        Some(original) => {
+          guard original.grant is SigningGrant(grant) &&
+            original.initial_issue is Some(_) &&
+            @credential.local_signing_credential_grant_scope(grant).purpose ==
+            @credential.HostAttestation &&
+            original.operation_id == operation_id &&
+            @host.client_request_identity_relation(
+              original.request,
+              binding.request,
+            )
+            is @host.SameRequest else {
+            return Err(ChangedIntent)
+          }
+          let fields = match
+            read_local_initial_host_signing_control(
+              host,
+              account.original.reviewer.control_body,
+            ) {
+            Ok(value) => value
+            Err(_) => return Err(CustodyLost)
+          }
+          let metadata = match
+            read_local_initial_signing_issue_record(host, original, fields) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          if metadata.connection != account.connection ||
+            metadata.signing_resource != Some(account.resource) ||
+            metadata.host_configuration_file != account.installed.file ||
+            metadata.earlier_valid_until != earlier_valid_until {
+            return Err(ChangedIntent)
+          }
+          metadata.sampled_at
+        }
+      }
+      guard @values.epoch_milliseconds_timestamp(sampled_at)
+        is Some(verified_at) else {
         return Err(Encoding)
       }
-    }
-    match self.require_approval_signature_locked(admitted) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    match
-      local_initial_host_attestation_current_locked(reviewer_current, account) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    if materials.original.cancellation_requested &&
-      admitted.decision == @checkpoint.Approved {
-      return Err(Checkpoint(NeedsOriginalContinuation))
-    }
-    let wire = match admitted.prepared_wire(self.limits) {
-      Ok(value) => value
-      Err(issue) => {
-        body_failure.val = Some(issue)
-        return Err(Encoding)
-      }
-    }
-    let scope = {
-      ..reviewer_scope,
-      authority_scope_cid: account.authority_scope_cid,
-      principal: account.principal,
-      key_configuration_cid,
-      key_generation_cid,
-      key_id: account.original.public_key.cid(),
-      key_public_key_cid: account.original.public_key.cid(),
-      preimage: admitted.attestation_preimage,
-      purpose: @credential.HostAttestation,
-    }
-    match account.require_signing_scope(scope) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let original = match retained {
-      Some(value) => {
-        guard value.grant is SigningGrant(grant) &&
-          @credential.local_signing_credential_grant_scope(grant) == scope else {
-          return Err(ChangedIntent)
-        }
-        match local_initial_host_prepared_locked(host, value) {
-          Ok(saved) if saved == @utf8.encode(wire) => value
-          Ok(_) => return Err(ChangedIntent)
-          Err(issue) => return Err(issue)
-        }
-      }
-      None => {
-        let value = match
-          local_initial_host_signing_grant_original_locked(
-            account,
-            binding.request,
-            scope,
-            operation_id,
-            sampled_at,
-            earlier_valid_until,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        match
-          append_local_owned_grant_original_locked(
-            host,
-            host.epoch.crypto,
-            value,
-            () => {
-              local_initial_host_attestation_current_locked(
-                reviewer_current, account,
-              )
+      let admitted = match
+        @checkpoint.admit_checkpoint_resolution(
+          materials.original.artifact,
+          self.resolution_wire,
+          approval_evidence_wire,
+          self.authentication,
+          [
+            {
+              key_id: self.registration.key_id,
+              reviewer_id: self.registration.reviewer_id,
             },
-            host_prepared=Some(wire),
-            capture=account.original.reviewer.original_read.map(value => value.0),
-          ) {
-          Err(issue) => return Err(issue)
-          Ok(_) => value
+          ],
+          verified_at,
+          self.limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          body_failure.val = Some(issue)
+          return Err(Encoding)
         }
       }
-    }
-    match
-      local_initial_host_attestation_current_locked(reviewer_current, account) {
-      Err(issue) => Err(issue)
-      Ok(_) => Ok((original, admitted, wire, scope))
-    }
-  })
+      match self.require_approval_signature_locked(admitted) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      match
+        local_initial_host_attestation_current_locked(
+          reviewer_current,
+          account,
+          reads~,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      if materials.original.cancellation_requested &&
+        admitted.decision == @checkpoint.Approved {
+        return Err(Checkpoint(NeedsOriginalContinuation))
+      }
+      let wire = match admitted.prepared_wire(self.limits) {
+        Ok(value) => value
+        Err(issue) => {
+          body_failure.val = Some(issue)
+          return Err(Encoding)
+        }
+      }
+      let scope = {
+        ..reviewer_scope,
+        authority_scope_cid: account.authority_scope_cid,
+        principal: account.principal,
+        key_configuration_cid,
+        key_generation_cid,
+        key_id: account.original.public_key.cid(),
+        key_public_key_cid: account.original.public_key.cid(),
+        preimage: admitted.attestation_preimage,
+        purpose: @credential.HostAttestation,
+      }
+      match account.require_signing_scope(scope) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let original = match retained {
+        Some(value) => {
+          guard value.grant is SigningGrant(grant) &&
+            @credential.local_signing_credential_grant_scope(grant) == scope else {
+            return Err(ChangedIntent)
+          }
+          match local_initial_host_prepared_locked(host, value, reads~) {
+            Ok(saved) if saved == @utf8.encode(wire) => value
+            Ok(_) => return Err(ChangedIntent)
+            Err(issue) => return Err(issue)
+          }
+        }
+        None => {
+          let value = match
+            local_initial_host_signing_grant_original_locked(
+              account,
+              binding.request,
+              scope,
+              operation_id,
+              sampled_at,
+              earlier_valid_until,
+              reads~,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          match
+            append_local_owned_grant_original_locked(
+              host,
+              host.epoch.crypto,
+              value,
+              () => {
+                local_initial_host_attestation_current_locked(
+                  reviewer_current,
+                  account,
+                  reads~,
+                )
+              },
+              host_prepared=Some(wire),
+              capture=account.original.reviewer.original_read.map(value => {
+                value.0
+              }),
+              operations~,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(_) => value
+          }
+        }
+      }
+      match
+        local_initial_host_attestation_current_locked(
+          reviewer_current,
+          account,
+          reads~,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok((original, admitted, wire, scope))
+      }
+    },
+    reads~,
+  )
   let (original, admitted, wire, scope) = match prepared {
     Ok(value) => value
     Err(Encoding) if body_failure.val is Some(issue) =>

@@ -145,6 +145,7 @@ fn local_initial_host_signing_grant_original_locked(
   operation_id : String,
   sampled_at : Int64,
   earlier_valid_until : Int64?,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalGrantOriginal, NativeClientRunJournalIssue] {
   match account.require_signing_scope(scope) {
     Err(issue) => return Err(issue)
@@ -219,6 +220,7 @@ fn local_initial_host_signing_grant_original_locked(
     retained,
     scope.run_definition_cid,
     capture=key.reviewer.original_read.map(value => value.0),
+    reads~,
   )
   .map(_ => retained)
 }
