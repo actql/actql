@@ -171,3 +171,94 @@ test "original intermediate SELECT set fixture reaches the real member namespace
     NeedsInputs(_) => fail("the original two set rows remain closed")
   }
 }
+
+///|
+test "unnamed analytic staging does not require a later terminal SELECT" {
+  for
+    source in [
+      "FROM pair |> SELECT RANK() OVER (ORDER BY x), y AS n |> AGGREGATE COUNT(*) AS total",
+      "FROM pair |> SELECT RANK() OVER (ORDER BY x), y AS n |> AS kept |> AGGREGATE COUNT(*) AS total",
+    ] {
+    let program = match
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(UnsupportedProjection) =>
+        fail(
+          "an original anonymous analytic does not need a terminal SELECT: " +
+          source,
+        )
+      Err(issue) =>
+        fail(
+          "wrong no-terminal analytic refusal: " +
+          infer_defaults_issue_tag(issue),
+        )
+    }
+    assert_eq(anonymous_result_fields(program), ["total"])
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("the original no-terminal aggregate remains closed")
+    }
+  }
+  let program = compile_query_script(
+    @query.parse_query_script(
+      "WITH counted AS (FROM pair |> SELECT RANK() OVER (ORDER BY x), y AS n |> AGGREGATE COUNT(*) AS total) SELECT total FROM counted",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(anonymous_result_fields(program), ["total"])
+  match
+    @check.check_parsed(
+      program,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the CTE retains the same closed original aggregate")
+  }
+}
+
+///|
+test "no-terminal analytic profile never makes a private evaluated label readable" {
+  for
+    tail in [
+      "AGGREGATE COUNT(f0_) AS total", "AGGREGATE COUNT(aql_set_anonymous_3) AS total",
+      "AS kept |> AGGREGATE COUNT(kept.f0_) AS total",
+    ] {
+    let source = "FROM pair |> SELECT RANK() OVER (ORDER BY x), y AS n |> " +
+      tail
+    match
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      ) {
+      Err(UnknownColumn)
+      | Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Err(issue) =>
+        fail(
+          "wrong no-terminal private label refusal: " +
+          infer_defaults_issue_tag(issue),
+        )
+      Ok(_) =>
+        fail(
+          "an evaluated anonymous label became an aggregate input: " + source,
+        )
+    }
+  }
+}

@@ -6020,16 +6020,21 @@ fn compile_steps(
           }
           let positional_terminal = !order_window &&
             positional_projection is Some(_)
-          let positional_private = positional_terminal &&
-            (match projection.name {
-              None => true
-              Some(name) =>
-                positional_set_output &&
-                duplicate_projection_alias(projections, name.value)
-            })
+          let positional_private = (
+              !order_window && columns_required && projection.name is None
+            ) ||
+            (
+              positional_terminal &&
+              (match projection.name {
+                None => true
+                Some(name) =>
+                  positional_set_output &&
+                  duplicate_projection_alias(projections, name.value)
+              })
+            )
           let slot = match projection.name {
             None => {
-              if !positional_terminal {
+              if !positional_terminal && !(columns_required && !order_window) {
                 raise Abort(UnsupportedProjection)
               }
               pipe_physical_name(physical, "aql_analytic_output_")
