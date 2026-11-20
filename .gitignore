@@ -70,3 +70,5 @@ target/
 /packages/sdk/result-schema.d.mts
 /scripts/typescript-packaging.test.mjs
 /scripts/typescript-packaging.test.d.mts
+/scripts/typescript-bootstrap.test.mjs
+/scripts/typescript-bootstrap.test.d.mts
