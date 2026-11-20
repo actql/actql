@@ -1022,7 +1022,8 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
         core._ordinary_host, core._host_initial_claimed = True, False
         core._host_fuel_phase = core._host_operation_scope = core._host_retained_work = None
         core._host_operation_id = core._host_operation_sequence = 0
-        core._instance, core._exports = object(), {'memory': object()}
+        from types import SimpleNamespace
+        core._instance, core._exports = object(), SimpleNamespace(_extern_map={'memory': object()})
         class OpaqueObservationFailure(BaseException):
             def __str__(self):
                 raise AssertionError('Optional fuel failure must not be formatted')
@@ -1042,7 +1043,7 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
                 return self.remaining
         store = core._store = FuelPort(core)
         core._platform_vm_original = (core, core._identity, core._nonce, store,
-            core._instance, core._exports, core._exports['memory'], os.getpid())
+            core._instance, core._exports, core._exports._extern_map['memory'], os.getpid())
         observer = module._OrdinaryFuelObservation(LocalCore, InstalledLocalHost, OriginalLocalWork)
         return module, core, store, observer, OriginalLocalWork
 
@@ -1144,6 +1145,69 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
         self.assertIsNone(sys.getprofile())
         self.assertIsNone(threading.getprofile())
         self.assertEqual(store.sets, 1)
+
+    def test_bootstrap_cleanup_and_observation_overflow_cannot_be_normal_zeroes(self):
+        _, core, store, observer, _ = self.fixture()
+        with observer:
+            with core._host_operation(initial=True):
+                pass
+            with core._host_cleanup():
+                pass
+            self.assertEqual(store.reads, 0)
+            for _ in range(observer.MAX_OPERATIONS):
+                with core._host_operation():
+                    store.remaining -= 1
+            before = store.reads
+            with core._host_operation():
+                store.remaining -= 1
+            self.assertEqual(store.reads, before)
+        result = observer.summary()
+        self.assertTrue(result['overflow'])
+        self.assertFalse(result['qualified'])
+        self.assertEqual(len(result['operations']), observer.MAX_OPERATIONS)
+        self.assertTrue(all(row['consumedFuel'] == 1 for row in result['operations']))
+
+    def test_failed_retained_worker_keeps_original_error_and_has_no_normal_cost(self):
+        _, core, store, observer, work_type = self.fixture()
+        primary = RuntimeError('original physical invocation failure')
+        def invoke():
+            raise primary
+        with observer:
+            with core._host_operation():
+                work = work_type(invoke, owner=object(), on_exit=core._finish_work_operation)
+                core._retain_work_operation(work)
+            work.start()
+            work._thread.join(2)
+            self.assertFalse(work._thread.is_alive())
+            self.assertIs(work._future.exception(timeout=0), primary)
+        result = observer.summary()
+        self.assertFalse(result['qualified'])
+        self.assertIsNone(result['operations'][0]['consumedFuel'])
+        self.assertEqual(result['operations'][0]['reason'], 'worker-failed-or-unavailable')
+        self.assertEqual((store.sets, store.reads), (1, 1))
+
+    def test_changed_original_memory_and_incomplete_owner_are_unavailable(self):
+        for fault in ('memory', 'pending'):
+            with self.subTest(fault=fault):
+                _, core, store, observer, work_type = self.fixture()
+                with observer:
+                    with core._host_operation():
+                        if fault == 'memory':
+                            core._exports._extern_map['memory'] = object()
+                        else:
+                            work = work_type(lambda: None, owner=object(),
+                                             on_exit=core._finish_work_operation)
+                            core._retain_work_operation(work)
+                result = observer.summary()
+                self.assertFalse(result['qualified'])
+                self.assertIsNone(result['operations'][0]['consumedFuel'])
+                self.assertEqual((store.sets, store.reads), (1, 1))
+                if fault == 'pending':
+                    # End the same actual worker after observation; no forced ACK or new operation.
+                    work.start()
+                    work._thread.join(2)
+                    self.assertFalse(work._thread.is_alive())
+                    self.assertIsNone(work._future.exception(timeout=0))
 
 
 class TaskRetirementSnapshotTests(unittest.TestCase):
