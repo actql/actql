@@ -248,6 +248,8 @@ fn scalar_call(
     "INSTR" => ("INSTR", "instr", 2, 4)
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
+    "MOD" => ("MOD", "exact_modulo", 2, 2)
+    "DIV" => ("DIV", "integer_divide", 2, 2)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "CBRT" => ("CBRT", "cbrt", 1, 1)
     "SIN" => ("SIN", "sin", 1, 1)
@@ -535,6 +537,25 @@ fn append_resolved(
       let mut parameter = false
       let mut interval : String? = None
       let result = match node.kind {
+        ContextualInteger(Some(value)) =>
+          lowering.form(
+            "typed_literal",
+            lowering.object([
+              ("type", lowering.add(String("int64"))),
+              ("value", lowering.add(String(value.to_string()))),
+            ]),
+          )
+        ContextualInteger(None) =>
+          lowering.form(
+            "cast",
+            lowering.object([
+              (
+                "target",
+                lowering.object([("type", lowering.add(String("int64")))]),
+              ),
+              ("value", lowering.form("literal", lowering.add(Null))),
+            ]),
+          )
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
           let raw = lowering.add(
             match node.kind {
@@ -1198,6 +1219,7 @@ fn append_resolved(
                 Boolean => [("type", lowering.add(String("boolean")))]
                 String => [("type", lowering.add(String("string")))]
                 Number => [("type", lowering.add(String("number")))]
+                Signed64 => [("type", lowering.add(String("int64")))]
                 Timestamp => [("type", lowering.add(String("timestamp")))]
                 Decimal(precision, scale) =>
                   [

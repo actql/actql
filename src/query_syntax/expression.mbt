@@ -19,6 +19,8 @@ pub(all) enum ExpressionKind {
   Null
   Boolean(Bool)
   Number(String)
+  // Compiler-selected from an original integer token, before Number admission.
+  ContextualInteger(Int64?)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])
@@ -52,6 +54,7 @@ pub(all) enum CastType {
   Boolean
   String
   Number
+  Signed64
   Timestamp
   Decimal(Int, Int)
   Array(ArrayElementType)
@@ -1016,6 +1019,7 @@ fn ExpressionParser::expression(
               "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
               "NUMBER" | "FLOAT64" | "DOUBLE" => CastType::Number
+              "INT64" => CastType::Signed64
               "TIMESTAMP" => CastType::Timestamp
               "ARRAY" => CastType::Array(self.array_element_type())
               "DECIMAL" => {

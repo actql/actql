@@ -327,6 +327,7 @@ pub fn is_source_free_scalar_projection(query : Query) -> Bool {
       Null
       | Boolean(_)
       | Number(_)
+      | ContextualInteger(_)
       | StringLiteral(_)
       | JsonLiteral(_)
       | ParameterReference(_)

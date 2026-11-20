@@ -100,6 +100,8 @@ fn expression_role(
     | "multiply"
     | "divide"
     | "modulo"
+    | "exact_modulo"
+    | "integer_divide"
     | "pow"
     | "atan2"
     | "log"

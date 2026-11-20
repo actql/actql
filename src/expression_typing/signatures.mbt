@@ -22,6 +22,7 @@ fn scalar_kind(name : String) -> @contract.Primitive? {
   match name {
     "string" => Some(StringType)
     "number" => Some(NumberType)
+    "int64" => Some(Signed64Type)
     "boolean" => Some(BooleanType)
     "date" => Some(DateType)
     "timestamp" => Some(TimestampType)
@@ -471,6 +472,21 @@ fn infer(
     "#null" => put(t, Hole, true, source)
     "current_timestamp" => primitive(t, TimestampType, false, source)
     "typed_literal" => {
+      if string(part(node.body, "type")) == "int64" {
+        let contract = @contract.primitive(Signed64Type, nullable=false)
+        let value = part(node.body, "value")
+        let text = string(value)
+        charge(t.budget, source, text)
+        guard @value.admit(contract, value, {
+            max_nodes: 1,
+            max_depth: 1,
+            max_text_bytes: t.budget.limits.max_text_bytes,
+          })
+          is Ok(_) else {
+          fail(source, InvalidStaticOption("canonical signed64 literal"))
+        }
+        return typed(t, contract, source)
+      }
       let text = string(part(node.body, "value"))
       let (value, nodes, _) = match
         @value.admit_json_literal(text, {
@@ -650,6 +666,7 @@ fn infer(
         "string" =>
           ["string", "number", "decimal", "boolean", "date", "timestamp"]
         "number" => ["string", "number"]
+        "int64" => ["string", "number", "int64", "decimal", "boolean"]
         "boolean" => ["string", "boolean"]
         "timestamp" => ["string", "timestamp"]
         "decimal" => ["string", "number", "decimal"]
@@ -880,6 +897,45 @@ fn infer(
         fail(source, TypeMismatch("number or decimal"))
       }
       values[0]
+    }
+    "exact_modulo" | "integer_divide" => {
+      // Only original checked exact domains participate. A Double with an
+      // integral observation supplies no integer-literal provenance.
+      let mut nullable = false
+      let mut decimal = false
+      let mut scale = 0
+      for id in node.children {
+        if immediate_null(nodes[id]) {
+          ignore(require_type(t, nodes, id, "int64"))
+        }
+        let c = resolve_type(t, nodes[id].inferred, nodes[id].source)
+        nullable = nullable || c.nullable
+        match c.shape {
+          @contract.Signed64 => ()
+          @contract.Decimal(scale=s, ..) => {
+            decimal = true
+            scale = Int::max(scale, s)
+          }
+          _ => fail(source, TypeMismatch("int64 or decimal"))
+        }
+      }
+      if decimal {
+        typed(
+          t,
+          @contract.decimal_contract(
+            38,
+            if tag == "integer_divide" {
+              0
+            } else {
+              scale
+            },
+            nullable~,
+          ).unwrap(),
+          source,
+        )
+      } else {
+        primitive(t, Signed64Type, nullable, source)
+      }
     }
     "divide" | "modulo" => {
       let nullable = arguments(t, nodes, node, "number")

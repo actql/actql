@@ -2685,6 +2685,20 @@ Small fixed helpers remain Host overhead. Only an actual capacity expansion
 calls external currentness; immutable completed getters and the Program take do
 not. A callback can reenter, so the existing original/phase fences remain.
 
+The exact-integer function context is an additional constructor under this
+same reservation. Original tokens bound the query-local task/scope links,
+desired projection coordinates, compacting subtree maps, nullable variants,
+rewritten syntax and original/rewritten overlap. Per token, its incremental
+envelope is 16 record headers, 64 reference slots, 32 scalar words and 40
+owned UTF16 units: 1104 logical bytes under the existing representation
+tariff. It is added before the original lowerer call, rather than funded from
+unused writer capacity. Immutable scope links avoid a copied name vector per
+CTE; unchanged/idempotent subtrees retain their original identity. The parsed
+document and its original tokens remain the source owner. A short grow keeps
+the same quoted Request and no constructor output; successful cleanup still
+uses its original parent and borrower. This is a logical bound, not a heap
+measurement, policy grant or complete work observation.
+
 The Request retains the exact lowered Program, Catalog and diagnostic source.
 The checker receives those same originals and the supplied Parameter cursor;
 it does not obtain a replacement Program from the generated document. Existing

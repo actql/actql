@@ -589,6 +589,8 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "lpad"
     | "ltrim"
     | "modulo"
+    | "exact_modulo"
+    | "integer_divide"
     | "negate"
     | "not_in"
     | "not_null"

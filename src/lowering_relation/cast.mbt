@@ -8,6 +8,7 @@ fn emit_cast_target(
   @encode.begin_object(output)
   let kind = match contract.shape {
     Number => "number"
+    Signed64 => "int64"
     Text(_) => "string"
     Boolean => "boolean"
     Timestamp => "timestamp"

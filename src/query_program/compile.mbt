@@ -7414,6 +7414,12 @@ pub fn compile_with_source(
   store_targets? : StoreTargetPublication? = None,
   command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
+  let query = match
+    @query.with_integer_function_context(query, limits.max_expression_work) {
+    Ok(query) => query
+    Err({ issue: InvalidLimits, .. }) => return Err(InvalidContext)
+    Err(_) => return Err(Expression({ issue: WorkLimit, origin: None, }))
+  }
   // Terminal operations use the ordinary script compiler's original target
   // selection and private Result capture; none may disappear into a pure query.
   // Binding and primary scopes must be installed before inspecting a JOIN

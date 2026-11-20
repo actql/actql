@@ -26,6 +26,8 @@ pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
 
 pub fn command_effect_count(QueryScript) -> Int
 
+pub fn contextual_integer_literal(String, Bool) -> Int64?
+
 pub fn effect_result_continuation(Query, NamePart, has_postlude? : Bool) -> (Query, Query)?
 
 pub fn exact_integer_literal(String) -> Int64?
@@ -154,6 +156,8 @@ pub fn tokenize_bytes(Bytes, LexicalLimits, source_path? : String) -> Result[Tok
 
 pub fn usage(Tokens, Resource) -> Int
 
+pub fn with_integer_function_context(Query, Int) -> Result[Query, Diagnostic]
+
 // Errors
 
 // Types and methods
@@ -197,6 +201,7 @@ pub(all) enum CastType {
   Boolean
   String
   Number
+  Signed64
   Timestamp
   Decimal(Int, Int)
   Array(ArrayElementType)
@@ -224,6 +229,7 @@ pub(all) enum ExpressionKind {
   Null
   Boolean(Bool)
   Number(String)
+  ContextualInteger(Int64?)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])
