@@ -1299,11 +1299,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -1319,7 +1319,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -1347,11 +1347,11 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
@@ -1773,7 +1773,7 @@
                 "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -1809,7 +1809,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -1957,7 +1957,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -2761,7 +2761,7 @@
                 "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -2797,7 +2797,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
@@ -2961,11 +2961,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -2981,7 +2981,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -3009,11 +3009,11 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
@@ -3284,7 +3284,7 @@
                 "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
@@ -3320,7 +3320,7 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mts",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {

@@ -86,9 +86,10 @@ or resend. Cleanup only clears local references after the corresponding original
 physical/raw owners confirm retirement; escaped saved views remain separately
 owned. A never-settling transport remains held, not a fabricated cleanup ACK.
 
-`adapters/host-common/model-response-reader.mjs` is the single physical-reader
-source. `scripts/generate-model-response-reader.mjs` reproduces identical private
-copies for A and B; `--check` rejects drift. The current A copy is byte-unchanged.
+`adapters/host-common/model-response-reader.mts` is the single physical-reader
+source. `scripts/generate-model-response-reader.mjs` strictly compiles that authored source into matching private runtime and
+declaration copies for both adapters; `--check` rejects drift. Neither package
+maintains a separate authored reader.
 Independent package consumers need neither the other adapter nor its SDK.
 
 Node mechanism cases use explicit Common/Entry/saved-view doubles. A loopback

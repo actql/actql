@@ -194,8 +194,6 @@ target/
 /packages/sdk/check-protocol-failures.test.d.mts
 
 # Generated bounded optional-provider response boundary.
-/packages/provider-ai-sdk/_internal/bounded-response.mjs
-/packages/provider-ai-sdk/_internal/bounded-response.d.mts
 /packages/provider-ai-sdk/bounded-response.test.mjs
 /packages/provider-ai-sdk/bounded-response.test.d.mts
 
@@ -277,8 +275,6 @@ target/
 /packages/provider-http/_internal/original-chat-request.d.mts
 
 # Generated HTTP bounded response reader.
-/packages/provider-http/_internal/bounded-response.mjs
-/packages/provider-http/_internal/bounded-response.d.mts
 
 # Generated HTTP physical model port.
 /packages/provider-http/_internal/model-port.mjs
@@ -612,3 +608,12 @@ target/
 
 /scripts/vite-interface-inventory.test.mjs
 /scripts/vite-interface-inventory.test.d.mts
+
+/adapters/host-common/model-response-reader.mjs
+/adapters/host-common/model-response-reader.d.mts
+
+/scripts/generate-model-response-reader.mjs
+/scripts/generate-model-response-reader.d.mts
+
+/scripts/model-response-reader.test.mjs
+/scripts/model-response-reader.test.d.mts
