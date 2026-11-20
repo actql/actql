@@ -115185,7 +115185,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "795d7947ce3967f012063abdebc5f4f81f135cab4c2fe353b5e3f3c027b0aa7c"
+      "sha256": "2c1e08fb2c954632c283b5569598ff8c3f2a23122640923fac19f262ee2de1d7"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

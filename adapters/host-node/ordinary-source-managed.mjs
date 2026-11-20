@@ -1330,7 +1330,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
                 [name, typeof methods[index] === 'function'
                   ? (...args) => Reflect.apply(methods[index], moon, args) : undefined])));
               state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
-                state.parent, producer.receipt));
+                state.parent, producer.receipt, false));
             }
           } else if (state.compilationKind === 'effect_free') {
             // Core retains the original audit/journal under this SAME Request.

@@ -1348,9 +1348,9 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
     assert.equal(selected, undefined); assert.equal(publication, f.context.preparedEnvironment);
     events.push('compile'); return ok('effectful');
   };
-  moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
+  moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original, staticModels) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
-    events.push('borrow-effect-input'); return ok(holder);
+    assert.equal(staticModels, false); events.push('borrow-effect-input'); return ok(holder);
   };
   moon.clientProgramEffectPreparationInputRead = function(value) {
     assert.equal(this, moon); assert.equal(value, holder); return prepared;
@@ -3136,7 +3136,7 @@ test('static Effect Plan manager reads the same checked Request without executio
   moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No original static refusal selected');
   moon.clientProgramReadRequestCheckedStaticPlan = function(parent, original, ...limits) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
-    assert.deepEqual(limits, [4096, 512, 32]); events.push('original-plan');
+    assert.deepEqual(limits, [4096, 512, 32, []]); events.push('original-plan');
     reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds);
     reentry.catch(() => {});
     return ok(originalWire);
@@ -3147,14 +3147,28 @@ test('static Effect Plan manager reads the same checked Request without executio
     moon.clientProgramReadRequestCheckedStaticPlan = () => assert.fail('Substituted later namespace method');
     events.push('compile'); return ok('effectful');
   };
-  for (const name of ['clientProgramBorrowRequestEffectPlanInput', 'clientProgramIssueRequestEffectRunMaterials',
+  const holder = {}, prepared = {}; let returned = false, retiring = false;
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramBorrowRequestEffectPlanInput = (parent, original, staticModels) => {
+    assert.equal(parent, f.parent); assert.equal(original, receipt); assert.equal(staticModels, true);
+    events.push('plan-input'); return ok(holder);
+  };
+  moon.clientProgramEffectPreparationInputRead = value => {assert.equal(value, holder); return prepared;};
+  moon.clientProgramEffectPreparationInputRetirementStarted = value => {assert.equal(value, holder); return retiring;};
+  moon.clientProgramEffectPreparationInputReturn = value => {assert.equal(value, holder); returned = true; return ok(false);};
+  moon.clientProgramAbortRequestPreparation = parent => {
+    if (returned) return Reflect.apply(abort, moon, [parent]);
+    retiring = true; return ok(undefined);
+  };
+  moon.clientProgramEffectInferOccurrences = value => {assert.equal(value, prepared); return ok([]);};
+  for (const name of ['clientProgramIssueRequestEffectRunMaterials',
     'clientProgramPrepareRequestProgramModuleBody', 'clientProgramAdoptRequestEffectPreparation']) {
     moon[name] = () => assert.fail('Static Effect read cannot enter ' + name);
   }
   try {
     assert.equal(await f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds), originalWire);
     await assert.rejects(reentry, {code: 'ForeignInstalledSourceProducer'});
-    assert.deepEqual(events, ['check', 'compile', 'original-plan']);
+    assert.deepEqual(events, ['check', 'compile', 'plan-input', 'original-plan']);
     assert(!f.calls.includes('retire-registry-original'), 'No submitted alias or Run');
   } finally {
     f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
