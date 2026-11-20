@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {lstat, readFile, readdir, writeFile} from 'node:fs/promises';
 import {loadExplorerAssets} from './assets.mjs';
-const root = new URL('./dist/', import.meta.url), assets = [];
-async function visit(directory, prefix = '') {
+const root = new URL('./dist/', import.meta.url), assets:{path:string;bytes:number;sha256:string}[] = [];
+async function visit(directory:URL, prefix = '') {
   for (const name of (await readdir(directory)).sort()) {
     const path = new URL(name, directory), stat = await lstat(path);
     assert(!stat.isSymbolicLink(), 'Built assets cannot contain symlinks');

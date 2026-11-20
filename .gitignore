@@ -437,3 +437,6 @@ target/
 /packages/explorer-ui/checkpoint-panel.test.d.mts
 /packages/explorer-ui/cancellation-panel.test.mjs
 /packages/explorer-ui/cancellation-panel.test.d.mts
+
+/packages/explorer/build-assets.mjs
+/packages/explorer/build-assets.d.mts
