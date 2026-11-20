@@ -22,7 +22,7 @@ import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {assertReleaseProjectCohort, prepareReleaseProjectNode} from './release-project-sequence-install.mjs';
-import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements} from './release-project-sequences.mjs';
+import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements, projectCliExpectedExit} from './release-project-sequences.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 export function nativeMockInstallOptions(extra, platform) {
@@ -191,7 +191,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         }
         let value, primary, failed = false;
         try {value = await run(process.execPath, [launcher, ...args], cwd);
-          assert.equal(value.code, 0, value.stderr); assert.equal(value.signal, null);
+          assert.equal(value.code, projectCliExpectedExit(args, label), value.stderr); assert.equal(value.signal, null);
           const groups = nativeMockAcceptanceObservations(nativeLauncherEnvelope(value.stderr, 'required').native);
           assert(groups.length > 0, 'Missing original Native work observation');
           value.acceptance = requireNativeMockWork(args, groups, change.rows.length, {minimumWrites});
