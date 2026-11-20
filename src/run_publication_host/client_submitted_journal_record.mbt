@@ -15,6 +15,23 @@ pub(all) struct ClientSubmittedJournalEncoding {
 }
 
 ///|
+/// Existing row/intent/reference/admission/state retained geometry, shared
+/// with the Native constructor. Quantities are DATA, never an admission;
+/// callers bound extents and retain their original Ledger purpose.
+pub fn client_submitted_journal_retained_inventory(
+  bytes : Int,
+  text_units : Int64,
+) -> @execution.PreparationRepresentationUnits {
+  {
+    record_headers: 32L,
+    reference_slots: 64L,
+    scalar_words: 32L,
+    owned_utf16_units: text_units + 71L,
+    owned_wire_bytes: bytes.to_int64(),
+  }
+}
+
+///|
 /// Construction observations only, not admission, a decoded value or authority.
 /// Parse covers the existing full parser limits. Canonical uses measurements
 /// from that SAME completed preserving parse, without another sizing traversal.

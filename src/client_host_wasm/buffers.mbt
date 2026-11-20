@@ -767,6 +767,14 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.result_chunks.is_empty() {
     return -9
   }
+  // A failed/trapped synchronous decoder keeps its exact temporary purpose
+  // on the named projection. Never clear that debt after pool success.
+  for record in value.submissions.values() {
+    let decoded = close_submission_decode_prefix(value, record)
+    if decoded != 0 {
+      return decoded
+    }
+  }
   let result = status(@buffers.close_pool(value.pool))
   if result != 0 {
     return result
