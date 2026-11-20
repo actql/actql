@@ -510,3 +510,6 @@ target/
 
 /scripts/query-dependency-policy.test.mjs
 /scripts/query-dependency-policy.test.d.mts
+
+/scripts/portable-core.test.mjs
+/scripts/portable-core.test.d.mts

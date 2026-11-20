@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -7,11 +8,11 @@ import {spawnSync} from 'node:child_process';
 import {inspectCore, packageImports, copyProductionCore} from './portable-core.mjs';
 
 const manifest = 'supported_targets = "+js+wasm+native"\n';
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-portable-negative-'));
   writeFileSync(join(root,'moon.mod'),'name = "actql/actql"\nsource = "src"\n');
   t.diagnostic(`isolated fixture retained: ${root}`);
-  const put = (name, file, text) => {
+  const put = (name: string, file: string, text: string) => {
     const path = join(root, 'src', name);
     mkdirSync(path, {recursive:true}); writeFileSync(join(path, file), text);
   };
@@ -432,8 +433,8 @@ test('isolated production copy keeps implicit builtin imports compiler-valid', t
   f.put('root', 'main.mbt', 'pub fn identity() -> Int { @scalar_numeric_kernel.value() }');
   f.put('scalar_numeric_kernel', 'moon.pkg', manifest + 'import { "moonbitlang/core/builtin" }\n');
   f.put('scalar_numeric_kernel', 'main.mbt', 'pub fn value() -> Int { 7 }');
-  const check = root => {
-    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+  const check = (root: string) => {
+    const result = spawnSync(join(process.env.MOON_HOME!, 'bin/moon'),
       ['check', '--target', 'js', '--deny-warn', '--jobs', '1', 'src/root'],
       {cwd: root, env: process.env, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024});
     assert.equal(result.error, undefined);
