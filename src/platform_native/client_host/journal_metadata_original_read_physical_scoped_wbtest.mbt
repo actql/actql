@@ -318,12 +318,14 @@ test "Journal metadata retains multiple decoded originals on one real Read throu
 
 ///|
 fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
-  let limit = 131072L
+  let limit = 4194304L // Existing fixture default, not a product allowance.
+  let initial = 65536L + 65536L // Original bootstrap + initial Read consumer.
   let controls = 2432L // Independent 64 headers, 160 references, 16 words.
   let fixture = journal_metadata_original_read_fixture(retained_limit=limit)
-  // Admit the actual held prefix on this same Owner before recording it. The
-  // proposed route then fits exactly, or exceeds the unchanged limit by one.
-  let previous = limit - controls + (if one_short { 1L } else { 0L })
+  // The absolute construction entrance adds the original 65536-byte consumer
+  // to metadata; its same ledger also retains the 65536-byte bootstrap. Reserve
+  // the remaining prefix on this Owner before recording it. No payload is copied.
+  let previous = limit - initial - controls + (if one_short { 1L } else { 0L })
   fixture.original
   .stage(@arena.HostRead, fn() {
     fixture.host
@@ -331,7 +333,7 @@ fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
       fixture.read,
       previous,
       previous,
-      previous,
+      controls,
     )
     .map_err(issue => OriginalResources(@arena.Read(issue)))
   })
@@ -345,14 +347,14 @@ fn effect_route_original_read_quote_case(one_short : Bool) -> Unit raise {
     assert_eq(fixture.original.metadata_retained, previous)
   } else {
     result.unwrap()
-    assert_eq(fixture.original.metadata_retained, limit)
+    assert_eq(fixture.original.metadata_retained, limit - initial)
     assert_true(physical_equal(fixture.original.read, fixture.read))
     // Outside the actual entered phase, another route cannot allocate.
     assert_true(
       fixture.original.retain_effect_journal_route_controls()
       is Err(OriginalResourceScopePending),
     )
-    assert_eq(fixture.original.metadata_retained, limit)
+    assert_eq(fixture.original.metadata_retained, limit - initial)
   }
   // Actual original cleanup, after all route aliases are gone. No synthetic
   // physical ACK or allowance refund is made by the metadata admission.
