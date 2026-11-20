@@ -399,3 +399,11 @@ target/
 /scripts/typescript-executable-modes.d.mts
 /packages/explorer/cli.mjs
 /packages/explorer/cli.d.mts
+
+# Authored Explorer UI presentation emit
+/packages/explorer-ui/presentation-limits.mjs
+/packages/explorer-ui/presentation-limits.d.mts
+/packages/explorer-ui/cancellation.mjs
+/packages/explorer-ui/cancellation.d.mts
+/packages/explorer-ui/checkpoint-review.mjs
+/packages/explorer-ui/checkpoint-review.d.mts
