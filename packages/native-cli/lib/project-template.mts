@@ -1,8 +1,8 @@
 // Project inputs from the public examples. These files select no Host
 // authority, signers, credential grants or runtime implementation.
-const json = value => JSON.stringify(value, null, 2) + '\n';
+const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
 
-export function projectTemplateFiles(template) {
+export function projectTemplateFiles(template?: string): Readonly<Record<string, string>> {
   if (template !== undefined && !['churn-risk-mock', 'deal-review-mock'].includes(template)) {
     throw Object.assign(new Error('Unknown project template.'), {code: 'ACTQL_E_TEMPLATE', exitCode: 2});
   }

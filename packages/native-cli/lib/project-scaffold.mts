@@ -7,11 +7,24 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {projectTemplateFiles} from './project-template.mjs';
 
-const fail = (code, message) => { throw Object.assign(new Error(message), {code}); };
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
-const emptyDirectory = path => {
+import type {Stats} from 'node:fs';
+import type {SpawnSyncOptionsWithStringEncoding, SpawnSyncReturns} from 'node:child_process';
+
+type Query = (file: string, args: readonly string[], options: SpawnSyncOptionsWithStringEncoding) =>
+  Pick<SpawnSyncReturns<string>, 'status' | 'signal' | 'error' | 'stdout' | 'stderr'>;
+type InitArguments = {help: true} | {help?: false; directory: string;
+  template: string | undefined; hostConfiguration?: string};
+type Event = {pid: number; seq: number; tag: number; ordinal: number; identity: string};
+type Group = {pid: number; count: number; events: Event[]; ended: boolean};
+// Unchecked row view; exact fields, canonical wire and bounded quantities are checked below.
+type Observation = Event & {count: number; name: string; [key: string]: unknown};
+type Support = {version?: unknown; sourceFree?: unknown; mock?: unknown};
+
+const fail: (code: string, message: string) => never = (code, message) => { throw Object.assign(new Error(message), {code}); };
+const same = (a: Pick<Stats, 'dev' | 'ino'>, b: Pick<Stats, 'dev' | 'ino'>) => a.dev === b.dev && a.ino === b.ino;
+const emptyDirectory = (path: string) => {
   const directory = opendirSync(path);
-  let failed = false, cause;
+  let failed = false, cause: unknown;
   try { return directory.readSync() === null; }
   catch (error) { failed = true; cause = error; throw error; }
   finally {
@@ -26,7 +39,7 @@ const emptyDirectory = path => {
 
 // Each write is exclusive. A failed or interrupted preparation is retained for
 // inspection; retry cannot overwrite the partial project or any existing state.
-export function scaffoldProject(directory, template) {
+export function scaffoldProject(directory: string, template?: string) {
   const files = projectTemplateFiles(template);
   if (typeof directory !== 'string' || directory.length === 0 || directory.length > 4096 ||
       directory.includes('\0')) {
@@ -37,9 +50,9 @@ export function scaffoldProject(directory, template) {
   const root = join(parent, basename(requested));
   if (root === parent) fail('ACTQL_E_PROJECT_PATH', 'A project directory is required.');
   try { mkdirSync(root, {mode: 0o755}); }
-  catch (error) { if (error.code !== 'EEXIST') throw error; }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
   const original = lstatSync(root);
-  if (!original.isDirectory() || original.isSymbolicLink() || original.uid !== process.getuid() ||
+  if (!original.isDirectory() || original.isSymbolicLink() || original.uid !== process.getuid!() ||
       (original.mode & 0o022) !== 0 || !emptyDirectory(root)) {
     fail('ACTQL_E_PROJECT_EXISTS', 'The project directory must be an empty owned directory.');
   }
@@ -53,7 +66,7 @@ export function scaffoldProject(directory, template) {
   // The existing installation Owner must create state with its exclusive
   // directory witness. Even an empty precreated .actql would lose that custody.
   const directories = new Map([['', original]]);
-  const created = [];
+  const created: string[] = [];
   for (const [name, text] of Object.entries(files)) {
     checkRoot();
     const subdirectory = dirname(name) === '.' ? '' : dirname(name);
@@ -61,13 +74,13 @@ export function scaffoldProject(directory, template) {
       mkdirSync(join(root, subdirectory), {mode: 0o755});
       directories.set(subdirectory, lstatSync(join(root, subdirectory)));
     }
-    const selected = directories.get(subdirectory), current = lstatSync(join(root, subdirectory));
+    const selected = directories.get(subdirectory)!, current = lstatSync(join(root, subdirectory));
     if (!current.isDirectory() || current.isSymbolicLink() || !same(selected, current)) {
       fail('ACTQL_E_PROJECT_CHANGED', 'A project subdirectory changed during preparation.');
     }
     const fd = openSync(join(root, name), constants.O_CREAT | constants.O_EXCL |
       constants.O_WRONLY | constants.O_NOFOLLOW, 0o644);
-    let failed = false, cause;
+    let failed = false, cause: unknown;
     try {
       const opened = fstatSync(fd), bytes = Buffer.from(text);
       if (!opened.isFile() || opened.nlink !== 1) fail('ACTQL_E_PROJECT_CHANGED', 'A project file changed.');
@@ -106,7 +119,7 @@ export function scaffoldProject(directory, template) {
 // This private argv selection requests explicit initial creation; the Native
 // session must independently prove exclusive first initialization. It supplies
 // no fresh-state witness, default signer, grant or permission itself.
-export function projectInitialAdoptionArguments(project, hostConfiguration) {
+export function projectInitialAdoptionArguments(project: Pick<ReturnType<typeof scaffoldProject>, 'configuration' | 'stateDirectory'>, hostConfiguration?: string) {
   const host = hostConfiguration === undefined ? [] : ['--host-config', hostConfiguration];
   return Object.freeze([...host, '--mode', 'local', '--config', project.configuration,
     '--state-dir', project.stateDirectory, 'adopt', '--initialize-signing']);
@@ -114,7 +127,7 @@ export function projectInitialAdoptionArguments(project, hostConfiguration) {
 
 // Parse the public project-creation spelling and its help alias. Runtime,
 // approval and Host suppliers remain fixed by the installed Native package.
-export function projectInitArguments(args) {
+export function projectInitArguments(args: readonly string[]): Readonly<InitArguments> | undefined {
   if (args.length === 2 && args[0] === 'help' && args[1] === 'init') {
     return Object.freeze({help: true});
   }
@@ -155,35 +168,35 @@ export function projectInitArguments(args) {
 
 // Complete original-process diagnostics only. Missing/truncated/foreign rows
 // are not zero work. Identities remain opaque original CIDs, never payloads.
-export function nativeMockAcceptanceObservations(stderr) {
+export function nativeMockAcceptanceObservations(stderr: string) {
   sameField(typeof stderr, 'string', 'Native observation stream unavailable');
   assert(stderr.length > 0, 'Missing complete Native observations');
   assert(Buffer.byteLength(stderr) <= 65536, 'Oversized Native diagnostic stream');
   assert(stderr.endsWith('\n'), 'Truncated Native diagnostic row');
-  const groups = new Map(), timing = new Map();
-  let current;
-  const exact = (value, keys) => assert(Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key)), 'Invalid Native observation fields');
-  function sameField(actual, expected, message = 'Invalid Native diagnostic field') { assert(actual === expected, message); }
-  const positive = value => Number.isSafeInteger(value) && value > 0;
+  const groups = new Map<number, Group>(), timing = new Map<number, {phases: Set<number>; counters: Set<number>}>();
+  let current: number | undefined;
+  const exact = (value: object, keys: readonly string[]) => assert(Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key)), 'Invalid Native observation fields');
+  function sameField(actual: unknown, expected: unknown, message = 'Invalid Native diagnostic field') { assert(actual === expected, message); }
+  const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
   for (const line of stderr.split('\n').slice(0, -1)) {
     assert(/^(ACTQL_NATIVE_TIMINGS|ACTQL_NATIVE_PHASE|ACTQL_NATIVE_COUNTER|ACTQL_NATIVE_ACCEPTANCE_(BEGIN|EVENT|END)) /u.test(line), 'Unknown Native diagnostic row');
     assert(line.length <= 2048, 'Oversized Native observation row');
     const space = line.indexOf(' '), prefix = line.slice(0, space);
     const body = line.slice(space + 1);
-    let value;
+    let value: Observation;
     try { value = JSON.parse(body); } catch { assert.fail('Malformed Native diagnostic JSON'); }
     assert(value && !Array.isArray(value) && typeof value === 'object', 'Invalid Native diagnostic row');
     sameField(JSON.stringify(value), body, 'Noncanonical or duplicate Native diagnostic fields');
-    const amount = value => Number.isSafeInteger(value) && value >= 0;
+    const amount = (value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0;
     if (prefix === 'ACTQL_NATIVE_PHASE' || prefix === 'ACTQL_NATIVE_COUNTER') {
       assert(current && !groups.has(current), 'Out-of-order Native timing row');
-      const state = timing.get(current), phase = prefix === 'ACTQL_NATIVE_PHASE';
+      const state = timing.get(current)!, phase = prefix === 'ACTQL_NATIVE_PHASE';
       const fields = phase ? ['tag','name','begins','ends','inclusive_ns','exclusive_ns','active','overlap','unmatched_end','sql_prepares','current_calls'] : ['tag','name','count'];
       exact(value, fields);
       assert(Number.isInteger(value.tag) && value.tag >= 0 && value.tag < (phase ? 39 : 70), 'Invalid Native timing tag');
       const phaseNames = ['startup','config_auth','preparation','execution','save','close','saved_result','journal'];
-      const counterNames = {0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'};
-      sameField(value.name, phase ? phaseNames[value.tag] ?? {32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'}[value.tag] ?? 'private_phase' : counterNames[value.tag] ?? 'private_counter', 'Invalid Native timing name');
+      const counterNames: Readonly<Record<number, string>> = {0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'};
+      sameField(value.name, phase ? phaseNames[value.tag] ?? ({32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'} as Readonly<Record<number, string>>)[value.tag] ?? 'private_phase' : counterNames[value.tag] ?? 'private_counter', 'Invalid Native timing name');
       assert(fields.filter(key => key !== 'name').every(key => amount(value[key])), 'Invalid Native timing quantity');
       const seen = phase ? state.phases : state.counters;
       assert(!seen.has(value.tag), 'Duplicate Native timing row'); seen.add(value.tag); continue;
@@ -206,8 +219,8 @@ export function nativeMockAcceptanceObservations(stderr) {
     if (prefix === 'ACTQL_NATIVE_ACCEPTANCE_BEGIN') {
       exact(value, ['pid', 'count', 'limit', 'complete']);
       assert(current === value.pid && timing.has(value.pid) && !groups.has(value.pid), 'Missing or duplicate Native observation begin');
-      sameField(timing.get(value.pid).phases.size, 39, 'Incomplete Native phase rows');
-      sameField(timing.get(value.pid).counters.size, 70, 'Incomplete Native counter rows');
+      sameField(timing.get(value.pid)!.phases.size, 39, 'Incomplete Native phase rows');
+      sameField(timing.get(value.pid)!.counters.size, 70, 'Incomplete Native counter rows');
       sameField(value.limit, 32); sameField(value.complete, true, 'Incomplete Native observations');
       assert(Number.isSafeInteger(value.count) && value.count >= 0 && value.count <= 32, 'Invalid Native observation count');
       groups.set(value.pid, {pid: value.pid, count: value.count, events: [], ended: false});
@@ -238,7 +251,7 @@ export function nativeMockAcceptanceObservations(stderr) {
 
 // Implementation availability only, observed from the same admitted executable.
 // A positive answer cannot adopt a Store or supply runtime/Account authority.
-export function requireProjectInitSupport(executable, environment, template, query = spawnSync) {
+export function requireProjectInitSupport(executable: string, environment: NodeJS.ProcessEnv, template?: string, query: Query = spawnSync) {
   const observing = environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS === '1';
   const child = query(executable, ['project-init-support'], {
     // Default suppression remains; explicit acceptance observes this SAME
@@ -246,7 +259,7 @@ export function requireProjectInitSupport(executable, environment, template, que
     env: {...environment, ACTQL_NATIVE_TIMINGS: observing ? '1' : '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,
   });
-  const unavailable = () => { throw Object.assign(new Error(
+  const unavailable: () => never = () => { throw Object.assign(new Error(
     'Native project initialization support is unavailable; no project files were created. Reinstall the fixed package cohort.'), {exitCode: 69}); };
   if (child.error || child.signal || child.status !== 0 || (!observing && child.stderr !== '') ||
       typeof child.stdout !== 'string' || Buffer.byteLength(child.stdout) > 4096) unavailable();
@@ -256,7 +269,7 @@ export function requireProjectInitSupport(executable, environment, template, que
       if (observed.length !== 1 || observed[0].events.length !== 0) unavailable();
     } catch { unavailable(); }
   }
-  let support;
+  let support: Support | undefined;
   try { support = JSON.parse(child.stdout); } catch { unavailable(); }
   if (!support || Array.isArray(support) || typeof support !== 'object' ||
       Object.keys(support).sort().join(',') !== 'mock,sourceFree,version' ||

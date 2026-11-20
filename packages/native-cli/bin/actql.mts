@@ -10,19 +10,30 @@ import {constants} from 'node:os';
 import {installedLocalRuntimeEnvironment} from '../lib/local-runtime.mjs';
 import {projectInitArguments, projectInitialAdoptionArguments, scaffoldProject, requireProjectInitSupport} from '../lib/project-scaffold.mjs';
 
-export function platformKey({platform, arch, glibc}) {
+import type {SpawnSyncOptionsWithStringEncoding, SpawnSyncReturns} from 'node:child_process';
+
+type Query = (file: string, args: readonly string[], options: SpawnSyncOptionsWithStringEncoding) =>
+  Pick<SpawnSyncReturns<string>, 'status' | 'signal' | 'error' | 'stdout' | 'stderr'>;
+type ExpectedBinary = {sourceSha: string; binarySha256: string; binaryBytes: number;
+  package: string; localRuntimeSha256?: string};
+// Raw package metadata is DATA until the original byte/format checks run.
+type Metadata = {version: string; platform: string; sourceSha: string;
+  binarySha256: string; binaryBytes: number; abi: {minimumMacOS?: unknown; minimumGlibc?: unknown};
+  localRuntime?: Parameters<typeof installedLocalRuntimeEnvironment>[0]['metadata']};
+
+export function platformKey({platform, arch, glibc}: {platform: string; arch: string; glibc?: unknown}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
   if (platform === 'linux' && arch === 'x64' && typeof glibc === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(glibc)) return 'linux-x64-gnu';
   throw Object.assign(Error(`Unsupported platform: ${platform}/${arch}; Linux requires identifiable glibc. No alternative binary is used.`), {exitCode: 64});
 }
 
-export function macOSProductVersion(query = spawnSync) {
+export function macOSProductVersion(query: Query = spawnSync) {
   // Ask the kernel for the actual ProductVersion, not a Darwin-version
   // approximation. Retain sw_vers for systems where that query is unavailable.
   for (const [command, args] of [
     ['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']],
     ['/usr/bin/sw_vers', ['-productVersion']],
-  ]) {
+  ] as const) {
     // Compatibility spelling must not make a supported OS look too old.
     // This affects only the metadata query, not the Native child's environment.
     const result = query(command, args, {encoding: 'utf8', maxBuffer: 1024, timeout: 1000,
@@ -36,7 +47,7 @@ export function macOSProductVersion(query = spawnSync) {
   return undefined;
 }
 
-export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}) {
+export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}: {key: string; expected?: ExpectedBinary; metadata: Metadata; binary: Buffer; glibc?: string; macOS?: unknown}) {
   if (!expected || metadata.version !== 'actql-native-cli-artifact/0.1' ||
       metadata.platform !== key || metadata.sourceSha !== expected.sourceSha ||
       metadata.binarySha256 !== expected.binarySha256 ||
@@ -45,16 +56,16 @@ export function admitInstalledBinary({key, expected, metadata, binary, glibc, ma
     throw Object.assign(Error('Native artifact identity mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
   }
   if (key === 'darwin-arm64') {
-    const parse = value => typeof value === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(value)
+    const parse = (value: unknown) => typeof value === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(value)
       ? [...value.split('.').map(Number), 0].slice(0, 3) : null;
     const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS);
     const difference = required && actual && actual.map((v, i) => v - required[i]).find(v => v !== 0);
-    if (!required || !actual || difference < 0) {
+    if (!required || !actual || difference! < 0) {
       throw Object.assign(Error(`Unsupported macOS ${macOS}; Native executable requires at least ${metadata.abi.minimumMacOS}.`), {exitCode: 64});
     }
   }
   if (key === 'linux-x64-gnu') {
-    const parse = value => typeof value === 'string' && /^\d+\.\d+$/u.test(value) ? value.split('.').map(Number) : null;
+    const parse = (value: unknown) => typeof value === 'string' && /^\d+\.\d+$/u.test(value) ? value.split('.').map(Number) : null;
     const required = parse(metadata.abi.minimumGlibc), actual = parse(glibc?.split('.').slice(0, 2).join('.'));
     if (!required || !actual || actual[0] < required[0] || actual[0] === required[0] && actual[1] < required[1]) {
       throw Object.assign(Error(`Unsupported glibc ${glibc}; Native executable requires at least ${metadata.abi.minimumGlibc}.`), {exitCode: 64});
@@ -62,17 +73,17 @@ export function admitInstalledBinary({key, expected, metadata, binary, glibc, ma
   }
 }
 
-export function launch(args) {
+export function launch(args: readonly string[]) {
   const timingStart = process.env.ACTQL_NATIVE_TIMINGS === '1' ? process.hrtime.bigint() : null;
   const initialization = projectInitArguments(args);
   if (initialization?.help) {
     console.log('Usage: actql init [--template churn-risk-mock|deal-review-mock] [--host-config <file>] [<directory>]');
     return 0;
   }
-  const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+  const glibc = process.platform === 'linux' ? (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime : undefined;
   const key = platformKey({platform: process.platform, arch: process.arch, glibc});
   const packageRoot = fileURLToPath(new URL('../', import.meta.url));
-  const platforms = JSON.parse(readFileSync(join(packageRoot, 'platforms.json'), 'utf8'));
+  const platforms = JSON.parse(readFileSync(join(packageRoot, 'platforms.json'), 'utf8')) as Record<string, ExpectedBinary>;
   const expected = platforms[key];
   if (!expected) throw Object.assign(Error(`Native package ${key} has not been included in this release.`), {exitCode: 69});
   let installed;
@@ -83,7 +94,7 @@ export function launch(args) {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024 * 1024 || !(stat.mode & 0o111)) {
     throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
   }
-  const metadata = JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8'));
+  const metadata = JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8')) as Metadata;
   const macOS = process.platform === 'darwin' ? macOSProductVersion() : undefined;
   admitInstalledBinary({key, expected, metadata,
     binary: readFileSync(executable), glibc, macOS});
@@ -92,12 +103,12 @@ export function launch(args) {
   let selectedEnvironment = environment;
   if (metadata.localRuntime !== undefined || expected.localRuntimeSha256 !== undefined) {
     selectedEnvironment = installedLocalRuntimeEnvironment({root: installed,
-      expected: {...expected, platform: key}, metadata: metadata.localRuntime,
+      expected: {...expected, platform: key} as Parameters<typeof installedLocalRuntimeEnvironment>[0]['expected'], metadata: metadata.localRuntime!,
       platformFacts: {macOS, glibc}, environment});
   }
   // The documented command uses the same admitted Native version entrance.
   // Native supplies the answer; no project, Host or second parser is created.
-  let selectedArguments = args.length === 1 && args[0] === 'version' ? ['--version'] : args;
+  let selectedArguments: readonly string[] = args.length === 1 && args[0] === 'version' ? ['--version'] : args;
   if (initialization) {
     // This known package capability failure must precede all project writes.
     // The inherited selector was removed above; only admitted installation
@@ -122,17 +133,17 @@ export function launch(args) {
       const finish = process.hrtime.bigint();
       writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' + JSON.stringify({
         units: 'nanoseconds',
-        preparation: Number(childStart - timingStart),
-        child: Number(finish - childStart),
+        preparation: Number(childStart! - timingStart),
+        child: Number(finish - childStart!),
         total: Number(finish - timingStart),
       }) + '\n');
     } catch {}
   }
-  if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
-  return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
+  if (child.error) throw Object.assign(Error(`Native start failed: ${(child.error as NodeJS.ErrnoException).code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
+  return child.status ?? 128 + (constants.signals[child.signal!] ?? 1);
 }
 
 if (process.argv[1] && realpathSync(resolve(process.argv[1])) === fileURLToPath(import.meta.url)) {
   try {process.exitCode = launch(process.argv.slice(2));}
-  catch (error) {console.error(`actql: ${error.message}`); process.exitCode = error.exitCode ?? 69;}
+  catch (error) {console.error(`actql: ${(error as Error).message}`); process.exitCode = (error as {exitCode?: number}).exitCode ?? 69;}
 }

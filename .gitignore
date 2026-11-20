@@ -777,3 +777,11 @@ target/
 # Emitted from the authored Native artifact reader.
 /scripts/native-cli-artifact-reader.mjs
 /scripts/native-cli-artifact-reader.d.mts
+
+# Emitted from the authored Native launcher and project preparation.
+/packages/native-cli/bin/actql.mjs
+/packages/native-cli/bin/actql.d.mts
+/packages/native-cli/lib/project-scaffold.mjs
+/packages/native-cli/lib/project-scaffold.d.mts
+/packages/native-cli/lib/project-template.mjs
+/packages/native-cli/lib/project-template.d.mts

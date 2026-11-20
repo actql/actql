@@ -230,7 +230,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -244,7 +244,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -262,11 +262,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -280,7 +280,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -294,25 +294,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -321,11 +321,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -335,11 +335,11 @@
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -357,7 +357,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               }
             ]
@@ -373,7 +373,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -387,7 +387,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -405,11 +405,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -423,7 +423,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -437,29 +437,29 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined)"
               }
             ],
@@ -468,11 +468,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -482,11 +482,11 @@
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -504,7 +504,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -532,7 +532,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
@@ -546,7 +546,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
@@ -564,11 +564,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -582,7 +582,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
@@ -596,25 +596,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -623,11 +623,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -637,11 +637,11 @@
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -659,7 +659,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               }
             ]
@@ -677,7 +677,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               },
               {
@@ -691,7 +691,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -701,7 +701,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -711,7 +711,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -721,7 +721,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -731,7 +731,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -741,7 +741,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -751,7 +751,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -761,7 +761,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -775,7 +775,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ]
@@ -791,53 +791,53 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "export function macOSProductVersion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']]"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return typeof version === 'string'"
               }
             ],
             "identity": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "actual ProductVersion"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "SYSTEM_VERSION_COMPAT: '0'"
               }
             ],
             "ownership": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "const result = query(command, args"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "for (const [command, args] of ["
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (result.error || result.status !== 0 || result.signal)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return undefined"
               }
             ],
@@ -846,21 +846,21 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "maxBuffer: 1024, timeout: 1000"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "version.length <= 47"
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "['/usr/bin/sw_vers', ['-productVersion']]"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS)"
               }
             ],
@@ -1060,7 +1060,7 @@
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1092,7 +1092,7 @@
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1102,11 +1102,11 @@
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1119,7 +1119,7 @@
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1133,7 +1133,7 @@
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1203,7 +1203,7 @@
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1235,7 +1235,7 @@
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1245,11 +1245,11 @@
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1262,7 +1262,7 @@
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1276,7 +1276,7 @@
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1348,7 +1348,7 @@
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1380,7 +1380,7 @@
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1390,11 +1390,11 @@
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1407,7 +1407,7 @@
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1421,7 +1421,7 @@
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1487,7 +1487,7 @@
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1519,7 +1519,7 @@
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1529,11 +1529,11 @@
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1546,7 +1546,7 @@
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1560,7 +1560,7 @@
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1628,7 +1628,7 @@
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1660,7 +1660,7 @@
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1670,11 +1670,11 @@
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1687,7 +1687,7 @@
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1701,7 +1701,7 @@
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1767,7 +1767,7 @@
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1799,7 +1799,7 @@
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1809,11 +1809,11 @@
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1826,7 +1826,7 @@
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1840,7 +1840,7 @@
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -1906,7 +1906,7 @@
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -1938,7 +1938,7 @@
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -1948,11 +1948,11 @@
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1965,7 +1965,7 @@
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -1979,7 +1979,7 @@
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -2049,7 +2049,7 @@
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -2081,7 +2081,7 @@
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -2091,11 +2091,11 @@
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2108,7 +2108,7 @@
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -2122,7 +2122,7 @@
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -2192,7 +2192,7 @@
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -2224,7 +2224,7 @@
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -2234,11 +2234,11 @@
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2251,7 +2251,7 @@
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -2265,7 +2265,7 @@
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -2335,7 +2335,7 @@
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -2367,7 +2367,7 @@
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -2377,11 +2377,11 @@
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2394,7 +2394,7 @@
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -2408,7 +2408,7 @@
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
@@ -2481,7 +2481,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
@@ -2513,7 +2513,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
@@ -2523,11 +2523,11 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2540,7 +2540,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
@@ -2554,7 +2554,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
