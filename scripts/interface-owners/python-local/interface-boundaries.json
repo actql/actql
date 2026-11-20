@@ -8311,7 +8311,7 @@
           ]
         }
       ],
-      "sha256": "9fd28c46defbcaff1b6659c705d99dd66c910e995ccdb4d2ee726e04e1126317",
+      "sha256": "0d731e931a5d7486b67fab60062fe01a863c5465671a6f29b4da797e89c0babf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -11429,6 +11429,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "def test_saved_payload_reserves_selection_on_both_paths(self):"
               }
             ]
           }

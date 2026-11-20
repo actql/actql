@@ -2217,8 +2217,9 @@ class LocalCore:
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
-            if kind == _INCREMENTAL_SAVED_RESULT_KIND:
-                # One retained payload selection crosses the hash turns.
+            if kind in (6, _INCREMENTAL_SAVED_RESULT_KIND):
+                # Both Saved preparation paths carry the payload selection
+                # from physical acquisition through hash and completion.
                 # Its row, capacity and strings remain the original values.
                 physical_bytes += sys.getsizeof((None,) * 6)
             handle = self._call('submission', 'reserve', configuration, source.handle,

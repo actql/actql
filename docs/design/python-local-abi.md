@@ -3811,10 +3811,11 @@ preparation for close.
 
 The Host releases the Core lock, current reader and SQLite transaction before
 yielding. Each physical hash turn rechecks the original saved payload row,
-reservation and file and hashes at most one existing bounded chunk. A single
-six-field selection tuple of original references is charged to the same output
-reservation before the first read. No chunk bytes or borrowed reader cross the
-yield. Full digest and EOF verification precede Result evidence and delivery.
+reservation and file and hashes at most one existing bounded chunk. Both Saved
+preparation paths charge their six-field selection tuple of original references
+to the same output reservation before the first read. The Host returns the
+chunk and current reader before yielding. Full digest and EOF verification
+precede Result evidence and delivery.
 One original Host operation owns the entire preparation allowance. Reader
 cancellation unwinds that operation and closes its existing read loans without
 cancelling a Run. Incomplete close retains the same carrier for later cleanup.
