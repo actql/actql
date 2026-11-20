@@ -104,7 +104,7 @@ pub fn[E] reobserve_client_saved_submission_original(
             read_saved_task_material_original(
               run.key,
               cid,
-              wire,
+              original.task_materials,
               (table, key) => read(table, key).map_err(issue => Some(issue)),
               None,
             ) {

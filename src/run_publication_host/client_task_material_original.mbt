@@ -294,7 +294,7 @@ fn[Plan, E] read_task_material_original_details_with_original(
 fn[E] read_saved_task_material_original(
   key : String,
   cid : String,
-  original_wire : String,
+  original_wire : String?,
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   custody_lost : E,
   digest? : (Bytes) -> String = @sha.hex,
@@ -307,7 +307,7 @@ fn[E] read_saved_task_material_original(
     custody_lost,
     original,
     digest~,
-    saved_wire=Some(original_wire),
+    saved_wire=original_wire,
   ).map(value => value.0)
 }
 

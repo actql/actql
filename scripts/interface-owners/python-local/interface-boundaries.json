@@ -92725,7 +92725,7 @@
     },
     {
       "module": "src/run_publication_host/client_task_material_original.mbt",
-      "sha256": "ab0ae4f162b0e01daa75fdedd9c1de13f41f9eea0423f4eb23b1e6bd9bff5a6b",
+      "sha256": "d2c28abd6cc4c20b610b880f67488ec442ae1fa9b5992d66f822be8f978525cf",
       "exports": [],
       "operations": [
         {
@@ -92734,7 +92734,7 @@
         },
         {
           "name": "[E]read_saved_task_material_original",
-          "declaration": "[ E ] read_saved_task_material_original ( key : String , cid : String , original_wire : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , digest ? : ( Bytes ) - > String"
+          "declaration": "[ E ] read_saved_task_material_original ( key : String , cid : String , original_wire : String ? , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , digest ? : ( Bytes ) - > String"
         },
         {
           "name": "[E]read_task_material_original_details",
@@ -93325,7 +93325,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "00ac3afc44a6de7c78d4decc72d0c49083b34fbdaf2d9218c5cab18471c71352",
+      "sha256": "3da06d64aa1d7ac970b24beeefc9386273f86493fd650ec5972c898597781438",
       "exports": [],
       "operations": [
         {

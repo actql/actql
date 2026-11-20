@@ -145,7 +145,7 @@ test "exact saved material skips the fresh hash only after every canonical row p
     read_saved_task_material_original(
       key,
       cid,
-      wire,
+      Some(wire),
       (table, name) => {
         if table != "client_task_run_materials" {
           return Err("foreign table")
