@@ -662,7 +662,7 @@ test "journal same-frame one-short frame admission preserves unmodified pure ins
     usage.reserved_retention_bytes
   let blocker = @resources.reserve_capacity(
     value.root,
-    available - journal_decode_frame_capacity().unwrap() + 1L,
+    available - journal_decode_frame_capacity(indexed=true).unwrap() + 1L,
     0L,
   ).unwrap()
   let before = @resources.ledger_usage(value.root)
@@ -812,5 +812,112 @@ test "journal close never skips foreign spent tokens or loses error across physi
   assert_true(child.outcome is Some(Observed(Err(-42), None)))
   ready.val = true
   assert_eq(close_journal_observation(value.nonce, 73), 0)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal same-frame index probes distinct rows without re-decoding on exact repeat" {
+  let (value, child, frame, parent) = journal_decode_fixture()
+  let index = frame.index.unwrap()
+  let original = journal_decode_fixture_row()
+  let constructions = Ref(0)
+  let observe = _ => {
+    constructions.val += 1
+    Ok(())
+  }
+  assert_eq(journal_decode_frame_capacity(), Some(296L))
+  assert_eq(journal_decode_frame_capacity(indexed=true), Some(49568L))
+  assert_true(
+    @resources.capacity_reservation_matches(
+      value.root,
+      frame.capacity,
+      49568L,
+      49568L,
+    ),
+  )
+  let mut probes = 0
+  for ordinal in 0..<32 {
+    let row = { ..original, key: "index-fixture-key-\{ordinal}", }
+    let (slot, steps) = journal_decode_index_probe(index, row.key)
+    assert_true(slot >= 0 && index[slot] is None)
+    probes += steps
+    ignore(
+      journal_decode_run_inspection(
+        value,
+        child,
+        frame,
+        row,
+        before_construction=Some(observe),
+      ).unwrap(),
+    )
+    assert_true(
+      index[slot] is Some(cell) &&
+      cell.row is Some(saved) &&
+      saved.key == row.key,
+    )
+  }
+  assert_eq(frame.indexed_rows, 32)
+  assert_eq(constructions.val, 96)
+  for ordinal in 0..<32 {
+    let row = { ..original, key: "index-fixture-key-\{ordinal}", }
+    let (slot, steps) = journal_decode_index_probe(index, row.key)
+    assert_true(slot >= 0 && index[slot] is Some(_))
+    probes += steps
+    ignore(
+      journal_decode_run_inspection(
+        value,
+        child,
+        frame,
+        row,
+        before_construction=Some(observe),
+      ).unwrap(),
+    )
+  }
+  assert_true(probes >= 64 && probes <= 64 * 32)
+  assert_eq(constructions.val, 96)
+  println(
+    "journal index probe control: 32 distinct, 32 repeats, \{probes} probes, 96 decode phases",
+  )
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  assert_true(frame.index is None && frame.rows is None)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal same-frame index collision ceiling uses the complete decoder" {
+  let (value, child, frame, parent) = journal_decode_fixture()
+  let index = frame.index.unwrap()
+  let original = journal_decode_fixture_row()
+  ignore(journal_decode_run_inspection(value, child, frame, original).unwrap())
+  let cell = frame.rows.unwrap()
+  let row = { ..original, key: "collision-pressure-fixture", }
+  let mask = journal_decode_index_slots - 1
+  let start = Hash::hash(row.key) & mask
+  // Deterministic probe pressure only. All borrowed aliases belong to the
+  // same admitted index; the original cell remains in the cleanup list.
+  for offset in 0..<32 {
+    index[(start + offset) & mask] = Some(cell)
+  }
+  assert_eq(journal_decode_index_probe(index, row.key), (-1, 32))
+  let constructions = Ref(0)
+  ignore(
+    journal_decode_run_inspection(
+      value,
+      child,
+      frame,
+      row,
+      before_construction=Some(_ => {
+        constructions.val += 1
+        Ok(())
+      }),
+    ).unwrap(),
+  )
+  assert_eq(constructions.val, 3)
+  assert_eq(frame.indexed_rows, 1)
+  assert_true(
+    frame.rows.unwrap().next is Some(previous) && physical_equal(previous, cell),
+  )
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  assert_true(frame.index is None && frame.rows is None)
   sdk_row_original_fixture_close(value, parent)
 }

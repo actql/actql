@@ -4325,7 +4325,18 @@ Native raw allocation/layout bounds remain target-specific. Extra outer-decoder
 retention capacity is optional: unavailable capacity takes the original complete
 outer decoder path, without raising a cap, granting an allowance or trusting a
 record count. This does not fund the nested evidence constructors described below.
-No Array/Map backing is inferred from the journal's maximum record count.
+The active frame prepays its fixed key index under that same controller token.
+The index has 2048 slots and admits at most 1024 row aliases. The quote covers
+the array, tagged references, replacement overlap and the bounded probe
+result, including the new frame fields. No backing is inferred from the
+journal's maximum record count. The index borrows existing keys and cells;
+the separate linked list still owns every original token until settlement.
+A key selects a candidate, and exact revision and full body comparisons
+still precede reuse and the typed validator. A changed candidate, full
+index or 32-probe limit takes the same complete decoder. Missing optional
+frame capacity takes the existing unoptimized path. No physical read or
+current decision is taken from the index. Close drops the index aliases
+under the original reservation before touching the linked cleanup list.
 
 All unrelated frame cells and temporary construction capacity retire on exit.
 The selected tuple may back the returned saved observation, so its original

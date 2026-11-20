@@ -17,6 +17,9 @@ priv struct StoredJournalDecodeFrame {
   physical : Int
   selected_key : String
   capacity : @resources.CapacityReservation
+  indexed_capacity : Int64
+  mut index : FixedArray[StoredJournalRunOriginal?]?
+  mut indexed_rows : Int
   mut active : Bool
   mut busy : Bool
   mut issue : Int
@@ -36,17 +39,56 @@ priv enum StoredJournalObservationOutcome {
 }
 
 ///|
-fn journal_decode_frame_capacity() -> Int64? {
-  // Frame: selected-key/token/head/selected references, three original scalar
-  // identities and active/busy/issue words. Include phase/Option carriers and
-  // old/new close-debt carriers during payload retirement; no Array/Map backing.
+fn journal_decode_frame_capacity(indexed? : Bool = false) -> Int64? {
+  // Include the new optional index slot and the two fixed accounting words in
+  // either phase. Active indexing additionally pays a FixedArray and its Some,
+  // one Some(cell) per admitted entry, one replacement Some, and a probe pair.
+  // The index borrows the row keys and cells kept by the separate cleanup list.
+  let entries = if indexed { journal_decode_index_limit.to_int64() } else { 0L }
   @execution.preparation_representation_cost({
-    record_headers: 6L,
-    reference_slots: 13L,
-    scalar_words: 9L,
+    record_headers: 6L + (if indexed { entries + 4L } else { 0L }),
+    reference_slots: 14L +
+    (if indexed {
+      journal_decode_index_slots.to_int64() + entries + 2L
+    } else {
+      0L
+    }),
+    scalar_words: 11L + (if indexed { entries + 5L } else { 0L }),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
+}
+
+///|
+let journal_decode_index_limit = 1024
+
+///|
+let journal_decode_index_slots = 2048
+
+///|
+// The index has no deletions while active and uses at most half the slots.
+// Collision work is capped even for an unfavorable key set. No slot means
+// run the ordinary full decoder, not missing history or a validated result.
+fn journal_decode_index_probe(
+  index : FixedArray[StoredJournalRunOriginal?],
+  key : String,
+) -> (Int, Int) {
+  if key.length() > 4096 {
+    return (-1, 0)
+  }
+  let mask = journal_decode_index_slots - 1
+  let start = Hash::hash(key) & mask
+  for probe in 0..<32 {
+    let slot = (start + probe) & mask
+    match index[slot] {
+      None => return (slot, probe + 1)
+      Some(cell) =>
+        if cell.row is Some(original) && original.key == key {
+          return (slot, probe + 1)
+        }
+    }
+  }
+  (-1, 32)
 }
 
 ///|
@@ -95,7 +137,9 @@ fn open_journal_decode_frame(
   child : StoredJournalObservation,
   selected_key : String,
 ) -> StoredJournalDecodeFrame? {
-  guard journal_decode_frame_capacity() is Some(bytes) else { return None }
+  guard journal_decode_frame_capacity(indexed=true) is Some(bytes) else {
+    return None
+  }
   let capacity = match @resources.reserve_capacity(value.root, bytes, bytes) {
     Ok(capacity) => capacity
     // Optimization admission is optional. Keep the previous full validator
@@ -110,6 +154,9 @@ fn open_journal_decode_frame(
     physical: child.physical,
     selected_key,
     capacity,
+    indexed_capacity: bytes,
+    index: Some(FixedArray::make(journal_decode_index_slots, None)),
+    indexed_rows: 0,
     active: true,
     busy: false,
     issue: 0,
@@ -248,61 +295,69 @@ fn journal_decode_run_inspection(
   if frame.issue != 0 {
     return Err(frame.issue)
   }
-  let mut cursor = frame.rows
-  while cursor is Some(cell) {
-    if cell.row is Some(original) &&
-      original.key == row.key &&
-      original.revision == row.revision &&
-      original.body == row.body &&
-      cell.decoded is Some(decoded) {
-      if !@resources.capacity_reservation_covers(
-          value.root,
-          cell.capacity,
-          cell.retention,
-          0L,
-        ) {
-        return Err(-4)
-      }
-      // The original SDK/Definition/unsupported/current checks still run.
-      frame.busy = true
-      let inspected = journal_inspect_run_with_observation(
-        value,
-        Some(cell),
-        row,
-        decoded,
-        before_observation,
-      )
-      frame.busy = false
-      if frame.issue != 0 {
-        return Err(frame.issue)
-      }
-      if !journal_decode_frame_current(value, child, frame) {
-        return Err(-2)
-      }
-      match inspected {
-        Err(code) => {
-          frame.issue = code
-          return Err(code)
-        }
-        Ok(_) => ()
-      }
-      // The constructor/measurement helper returned before workspace return.
-      if @resources.shrink_capacity_reservation(
-          value.root,
-          cell.capacity,
-          cell.retention,
-          0L,
-        )
-        is Err(_) {
-        frame.issue = -4
-        return Err(-4)
-      }
-      if row.key == frame.selected_key {
-        frame.selected = Some(cell)
-      }
-      return inspected
+  guard frame.index is Some(index) &&
+    @resources.capacity_reservation_covers(
+      value.root,
+      frame.capacity,
+      frame.indexed_capacity,
+      frame.indexed_capacity,
+    ) else {
+    return Err(-4)
+  }
+  let (slot, _) = journal_decode_index_probe(index, row.key)
+  if slot >= 0 &&
+    index[slot] is Some(cell) &&
+    cell.row is Some(original) &&
+    original.key == row.key &&
+    original.revision == row.revision &&
+    original.body == row.body &&
+    cell.decoded is Some(decoded) {
+    if !@resources.capacity_reservation_covers(
+        value.root,
+        cell.capacity,
+        cell.retention,
+        0L,
+      ) {
+      return Err(-4)
     }
-    cursor = cell.next
+    // The original SDK/Definition/unsupported/current checks still run.
+    frame.busy = true
+    let inspected = journal_inspect_run_with_observation(
+      value,
+      Some(cell),
+      row,
+      decoded,
+      before_observation,
+    )
+    frame.busy = false
+    if frame.issue != 0 {
+      return Err(frame.issue)
+    }
+    if !journal_decode_frame_current(value, child, frame) {
+      return Err(-2)
+    }
+    match inspected {
+      Err(code) => {
+        frame.issue = code
+        return Err(code)
+      }
+      Ok(_) => ()
+    }
+    // The constructor/measurement helper returned before workspace return.
+    if @resources.shrink_capacity_reservation(
+        value.root,
+        cell.capacity,
+        cell.retention,
+        0L,
+      )
+      is Err(_) {
+      frame.issue = -4
+      return Err(-4)
+    }
+    if row.key == frame.selected_key {
+      frame.selected = Some(cell)
+    }
+    return inspected
   }
   if row.key == frame.selected_key {
     frame.selected = None
@@ -370,6 +425,14 @@ fn journal_decode_run_inspection(
           Ok(_) => ()
         }
         cell.decoded = Some(decoded)
+        if slot >= 0 {
+          if index[slot] is Some(_) {
+            index[slot] = Some(cell)
+          } else if frame.indexed_rows < journal_decode_index_limit {
+            index[slot] = Some(cell)
+            frame.indexed_rows += 1
+          }
+        }
         if row.key == frame.selected_key {
           frame.selected = Some(cell)
         }
@@ -404,6 +467,10 @@ fn dispose_journal_decode_rows(
   keep_selected : Bool,
 ) -> Int {
   frame.active = false
+  // Drop all index aliases under the original frame token before any cell can
+  // settle. A failed cell close still has its original link and token.
+  frame.index = None
+  frame.indexed_rows = 0
   if frame.pending is Some(capacity) {
     let code = settle_journal_decode_original(value, capacity)
     if code != 0 {
