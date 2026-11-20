@@ -24,7 +24,7 @@ export function captureReadOptions(options: unknown): unknown {
 }
 
 export function captureResultRead(ClientError: SchemaErrorConstructor, schemaOrOptions: unknown,
-  options: unknown): CapturedResultRead {
+  options?: unknown): CapturedResultRead {
   const object = schemaOrOptions !== null &&
     ['object', 'function'].includes(typeof schemaOrOptions);
   let typed;
@@ -80,7 +80,7 @@ export function validationOutcome(result: unknown): ValidationOutcome {
             ['string', 'number', 'symbol'].includes(typeof (part as {key?: unknown}).key))))) {
       return {kind: 'invalid_result'};
     }
-    return {kind: 'issues', issues: issues as readonly StandardSchemaV1.Issue[]};
+    return {kind: 'issues', issues} as ValidationOutcome;
   }
   if (!('value' in result)) return {kind: 'invalid_result'};
   // Keep any output, even a Promise/thenable, boxed through async plumbing.

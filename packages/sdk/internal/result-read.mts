@@ -9,48 +9,79 @@ import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
   requestCancellationCause} from './errors.mjs';
 import {resultDescriptionLimits, validDeliveryAttemptLookup, validResultDescription} from '@actql/client-wire';
+import type {ConfirmedProfile, DeliveryAttemptLookup, DeliveryObservationExplanation,
+  DynamicRow, Execution, OperationExplanationOptions, ReadFailureExplanation,
+  ReadOptions, Reader, Result, ResultDescriptionOptions, RunReference} from '../index.d.ts';
+import type {LocalResultRows, LocalResultFrame} from '../host-port.d.ts';
+import type {CapturedResultRead} from '../result-schema.mjs';
+import type {ActiveReader} from './client-lifecycle.mjs';
 
-const readExplanations = new WeakMap();
+type ReadContext = Parameters<typeof projectReadExplanation>[1] & {redactErrors?: boolean};
+type ReadExplanation = ReturnType<typeof projectReadExplanation>;
+type DeliveryExplanation = ReturnType<typeof projectDeliveryExplanation> |
+  ReturnType<typeof projectDeliveryLookupFailure>;
+type ReadKind = 'all' | 'one' | 'scalar';
+type BeforeRead = ((schemaOrOptions: unknown, options: unknown) => void) | undefined;
+type CurrentRead = (() => void) | undefined;
+// Capture preserves untrusted option values; the existing limit/signal checks
+// below remain responsible for them. This view never certifies admission.
+type ReadCapture = Omit<CapturedResultRead, 'options'> & {options: ReadOptions};
+interface RowOutput {value: unknown; retainedBytes?: number}
+interface CollectionLimit {maxRows: number; maxBytes: number}
+type UncheckedOpening = Partial<LocalResultRows> & Partial<Pick<Response, 'body'>>;
+type ReturnableGenerator<T> = Omit<AsyncGenerator<T, unknown, unknown>, 'return'> & {
+  return(value?: unknown): Promise<IteratorResult<T, unknown>>;
+};
+interface QueryCapture {before: BeforeRead; current: CurrentRead; kind: ReadKind; captured: unknown}
+interface ResultCapture {before: BeforeRead; current: CurrentRead; read(kind: ReadKind, captured: unknown): Promise<unknown>}
+interface ValidationFailure {validationKind: 'invalid_result' | 'issues' | 'exception'; rowIndex: number;
+  resultRef: {run: RunReference; resultName: string}; detail: unknown}
+interface BorrowedFailure {code?: unknown; cleanupError?: unknown}
 
-const deliveryExplanations = new WeakMap();
 
-const readerContexts = new WeakMap();
+const readExplanations = new WeakMap<object, ReadExplanation>();
 
-export function explainReadFailure(result, options) {
-  return localizeOperation(readExplanations.get(result), 'read', options);
+const deliveryExplanations = new WeakMap<object, DeliveryExplanation>();
+
+const readerContexts = new WeakMap<object, ReadContext>();
+
+export function explainReadFailure(result: unknown, options?: OperationExplanationOptions): ReadFailureExplanation | undefined {
+  return localizeOperation(readExplanations.get(result as object), 'read', options);
 }
 
 // Only this call's admitted Owner lookup supplies Delivery facts. No row count,
 // Run outcome or application persistence is inferred from a release receipt.
-export function explainDeliveryAttempt(result, options) {
-  return localizeOperation(deliveryExplanations.get(result), 'delivery', options);
+export function explainDeliveryAttempt(result: unknown, options?: OperationExplanationOptions): DeliveryObservationExplanation | undefined {
+  return localizeOperation(deliveryExplanations.get(result as object), 'delivery', options) as DeliveryObservationExplanation | undefined;
 }
 
-const retainDeliveryLookupFailure = (cause, next, observation) => {
+const retainDeliveryLookupFailure = (cause: unknown, next: ReadFailureExplanation['next'],
+  observation: 'lookup_unavailable' | 'lookup_uninterpretable') => {
   const error = requestCancellationCause(cause);
   deliveryExplanations.set(error, projectDeliveryLookupFailure(next, observation));
   return error;
 };
 
-const retainDeliveryExplanation = (answer, next) => {
+const retainDeliveryExplanation = <T extends DeliveryAttemptLookup,>(answer: T, next: ReadFailureExplanation['next']): T => {
   deliveryExplanations.set(answer, projectDeliveryExplanation(answer, next));
   return answer;
 };
 
-const retainReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
+const retainReadExplanation = <T extends object,>(result: T, context: ReadContext, rowsYielded: number,
+  observation: ReadFailureExplanation['observation'], cleanupUnknown = false): T => {
   readExplanations.set(result, projectReadExplanation(result, context, rowsYielded, observation, cleanupUnknown));
   return result;
 };
 
-const appendCleanupFailure = (error, cause, redact = false) => {
+const appendCleanupFailure = (error: {cleanupError?: unknown}, cause: unknown, redact = false) => {
   const failure = redact ? new Error('ResultReadCleanupUnknown') : cause;
   error.cleanupError = error.cleanupError === undefined ? failure :
     new AggregateError([error.cleanupError, failure], 'Multiple reader cleanup failures');
 };
 // Only SDK validation failures carry these diagnostics through reader wrappers.
-const validationFailures = new WeakMap();
+const validationFailures = new WeakMap<object, ValidationFailure>();
 
-const validationFailure = (kind, context, rowIndex, detail) => {
+const validationFailure = (kind: ValidationFailure['validationKind'], context: ReadContext, rowIndex: number, detail: unknown) => {
   const error = ownedClientFailure('ResultValidationFailed');
   const metadata = Object.freeze({validationKind: kind, rowIndex,
     resultRef: Object.freeze({run: context.ref, resultName: context.resultName})});
@@ -61,20 +92,21 @@ const validationFailure = (kind, context, rowIndex, detail) => {
   return error;
 };
 
-const readFailure = (cause, context, rowsYielded, prior) => {
+const readFailure = (cause: unknown, context: ReadContext, rowsYielded: number,
+  prior?: Pick<ReadFailureExplanation, 'observation' | 'cleanup'>) => {
   // Borrowed stream exceptions may have throwing getters as well as private
   // messages. DSN mode reads only our private original classification/custody.
   const safe = context.redactErrors === true;
   const code = safe ? ownedFailureCode(cause) ?? 'ResultReadUnknown'
-    : typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown';
+    : typeof (cause as BorrowedFailure | null | undefined)?.code === 'string' ? (cause as BorrowedFailure).code as string : 'ResultReadUnknown';
   const cleanupUnknown = prior?.cleanup === 'unknown' ||
-    readExplanations.get(cause)?.cleanup === 'unknown';
+    readExplanations.get(cause as object)?.cleanup === 'unknown';
   const error = new ClientError(code, {attemptId: context.attemptId, rowsYielded,
     ...(safe ? {} : {cause}),
     ...(safe ? cleanupUnknown ? {cleanupError: new Error('ResultReadCleanupUnknown')} : {}
-      : cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})});
+      : (cause as BorrowedFailure | null | undefined)?.cleanupError === undefined ? {} : {cleanupError: (cause as BorrowedFailure).cleanupError})});
   if (safe) markOwnedFailure(error, code);
-  const validation = validationFailures.get(cause);
+  const validation = validationFailures.get(cause as object);
   if (validation) {
     const {detail, ...metadata} = validation;
     Object.assign(error, metadata);
@@ -87,17 +119,17 @@ const readFailure = (cause, context, rowsYielded, prior) => {
     prior?.observation ?? 'read_incomplete', cleanupUnknown);
 };
 
-function tighter(requested, maximum) {
+function tighter(requested: number | undefined, maximum: number) {
   if (requested === undefined) return maximum;
   if (!positive(requested) || requested > maximum) fail('InvalidReadLimit');
   return requested;
 }
 
 // A decoded-value accounting bound, not an operating-system RSS measurement.
-function retainedValueBytes(value, raw = false) {
+function retainedValueBytes(value: unknown, raw = false) {
   let nodes = 0;
-  const active = new Set();
-  const visit = item => {
+  const active = new Set<unknown>();
+  const visit = (item: unknown) => {
     nodes++;
     if (raw && (item === null || typeof item !== 'object')) {
       // The existing canonical codec owns scalar number and text validity.
@@ -126,8 +158,8 @@ function retainedValueBytes(value, raw = false) {
 
 // JSON.parse has already checked the grammar. Check the original text's decoded
 // object keys per nesting level; last-key-wins parsing would hide duplicates.
-function rejectDuplicateRowKeys(text) {
-  const scopes = [];
+function rejectDuplicateRowKeys(text: string) {
+  const scopes: ({keys: Set<string>; key: boolean} | null)[] = [];
   for (const [token] of text.matchAll(/"(?:\\[\s\S]|[^"\\])*"|[{}\[\],:]/gu)) {
     if (token === '{') scopes.push({keys: new Set(), key: true});
     else if (token === '[') scopes.push(null);
@@ -138,7 +170,7 @@ function rejectDuplicateRowKeys(text) {
       if (token === ',') scope.key = true;
       else if (token === ':') scope.key = false;
       else if (scope.key) {
-        const key = JSON.parse(token);
+        const key: string = JSON.parse(token);
         if (scope.keys.has(key)) fail('InvalidResultFrame');
         scope.keys.add(key);
       }
@@ -148,9 +180,9 @@ function rejectDuplicateRowKeys(text) {
 
 // Only this module's original Result owns these continuations. The association
 // preserves an eager query's captured options; it issues no resource admission.
-const capturedResultReads = new WeakMap();
-const capturedQueryReads = new WeakMap();
-export function captureQueryResultRead(before, current, kind, schemaOrOptions, options) {
+const capturedResultReads = new WeakMap<object, ResultCapture>();
+const capturedQueryReads = new WeakMap<object, QueryCapture>();
+export function captureQueryResultRead(before: BeforeRead, current: CurrentRead, kind: ReadKind, schemaOrOptions: unknown, options?: unknown) {
   before?.(schemaOrOptions, options);
   const captured = kind === 'all' ? captureResultRead(ClientError, schemaOrOptions, options)
     : captureReadOptions(schemaOrOptions);
@@ -158,7 +190,7 @@ export function captureQueryResultRead(before, current, kind, schemaOrOptions, o
   capturedQueryReads.set(token, {before, current, kind, captured});
   return token;
 }
-export function collectCapturedResult(result, token) {
+export function collectCapturedResult(result: object, token: object) {
   const target = capturedResultReads.get(result), original = capturedQueryReads.get(token);
   if (target === undefined || original === undefined || target.before !== original.before ||
       target.current !== original.current) fail('InvalidResult');
@@ -168,11 +200,19 @@ export function collectCapturedResult(result, token) {
 }
 
 export function createResultFactory({ref, limits, lookupContext, redactErrors, typedRows,
-  beforeResultRead, assertResultReadCurrent},
-  {runRequest, responseValue}, {activeReaders, readerCleanups}, getExecution) {
-  return name => {
+  beforeResultRead, assertResultReadCurrent}: {
+    ref: RunReference; limits: ConfirmedProfile['limits']; lookupContext: ReadContext['lookupContext'];
+    redactErrors?: boolean; typedRows?: boolean; beforeResultRead?: BeforeRead; assertResultReadCurrent?: CurrentRead;
+  },
+  {runRequest, responseValue}: {
+    runRequest(operation: 'read' | 'result-describe' | 'delivery-attempt', body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>;
+    responseValue(response: unknown, maxWireBytes?: number): unknown | Promise<unknown>;
+  }, {activeReaders, readerCleanups}: {activeReaders: Set<ActiveReader>; readerCleanups: Set<() => unknown | Promise<unknown>>},
+  getExecution: () => Execution) {
+  return (name: string) => {
     if (typeof name !== 'string' || !name) fail('InvalidResultName');
-    const readRows = ({options, validate}, collection, retainSizes = false) => {
+    const readRows = <Retain extends boolean = false,>({options, validate}: ReadCapture, collection?: CollectionLimit,
+      retainSizes: Retain = false as Retain): Reader<Retain extends true ? RowOutput : unknown> => {
       const attemptId = crypto.randomUUID();
       const context = freezeInput({ref, resultName: name, attemptId,
         redactErrors: redactErrors,
@@ -184,10 +224,10 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       const maxRowRetainedValueBytes = tighter(
         options.maxRowRetainedValueBytes,
         limits.maxRowRetainedValueBytes);
-      let state = 'not_started';
+      let state: ReturnType<Reader<unknown>['state']> = 'not_started';
       let rowsYielded = 0, rawRows = 0, retainedBytes = 0;
       const controller = new AbortController();
-      const acceptRow = async (row, size = retainedValueBytes(row, true)) => {
+      const acceptRow = async (row: unknown, size = retainedValueBytes(row, true)): Promise<RowOutput> => {
         // Charge the untouched decoded row before invoking application code.
         // A mutating/shrinking transform cannot reduce its collection charge.
         if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
@@ -200,7 +240,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         controller.signal.throwIfAborted();
         if (validate === undefined) return retainSizes
           ? {value: row, retainedBytes: size} : {value: row};
-        let response;
+        let response: unknown;
         try {
           response = await awaitValidation(validate(row), controller.signal);
         } catch (cause) {
@@ -212,11 +252,11 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         try { outcome = validationOutcome(response); }
         catch (cause) { throw validationFailure('exception', context, rowIndex, cause); }
         if (outcome.kind !== undefined) {
-          throw validationFailure(outcome.kind, context, rowIndex, outcome.issues);
+          throw validationFailure(outcome.kind, context, rowIndex, (outcome as {issues?: unknown}).issues);
         }
         return outcome;
       };
-      const iterate = async function* (ownedReader) {
+      const iterate = async function* (ownedReader: ActiveReader): AsyncGenerator<RowOutput, void, unknown> {
         if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
         assertResultReadCurrent?.();
         state = 'opening';
@@ -224,26 +264,27 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         options.signal?.addEventListener('abort', abort, {once: true});
         if (options.signal?.aborted) controller.abort();
         let wireBytes = 0, line = '';
-        let stream, failure, localCleanup, frames;
+        let stream: ReadableStreamDefaultReader<Uint8Array> | undefined, failure: ClientError | undefined,
+          localCleanup: (() => unknown | Promise<unknown>) | undefined, frames: AsyncIterator<LocalResultFrame, unknown, unknown> | undefined;
         let framesComplete = false, cleanupUncertain = false;
         activeReaders.add(ownedReader);
         try {
           const response = await runRequest('read', {
             resultName: name, format: !typedRows ? 'jsonl' :
               'typed', attemptId,
-          }, controller.signal);
+          }, controller.signal) as UncheckedOpening;
           if (typedRows) {
             if (response?.kind !== 'rows' ||
                 typeof response.frames?.[Symbol.asyncIterator] !==
                   'function') fail('InvalidResultStream');
             if (typeof response.close === 'function') {
-              localCleanup = () => response.close();
+              localCleanup = () => response.close!();
               readerCleanups.add(localCleanup);
             }
             frames = response.frames[Symbol.asyncIterator]();
             const nextFrame = frames.next;
             while (true) {
-              const next = await Reflect.apply(nextFrame, frames, []);
+              const next = await Reflect.apply(nextFrame, frames, []) as IteratorResult<LocalResultFrame, unknown>;
               if (next === null || !['object', 'function'].includes(typeof next)) {
                 fail('InvalidResultStream');
               }
@@ -283,7 +324,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
             // frames open lazily, so their first accepted row is the ack.
             state = 'prefix';
             const decoder = new TextDecoder('utf-8', {fatal: true});
-            const acceptText = function* (text) {
+            const acceptText = function* (text: string): Generator<DynamicRow, void, unknown> {
               line += text;
               let newline;
               while ((newline = line.indexOf('\n')) >= 0) {
@@ -295,13 +336,13 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
                     maxRowWireBytes) {
                   fail('ResultRowWireLimit');
                 }
-                let row;
+                let row: unknown;
                 try { row = JSON.parse(item); }
                 catch { fail('InvalidResultFrame'); }
                 rejectDuplicateRowKeys(item);
                 if (row === null || typeof row !== 'object' ||
                     Array.isArray(row)) fail('InvalidResultFrame');
-                yield row;
+                yield row as DynamicRow;
               }
               if (new TextEncoder().encode(line).byteLength >
                   maxRowWireBytes) {
@@ -351,7 +392,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
             try {
               const finish = frames.return;
               if (finish !== undefined && finish !== null) {
-                const returned = await Reflect.apply(finish, frames, []);
+                const returned: unknown = await Reflect.apply(finish, frames, []);
                 if (returned === null || !['object', 'function'].includes(typeof returned)) {
                   fail('InvalidResultStream');
                 }
@@ -416,44 +457,44 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       const reader = Object.freeze({attemptId, state: () => state,
         rowsYielded: () => rowsYielded,
         [Symbol.asyncIterator]() {
-          const owned = {abort: () => controller.abort(new ClientError('ClientClosed')),
+          const owned: ActiveReader = {abort: () => controller.abort(new ClientError('ClientClosed')),
             finish: () => iterator.return()};
-          const iterator = iterate(owned);
+          const iterator = iterate(owned) as ReturnableGenerator<RowOutput>;
           // Do not yield transformed values from an async generator: it
           // would assimilate thenable outputs. Only unwrap IteratorResult.
-          const unwrap = item => item.done || retainSizes ? item
+          const unwrap = (item: IteratorResult<RowOutput, unknown>) => item.done || retainSizes ? item
             : {done: false, value: item.value.value};
           return {
-            next: value => iterator.next(value).then(unwrap),
-            return: value => iterator.return(value).then(unwrap),
-            throw: error => iterator.throw(error).then(unwrap),
+            next: (value?: unknown) => iterator.next(value).then(unwrap),
+            return: (value?: unknown) => iterator.return(value).then(unwrap),
+            throw: (error?: unknown) => iterator.throw(error).then(unwrap),
             [Symbol.asyncIterator]() { return this; },
           };
         }});
       readerContexts.set(reader, context);
-      return reader;
+      return reader as Reader<Retain extends true ? RowOutput : unknown>;
     };
 
-    const rows = (schemaOrOptions, options) => {
+    const rows = ((schemaOrOptions: unknown, options?: ReadOptions) => {
       beforeResultRead?.(schemaOrOptions, options);
-      return readRows(captureResultRead(ClientError, schemaOrOptions, options));
-    };
+      return readRows(captureResultRead(ClientError, schemaOrOptions, options) as ReadCapture);
+    }) as Result['rows'];
 
-    const batches = options => {
+    const batches = (options?: ReadOptions): Reader<DynamicRow[]> => {
       beforeResultRead?.(options, undefined);
       if (options === undefined) options = {};
-      const captured = captureResultRead(ClientError, options);
+      const captured = captureResultRead(ClientError, options) as ReadCapture;
       const batchOptions = captured.validate === undefined ? captured.options
-        : captureReadOptions(options);
+        : captureReadOptions(options) as ReadOptions;
       const reader = readRows(captured, undefined, true);
       let rowsYielded = 0;
       const maxRows = tighter(batchOptions.maxBatchRows,
         limits.maxBatchRows);
       const maxBytes = tighter(batchOptions.maxBatchRetainedValueBytes,
         limits.maxBatchRetainedValueBytes);
-      const iterate = async function* (ownedReader) {
+      const iterate = async function* (ownedReader: ActiveReader): AsyncGenerator<unknown[], void, unknown> {
         activeReaders.add(ownedReader);
-        let batch = [], bytes = 0;
+        let batch: unknown[] = [], bytes = 0;
         try {
           for await (const output of reader) {
             const row = output.value;
@@ -472,7 +513,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
             yield batch;
           }
         } catch (cause) {
-          throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
+          throw readFailure(cause, readerContexts.get(reader)!, rowsYielded, readExplanations.get(cause as object));
         } finally {
           // A yielded batch belongs to the application. Drop our retained
           // reference without mutating that already returned value.
@@ -485,44 +526,44 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         [Symbol.asyncIterator]() {
           // The underlying row reader owns abort. This outer scope also
           // owns a buffered next row/batch and must be returned on close.
-          const owned = {abort() {}, finish: () => iterator.return()};
-          const iterator = iterate(owned);
+          const owned: ActiveReader = {abort() {}, finish: () => iterator.return()};
+          const iterator = iterate(owned) as ReturnableGenerator<unknown[]>;
           return iterator;
-        }});
+        }}) as Reader<DynamicRow[]>;
     };
 
-    const allCaptured = async captured => {
+    const allCaptured = async (captured: ReadCapture) => {
       const reader = readRows(captured, {
         maxRows: tighter(captured.options.maxRows, limits.maxRows),
         maxBytes: tighter(captured.options.maxRetainedValueBytes,
           limits.maxRetainedValueBytes),
       });
-      const values = [];
+      const values: unknown[] = [];
       try {
         for await (const row of reader) values.push(row);
         return values;
       } catch (cause) {
-        throw readFailure(cause, readerContexts.get(reader), 0, readExplanations.get(cause));
+        throw readFailure(cause, readerContexts.get(reader)!, 0, readExplanations.get(cause as object));
       }
     };
-    const all = async (schemaOrOptions, options) => {
+    const all = (async (schemaOrOptions: unknown, options?: ReadOptions) => {
       beforeResultRead?.(schemaOrOptions, options);
-      return allCaptured(captureResultRead(ClientError, schemaOrOptions, options));
-    };
-    const captureOneRead = options => captureResultRead(ClientError, {...options,
-      maxRows: Math.min(2, limits.maxRows)});
-    const oneCaptured = async captured => {
+      return allCaptured(captureResultRead(ClientError, schemaOrOptions, options) as ReadCapture);
+    }) as Result['all'];
+    const captureOneRead = (options?: ReadOptions) => captureResultRead(ClientError, {...options,
+      maxRows: Math.min(2, limits.maxRows)}) as ReadCapture;
+    const oneCaptured = async (captured: ReadCapture): Promise<DynamicRow> => {
       const values = await allCaptured(captured);
       if (values.length !== 1) fail('ExpectedOneRow');
-      return values[0];
+      return values[0] as DynamicRow;
     };
-    const scalarCaptured = async captured => {
+    const scalarCaptured = async (captured: ReadCapture) => {
       const row = await oneCaptured(captured);
       if (row === null || typeof row !== 'object' ||
           Array.isArray(row) || Object.keys(row).length !== 1) fail('ExpectedOneColumn');
       return Object.values(row)[0];
     };
-    const result = Object.freeze({
+    const result = Object.freeze<Result>({
       ref: Object.freeze({run: ref, resultName: name}),
       execution: getExecution(), rows, batches, all,
       one: async options => {
@@ -544,7 +585,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         }
         const limits = Object.fromEntries(
           Object.entries(resultDescriptionLimits).map(([key, ceiling]) => {
-            const value = requestedLimits[key] ?? ceiling;
+            const value = requestedLimits[key as keyof typeof requestedLimits] ?? ceiling;
             if (!positive(value) || value > ceiling) {
               fail('InvalidResultDescriptionOptions');
             }
@@ -562,7 +603,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         try { answer = captureResponse(answer); }
         catch { fail('InvalidHostResultDescription'); }
         if (!validResultDescription(answer, {ref, resultName: name, format},
-          limits)) fail('InvalidHostResultDescription');
+          limits as typeof resultDescriptionLimits)) fail('InvalidHostResultDescription');
         const schema = Object.fromEntries(answer.columns.map(column =>
           [column.name, column.contract]));
         if (await contentCid(schema) !== answer.resultSchemaCid ||
@@ -612,9 +653,9 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
     });
     capturedResultReads.set(result, {before: beforeResultRead, current: assertResultReadCurrent,
       read(kind, captured) {
-        if (kind === 'all') return allCaptured(captured);
+        if (kind === 'all') return allCaptured(captured as ReadCapture);
         if (kind === 'one' || kind === 'scalar') {
-          const single = {options: {...captured, maxRows: Math.min(2, limits.maxRows)}};
+          const single = {options: {...captured as ReadOptions, maxRows: Math.min(2, limits.maxRows)}};
           return kind === 'one' ? oneCaptured(single) : scalarCaptured(single);
         }
         fail('InvalidResult');

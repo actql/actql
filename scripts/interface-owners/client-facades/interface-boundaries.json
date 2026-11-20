@@ -10520,7 +10520,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
@@ -10530,7 +10530,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
@@ -11416,13 +11416,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "beforeResultRead"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
@@ -11432,7 +11432,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
@@ -11460,7 +11460,7 @@
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "resultSerializationContractCids[answer.serialization.version] !=="
               }
             ],
@@ -11536,13 +11536,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11552,7 +11552,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11562,7 +11562,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11572,7 +11572,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11582,7 +11582,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11592,7 +11592,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11602,7 +11602,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11612,7 +11612,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11940,7 +11940,7 @@
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
@@ -11970,7 +11970,7 @@
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
@@ -12778,7 +12778,7 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
@@ -12812,7 +12812,7 @@
                 "anchor": "assertSubmittedIntent(prepared, intent)"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               },
               {
@@ -14899,7 +14899,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
@@ -14909,7 +14909,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],

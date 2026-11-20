@@ -101,3 +101,6 @@ target/
 
 /packages/sdk/internal/check-observation.mjs
 /packages/sdk/internal/check-observation.d.mts
+
+/packages/sdk/internal/result-read.mjs
+/packages/sdk/internal/result-read.d.mts
