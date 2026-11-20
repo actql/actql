@@ -887,3 +887,9 @@ target/
 /scripts/ci-preflight.d.mts
 /scripts/ci-main-base.mjs
 /scripts/ci-main-base.d.mts
+/scripts/ci-input.mjs
+/scripts/ci-input.d.mts
+/scripts/ci-rest-actual-common.mjs
+/scripts/ci-rest-actual-common.d.mts
+/scripts/ci-supported-node.mjs
+/scripts/ci-supported-node.d.mts

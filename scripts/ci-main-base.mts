@@ -35,6 +35,7 @@ export const typescriptPreparationPolicyPaths = Object.freeze([
 export const policyPaths = Object.freeze([
   '.github', 'package.json', 'package-lock.json', ...typescriptPreparationPolicyPaths,
   'scripts/ci-targets.mjs', 'scripts/ci-preflight.mts', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-input.mts',
   'scripts/test-execution.mts', 'scripts/test-execution-reporter.mts', 'scripts/packed-query-evidence.mts',
   'scripts/ci-main-base.mts', 'scripts/ci-core-partitions.mts', 'scripts/ci-session-controls.mjs',
 ]);

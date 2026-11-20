@@ -7,7 +7,8 @@ import {runFocusedTests} from './test-execution.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
-export function runRestActualCommon({env = process.env, run = runFocusedTests} = {}) {
+export function runRestActualCommon({env = process.env, run = runFocusedTests}:
+  {env?: NodeJS.ProcessEnv; run?: typeof runFocusedTests} = {}) {
   assert(typeof env.ACTQL_METADATA_COMMON_RUNTIME === 'string' &&
     isAbsolute(env.ACTQL_METADATA_COMMON_RUNTIME),
   'Select the original prepared Host Common through ACTQL_METADATA_COMMON_RUNTIME');

@@ -14,7 +14,7 @@ export const supportedNodeCases = Object.freeze([
   {profile: 'local', version: '22.16.0'}, {profile: 'local', version: '26.13.0'},
 ]);
 const repository = fileURLToPath(new URL('../', import.meta.url));
-export async function acceptSupportedNode({profile, version, parent}) {
+export async function acceptSupportedNode({profile, version, parent}: {profile: string; version: string; parent: string}) {
   assert(supportedNodeCases.some(entry => entry.profile === profile && entry.version === version), 'Unselected supported-version case');
   assert.equal(process.versions.node, version, 'Consumer interpreter differs from the selected version');
   assert(process.env.ACTQL_PACKED_CLIENT_PACKAGES, 'Matching same-run normal tarballs are required');
@@ -25,8 +25,8 @@ export async function acceptSupportedNode({profile, version, parent}) {
   const scratch = await createOwnedScratch({parent, prefix: `supported-${profile}-${version}-`, label: 'Supported Node version'});
   const consumer = join(scratch.path, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-  const names = profile === 'sdk' ? ['client-wire', 'sdk'] : CLIENT_PACKAGES;
-  const originals = [];
+  const names = profile === 'sdk' ? ['client-wire', 'sdk'] as const : CLIENT_PACKAGES;
+  const originals: {name: (typeof names)[number]; tar: string; files: Awaited<ReturnType<typeof inventory>>}[] = [];
   for (const name of names) {
     await packedClientPackage({repository, name, destination: scratch.path,
       pack() { throw new Error('Supported-version acceptance cannot build packages'); }});
@@ -36,7 +36,7 @@ export async function acceptSupportedNode({profile, version, parent}) {
   }
   const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
   delete env.ACTQL_LOCAL_SOURCE_PROFILE; delete env.ACTQL_LOCAL_EFFECT_PROFILE;
-  const run = (command, args, timeout) => {
+  const run = (command: string, args: readonly string[], timeout: number) => {
     const result = spawnSync(command, args, {cwd: consumer, env, encoding: 'utf8', timeout, maxBuffer: 4 * 1024 * 1024});
     assert.ifError(result.error); assert.equal(result.signal, null, result.stderr);
     assert.equal(result.status, 0, result.stdout + result.stderr); return result.stdout;

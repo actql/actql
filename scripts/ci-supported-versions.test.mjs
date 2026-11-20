@@ -19,8 +19,14 @@ test('supported Node versions consume one explicit normal artifact and retain ag
   assert(job.if.includes("outputs.profile == 'full'"));
   const download = job.steps.find(step => step.name === 'Download the exact Client package artifact');
   assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
-  assert.equal(job.steps.filter(step => step.run).length, 1);
-  assert(job.steps.at(-1).run.includes('scripts/ci-supported-node.mjs'));
+  const prepare = job.steps.findIndex(step => step.run === 'npm ci');
+  const select = job.steps.findIndex(step => step.with?.['node-version'] === '${{ matrix.node }}');
+  const consume = job.steps.findIndex(step => step.run?.includes('scripts/ci-supported-node.mjs'));
+  assert(prepare > 0 && prepare < select && select < consume);
+  for (const index of [prepare, select, consume]) {
+    assert.equal(job.steps[index].if, undefined);
+    assert.equal(job.steps[index]['continue-on-error'], undefined);
+  }
   assert(jobs.client.needs.includes('client-supported-versions'));
   assert(jobs.client.steps[0].run.includes('"client-supported-versions"'));
   assert(!JSON.stringify(job).includes('continue-on-error'));

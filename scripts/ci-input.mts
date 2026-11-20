@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-export function readCiInput(name, environment = process.env) {
+export function readCiInput(name: string, environment: NodeJS.ProcessEnv = process.env): unknown {
   const inline = environment[name], path = environment[`${name}_PATH`];
   assert(!(inline && path), `Conflicting ${name} transports`);
   if (path) return JSON.parse(readFileSync(path, 'utf8'));
