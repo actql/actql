@@ -37280,7 +37280,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37294,7 +37294,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37308,7 +37308,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37322,7 +37322,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37336,7 +37336,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37350,7 +37350,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37364,7 +37364,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37378,7 +37378,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37392,7 +37392,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37424,7 +37424,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37438,7 +37438,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37452,7 +37452,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37466,7 +37466,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37480,7 +37480,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37494,7 +37494,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37508,7 +37508,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37522,7 +37522,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {
@@ -37536,7 +37536,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/compile-cache.mjs",
+                "path": "adapters/host-node/compile-cache.mts",
                 "anchor": "export function enableNodeCompileCache() {"
               },
               {

@@ -444,3 +444,6 @@ target/
 /packages/explorer/gateway-close.test.d.mts
 /packages/explorer/gateway-server-close.test.mjs
 /packages/explorer/gateway-server-close.test.d.mts
+
+/adapters/host-node/compile-cache.mjs
+/adapters/host-node/compile-cache.d.mts
