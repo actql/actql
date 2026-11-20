@@ -88,7 +88,7 @@ function validRun(run: RunObservation | null, {repository, repositoryId, workflo
 function successfulJobs(data: JobsObservation | null, run: RunObservation, requiredJobs: readonly string[]) {
   if (!data || !Array.isArray(data.jobs) || data.total_count !== data.jobs.length || data.jobs.length > 100) return false;
   return requiredJobs.every(name => {
-    const jobs = data.jobs.filter(job => job.name === name);
+    const jobs = data.jobs!.filter(job => job.name === name);
     return jobs.length === 1 && jobs[0].run_id === run.id && jobs[0].run_attempt === run.run_attempt
       && jobs[0].head_sha === run.head_sha && jobs[0].status === 'completed'
       && (jobs[0].conclusion === 'success' ||
