@@ -423,3 +423,7 @@ target/
 /packages/explorer-ui/flow-layout-engine.d.mts
 /packages/explorer-ui/flow-layout-worker.mjs
 /packages/explorer-ui/flow-layout-worker.d.mts
+
+# Existing Explorer UI build configuration emit
+/packages/explorer-ui/vite.config.mjs
+/packages/explorer-ui/vite.config.d.mts

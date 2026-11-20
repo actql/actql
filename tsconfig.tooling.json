@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "paths": {"elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"]},
     "types": [
       "node"
     ],
@@ -24,7 +25,8 @@
     "adapters/connectors/duckdb/node/**/*.mts",
     "packages/client-wire/**/*.mts",
     "packages/explorer/**/*.mts",
-    "packages/explorer-ui/**/*.mts"
+    "packages/explorer-ui/**/*.mts",
+    "packages/explorer-ui/elk-layout-module.d.ts"
   ],
   "exclude": [
     "**/*.typecheck.mts",

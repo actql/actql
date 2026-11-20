@@ -1,14 +1,18 @@
+import type {PlanReadModel} from './read-model.js';
+import type {Node,Edge} from '@xyflow/react';
+type OriginalNode = PlanReadModel['nodes'][number];
+type OriginalPort = OriginalNode['ports'][number];
 import {graphViewLimits, ExplorerReadError} from './read-model.mjs';
 
 // Positions are presentation only. They do not imply Stage order, a physical
 // execution, a source origin or a missing dependency.
-export function flowPresentation(model) {
-  const refuse = () => {throw new ExplorerReadError('ExplorerInvalidPresentation');};
+export function flowPresentation(model:PlanReadModel):{nodes:Node<{original:OriginalNode}>[];edges:Edge[]} {
+  const refuse:()=>never = () => {throw new ExplorerReadError('ExplorerInvalidPresentation');};
   if (model?.observation !== 'static' || model.providerIO !== 0 ||
       !Array.isArray(model.nodes) || model.nodes.length > graphViewLimits.steps ||
       !Array.isArray(model.edges) || !Array.isArray(model.inputs) ||
       model.edges.length + model.inputs.length > graphViewLimits.ports) refuse();
-  const nodes = new Map(), ports = new Map(); let count = 0;
+  const nodes = new Map<string,OriginalNode>(), ports = new Map<string,{node:OriginalNode;port:OriginalPort}>(); let count = 0;
   for (const node of model.nodes) {
     if (typeof node.id !== 'string' || nodes.has(node.id) ||
         !Array.isArray(node.ports) || (count += node.ports.length) > graphViewLimits.ports) refuse();
@@ -47,7 +51,7 @@ export function flowPresentation(model) {
     seen.add(input.inputPortId);
   }
   if ([...ports.values()].some(({port}) => port.role === 'input' && !seen.has(port.port_id))) refuse();
-  return {nodes: model.nodes.map((node, index) => ({id: node.id, type: 'logical',
+  return {nodes: model.nodes.map((node:OriginalNode, index:number) => ({id: node.id, type: 'logical',
     position: {x: (index % 4) * 290, y: Math.floor(index / 4) * 240},
     data: {original: node}, draggable: false, connectable: false, deletable: false})), edges};
 }

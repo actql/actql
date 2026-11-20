@@ -1,24 +1,28 @@
+interface LayoutReply {children?:{id:string;x:unknown;y:unknown}[]}
+import type {flowPresentation} from './flow-model.mjs';
+type Flow = ReturnType<typeof flowPresentation>;
+type OriginalNode = Flow['nodes'][number]['data']['original'];
 import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';
 
 // Presentation dimensions and a Worker deadline, never execution/Host budgets.
 export const flowLayoutDeadlineMs = 5000;
 export const flowNodeWidth = 260;
-export const flowNodeHeight = ports => 108 + ports * 18;
-const refuse = () => { throw new ExplorerReadError('ExplorerInvalidLayout'); };
+export const flowNodeHeight = (ports:number) => 108 + ports * 18;
+const refuse:()=>never = () => { throw new ExplorerReadError('ExplorerInvalidLayout'); };
 
 /** Strip names, source text and all non-layout data before crossing the Worker.
  * Original coordinates already passed flowPresentation; no edge is inferred. */
-export function layoutInput(flow) {
+export function layoutInput(flow:Flow) {
   if (!Array.isArray(flow?.nodes) || flow.nodes.length > graphViewLimits.steps ||
       !Array.isArray(flow.edges) || flow.edges.length > graphViewLimits.ports) refuse();
-  const ids = new Set(), ports = new Map();
+  const ids = new Set<string>(), ports = new Map<string,{node:string;role:string}>();
   let count = 0;
-  const nodes = flow.nodes.map(node => {
+  const nodes = flow.nodes.map((node:Flow['nodes'][number]) => {
     if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.data?.original?.ports) ||
         (count += node.data.original.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
-    return {id: node.id, ports: node.data.original.ports.map(port => {
+    return {id: node.id, ports: node.data.original.ports.map((port:OriginalNode['ports'][number]) => {
       if (typeof port.port_id !== 'string' || port.port_id.length < 1 || port.port_id.length > 256 ||
           ports.has(port.port_id) || !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.port_id, {node: node.id, role: port.role});
@@ -26,30 +30,30 @@ export function layoutInput(flow) {
     })};
   });
   const edgeIds = new Set();
-  const edges = flow.edges.map(edge => {
+  const edges = flow.edges.map((edge:Flow['edges'][number]) => {
     if (typeof edge.id !== 'string' || edge.id.length < 1 || edge.id.length > 256 || edgeIds.has(edge.id) ||
-        ports.get(edge.sourceHandle)?.node !== edge.source ||
-        ports.get(edge.sourceHandle)?.role !== 'output' ||
-        ports.get(edge.targetHandle)?.node !== edge.target ||
-        ports.get(edge.targetHandle)?.role !== 'input') refuse();
+        ports.get(edge.sourceHandle!)?.node !== edge.source ||
+        ports.get(edge.sourceHandle!)?.role !== 'output' ||
+        ports.get(edge.targetHandle!)?.node !== edge.target ||
+        ports.get(edge.targetHandle!)?.role !== 'input') refuse();
     edgeIds.add(edge.id);
-    return {id: edge.id, source: edge.sourceHandle, target: edge.targetHandle};
+    return {id: edge.id, source: edge.sourceHandle!, target: edge.targetHandle!};
   });
   return {nodes, edges};
 }
 
 /** The Worker receives no public model or permission; it only places a bounded
  * graph. Prefixes separate ELK node/port namespaces without changing any ID. */
-export function elkGraph(input) {
+export function elkGraph(input:ReturnType<typeof layoutInput>) {
   if (!Array.isArray(input?.nodes) || input.nodes.length > graphViewLimits.steps ||
       !Array.isArray(input.edges) || input.edges.length > graphViewLimits.ports) refuse();
   let count = 0;
-  const ids = new Set(), ports = new Map();
-  const children = input.nodes.map(node => {
+  const ids = new Set<string>(), ports = new Map<string,string>();
+  const children = input.nodes.map((node:ReturnType<typeof layoutInput>['nodes'][number]) => {
     if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.ports) || (count += node.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
-    const declared = node.ports.map((port, index) => {
+    const declared = node.ports.map((port:ReturnType<typeof layoutInput>['nodes'][number]['ports'][number], index:number) => {
       if (typeof port.id !== 'string' || port.id.length < 1 || port.id.length > 256 || ports.has(port.id) ||
           !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.id, port.role);
@@ -61,7 +65,7 @@ export function elkGraph(input) {
       layoutOptions: {'elk.portConstraints': 'FIXED_POS'}, ports: declared};
   });
   const edgeIds = new Set();
-  const edges = input.edges.map(edge => {
+  const edges = input.edges.map((edge:ReturnType<typeof layoutInput>['edges'][number]) => {
     if (typeof edge.id !== 'string' || edge.id.length < 1 || edge.id.length > 256 || edgeIds.has(edge.id) ||
         ports.get(edge.source) !== 'output' || ports.get(edge.target) !== 'input') refuse();
     edgeIds.add(edge.id);
@@ -72,15 +76,15 @@ export function elkGraph(input) {
 }
 
 /** Accept placement only. ELK cannot replace edges, nodes, handles or labels. */
-export function layoutPositions(input, result) {
-  if (!Array.isArray(result?.children) || result.children.length !== input.nodes.length) refuse();
-  const expected = new Set(input.nodes.map(node => `node:${node.id}`)), seen = new Set();
-  const points = new Map(result.children.map(node => {
+export function layoutPositions(input:ReturnType<typeof layoutInput>, result:unknown) {
+  if (!Array.isArray((result as LayoutReply)?.children) || (result as LayoutReply).children!.length !== input.nodes.length) refuse();
+  const expected = new Set(input.nodes.map((node:ReturnType<typeof layoutInput>['nodes'][number]) => `node:${node.id}`)), seen = new Set();
+  const points = new Map((result as LayoutReply).children!.map(node => {
     if (!expected.has(node.id) || seen.has(node.id) ||
         ![node.x, node.y].every(value => typeof value === 'number' && Number.isFinite(value) &&
           Math.abs(value) <= Number.MAX_SAFE_INTEGER)) refuse();
     seen.add(node.id);
-    return [node.id, {x: node.x, y: node.y}];
+    return [node.id, {x: node.x as number, y: node.y as number}];
   }));
-  return input.nodes.map(node => ({id: node.id, ...points.get(`node:${node.id}`)}));
+  return input.nodes.map((node:ReturnType<typeof layoutInput>['nodes'][number]) => ({id: node.id, ...points.get(`node:${node.id}`)!}));
 }
