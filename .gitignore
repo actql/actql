@@ -427,3 +427,7 @@ target/
 # Existing Explorer UI build configuration emit
 /packages/explorer-ui/vite.config.mjs
 /packages/explorer-ui/vite.config.d.mts
+/packages/explorer/cancellation.test.mjs
+/packages/explorer/cancellation.test.d.mts
+/packages/explorer/gateway-navigation.test.mjs
+/packages/explorer/gateway-navigation.test.d.mts

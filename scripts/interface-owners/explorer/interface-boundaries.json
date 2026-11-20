@@ -4770,7 +4770,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               }
             ]
@@ -5162,7 +5162,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "lost or malformed cancellation replies"
               }
             ]
@@ -5463,7 +5463,7 @@
             ],
             "verification": [
               {
-                "path": "packages/explorer/cancellation.test.mjs",
+                "path": "packages/explorer/cancellation.test.mts",
                 "anchor": "cancellation captures exact identities"
               }
             ]
