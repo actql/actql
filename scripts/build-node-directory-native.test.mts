@@ -8,15 +8,22 @@ import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {buildNodeDirectoryNative, directoryNativeDescriptor} from './build-node-directory-native.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+type Original = {platform: string; arch: string; node: string; moduleAbi: string;
+  napi: number; source: {path: string; sha256: string}; headers: {path: string}[];
+  binary: {path: string; bytes: number; sha256: string}};
+type Native = {open(path: string, depth: number, entries: number, bytes: number): unknown;
+  current(handle: unknown): unknown; next(handle: unknown): unknown; close(handle: unknown): unknown};
+
 const root = fileURLToPath(new URL('../', import.meta.url));
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const sha = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 test('normal private directory artifact binds actual source, used headers, ABI and executable bytes', async () => {
   assert.equal(process.platform, 'darwin'); assert.equal(process.versions.node, '22.22.0');
   const scratch = await createOwnedScratch({parent: join(root, '_build'),
     prefix: 'directory-package-native-', label: 'selected normal directory artifact',
     digests: () => ['_build/native/directory-darwin-' + process.arch + '.node', directoryNativeDescriptor]});
   const outputs = buildNodeDirectoryNative({root, destination: scratch.path});
-  const original = JSON.parse(outputs.get(directoryNativeDescriptor));
+  const original = JSON.parse(outputs.get(directoryNativeDescriptor)! as unknown as string) as Original;
   assert.equal(original.platform, process.platform); assert.equal(original.arch, process.arch);
   assert.equal(original.node, process.versions.node); assert.equal(original.moduleAbi, process.versions.modules);
   assert.equal(original.napi, 8);
@@ -27,7 +34,7 @@ test('normal private directory artifact binds actual source, used headers, ABI a
   assert.equal(JSON.stringify(original).includes(root), false);
   const binary = readFileSync(join(scratch.path, original.binary.path));
   assert.equal(binary.length, original.binary.bytes); assert.equal(sha(binary), original.binary.sha256);
-  const require = createRequire(import.meta.url), native = require(join(scratch.path, original.binary.path));
+  const require = createRequire(import.meta.url), native = require(join(scratch.path, original.binary.path)) as Native;
   const directory = join(scratch.path, 'empty'); mkdirSync(directory);
   const handle = native.open(directory, 1, 1024, 1024);
   assert.equal(native.current(handle), undefined); assert.equal(native.next(handle), null);

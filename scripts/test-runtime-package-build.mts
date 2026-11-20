@@ -28,7 +28,7 @@ for (const [name, paths] of Object.entries(expected)) {
   const output = execFileSync('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', destination]),
     {cwd: join(root, 'packages', name), encoding: 'utf8', timeout: 180000,
       maxBuffer: 16 * 1024 * 1024});
-  const metadata = parseNpmPackJson(output);
+  const metadata = parseNpmPackJson(output) as Record<string, {files: {path: string; size: number}[]}>;
   const pack = metadata[0] ?? metadata[`@actql/${name}`];
   for (const path of paths) {
     assert(pack.files.some(file => file.path === path && file.size > 0),

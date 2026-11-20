@@ -5,7 +5,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 
-function fixture(t, exitCode = 0) {
+import type {TestContext} from 'node:test';
+type PackMetadata = {name: string; filename: string; files: {path: string; size: number}[]};
+
+function fixture(t: TestContext, exitCode = 0) {
   const directory = mkdtempSync(join(tmpdir(), 'runtime-pack-json-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   writeFileSync(join(directory, 'package.json'), JSON.stringify({
@@ -32,7 +35,7 @@ test('real npm pack keeps lifecycle execution while isolating JSON stdout', t =>
   const {directory, result} = fixture(t);
   assert.equal(result.status, 0, result.stderr);
   // Parse the complete output: diagnostic prefixes and suffixes stay invalid.
-  const metadata = JSON.parse(result.stdout);
+  const metadata = JSON.parse(result.stdout) as PackMetadata[];
   assert.equal(metadata.length, 1);
   assert.equal(metadata[0].name, 'actql-pack-json-hook-fixture');
   assert.equal(metadata[0].filename, 'actql-pack-json-hook-fixture-0.0.0.tgz');
