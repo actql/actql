@@ -9591,6 +9591,7 @@ fn compile_set_stages(
     }
     outputs[0] = ordered
   }
+  let mut combined_columns = term_columns.bind(columns => columns.get(0))
   let mut left_fields = outputs[0]
   let mut current_stage = sources[0]
   for index in 0..<@query.set_part_count(query) {
@@ -9622,6 +9623,16 @@ fn compile_set_stages(
       right_fields,
       part.by_name,
       allow_subset=part.inner_by_name,
+    )
+    // Namespace links follow the exact same positional/name alignment as
+    // the value operands, including every incoming original row view.
+    combined_columns = merge_set_result_columns(
+      combined_columns,
+      term_columns.bind(columns => columns.get(index + 1)),
+      left_fields,
+      left_matched,
+      matched,
+      limits.max_expression_work,
     )
     let aligned = left_fields.mapi((index, field) => {
       (field, construction.text(matched[index]))
@@ -9816,19 +9827,6 @@ fn compile_set_stages(
     }
   }
   let steps : Array[@builder.Node] = []
-  let combined_columns = match term_columns {
-    None => None
-    Some(columns) => {
-      let retained = columns[0].filter(column => {
-        left_fields.contains(column.slot)
-      })
-      if retained.is_empty() {
-        None
-      } else {
-        Some(retained)
-      }
-    }
-  }
   let mut current = append_set_final_steps(
     construction,
     query,
