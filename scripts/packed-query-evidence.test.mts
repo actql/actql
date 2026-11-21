@@ -332,7 +332,7 @@ test('Client packed reaches ownership controls through its normal driver before 
   assert.equal(job['timeout-minutes'], 45);
   const run = job.steps.find(step => step.id === 'packed-query')!.run!;
   assert.match(run, /node scripts\/test-packed-public-query\.mjs/u);
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const controls = driver.indexOf("'scripts/packed-query-transports.test.mjs'");
   const packages = driver.indexOf("const packages = ['client-wire'");
   assert.ok(controls >= 0 && packages > controls, 'the normal driver executes controls before package installation');
@@ -341,7 +341,7 @@ test('Client packed reaches ownership controls through its normal driver before 
 
 
 test('packed runtime children retain security Node options and inherited CA certificates', () => {
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const start = driver.indexOf("for (const name of ['NODE_PATH'");
   const end = driver.indexOf('const exerciseInferSource =', start);
   assert.ok(start >= 0 && end > start);

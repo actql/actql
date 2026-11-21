@@ -94,7 +94,7 @@ test('rejected first close preserves the original primary and unacknowledged clo
 });
 
 test('finite parent retains the prewritten report after an actual child timeout', async t => {
-  const parentSource = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const parentSource = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const expression = /keepArtifacts: (.+)\},/u.exec(parentSource)[1];
   const selection = new Function('unionBudgetOnly', 'process', 'return ' + expression);
   assert.equal(selection(true, {argv: []}), true);

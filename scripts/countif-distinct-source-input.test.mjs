@@ -27,7 +27,7 @@ test('independent Boolean counts distinguish distinct TRUE from ordinary occurre
 
 test('COUNTIF DISTINCT is included in ordinary and narrow public acceptance', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'countifDistinctSuccesses'], ['refusals', 'countifDistinctRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }

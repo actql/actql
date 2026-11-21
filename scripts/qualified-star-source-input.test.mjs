@@ -27,7 +27,7 @@ test('qualified star expectations distinguish current columns from retained rang
 
 test('qualified star stays in normal packed acceptance and a narrow route', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'qualifiedStarSuccesses'], ['refusals', 'qualifiedStarRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));
   }

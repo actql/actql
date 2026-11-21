@@ -44,7 +44,7 @@ test('checked ARRAY cases are registered in the ordinary corpus and its public c
     for (const item of cases) assert.equal(corpus.filter(value => value.name === item.name).length, 1);
   }
   const fixture = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...unnestSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...unnestRefusals)'));
   assert.ok(fixture.includes('unnestCheckedArrayOnly ? {successes: unnestCheckedArraySuccesses'));

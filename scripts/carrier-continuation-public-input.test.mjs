@@ -41,7 +41,7 @@ test('F01/F02 recipes retain independent ordered schema and the valid Graph-to-E
 
 test('the same declared carrier cases are selected, copied, retained and registered normally',()=>{
   const corpus=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const driver=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const driver=readFileSync('scripts/test-packed-public-query.mts','utf8');
   assert.match(corpus,/carrierContinuationOnly \? \{successes: carrierContinuationSuccesses, refusals: carrierContinuationRefusals\}/u);
   assert.ok(corpus.includes('scopeInputs.successes.push(...carrierContinuationSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...carrierContinuationRefusals)'));

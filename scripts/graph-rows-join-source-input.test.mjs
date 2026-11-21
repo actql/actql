@@ -40,7 +40,7 @@ test('Graph row JOIN controls preserve keys, edge instances, multiplicity, expli
 
 test('Graph row JOIN fixtures enter ordinary packed acceptance and its bounded selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphRowsJoinSuccesses'], ['refusals', 'graphRowsJoinRefusals'],
     ['executionFailures', 'graphRowsJoinExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

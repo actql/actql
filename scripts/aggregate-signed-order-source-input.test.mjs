@@ -45,7 +45,7 @@ test('normal and focused packed routes include signed inputs without altering ca
     assert.ok(app.includes('push(...' + name + ')'));
     assert.ok(app.includes('...aggregatePropertyOrder' + (name.endsWith('Successes') ? 'Successes' : 'Refusals') + ', ...' + name));
   }
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/aggregate-signed-order-source-input.mjs', 'aggregate-signed-order-source-input.mjs']"));
   const groups = publicQueryProfiles({successes, refusals});
   assert.equal(groups.length, 1);

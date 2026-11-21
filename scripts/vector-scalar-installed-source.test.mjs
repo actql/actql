@@ -92,7 +92,7 @@ test('common admission refusal is preserved and does not become a completed page
 });
 
 test('actual installed fixture import closure is delivered and detects a missing supplier', () => {
-  const copies = new Map([...readFileSync('scripts/test-packed-public-query.mjs', 'utf8')
+  const copies = new Map([...readFileSync('scripts/test-packed-public-query.mts', 'utf8')
     .matchAll(/\['([^']+)', '([^']+\.mjs)'\]/gu)].map(match => [match[2], match[1]]));
   function closure(map) {
     const pending = ['packed-query-worker.mjs'], seen = new Set(), absent = [];

@@ -39,7 +39,7 @@ test('repeated-key corpus keeps distinct receivers and Pipe aliases observable',
 
 test('normal and focused public consumers retain the complete ordinal corpus', () => {
   const fixture = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(fixture.includes('groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusals: groupOrdinalRefusals}'));
   assert.ok(fixture.includes('...groupStarSuccesses, ...groupOrdinalSuccesses]'));
   assert.ok(fixture.includes('...groupStarRefusals, ...groupOrdinalRefusals]'));

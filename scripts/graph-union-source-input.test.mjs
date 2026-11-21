@@ -19,7 +19,7 @@ test('union fixtures distinguish occurrences and nonassociative fold order', () 
 
 test('normal packed corpus retains union cases and narrow selection shares its driver', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphUnionSourceSuccesses'],
     ['refusals', 'graphUnionSourceRefusals'], ['executionFailures', 'graphUnionSourceExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

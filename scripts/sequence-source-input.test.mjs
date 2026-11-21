@@ -38,7 +38,7 @@ test('adopted Sequence omissions keep independent results and refuse explicit in
 });
 test('sequence public matrix uses normal delivery, registered cohort and actual completed-case hook',()=>{
  const acceptance=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
- const consumer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+ const consumer=readFileSync('scripts/test-packed-public-query.mts','utf8');
  assert.ok(acceptance.includes('scopeInputs.successes.push(...sequenceSourceSuccesses)'));
  assert.ok(acceptance.includes('scopeInputs.refusals.push(...sequenceSourceRefusals)'));
  assert.ok(acceptance.includes('ACTQL_TEST_SEQUENCE_SOURCE_ONLY'));

@@ -23,7 +23,7 @@ test('Reach public oracles retain independent depth zero, two consumers and empt
 });
 
 test('Reach narrow packed selection uses public transports and fresh-process retained reads', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphReachSourceSuccesses'], ['refusals', 'graphReachSourceRefusals']]) {
     assert.ok(corpus.includes(`scopeInputs.${kind}.push(...${group})`));

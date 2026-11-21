@@ -14,14 +14,17 @@ import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-hos
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
 import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.mjs';
 
+type PortableParts = {parts: Record<string, {receiptPrefixes: readonly string[]}>};
+type TransportEvidenceFailure = {transportEvidenceErrors?: {name: string; code: string | undefined}[]};
+
 validatePackedPublicQueryArguments(process.argv.slice(2));
 const unionBudgetOnly = process.argv.includes('--union-budget-only');
 const ciPart = process.argv.find(argument => argument.startsWith('--ci-part='))?.slice('--ci-part='.length);
-const portablePart = /^portable-[123]$/u.test(ciPart ?? '') ? Number(ciPart.at(-1)) : undefined;
+const portablePart = /^portable-[123]$/u.test(ciPart ?? '') ? Number(ciPart!.at(-1)) : undefined;
 const portableExtras = portablePart === undefined || portablePart === 1;
 const portableCi = ciPart === 'portable' || portablePart !== undefined;
-const portableReceiptPrefixes = portablePart === undefined ? undefined : JSON.parse(await readFile(
-  new URL('./fixtures/public-query-portable-parts.json', import.meta.url), 'utf8')).parts[ciPart].receiptPrefixes;
+const portableReceiptPrefixes = portablePart === undefined ? undefined : (JSON.parse(await readFile(
+  new URL('./fixtures/public-query-portable-parts.json', import.meta.url), 'utf8')) as PortableParts).parts[ciPart!].receiptPrefixes;
 const acceptanceTimeout = selectAcceptanceTimeout(process.env);
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -35,8 +38,8 @@ await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
   // inside this existing owned evidence scope, including a killed child.
   keepArtifacts: unionBudgetOnly || process.argv.includes('--keep-artifacts')},
 async ({root, directory, run: capture, recordTarball}) => {
-const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
-function run(command, args, cwd = root, env = environment,
+const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: packedNpmCache(root)};
+function run(command: string, args: readonly string[], cwd = root, env = environment,
   timeout = 240_000) {
   return capture(command, args, {cwd, env, timeout});
 }
@@ -319,7 +322,7 @@ if (environment.NODE_EXTRA_CA_CERTS) {
     await readFile(join(root, 'remote.crt')), Buffer.from('\n'),
   ]));
 }
-const runtimeEnvironment = {...environment,
+const runtimeEnvironment: NodeJS.ProcessEnv = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: runtimeCaPath};
 if (process.argv.includes('--distinct-join-order-only')) {
@@ -786,7 +789,7 @@ try {
     encoding: 'utf8', timeout: 30_000});
   await writeFile(join(directory, 'missing-generated-asset.json'), JSON.stringify({
     status: negative.status, signal: negative.signal, stderr: negative.stderr,
-    error: negative.error?.code ?? null}, null, 2) + '\n');
+    error: (negative.error as NodeJS.ErrnoException | undefined)?.code ?? null}, null, 2) + '\n');
   assert.equal(negative.error, undefined);
   assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
   assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
@@ -872,20 +875,20 @@ const narrowPublicQuery = process.argv.some(flag => ['--vector-scalar-only', '--
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
-async function retainTransportReports(names, succeeded, primary, indexName) {
+async function retainTransportReports(names: readonly string[], succeeded: boolean, primary: unknown, indexName: string) {
   const availability = [];
-  let evidenceFailure;
-  const failed = (name, error) => {
+  let evidenceFailure: unknown;
+  const failed = (name: string, error: unknown) => {
     if (primary === undefined) evidenceFailure ??= error;
-    else (primary.transportEvidenceErrors ??= []).push({name, code: error.code});
+    else ((primary as TransportEvidenceFailure).transportEvidenceErrors ??= []).push({name, code: (error as NodeJS.ErrnoException).code});
   };
   for (const name of names) {
     try {
       await writeFile(join(directory, name), await readFile(join(root, name)));
       availability.push({name, available: true});
     } catch (error) {
-      if (error.code !== 'ENOENT' || succeeded) failed(name, error);
-      availability.push({name, available: false, error: error.code});
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || succeeded) failed(name, error);
+      availability.push({name, available: false, error: (error as NodeJS.ErrnoException).code});
     }
   }
   try {
@@ -895,7 +898,7 @@ async function retainTransportReports(names, succeeded, primary, indexName) {
 }
 const graphArgumentChecksSelected = portableExtras && (runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
   !process.argv.some(flag => flag.endsWith('-only')));
-let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
+let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure: unknown;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     acceptanceStarted = true;
@@ -975,20 +978,20 @@ try {
   try {
     await writeFile(join(directory, 'two-source-example.json'),
       await readFile(join(root, 'two-source-example-report.json')));
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   // Preserve two-source observations beside existing command/tarball evidence
   // before the harness removes its installed consumer, including on failure.
   try {
     await writeFile(join(directory, 'two-source-acceptance.json'),
       await readFile(join(root, 'two-source-packed-report.json')));
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   try {
     await writeFile(join(directory, 'planner-selection-acceptance.json'),
       await readFile(join(root, 'planner-selection-packed-report.json')));
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
 }
-async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
-  let succeeded = false, primary;
+async function exerciseRetainedQueryRestart(extraEnvironment: NodeJS.ProcessEnv = {}) {
+  let succeeded = false, primary: unknown;
   try {
     console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
       {...runtimeEnvironment, ...extraEnvironment,

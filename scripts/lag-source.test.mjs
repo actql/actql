@@ -24,7 +24,7 @@ test('Lag independent controls distinguish navigation order, offset, partitions 
 });
 test('Lag fixtures reach both ordinary and focused installed public consumers',()=>{
   const packed=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const installer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const installer=readFileSync('scripts/test-packed-public-query.mts','utf8');
   for(const symbol of ['lagSourceSuccesses','lagSourceRefusals'])assert.ok(packed.includes('...'+symbol));
   assert.ok(packed.includes('process.env.ACTQL_TEST_LAG_ONLY'));
   assert.ok(installer.includes("['scripts/fixtures/lag-source-input.mjs', 'lag-source-input.mjs']"));

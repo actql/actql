@@ -41,7 +41,7 @@ test('Shortest oracles preserve zero-hop, independent identities and all selecti
 });
 
 test('Shortest packed profile includes external public transports and fresh-process rereads', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphShortestSourceSuccesses'],
     ['refusals', 'graphShortestSourceRefusals']]) {

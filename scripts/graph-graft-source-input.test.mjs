@@ -21,7 +21,7 @@ test('graft independent fixture preserves parallel self-loops and both Result co
 
 test('graft public fixtures reach the normal and narrow packed harness', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphGraftSourceSuccesses'],
     ['refusals', 'graphGraftSourceRefusals'], ['executionFailures', 'graphGraftSourceExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

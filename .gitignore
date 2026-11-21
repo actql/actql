@@ -993,3 +993,5 @@ target/
 /scripts/fixtures/graph-host-cases.d.mts
 /scripts/fixtures/packed-query-transport-owner.mjs
 /scripts/fixtures/packed-query-transport-owner.d.mts
+/scripts/test-packed-public-query.mjs
+/scripts/test-packed-public-query.d.mts

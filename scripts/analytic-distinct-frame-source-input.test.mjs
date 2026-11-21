@@ -19,7 +19,7 @@ test('independent cumulative and grouped DISTINCT retain duplicate observations'
 
 test('ordinary and narrow packed selections retain the same analytic boundary', async () => {
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...analyticDistinctFrameSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...analyticDistinctFrameRefusals)'));
   assert.ok(corpus.match(/const scopeOnly = ([^;]+);/u)?.[1].split(' || ').includes('analyticDistinctFrameOnly'));
