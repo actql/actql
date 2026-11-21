@@ -3149,6 +3149,17 @@
       "statement_sha256": "b4adf7eb75c82096e5ad799fe3d1e80cf8cf02b3dfe523c693c84726e8600ddf"
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.exact-timestamp-diff",
+      "statement_sha256": "de2b4fc2ed1169b0b17b20b0323c4361be2112cb5d369725271147c9e4424f6f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.fixed-interval-source",
       "status": "pending",
       "reason": "implementation_evidence_required",
@@ -11103,7 +11114,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "c4d28dabec64d12d635220b4a76d5c75cc7db1ec6f846a1f9c3a25c9bde5d2db",
+      "statement_sha256": "00ff7922bd0551accdbc084d3d08992f49cfe827439a6709b754d8fa15f4a820",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

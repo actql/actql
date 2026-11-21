@@ -137,8 +137,8 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
       {type: 'integer', minimum: 0});
   }
   const currentPins = {
-    executable_plan: 'sha256:50a578c8d3b0ccd44d68e032fe85cecf3d4cdedb3fdf9be362bc134883ab8e4d',
-    plan_document: 'sha256:9e8abe49d7faed9aaa571aa9b536e89e9b0881c5d60a76f0392ffa841f17ef1c',
+    executable_plan: 'sha256:ec3cdf0aa52168cf6425115daad2debcf01cca7460e1c66f838d5b5a1b224753',
+    plan_document: 'sha256:743f6ce6f4c373784c88a484ec0f17920ab5d58c33881eeb41872669792bee7e',
   };
   const normative = readFileSync('docs/spec/protocols/contracts.md', 'utf8');
   for (const [key, current] of Object.entries(currentPins)) {

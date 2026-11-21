@@ -633,10 +633,6 @@ export const timestampDiffOriginal = {name: 'timestamp-diff', format: 'sql',
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
-  dateLiteralOriginal,
-  timestampLiteralOriginal,
-  ...generateArrayOriginalCases,
-  timestampDiffOriginal,
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
@@ -719,6 +715,10 @@ export const sourceFreeSuccesses = [
   {name: 'source-free-cte', format: 'sql',
     text: 'WITH seed AS (SELECT 2 AS x |> WHERE x > 0 |> SELECT x) SELECT x FROM seed ORDER BY x',
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
+  dateLiteralOriginal,
+  timestampLiteralOriginal,
+  ...generateArrayOriginalCases,
+  timestampDiffOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
