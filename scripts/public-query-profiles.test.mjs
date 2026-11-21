@@ -339,9 +339,9 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // its named order code in the full and portable-1 corpus preimages.
   // The original positional CTE query returns its two values under the left name.
   // The original simple CASE adds one ordinary standard-profile success.
-  assert.equal(pin.totalCases, 4296);
-  assert.deepEqual(pin.counts, {"successes":2711,"executionFailures":53,"refusals":1532});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2657,"executionFailures":51,"refusals":1493}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.equal(pin.totalCases, 4297);
+  assert.deepEqual(pin.counts, {"successes":2712,"executionFailures":53,"refusals":1532});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2658,"executionFailures":51,"refusals":1493}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},
