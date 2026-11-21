@@ -11,7 +11,7 @@ type SemanticReadHandle = Omit<FileHandle, 'close'> & Pick<PhysicalReadHandle, '
 type NativeSelection = boolean | 'publication';
 type ReadDemand = (size: number) => unknown;
 type NativeContractRow = Readonly<{name: string; wire: string; publication?: true}>;
-type SemanticContract = Readonly<{identity: string; name: string; wire: string}>;
+export type SemanticContract = Readonly<{identity: string; name: string; wire: string}>;
 type SemanticOriginal<Contract> = Readonly<{bytes: Buffer}> & (
   Readonly<{native: Contract; publication: boolean; physicalCid?: never; generation?: never}> |
   Readonly<{native?: never; physicalCid: string; generation?: Readonly<{device: string; inode: string}>}>
@@ -192,7 +192,7 @@ export function createPublicationSemanticReader<Contract extends SemanticContrac
   const readContract = async (
     cid: string, contractName?: string,
     readOriginal: (cid: string, includeNative: NativeSelection) => Promise<SemanticOriginal<Contract>> = readSemanticOriginal,
-  ) => {
+  ): Promise<Readonly<{wire: string; value: unknown; contract?: Contract}>> => {
     const includeNative = contractName === undefined || nativeContractRead(contractName);
     const original = await readOriginal(cid, includeNative);
     const native = original.native;

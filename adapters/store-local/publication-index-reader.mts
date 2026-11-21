@@ -8,7 +8,7 @@ import {fail, readBounded} from './publication-store-io.mjs';
 
 type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 type RequireInventory = ReturnType<typeof createPublicationMetadataInventory>['requireCommittedMetadataInventory'];
-type PublicationIndexEntry = Parameters<RequireInventory>[0] & Readonly<{
+export type PublicationIndexEntry = Parameters<RequireInventory>[0] & Readonly<{
   authority_scope_cid: string;
   run_definition_cid: string;
   public_index_entry_cid: string;
@@ -29,10 +29,10 @@ type IndexOriginal<Contract> = Readonly<{
   contract: Contract;
   native?: NativeIndexOriginal;
 }>;
-type IndexReadDemand<Contract> = NonNullable<Parameters<RequireInventory>[1]> & {
+export type IndexReadDemand<Contract> = NonNullable<Parameters<RequireInventory>[1]> & {
   retain(slot: number, value: Contract, fields: number): unknown;
 };
-type SelectedIndex<Contract> = Readonly<{entry: PublicationIndexEntry; index: Contract}>;
+export type SelectedIndex<Contract> = Readonly<{entry: PublicationIndexEntry; index: Contract}>;
 type IndexLookupAuthorization = (facts: Readonly<WireRunRef & {entry?: PublicationIndexEntry}>) => unknown;
 type IndexPorts<Contract> = Readonly<{
   active(): unknown;

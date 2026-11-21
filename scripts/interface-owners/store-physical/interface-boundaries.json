@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "37d5aad1bd72a2fa04ed4816e4b4bb34c5dd84cd58d895c12ece8d5ae13c17c0",
+      "sha256": "dbd31716fe8a3e41a1bcfcca565f4e6eb168206f63b274a2b36896619709b123",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7394,6 +7394,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/parseContract/parseContract",
           "parameters": [
             "contract"
@@ -7485,27 +7492,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "expectedPriorExtensionCid",
-            "extension",
-            "admittedAt"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
           "parameters": [],
           "async": false
         },
@@ -7679,32 +7665,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
-          "parameters": [
-            "key",
-            "definitionCid",
-            "publication"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
-          "parameters": [
-            "cid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "publication",
-            "readDemand"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
           "parameters": [
             "name"
@@ -7760,29 +7720,6 @@
           "parameters": [
             "holdingCid",
             "readDemand"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
-          "parameters": [
-            "cid",
-            "includeNative"
           ],
           "async": false
         },
@@ -7902,24 +7839,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "publication",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
-          "parameters": [
-            "cid",
-            "includeNative"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
           "parameters": [],
           "async": false
@@ -7955,6 +7874,21 @@
           "name": "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
           "parameters": [
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
+          "parameters": [
+            "keyHash"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
+          "parameters": [
+            "keyHash",
+            "resultDefinitionCid"
           ],
           "async": false
         },
@@ -8243,9 +8177,7 @@
           }
         },
         {
-          "operations": [
-            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -8521,6 +8453,7 @@
             "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
@@ -8530,9 +8463,6 @@
             "openOriginalLocalPublicationStore/putBytes/putBytes",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
@@ -8544,17 +8474,12 @@
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
-            "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
-            "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
-            "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
-            "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
-            "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
@@ -8570,7 +8495,6 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
-            "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
@@ -8614,7 +8538,8 @@
             "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
             "openOriginalLocalPublicationStore/parseContract/parseContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
-            "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
+            "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
+            "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
             "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
@@ -8872,7 +8797,7 @@
                 "anchor": "let scopeActive = true, physicalReadPending = false, readerRetired = false;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-metadata.mts",
                 "anchor": "const readResultRetentionExtension = async ("
               },
               {
@@ -12201,6 +12126,226 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-result-metadata.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2d53550528f60726823d9dd1128373742bb35cd4cc23996830e5c2838f159430",
+      "exports": [
+        "createPublicationResultMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationResultMetadata",
+          "parameters": [
+            "configuration",
+            "retentionExtensionsDirectory",
+            "recordNamePattern",
+            "timestampPattern",
+            "selectedPublicationReads",
+            "active",
+            "cidHex",
+            "confirmSelectedCommittedIndex",
+            "runMetadataDeletionStarted",
+            "readResultDeletion",
+            "readContract",
+            "readSemanticOriginal",
+            "readSemanticBytes",
+            "retentionExtensionDirectory",
+            "retentionExtensionResultDirectory",
+            "syncDirectory",
+            "putPublicationContract",
+            "materialRetentionCurrent",
+            "retainMaterialOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "expectedPriorExtensionCid",
+            "extension",
+            "admittedAt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
+          "parameters": [
+            "key",
+            "definitionCid",
+            "publication"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationResultMetadata/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
+          "parameters": [
+            "cid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationResultMetadata/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "publication",
+            "readDemand"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/readResultRetentionExtension/readResultRetentionExtension/records/records",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/requireCommittedResultBinding/requireCommittedResultBinding",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "publication",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationResultMetadata/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationResultMetadata/requireResultNotDeleted/requireResultNotDeleted",
+          "parameters": [
+            "keyHash",
+            "selected",
+            "resultDefinitionCid",
+            "readDemand"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationResultMetadata",
+            "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+            "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
+            "createPublicationResultMetadata/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+            "createPublicationResultMetadata/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
+            "createPublicationResultMetadata/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
+            "createPublicationResultMetadata/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
+            "createPublicationResultMetadata/readResultRetentionExtension/readResultRetentionExtension/records/records",
+            "createPublicationResultMetadata/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
+            "createPublicationResultMetadata/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
+            "createPublicationResultMetadata/requireCommittedResultBinding/requireCommittedResultBinding",
+            "createPublicationResultMetadata/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
+            "createPublicationResultMetadata/requireResultNotDeleted/requireResultNotDeleted"
+          ],
+          "exports": [
+            "createPublicationResultMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A Result description selects its committed Index"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "const readResultRetentionExtension = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "record.base_retention_policy_cid !=="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "selectedPublicationReads.delete(publication as SelectedIndex<Contract>);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "const operation = materialRetentionCurrent().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "fail('PublicationRetentionExtensionConflict');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "if (await runMetadataDeletionStarted(entry.run_definition_cid))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-result-metadata.mts",
+                "anchor": "readDemand?.release(7);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result retention extensions are append-only CAS records across restart"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-index-reader.mjs",

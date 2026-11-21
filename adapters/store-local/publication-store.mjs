@@ -44,6 +44,7 @@ import {createEffectCaptureCustodyRecords, createPublicationCustodyRecords} from
 import {createPublicationObjectVerifier} from './publication-object-verifier.mjs';
 import {createPublicationSemanticReader} from './publication-semantic-reader.mjs';
 import {createPublicationIndexReader} from './publication-index-reader.mjs';
+import {createPublicationResultMetadata} from './publication-result-metadata.mjs';
 import {createPublicationTrustedClock} from './publication-trusted-clock.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
@@ -2798,136 +2799,6 @@ async function openOriginalLocalPublicationStore(
       readMetadataDeletion, requireCommittedMetadataInventory, syncDirectory, writeNativeIndexOriginal,
     });
 
-  const readResultRetentionExtension = async (
-    keyHash,
-    resultDefinitionCid,
-    readDemand,
-  ) => {
-    const directory = retentionExtensionResultDirectory(
-      keyHash, resultDefinitionCid,
-    );
-    let names;
-    try {
-      if (!(await lstat(retentionExtensionDirectory(keyHash))).isDirectory() ||
-          !(await lstat(directory)).isDirectory()) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      names = await readdir(directory);
-    }
-    catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
-      throw error;
-    }
-    await syncDirectory(directory);
-    const records = names.map(name => {
-      const match = recordNamePattern.exec(name);
-      if (!match) fail('InvalidPublicationRetentionExtensionStore');
-      return {name, sequence: Number(match[1])};
-    }).sort((left, right) => left.sequence - right.sequence);
-    if (records.length === 0) {
-      fail('InvalidPublicationRetentionExtensionStore');
-    }
-    let previous;
-    for (let index = 0; index < records.length; index++) {
-      if (records[index].sequence !== index) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      const bytes = await readBounded(
-        resolve(directory, records[index].name),
-        configuration.maxObjectBytes, undefined, undefined, false, readDemand,
-      );
-      let value;
-      try { value = JSON.parse(bytes.toString('utf8')); }
-      catch (error) {
-        fail('InvalidPublicationRetentionExtensionStore', error);
-      }
-      if (!exactKeys(value, [
-        'version', 'sequence', 'public_index_entry_cid',
-        'result_definition_cid', 'base_retention_policy_cid',
-        'prior_extension_policy_cid', 'extension_retention_policy_cid',
-        'admitted_at',
-      ]) ||
-          value.version !==
-            'actql-local-result-retention-extension/0.1' ||
-          value.sequence !== index ||
-          !cidPattern.test(value.public_index_entry_cid) ||
-          value.result_definition_cid !== resultDefinitionCid ||
-          !cidPattern.test(value.base_retention_policy_cid) ||
-          (value.prior_extension_policy_cid !== null &&
-            !cidPattern.test(value.prior_extension_policy_cid)) ||
-          !cidPattern.test(value.extension_retention_policy_cid) ||
-          !timestampPattern.test(value.admitted_at) ||
-          value.prior_extension_policy_cid !==
-            (previous?.extension_retention_policy_cid ?? null)) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      previous = Object.freeze(value);
-      if (readDemand !== undefined) {
-        const extent = closedMetadataObjectExtent(previous);
-        readDemand.data(11, extent.nodes, extent.textUnits);
-        readDemand.finish();
-      }
-    }
-    return previous;
-  };
-
-  const requireCommittedResultBinding = async (
-    key,
-    resultDefinitionCid,
-    publication,
-    readDemand,
-  ) => {
-    cidHex(resultDefinitionCid);
-    let entry;
-    if (publication === undefined) entry = await confirmSelectedCommittedIndex(key, readDemand);
-    else {
-      active();
-      entry = selectedPublicationReads.get(publication);
-      if (entry === undefined || entry.namespace_id !== key.namespaceId ||
-          entry.authority_scope_cid !== key.authorityScopeCid ||
-          entry.run_definition_cid !== key.runDefinitionCid) fail('PublicationLookupDenied');
-      selectedPublicationReads.delete(publication);
-      // Real same-Store retirement invalidates the observation. This indexed
-      // fence does not reacquire/admit/hash the unchanged immutable Index.
-      if (await runMetadataDeletionStarted(entry.run_definition_cid)) fail('PublicationLookupDenied');
-    }
-    if (entry === undefined) fail('PublicationLookupDenied');
-    const matches = [];
-    for (const bindingCid of entry.durable_result_binding_cids) {
-      const {contract, value} = await readContract(
-        bindingCid, 'durable_result_binding',
-        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand),
-      );
-      if (value.result_definition_cid === resultDefinitionCid) {
-        if (matches.length !== 0) fail('PublicationLookupDenied');
-        matches.push({contract, value});
-        readDemand?.retain(7, contract, 2);
-      }
-      readDemand?.finish();
-    }
-    if (matches.length !== 1) fail('PublicationLookupDenied');
-    return Object.freeze({entry, ...matches[0]});
-  };
-
-  const requireResultNotDeleted = async (
-    keyHash,
-    selected,
-    resultDefinitionCid,
-    readDemand,
-  ) => {
-    const deletion = await readResultDeletion(
-      keyHash, resultDefinitionCid, readDemand,
-    );
-    if (deletion === undefined) return;
-    if (deletion.public_index_entry_cid !==
-        selected.entry.public_index_entry_cid ||
-        deletion.material_generation_cid !==
-          selected.value.material_generation_cid) {
-      fail('InvalidPublicationDeletionStore');
-    }
-    fail('PublicationObjectMissing');
-  };
-
   // The existing computation owner validates the containing chain first.
   // Here the Store confirms each common-described custody cell, including
   // Content not selected into a public Result. Equal bytes do not substitute
@@ -3838,176 +3709,6 @@ async function openOriginalLocalPublicationStore(
     );
   };
 
-  const readRetainedResultExtension = async (
-    key,
-    resultDefinitionCid,
-    metadataOnly = false,
-    publication,
-    readDemand,
-  ) => {
-    active();
-    const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid, publication, readDemand,
-    );
-    const keyHash = indexKey(key);
-    if (!metadataOnly) {
-      await requireResultNotDeleted(keyHash, selected, resultDefinitionCid, readDemand);
-    }
-    const result = await readSelectedResultRetentionExtension(
-      selected, keyHash, resultDefinitionCid, readDemand,
-    );
-    readDemand?.release(7);
-    return result;
-  };
-
-  const readSelectedResultRetentionExtension = async (
-    selected, keyHash, resultDefinitionCid, readDemand,
-  ) => {
-    const record = await readResultRetentionExtension(
-      keyHash, resultDefinitionCid, readDemand,
-    );
-    if (record === undefined) return undefined;
-    if (record.public_index_entry_cid !==
-        selected.entry.public_index_entry_cid ||
-        record.base_retention_policy_cid !==
-          selected.value.effective_retention_policy_cid) {
-      fail('InvalidPublicationRetentionExtensionStore');
-    }
-    const extension = await readContract(
-      record.extension_retention_policy_cid,
-      'result_retention_policy',
-      (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand),
-    );
-    readDemand?.retain(4, extension.contract, 1);
-    readDemand?.finish();
-    return Object.freeze({record, extension: extension.contract});
-  };
-
-  const readCommittedResultRetentionExtension = (key, resultDefinitionCid, publication, readDemand) =>
-    readRetainedResultExtension(key, resultDefinitionCid, false, publication, readDemand);
-
-  // Inspect the retained immutable schema and binding inventory. Payload
-  // deletion does not delete publication metadata; no generation is opened,
-  // hashed or held as a payload reader by this operation.
-  const readCommittedResultDescriptionEvidence = async (key, definitionCid, publication) => {
-    active();
-    const selected = await requireCommittedResultBinding(key, definitionCid, publication);
-    const bindings = await Promise.all(
-      selected.entry.durable_result_binding_cids.map(async cid =>
-        cid === selected.contract.identity ? selected.contract :
-          (await readContract(cid, 'durable_result_binding')).contract));
-    const schemaWire = (await readSemanticBytes(
-      selected.value.result_schema_cid, false)).toString('utf8');
-    const definition = (await readContract(
-      definitionCid, 'result_definition')).contract;
-    const retained = await readSelectedResultRetentionExtension(
-      selected, indexKey(key), definitionCid);
-    return Object.freeze({bindings, schemaWire, definition, retained});
-  };
-
-  const putCommittedResultRetentionExtension = async (
-    key,
-    resultDefinitionCid,
-    expectedPriorExtensionCid,
-    extension,
-    admittedAt,
-  ) => {
-    active();
-    if ((expectedPriorExtensionCid !== undefined &&
-          !cidPattern.test(expectedPriorExtensionCid)) ||
-        extension === null || typeof extension !== 'object' ||
-        extension.name !== 'result_retention_policy' ||
-        !cidPattern.test(extension.identity) ||
-        typeof extension.wire !== 'string' ||
-        !timestampPattern.test(admittedAt)) {
-      fail('InvalidPublicationRetentionExtension');
-    }
-    const operation = materialRetentionBusy.then(async () => {
-      const selected = await requireCommittedResultBinding(
-        key, resultDefinitionCid,
-      );
-      const keyHash = indexKey(key);
-      await requireResultNotDeleted(
-        keyHash, selected, resultDefinitionCid,
-      );
-      const current = await readResultRetentionExtension(
-        keyHash, resultDefinitionCid,
-      );
-      if (current?.public_index_entry_cid !== undefined &&
-          (current.public_index_entry_cid !==
-              selected.entry.public_index_entry_cid ||
-            current.base_retention_policy_cid !==
-              selected.value.effective_retention_policy_cid)) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      const currentCid = current?.extension_retention_policy_cid;
-      if (currentCid !== expectedPriorExtensionCid) {
-        fail('PublicationRetentionExtensionConflict');
-      }
-      if (currentCid === extension.identity) {
-        return Object.freeze({record: current, extension, idempotent: true});
-      }
-      const stored = await putPublicationContract(
-        'result_retention_policy', extension.wire,
-      );
-      if (stored.contract.identity !== extension.identity) {
-        fail('InvalidPublicationRetentionExtension');
-      }
-      const parent = retentionExtensionDirectory(keyHash);
-      let parentCreated = false;
-      try {
-        await mkdir(parent, {mode: 0o700});
-        parentCreated = true;
-      } catch (error) {
-        if (error?.code !== 'EEXIST' ||
-            !(await lstat(parent)).isDirectory()) throw error;
-      }
-      if (parentCreated) await syncDirectory(retentionExtensionsDirectory);
-      const directory = retentionExtensionResultDirectory(
-        keyHash, resultDefinitionCid,
-      );
-      let directoryCreated = false;
-      try {
-        await mkdir(directory, {mode: 0o700});
-        directoryCreated = true;
-      } catch (error) {
-        if (error?.code !== 'EEXIST' ||
-            !(await lstat(directory)).isDirectory()) throw error;
-      }
-      if (directoryCreated) await syncDirectory(parent);
-      const record = Object.freeze({
-        version: 'actql-local-result-retention-extension/0.1',
-        sequence: (current?.sequence ?? -1) + 1,
-        public_index_entry_cid: selected.entry.public_index_entry_cid,
-        result_definition_cid: resultDefinitionCid,
-        base_retention_policy_cid:
-          selected.value.effective_retention_policy_cid,
-        prior_extension_policy_cid: currentCid ?? null,
-        extension_retention_policy_cid: extension.identity,
-        admitted_at: admittedAt,
-      });
-      const bytes = Buffer.from(JSON.stringify(record), 'utf8');
-      if (bytes.byteLength > configuration.maxObjectBytes) {
-        fail('PublicationObjectLimit');
-      }
-      const path = resolve(directory, `${record.sequence}.json`);
-      try { await writeExclusive(path, bytes); }
-      catch (error) {
-        if (error?.code !== 'EEXIST') throw error;
-        const existing = await readBounded(
-          path, configuration.maxObjectBytes,
-        );
-        if (!existing.equals(bytes)) {
-          fail('PublicationRetentionExtensionConflict');
-        }
-      }
-      await syncDirectory(directory);
-      return Object.freeze({record, extension, idempotent: false});
-    });
-    materialRetentionBusy = operation.catch(() => {});
-    return operation;
-  };
-
   const collectRunMetadataContracts = async (
     runDefinitionCid,
     keyHash,
@@ -4521,6 +4222,16 @@ async function openOriginalLocalPublicationStore(
       readPhysicalHolding, readPhysicalHoldingDeletion, reclaimMetadataContract, confirmPhysicalRemovals,
       metadataRetentionCurrent, retainMetadataOperation,
     });
+
+  const {requireCommittedResultBinding, requireResultNotDeleted,
+    readCommittedResultRetentionExtension, readCommittedResultDescriptionEvidence, putCommittedResultRetentionExtension} =
+    createPublicationResultMetadata(configuration, retentionExtensionsDirectory, recordNamePattern, timestampPattern,
+      selectedPublicationReads, {
+        active, cidHex, confirmSelectedCommittedIndex, runMetadataDeletionStarted,
+        readResultDeletion: (...args) => readResultDeletion(...args),
+        readContract, readSemanticOriginal, readSemanticBytes, retentionExtensionDirectory, retentionExtensionResultDirectory,
+        syncDirectory, putPublicationContract, materialRetentionCurrent, retainMaterialOperation,
+      });
 
   const {readResultDeletion, createResultDeletionCleanup, retireCommittedResult, recoverRetiredResults} =
     createResultRetirement(configuration, deletionsDirectory, indexesDirectory, {
