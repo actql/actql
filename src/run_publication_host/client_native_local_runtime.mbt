@@ -321,6 +321,10 @@ fn assemble_client_native_local_product_originals(
   runtime : ClientNativeLocalRuntime,
   finite_run_profile? : Bool = false,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
   host_configuration? : String? = None,
   query_contracts? : (String, String)? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
@@ -365,6 +369,7 @@ fn assemble_client_native_local_product_originals(
           observed_at,
           assets,
           mock~,
+          mock_preparation~,
         )
       } else {
         client_local_product_originals(
@@ -476,6 +481,10 @@ pub fn client_native_local_finite_product_originals(
   assets : ClientLocalProductAssets,
   runtime : ClientNativeLocalRuntime,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
   host_configuration? : String? = None,
   query_contracts? : (String, String)? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
@@ -488,6 +497,7 @@ pub fn client_native_local_finite_product_originals(
     runtime,
     finite_run_profile=true,
     mock~,
+    mock_preparation~,
     host_configuration~,
     query_contracts~,
   )

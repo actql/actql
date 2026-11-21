@@ -330,7 +330,7 @@ pub fn captured_client_result_transformation_matches_run(
   match value.borrow {
     Some(Cells(borrow)) =>
       @strategy.captured_result_borrow_matches_run(borrow, run)
-    Some(Any(borrow)) =>
+    Some(Any(borrow)) | Some(EffectResult(borrow, _)) =>
       @strategy.captured_any_result_borrow_matches_run(borrow, run)
     None => false
   }
@@ -371,6 +371,7 @@ pub fn CapturedClientResultTransformation::cancel(
         @strategy.release_captured_result_borrow(borrow) |> ignore
       Any(borrow) =>
         @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      EffectResult(_, _) => ()
     }
     self.borrow = None
   }

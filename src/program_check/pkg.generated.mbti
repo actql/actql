@@ -243,6 +243,8 @@ pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.C
 
 pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
 
+pub fn effect_program_common_update_normalization_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateNormalizationInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_local_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
@@ -436,6 +438,10 @@ pub fn local_common_normalization_retained_extent(LocalCommonNormalizationInvent
 pub fn local_common_normalization_uses_source_completion(LocalCommonNormalizationInventory) -> Bool
 
 pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
+
+pub fn local_common_update_source_normalization_computation(LocalCommonUpdateSourceNormalizationInventory) -> LocalCommonNormalizationInventory
+
+pub fn local_common_update_source_normalization_inventory_matches(LocalCommonUpdateSourceNormalizationInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
@@ -1515,6 +1521,13 @@ pub(all) enum LocalCommonNormalizationIssue {
 } derive(Eq, @debug.Debug)
 
 type LocalCommonUpdateCompletionFreeInventory
+
+pub(all) enum LocalCommonUpdateNormalizationInventory {
+  CompletionFree(LocalCommonUpdateCompletionFreeInventory)
+  SourceCompleted(LocalCommonUpdateSourceNormalizationInventory)
+}
+
+type LocalCommonUpdateSourceNormalizationInventory
 
 type LocalCompletionFreeInventory
 

@@ -176,7 +176,37 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
   guard !self.closing &&
     !self.closed &&
     !self.advancing &&
-    self.effect_review is Some(saved) &&
+    self.first_start is Some(first) &&
+    self.effect_review is Some(saved) else {
+    return Err(Journal(CustodyLost))
+  }
+  saved.display_preview_in_original_read(
+    self.capture,
+    first,
+    self.definition,
+    self.principal,
+    () => !self.closing && !self.closed && !self.advancing,
+    connection,
+    checkpoint_id,
+    checkpoint_cid,
+  )
+}
+
+///|
+/// Display the exact waiting record retained by either original command.
+pub fn NativeMockEffectReview::display_preview_in_original_read(
+  saved : Self,
+  capture : NativeLocalJournalCapture,
+  first : NativeClientWorkFirstStart,
+  definition : @publication.PublicationContract,
+  principal : String,
+  owner_current : () -> Bool,
+  connection : String,
+  checkpoint_id : String,
+  checkpoint_cid : String,
+) -> Result[@canonical.CanonicalValue, NativeLocalAdoptionIssue] {
+  guard first.definition_cid ==
+    @publication.publication_contract_identity(definition) &&
     saved.waiting is Some(waiting) &&
     waiting.checkpoint is Some(original) &&
     original.artifact.checkpoint.checkpoint_id == checkpoint_id &&
@@ -188,7 +218,7 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
     return Err(Journal(CustodyLost))
   }
   match
-    self.capture.prepare_model_entry_construction(
+    capture.prepare_model_entry_construction(
       Some(65536),
       nodes=8192,
       depth=64,
@@ -204,27 +234,26 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  self.capture.with_current_adoption_material_in_original_read((
+  capture.with_current_adoption_material_in_original_read((
     host,
     material,
     operations,
   ) => {
     let current = () => {
-      !self.closing &&
-      !self.closed &&
-      !self.advancing &&
+      owner_current() &&
+      physical_equal(first.journal, host.journal) &&
       saved._retained_store.retained_data_current() is Ok(_) &&
-      self.capture.operation_scope(host, material, self.principal, connection)
+      capture.operation_scope(host, material, principal, connection)
       is Ok(scope) &&
-      scope == @host.client_request_authority_scope_cid(self.request) &&
-      self.capture.operation_account(host, material, {
-        principal: self.principal,
+      scope == @host.client_request_authority_scope_cid(first.request) &&
+      capture.operation_account(host, material, {
+        principal,
         connection,
         resource: "run",
         operation: "read",
       })
       is Ok(@authorization.Allow(_)) &&
-      host.journal.retained(self.request, reads=Some(operations.reads))
+      host.journal.retained(first.request, reads=Some(operations.reads))
       is Ok(Some(actual)) &&
       actual.revision == waiting.revision &&
       !actual.cancellation_requested &&
@@ -244,7 +273,7 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
     }
     if persisted.artifact.checkpoint_cid != checkpoint_cid ||
       @publication.effect_preview_run_identity(identity) !=
-      @publication.publication_contract_identity(self.definition) ||
+      @publication.publication_contract_identity(definition) ||
       @publication.effect_preview_semantic_identity(identity) !=
       persisted.artifact.checkpoint.required_artifact_cid ||
       !current() {
@@ -280,7 +309,7 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
     }
     guard saved_effect_wire_construction(geometry)
       is Some((retained, peak, raw)) &&
-      self.capture.original_resources is Some(resources) else {
+      capture.original_resources is Some(resources) else {
       return Err(ConfigurationLimit)
     }
     // Add this new parser/index beside every existing Store/Model frame.
@@ -315,7 +344,7 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
       Err(issue) => return Err(issue)
     }
     match
-      self.capture.prepare_effect_display_identity_construction(
+      capture.prepare_effect_display_identity_construction(
         saved._retained_display_constructor_bytes,
         geometry.input_bytes,
         geometry.node_upper,
@@ -335,7 +364,7 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
       @publication.admit_effect_preview_identity_cursor_with_original(
         wire,
         cursor,
-        @publication.publication_contract_identity(self.definition),
+        @publication.publication_contract_identity(definition),
         @publication.effect_preview_authoring_context_cid(identity),
         limits.max_wire_bytes,
         limits.max_nodes,

@@ -55,6 +55,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessEffectAcceptance(
     @local_host.NativeClientSubmittedEffectMaterialsIssue
   )
+  CommandBusinessEffectStart(@local_host.NativeClientSourceWorkIssue)
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
   CommandRunObservationPending

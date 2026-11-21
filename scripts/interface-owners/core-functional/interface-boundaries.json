@@ -87498,12 +87498,16 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "f6ba3f3cc9809dc68fac4199ed27929c5b1f674bbbafb0a59860371ff51dd856",
+      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
       "exports": [],
       "operations": [
         {
           "name": "[T]installed_effect_model_unit_managed_export_limits",
           "declaration": "[ T ] installed_effect_model_unit_managed_export_limits ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , output : @ execution . ManagedCompletedOutput [ T ] , material : @ execution . ManagedRetainedOutput [ T ] , ) - > Result [ @ publication_host . PublicationOutputExportLimits , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "[T]measure_installed_effect_direct_publication",
+          "declaration": "[ T ] measure_installed_effect_direct_publication ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , capacity : @ execution . ExecutionCapacity , measure : ( ) - > Result [ T , ClientEffectUnitPreparationIssue ] , ) - > Result [ T , ClientEffectUnitPreparationIssue ]"
         },
         {
           "name": "borrow_installed_effect_dispatch_preparation",
@@ -87526,6 +87530,10 @@
           "declaration": "effect_unit_sealed_geometry ( name : String , body : @ encode . EncodingConstructionGeometry , identity : String , ) - > @ encode . EncodingConstructionGeometry ?"
         },
         {
+          "name": "installed_effect_direct_publication_control",
+          "declaration": "installed_effect_direct_publication_control ( entries : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "installed_effect_managed_publication_limits",
           "declaration": "installed_effect_managed_publication_limits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
         },
@@ -87544,6 +87552,14 @@
         {
           "name": "pin_installed_effect_model_unit_results",
           "declaration": "pin_installed_effect_model_unit_results ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_combined_source_result_artifact",
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_combined_source_unit",
+          "declaration": "prepare_installed_effect_combined_source_unit ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , ClientEffectUnitPreparationIssue , ]"
         },
         {
           "name": "prepare_installed_effect_model_source_unit",
@@ -87582,16 +87598,20 @@
           "operations": [
             "<module>",
             "[T]installed_effect_model_unit_managed_export_limits",
+            "[T]measure_installed_effect_direct_publication",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
+            "installed_effect_direct_publication_control",
             "installed_effect_managed_publication_limits",
             "installed_effect_model_unit_parent",
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
             "pin_installed_effect_model_unit_results",
+            "prepare_installed_effect_combined_source_result_artifact",
+            "prepare_installed_effect_combined_source_unit",
             "prepare_installed_effect_model_source_unit",
             "prepare_installed_effect_model_source_unit_artifact",
             "prepare_installed_effect_model_source_unit_catalog",
@@ -87676,6 +87696,14 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
                 "anchor": "test \"Effect publication limits refuse copied plan request and retired original\""
+              },
+              {
+                "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
+                "anchor": "test \"Native shared-file Effect joins and binds both original Source observations without a Model\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+                "anchor": "test \"two Effect Unit measurements return writer workspace on the same adopted Plan\""
               }
             ]
           }
@@ -110780,7 +110808,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "439ac3e35e6205951e55c1a4c1e36889fcd5e8d7bed776d4a833e3c64deae2f0",
+      "sha256": "29945269a3b4ebecf04e49dc652bdcc1ccdaccdc9b249b7383340648eaaf689f",
       "exports": [],
       "operations": [
         {
@@ -110888,6 +110916,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
+                "anchor": "Native shared-file Effect joins and binds both original Source observations without a Model"
               }
             ]
           }
@@ -110896,7 +110928,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "60436ac9d29efd86faf773289ef77a8097b577dbce831bc9077705394d817339",
+      "sha256": "4c72bf8127b5a75e258554479af084a774ccffbd04cb30185ab8b1ca649072f8",
       "exports": [],
       "operations": [
         {
@@ -112453,7 +112485,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "9a8042366e6e22e42b5fadad0d0f30e2904a303f255da63a3e97dcdb7f65c112",
+      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
       "exports": [],
       "operations": [
         {
@@ -113589,7 +113621,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "276297f17df9f25922db5e69143a61ce8a8c0cd0f0c3b0b0bdc7b081a7bfc993",
+      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
       "exports": [],
       "operations": [
         {

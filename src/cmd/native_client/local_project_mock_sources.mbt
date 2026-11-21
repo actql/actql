@@ -61,6 +61,78 @@ fn local_project_mock_relation_input(
 }
 
 ///|
+// These selections already share the Project's one exact data file. Compare
+// structural path components without building another inventory or joining key
+// strings. Equal paths and either prefix describe overlapping collections.
+fn local_project_mock_collection_overlaps(
+  selected : Array[String],
+  previous : Array[String],
+) -> Bool {
+  for index in 0..<Int::min(selected.length(), previous.length()) {
+    if selected[index] != previous[index] {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn local_project_mock_conflicts_with_writes(
+  path : Array[String],
+  rows : Array[LocalProjectMockRowBinding],
+  writes : Array[LocalProjectMockWriteDeclaration],
+  end : Int,
+) -> Bool {
+  if writes.is_empty() {
+    return false
+  }
+  for index in 0..<end {
+    let row = rows[index]
+    if local_project_mock_collection_overlaps(
+        path,
+        row._retained_selection.items_path,
+      ) &&
+      writes.any(write => write.mapping.resource == row.view.resource) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+// The caller retains all preceding admitted source selections. This scan
+// borrows only their existing bounded Catalog data, before Account or I/O.
+fn local_project_mock_check_writable_collections(
+  rows : Array[LocalProjectMockRowBinding],
+  writes : Array[LocalProjectMockWriteDeclaration],
+  previous : Array[LocalProjectMockSourceDeclaration],
+) -> Bool {
+  if writes.is_empty() {
+    return true
+  }
+  for index in 0..<rows.length() {
+    let row = rows[index]
+    if writes.any(write => write.mapping.resource == row.view.resource) {
+      let path = row._retained_selection.items_path
+      if local_project_mock_conflicts_with_writes(path, rows, writes, index) {
+        return false
+      }
+      for source in previous {
+        if local_project_mock_conflicts_with_writes(
+            path,
+            source._retained_rows,
+            source._retained_writes,
+            source._retained_rows.length(),
+          ) {
+          return false
+        }
+      }
+    }
+  }
+  true
+}
+
+///|
 fn LocalProjectMockDeclarations::prepare_source_declarations(
   self : Self,
 ) -> Result[Unit, LocalProjectMockModelIssue] {
@@ -175,6 +247,14 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
         self.model_failure = Some(Source(issue))
         return Err(Source(issue))
       }
+    }
+    if !local_project_mock_check_writable_collections(
+        rows,
+        writes,
+        self.sources,
+      ) {
+      self.model_failure = Some(OverlappingWritableCollections)
+      return Err(OverlappingWritableCollections)
     }
     // Keep the same declaration before constructing the next sibling. These
     // are contracts, not installation members, physical Sources or read grants.

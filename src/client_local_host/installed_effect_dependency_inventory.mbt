@@ -76,6 +76,42 @@ pub fn prepare_installed_effect_dependency_inventory(
   max_depth : Int,
   original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact] = [],
 ) -> Result[String, ClientInstalledManagedRunIssue] {
+  prepare_installed_effect_dependency_inventory_retained(
+    owner,
+    prepared,
+    request,
+    expected_plan,
+    kinds,
+    identities,
+    wires,
+    artifacts,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    original_artifacts~,
+  ).map(@publication.captured_effect_dependency_inventory_json)
+}
+
+///|
+/// The Native caller already holds the nominal Run. Return that same funded
+/// inventory for the captured-run issuer without decoding another copy.
+pub fn prepare_installed_effect_dependency_inventory_retained(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  kinds : Array[String],
+  identities : Array[String?],
+  wires : Array[String],
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact] = [],
+) -> Result[
+  @publication.CapturedEffectDependencyInventory,
+  ClientInstalledManagedRunIssue,
+] {
   let result = prepare_installed_effect_dependency_inventory_original(
     owner,
     prepared,
@@ -117,7 +153,10 @@ fn prepare_installed_effect_dependency_inventory_original(
   max_nodes : Int,
   max_depth : Int,
   original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact] = [],
-) -> Result[String, ClientInstalledManagedRunIssue] {
+) -> Result[
+  @publication.CapturedEffectDependencyInventory,
+  ClientInstalledManagedRunIssue,
+] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
@@ -425,5 +464,5 @@ fn prepare_installed_effect_dependency_inventory_original(
   // or a callback's presence cannot manufacture this original association.
   control.dependency_inventory = Some(inventory)
   control.dependency_inventory_geometry = Some(geometry)
-  Ok(@publication.captured_effect_dependency_inventory_json(inventory))
+  Ok(inventory)
 }
