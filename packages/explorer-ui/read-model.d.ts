@@ -1,5 +1,6 @@
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
-import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
+import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView,
+  WireExplanationContext, WireStaticExplanationView} from '@actql/client-wire';
 
 export class ExplorerReadError extends Error { readonly code: string }
 export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
@@ -46,11 +47,18 @@ export type ExplanationStoryModel = Omit<PlanStoryModel, 'occurrences'> & Readon
 }>;
 export function explanationStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
   facts: WireExplanationFacts, options?: {locale?: 'en' | 'ja'}): ExplanationStoryModel;
+export type StaticExplanationReadModel = Readonly<{plan: PlanReadModel; story: ExplanationStoryModel;
+  context: readonly Readonly<{origin: WireExplanationContext['items'][number]; text: string}>[]}>;
+export function staticExplanationReadModel(view: WireStaticExplanationView,
+  options?: {locale?: 'en' | 'ja'}): StaticExplanationReadModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
 export function createReadEpoch(): Readonly<{invalidate(): void; capture(): ReadTicket}>;
 export function readStaticPlan(client: Pick<Client, 'plan'>,
   input: Parameters<Client['plan']>[0], options: Parameters<Client['plan']>[1],
   ticket: ReadTicket): Promise<PlanReadModel>;
+export function readStaticExplanation(client: Pick<Client, 'explain'>,
+  input: Parameters<Client['explain']>[0], options: Parameters<Client['explain']>[1],
+  presentation: {locale?: 'en' | 'ja'} | undefined, ticket: ReadTicket): Promise<StaticExplanationReadModel>;
 export function readExistingRun(client: Pick<Client, 'attach'>,
   ref: RunReference, ticket: ReadTicket): Promise<WireRunView>;
 export type OriginalRunPlanReadModel = Readonly<{

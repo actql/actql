@@ -90,6 +90,16 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return answer.capabilities;
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
+    async staticExplanation(input, options, locale = 'en') {
+      if (locale !== 'en' && locale !== 'ja') refused('ExplorerInvalidReply');
+      const value = await read('static-explanation', {input, locale, ...(options === undefined ? {} : {options})});
+      const {plan, story, context} = value ?? {};
+      if (typeof plan?.logicalMapCid !== 'string' || plan.logicalMapCid !== story?.logicalMapCid ||
+          plan.compiledPlanCid !== story.compiledPlanCid || plan.programDefinitionCid !== story.programDefinitionCid ||
+          story.locale !== locale || !Array.isArray(story.occurrences) || !Array.isArray(context) ||
+          context.some(item => typeof item?.text !== 'string' || item.origin == null)) refused('ExplorerInvalidReply');
+      return value;
+    },
     async launchView() {
       const view = await read('launch', {});
       if (view === null) return null;

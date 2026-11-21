@@ -6,7 +6,7 @@ import type {OriginalCancellation, CancellationObservation} from '@actql/explore
 import {validCancellationRef, validOperationAttemptRef} from '@actql/client-wire';
 import type {WireCancellationLookup} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
-import type {PlanReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel} from '@actql/explorer-ui/read-model';
+import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
 import './styles.css';
@@ -14,6 +14,7 @@ import './styles.css';
 function App() {
   const source = useMemo(() => createExplorerBrowserSource({origin: window.location.origin}), []);
   const [connected, connect] = useState(false), [plan, showPlan] = useState<PlanReadModel>();
+  const [staticExplanation, showStaticExplanation] = useState<StaticExplanationReadModel>();
   const [run, showRun] = useState<RunObservationModel>(), [result, showResult] = useState<unknown>();
   const [follow, setFollow] = useState(false);
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
@@ -36,7 +37,7 @@ function App() {
   const epoch = useRef(0);
   const runSelection = useRef(0);
   const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); busy(false);
-    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
+    showPlan(undefined); showStaticExplanation(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
     reviewSelection.current++;showCheckpointPage(null);showReview(null);setCheckpointCapabilities({list:false,read:false});
     showCancellationHistory(null);showCancellation(originalCancellation && cancelSent.current
       ? {state:'unknown',original:originalCancellation} : null);showError('');};
@@ -76,10 +77,22 @@ function App() {
   };
   const readPlan = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
-    const text = String(data.get('program')), format = String(data.get('format'));
-    void perform(async () => {showLauncherProgram(false); showPlan(undefined); showPlan(await source.plan(
-      format === 'program' ? JSON.parse(text) : text,
-      format === 'program' ? {} : {format: format as 'sql' | 'aql' | 'aql-text'}));});
+    const text = String(data.get('program')), format = String(data.get('format')) as typeof programFormat;
+    const locale = data.get('staticLocale') === 'ja' ? 'ja' : 'en';
+    const explain = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'static-explanation';
+    const scope = epoch.current;
+    void perform(async () => {
+      showLauncherProgram(false); showPlan(undefined); showStaticExplanation(undefined);
+      const input = format === 'program' ? JSON.parse(text) : text;
+      const options = format === 'program' ? {} : {format};
+      if (explain) {
+        const original = await source.staticExplanation(input, options, locale);
+        if (scope === epoch.current) {showStaticExplanation(original); showPlan(original.plan);}
+      } else {
+        const original = await source.plan(input, options);
+        if (scope === epoch.current) showPlan(original);
+      }
+    });
   };
   const readRun = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
@@ -142,8 +155,8 @@ function App() {
     void perform(async()=>{showReview(null);const value=await source.reviewCheckpoint(checkpoint);
       if(epoch.current===scope&&selected===reviewSelection.current)showReview(value);});};
   return <main><header><p>LOCAL PRESENTATION · EXPLICIT OWNER OPERATIONS</p><h1>ActQL Explorer</h1>
-    <p>Static Plan, existing Run observations and Named Result metadata.</p>
-    <p>Pause, step, resume, Samples, Result payloads and physical/source-origin projections are unavailable. Cancellation is available only with the launcher’s explicit opt-in and current Host permission.</p></header>
+    <p>Static Plan and Explanation, existing Run observations and Named Result metadata.</p>
+    <p>Pause, step, resume, Samples, Result payloads and physical projections are unavailable. Cancellation requires the launcher’s opt-in and current Host permission.</p></header>
     <form onSubmit={session}><label>One-use bootstrap <input name="bootstrap" type="password"
       autoComplete="off" maxLength={43} required disabled={pending}/></label>
       <button disabled={pending}>Connect</button><button type="button" onClick={invalidate}>Disconnect</button></form>
@@ -154,7 +167,17 @@ function App() {
       <form onSubmit={readPlan}>
       <label>Format <select name="format" value={programFormat} onChange={event => setProgramFormat(event.target.value as typeof programFormat)}><option value="sql">SQL</option><option value="aql">AQL</option><option value="aql-text">AQL text alias</option><option value="program">Program JSON</option></select></label>
       <label>Program <textarea name="program" value={programText} onChange={event => setProgramText(event.target.value)} maxLength={60000} required/></label>
-      <button disabled={!connected || pending}>Read Plan</button></form>
+      <label>Explanation language <select name="staticLocale" defaultValue="en"><option value="en">English</option><option value="ja">日本語</option></select></label>
+      <button disabled={!connected || pending}>Read Plan</button>
+      <button value="static-explanation" disabled={!connected || pending}>Read Effect Explanation</button></form>
+      {staticExplanation && <section aria-label="Static explanation">
+        <p>{staticExplanation.story.ordering.text}</p>
+        <ul>{staticExplanation.context.map(({text}, index) => <li key={index}>{text}</li>)}</ul>
+        {staticExplanation.story.occurrences.map(occurrence => <article key={occurrence.stepId}>
+          <h3>{occurrence.title}</h3><p>{occurrence.explanation.text}</p>
+          <p>Original occurrence <code>{occurrence.stepId}</code></p>
+        </article>)}
+      </section>}
       {plan && <PlanExplorer model={plan} scopeKey={String(epoch.current)}/>}</section>
     <section><h2>Existing Run</h2><form onSubmit={readRun}>
       <label>Original Run reference JSON <textarea name="ref" value={runReference} onChange={event => {

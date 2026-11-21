@@ -4,7 +4,8 @@ import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
-  readExistingRunExplanation, readExistingRunPresentation, readStaticPlan} from '@actql/explorer-ui/read-model';
+  readExistingRunExplanation, readExistingRunPresentation, readStaticPlan,
+  readStaticExplanation} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
 import {readRunObservation} from '@actql/explorer-ui/run-observation';
@@ -90,12 +91,13 @@ function safeReadError(error) {
   if (['ExplorerBodyLimit', 'ExplorerContentType', 'ExplorerInvalidRequest',
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
-    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
+    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit', 'ExplorerExplanationLimit', 'ExplorerUnsupportedLocale',
     'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
   if (error?.code === 'AuthorizationDenied' || error?.code === 'ClientUnauthorized' ||
+      error?.code === 'StaticExplanationAccessDenied' ||
       error?.status === 401 || error?.status === 403) {
     return {code: 'ExplorerReadRefused', status: 403};
   }
@@ -221,14 +223,17 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           }
           break;
         case 'plan':
-          if (!exact(body, ['input'], ['options']) ||
+        case 'static-explanation':
+          if (!exact(body, ['input'], kind === 'plan' ? ['options'] : ['options', 'locale']) ||
               !(typeof body.input === 'string' || body.input !== null &&
                 typeof body.input === 'object' && !Array.isArray(body.input)) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale) ||
               (body.options !== undefined && !exact(body.options, [],
                 ['format', 'parameters', 'parameterDeclarations', 'maxWireBytes', 'maxNodes', 'maxDepth']))) {
             fail('ExplorerInvalidRequest');
           }
-          data = await readStaticPlan(client, body.input, body.options ?? {}, ticket);
+          data = kind === 'plan' ? await readStaticPlan(client, body.input, body.options ?? {}, ticket)
+            : await readStaticExplanation(client, body.input, body.options ?? {}, {locale: body.locale}, ticket);
           break;
         case 'run':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');

@@ -6,7 +6,9 @@ import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
-  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory,
+  readStaticPlan, staticExplanationReadModel} from './read-model.mjs';
+import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
 import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
   from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
@@ -646,6 +648,38 @@ test('Effectful static declarations retain unknowns without adding computation e
   const foreign = structuredClone(effectfulStaticPlan);
   foreign.program_definition_cid = 'sha256:' + 'f'.repeat(64);
   assert.throws(() => planReadModel(foreign), {code: 'ExplorerInvalidPlan'});
+});
+
+test('Static Context renders deterministic EN and JA from one unchanged Plan', () => {
+  const original = effectfulStaticExplanationFixture();
+  const en = staticExplanationReadModel(original), ja = staticExplanationReadModel(original, {locale: 'ja'});
+  assert.equal(JSON.stringify(staticExplanationReadModel(original)), JSON.stringify(en));
+  assert.deepEqual(ja.plan, en.plan);
+  assert.deepEqual(en.context.map(item => item.origin), original.context.items);
+  assert.deepEqual(ja.context.map(item => item.origin), original.context.items);
+  assert.equal(en.context[0].text, 'Read "crm"."accounts" through view "accounts"');
+  assert.equal(en.context[1].text, 'Apply model task "model-task:review" to each input row');
+  assert.equal(ja.context[1].text, 'モデルタスク "model-task:review" を各入力行に適用');
+  assert.equal(en.context[2].text, 'Declare Result "updates"');
+  assert.equal(en.context[3].text, 'Declared write update "connector://crm/account" on fields "tag" · Contract minimum approval: required · Current decision unknown');
+  assert.match(ja.context[3].text, /更新.*対象フィールド "tag".*現在の判断は不明/u);
+  assert.equal(en.plan.effectful.observations.approval.state, 'unknown');
+  assert.deepEqual(en.story.capabilities.sample_capture, []);
+  assert(Object.isFrozen(en.context[0].origin));
+});
+
+test('Static Context refuses mixed bindings, foreign ports, and substituted Effect declarations', () => {
+  for (const mutate of [
+    view => {view.context.binding.check_environment_cid = cid('f');},
+    view => {view.context.items[0].consuming_ports[0].port_id = cid('f');},
+    view => {view.context.items.unshift(structuredClone(view.context.items[0]));},
+    view => {view.context.items[1].producer.port_id = cid('f');},
+    view => {view.context.items[3].members[0].declaration.contract.declared_target = 'connector://foreign/account';},
+  ]) {
+    const original = effectfulStaticExplanationFixture();
+    mutate(original);
+    assert.throws(() => staticExplanationReadModel(original), {code: 'ExplorerInvalidExplanation'});
+  }
 });
 
 // Independently authored semantic projection DATA, not a compiler/Host grant.

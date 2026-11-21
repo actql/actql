@@ -14,6 +14,11 @@ if (launch?.kind === 'run') {const original: RunReference = launch.originalPlan.
 if (launch?.kind === 'program') {const sourceIO: 0 = launch.plan.providerIO; void sourceIO;}
 const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
+const staticExplanation = await browser.staticExplanation('SELECT 1', {format: 'sql'}, 'ja');
+const staticText: string = staticExplanation.context[0].text;
+// @ts-expect-error A static explanation does not start an execution.
+await browser.staticExplanation('SELECT 1', {format: 'sql', stopOnEntry: true}, 'ja');
+void staticText;
 const view = await browser.inspect(ref);
 const notAtomic: 'non_atomic' = view.consistency;
 const original = await browser.runPlan(ref);
