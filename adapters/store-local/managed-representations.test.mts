@@ -1,7 +1,6 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
-import * as manifestControl from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {mkdtemp, rmdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -16,13 +15,27 @@ import {
   withManagedInputFiles,
   withManagedInputRows,
 } from './managed-representations.mjs';
+import type {ManagedInputFailure} from './managed-memory-representations.mjs';
+
+type Physical = Parameters<typeof createManagedPhysicalRepresentation>;
+type PhysicalArgs = Physical extends [...infer Arguments, unknown] ? Arguments : never;
+type ReadFile = Parameters<Parameters<typeof withManagedInputFiles>[2]>[0][number];
+type CleanupStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type CleanupFailure = Omit<ManagedInputFailure, 'primaryFailure' | 'cleanupHandle'> & {
+  primaryFailure: Error;
+  cleanupHandle: {status(): CleanupStatus; retry(): Promise<CleanupStatus>};
+};
+type ProviderFailure = Error & Partial<Pick<ManagedInputFailure, 'code' | 'cleanupPending' | 'cleanupHandle'>>;
+
+const runtimePath = '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const manifestControl = await import(runtimePath) as Physical[5];
 
 const codec = `sha256:${'1'.repeat(64)}`;
 const fields = JSON.stringify([['id', 'DOUBLE', null, null]]);
-const managedPhysicalRepresentation = (...arguments_) =>
+const managedPhysicalRepresentation = (...arguments_: PhysicalArgs) =>
   createManagedPhysicalRepresentation(...arguments_, manifestControl);
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-registry-'));
   const store = await createLocalRetainedStore({
     parentDirectory: directory,
@@ -116,7 +129,7 @@ test('managed file commit runs after every final check and before pin release', 
     );
     return {material, input, codecContractCid: codec, store};
   });
-  const events = [];
+  const events: (string | [string, string])[] = [];
   const value = await withManagedInputFiles(
     occurrences,
     () => true,
@@ -164,7 +177,7 @@ test('managed file final-check failure never enters commit', async t => {
     undefined,
     () => { committed = true; },
   ), error => ['RetainedBodyChanged', 'RetainedBodyTruncated']
-    .includes(error?.code));
+    .includes((error as ProviderFailure | undefined)?.code as string));
   assert.equal(committed, false);
 });
 
@@ -187,7 +200,7 @@ test('managed file cancellation before final commit publishes nothing', async t 
     cancel.signal,
     undefined,
     () => { committed = true; },
-  ), error => error?.name === 'AbortError');
+  ), error => (error as Error | undefined)?.name === 'AbortError');
   assert.equal(committed, false);
   assert.equal(store.status().activeReaders, 0);
 });
@@ -205,7 +218,7 @@ test('managed row plans compose memory and file scopes in either order',
         representation.manifest,
         Object.freeze({
           async read(file, emit) {
-            assert.equal(typeof file?.path, 'string');
+            assert.equal(typeof (file as ReadFile | undefined)?.path, 'string');
             await emit('{"source":"file"}');
           },
         }),
@@ -237,7 +250,7 @@ test('managed row plans compose memory and file scopes in either order',
         'pure planning does not acquire the memory generation');
       assert.equal(store.status().activeReaders, 0,
         'pure planning does not pin the file generation');
-      const rows = [[], []];
+      const rows: string[][] = [[], []];
       const completed = await withManagedInputRows(
         occurrences,
         (input, index) => input === occurrences[index].input,
@@ -271,13 +284,13 @@ test('mixed row scopes never commit after final corruption or cancellation',
       const representation = managedPhysicalRepresentation(
         body, 1, codec, fields, [0],
       );
-      let filePath;
+      let filePath!: string;
       registerManagedInput(
         fileMaterial, value => value === fileInput, store, body, codec,
         representation.manifest,
         Object.freeze({
           async read(file, emit) {
-            filePath = file.path;
+            filePath = (file as ReadFile).path;
             await emit('{"source":"file"}');
           },
         }),
@@ -313,8 +326,8 @@ test('mixed row scopes never commit after final corruption or cancellation',
         () => { committed = true; },
         plan,
       ), error => cancelled
-        ? error?.name === 'AbortError'
-        : ['RetainedBodyChanged', 'RetainedBodyTruncated'].includes(error?.code));
+        ? (error as Error | undefined)?.name === 'AbortError'
+        : ['RetainedBodyChanged', 'RetainedBodyTruncated'].includes((error as ProviderFailure | undefined)?.code as string));
       assert.equal(committed, false);
       assert.equal(memory.status().readers, 0);
       assert.equal(store.status().activeReaders, 0);
@@ -337,19 +350,19 @@ test('pending native stop retains duplicate input pins until cleanup settles', a
     status: () => Object.freeze({pending: !stopped}),
     retry: async () => { stopped = true; },
   });
-  let failure;
+  let failure!: CleanupFailure;
   try {
     await withManagedInputFiles([
       {material, input, codecContractCid: codec},
       {material, input, codecContractCid: codec},
     ], () => true, () => {
-      const error = new Error('cancel deadline');
+      const error = new Error('cancel deadline') as ProviderFailure;
       error.code = 'Cancelled';
       error.cleanupPending = true;
       error.cleanupHandle = native;
       throw error;
     });
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as CleanupFailure; }
   assert.equal(failure.code, 'Cancelled');
   assert.equal(failure.primaryFailure.message, 'cancel deadline');
   assert.equal(store.status().activeReaders, 1,
@@ -382,17 +395,17 @@ test('unknown native cleanup status cannot release an input pin', async t => {
     },
     retry: async () => { statusAvailable = true; },
   });
-  let failure;
+  let failure!: CleanupFailure;
   try {
     await withManagedInputFiles([
       {material, input, codecContractCid: codec},
     ], () => true, () => {
-      const error = new Error('unconfirmed');
+      const error = new Error('unconfirmed') as ProviderFailure;
       error.cleanupPending = true;
       error.cleanupHandle = native;
       throw error;
     });
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as CleanupFailure; }
   assert.equal(store.status().activeReaders, 1);
   assert.equal(failure.cleanupHandle.status().pending, true);
   await failure.cleanupHandle.retry();
@@ -404,10 +417,10 @@ test('unknown native cleanup status cannot release an input pin', async t => {
 
 test('managed memory close revokes new use and waits for the final scoped read', async () => {
   const material = {}, input = {};
-  let sourceAvailable = true, releaseCount = 0, continueRead;
-  const paused = new Promise(resolve => { continueRead = resolve; });
-  let reading;
-  const started = new Promise(resolve => { reading = resolve; });
+  let sourceAvailable = true, releaseCount = 0, continueRead!: () => void;
+  const paused = new Promise<void>(resolve => { continueRead = resolve; });
+  let reading!: () => void;
+  const started = new Promise<void>(resolve => { reading = resolve; });
   const memory = registerManagedMemoryInput(
     material,
     value => value === input,
@@ -424,7 +437,7 @@ test('managed memory close revokes new use and waits for the final scoped read',
       releaseCount++;
     },
   );
-  const rows = [];
+  const rows: string[] = [];
   const active = withManagedInputRows(
     [{material, input}],
     value => value === input,
@@ -479,7 +492,7 @@ test('managed memory keeps its use until provider cleanup is confirmed', async (
     () => true,
     Object.freeze({
       async read() {
-        const failure = new Error('provider still stopping');
+        const failure = new Error('provider still stopping') as ProviderFailure;
         failure.cleanupPending = true;
         failure.cleanupHandle = native;
         throw failure;
@@ -487,12 +500,12 @@ test('managed memory keeps its use until provider cleanup is confirmed', async (
     }),
     () => { releaseCount++; },
   );
-  let failure;
+  let failure!: CleanupFailure;
   try {
     await withManagedInputRows(
       [{material, input}], () => true, () => {}, () => {},
     );
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as CleanupFailure; }
   assert.equal(failure.primaryFailure.message, 'provider still stopping');
   assert.equal(failure.cleanupHandle.status().pending, true);
   assert.equal(memory.status().readers, 1);
@@ -509,9 +522,9 @@ test('managed memory keeps its use until provider cleanup is confirmed', async (
 test('managed memory cleanup releases only its own independent use', async () => {
   const material = {}, input = {};
   let stopped = false, releaseCount = 0, reads = 0;
-  let continueSecond, secondStarted;
-  const secondPaused = new Promise(resolve => { continueSecond = resolve; });
-  const secondReading = new Promise(resolve => { secondStarted = resolve; });
+  let continueSecond!: () => void, secondStarted!: () => void;
+  const secondPaused = new Promise<void>(resolve => { continueSecond = resolve; });
+  const secondReading = new Promise<void>(resolve => { secondStarted = resolve; });
   const native = Object.freeze({
     status: () => Object.freeze({pending: !stopped}),
     async retry() { stopped = true; return native.status(); },
@@ -524,7 +537,7 @@ test('managed memory cleanup releases only its own independent use', async () =>
       async read() {
         reads++;
         if (reads === 1) {
-          const failure = new Error('first consumer still stopping');
+          const failure = new Error('first consumer still stopping') as ProviderFailure;
           failure.cleanupPending = true;
           failure.cleanupHandle = native;
           throw failure;
@@ -535,12 +548,12 @@ test('managed memory cleanup releases only its own independent use', async () =>
     }),
     () => { releaseCount++; },
   );
-  let firstFailure;
+  let firstFailure!: CleanupFailure;
   try {
     await withManagedInputRows(
       [{material, input}], () => true, () => {}, () => {},
     );
-  } catch (error) { firstFailure = error; }
+  } catch (error) { firstFailure = error as CleanupFailure; }
   const second = withManagedInputRows(
     [{material, input}], () => true, () => {}, () => 'second-complete',
   );
@@ -574,7 +587,7 @@ test('managed memory treats missing provider cleanup status as pending', async (
     material, value => value === input, () => true,
     Object.freeze({
       async read() {
-        const failure = new Error('unknown stop');
+        const failure = new Error('unknown stop') as ProviderFailure;
         failure.cleanupPending = true;
         failure.cleanupHandle = native;
         throw failure;
@@ -582,12 +595,12 @@ test('managed memory treats missing provider cleanup status as pending', async (
     }),
     () => {},
   );
-  let failure;
+  let failure!: CleanupFailure;
   try {
     await withManagedInputRows(
       [{material, input}], () => true, () => {}, () => {},
     );
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as CleanupFailure; }
   assert.equal(memory.status().readers, 1);
   assert.equal(failure.cleanupHandle.status().pending, true);
   await failure.cleanupHandle.retry();
@@ -603,9 +616,9 @@ test('managed memory release failure is not reported as confirmed', async () => 
     Object.freeze({async read() {}}),
     () => { attempts++; throw new Error('release failed'); },
   );
-  let failure;
+  let failure!: CleanupFailure;
   try { await memory.close(); }
-  catch (error) { failure = error; }
+  catch (error) { failure = error as CleanupFailure; }
   assert.equal(failure.code, 'ManagedInputReleaseFailed');
   assert.equal(failure.cleanupHandle.status().pending, true);
   assert.deepEqual(memory.status(), {
@@ -629,9 +642,9 @@ test('managed memory records every throwable release cause on immediate close', 
       () => { throw cause; },
     );
     await assert.rejects(memory.close(), error => {
-      assert.equal(error.code, 'ManagedInputReleaseFailed');
-      assert.equal(Object.hasOwn(error, 'primaryFailure'), true);
-      assert.equal(error.primaryFailure, cause);
+      assert.equal((error as ManagedInputFailure).code, 'ManagedInputReleaseFailed');
+      assert.equal(Object.hasOwn(error as ManagedInputFailure, 'primaryFailure'), true);
+      assert.equal((error as ManagedInputFailure).primaryFailure, cause);
       return true;
     });
     assert.deepEqual(memory.status(), {
@@ -648,9 +661,9 @@ test('managed memory records every throwable release cause on immediate close', 
 test('managed memory records every throwable release cause after final use', async () => {
   for (const cause of [undefined, null, false, 0, '']) {
     const material = {}, input = {};
-    let started, continueRead;
-    const reading = new Promise(resolve => { started = resolve; });
-    const paused = new Promise(resolve => { continueRead = resolve; });
+    let started!: () => void, continueRead!: () => void;
+    const reading = new Promise<void>(resolve => { started = resolve; });
+    const paused = new Promise<void>(resolve => { continueRead = resolve; });
     const memory = registerManagedMemoryInput(
       material, value => value === input, () => true,
       Object.freeze({
@@ -690,7 +703,7 @@ test('transient provider retry failure does not become cleanup ownership', async
     material, value => value === input, () => true,
     Object.freeze({
       async read() {
-        const failure = new Error('provider still stopping');
+        const failure = new Error('provider still stopping') as ProviderFailure;
         failure.cleanupPending = true;
         failure.cleanupHandle = native;
         throw failure;
@@ -698,12 +711,12 @@ test('transient provider retry failure does not become cleanup ownership', async
     }),
     () => { releaseCount++; },
   );
-  let failure;
+  let failure!: CleanupFailure;
   try {
     await withManagedInputRows(
       [{material, input}], () => true, () => {}, () => {},
     );
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as CleanupFailure; }
   const closing = memory.close();
   let state = await failure.cleanupHandle.retry();
   assert.equal(state.pending, true);
@@ -721,10 +734,10 @@ test('transient provider retry failure does not become cleanup ownership', async
 
 test('managed memory attempts every input release after one fails', async () => {
   const inputs = [{material: {}, input: {}}, {material: {}, input: {}}];
-  let continueRead;
-  const paused = new Promise(resolve => { continueRead = resolve; });
-  let started;
-  const reading = new Promise(resolve => { started = resolve; });
+  let continueRead!: () => void;
+  const paused = new Promise<void>(resolve => { continueRead = resolve; });
+  let started!: () => void;
+  const reading = new Promise<void>(resolve => { started = resolve; });
   const releases = [0, 0];
   const registrations = inputs.map((entry, index) =>
     registerManagedMemoryInput(
@@ -749,8 +762,8 @@ test('managed memory attempts every input release after one fails', async () => 
     value.close().then(() => undefined, error => error));
   continueRead();
   await assert.rejects(active, error =>
-    error.code === 'ManagedInputReleaseFailed' &&
-    error.cleanupErrors.length === 1);
+    (error as ManagedInputFailure).code === 'ManagedInputReleaseFailed' &&
+    (error as ManagedInputFailure).cleanupErrors.length === 1);
   const closeResults = await Promise.all(closes);
   assert.equal(closeResults[0], undefined);
   assert.equal(closeResults[1].code, 'ManagedInputReleaseFailed');
@@ -760,7 +773,7 @@ test('managed memory attempts every input release after one fails', async () => 
 });
 
 test('zero-input managed row use executes and commits without a representation', async () => {
-  const events = [];
+  const events: (string | [string, string])[] = [];
   const value = await withManagedInputRows(
     [],
     () => assert.fail('zero-input execution has no authorization occurrence'),

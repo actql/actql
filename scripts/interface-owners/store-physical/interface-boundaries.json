@@ -183,7 +183,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -219,7 +219,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -424,7 +424,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -460,7 +460,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -700,7 +700,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -728,7 +728,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -890,7 +890,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -914,7 +914,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -1783,7 +1783,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1807,7 +1807,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -1966,7 +1966,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1994,7 +1994,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -2457,7 +2457,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2481,7 +2481,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -2702,7 +2702,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2726,7 +2726,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -3020,7 +3020,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3044,7 +3044,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -3332,7 +3332,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3356,7 +3356,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
@@ -14179,7 +14179,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               }
             ],
@@ -14207,7 +14207,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-representations.test.mjs",
+                "path": "adapters/store-local/managed-representations.test.mts",
                 "anchor": "test("
               },
               {
