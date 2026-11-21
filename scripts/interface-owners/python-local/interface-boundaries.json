@@ -14521,6 +14521,10 @@
                 "anchor": "test \"saved status exported validation reaches its existing original snapshot guard\""
               },
               {
+                "path": "src/client_host_wasm/saved_lookup_validation_dispatch_wbtest.mbt",
+                "anchor": "test \"incremental Saved Result exported validation reaches its typed retained original guard\""
+              },
+              {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "pub fn validate_submission_append("
               },
@@ -81316,7 +81320,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "4c788a9df144d4d9f5c1ad649de35319a74ab70e9c404a79520215c80eb74bc7",
+      "sha256": "3a7cd21f09b6ca732be654bd6cec6f00bd6c63de4cd233fc5f8161623440788d",
       "exports": [],
       "operations": [
         {
