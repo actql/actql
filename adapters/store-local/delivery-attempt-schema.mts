@@ -1,7 +1,11 @@
-import type {StatementSync} from 'node:sqlite';
+import type {SQLInputValue, SQLOutputValue} from 'node:sqlite';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
-type Prepare = (sql: string) => Pick<StatementSync, 'get' | 'all'>;
+type SqlRow = Record<string, SQLOutputValue>;
+type Prepare = (sql: string) => Readonly<{
+  get(...args: SQLInputValue[]): SqlRow | undefined;
+  all(...args: SQLInputValue[]): SqlRow[];
+}>;
 type Refuse = (code: string) => never;
 type ResultRecovery = Readonly<{dirty: 0 | 1; ack_revision: number}>;
 

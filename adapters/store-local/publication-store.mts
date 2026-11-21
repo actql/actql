@@ -65,7 +65,6 @@ import {createPreparedSchemaOwner} from './prepared-publication-schema-owner.mjs
 import {createResultRetirement} from './result-deletion-owner.mjs';
 import {createPublicationIndexCommit} from './publication-index-commit.mjs';
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
-// @ts-expect-error -- The native delivery Index still has its authored JavaScript entry.
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {cidPattern, exactKeys, fail, localDurability, PublicationStoreError, quantity, readBounded,
   retainStoreOpeningFailure, syncDirectoryPath, writeExclusive} from './publication-store-io.mjs';
@@ -92,34 +91,9 @@ type ContractControl = Parameters<typeof createPublicationContractStore<Publicat
   Parameters<typeof createOriginalStoreStorageBindings>[3] &
   Readonly<{readIssuedDeliveryAttempt?: Parameters<typeof createDeliveryAttemptStore<PublicationContract>>[4]}>;
 
-type IndexFrom<Ports extends {currentDeliveryIndex(): unknown}> = NonNullable<ReturnType<Ports['currentDeliveryIndex']>>;
-type IndexStartup = Parameters<typeof createPublicationIndexStartup<PublicationContract>>;
 type Removal = NonNullable<Awaited<ReturnType<ReturnType<typeof createPublicationPhysicalAccounting>['rememberPhysicalRemoval']>>>;
 type IndexOriginal = Parameters<ReturnType<typeof createPublicationIndexReader<PublicationContract>>['admitNativeIndexOriginal']>[0];
-type StoreIndex = NonNullable<IndexStartup[3]['deliveryIndex']> &
-  NonNullable<ReturnType<Parameters<typeof createPublicationPhysicalAccounting>[2]>> &
-  NonNullable<ReturnType<Parameters<typeof createNativeMetadataMutationOwner>[0]>> &
-  NonNullable<ReturnType<Parameters<typeof createPublicationMetadataDeletionMarkers>[4]>> &
-  NonNullable<ReturnType<Parameters<typeof createPublicationMetadataInventory>[4]>> &
-  IndexFrom<Parameters<typeof createPublicationObjectWrites>[6]> &
-  IndexFrom<Parameters<typeof createPublicationSemanticWrites>[5]> &
-  IndexFrom<Parameters<typeof createPublicationContractStore<PublicationContract>>[4]> &
-  IndexFrom<Parameters<typeof createPublicationSemanticReader<PublicationContract>>[3]> &
-  IndexFrom<Parameters<typeof createPublicationProgress<PublicationContract>>[4]> &
-  IndexFrom<Parameters<typeof createDeliveryAttemptStore<PublicationContract>>[8]> &
-  IndexFrom<Parameters<typeof createDeliveryRecordStore<PublicationContract>>[5]> &
-  IndexFrom<Parameters<typeof createPublicationIndexReader<PublicationContract>>[4]> &
-  IndexFrom<Parameters<typeof createPublicationIndexCommit<PublicationContract, Removal>>[5]> &
-  IndexFrom<Parameters<typeof createRunMetadataInventory<PublicationContract>>[5]> &
-  IndexFrom<Parameters<typeof createPublicationReferenceOwner<PublicationContract, Removal>>[3]> &
-  IndexFrom<Parameters<typeof createPublicationCustodyRecords>[6]> &
-  IndexFrom<Parameters<typeof createPreparedSchemaOwner<Removal>>[9]> &
-  IndexFrom<Parameters<typeof createUncommittedPublicationCleanup<Removal>>[2]> &
-  IndexFrom<Parameters<typeof createResultRetirement<IndexOriginal, PublicationContract, Removal>>[3]> &
-  IndexFrom<Parameters<typeof createPublicationMetadataRetirement<PublicationIndexEntry, Removal>>[6]> &
-  IndexFrom<Parameters<typeof recoverPublicationStoreOnOpen>[2]> &
-  IndexFrom<Parameters<typeof createPublicationStoreInterface<PublicationContract>>[7]> &
-  Readonly<{retainFailure(primary: unknown): unknown}>;
+type StoreIndex = Awaited<ReturnType<typeof openDeliveryAttemptIndex>>;
 
 type ReadSemanticOriginal = ReturnType<typeof createPublicationSemanticReader<PublicationContract>>['readSemanticOriginal'];
 type DeliveryRecordRead = ReturnType<typeof createDeliveryRecordStore<PublicationContract>>['readLatestDeliveryRecordContract'];
@@ -553,12 +527,10 @@ async function openOriginalLocalPublicationStore(
     configuration, {root, deliveryCoveragePath, deliveryIndexPath, stagingDirectory, objectsDirectory, deliveriesDirectory,
       metadataInventoriesDirectory, metadataDeletionsDirectory}, createdStore, {
       get deliveryIndex() {return deliveryIndex;},
-      set deliveryIndex(index) {deliveryIndex = index as StoreIndex | undefined;},
+      set deliveryIndex(index) {deliveryIndex = index;},
       set metadataFencesReady(ready: boolean) {metadataFencesReady = ready;},
     }, writeState, metadataDeletionIntents, openingMetadataDeletionNames, {
-      openDeliveryAttemptIndex: openDeliveryAttemptIndex as (
-        ...args: Parameters<IndexStartup[7]['openDeliveryAttemptIndex']>
-      ) => Promise<StoreIndex>, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
+      openDeliveryAttemptIndex, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
       syncDirectory, physicalOriginal, accountPhysicalUsage, accountNativePublication,
       confirmCommittedIndex: (...args) => confirmCommittedIndex(...args), metadataDeletionPath,
       readFileDeliveryAttemptContract, deliveryIndexRow, restoreDeliveryClaim, parseContract, readSemanticOriginal, readContract,

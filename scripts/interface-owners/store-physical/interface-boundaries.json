@@ -4224,7 +4224,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "09838ae111ddbb4672b96f9d28ceebb9ebb11557dcda86f2350444153ca55eb5",
+      "sha256": "085513beb7623993e9a28f2ab57afd6359f9e16feb4a7f39aa0f53e85dc9a892",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5638,48 +5638,48 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "export async function openDeliveryAttemptIndex(path, {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "export async function openDeliveryAttemptIndex(path: string, {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "contract(semanticCid, readDemand) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "contract(semanticCid: string, readDemand?: ReadDemand) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "complete(entry) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "complete(entry: DeliveryCompletionEntry) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "putPublicationContracts(entries, allowance, progress, selection) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "putPublicationContracts(entries: readonly Publication[], allowance: Extent, progress?: unknown, selection?: object) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "migratePublicationRecovery(values) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "migratePublicationRecovery(values: unknown) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "stageNativePublicationInventory(value) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "stageNativePublicationInventory(value: UncheckedRow) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "nativePublicationReferenceOwners(kind, referenceCid, excludedPublicIndexCid) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "nativePublicationReferenceOwners(kind: string, referenceCid: unknown, excludedPublicIndexCid?: unknown) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "hasRunMetadataDeletionFence(runCid) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "hasRunMetadataDeletionFence(runCid: unknown) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "migratePhysicalObjects(values) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "migratePhysicalObjects(values: unknown) {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "beginPhysicalObjectLifetime() {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "retainPublicationInventoryFinish(value) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "retainPublicationInventoryFinish(value: UncheckedRow) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -5696,15 +5696,15 @@
                 "anchor": "logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "(['semantic_cid','name','wire','byte_count'] as const).every(key => left[key] === right[key]);"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "const recoveryOriginal = row => {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "const recoveryOriginal = (row: UncheckedRow | undefined) => {"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "const nativeInventory = prepare(nativeInventorySql);"
               },
               {
@@ -5712,15 +5712,15 @@
                 "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "['cid','byte_count','device','inode'].every(key=>a[key]===b[key]);"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "(['cid','byte_count','device','inode'] as const).every(key=>a[key]===b[key]);"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "if (!sameRecoveryOriginal(recoveryOriginal(row), original)) fail('PublicationMetadataInventoryConflict');"
               },
               {
@@ -5732,18 +5732,18 @@
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "const key = nativeIndexKey(suppliedKey)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (opened && (Reflect.apply(closeOriginal, database, []) !== undefined ||"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "if (opened && (Reflect.apply(closeOriginal!, database, []) !== undefined ||"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "if ((error as TransactionObservation)?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -5766,11 +5766,11 @@
                 "anchor": "After that ACK, the same index retains bounded quota changes and preparation"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "retainedPublicationFinishes.clear(); pendingResultSeal = undefined;"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "publicationSelections.clear(); publicationInsertions.clear();"
               },
               {
@@ -5784,11 +5784,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "PRAGMA synchronous=FULL; PRAGMA fullfsync=ON"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "if (updatePublicationUsage.run(objects,bytes).changes !== 1) fail('InvalidDeliveryAttemptIndex');"
               },
               {
@@ -5812,7 +5812,7 @@
                 "anchor": "Safe Store close seals those exact deltas and usage totals atomically with a"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "const result = transaction.run(() => {"
               },
               {
@@ -5826,12 +5826,12 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (error?.outcome === 'unknown') uncertain = true;"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "if ((error as TransactionObservation)?.outcome === 'unknown') uncertain = true;"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if(error?.outcome==='unknown') uncertainCompletion=original;"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "if((error as TransactionObservation)?.outcome==='unknown') uncertainCompletion=original;"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -5876,11 +5876,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "if (closing || mutating) fail("
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');"
               },
               {
@@ -5888,8 +5888,8 @@
                 "anchor": "retry duty; no quota refund, permission or cleanup success follows from a callback."
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "retireNativePublicationInventory(value,fence) {"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "retireNativePublicationInventory(value: UncheckedRow | undefined,fence?: UncheckedRow) {"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -5918,19 +5918,19 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');"
+                "path": "adapters/store-local/delivery-attempt-index.mts",
+                "anchor": "if ((state.get()!.entries as number) >= maxEntries) fail('DeliveryAttemptIndexLimit');"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "const row = publicationUsage.get();"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "const rows=pendingPublications.all(maxEntries+1);"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-index.mts",
                 "anchor": "if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');"
               },
               {
@@ -6162,11 +6162,11 @@
                 "anchor": "completion receipt statement is acquired once per original connection"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mts",
                 "anchor": "schema admission reuses one original statement for all 24 ordered live reads"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mts",
                 "anchor": "schema admission still refuses exact SQL mismatch and closes the same DB without repair"
               }
             ]
@@ -6303,11 +6303,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mts",
                 "anchor": "schema admission reuses one original statement for all 24 ordered live reads"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mts",
                 "anchor": "schema admission still refuses exact SQL mismatch and closes the same DB without repair"
               }
             ]
@@ -6320,7 +6320,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf2cfa9e3aa77b8284e09a00d5ef17530b2042125bfd63465e8e3e14f2332669",
+      "sha256": "7cffa3745a81a890a25a4015177b792efc22dab634d84ab1ff998c7fbdff445e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",

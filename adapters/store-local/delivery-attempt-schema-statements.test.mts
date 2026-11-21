@@ -1,8 +1,10 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
+import type {SQLInputValue, StatementSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
@@ -44,15 +46,19 @@ async function fixture() {
   return {scratch, path: join(scratch.path, 'index.sqlite3')};
 }
 
-function traceSchema(t) {
-  const prepared = [], reads = [], original = DatabaseSync.prototype.prepare;
-  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+type StatementArgument = SQLInputValue | Record<string, SQLInputValue>;
+type PreparedStatement = {database: DatabaseSync; statement: StatementSync};
+type SchemaRead = {statement: StatementSync; arguments: StatementArgument[]};
+
+function traceSchema(t: TestContext) {
+  const prepared: PreparedStatement[] = [], reads: SchemaRead[] = [], original = DatabaseSync.prototype.prepare;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(this: DatabaseSync, sql: string) {
     // Every prepare and get still executes on the actual original SQLite DB.
     const statement = Reflect.apply(original, this, [sql]);
     if (sql === schemaSql) {
       prepared.push({database: this, statement});
       const get = statement.get;
-      t.mock.method(statement, 'get', function(...args) {
+      t.mock.method(statement, 'get', function(this: StatementSync, ...args: StatementArgument[]) {
         reads.push({statement: this, arguments: args});
         return Reflect.apply(get, this, args);
       });
@@ -100,7 +106,7 @@ test('schema admission still refuses exact SQL mismatch and closes the same DB w
   assert(trace.prepared.every(row => row.database.isOpen === false));
   const after = new DatabaseSync(f.path, {readOnly: true});
   try {
-    assert.equal(after.prepare("SELECT sql FROM sqlite_schema WHERE name='completion_receipts'").get().sql,
+    assert.equal(after.prepare("SELECT sql FROM sqlite_schema WHERE name='completion_receipts'").get()!.sql,
       changedSql);
     assert.deepEqual({...after.prepare('SELECT * FROM coverage WHERE id=1').get()}, coverage);
   } finally { after.close(); }

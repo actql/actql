@@ -1,5 +1,6 @@
 import {link, mkdir, readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import type {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import type {createDeliveryAttemptStore, DeliveryAttemptData, DeliveryCompletionEntry,
   DeliveryRecordData, StoredProgress} from './delivery-attempt-store.mjs';
 import type {createPublicationContractStore, PublicationContract} from './publication-contract-store.mjs';
@@ -10,12 +11,8 @@ import {cidPattern, exactKeys, fail, readBounded} from './publication-store-io.m
 type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 type OriginalRecordRead<Contract> = {contract: Contract; bytes: Buffer | undefined};
 type AdmittedCompletion<Contract> = Readonly<{attempt: Contract; receipt: Contract; record: DeliveryRecordData}>;
-type DeliveryRecordIndex = Readonly<{
-  completion(attemptCid: string): DeliveryCompletionEntry | undefined;
-  attempt(attemptCid: string): Readonly<{initial_cid: string | null; initial_wire: string | null}> | undefined;
-  confirmRecord(attemptCid: string, recordCid: string, wire: string): unknown;
-  complete(entry: DeliveryCompletionEntry): unknown;
-}>;
+type DeliveryRecordIndex = Pick<Awaited<ReturnType<typeof openDeliveryAttemptIndex>>,
+  'completion' | 'attempt' | 'confirmRecord' | 'complete'>;
 type RecordPorts<Contract extends PublicationContract> = Pick<ReturnType<typeof createPublicationContractStore<Contract>>,
   'admitContract' | 'parseContract'> & Pick<ReturnType<typeof createPublicationSemanticReader<Contract>>,
   'readContract' | 'readSemanticBytes'> & Pick<ReturnType<typeof createDeliveryAttemptStore<Contract>>,

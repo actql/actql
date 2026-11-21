@@ -1,35 +1,116 @@
 // Private lookup/claim metadata of the existing exclusively owned Store.
 // Rows locate admitted originals; they do not authorize Result access.
 import {DatabaseSync} from 'node:sqlite';
+import type {DatabaseSyncOptions, SQLInputValue, SQLOutputValue, StatementResultingChanges} from 'node:sqlite';
 import {chmod} from 'node:fs/promises';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {admitDeliveryIndexSchema, selectDeliveryIndexCreation} from './delivery-attempt-schema.mjs';
+import type {DeliveryCompletionEntry} from './delivery-attempt-store.mjs';
 
-const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-export async function openDeliveryAttemptIndex(path, {
+type IndexOptions = Readonly<{create: boolean; maxEntries: number; maxWireBytes: number; initializeEmpty?: boolean}>;
+type SqlRow = Record<string, SQLOutputValue>;
+// This connection uses SQLite's default number result mode for mutations.
+type WriteResult = StatementResultingChanges & Readonly<{changes: number}>;
+type UncheckedRow = Readonly<Record<string, unknown>>;
+type BoundStatement<Row extends object = SqlRow> = Readonly<{
+  get(...args: SQLInputValue[]): Row | undefined;
+  run(...args: SQLInputValue[]): WriteResult;
+  all(...args: SQLInputValue[]): Row[];
+}>;
+type TransactionObservation = Readonly<{outcome?: unknown}> | undefined | null;
+type CleanupCarrier = Readonly<{cleanupHandle?: Readonly<{status?: unknown; retry?: unknown}>}> | undefined | null;
+type ObservedCleanup = Readonly<{pending?: unknown}> | undefined | null;
+type CleanupStatus = Readonly<{pending: boolean}>;
+type IndexCleanupFailure = Error & {
+  code: string; primaryFailure: unknown; cleanupPending: boolean;
+  cleanupHandle: Readonly<{status(): CleanupStatus; retry(): Promise<CleanupStatus>}>;
+};
+type ResultRecovery = ReturnType<typeof admitDeliveryIndexSchema>['resultRecovery'];
+type Entries = Readonly<{entries: number; ack_revision: number}>;
+type Extent = Readonly<{objects: number; bytes: number}>;
+type Usage = Extent & Readonly<{ack_revision: number}>;
+type CoverageState = Readonly<{complete: 0 | 1; ack_revision: number}>;
+type PhysicalState = Usage & CoverageState;
+type PhysicalOriginal = Readonly<{cid: string; byte_count: number; device: string; inode: string}>;
+type PhysicalPreparation = PhysicalOriginal & Readonly<{semantic_cid?: string; durable?: boolean}>;
+type PhysicalChange = Readonly<{retire?: undefined; key: string; before: PhysicalOriginal | undefined; after: PhysicalOriginal | undefined; priorRetired: boolean}>;
+type PhysicalLifetime = {
+  base: PhysicalState;
+  objects: number;
+  bytes: number;
+  changes: Map<string, PhysicalChange>;
+  preparations: Map<string, PhysicalPreparation>;
+  retiring: Map<string, PhysicalOriginal>;
+  sealing: boolean;
+  sealed: boolean;
+  seal?: Extent & Readonly<{changes: readonly PhysicalChange[]}>;
+};
+type PhysicalMutation = 'record' | 'remove';
+type PreparationMutation = 'stage' | 'finish';
+type Claim = Readonly<{
+  logical_key: string; attempt_cid: string; grant_cid: string; run_cid: string; attempt_wire: string; grant_wire: string;
+  ready?: 0 | 1; initial_wire?: string | null; initial_cid?: string | null;
+}>;
+type StoredClaim = Claim & Readonly<{ready: 0 | 1}>;
+type StoredCompletion = Omit<DeliveryCompletionEntry, 'prior_cid'> & Readonly<{ack_revision: number}>;
+type CompletionOriginal = Omit<StoredCompletion, 'ack_revision'> & Readonly<{prior_cid?: string | null}>;
+type Publication = Readonly<{semantic_cid: string; name: string; wire: string; byte_count: number}>;
+type PublicationSelection = Readonly<{keys: readonly string[]; rows: ReadonlyMap<string, Publication>}>;
+type RecoveryOriginal = Readonly<{public_index_cid: string; inventory_wire: string}>;
+type FenceOriginal = Readonly<{metadata_key: string; run_cid: string}>;
+type Fence = FenceOriginal & Readonly<{retired: 0 | 1}>;
+type RecoveryMutation = 'stage' | 'stage-native' | 'finish' | 'retire-native';
+type NativeKey = Readonly<{metadata_key: string; namespace_id: string; authority_scope_cid: string; run_cid: string}>;
+type NativeBinding = Readonly<{binding_cid: string; material_cid: string; result_definition_cid: string}>;
+type NativeProgress = Readonly<{attemptCid: string; recordCid: string}>;
+type NativeIndexRetry = Readonly<{key: NativeKey; body: Publication}> & (
+  Readonly<{kind: 'commit'; inventory: RecoveryOriginal; bindings: readonly NativeBinding[]; created: boolean; progress: NativeProgress}> |
+  Readonly<{kind: 'confirm'; revision: number; writeRevision: number}>
+);
+type PublicationAttemptRow = Readonly<{attempt_cid: string; run_cid: string}>;
+type PublicationRecordRow = Readonly<{attempt_cid: string; sequence: number; record_cid: string}>;
+type RecordProgress = Readonly<{previousCid: string | null; recordCid: string; sequence: number}>;
+type ProgressFields = Readonly<{
+  attemptCid: string; runCid?: string; previousCid?: string | null;
+  recordCid?: string; sequence?: number; records?: readonly RecordProgress[];
+}>;
+type Progress = ProgressFields & (
+  Readonly<{kind: 'attempt'; runCid: string}> |
+  Readonly<{kind: 'record'}> & RecordProgress |
+  Readonly<{kind: 'initial-records'; records: readonly RecordProgress[]}> |
+  Readonly<{kind: 'initial-attempt'; runCid: string; records: readonly RecordProgress[]}>
+);
+type PublicationMutation = 'put' | 'remove';
+type ReadDemand = (bytes: number) => unknown;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+export async function openDeliveryAttemptIndex(path: string, {
   create, maxEntries, maxWireBytes, initializeEmpty = false,
-}) {
+}: IndexOptions) {
   if (typeof initializeEmpty !== 'boolean') fail('DeliveryAttemptIndexUnavailable');
   const database = new DatabaseSync(path, {__proto__: null, open: false,
-    readOnly: false, enableForeignKeyConstraints: true, allowExtension: false});
-  let closeOriginal, isOpenOriginal, execOriginal, prepareOriginal, transactionState;
-  let closed = false, closing = false, mutating = false, sealPhysicalLifetime,
-    sealPublicationFinishes, retirePublicationFinishReferences, publicationFinishClosing = false;
-  const exec = sql => Reflect.apply(execOriginal,database,[sql]);
-  const prepare = sql => {
-    const original = Reflect.apply(prepareOriginal,database,[sql]);
+    readOnly: false, enableForeignKeyConstraints: true, allowExtension: false} as DatabaseSyncOptions & {__proto__: null});
+  let closeOriginal: DatabaseSync['close'] | undefined, isOpenOriginal: (() => unknown) | undefined,
+    execOriginal: DatabaseSync['exec'] | undefined, prepareOriginal: DatabaseSync['prepare'] | undefined,
+    transactionState: (() => unknown) | undefined;
+  let closed = false, closing = false, mutating = false, sealPhysicalLifetime: (() => void) | undefined,
+    sealPublicationFinishes: (() => void) | undefined, retirePublicationFinishReferences: (() => void) | undefined, publicationFinishClosing = false;
+  const exec = (sql: string) => Reflect.apply(execOriginal!,database,[sql]);
+  const prepare = <Row extends object = SqlRow>(sql: string): BoundStatement<Row> => {
+    const original = Reflect.apply(prepareOriginal!,database,[sql]);
     const get = original.get, run = original.run, all = original.all;
-    return Object.freeze({get: (...args) => Reflect.apply(get,original,args),
-      run: (...args) => Reflect.apply(run,original,args),
-      all: (...args) => Reflect.apply(all,original,args)});
+    return Object.freeze({get: (...args: SQLInputValue[]) => Reflect.apply(get,original,args) as Row | undefined,
+      run: (...args: SQLInputValue[]) => Reflect.apply(run,original,args) as WriteResult,
+      all: (...args: SQLInputValue[]) => Reflect.apply(all,original,args) as Row[]});
   };
-  const deferredStatements = [];
-  const prepareOnUse = sql => {
-    let statement;
+  const deferredStatements: (() => void)[] = [];
+  const prepareOnUse = <Row extends object = SqlRow>(sql: string): BoundStatement<Row> => {
+    let statement: BoundStatement<Row> | undefined;
     const selected = () => {
       if (closed) fail('DeliveryAttemptIndexClosed');
-      return statement ??= prepare(sql);
+      return statement ??= prepare<Row>(sql);
     };
     deferredStatements.push(() => {statement = undefined;});
     return Object.freeze({get: (...args) => selected().get(...args),
@@ -50,10 +131,10 @@ export async function openDeliveryAttemptIndex(path, {
     closing = true;
     try {
       captureClose();
-      const opened = Reflect.apply(isOpenOriginal, database, []);
+      const opened = Reflect.apply(isOpenOriginal!, database, []);
       if (typeof opened !== 'boolean') fail('DeliveryAttemptIndexCleanupPending');
-      if (opened && (Reflect.apply(closeOriginal, database, []) !== undefined ||
-          Reflect.apply(isOpenOriginal, database, []) !== false)) {
+      if (opened && (Reflect.apply(closeOriginal!, database, []) !== undefined ||
+          Reflect.apply(isOpenOriginal!, database, []) !== false)) {
         fail('DeliveryAttemptIndexCleanupPending');
       }
       closed = true;
@@ -61,16 +142,16 @@ export async function openDeliveryAttemptIndex(path, {
       return true;
     } finally { closing = false; }
   };
-  const retainFailure = primary => {
+  const retainFailure = (primary: unknown) => {
     try { close(); } catch {}
     if (closed) return primary;
     // Opening can also hold a payload/reader duty. Neither close depends on
     // the other; retaining this native wrapper must not hide the first child.
-    const child = primary?.cleanupHandle;
+    const child = (primary as CleanupCarrier)?.cleanupHandle;
     const childStatus = child?.status, childRetry = child?.retry;
-    let childPending = child !== undefined, flight;
+    let childPending = child !== undefined, flight: Promise<CleanupStatus> | undefined;
     const failure = Object.assign(new Error('DeliveryAttemptIndexCleanupPending', {cause: primary}),
-      {code: 'DeliveryAttemptIndexCleanupPending', primaryFailure: primary, cleanupPending: true});
+      {code: 'DeliveryAttemptIndexCleanupPending', primaryFailure: primary, cleanupPending: true}) as IndexCleanupFailure;
     const status = () => Object.freeze({pending: !closed || childPending});
     const retry = () => {
       if (flight !== undefined) return flight;
@@ -82,7 +163,7 @@ export async function openDeliveryAttemptIndex(path, {
               fail('DeliveryAttemptIndexCleanupPending');
             }
             let observation = await Reflect.apply(childStatus,child,[]);
-            if (observation?.pending !== false) {
+            if ((observation as ObservedCleanup)?.pending !== false) {
               await Reflect.apply(childRetry,child,[]);
               observation = await Reflect.apply(childStatus,child,[]);
             }
@@ -114,32 +195,32 @@ export async function openDeliveryAttemptIndex(path, {
     // Match the Store's original durable synchronization boundary on Darwin;
     // FULL alone is not the same as libuv's fullfsync selection there.
     if (initialize) exec('PRAGMA journal_mode=WAL');
-    const mode = prepare('PRAGMA journal_mode').get().journal_mode;
+    const mode = prepare('PRAGMA journal_mode').get()!.journal_mode;
     if (mode !== 'wal') fail('DeliveryAttemptIndexUnavailable');
     exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA checkpoint_fullfsync=ON; PRAGMA mmap_size=0; PRAGMA cache_size=-64; PRAGMA temp_store=MEMORY');
     const transaction = createSqliteTransaction({exec,
-      get isTransaction() { return Reflect.apply(transactionState,database,[]); }},
+      get isTransaction() { return Reflect.apply(transactionState!,database,[]); }},
     'DeliveryAttemptIndex');
     const {state, selected, readResultRecovery, resultRecovery: initialResultRecovery, physicalHeader} =
       admitDeliveryIndexSchema(initialize, initializeEmpty, maxEntries, prepare, exec, transaction, fail);
     let resultRecovery = initialResultRecovery;
-    let physicalRecoveryRequired = physicalHeader === 1, physicalLifetime;
+    let physicalRecoveryRequired = physicalHeader === 1, physicalLifetime: PhysicalLifetime | undefined;
     let priorPhysicalReconciliationAllowed = true;
     let complete = selected.complete === 1;
     const metadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE metadata_key=?');
     const physicalObject = prepare('SELECT * FROM physical_objects WHERE cid=?');
-    const physicalPreparation = prepare('SELECT * FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?');
+    const physicalPreparation = prepare<PhysicalPreparation>('SELECT * FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?');
     const insertPhysicalPreparation = prepare('INSERT INTO physical_object_preparations VALUES(?,?,?,?,?)');
     const deletePhysicalPreparation = prepare('DELETE FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?');
     const insertPhysicalObject = prepare('INSERT INTO physical_objects VALUES(?,?,?,?)');
     const deletePhysicalObject = prepare('DELETE FROM physical_objects WHERE cid=?');
-    const physicalUsage = prepare('SELECT * FROM physical_object_usage WHERE id=1');
+    const physicalUsage = prepare<PhysicalState>('SELECT * FROM physical_object_usage WHERE id=1');
     const updatePhysicalUsage = prepare(`UPDATE physical_object_usage SET objects=objects+?,
       bytes=bytes+?,ack_revision=ack_revision+1 WHERE id=1`);
     const runMetadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE run_cid=? LIMIT 1');
     const insertMetadataFence = prepare('INSERT INTO metadata_deletion_fences VALUES(?,?,?)');
     const retireMetadataFence = prepare('UPDATE metadata_deletion_fences SET retired=1 WHERE metadata_key=? AND run_cid=?');
-    const metadataFenceCoverage = prepare('SELECT complete,ack_revision FROM metadata_deletion_fence_coverage WHERE id=1');
+    const metadataFenceCoverage = prepare<CoverageState>('SELECT complete,ack_revision FROM metadata_deletion_fence_coverage WHERE id=1');
     const acknowledgeMetadataFences = prepare('UPDATE metadata_deletion_fence_coverage SET ack_revision=ack_revision+1 WHERE id=1');
     const nativeInventorySql = 'SELECT * FROM native_publication_inventories WHERE public_index_cid=?';
     const nativeInventory = prepare(nativeInventorySql);
@@ -160,25 +241,25 @@ export async function openDeliveryAttemptIndex(path, {
     const nativeMaterialInsert = prepareOnUse('INSERT INTO native_publication_materials VALUES(?,?,?,?)');
     const nativeMaterialsByOwner = prepareOnUse(`SELECT result_definition_cid,binding_cid,material_cid
       FROM native_publication_materials WHERE public_index_cid=? ORDER BY result_definition_cid LIMIT ?`);
-    const nativeMaterials = prepareOnUse(`SELECT m.*,i.metadata_key FROM native_publication_materials m
+    const nativeMaterials = prepareOnUse<NativeBinding & Readonly<{public_index_cid: string; metadata_key: string}>>(`SELECT m.*,i.metadata_key FROM native_publication_materials m
       JOIN native_publication_indexes i USING(public_index_cid)
       WHERE m.material_cid=? AND (m.public_index_cid,m.result_definition_cid)>(?,?)
       ORDER BY m.public_index_cid,m.result_definition_cid LIMIT 64`);
     const insertNativeInventory = prepare('INSERT INTO native_publication_inventories VALUES(?,?)');
     const removeNativeInventory = prepare('DELETE FROM native_publication_inventories WHERE public_index_cid=?');
-    const nativeInventoryUsage = prepare('SELECT entries,ack_revision FROM native_publication_inventory_usage WHERE id=1');
+    const nativeInventoryUsage = prepare<Entries>('SELECT entries,ack_revision FROM native_publication_inventory_usage WHERE id=1');
     const updateNativeInventoryUsage = prepare(`UPDATE native_publication_inventory_usage SET entries=entries+?,
       ack_revision=ack_revision+1 WHERE id=1`);
-    const publicationRecovery = prepare('SELECT complete,entries,ack_revision FROM publication_recovery WHERE id=1');
+    const publicationRecovery = prepare<Entries & CoverageState>('SELECT complete,entries,ack_revision FROM publication_recovery WHERE id=1');
     const pendingPublication = prepare('SELECT * FROM pending_publications WHERE public_index_cid=?');
     const pendingPublications = prepare('SELECT * FROM pending_publications ORDER BY public_index_cid LIMIT ?');
     const insertPendingPublication = prepare('INSERT INTO pending_publications VALUES(?,?)');
     const removePendingPublication = prepare('DELETE FROM pending_publications WHERE public_index_cid=?');
     const updatePublicationRecovery = prepare(`UPDATE publication_recovery SET entries=entries+?,
       ack_revision=ack_revision+1 WHERE id=1`);
-    const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
+    const lookup = prepare<StoredClaim>(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
-    const byAttempt = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
+    const byAttempt = prepare<StoredClaim>(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE attempt_cid=?`);
     const nativeContractSql = `SELECT 'delivery_attempt' AS name,attempt_wire AS wire
       FROM attempts JOIN initial_records USING(attempt_cid) WHERE attempt_cid=? AND initial_cid IS NOT NULL
@@ -187,63 +268,68 @@ export async function openDeliveryAttemptIndex(path, {
       UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`;
-    const nativeContract = prepare(nativeContractSql);
+    const nativeContract = prepare<Readonly<{name: string; wire: string}>>(nativeContractSql);
     // These tables have already passed exact schema admission above. Their
     // optional readers/writers belong to this connection, not every open.
     const publicationSql = 'SELECT * FROM publication_contracts WHERE semantic_cid=?';
     const publication = prepareOnUse(publicationSql);
-    const publicationAttempt = prepareOnUse('SELECT * FROM publication_attempts WHERE attempt_cid=?');
+    const publicationAttempt = prepareOnUse<PublicationAttemptRow>('SELECT * FROM publication_attempts WHERE attempt_cid=?');
     const insertPublicationAttempt = prepareOnUse('INSERT INTO publication_attempts VALUES(?,?)');
     const removePublicationAttempts = prepareOnUse('DELETE FROM publication_attempts WHERE run_cid=?');
-    const publicationProgress = prepareOnUse(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
-    const publicationProgressCount = prepareOnUse('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
+    const publicationProgress = prepareOnUse<PublicationRecordRow>(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
+    const publicationProgressCount = prepareOnUse<{count: number}>('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
     const insertPublicationRecord = prepareOnUse('INSERT INTO publication_records VALUES(?,?,?)');
-    const publicationRunAttempts = prepareOnUse('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
-    const publicationAttemptRecords = prepareOnUse('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
-    const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
+    const publicationRunAttempts = prepareOnUse<PublicationAttemptRow>('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
+    const publicationAttemptRecords = prepareOnUse<PublicationRecordRow>('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
+    const publicationUsage = prepare<Usage>('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
     const insertPublication = prepareOnUse('INSERT INTO publication_contracts VALUES(?,?,?,?)');
     // Bound each native handoff, not the admitted publication's total size.
     // Prepare only arities actually used by this database lifetime.
     const publicationBlockSize = 64;
-    const publicationSelections = new Map(), publicationInsertions = new Map();
-    let publicationRowSelections = new WeakMap();
+    const publicationSelections = new Map<number, BoundStatement>(), publicationInsertions = new Map<number, BoundStatement>();
+    let publicationRowSelections = new WeakMap<object, PublicationSelection>();
     const removePublication = prepareOnUse('DELETE FROM publication_contracts WHERE semantic_cid=?');
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
     const completionReceipt = prepareOnUse('SELECT receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1');
-    const initialRecord = prepare('SELECT * FROM initial_records WHERE attempt_cid=?');
+    const initialRecord = prepare<Readonly<{initial_cid: string | null; initial_wire: string; ack_revision: number}>>('SELECT * FROM initial_records WHERE attempt_cid=?');
     const confirmInitial = prepare('UPDATE initial_records SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND initial_cid=?');
     const insertCompletion = prepare('INSERT INTO completions VALUES(?,?,?,?,?,1)');
     const confirmCompletion = prepare('UPDATE completions SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND record_cid=?');
-    const byRun = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
+    const byRun = prepare<StoredClaim>(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE run_cid=? LIMIT ?`);
-    const pending = prepare('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
+    const pending = prepare<StoredClaim>('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
     const insert = prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,?)');
     const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?,1)');
-    const uses = prepare('SELECT uses FROM grant_uses WHERE grant_cid=?');
+    const uses = prepare<{uses: number}>('SELECT uses FROM grant_uses WHERE grant_cid=?');
     const addUse = prepare('INSERT INTO grant_uses VALUES(?,1) ON CONFLICT(grant_cid) DO UPDATE SET uses=uses+1');
     const removeUses = prepare('UPDATE grant_uses SET uses=uses-? WHERE grant_cid=?');
-    const runUses = prepare('SELECT grant_cid,count(*) AS uses FROM attempts WHERE run_cid=? GROUP BY grant_cid');
+    const runUses = prepare<{uses: number; grant_cid: string}>('SELECT grant_cid,count(*) AS uses FROM attempts WHERE run_cid=? GROUP BY grant_cid');
     const ready = prepare('UPDATE attempts SET ready=1 WHERE logical_key=? AND attempt_cid=?');
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
-    let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
-      uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence, uncertainPhysical,
-      uncertainPhysicalPreparation, uncertainResultRecovery,
+    let uncertain = false, uncertainRemoval: string | undefined, uncertainCompletion: CompletionOriginal | undefined,
+      uncertainInitial: Readonly<{attemptCid: string; recordCid: string; wire: string}> | undefined, confirmedRecord: string | undefined,
+      uncertainPublication: Readonly<{kind: PublicationMutation; entries: readonly (Publication | undefined)[]; progress: Progress | undefined}> | undefined,
+      uncertainPublicationRecovery: Readonly<{kind: RecoveryMutation; original: RecoveryOriginal | undefined; fence: FenceOriginal | undefined}> | undefined,
+      uncertainMetadataFence: FenceOriginal | undefined,
+      uncertainPhysical: Readonly<{kind: PhysicalMutation; originals: readonly PhysicalOriginal[]}> | undefined,
+      uncertainPhysicalPreparation: Readonly<{kind: PreparationMutation; originals: readonly PhysicalPreparation[]}> | undefined,
+      uncertainResultRecovery: Readonly<{dirty: 0 | 1; before: ResultRecovery}> | undefined,
       uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false,
-      uncertainNativeIndex;
-    const retainedPublicationFinishes = new Map();
-    let flushPublicationFinishes = () => [];
-    let pendingResultSeal, flushResultSeal = () => undefined;
-    const run = body => {
+      uncertainNativeIndex: NativeIndexRetry | undefined;
+    const retainedPublicationFinishes = new Map<string, RecoveryOriginal>();
+    let flushPublicationFinishes: () => readonly RecoveryOriginal[] = () => [];
+    let pendingResultSeal: ResultRecovery | undefined, flushResultSeal: () => ResultRecovery | undefined = () => undefined;
+    const run = <Result extends SynchronousRuntimeData>(body: () => Result): Result => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       // Only this connection's unchanged preflight may feed its immediate
       // mutation. Any actual write attempt, including failure, retires it.
       publicationRowSelections = new WeakMap();
       mutating = true;
       try {
-        let finished, sealedResult;
+        let finished: readonly RecoveryOriginal[] | undefined, sealedResult: ResultRecovery | undefined;
         const result = transaction.run(() => {
           const value = body();
           finished = flushPublicationFinishes();
@@ -252,7 +338,7 @@ export async function openDeliveryAttemptIndex(path, {
         });
         // Only this transaction's real COMMIT retires retained completion
         // originals. A thrown/lost reply keeps them for the SAME retry.
-        for (const original of finished) {
+        for (const original of finished!) {
           if (retainedPublicationFinishes.get(original.public_index_cid) === original) {
             retainedPublicationFinishes.delete(original.public_index_cid);
           }
@@ -264,7 +350,7 @@ export async function openDeliveryAttemptIndex(path, {
         return result;
       }
       catch (error) {
-        if (error?.outcome === 'unknown') uncertain = true;
+        if ((error as TransactionObservation)?.outcome === 'unknown') uncertain = true;
         throw error;
       } finally { mutating = false; }
     };
@@ -287,7 +373,7 @@ export async function openDeliveryAttemptIndex(path, {
         transaction.assertUsable();
       } else requireComplete();
       if (!retry && resultRecovery.dirty === dirty) return;
-      const original = retry ? uncertainResultRecovery : Object.freeze({dirty, before: resultRecovery});
+      const original = retry ? uncertainResultRecovery! : Object.freeze({dirty, before: resultRecovery});
       try {
         resultRecovery = run(() => {
           const row = readResultRecovery(), before = original.before;
@@ -302,7 +388,7 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain = false; uncertainResultRecovery = undefined;}
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainResultRecovery = original;
+        if ((error as TransactionObservation)?.outcome === 'unknown') uncertainResultRecovery = original;
         throw error;
       }
     };
@@ -331,73 +417,73 @@ export async function openDeliveryAttemptIndex(path, {
     };
     const physicalState = () => physicalLifetime === undefined ? storedPhysicalState() :
       Object.freeze({...physicalLifetime.base,objects:physicalLifetime.objects,bytes:physicalLifetime.bytes});
-    const physicalOriginal = row => {
+    const physicalOriginal = (row: UncheckedRow | undefined): PhysicalOriginal => {
       if (!row || !cid(row.cid) || !Number.isSafeInteger(row.byte_count) ||
-          row.byte_count<0 || row.byte_count>maxWireBytes ||
+          (row.byte_count as number)<0 || (row.byte_count as number)>maxWireBytes ||
           typeof row.device!=='string' || !/^(0|[1-9][0-9]*)$/u.test(row.device) ||
           typeof row.inode!=='string' || !/^(0|[1-9][0-9]*)$/u.test(row.inode)) {
         fail('InvalidDeliveryAttemptIndex');
       }
-      return Object.freeze({cid:row.cid,byte_count:row.byte_count,device:row.device,inode:row.inode});
+      return Object.freeze({cid:row.cid,byte_count:row.byte_count as number,device:row.device,inode:row.inode});
     };
-    const preparationOriginal = row => {
+    const preparationOriginal = (row: UncheckedRow): PhysicalPreparation => {
       const physical = physicalOriginal(row);
       if (row.semantic_cid == null) return physical;
       if (!cid(row.semantic_cid)) fail('InvalidDeliveryAttemptIndex');
       return Object.freeze({...physical, semantic_cid:row.semantic_cid});
     };
-    const samePreparation = (a,b) => samePhysical(a,b) && a.semantic_cid===b.semantic_cid;
-    const samePhysical = (a,b) => a!==undefined && b!==undefined &&
-      ['cid','byte_count','device','inode'].every(key=>a[key]===b[key]);
-    const sameOptionalPhysical = (a,b) => a===undefined ? b===undefined : samePhysical(a,b);
-    const selectedPhysical = key => {
+    const samePreparation = (a: PhysicalPreparation,b: PhysicalPreparation) => samePhysical(a,b) && a.semantic_cid===b.semantic_cid;
+    const samePhysical = (a: PhysicalOriginal | undefined,b: PhysicalOriginal | undefined) => a!==undefined && b!==undefined &&
+      (['cid','byte_count','device','inode'] as const).every(key=>a[key]===b[key]);
+    const sameOptionalPhysical = (a: PhysicalOriginal | undefined,b: PhysicalOriginal | undefined) => a===undefined ? b===undefined : samePhysical(a,b);
+    const selectedPhysical = (key: string) => {
       const change=physicalLifetime?.changes.get(key);
       if(change!==undefined)return change.after;
       const row=physicalObject.get(key);return row===undefined?undefined:physicalOriginal(row);
     };
-    const preparationKey = row => row.cid+'\0'+row.device+'\0'+row.inode;
-    const mutateLifetimePhysical = (kind,originals,retainPreparations = false) => {
+    const preparationKey = (row: PhysicalOriginal) => row.cid+'\0'+row.device+'\0'+row.inode;
+    const mutateLifetimePhysical = (kind: PhysicalMutation,originals: readonly PhysicalOriginal[],retainPreparations = false) => {
       requireComplete();
-      const updates=[];let count=0,bytes=0;
+      const updates: (PhysicalChange | Readonly<{retire: string}>)[]=[];let count=0,bytes=0;
       for(const row of originals){
         const current=selectedPhysical(row.cid);
-        const retiring=physicalLifetime.retiring.get(preparationKey(row));
+        const retiring=physicalLifetime!.retiring.get(preparationKey(row));
         if(kind==='remove'&&retiring!==undefined&&!samePhysical(current,row)){
           if(!samePhysical(retiring,row))fail('PublicationObjectAccountingMismatch');
           updates.push({retire:preparationKey(row)});count--;bytes-=row.byte_count;continue;
         }
         if(current!==undefined&&!samePhysical(current,row)&&
-            !(kind==='record'&&physicalLifetime.retiring.has(preparationKey(current))))fail('PublicationObjectAccountingMismatch');
+            !(kind==='record'&&physicalLifetime!.retiring.has(preparationKey(current))))fail('PublicationObjectAccountingMismatch');
         if(kind==='record'?!samePhysical(current,row):current!==undefined){
           count+=kind==='record'?1:-1;bytes+=kind==='record'?row.byte_count:-row.byte_count;
-          const previous=physicalLifetime.changes.get(row.cid);
+          const previous=physicalLifetime!.changes.get(row.cid);
           const before=previous===undefined?current:previous.before;
           updates.push({key:row.cid,before,after:kind==='record'?row:undefined,
             priorRetired:previous?.priorRetired===true || before!==undefined &&
               (kind==='remove' || !samePhysical(before,row))});
         }
       }
-      const objects=physicalLifetime.objects+count,total=physicalLifetime.bytes+bytes;
+      const objects=physicalLifetime!.objects+count,total=physicalLifetime!.bytes+bytes;
       if(!Number.isSafeInteger(total)||total<0||objects<0||objects>maxEntries)fail('DeliveryAttemptIndexLimit');
       // Generation and quota refusal must precede acceptance of the separate
       // preparation. A stale record cannot consume another pending duty.
       if(kind==='record'&&!retainPreparations){
-        const durable=originals.map(row=>physicalLifetime.preparations.get(preparationKey(row)))
+        const durable=originals.map(row=>physicalLifetime!.preparations.get(preparationKey(row)))
           .filter(row=>row?.durable===true);
         if(durable.length!==0)mutatePhysicalPreparation('finish',durable);
       }
       for(const change of updates){
-        if(change.retire!==undefined){physicalLifetime.retiring.delete(change.retire);continue;}
+        if(change.retire!==undefined){physicalLifetime!.retiring.delete(change.retire);continue;}
         // Keep a bounded baseline marker after remove/re-record, even if its
         // DATA happens to equal the opening original (including inode reuse).
         // Such a generation is no longer a closed prior-lifetime allocation.
-        if(sameOptionalPhysical(change.before,change.after)&&!change.priorRetired)physicalLifetime.changes.delete(change.key);
-        else physicalLifetime.changes.set(change.key,Object.freeze(change));
+        if(sameOptionalPhysical(change.before,change.after)&&!change.priorRetired)physicalLifetime!.changes.delete(change.key);
+        else physicalLifetime!.changes.set(change.key,Object.freeze(change));
       }
       if(kind==='record'){
-        if(!retainPreparations)for(const row of originals)physicalLifetime.preparations.delete(preparationKey(row));
-      }else for(const row of originals)physicalLifetime.retiring.delete(preparationKey(row));
-      physicalLifetime.objects=objects;physicalLifetime.bytes=total;
+        if(!retainPreparations)for(const row of originals)physicalLifetime!.preparations.delete(preparationKey(row));
+      }else for(const row of originals)physicalLifetime!.retiring.delete(preparationKey(row));
+      physicalLifetime!.objects=objects;physicalLifetime!.bytes=total;
       return physicalState();
     };
     sealPhysicalLifetime = () => {
@@ -413,7 +499,7 @@ export async function openDeliveryAttemptIndex(path, {
       try{
         run(()=>{
           const persisted=storedPhysicalState();
-          const sameBase=persisted.objects===physicalLifetime.base.objects&&persisted.bytes===physicalLifetime.base.bytes;
+          const sameBase=persisted.objects===physicalLifetime!.base.objects&&persisted.bytes===physicalLifetime!.base.bytes;
           const sameSealed=persisted.objects===original.objects&&persisted.bytes===original.bytes;
           if(!sameBase&&!(uncertainPhysicalSeal&&sameSealed))fail('PublicationObjectAccountingMismatch');
           for(const change of original.changes){
@@ -428,20 +514,20 @@ export async function openDeliveryAttemptIndex(path, {
           exec('PRAGMA user_version=0');
         });
         physicalLifetime.sealed=true;uncertainPhysicalSeal=false;uncertain=false;
-      }catch(error){if(error?.outcome==='unknown')uncertainPhysicalSeal=true;throw error;}
+      }catch(error){if((error as TransactionObservation)?.outcome==='unknown')uncertainPhysicalSeal=true;throw error;}
     };
-    const mutatePhysical = (kind,values,retainPreparations = false) => {
+    const mutatePhysical = (kind: PhysicalMutation,values: unknown,retainPreparations = false) => {
       if (!Array.isArray(values) || values.length>maxEntries) fail('DeliveryAttemptIndexLimit');
       const originals=values.map(physicalOriginal);
       if (new Set(originals.map(row=>row.cid)).size!==originals.length) fail('InvalidDeliveryAttemptIndex');
       if(physicalLifetime!==undefined)return mutateLifetimePhysical(kind,originals,retainPreparations);
-      const sameOriginals = prior => prior?.length===originals.length &&
-        prior.every((row,index)=>samePhysical(row,originals[index]));
+      const sameOriginals = (prior: readonly PhysicalOriginal[] | undefined) => prior?.length===originals.length &&
+        prior!.every((row,index)=>samePhysical(row,originals[index]));
       // Physical cleanup may settle the SAME uncertain installation only
       // after its caller has observed unlink/directory ACK. Other work stays
       // blocked; neither a read nor process exit confirms the lost COMMIT.
       const retry=uncertain && sameOriginals(uncertainPhysical?.originals) &&
-        (uncertainPhysical.kind===kind || uncertainPhysical.kind==='record' && kind==='remove');
+        (uncertainPhysical!.kind===kind || uncertainPhysical!.kind==='record' && kind==='remove');
       if (retry) {
         if (closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
         transaction.assertUsable();
@@ -484,11 +570,11 @@ export async function openDeliveryAttemptIndex(path, {
         if(retry){uncertain=false;uncertainPhysical=undefined;}
         return physicalState();
       } catch(error) {
-        if(error?.outcome==='unknown') uncertainPhysical={kind,originals};
+        if((error as TransactionObservation)?.outcome==='unknown') uncertainPhysical={kind,originals};
         throw error;
       }
     };
-    const mutatePhysicalPreparation = (kind,values,durable = false) => {
+    const mutatePhysicalPreparation = (kind: PreparationMutation,values: unknown,durable = false) => {
       if(!Array.isArray(values)||values.length>maxEntries)fail('DeliveryAttemptIndexLimit');
       const originals=values.map(preparationOriginal);
       if(new Set(originals.map(row=>row.cid)).size!==originals.length)fail('InvalidDeliveryAttemptIndex');
@@ -497,7 +583,7 @@ export async function openDeliveryAttemptIndex(path, {
           const retained=physicalLifetime.preparations.get(preparationKey(row));
           if(retained!==undefined&&!samePreparation(retained,row))fail('PublicationObjectAccountingMismatch');
         }
-        const added=originals.filter(row=>!physicalLifetime.preparations.has(preparationKey(row))).length;
+        const added=originals.filter(row=>!physicalLifetime!.preparations.has(preparationKey(row))).length;
         if(kind==='stage'&&physicalLifetime.preparations.size+added>maxEntries)fail('DeliveryAttemptIndexLimit');
       }
       const persisted=durable || uncertainPhysicalPreparation!==undefined ||
@@ -505,7 +591,7 @@ export async function openDeliveryAttemptIndex(path, {
       if(physicalLifetime!==undefined&&!persisted){
         requireComplete();
         const changes=originals.filter(row=>{
-          const retained=physicalLifetime.preparations.get(preparationKey(row));
+          const retained=physicalLifetime!.preparations.get(preparationKey(row));
           if(retained!==undefined&&!samePreparation(retained,row))fail('PublicationObjectAccountingMismatch');
           return kind==='stage'?retained===undefined:retained!==undefined;
         });
@@ -530,7 +616,7 @@ export async function openDeliveryAttemptIndex(path, {
         if(retained!==undefined&&!samePreparation(preparationOriginal(retained),row))fail('PublicationObjectAccountingMismatch');
         return kind==='stage'?retained===undefined:retained!==undefined;
       });
-      if(kind==='stage' && prepare('SELECT count(*) AS n FROM physical_object_preparations').get().n+
+      if(kind==='stage' && prepare<{n: number}>('SELECT count(*) AS n FROM physical_object_preparations').get()!.n+
           changes.length>maxEntries)fail('DeliveryAttemptIndexLimit');
       if(changes.length===0&&!retry)return;
       try{
@@ -548,33 +634,34 @@ export async function openDeliveryAttemptIndex(path, {
           else physicalLifetime.preparations.delete(preparationKey(row));
         }
       }catch(error){
-        if(error?.outcome==='unknown')uncertainPhysicalPreparation={kind,originals};
+        if((error as TransactionObservation)?.outcome==='unknown')uncertainPhysicalPreparation={kind,originals};
         throw error;
       }
     };
-    const validate = row => {
+    const validate = (row: UncheckedRow | undefined): Claim => {
       if (!row || typeof row.logical_key !== 'string' ||
           Buffer.byteLength(row.logical_key, 'utf8') > 2 * maxWireBytes ||
           ![row.attempt_cid,row.grant_cid,row.run_cid].every(cid) ||
-          row.ready !== undefined && ![0,1].includes(row.ready) ||
+          row.ready !== undefined && ![0,1].includes(row.ready as number) ||
           ![row.attempt_wire,row.grant_wire].every(wire => typeof wire === 'string' &&
             Buffer.byteLength(wire,'utf8') <= maxWireBytes) ||
           row.initial_wire != null && (typeof row.initial_wire !== 'string' ||
             Buffer.byteLength(row.initial_wire,'utf8') > maxWireBytes) ||
           row.initial_cid != null && (!cid(row.initial_cid) || row.initial_wire == null)) fail('InvalidDeliveryAttemptIndex');
-      return row;
+      return row as Claim;
     };
-    const copy = row => row === undefined ? undefined : Object.freeze({...validate(row)});
-    const completionCopy = row => {
+    const copy = <Row extends StoredClaim | undefined>(row: Row): Row =>
+      (row === undefined ? undefined : Object.freeze({...validate(row)})) as Row;
+    const completionCopy = (row: UncheckedRow | undefined): StoredCompletion | undefined => {
       if(row===undefined) return undefined;
       if(![row.attempt_cid,row.record_cid,row.receipt_cid].every(cid) ||
           ![row.record_wire,row.receipt_wire].every(wire=>typeof wire==='string'&&Buffer.byteLength(wire,'utf8')<=maxWireBytes) ||
-          !Number.isSafeInteger(row.ack_revision) || row.ack_revision<1) fail('InvalidDeliveryAttemptIndex');
-      return Object.freeze({...row});
+          !Number.isSafeInteger(row.ack_revision) || (row.ack_revision as number)<1) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...row}) as StoredCompletion;
     };
-    const sameCompletion = (left,right) => left!==undefined && right!==undefined &&
-      ['attempt_cid','record_cid','record_wire','receipt_cid','receipt_wire','prior_cid'].every(key=>left[key]===right[key]);
-    const add = (row, isReady, initialWire, initialCid) => {
+    const sameCompletion = (left: CompletionOriginal | undefined,right: CompletionOriginal | undefined) => left!==undefined && right!==undefined &&
+      (['attempt_cid','record_cid','record_wire','receipt_cid','receipt_wire','prior_cid'] as const).every(key=>left[key]===right[key]);
+    const add = (row: Claim, isReady: 0 | 1, initialWire?: string, initialCid?: string) => {
       validate(row);
       insert.run(row.logical_key,row.attempt_cid,row.grant_cid,row.run_cid,
         row.attempt_wire,row.grant_wire,isReady);
@@ -590,24 +677,24 @@ export async function openDeliveryAttemptIndex(path, {
       }
       return Object.freeze({...row});
     };
-    const publicationCopy = row => {
+    const publicationCopy = (row: UncheckedRow | undefined): Publication | undefined => {
       if (row === undefined) return undefined;
       if (!cid(row.semantic_cid) || typeof row.name !== 'string' || row.name.length === 0 ||
           Buffer.byteLength(row.name,'utf8') > maxWireBytes ||
           typeof row.wire !== 'string' || !Number.isSafeInteger(row.byte_count) ||
-          row.byte_count < 0 || row.byte_count > maxWireBytes ||
+          (row.byte_count as number) < 0 || (row.byte_count as number) > maxWireBytes ||
           Buffer.byteLength(row.wire,'utf8') !== row.byte_count) fail('InvalidDeliveryAttemptIndex');
-      return Object.freeze({...row});
+      return Object.freeze({...row}) as Publication;
     };
     // Scalar extents cross the Node boundary before any variable row text.
     // The selected wire query repeats the SAME extent predicate. A changed
     // original refuses; it never becomes a Native miss/file fallback. Sibling
     // rows or a database-wide revision do not affect this original selection.
-    const metadataRead = (legacy, sql, fields) => {
+    const metadataRead = <Row extends object>(legacy: BoundStatement<Row>, sql: string, fields: readonly string[]) => {
       const extent = fields.map(field => `octet_length(${field})`).join('+');
-      const quote = prepareOnUse(`SELECT ${extent} AS bytes FROM (${sql}) AS metadata_original`);
-      const bounded = prepareOnUse(`SELECT * FROM (${sql}) AS metadata_original WHERE ${extent}=?`);
-      return (args, demand) => {
+      const quote = prepareOnUse<{bytes: number}>(`SELECT ${extent} AS bytes FROM (${sql}) AS metadata_original`);
+      const bounded = prepareOnUse<Row>(`SELECT * FROM (${sql}) AS metadata_original WHERE ${extent}=?`);
+      return (args: readonly SQLInputValue[], demand?: ReadDemand) => {
         if (demand === undefined) return legacy.get(...args);
         if (typeof demand !== 'function') fail('InvalidDeliveryAttemptIndex');
         const original = quote.get(...args);
@@ -626,9 +713,9 @@ export async function openDeliveryAttemptIndex(path, {
     const readNativeIndexMetadata = metadataRead(nativeIndexByKey, nativeIndexSql,
       ['metadata_key','namespace_id','authority_scope_cid','run_cid','public_index_cid','name','wire']);
     const readNativeInventoryMetadata = metadataRead(nativeInventory, nativeInventorySql, ['public_index_cid','inventory_wire']);
-    const samePublication = (left,right) => left !== undefined && right !== undefined &&
-      ['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);
-    const selectedPublicationRows = originals => {
+    const samePublication = (left: Publication | undefined,right: Publication | undefined) => left !== undefined && right !== undefined &&
+      (['semantic_cid','name','wire','byte_count'] as const).every(key => left[key] === right[key]);
+    const selectedPublicationRows = (originals: readonly Readonly<{semantic_cid: string}>[]) => {
       const selected = new Map();
       for (let start = 0; start < originals.length; start += publicationBlockSize) {
         const block = originals.slice(start, start + publicationBlockSize);
@@ -645,13 +732,13 @@ export async function openDeliveryAttemptIndex(path, {
           rows = statement.all(...block.map(entry => entry.semantic_cid));
         }
         for (const row of rows) {
-          const original = publicationCopy(row);
+          const original = publicationCopy(row)!;
           selected.set(original.semantic_cid, original);
         }
       }
       return selected;
     };
-    const insertPublicationRows = entries => {
+    const insertPublicationRows = (entries: readonly Publication[]) => {
       for (let start = 0; start < entries.length; start += publicationBlockSize) {
         const block = entries.slice(start, start + publicationBlockSize);
         if (block.length === 1) {
@@ -675,12 +762,12 @@ export async function openDeliveryAttemptIndex(path, {
           row.complete===0 && row.entries!==0) fail('DeliveryAttemptIndexUnavailable');
       return row;
     };
-    const recoveryOriginal = row => {
+    const recoveryOriginal = (row: UncheckedRow | undefined) => {
       if (!row || !cid(row.public_index_cid) || typeof row.inventory_wire!=='string' ||
           Buffer.byteLength(row.inventory_wire,'utf8')>maxWireBytes) fail('InvalidDeliveryAttemptIndex');
       return Object.freeze({public_index_cid:row.public_index_cid,inventory_wire:row.inventory_wire});
     };
-    const sameRecoveryOriginal = (left,right) => left!==undefined && right!==undefined &&
+    const sameRecoveryOriginal = (left: RecoveryOriginal | undefined,right: RecoveryOriginal | undefined) => left!==undefined && right!==undefined &&
       left.public_index_cid===right.public_index_cid && left.inventory_wire===right.inventory_wire;
     flushPublicationFinishes = () => {
       if (retainedPublicationFinishes.size === 0) return [];
@@ -710,7 +797,7 @@ export async function openDeliveryAttemptIndex(path, {
         run(() => {});
         uncertainPublicationFinishSeal = false; uncertain = false;
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainPublicationFinishSeal = true;
+        if ((error as TransactionObservation)?.outcome === 'unknown') uncertainPublicationFinishSeal = true;
         throw error;
       }
     };
@@ -727,18 +814,18 @@ export async function openDeliveryAttemptIndex(path, {
           !Number.isSafeInteger(row.ack_revision) || row.ack_revision<1) fail('DeliveryAttemptIndexUnavailable');
       return row;
     };
-    const fenceOriginal = value => {
+    const fenceOriginal = (value: UncheckedRow | undefined) => {
       if (!value || typeof value.metadata_key !== 'string' || !/^[0-9a-f]{64}$/u.test(value.metadata_key) ||
           !cid(value.run_cid)) fail('InvalidDeliveryAttemptIndex');
       return Object.freeze({metadata_key:value.metadata_key,run_cid:value.run_cid});
     };
-    const sameFence = (left,right) => left === undefined ? right === undefined :
+    const sameFence = (left: FenceOriginal | undefined,right: FenceOriginal | undefined) => left === undefined ? right === undefined :
       right !== undefined && left.metadata_key === right.metadata_key && left.run_cid === right.run_cid;
-    const fenceCopy = value => {
+    const fenceCopy = (value: UncheckedRow | undefined) => {
       if (value === undefined) return undefined;
       const original = fenceOriginal(value);
-      if (![0,1].includes(value.retired)) fail('InvalidDeliveryAttemptIndex');
-      return Object.freeze({...original,retired:value.retired});
+      if (![0,1].includes(value.retired as number)) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...original,retired:value.retired as 0 | 1});
     };
     const fenceState = (ready = true) => {
       const row = metadataFenceCoverage.get();
@@ -746,12 +833,12 @@ export async function openDeliveryAttemptIndex(path, {
           row.ack_revision < 1 || ready && row.complete !== 1) fail('DeliveryAttemptIndexUnavailable');
       return row;
     };
-    const checkFence = original => {
+    const checkFence = (original: FenceOriginal) => {
       const existing = fenceCopy(metadataFence.get(original.metadata_key));
       if (existing !== undefined && !sameFence(existing,original)) fail('PublicationMetadataDeletionConflict');
       return existing;
     };
-    const mutatePublicationRecovery = (kind,value,suppliedFence) => {
+    const mutatePublicationRecovery = (kind: RecoveryMutation,value: UncheckedRow | undefined,suppliedFence?: UncheckedRow) => {
       const fence = suppliedFence === undefined ? undefined : fenceOriginal(suppliedFence);
       const original = value === undefined && kind === 'retire-native' && fence !== undefined
         ? undefined : recoveryOriginal(value);
@@ -785,11 +872,11 @@ export async function openDeliveryAttemptIndex(path, {
         run(()=>{
           let change=0;
           if (stage && existing===undefined) {
-            insertPendingPublication.run(original.public_index_cid,original.inventory_wire);change=1;
+            insertPendingPublication.run(original!.public_index_cid,original!.inventory_wire);change=1;
           } else if (!stage && original !== undefined) change=-removePendingPublication.run(original.public_index_cid).changes;
           let nativeChange=0;
           if (kind==='stage-native' && native===undefined) {
-            insertNativeInventory.run(original.public_index_cid,original.inventory_wire);nativeChange=1;
+            insertNativeInventory.run(original!.public_index_cid,original!.inventory_wire);nativeChange=1;
           } else if (retire && original !== undefined) nativeChange=-removeNativeInventory.run(original.public_index_cid).changes;
           if (fence !== undefined && priorFence === undefined) insertMetadataFence.run(fence.metadata_key,fence.run_cid,0);
           if ((kind==='stage-native'||retire) && updateNativeInventoryUsage.run(nativeChange).changes!==1) {
@@ -801,42 +888,42 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain=false;uncertainPublicationRecovery=undefined;}
       } catch (error) {
-        if (error?.outcome==='unknown') uncertainPublicationRecovery=Object.freeze({kind,original,fence});
+        if ((error as TransactionObservation)?.outcome==='unknown') uncertainPublicationRecovery=Object.freeze({kind,original,fence});
         throw error;
       }
       return original;
     };
-    const nativeIndexKey = value => {
+    const nativeIndexKey = (value: UncheckedRow | undefined): NativeKey => {
       if (!value || Object.keys(value).sort().join(',') !==
           'authority_scope_cid,metadata_key,namespace_id,run_cid' ||
           typeof value.metadata_key !== 'string' || !/^[0-9a-f]{64}$/u.test(value.metadata_key) ||
           typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
           Buffer.byteLength(value.namespace_id,'utf8') > maxWireBytes ||
           !cid(value.authority_scope_cid) || !cid(value.run_cid)) fail('InvalidDeliveryAttemptIndex');
-      return Object.freeze({...value});
+      return Object.freeze({...value}) as NativeKey;
     };
-    const nativeIndexCopy = row => {
+    const nativeIndexCopy = (row: UncheckedRow | undefined) => {
       if (row === undefined) return undefined;
       const key = nativeIndexKey({metadata_key:row.metadata_key,namespace_id:row.namespace_id,
         authority_scope_cid:row.authority_scope_cid,run_cid:row.run_cid});
       const body = publicationCopy({semantic_cid:row.public_index_cid,name:row.name,
-        wire:row.wire,byte_count:row.byte_count});
+        wire:row.wire,byte_count:row.byte_count})!;
       if (body.name !== 'public_index_entry' || !Number.isSafeInteger(row.ack_revision) ||
-          row.ack_revision < 1) fail('DeliveryAttemptIndexUnavailable');
-      return Object.freeze({...key, body, ack_revision:row.ack_revision});
+          (row.ack_revision as number) < 1) fail('DeliveryAttemptIndexUnavailable');
+      return Object.freeze({...key, body, ack_revision:row.ack_revision as number});
     };
-    const nativeMaterialCopy = value => {
+    const nativeMaterialCopy = (value: UncheckedRow | undefined): NativeBinding => {
       if (!value || Object.keys(value).sort().join(',') !== 'binding_cid,material_cid,result_definition_cid' ||
           !cid(value.binding_cid) || !cid(value.material_cid) || !cid(value.result_definition_cid)) {
         fail('InvalidDeliveryAttemptIndex');
       }
-      return Object.freeze({...value});
+      return Object.freeze({...value}) as NativeBinding;
     };
-    const sameNativeIndexKey = (a,b) => ['metadata_key','namespace_id','authority_scope_cid','run_cid']
+    const sameNativeIndexKey = (a: NativeKey,b: NativeKey) => (['metadata_key','namespace_id','authority_scope_cid','run_cid'] as const)
       .every(key => a[key] === b[key]);
-    const sameNativeMaterials = (a,b) => a.length === b.length && a.every((value,i) =>
-      ['binding_cid','material_cid','result_definition_cid'].every(key => value[key] === b[i][key]));
-    const commitNativeIndex = (suppliedKey,suppliedBody,suppliedInventory,suppliedBindings,allowance,progress) => {
+    const sameNativeMaterials = (a: readonly NativeBinding[],b: readonly NativeBinding[]) => a.length === b.length && a.every((value,i) =>
+      (['binding_cid','material_cid','result_definition_cid'] as const).every(key => value[key] === b[i][key]));
+    const commitNativeIndex = (suppliedKey: UncheckedRow,suppliedBody: UncheckedRow,suppliedInventory: UncheckedRow,suppliedBindings: readonly UncheckedRow[],allowance: Extent,progress: NativeProgress) => {
       const key = nativeIndexKey(suppliedKey), body = publicationCopy(suppliedBody);
       const inventory = recoveryOriginal(suppliedInventory);
       if (body?.name !== 'public_index_entry' || body.semantic_cid !== inventory.public_index_cid ||
@@ -874,7 +961,7 @@ export async function openDeliveryAttemptIndex(path, {
         if (native === undefined || !sameNativeMaterials(actual,bindings)) fail('PublicationMetadataInventoryConflict');
         if (!retry) return Object.freeze({created:false,usage:before});
       }
-      const created = retry ? uncertainNativeIndex.created : existing === undefined;
+      const created = retry ? (uncertainNativeIndex as Extract<NativeIndexRetry, {kind: 'commit'}>).created : existing === undefined;
       const objects = existingBody === undefined ? 1 : 0, bytes = objects ? body.byte_count : 0;
       if (!allowance || !Number.isSafeInteger(allowance.objects) || allowance.objects < objects ||
           !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes) fail('PublicationStoreCapacity');
@@ -904,16 +991,16 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'commit',key,body,inventory,bindings,created,progress});
+        if ((error as TransactionObservation)?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'commit',key,body,inventory,bindings,created,progress});
         throw error;
       }
       return Object.freeze({created,usage:usage()});
     };
-    const confirmNativeIndex = supplied => {
+    const confirmNativeIndex = (supplied: Readonly<{metadata_key: unknown; namespace_id: unknown; authority_scope_cid: unknown; run_cid: unknown; body: UncheckedRow; ack_revision: unknown}>) => {
       const key = nativeIndexKey({metadata_key:supplied?.metadata_key,namespace_id:supplied?.namespace_id,
         authority_scope_cid:supplied?.authority_scope_cid,run_cid:supplied?.run_cid});
       const body = publicationCopy(supplied?.body), revision = supplied?.ack_revision;
-      if (body?.name !== 'public_index_entry' || !Number.isSafeInteger(revision) || revision < 1) {
+      if (body?.name !== 'public_index_entry' || !Number.isSafeInteger(revision) || (revision as number) < 1) {
         fail('InvalidDeliveryAttemptIndex');
       }
       const retry = uncertain && uncertainNativeIndex?.kind === 'confirm' &&
@@ -925,7 +1012,7 @@ export async function openDeliveryAttemptIndex(path, {
       } else requireComplete();
       // The supplied original stays fixed. Each lost reply retains only the
       // before/after revisions of its most recent SAME confirmation write.
-      const writeRevision = retry ? uncertainNativeIndex.writeRevision : revision;
+      const writeRevision = retry ? (uncertainNativeIndex as Extract<NativeIndexRetry, {kind: 'confirm'}>).writeRevision : revision as number;
       const current = nativeIndexCopy(nativeIndexByKey.get(key.metadata_key));
       if (current === undefined || !sameNativeIndexKey(current,key) || !samePublication(current.body,body) ||
           current.ack_revision !== writeRevision && !(retry && current.ack_revision === writeRevision + 1)) {
@@ -939,13 +1026,13 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'confirm',key,body,revision,
+        if ((error as TransactionObservation)?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'confirm',key,body,revision:revision as number,
           writeRevision:current.ack_revision});
         throw error;
       }
       return Object.freeze({...current,ack_revision:current.ack_revision+1});
     };
-    const progressCopy = value => {
+    const progressCopy = (value: Progress | undefined): Progress | undefined => {
       if (value === undefined) return undefined;
       if (value?.kind === 'initial-records' || value?.kind === 'initial-attempt') {
         const start = value.kind === 'initial-attempt';
@@ -960,7 +1047,7 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (records[0].recordCid === records[1].recordCid) fail('InvalidPublicationRecord');
         return Object.freeze({kind:value.kind,attemptCid:value.attemptCid,
-          ...(start ? {runCid:value.runCid} : {}),records:Object.freeze(records)});
+          ...(start ? {runCid:value.runCid} : {}),records:Object.freeze(records)}) as Progress;
       }
       const keys = value?.kind === 'attempt' ? 'attemptCid,kind,runCid' : 'attemptCid,kind,previousCid,recordCid,sequence';
       if (!value || Object.keys(value).sort().join(',') !== keys || !cid(value.attemptCid) ||
@@ -971,22 +1058,22 @@ export async function openDeliveryAttemptIndex(path, {
       }
       return Object.freeze({...value});
     };
-    const sameProgress = (a,b) => a === undefined ? b === undefined : b !== undefined &&
-      ['kind','attemptCid','runCid','previousCid','recordCid','sequence'].every(key=>a[key]===b[key]) &&
-      (!['initial-records','initial-attempt'].includes(a.kind) || a.records.every((record,i) =>
-        ['previousCid','recordCid','sequence'].every(key=>record[key]===b.records[i][key])));
-    const publicationMutation = (kind, entries, allowance, suppliedProgress, selection) => {
-      const progress = progressCopy(suppliedProgress);
+    const sameProgress = (a: Progress | undefined,b: Progress | undefined) => a === undefined ? b === undefined : b !== undefined &&
+      (['kind','attemptCid','runCid','previousCid','recordCid','sequence'] as const).every(key=>a[key]===b[key]) &&
+      (!['initial-records','initial-attempt'].includes(a.kind) || a.records!.every((record,i) =>
+        (['previousCid','recordCid','sequence'] as const).every(key=>record[key]===b!.records![i][key])));
+    const publicationMutation = (kind: PublicationMutation, entries: readonly Publication[], allowance?: Extent, suppliedProgress?: unknown, selection?: object) => {
+      const progress = progressCopy(suppliedProgress as Progress | undefined);
       if (!Array.isArray(entries) || entries.length > maxEntries) fail('DeliveryAttemptIndexLimit');
       const retry = uncertain && uncertainPublication?.kind === kind &&
         sameProgress(progress,uncertainPublication.progress) &&
         entries.length === uncertainPublication.entries.length &&
-        entries.every((entry,i) => samePublication(entry,uncertainPublication.entries[i]));
+        entries.every((entry,i) => samePublication(entry,uncertainPublication!.entries[i]));
       if (retry) {
         if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
         transaction.assertUsable();
       } else requireComplete();
-      const originals = Object.freeze(entries.map(entry => publicationCopy(entry)));
+      const originals = Object.freeze(entries.map(entry => publicationCopy(entry))) as readonly Publication[];
       if (progress !== undefined && (kind !== 'put' ||
           progress.kind === 'record' && originals.length > 1 ||
           ['attempt','initial-attempt'].includes(progress.kind) && !originals.some(entry => entry?.name === 'publication_attempt' &&
@@ -1000,15 +1087,15 @@ export async function openDeliveryAttemptIndex(path, {
         fail('InvalidPublicationRecord');
       }
       const before = usage();
-      const additions = [], removals = [];
+      const additions: Publication[] = [], removals: Publication[] = [];
       const keys = new Set();
       let bytes = 0;
       for (const entry of originals) {
         if (entry === undefined || keys.has(entry.semantic_cid)) fail('InvalidDeliveryAttemptIndex');
         keys.add(entry.semantic_cid);
       }
-      const retained = !retry && kind === 'put' ? publicationRowSelections.get(selection) : undefined;
-      publicationRowSelections.delete(selection);
+      const retained = !retry && kind === 'put' ? publicationRowSelections.get(selection!) : undefined;
+      publicationRowSelections.delete(selection!);
       const selected = retained !== undefined && retained.keys.length === originals.length &&
         retained.keys.every((key, index) => key === originals[index].semantic_cid)
         ? retained.rows : selectedPublicationRows(originals);
@@ -1024,8 +1111,8 @@ export async function openDeliveryAttemptIndex(path, {
       if (kind === 'put' && (!allowance || !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes ||
           !Number.isSafeInteger(allowance.objects) || allowance.objects < objects)) fail('PublicationStoreCapacity');
       let progressCreated = false;
-      const retainedAttempt = ['attempt','initial-attempt'].includes(progress?.kind) ? publicationAttempt.get(progress.attemptCid) : undefined;
-      if (retainedAttempt !== undefined && retainedAttempt.run_cid !== progress.runCid) fail('PublicationAttemptConflict');
+      const retainedAttempt = ['attempt','initial-attempt'].includes(progress?.kind as Progress['kind']) ? publicationAttempt.get(progress!.attemptCid) : undefined;
+      if (retainedAttempt !== undefined && retainedAttempt.run_cid !== progress!.runCid) fail('PublicationAttemptConflict');
       // An unchanged already committed attempt needs no new mutation. This
       // does not acknowledge a lost COMMIT: that original always retries below.
       if (objects !== 0 || retry || progress !== undefined && (progress.kind !== 'attempt' || retainedAttempt === undefined)) {
@@ -1033,7 +1120,7 @@ export async function openDeliveryAttemptIndex(path, {
           run(() => {
             if (progress !== undefined) {
               const attempt = publicationAttempt.get(progress.attemptCid);
-              if (runMetadataFence.get(['attempt','initial-attempt'].includes(progress.kind) ? progress.runCid : attempt?.run_cid) !== undefined) {
+              if (runMetadataFence.get(['attempt','initial-attempt'].includes(progress.kind) ? (progress.runCid as string) : (attempt?.run_cid as string)) !== undefined) {
                 fail('PublicationMetadataDeleted');
               }
               if (progress.kind === 'attempt' || progress.kind === 'initial-attempt') {
@@ -1058,7 +1145,7 @@ export async function openDeliveryAttemptIndex(path, {
                 // installed record. A prepared contract alone is not progress.
                 const installed = retry && prior?.record_cid === progress.recordCid;
                 if (!installed && (prior?.record_cid ?? null) !== progress.previousCid) fail('PublicationRecordConflict');
-                if (publicationProgressCount.get(progress.attemptCid).count !== progress.sequence+(installed?1:0)) {
+                if (publicationProgressCount.get(progress.attemptCid)!.count !== progress.sequence+(installed?1:0)) {
                   fail('PublicationRecordGap');
                 }
                 if (!installed) insertPublicationRecord.run(progress.attemptCid,progress.sequence,progress.recordCid);
@@ -1072,7 +1159,7 @@ export async function openDeliveryAttemptIndex(path, {
           });
           if (retry) { uncertain = false; uncertainPublication = undefined; }
         } catch (error) {
-          if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});
+          if ((error as TransactionObservation)?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});
           throw error;
         }
       }
@@ -1093,7 +1180,7 @@ export async function openDeliveryAttemptIndex(path, {
       },
       physicalObjectUsage() {requireOpen();return physicalState();},
       physicalObjectRecoveryRequired() {requireOpen();return physicalRecoveryRequired;},
-      recoverPhysicalObjects(values) {
+      recoverPhysicalObjects(values: unknown) {
         requireComplete();if(!physicalRecoveryRequired||physicalLifetime!==undefined)fail('DeliveryAttemptIndexAlreadyComplete');
         if(!Array.isArray(values)||values.length>maxEntries)fail('DeliveryAttemptIndexLimit');
         const originals=values.map(physicalOriginal),bytes=originals.reduce((sum,row)=>sum+row.byte_count,0);
@@ -1122,12 +1209,12 @@ export async function openDeliveryAttemptIndex(path, {
         run(()=>exec('PRAGMA user_version=1'));
         physicalLifetime={base,objects:base.objects,bytes:base.bytes,changes:new Map(),preparations,retiring:new Map(),sealing:false,sealed:false};
       },
-      retainPhysicalRemoval(value) {
+      retainPhysicalRemoval(value: UncheckedRow) {
         requireComplete();const original=physicalOriginal(value);
         if(physicalLifetime===undefined||!samePhysical(selectedPhysical(original.cid),original))fail('PublicationObjectAccountingMismatch');
         physicalLifetime.retiring.set(preparationKey(original),original);
       },
-      physicalObject(cidValue,{priorLifetime=false}={}) {
+      physicalObject(cidValue: unknown,{priorLifetime=false}={}) {
         requireComplete();if(!cid(cidValue))fail('InvalidDeliveryAttemptIndex');
         if(priorLifetime){
           if(!priorPhysicalReconciliationAllowed||physicalRecoveryRequired||
@@ -1141,7 +1228,7 @@ export async function openDeliveryAttemptIndex(path, {
         }
         return selectedPhysical(cidValue);
       },
-      migratePhysicalObjects(values) {
+      migratePhysicalObjects(values: unknown) {
         requireOpen();if(physicalState().complete!==0)fail('DeliveryAttemptIndexAlreadyComplete');
         if(!Array.isArray(values)||values.length>maxEntries)fail('DeliveryAttemptIndexLimit');
         const originals=values.map(physicalOriginal),bytes=originals.reduce((sum,row)=>sum+row.byte_count,0);
@@ -1156,11 +1243,11 @@ export async function openDeliveryAttemptIndex(path, {
         });
         return physicalState();
       },
-      recordPhysicalObjects(values,{retainPreparations=false}={}) {return mutatePhysical('record',values,retainPreparations);},
-      removePhysicalObjects(values) {return mutatePhysical('remove',values);},
-      stagePhysicalObjects(values,{durable=false}={}) {return mutatePhysicalPreparation('stage',values,durable);},
-      finishPhysicalPreparations(values) {return mutatePhysicalPreparation('finish',values);},
-      pendingPhysicalObject(value) {
+      recordPhysicalObjects(values: unknown,{retainPreparations=false}={}) {return mutatePhysical('record',values,retainPreparations);},
+      removePhysicalObjects(values: unknown) {return mutatePhysical('remove',values);},
+      stagePhysicalObjects(values: unknown,{durable=false}={}) {return mutatePhysicalPreparation('stage',values,durable);},
+      finishPhysicalPreparations(values: unknown) {return mutatePhysicalPreparation('finish',values);},
+      pendingPhysicalObject(value: UncheckedRow) {
         requireComplete();const original=physicalOriginal(value);
         const retained=physicalLifetime===undefined
           ? physicalPreparation.get(original.cid,original.device,original.inode)
@@ -1175,23 +1262,23 @@ export async function openDeliveryAttemptIndex(path, {
         if(rows.length>maxEntries)fail('DeliveryAttemptIndexLimit');
         return Object.freeze(rows.map(preparationOriginal));
       },
-      nativePublicationInventory(publicIndexCid, readDemand) {
+      nativePublicationInventory(publicIndexCid: unknown, readDemand?: ReadDemand) {
         requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
         inventoryUsage();const row=readNativeInventoryMetadata([publicIndexCid],readDemand);
         return row===undefined?undefined:recoveryOriginal(row);
       },
-      nativePublicationIndex(metadataKey, readDemand) {
+      nativePublicationIndex(metadataKey: unknown, readDemand?: ReadDemand) {
         requireComplete();
         if (typeof metadataKey !== 'string' || !/^[0-9a-f]{64}$/u.test(metadataKey)) fail('InvalidDeliveryAttemptIndex');
         return nativeIndexCopy(readNativeIndexMetadata([metadataKey],readDemand));
       },
       commitNativePublicationIndex: commitNativeIndex,
       confirmNativePublicationIndex: confirmNativeIndex,
-      nativePublicationMaterialReferences(materialCid, afterIndexCid, afterResultCid) {
+      nativePublicationMaterialReferences(materialCid: unknown, afterIndexCid?: unknown, afterResultCid?: unknown) {
         requireComplete();
         if (!cid(materialCid) || (afterIndexCid === undefined ? afterResultCid !== undefined :
           !cid(afterIndexCid) || !cid(afterResultCid))) fail('InvalidDeliveryAttemptIndex');
-        return Object.freeze(nativeMaterials.all(materialCid,afterIndexCid ?? '',afterResultCid ?? '').map(row => {
+        return Object.freeze(nativeMaterials.all(materialCid,(afterIndexCid as string | undefined) ?? '',(afterResultCid as string | undefined) ?? '').map(row => {
           if (!cid(row.public_index_cid) || !/^[0-9a-f]{64}$/u.test(row.metadata_key)) fail('DeliveryAttemptIndexUnavailable');
           return Object.freeze({...nativeMaterialCopy({binding_cid:row.binding_cid,material_cid:row.material_cid,
             result_definition_cid:row.result_definition_cid}),public_index_cid:row.public_index_cid,metadata_key:row.metadata_key});
@@ -1202,7 +1289,7 @@ export async function openDeliveryAttemptIndex(path, {
         if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');
         return Object.freeze(rows.map(recoveryOriginal));
       },
-      nativePublicationReferenceOwners(kind, referenceCid, excludedPublicIndexCid) {
+      nativePublicationReferenceOwners(kind: string, referenceCid: unknown, excludedPublicIndexCid?: unknown) {
         requireComplete();
         if (!['contract', 'holding'].includes(kind) || !cid(referenceCid) ||
           excludedPublicIndexCid !== undefined && !cid(excludedPublicIndexCid)) fail('InvalidDeliveryAttemptIndex');
@@ -1212,7 +1299,7 @@ export async function openDeliveryAttemptIndex(path, {
         return Object.freeze(rows.map(recoveryOriginal));
       },
       needsPublicationRecoveryMigration() { requireComplete();return recoveryState().complete===0; },
-      migratePublicationRecovery(values) {
+      migratePublicationRecovery(values: unknown) {
         requireComplete();
         if (recoveryState().complete!==0 || pendingPublications.all(1).length!==0) fail('DeliveryAttemptIndexAlreadyComplete');
         if (!Array.isArray(values)||values.length>maxEntries) fail('DeliveryAttemptIndexLimit');
@@ -1231,16 +1318,16 @@ export async function openDeliveryAttemptIndex(path, {
         if(rows.length!==state.entries)fail('DeliveryAttemptIndexUnavailable');
         return Object.freeze(rows.map(recoveryOriginal));
       },
-      pendingPublication(publicIndexCid) {
+      pendingPublication(publicIndexCid: unknown) {
         requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
         if(recoveryState().complete!==1)fail('DeliveryAttemptIndexUnavailable');
         const row=pendingPublication.get(publicIndexCid);
         return row===undefined?undefined:recoveryOriginal(row);
       },
-      stagePublicationInventory(value) { return mutatePublicationRecovery('stage',value); },
-      stageNativePublicationInventory(value) { return mutatePublicationRecovery('stage-native',value); },
-      finishPublicationInventory(value) { return mutatePublicationRecovery('finish',value); },
-      retainPublicationInventoryFinish(value) {
+      stagePublicationInventory(value: UncheckedRow) { return mutatePublicationRecovery('stage',value); },
+      stageNativePublicationInventory(value: UncheckedRow) { return mutatePublicationRecovery('stage-native',value); },
+      finishPublicationInventory(value: UncheckedRow) { return mutatePublicationRecovery('finish',value); },
+      retainPublicationInventoryFinish(value: UncheckedRow) {
         requireComplete();
         const original = recoveryOriginal(value);
         if (recoveryState().complete !== 1) fail('DeliveryAttemptIndexUnavailable');
@@ -1254,9 +1341,9 @@ export async function openDeliveryAttemptIndex(path, {
         // adoption. It retains derived recovery work, not an ACK or authority.
         retainedPublicationFinishes.set(original.public_index_cid, original);
       },
-      retireNativePublicationInventory(value,fence) { return mutatePublicationRecovery('retire-native',value,fence); },
+      retireNativePublicationInventory(value: UncheckedRow | undefined,fence?: UncheckedRow) { return mutatePublicationRecovery('retire-native',value,fence); },
       needsMetadataDeletionFenceMigration() { requireComplete();return fenceState(false).complete===0; },
-      migrateMetadataDeletionFences(values,finished=false) {
+      migrateMetadataDeletionFences(values: unknown,finished=false) {
         requireComplete();
         if (fenceState(false).complete !== 0) fail('DeliveryAttemptIndexAlreadyComplete');
         if (!Array.isArray(values) || values.length > Math.max(1,maxEntries) || typeof finished !== 'boolean') {
@@ -1265,7 +1352,7 @@ export async function openDeliveryAttemptIndex(path, {
         const rows=values.map(fenceCopy),keys=new Set(rows.map(row=>row?.metadata_key));
         if(rows.some(row=>row===undefined)||keys.size!==rows.length) fail('InvalidDeliveryAttemptIndex');
         run(()=>{
-          for(const row of rows) {
+          for(const row of rows as readonly Fence[]) {
             const prior=checkFence(row);
             if(prior===undefined)insertMetadataFence.run(row.metadata_key,row.run_cid,row.retired);
             else if(row.retired===1)retireMetadataFence.run(row.metadata_key,row.run_cid);
@@ -1276,19 +1363,19 @@ export async function openDeliveryAttemptIndex(path, {
           } else if(acknowledgeMetadataFences.run().changes!==1)fail('DeliveryAttemptIndexUnavailable');
         });
       },
-      metadataDeletionFence(key) {
+      metadataDeletionFence(key: unknown) {
         requireComplete();fenceState();
         if(typeof key!=='string'||!/^[0-9a-f]{64}$/u.test(key))fail('InvalidDeliveryAttemptIndex');
         return fenceCopy(metadataFence.get(key));
       },
-      hasRunMetadataDeletionFence(runCid) {
+      hasRunMetadataDeletionFence(runCid: unknown) {
         requireComplete();fenceState();
         if(!cid(runCid))fail('InvalidDeliveryAttemptIndex');
         const row=fenceCopy(runMetadataFence.get(runCid));
         if(row!==undefined&&row.run_cid!==runCid)fail('InvalidDeliveryAttemptIndex');
         return row!==undefined;
       },
-      finishMetadataDeletionFence(value) {
+      finishMetadataDeletionFence(value: UncheckedRow) {
         const original=fenceOriginal(value);
         const retry=uncertain&&sameFence(uncertainMetadataFence,original);
         if(retry) {
@@ -1305,13 +1392,13 @@ export async function openDeliveryAttemptIndex(path, {
           });
           if(retry){uncertain=false;uncertainMetadataFence=undefined;}
         } catch(error) {
-          if(error?.outcome==='unknown')uncertainMetadataFence=original;
+          if((error as TransactionObservation)?.outcome==='unknown')uncertainMetadataFence=original;
           throw error;
         }
       },
       publicationUsage() { requireComplete(); return usage(); },
-      publicationContract(semanticCid, readDemand) { requireComplete(); return publicationCopy(readPublicationMetadata([semanticCid],readDemand)); },
-      publicationContracts(semanticCids) {
+      publicationContract(semanticCid: string, readDemand?: ReadDemand) { requireComplete(); return publicationCopy(readPublicationMetadata([semanticCid],readDemand)); },
+      publicationContracts(semanticCids: readonly unknown[]) {
         requireComplete();
         if (!Array.isArray(semanticCids) || semanticCids.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
         const supplied = Array.from({length:semanticCids.length}, (_, index) => semanticCids[index]);
@@ -1321,34 +1408,34 @@ export async function openDeliveryAttemptIndex(path, {
         publicationRowSelections.set(original, {keys: keys.map(key => key.semantic_cid), rows});
         return original;
       },
-      putPublicationContracts(entries, allowance, progress, selection) {
+      putPublicationContracts(entries: readonly Publication[], allowance: Extent, progress?: unknown, selection?: object) {
         return publicationMutation('put',entries,allowance,progress,selection);
       },
-      publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
+      publicationAttempt(attemptCid: string) {requireComplete();const row=publicationAttempt.get(attemptCid);
         return row===undefined?undefined:Object.freeze({...row});},
-      latestPublicationRecord(attemptCid) {
+      latestPublicationRecord(attemptCid: string) {
         requireComplete();
         const row = publicationProgress.get(attemptCid);
-        const count = publicationProgressCount.get(attemptCid).count;
+        const count = publicationProgressCount.get(attemptCid)!.count;
         if (!Number.isSafeInteger(count) || count > maxEntries ||
             (row === undefined ? count !== 0 : row.sequence !== count-1)) fail('PublicationRecordGap');
         return row===undefined?undefined:Object.freeze({...row});
       },
-      publicationAttemptsForRun(runCid) {
+      publicationAttemptsForRun(runCid: string) {
         requireComplete();
         const rows = publicationRunAttempts.all(runCid,maxEntries+1);
         if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
         return Object.freeze(rows.map(row=>Object.freeze({...row})));
       },
-      publicationRecords(attemptCid) {
+      publicationRecords(attemptCid: string) {
         requireComplete();
         const rows = publicationAttemptRecords.all(attemptCid,maxEntries+1);
         if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
         return Object.freeze(rows.map(row=>Object.freeze({...row})));
       },
-      removePublicationContract(entry) { return publicationMutation('remove',[entry]); },
+      removePublicationContract(entry: Publication) { return publicationMutation('remove',[entry]); },
       needsMigration() { requireOpen(); return !complete; },
-      migrate(rows) {
+      migrate(rows: readonly Claim[]) {
         requireOpen();
         if (complete) fail('DeliveryAttemptIndexAlreadyComplete');
         if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
@@ -1364,11 +1451,11 @@ export async function openDeliveryAttemptIndex(path, {
         });
         complete = true;
       },
-      lookup(key) { requireComplete(); return copy(lookup.get(key)); },
-      attempt(attemptCid) { requireComplete(); return copy(byAttempt.get(attemptCid)); },
-      run(runCid) { requireComplete(); return Object.freeze(byRun.all(runCid,maxEntries+1).map(copy)); },
-      completion(attemptCid) {requireComplete();return completionCopy(completion.get(attemptCid));},
-      contract(semanticCid, readDemand) {
+      lookup(key: string) { requireComplete(); return copy(lookup.get(key)); },
+      attempt(attemptCid: string) { requireComplete(); return copy(byAttempt.get(attemptCid)); },
+      run(runCid: string) { requireComplete(); return Object.freeze(byRun.all(runCid,maxEntries+1).map(copy)) as readonly StoredClaim[]; },
+      completion(attemptCid: string) {requireComplete();return completionCopy(completion.get(attemptCid));},
+      contract(semanticCid: string, readDemand?: ReadDemand) {
         requireComplete();
         const metadata = publicationCopy(readPublicationMetadata([semanticCid],readDemand));
         if (metadata !== undefined) return Object.freeze({name:metadata.name,wire:metadata.wire,publication:true});
@@ -1378,8 +1465,8 @@ export async function openDeliveryAttemptIndex(path, {
         if(typeof wire!=='string' || Buffer.byteLength(wire,'utf8')>maxWireBytes) fail('InvalidDeliveryAttemptIndex');
         return Object.freeze({name,wire});
       },
-      pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)); },
-      complete(entry) {
+      pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)) as readonly StoredClaim[]; },
+      complete(entry: DeliveryCompletionEntry) {
         const retry=uncertain && sameCompletion(uncertainCompletion,entry);
         if(retry) {
           if(closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
@@ -1408,11 +1495,11 @@ export async function openDeliveryAttemptIndex(path, {
           if(retry) {uncertain=false;uncertainCompletion=undefined;}
           confirmedRecord=entry.record_cid;
         } catch(error) {
-          if(error?.outcome==='unknown') uncertainCompletion=original;
+          if((error as TransactionObservation)?.outcome==='unknown') uncertainCompletion=original;
           throw error;
         }
       },
-      confirmRecord(attemptCid,recordCid,wire) {
+      confirmRecord(attemptCid: string,recordCid: string,wire: string) {
         const retryInitial=uncertain && uncertainInitial?.attemptCid===attemptCid &&
           uncertainInitial.recordCid===recordCid && uncertainInitial.wire===wire;
         const retry=retryInitial || uncertain && uncertainCompletion?.attempt_cid===attemptCid &&
@@ -1426,7 +1513,7 @@ export async function openDeliveryAttemptIndex(path, {
         const retained=isInitial ? undefined : completionCopy(completion.get(attemptCid));
         if(!isInitial && retained?.record_cid!==recordCid) return false;
         if(isInitial ? initial.initial_wire!==wire || !Number.isSafeInteger(initial.ack_revision) || initial.ack_revision<1
-          : retained.record_wire!==wire) fail('DeliveryRecordConflict');
+          : retained!.record_wire!==wire) fail('DeliveryRecordConflict');
         if(confirmedRecord===recordCid && !retry) return true;
         const priorCid=byAttempt.get(attemptCid)?.initial_cid;
         try {
@@ -1435,21 +1522,21 @@ export async function openDeliveryAttemptIndex(path, {
           confirmedRecord=recordCid;
           return true;
         } catch(error) {
-          if(error?.outcome==='unknown') {
+          if((error as TransactionObservation)?.outcome==='unknown') {
             if(isInitial) uncertainInitial=Object.freeze({attemptCid,recordCid,wire});
-            else uncertainCompletion=Object.freeze({...retained,prior_cid:priorCid});
+            else uncertainCompletion=Object.freeze({...retained!,prior_cid:priorCid});
           }
           throw error;
         }
       },
-      claim(row,maxUses,initialWire,initialCid) {
+      claim(row: Claim,maxUses: number,initialWire?: string,initialCid?: string) {
         requireComplete();
         validate({...row,initial_wire:initialWire,initial_cid:initialCid});
         const retained = lookup.get(row.logical_key);
         if (retained !== undefined) return Object.freeze({row: copy(retained), created: false});
         const result=run(() => {
           if ((uses.get(row.grant_cid)?.uses ?? 0) >= maxUses) fail('DeliveryGrantUseLimit');
-          if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
+          if ((state.get()!.entries as number) >= maxEntries) fail('DeliveryAttemptIndexLimit');
           // For a joint START this is a complete durable logical claim, not
           // a file ACK. A supplied initial CID selects the native metadata
           // representation; legacy null retains its separate file protocol.
@@ -1460,7 +1547,7 @@ export async function openDeliveryAttemptIndex(path, {
         if(initialCid!==undefined) confirmedRecord=initialCid;
         return result;
       },
-      finish(key,attemptCid) {
+      finish(key: string,attemptCid: string) {
         requireComplete();
         const row = lookup.get(key);
         if (row === undefined || row.attempt_cid !== attemptCid) fail('DeliveryAttemptConflict');
@@ -1469,7 +1556,7 @@ export async function openDeliveryAttemptIndex(path, {
           if (ready.run(key,attemptCid).changes !== 1) fail('DeliveryAttemptConflict');
         });
       },
-      forgetRun(runCid) {
+      forgetRun(runCid: string) {
         if (uncertain && uncertainRemoval === runCid) {
           if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
           transaction.assertUsable();
@@ -1488,7 +1575,7 @@ export async function openDeliveryAttemptIndex(path, {
             uncertain = false;
           }
         } catch (error) {
-          if (error?.outcome === 'unknown') uncertainRemoval = runCid;
+          if ((error as TransactionObservation)?.outcome === 'unknown') uncertainRemoval = runCid;
           throw error;
         }
       },

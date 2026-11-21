@@ -47,7 +47,7 @@ type StartupPaths = Readonly<{
   metadataInventoriesDirectory: string;
   metadataDeletionsDirectory: string;
 }>;
-type StartupPorts<Contract extends PublicationContract> =
+type StartupPorts<Contract extends PublicationContract, Index extends StartupIndex<Contract>> =
   Pick<DeliveryPorts<Contract>, 'readFileDeliveryAttemptContract' | 'deliveryIndexRow' | 'restoreDeliveryClaim'> &
   Pick<ReturnType<typeof createPublicationContractStore<Contract>>, 'parseContract'> &
   Pick<ReturnType<typeof createPublicationSemanticReader<Contract>>, 'readSemanticOriginal' | 'readContract'> &
@@ -55,7 +55,7 @@ type StartupPorts<Contract extends PublicationContract> =
   Pick<ReturnType<typeof createPublicationMetadataDeletionMarkers>, 'readMetadataDeletion' | 'runMetadataDeletionStarted'> & Readonly<{
     openDeliveryAttemptIndex(path: string, options: Readonly<{
       create: boolean; maxEntries: number; maxWireBytes: number; initializeEmpty: boolean;
-    }>): Promise<StartupIndex<Contract>>;
+    }>): Promise<Index>;
     bootstrap: Parameters<typeof removeOpeningTree>[1];
     readOpeningDirectory(path: string): Promise<readonly string[]>;
     writePhysicalHoldingRecord: ReturnType<typeof createPhysicalHoldingRecordWriter>;
@@ -68,19 +68,19 @@ type StartupPorts<Contract extends PublicationContract> =
     metadataDeletionPath(keyHash: string): string;
   }>;
 
-export function createPublicationIndexStartup<Contract extends PublicationContract>(
+export function createPublicationIndexStartup<Contract extends PublicationContract, Index extends StartupIndex<Contract>>(
   configuration: Readonly<{maxObjects: number; maxObjectBytes: number; capacityBytes: number}>,
   {root, deliveryCoveragePath, deliveryIndexPath, stagingDirectory, objectsDirectory, deliveriesDirectory,
     metadataInventoriesDirectory, metadataDeletionsDirectory}: StartupPaths,
   createdStore: boolean,
-  indexState: {deliveryIndex: StartupIndex<Contract> | undefined; set metadataFencesReady(value: boolean)},
+  indexState: {deliveryIndex: Index | undefined; set metadataFencesReady(value: boolean)},
   writeState: Readonly<{storedBytes: number; objectCount: number}>,
   metadataDeletionIntents: Set<unknown>,
   openingMetadataDeletionNames: string[],
   {openDeliveryAttemptIndex, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
     syncDirectory, physicalOriginal, accountPhysicalUsage, accountNativePublication, confirmCommittedIndex, metadataDeletionPath,
     readFileDeliveryAttemptContract, deliveryIndexRow, restoreDeliveryClaim, parseContract, readSemanticOriginal, readContract,
-    readMetadataInventory, publicationRecoveryOriginal, readMetadataDeletion, runMetadataDeletionStarted}: StartupPorts<Contract>,
+    readMetadataInventory, publicationRecoveryOriginal, readMetadataDeletion, runMetadataDeletionStarted}: StartupPorts<Contract, Index>,
 ) {
   const initializeDeliveryIndex = async () => {
     let coverage: Coverage | undefined, indexExists = false;

@@ -1577,3 +1577,7 @@ target/
 /adapters/store-local/publication-store.d.mts
 /adapters/store-local/delivery-attempt-schema.mjs
 /adapters/store-local/delivery-attempt-schema.d.mts
+/adapters/store-local/delivery-attempt-index.mjs
+/adapters/store-local/delivery-attempt-index.d.mts
+/adapters/store-local/delivery-attempt-schema-statements.test.mjs
+/adapters/store-local/delivery-attempt-schema-statements.test.d.mts

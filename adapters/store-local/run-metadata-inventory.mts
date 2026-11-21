@@ -1,7 +1,8 @@
 import {createHash} from 'node:crypto';
 import {lstat, readdir, rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import type {createDeliveryAttemptStore, DeliveryAttemptData, DeliveryCompletionEntry,
+import type {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
+import type {createDeliveryAttemptStore, DeliveryAttemptData,
   DeliveryRecordData, StoredProgress} from './delivery-attempt-store.mjs';
 import type {createPublicationContractStore, PublicationContract} from './publication-contract-store.mjs';
 import type {MetadataContractObject} from './publication-metadata-inventory.mjs';
@@ -19,7 +20,7 @@ type NativeRunIndex<Contract extends PublicationContract> = Readonly<{
   publicationAttemptsForRun(runCid: string): readonly Readonly<{attempt_cid: string}>[];
   publicationRecords(attemptCid: string): readonly Readonly<{record_cid: string}>[];
   run(runCid: string): readonly Parameters<DeliveryPorts<Contract>['admitDeliveryClaim']>[0][];
-  completion(attemptCid: string): DeliveryCompletionEntry | undefined;
+  completion: Awaited<ReturnType<typeof openDeliveryAttemptIndex>>['completion'];
   forgetRun(runCid: string): unknown;
 }>;
 type RunMetadataDirectories = Readonly<{
