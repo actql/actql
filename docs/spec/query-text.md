@@ -1515,6 +1515,14 @@ its original value, including NULL. Multiple child rows fail execution before
 publication, even when all values are equal. An output alias follows the
 ordinary SELECT naming rules.
 
+A SELECT with FROM can filter its input with `WHERE value IN (SELECT …)`.
+The subquery starts with SELECT or WITH, uses its own row scope and enclosing
+WITH declarations, and projects exactly one column comparable to `value`.
+An input row survives when a non-null member equals its non-null value.
+Duplicate member values leave left multiplicity unchanged. NULL and missing
+matches produce no output row in this WHERE position. Lowering uses the
+existing left-only semi join and retains the original left columns and scope.
+
 Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.

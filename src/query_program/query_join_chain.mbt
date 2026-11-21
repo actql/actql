@@ -65,7 +65,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
-    if kind == "right" || kind == "full" {
+    if kind == "right" || kind == "full" || kind == "semi" {
       return true
     }
     // A pre-JOIN predicate is stored on its JOIN part, rather than among
@@ -273,6 +273,95 @@ fn join_chain_keys(
 }
 
 ///|
+// WHERE retains only TRUE. An existential match shares the existing key
+// comparison and never exposes a right row or duplicates a left row.
+fn compile_membership_filter(
+  construction : Construction,
+  part : @query.JoinPart,
+  scope : JoinChainScope,
+  left : String,
+  left_fields : Array[String],
+  right : (Input, String),
+  limits : Limits,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> String raise Abort {
+  guard part.on is Some(operand) && right.0.visible_fields is [right_field] else {
+    raise Abort(UnsupportedProjection)
+  }
+  let key = pipe_physical_name(left_fields, "aql_membership_key_")
+  let keyed = pipe_physical_name(reserved, "aql_membership_keyed_")
+  reserved.push(keyed)
+  steps.push(
+    construction.object([
+      ("from", construction.text(left)),
+      (
+        "derive",
+        construction.object([
+          (
+            key,
+            append_pipe_expression(
+              construction,
+              operand,
+              unnest_expression_columns(
+                scope.visible,
+                scope.receivers,
+                scope.scalar_ranges,
+                scope.columns,
+              ),
+              scope.ranges,
+              limits.max_expression_work,
+              column_profiles=scope.result_columns,
+            ),
+          ),
+        ]),
+      ),
+      ("as", construction.text(keyed)),
+    ]),
+  )
+  let output = pipe_physical_name(reserved, "aql_membership_selected_")
+  reserved.push(output)
+  steps.push(
+    construction.object([
+      ("from", construction.text(keyed)),
+      (
+        "join",
+        construction.object([
+          ("with", construction.text(right.1)),
+          ("kind", construction.text("semi")),
+          ("null_key", construction.text("no_match")),
+          (
+            "on",
+            construction.array([
+              construction.object([
+                ("left", construction.text(key)),
+                ("right", construction.text(right_field)),
+              ]),
+            ]),
+          ),
+          (
+            "max_output_rows",
+            construction.add(
+              Number(authored_join_bound(part, limits).to_double()),
+            ),
+          ),
+          (
+            "select",
+            construction.object(
+              left_fields.map(field => {
+                (field, construction.text("left." + field))
+              }),
+            ),
+          ),
+        ]),
+      ),
+      ("as", construction.text(output)),
+    ]),
+  )
+  output
+}
+
+///|
 // Bind each producer once at the caller's existing boundary. This function
 // appends ordinary join/derive/sort operations; it neither acquires
 // inputs nor chooses a provider, task partition or execution strategy.
@@ -350,9 +439,25 @@ fn compile_join_chain_steps(
   let steps : Array[@builder.Node] = []
   let mut from = left.1
   let mut scope : JoinChainScope = source_scope
+  let mut membership_only = false
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let right = inputs[index + 1]
+    if part.kind == "semi" {
+      if index + 1 != @query.join_part_count(query) {
+        raise Abort(UnsupportedJoin)
+      }
+      membership_only = index == 0
+      let selected_fields = if membership_only {
+        fields
+      } else {
+        physical.filter(field => !fields.contains(field))
+      }
+      from = compile_membership_filter(
+        construction, part, scope, from, selected_fields, right, limits, steps, reserved,
+      )
+      continue
+    }
     let right_fields = columns(right.0)
     let qualifier = part.source_alias.unwrap_or(part.relation.last().unwrap())
     let right_columns = right_fields.map(field => (field, field))
@@ -683,7 +788,11 @@ fn compile_join_chain_steps(
     construction,
     query,
     { ..left.0, name: from, source: StepReference, },
-    physical.filter(field => !fields.contains(field)),
+    if membership_only {
+      fields
+    } else {
+      physical.filter(field => !fields.contains(field))
+    },
     limits.max_expression_work,
     limits,
     limits.max_collection_items,

@@ -211,9 +211,17 @@ export const scalarSubquerySuccesses = [
 ].map(([name, text, x]) => ({name, text, format: 'sql',
   expected: [{x}], columns: [relationNumber('x', true)], sourceReadCount: 0}));
 
+export const membershipSubqueryNullDuplicates = {name: 'membership-subquery-null-duplicates', format: 'sql',
+  text: 'WITH t AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL, 7]) AS n), '
+    + 'k AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL]) AS n) '
+    + 'SELECT n FROM t WHERE n IN (SELECT n FROM k)',
+  results: {main: {rows: [{n: 1}, {n: 1}], columns: [relationNumber('n', true)], unordered: true}},
+  sourceReadCount: 0, sourceReadSessionCount: 0};
+
 export const queryCompositionSuccesses = [
   arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
   ...scalarSubquerySuccesses,
+  membershipSubqueryNullDuplicates,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",

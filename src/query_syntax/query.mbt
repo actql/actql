@@ -1019,6 +1019,7 @@ fn QueryParser::path(self : QueryParser) -> Array[NamePart] raise QueryAbort {
 fn QueryParser::expression(
   self : QueryParser,
   stop_before_star? : Bool = false,
+  stop_before_membership_subquery? : Bool = false,
 ) -> Expression raise QueryAbort {
   let remaining = self.limits.max_work - self.work
   let expression_limits = {
@@ -1032,6 +1033,7 @@ fn QueryParser::expression(
       self.index,
       expression_limits,
       stop_before_star~,
+      stop_before_membership_subquery~,
     ) {
     Ok((expression, next)) => {
       self.spend(expression.work)
@@ -2674,12 +2676,21 @@ fn QueryParser::initial_from(
 }
 
 ///|
-fn QueryParser::scalar_projection_head(self : QueryParser) -> Bool {
-  self.peek().value == Symbol(40) &&
-  self.source.tokens
-  .get(self.index + 1)
+fn subquery_head(source : Tokens, index : Int) -> Bool {
+  source.tokens
+  .get(index)
+  .map(token => token.value == Symbol(40))
+  .unwrap_or(false) &&
+  source.tokens
+  .get(index + 1)
   .map(token => keyword(token, "SELECT") || keyword(token, "WITH"))
   .unwrap_or(false)
+}
+
+///|
+fn membership_subquery_head(source : Tokens, index : Int) -> Bool {
+  source.tokens.get(index).map(token => keyword(token, "IN")).unwrap_or(false) &&
+  subquery_head(source, index + 1)
 }
 
 ///|
@@ -2738,7 +2749,7 @@ fn QueryParser::sql_term(
   } else if self.has("ALL") {
     self.keyword("ALL")
   }
-  if self.scalar_projection_head() {
+  if subquery_head(self.source, self.index) {
     return self.scalar_projection_term(record_anonymous_output)
   }
   let select_windows : Array[Projection] = []
@@ -2776,7 +2787,35 @@ fn QueryParser::sql_term(
   if self.has("WHERE") {
     self.keyword("WHERE")
     self.node()
-    operations.push(Where(self.expression()))
+    let predicate = self.expression(stop_before_membership_subquery=true)
+    if membership_subquery_head(self.source, self.index) {
+      if relation.is_empty() || !operations.is_empty() {
+        raise QueryAbort(
+          "Membership subquery requires a FROM relation",
+          self.peek().start,
+        )
+      }
+      self.keyword("IN")
+      let selected = self.bind_query(self.parenthesized())
+      bindings.append(selected.bindings)
+      joins.push({
+        kind: "semi",
+        relation: selected.relation,
+        source_alias: None,
+        file_listing: None,
+        on: Some(predicate),
+        using_columns: [],
+        pre_join_filter: None,
+        max_output_rows: None,
+      })
+      self.namespace_replace_factor(joins.length(), joins.length() + 1)
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        1,
+      )
+    } else {
+      operations.push(Where(predicate))
+    }
   }
   let grouped = self.has("GROUP") ||
     projections.any(projection => {

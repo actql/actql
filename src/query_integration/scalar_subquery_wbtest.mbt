@@ -1,5 +1,5 @@
 ///|
-fn scalar_subquery_retained_fixture(
+fn source_free_subquery_retained_fixture(
   text : String,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   let assets = @publication_host.client_local_product_assets()
@@ -118,7 +118,7 @@ test "scalar subquery retains zero and one child rows through the Common factory
       ("SELECT (SELECT 'value' WHERE FALSE) AS x", "{\"x\":null}"),
       ("SELECT (SELECT CAST(NULL AS STRING)) AS x", "{\"x\":null}"),
     ] {
-    let setup = scalar_subquery_retained_fixture(text)
+    let setup = source_free_subquery_retained_fixture(text)
     let execution = match
       @client_local_host.execute_source_free_local_tasks_guarded(
         setup,
@@ -160,7 +160,7 @@ test "scalar subquery retains zero and one child rows through the Common factory
 
 ///|
 test "scalar subquery refuses multiple original rows even when values repeat" {
-  let setup = scalar_subquery_retained_fixture(
+  let setup = source_free_subquery_retained_fixture(
     "SELECT (SELECT n AS v FROM UNNEST([1, 1]) AS n) AS x",
   )
   let result = @client_local_host.execute_source_free_local_tasks_guarded(
@@ -190,7 +190,7 @@ test "scalar subquery refuses multiple original rows even when values repeat" {
 
 ///|
 test "scalar subquery runs the original CTE aggregate with a nullable Number result" {
-  let setup = scalar_subquery_retained_fixture(
+  let setup = source_free_subquery_retained_fixture(
     "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT (SELECT MAX(v) FROM t) AS x",
   )
   let run = @host_driver.dispatch_driver_run(
@@ -217,5 +217,39 @@ test "scalar subquery runs the original CTE aggregate with a nullable Number res
     () => true,
   ).unwrap()
   assert_eq(execution.rows().unwrap(), ["{\"x\":30}"])
+  assert_true(execution.close())
+}
+
+///|
+test "WHERE membership retains left duplicates and does not match NULL or absent keys" {
+  let setup = source_free_subquery_retained_fixture(
+    "WITH t AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL, 7]) AS n), k AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL]) AS n) SELECT n FROM t WHERE n IN (SELECT n FROM k)",
+  )
+  let execution = match
+    @client_local_host.execute_source_free_local_tasks_guarded(
+      setup,
+      16,
+      10000,
+      () => true,
+    ) {
+    Ok(value) => value
+    Err(failure) => {
+      assert_false(
+        @client_local_host.local_values_execution_failure_cleanup_pending(
+          failure,
+        ),
+      )
+      match @client_local_host.local_values_execution_failure_issue(failure) {
+        Driver(issue) =>
+          fail(
+            @local_driver.local_managed_failure_cause(issue).unwrap_or(
+              "unclassified Local failure",
+            ),
+          )
+        _ => fail("membership task chain did not produce its output")
+      }
+    }
+  }
+  assert_eq(execution.rows().unwrap(), ["{\"n\":1}", "{\"n\":1}"])
   assert_true(execution.close())
 }
