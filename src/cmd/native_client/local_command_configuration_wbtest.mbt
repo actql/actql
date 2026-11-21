@@ -99,13 +99,11 @@ test "Native original Environment selects text-time only when a Policy is instal
       limits,
       format=Json,
     )
-    is Rejected(issue) else {
-    fail("A missing Policy cannot install the text-time profile")
+    is NeedsInputs(requests) else {
+    fail("Missing text-time policy must retain its original input request")
   }
+  assert_eq(@checked.input_request_count(requests), 1)
   assert_true(
-    @checked.diagnostic_cause(issue)
-    is @checked.LocalConstructionFailure::Source(
-      Checks(ExpressionProfiles(UnsupportedProfile(_, "actql-text-time/0.1")))
-    ),
+    @checked.input_request_at(requests, 0).unwrap().kind is HostTextTimePolicy,
   )
 }
