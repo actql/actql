@@ -608,12 +608,13 @@ export const querySuccesses = [
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+export const dateLiteralOriginal = {name: 'date-literal', format: 'sql',
+  text: "SELECT DATE '2026-01-02' AS x", expected: [{x: '2026-01-02'}],
+  columns: [{name: 'x', contract: {type: 'date', nullable: false}}], sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
-  {name: 'date-literal', format: 'sql', text: "SELECT DATE '2026-01-02' AS x",
-    expected: [{x: '2026-01-02'}],
-    columns: [{name: 'x', contract: {type: 'date', nullable: false}}], sourceReadCount: 0},
+  dateLiteralOriginal,
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
