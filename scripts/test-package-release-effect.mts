@@ -13,6 +13,24 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 
+type ProcessReceipt = {
+  command: string;
+  args: string[];
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+  elapsedMs: number;
+};
+
+// The child receipt is unchecked JSON until these fields are asserted below.
+type ApprovalObservation = Readonly<{
+  successfulPluralRuns?: unknown;
+  preparationRefusals?: unknown;
+  cancelledWithoutSend?: unknown;
+  unknownAfterRestart?: unknown;
+}>;
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 assert(process.argv[2], 'usage: test-package-release-effect.mjs <fixed-RC>');
 const directory = resolve(process.argv[2]), manifest = await verifyPackageRelease(directory);
@@ -24,17 +42,17 @@ const runtimeSourceDelta = execFileSync('git', ['--no-replace-objects', 'diff', 
 assert.equal(runtimeSourceDelta, '', 'Retained RC requires unchanged installed runtime/package inputs');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-effect-', label: 'Run-scoped installed approval'});
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
-const root = scratch.path, records = [], fixtureDigests = {};
+const root = scratch.path, records: ProcessReceipt[] = [], fixtureDigests: Record<string, string> = {};
 await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
 await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
 await writeFile(join(root, 'npmrc-global'), '');
-const env = {...process.env, npm_config_registry: registry.url, npm_config_userconfig: join(root, 'npmrc'),
+const env: NodeJS.ProcessEnv = {...process.env, npm_config_registry: registry.url, npm_config_userconfig: join(root, 'npmrc'),
   npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_cache: join(root, 'cache'),
   npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost', npm_config_update_notifier: 'false'};
 delete env.NODE_PATH;
-async function run(command, args) {
+async function run(command: string, args: string[]) {
   const started = Date.now();
-  const record = await new Promise((resolve, reject) => {
+  const record = await new Promise<ProcessReceipt>((resolve, reject) => {
     const child = spawn(command, args, {cwd: root, env, stdio: ['ignore', 'pipe', 'pipe']});
     let stdout = '', stderr = '';
     const timer = setTimeout(() => child.kill('SIGTERM'), 120000);
@@ -61,7 +79,7 @@ import {runInstalledEffectInventoryAcceptance} from './scripts/fixtures/installe
 const result = await runInstalledEffectInventoryAcceptance({connect, openInstalledRemoteHttpHost, publishEffect, profile:'observability'});
 console.log('RELEASE_RUN_APPROVAL', JSON.stringify(result));\n`);
   const observed = await run(process.execPath, ['approval.mjs']);
-  const result = JSON.parse(observed.stdout.match(/RELEASE_RUN_APPROVAL (.+)/u)?.[1]);
+  const result = JSON.parse(observed.stdout.match(/RELEASE_RUN_APPROVAL (.+)/u)?.[1]!) as ApprovalObservation;
   assert.equal(result.successfulPluralRuns, 1); assert.equal(result.preparationRefusals, 2);
   assert.equal(result.cancelledWithoutSend, 1); assert.equal(result.unknownAfterRestart, 1);
   assert.deepEqual(checkoutState(repository), source, 'Fixture source changed during acceptance');
