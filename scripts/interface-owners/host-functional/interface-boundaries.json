@@ -68325,7 +68325,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
@@ -142747,7 +142747,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
@@ -142859,7 +142859,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {

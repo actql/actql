@@ -1673,6 +1673,10 @@ target/
 /adapters/host-common/remote-site-control.d.mts
 /adapters/host-common/output-export-control.mjs
 /adapters/host-common/output-export-control.d.mts
+/adapters/host-common/content-capture-control.mjs
+/adapters/host-common/content-capture-control.d.mts
+/adapters/host-common/recovered-source-content-control.test.mjs
+/adapters/host-common/recovered-source-content-control.test.d.mts
 /adapters/host-common/remote-dispatch-wire.mjs
 /adapters/host-common/remote-dispatch-wire.d.mts
 /adapters/host-common/remote-dispatch-wire.test.mjs

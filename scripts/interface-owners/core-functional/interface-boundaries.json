@@ -1746,6 +1746,369 @@
       "sha256": "01faba37d37a827b472019eff4d2e2d145b35634b84e87aec40019c539125b46"
     },
     {
+      "module": "adapters/host-common/content-capture-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "contentCaptureControl",
+            "contentCaptureControl/args/args/args",
+            "contentCaptureControl/args/args/args#2",
+            "contentCaptureControl/init:candidate/init:candidate",
+            "contentCaptureControl/init:candidateForRun/init:candidateForRun",
+            "contentCaptureControl/init:growWorkspace/init:growWorkspace",
+            "contentCaptureControl/init:holdingCid/init:holdingCid",
+            "contentCaptureControl/init:inspect/init:inspect",
+            "contentCaptureControl/init:issue/init:issue",
+            "contentCaptureControl/init:issuer/init:issuer",
+            "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
+            "contentCaptureControl/init:recoveryCandidateForRun/init:recoveryCandidateForRun",
+            "contentCaptureControl/init:reissuer/init:reissuer",
+            "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
+            "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace"
+          ],
+          "exports": [
+            "contentCaptureControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "export function contentCaptureControl("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "const value = checked(moon.clientProgramCapturedContentCandidate("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "identity: moon.clientProgramCapturedContentCid(candidate)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "candidates.add(value);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "return value;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "throw new TypeError('Foreign captured Content candidate')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "return checked(moon.clientProgramReleaseCapturedContentWorkspace("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "return checked(moon.clientProgramReserveCapturedContentWorkspace("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "return moon.clientProgramCapturedContentReissuer(resolve);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/content-capture-control.mts",
+                "anchor": "export function contentCaptureControl("
+              },
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
+                "anchor": "test('Source recovery candidate stays on the captured facade original and refuses a copied candidate'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "contentCaptureControl"
+      ],
+      "operations": [
+        {
+          "name": "contentCaptureControl",
+          "parameters": [
+            "moon",
+            "publications"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/args/args/args",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/args/args/args#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:candidate/init:candidate",
+          "parameters": [
+            "acquisition",
+            "request",
+            "binding",
+            "bytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:candidateForRun/init:candidateForRun",
+          "parameters": [
+            "compiled",
+            "definition",
+            "acquisition",
+            "request",
+            "binding",
+            "bytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:growWorkspace/init:growWorkspace",
+          "parameters": [
+            "ledger",
+            "reservation",
+            "maxBytes",
+            "inventoryCount",
+            "inventoryWireUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:holdingCid/init:holdingCid",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:inspect/init:inspect",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:issue/init:issue",
+          "parameters": [
+            "candidate",
+            "issuer",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:issuer/init:issuer",
+          "parameters": [
+            "validate",
+            "authorize"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal",
+          "parameters": [
+            "original",
+            "prepared",
+            "request",
+            "originalWire",
+            "bindingWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:recoveryCandidateForRun/init:recoveryCandidateForRun",
+          "parameters": [
+            "compiled",
+            "definition",
+            "acquisition",
+            "originalWire",
+            "binding",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:reissuer/init:reissuer",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
+          "parameters": [
+            "ledger",
+            "reservation"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace",
+          "parameters": [
+            "ledger",
+            "maxBytes",
+            "inventoryCount"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "1e87800786af98f271f7d2a2331ca4988b1bf11dfbb5b63200edd01712fbc202"
+    },
+    {
       "module": "adapters/host-common/remote-transfer-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -5041,21 +5404,6 @@
       "contracts": [
         {
           "operations": [
-            "contentCaptureControl",
-            "contentCaptureControl/args/args/args",
-            "contentCaptureControl/args/args/args#2",
-            "contentCaptureControl/init:candidate/init:candidate",
-            "contentCaptureControl/init:candidateForRun/init:candidateForRun",
-            "contentCaptureControl/init:growWorkspace/init:growWorkspace",
-            "contentCaptureControl/init:holdingCid/init:holdingCid",
-            "contentCaptureControl/init:inspect/init:inspect",
-            "contentCaptureControl/init:issue/init:issue",
-            "contentCaptureControl/init:issuer/init:issuer",
-            "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
-            "contentCaptureControl/init:recoveryCandidateForRun/init:recoveryCandidateForRun",
-            "contentCaptureControl/init:reissuer/init:reissuer",
-            "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
-            "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace",
             "contentGenerationControl",
             "contentGenerationControl/init:advance/init:advance",
             "contentGenerationControl/init:bindInput/init:bindInput",
@@ -10953,7 +11301,6 @@
         },
         {
           "operations": [
-            "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal",
             "publicationControl/init:checkedRecoveredSourceContentCandidate/init:checkedRecoveredSourceContentCandidate",
             "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
             "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
@@ -11063,7 +11410,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
@@ -13418,147 +13765,6 @@
         "runtimeCore"
       ],
       "operations": [
-        {
-          "name": "contentCaptureControl",
-          "parameters": [
-            "moon",
-            "publications"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/args/args/args",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/args/args/args#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:candidate/init:candidate",
-          "parameters": [
-            "acquisition",
-            "request",
-            "binding",
-            "bytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:candidateForRun/init:candidateForRun",
-          "parameters": [
-            "compiled",
-            "definition",
-            "acquisition",
-            "request",
-            "binding",
-            "bytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:growWorkspace/init:growWorkspace",
-          "parameters": [
-            "ledger",
-            "reservation",
-            "maxBytes",
-            "inventoryCount",
-            "inventoryWireUnits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:holdingCid/init:holdingCid",
-          "parameters": [
-            "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:inspect/init:inspect",
-          "parameters": [
-            "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:issue/init:issue",
-          "parameters": [
-            "candidate",
-            "issuer",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:issuer/init:issuer",
-          "parameters": [
-            "validate",
-            "authorize"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal",
-          "parameters": [
-            "original",
-            "prepared",
-            "request",
-            "originalWire",
-            "bindingWire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:recoveryCandidateForRun/init:recoveryCandidateForRun",
-          "parameters": [
-            "compiled",
-            "definition",
-            "acquisition",
-            "originalWire",
-            "binding",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:reissuer/init:reissuer",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
-          "parameters": [
-            "ledger",
-            "reservation"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace",
-          "parameters": [
-            "ledger",
-            "maxBytes",
-            "inventoryCount"
-          ],
-          "async": false
-        },
         {
           "name": "contentGenerationControl",
           "parameters": [
@@ -20262,6 +20468,7 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./content-capture-control.mjs",
         "./dispatch-failure-observation.mjs",
         "./effect-application-control.mjs",
         "./installation-preparation-metadata.mjs",
@@ -20282,7 +20489,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5796eae372ca00f825d88f4d47f01a16337ab425dbad19a97ec911a2e0cf4e87"
+      "sha256": "5f7959421b9d71d21b8561aa2c92731c70964bb3a8b96445909d1756eb2c5043"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

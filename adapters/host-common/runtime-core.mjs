@@ -3,6 +3,7 @@ import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, 
 import {checked} from './runtime-result.mjs';
 import {tuplePair} from './runtime-tuple.mjs';
 import {outputExportControl} from './output-export-control.mjs';
+import {contentCaptureControl} from './content-capture-control.mjs';
 import {siteControl} from './site-control.mjs';
 import {remoteStandardSourceControl} from './remote-standard-source-control.mjs';
 import {remoteCredentialControl} from './remote-credential-control.mjs';
@@ -22,6 +23,7 @@ import {
   validResultOutputLimits,
 } from './result-output-limits.mjs';
 
+export {contentCaptureControl};
 export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
 const publicationControls = new WeakMap();
@@ -6618,106 +6620,6 @@ export function contentGenerationControl(moon, publications) {
         owned(issuers, issuer, 'Content issuer'), ...referenceLimits(limits)));
       issued.add(content);
       return content;
-    },
-  });
-}
-
-// Captured candidates are sealed by the checked keyed Source owner. This
-// transport facade holds no acquisition, byte or cleanup state machine.
-export function contentCaptureControl(moon, publications) {
-  const candidates = new WeakSet();
-  const issuers = new WeakSet();
-  const args = limits => {
-    const fields = ['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'];
-    if (!fields.every(key => Number.isInteger(limits?.[key]) &&
-        limits[key] > 0 && limits[key] <= 2147483647)) {
-      throw new TypeError('Invalid captured Content reference limits');
-    }
-    return fields.map(key => limits[key]);
-  };
-  const own = (set, value) => {
-    if (!set.has(value)) throw new TypeError('Foreign captured Content candidate');
-    return value;
-  };
-  return Object.freeze({
-    candidate(acquisition, request, binding, bytes, limits) {
-      if (!Number.isInteger(bytes?.sizeBytes) || bytes.sizeBytes < 0 ||
-          bytes.sizeBytes > 2147483647) {
-        throw new TypeError('Invalid captured Content byte facts');
-      }
-      const value = checked(moon.clientProgramCapturedContentCandidate(
-        acquisition, request, JSON.stringify(binding), bytes.mediaType,
-        bytes.contentCid, bytes.sizeBytes, ...args(limits)));
-      candidates.add(value);
-      return value;
-    },
-    candidateForRun(compiled, definition, acquisition, request, binding, bytes, limits) {
-      if (!Number.isInteger(bytes?.sizeBytes) || bytes.sizeBytes < 0 ||
-          bytes.sizeBytes > 2147483647) throw new TypeError('Invalid captured Content byte facts');
-      const value = publications.checkedClientRunCapturedContentCandidate(compiled,
-        definition, acquisition, request, JSON.stringify(binding), bytes.mediaType,
-        bytes.contentCid, bytes.sizeBytes, args(limits));
-      candidates.add(value);
-      return value;
-    },
-    recoveryCandidateForRun(compiled, definition, acquisition, originalWire, binding, limits) {
-      const value = publications.checkedClientStoredRunCapturedContentCandidate(
-        compiled, definition, acquisition, originalWire, JSON.stringify(binding), args(limits));
-      candidates.add(value);
-      return value;
-    },
-    recoveryCandidateForEffectOriginal(original, prepared, request, originalWire, bindingWire, limits) {
-      if (typeof bindingWire !== 'string') throw new TypeError('Invalid recovered Source Content binding wire');
-      const value = publications.checkedRecoveredSourceContentCandidate(original,
-        prepared, request, originalWire, bindingWire, args(limits));
-      candidates.add(value);
-      return value;
-    },
-    holdingCid(candidate) {
-      const value = moon.clientProgramCapturedContentHoldingCid(own(candidates, candidate));
-      if (value === undefined) throw new TypeError('Captured Content requires original Run custody');
-      return value;
-    },
-    reserveWorkspace(ledger, maxBytes, inventoryCount = 0) {
-      return checked(moon.clientProgramReserveCapturedContentWorkspace(ledger, maxBytes, inventoryCount));
-    },
-    growWorkspace(ledger, reservation, maxBytes, inventoryCount, inventoryWireUnits) {
-      if (inventoryWireUnits === undefined) {
-        return checked(moon.clientProgramGrowCapturedContentWorkspace(ledger, reservation, maxBytes, inventoryCount));
-      }
-      return checked(moon.clientProgramGrowCapturedContentInventoryWorkspace(
-        ledger, reservation, maxBytes, inventoryCount, inventoryWireUnits));
-    },
-    releaseWorkspace(ledger, reservation) {
-      return checked(moon.clientProgramReleaseCapturedContentWorkspace(ledger, reservation));
-    },
-    reissuer(resolve) {
-      if (typeof resolve !== 'function') throw new TypeError('Invalid captured Content resolver');
-      return moon.clientProgramCapturedContentReissuer(resolve);
-    },
-    inspect(candidate) {
-      own(candidates, candidate);
-      const storage = moon.clientProgramCapturedContentStorage(candidate);
-      const wire = moon.clientProgramCapturedContentWire(candidate);
-      const body = JSON.parse(wire);
-      return Object.freeze({wire,
-        identity: moon.clientProgramCapturedContentCid(candidate),
-        storeCid: runtimeField(storage, 0), workspaceScopeCid: runtimeField(storage, 1),
-        contentCid: runtimeField(storage, 2), sizeBytes: runtimeField(storage, 3),
-        mediaType: body.media_type,
-        effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
-    },
-    issuer(validate, authorize) {
-      if (typeof validate !== 'function' || typeof authorize !== 'function') {
-        throw new TypeError('Invalid captured Content issuer callbacks');
-      }
-      const issuer = moon.clientProgramRowReferenceIssuer(() => false, validate, authorize);
-      issuers.add(issuer);
-      return issuer;
-    },
-    issue(candidate, issuer, limits) {
-      return checked(moon.clientProgramIssueCapturedContent(
-        own(candidates, candidate), own(issuers, issuer), ...args(limits)));
     },
   });
 }
