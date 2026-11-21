@@ -284,6 +284,75 @@ fn scalar_subquery_output(
 }
 
 ///|
+// A keyless COUNT has one output row even for empty input, and consumes no
+// projected value. Retain the same checked producer and all its row operators.
+fn exists_subquery_output(
+  construction : Construction,
+  sources : ScriptSources,
+  input : Input,
+  name : @query.NamePart?,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Input raise Abort {
+  let value = name.map(name => name.value).unwrap_or("aql_exists_value")
+  let count = pipe_physical_name([value], "aql_exists_count_")
+  let projected = pipe_physical_name(reserved, "aql_exists_result_")
+  reserved.push(projected)
+  steps.push(
+    construction.object([
+      ("from", construction.text(input.name)),
+      (
+        "group",
+        construction.object([
+          ("by", construction.array([])),
+          (
+            "aggregates",
+            construction.object([
+              (count, construction.object([("fn", construction.text("count"))])),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      (
+        "derive",
+        construction.object([
+          (
+            value,
+            construction.object([
+              (
+                "gt",
+                construction.array([
+                  construction.object([("field", construction.text(count))]),
+                  construction.object([
+                    ("literal", construction.add(Number(0.0))),
+                  ]),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      ("select", set_select_fields(construction, [value], [value])),
+      ("as", construction.text(projected)),
+    ]),
+  )
+  if name is None {
+    put_script_result_columns(sources, projected, [
+      { slot: value, label: value, name, name_view: None, },
+    ])
+  }
+  { ..input, name: projected, visible_fields: [value], }
+}
+
+///|
 // Resolve a body before installing its name. Both output kinds share this
 // binding owner, so a nearer binding shadows an outer one regardless of kind.
 // A Graph continuation receives its actual producer explicitly; a generated
@@ -432,6 +501,10 @@ fn lower_script_bindings(
           name,
           steps,
           reserved,
+        )
+      ExistsSubquery(name) =>
+        exists_subquery_output(
+          construction, sources, bound, name, steps, reserved,
         )
       _ => bound
     }

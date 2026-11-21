@@ -1523,6 +1523,21 @@ Duplicate member values leave left multiplicity unchanged. NULL and missing
 matches produce no output row in this WHERE position. Lowering uses the
 existing left-only semi join and retains the original left columns and scope.
 
+A single `SELECT EXISTS (SELECT …)` projection returns one non-null Boolean.
+Its independently scoped Relation can return any number of columns. An empty
+Relation returns false, and any row witnesses true regardless of its values.
+An enclosing SELECT with FROM can use the same row-presence test as its WHERE
+predicate. Every left row survives when the independently scoped subquery
+has a row, and none survives when it is empty.
+
+The qualified correlated WHERE form accepts a comparison between one inner
+column and one outer column with equality. The subquery selects that same
+inner column under its original name, with one inner named input and no
+additional row operator. Both names must resolve in their original scopes.
+The existing bounded semi join checks the comparable values and leaves
+left multiplicity unchanged even when many inner rows match. A comparison
+with NULL does not match. The inner columns and range name remain private.
+
 Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.

@@ -330,6 +330,12 @@ row gives its value, and more than one row fails execution.
 with comparable keys. Input rows survive a non-null equality match and
 preserve their multiplicity when the subquery repeats the key.
 
+Standalone `SELECT EXISTS (SELECT …)` returns a non-null Boolean based on
+row presence. `WHERE EXISTS (SELECT …)` supports an independent subquery, or
+a qualified inner-to-outer equality with the inner key as its sole
+projection. A correlated NULL comparison does not match, and inner
+duplicates do not duplicate left rows.
+
 A comma in the initial FROM list uses the bounded CROSS JOIN operation.
 A comma before UNNEST supports correlated expansion and offsets.
 
@@ -350,7 +356,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
 | `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
-| Correlated expression subqueries, scalar subqueries within other expressions, `NOT IN (SELECT …)`, nested or projected `IN (SELECT …)`, and `EXISTS` | The selected forms are a standalone scalar SELECT projection and a standalone positive IN predicate in WHERE. |
+| Other correlated expression subqueries, scalar subqueries within other expressions, `NOT IN (SELECT …)`, and nested or projected `IN (SELECT …)` | The selected subquery forms and their scopes are listed above. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |

@@ -64,12 +64,14 @@ sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
 cte_pipe      = "FROM", carrier_source, { from_join }, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
-select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection
+select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection | exists_subquery_projection
                 | select_list, [ "FROM", source, { from_join } ],
                   [ select_where_clause ], [ group_clause ],
                   [ having_clause ], [ qualify_clause ], [ window_clause ] ) ;
 (* The child starts with SELECT or WITH, yields one column and has its own scope. *)
 scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ] ;
+exists_subquery_projection = exists_subquery, [ [ "AS" ], identifier ] ;
+exists_subquery = "EXISTS", "(", relational_body, ")" ;
 pipe_query    = "FROM", carrier_source, { from_join }, { "|>", pipe_item } ;
 carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
@@ -118,7 +120,8 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 select_where_clause = where_clause
-                    | "WHERE", expression, "IN", "(", relational_body, ")" ;
+                    | "WHERE", expression, "IN", "(", relational_body, ")"
+                    | "WHERE", exists_subquery ;
 group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | rollup | expression, { ",", expression } ) ;
 rollup        = "ROLLUP", "(", grouping_item, { ",", grouping_item }, ")" ;
 grouping_item = expression | "(", expression, ",", expression, { ",", expression }, ")" ;

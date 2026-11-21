@@ -543,6 +543,7 @@ pub(all) enum QueryBindingOrigin {
   AuthoredWith(NamePart, Int, Int)
   RelationalContinuation
   ScalarSubquery(NamePart?)
+  ExistsSubquery(NamePart?)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum QueryInteger {

@@ -218,10 +218,21 @@ export const membershipSubqueryNullDuplicates = {name: 'membership-subquery-null
   results: {main: {rows: [{n: 1}, {n: 1}], columns: [relationNumber('n', true)], unordered: true}},
   sourceReadCount: 0, sourceReadSessionCount: 0};
 
+const existsOriginalRows = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL "
+  + "SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) ";
+export const existsSubquerySuccesses = [
+  ['exists-subquery-uncorrelated', 'SELECT n FROM t WHERE EXISTS (SELECT n FROM t)'],
+  ['exists-subquery-correlated',
+    'SELECT a.n FROM t AS a WHERE EXISTS (SELECT b.n FROM t AS b WHERE b.n = a.n)'],
+].map(([name, text]) => ({name, text: existsOriginalRows + text, format: 'sql',
+  results: {main: {rows: [{n: 1}, {n: 2}, {n: 3}], columns: [relationNumber('n')], unordered: true}},
+  sourceReadCount: 0, sourceReadSessionCount: 0}));
+
 export const queryCompositionSuccesses = [
   arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
   ...scalarSubquerySuccesses,
   membershipSubqueryNullDuplicates,
+  ...existsSubquerySuccesses,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",

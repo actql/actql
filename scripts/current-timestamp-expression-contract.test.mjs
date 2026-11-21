@@ -265,12 +265,14 @@ fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
   const selectedExtensions = [
     ['cte_pipe      = "FROM", carrier_source, { from_join }, { "|>", cte_pipe_item } ;',
       'cte_pipe      = "FROM", carrier_source, { join }, { "|>", cte_pipe_item } ;'],
-    [`select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection
+    [`select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection | exists_subquery_projection
                 | select_list, [ "FROM", source, { from_join } ],
                   [ select_where_clause ], [ group_clause ],
                   [ having_clause ], [ qualify_clause ], [ window_clause ] ) ;
 (* The child starts with SELECT or WITH, yields one column and has its own scope. *)
-scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ] ;`,
+scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ] ;
+exists_subquery_projection = exists_subquery, [ [ "AS" ], identifier ] ;
+exists_subquery = "EXISTS", "(", relational_body, ")" ;`,
     `select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ], [ qualify_clause ], [ window_clause ] ;`],
@@ -278,7 +280,8 @@ scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ]
       'pipe_query    = "FROM", carrier_source, { join }, { "|>", pipe_item } ;'],
     ['from_join     = join | ",", ( table_source, [ join_bound ] | unnest_source ) ;\n', ''],
     [`select_where_clause = where_clause
-                    | "WHERE", expression, "IN", "(", relational_body, ")" ;
+                    | "WHERE", expression, "IN", "(", relational_body, ")"
+                    | "WHERE", exists_subquery ;
 `, ''],
     [`group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | rollup | expression, { ",", expression } ) ;
 rollup        = "ROLLUP", "(", grouping_item, { ",", grouping_item }, ")" ;

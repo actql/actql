@@ -65,7 +65,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
-    if kind == "right" || kind == "full" || kind == "semi" {
+    if kind == "right" || kind == "full" || kind == "semi" || kind == "exists" {
       return true
     }
     // A pre-JOIN predicate is stored on its JOIN part, rather than among
@@ -273,9 +273,51 @@ fn join_chain_keys(
 }
 
 ///|
-// WHERE retains only TRUE. An existential match shares the existing key
-// comparison and never exposes a right row or duplicates a left row.
-fn compile_membership_filter(
+fn join_plain_right_scope(
+  construction : Construction,
+  qualifier : @query.NamePart,
+  fields : Array[String],
+) -> JoinChainScope raise Abort {
+  let columns = fields.map(field => (field, field))
+  {
+    visible: columns,
+    columns: columns.copy(),
+    value_table: false,
+    value_columns: [],
+    star_ranges: [],
+    ranges: [(qualifier, columns.copy())],
+    receivers: [],
+    result_columns: None,
+    scalar_ranges: [],
+    key_labels: seed_infer_key_labels(construction, [], columns),
+  }
+}
+
+///|
+fn append_subquery_key(
+  construction : Construction,
+  input : String,
+  field : String,
+  operand : @builder.Node,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> String raise Abort {
+  let keyed = pipe_physical_name(reserved, "aql_membership_keyed_")
+  reserved.push(keyed)
+  steps.push(
+    construction.object([
+      ("from", construction.text(input)),
+      ("derive", construction.object([(field, operand)])),
+      ("as", construction.text(keyed)),
+    ]),
+  )
+  keyed
+}
+
+///|
+// WHERE retains only TRUE. The right relation supplies either membership
+// values, original row-presence witnesses, or an original correlated key.
+fn compile_subquery_filter(
   construction : Construction,
   part : @query.JoinPart,
   scope : JoinChainScope,
@@ -286,58 +328,79 @@ fn compile_membership_filter(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> String raise Abort {
-  guard part.on is Some(operand) && right.0.visible_fields is [right_field] else {
-    raise Abort(UnsupportedProjection)
+  let presence = part.kind == "exists" && part.on is None
+  let (left_input, right_input, keys) = if presence {
+    // Every surviving right row witnesses existence regardless of its values.
+    // A constant key leaves an empty right relation empty.
+    let left_key = pipe_physical_name(left_fields, "aql_membership_key_")
+    let right_key = pipe_physical_name(columns(right.0), "aql_membership_key_")
+    let marker = construction.object([("literal", construction.add(Bool(true)))])
+    let keyed_left = append_subquery_key(
+      construction, left, left_key, marker, steps, reserved,
+    )
+    let keyed_right = append_subquery_key(
+      construction,
+      right.1,
+      right_key,
+      marker,
+      steps,
+      reserved,
+    )
+    (keyed_left, keyed_right, [(left_key, right_key)])
+  } else {
+    guard right.0.visible_fields is [right_field] && part.on is Some(operand) else {
+      raise Abort(UnsupportedProjection)
+    }
+    if part.kind == "exists" {
+      guard part.source_alias is Some(qualifier) else {
+        raise Abort(UnsupportedJoin)
+      }
+      let right_scope = join_plain_right_scope(construction, qualifier, [
+        right_field,
+      ])
+      (left, right.1, join_chain_keys(part, scope, right_scope))
+    } else {
+      let expression = append_pipe_expression(
+        construction,
+        operand,
+        unnest_expression_columns(
+          scope.visible,
+          scope.receivers,
+          scope.scalar_ranges,
+          scope.columns,
+        ),
+        scope.ranges,
+        limits.max_expression_work,
+        column_profiles=scope.result_columns,
+      )
+      let key = pipe_physical_name(left_fields, "aql_membership_key_")
+      let keyed = append_subquery_key(
+        construction, left, key, expression, steps, reserved,
+      )
+      (keyed, right.1, [(key, right_field)])
+    }
   }
-  let key = pipe_physical_name(left_fields, "aql_membership_key_")
-  let keyed = pipe_physical_name(reserved, "aql_membership_keyed_")
-  reserved.push(keyed)
-  steps.push(
-    construction.object([
-      ("from", construction.text(left)),
-      (
-        "derive",
-        construction.object([
-          (
-            key,
-            append_pipe_expression(
-              construction,
-              operand,
-              unnest_expression_columns(
-                scope.visible,
-                scope.receivers,
-                scope.scalar_ranges,
-                scope.columns,
-              ),
-              scope.ranges,
-              limits.max_expression_work,
-              column_profiles=scope.result_columns,
-            ),
-          ),
-        ]),
-      ),
-      ("as", construction.text(keyed)),
-    ]),
-  )
   let output = pipe_physical_name(reserved, "aql_membership_selected_")
   reserved.push(output)
   steps.push(
     construction.object([
-      ("from", construction.text(keyed)),
+      ("from", construction.text(left_input)),
       (
         "join",
         construction.object([
-          ("with", construction.text(right.1)),
+          ("with", construction.text(right_input)),
           ("kind", construction.text("semi")),
           ("null_key", construction.text("no_match")),
           (
             "on",
-            construction.array([
-              construction.object([
-                ("left", construction.text(key)),
-                ("right", construction.text(right_field)),
-              ]),
-            ]),
+            construction.array(
+              keys.map(pair => {
+                construction.object([
+                  ("left", construction.text(pair.0)),
+                  ("right", construction.text(pair.1)),
+                ])
+              }),
+            ),
           ),
           (
             "max_output_rows",
@@ -443,7 +506,7 @@ fn compile_join_chain_steps(
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let right = inputs[index + 1]
-    if part.kind == "semi" {
+    if part.kind == "semi" || part.kind == "exists" {
       if index + 1 != @query.join_part_count(query) {
         raise Abort(UnsupportedJoin)
       }
@@ -453,33 +516,20 @@ fn compile_join_chain_steps(
       } else {
         physical.filter(field => !fields.contains(field))
       }
-      from = compile_membership_filter(
+      from = compile_subquery_filter(
         construction, part, scope, from, selected_fields, right, limits, steps, reserved,
       )
       continue
     }
     let right_fields = columns(right.0)
     let qualifier = part.source_alias.unwrap_or(part.relation.last().unwrap())
-    let right_columns = right_fields.map(field => (field, field))
     let preserved_right = match right_scopes.get(index) {
       Some(scope) => scope
       None => None
     }
     let right_scope = match preserved_right {
       Some(scope) => scope
-      None =>
-        {
-          visible: right_columns,
-          columns: right_columns.copy(),
-          value_table: false,
-          value_columns: [],
-          star_ranges: [],
-          ranges: [(qualifier, right_columns.copy())],
-          receivers: [],
-          result_columns: None,
-          scalar_ranges: [],
-          key_labels: seed_infer_key_labels(construction, [], right_columns),
-        }
+      None => join_plain_right_scope(construction, qualifier, right_fields)
     }
     if right_scope.ranges.any(right_range => {
         scope.ranges.any(range => same_name(range.0, right_range.0))

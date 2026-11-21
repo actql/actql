@@ -253,3 +253,134 @@ test "WHERE membership retains left duplicates and does not match NULL or absent
   assert_eq(execution.rows().unwrap(), ["{\"n\":1}", "{\"n\":1}"])
   assert_true(execution.close())
 }
+
+///|
+test "uncorrelated EXISTS returns a nonnullable Boolean from original row presence" {
+  for
+    (text, expected) in [
+      ("SELECT EXISTS(SELECT 1 AS n, CAST(NULL AS STRING) AS s) AS found", true),
+      ("SELECT EXISTS(SELECT CAST(NULL AS NUMBER) AS n) AS found", true),
+      ("SELECT EXISTS(SELECT 1 AS n WHERE FALSE) AS found", false),
+      (
+        "WITH t AS (SELECT 1 AS n) SELECT EXISTS(SELECT n FROM t WHERE n = 2) AS found",
+        false,
+      ),
+    ] {
+    let setup = source_free_subquery_retained_fixture(text)
+    let run = @host_driver.dispatch_driver_run(
+      @builtin.configured_host_driver(setup),
+    )
+    let graph = @strategy.captured_dag_graph(run)
+    let results = @stage_results.stage_at(
+      @program_check.checked_stage_results(@strategy.graph_program(graph)),
+      0,
+    ).unwrap()
+    let output = @relation_results.lookup(results, "rows").unwrap()
+    let schema = @relation_results.output_schema(output)
+    let field = @schema.lookup(schema, Unqualified("found")).unwrap()
+    assert_eq(@relation_results.fields(output), ["found"], msg=text)
+    assert_eq(@schema.field_count(schema), 1, msg=text)
+    assert_true(!field.nullable && field.shape is Boolean, msg=text)
+    let execution = @client_local_host.execute_source_free_local_tasks_guarded(
+      setup,
+      16,
+      10000,
+      () => true,
+    ).unwrap()
+    assert_eq(
+      execution.rows().unwrap(),
+      [if expected { "{\"found\":true}" } else { "{\"found\":false}" }],
+      msg=text,
+    )
+    assert_true(execution.close())
+  }
+}
+
+///|
+test "WHERE EXISTS retains original row presence in uncorrelated and qualified equality forms" {
+  let nullable = "WITH t AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL, 7]) AS n), k AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL]) AS n) "
+  for
+    (text, expected) in [
+      (
+        nullable +
+        "SELECT a.n FROM t AS a WHERE EXISTS (SELECT b.n FROM k AS b WHERE a.n = b.n)",
+        ["{\"n\":1}", "{\"n\":1}"],
+      ),
+      (
+        nullable + "SELECT n FROM t WHERE EXISTS (SELECT n FROM k WHERE n = 7)",
+        [],
+      ),
+      (
+        nullable + "SELECT n FROM t WHERE EXISTS (SELECT n FROM k)",
+        ["{\"n\":1}", "{\"n\":1}", "{\"n\":7}", "{\"n\":null}"],
+      ),
+    ] {
+    let setup = source_free_subquery_retained_fixture(text)
+    let execution = match
+      @client_local_host.execute_source_free_local_tasks_guarded(
+        setup,
+        16,
+        10000,
+        () => true,
+      ) {
+      Ok(value) => value
+      Err(failure) => {
+        let reason = match
+          @client_local_host.local_values_execution_failure_issue(failure) {
+          Driver(
+            ExecutionCapacityRefusal(ExecutionLimit, needed, available, policy)
+          ) =>
+            "execution reservation needed \{needed}, available \{available}, policy \{policy}"
+          Driver(Execution(Physical(ExecutionLimit))) =>
+            "physical execution reservation refused"
+          Driver(issue) =>
+            @local_driver.local_managed_failure_cause(issue).unwrap_or(
+              "unclassified Local failure",
+            )
+          Estimate(_) => "execution estimate"
+          FinalizationLimit => "finalization limit"
+          MissingOutput => "missing output"
+          UnsupportedGraph => "unsupported graph"
+          _ => "original execution failed"
+        }
+        fail(text + ": " + reason)
+      }
+    }
+    let rows = execution.rows().unwrap()
+    rows.sort()
+    assert_eq(rows, expected, msg=text)
+    assert_true(execution.close())
+  }
+}
+
+///|
+test "shared literal UNION CTE control reads its three original rows" {
+  let original = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+  let setup = source_free_subquery_retained_fixture(
+    original + "SELECT n FROM t",
+  )
+  let execution = match
+    @client_local_host.execute_source_free_local_tasks_guarded(
+      setup,
+      16,
+      10000,
+      () => true,
+    ) {
+    Ok(value) => value
+    Err(failure) => {
+      let reason = match
+        @client_local_host.local_values_execution_failure_issue(failure) {
+        Driver(issue) =>
+          @local_driver.local_managed_failure_cause(issue).unwrap_or(
+            "unclassified Local failure",
+          )
+        _ => "original CTE control execution failed"
+      }
+      fail(reason)
+    }
+  }
+  let rows = execution.rows().unwrap()
+  rows.sort()
+  assert_eq(rows, ["{\"n\":1}", "{\"n\":2}", "{\"n\":3}"])
+  assert_true(execution.close())
+}
