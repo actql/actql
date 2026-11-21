@@ -1561,3 +1561,5 @@ target/
 /adapters/store-local/prepared-object-ownership.d.mts
 /adapters/store-local/prepared-custody-queue.test.mjs
 /adapters/store-local/prepared-custody-queue.test.d.mts
+/adapters/store-local/publication-semantic-writes.mjs
+/adapters/store-local/publication-semantic-writes.d.mts
