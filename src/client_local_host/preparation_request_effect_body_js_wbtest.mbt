@@ -688,6 +688,38 @@ test "static Effect Explanation pairs Facts and Context with one Plan and final 
 }
 
 ///|
+test "static Effect Explanation charges the complete envelope at the per-facet clamp" {
+  let bytes = 65536
+  let nodes = 64
+  let depth = 16
+  let wire_bytes = 3 * bytes + 29
+  let decoded_nodes = 3L * nodes.to_int64() + 7L
+  let extent_nodes = 4L * decoded_nodes + 4L * depth.to_int64() + 64L
+  let expected = result_read_data_cost(
+    extent_nodes,
+    6L * wire_bytes.to_int64(),
+    2L * wire_bytes.to_int64(),
+  )
+  let limits = (bytes, nodes, depth)
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes + 1),
+    expected,
+  )
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes),
+    expected,
+  )
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes - 1),
+    result_read_data_cost(
+      extent_nodes,
+      6L * (wire_bytes - 1).to_int64(),
+      2L * (wire_bytes - 1).to_int64(),
+    ),
+  )
+}
+
+///|
 test "prepared static Effect reader issues one Plan with both structural facets" {
   let (parent, input, _) = request_effect_compile_fixture()
   let (legacy, legacy_input, _) = request_effect_compile_fixture()

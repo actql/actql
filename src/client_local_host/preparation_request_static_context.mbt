@@ -384,9 +384,11 @@ fn static_effect_explanation_delivery_construction(
 ) -> Int64? {
   let (bytes, nodes, depth) = limits
   let decoded_nodes = 3L * nodes.to_int64() + 7L
+  // These are the Host's ASCII member names and delimiters, without values.
+  let envelope_bytes = "{\"plan\":,\"facts\":,\"context\":}".length().to_int64()
   let delivered_bytes = Int64::min(
     max_wire_bytes.to_int64(),
-    3L * bytes.to_int64() + 26L,
+    3L * bytes.to_int64() + envelope_bytes,
   )
   result_read_data_cost(
     4L * decoded_nodes + 4L * depth.to_int64() + 64L,
