@@ -96,6 +96,8 @@ that supplies the selected Mock profile. For the Linux wheelhouse example,
 use `Client.open()` with a state directory as shown above.
 
 ```python
+import actql
+
 client = actql.connect(
     mode="local",
     installation=".actql",   # the Store directory
