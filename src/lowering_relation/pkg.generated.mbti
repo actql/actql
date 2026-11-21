@@ -1221,6 +1221,7 @@ pub(all) enum BinaryOperator {
   Like
   DateTruncate
   TimestampTruncate
+  ExtractTimestamp
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp

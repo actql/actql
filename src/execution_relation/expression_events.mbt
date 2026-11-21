@@ -163,6 +163,7 @@ fn expression_event_binary(
       DateTruncate => temporal_truncation(expr, left, right)
       TimestampTruncate =>
         temporal_truncation(expr, right, left, timestamp_only=true)
+      ExtractTimestamp => extract_timestamp(left, right)
       _ => binary(op, left, right)
     }
     match result {

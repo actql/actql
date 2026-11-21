@@ -45,6 +45,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Like => "like"
     DateTruncate => "date_trunc"
     TimestampTruncate => "timestamp_trunc"
+    ExtractTimestamp => "extract_timestamp"
     DecimalDivide(_) => "decimal_divide"
     Utf8Truncate => "utf8_truncate"
     ParseTimestamp => "parse_timestamp"

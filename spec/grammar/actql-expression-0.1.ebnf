@@ -101,6 +101,7 @@ function_name = "array_offset" | "array_safe_offset" | "current_timestamp" | "le
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"
               | "timestamp_add" | "timestamp_sub" | "timestamp_diff" | "timestamp_trunc"
+              | "extract_timestamp"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"
               | "if" | "coalesce" | "to_decimal" | "try_decimal"
               | "quantize" | "decimal_divide"

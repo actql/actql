@@ -191,6 +191,28 @@ fn finish(
         is Some({ value: @map.String("us" | "ms" | "s" | "m" | "h" | "d"), .. })) {
         invalid(cursor, origin, InvalidArguments)
       }
+      if tag == "extract_timestamp" &&
+        !(literal(args[1])
+        is Some(
+          {
+            value: @map.String(
+              "year"
+              | "quarter"
+              | "month"
+              | "day"
+              | "dayofweek"
+              | "dayofyear"
+              | "hour"
+              | "minute"
+              | "second"
+              | "millisecond"
+              | "microsecond"
+            ),
+            ..
+          }
+        )) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
         let index = if tag == "date_trunc" { 0 } else { 2 }
         if !(literal(args[index])

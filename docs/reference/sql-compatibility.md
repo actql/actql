@@ -166,6 +166,10 @@ six subsecond digits using the [SQL literal profile](../spec/query-text.md).
 The explicit `CAST(... AS TIMESTAMP)` path continues to require canonical UTC
 input as described above.
 
+`EXTRACT(YEAR FROM value)` reads the UTC year of a Timestamp and returns INT64.
+The same form supports QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR, MINUTE,
+SECOND, MILLISECOND and MICROSECOND.
+
 `TIMESTAMP_DIFF(end, start, HOUR)` returns whole hours as INT64. Both arguments
 must be Timestamp values. Negative durations truncate toward zero. The static
 unit can be MICROSECOND, MILLISECOND, SECOND, MINUTE, HOUR or DAY.
@@ -240,9 +244,10 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
-| `EXTRACT`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
+| `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
 | `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
+| `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
 | `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `ANY_VALUE`, `JSON_VALUE`, `FORMAT`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `FARM_FINGERPRINT`, `CURRENT_DATE`, `LOGICAL_AND`, `LOGICAL_OR` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |

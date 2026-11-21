@@ -636,6 +636,11 @@ export const timestampTruncOriginal = {name: 'timestamp-trunc', format: 'sql',
   expected: [{day_start: '1969-12-31T00:00:00.000Z', at_micros: '1969-12-31T23:59:59.999999Z'}],
   columns: ['day_start', 'at_micros'].map(name => ({name,
     contract: {type: 'timestamp', nullable: false}})), sourceReadCount: 0};
+export const extractTimestampOriginal = {name: 'extract-timestamp-year', format: 'sql',
+  text: "SELECT EXTRACT(YEAR FROM CAST('2026-01-02T03:04:05.000Z' AS TIMESTAMP)) AS year_part",
+  expected: [{year_part: '2026'}],
+  columns: [{name: 'year_part', contract: {type: 'int64', nullable: false}}],
+  sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -726,6 +731,7 @@ export const sourceFreeSuccesses = [
   ...generateArrayOriginalCases,
   timestampDiffOriginal,
   timestampTruncOriginal,
+  extractTimestampOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

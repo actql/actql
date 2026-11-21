@@ -236,6 +236,38 @@ fn timestamp_days_before_year(year : Int64) -> Int64 {
 }
 
 ///|
+/// Numeric UTC parts of a canonical Timestamp. Calendar and fractional
+/// admission is shared with all other Timestamp Value consumers.
+pub fn timestamp_numeric_part(text : String, part : String) -> Int64? {
+  guard timestamp_instant(text) is Some(instant) else { return None }
+  let seconds_in_day = instant.seconds % 86400L
+  let within_day = if seconds_in_day < 0L {
+    seconds_in_day + 86400L
+  } else {
+    seconds_in_day
+  }
+  let day_pos = (instant.seconds - within_day) / 86400L
+  match part {
+    "year" => timestamp_digits(text, 0, 4).map(year => year.to_int64())
+    "month" => timestamp_digits(text, 5, 7).map(month => month.to_int64())
+    "quarter" =>
+      timestamp_digits(text, 5, 7).map(month => ((month - 1) / 3 + 1).to_int64())
+    "day" => timestamp_digits(text, 8, 10).map(day => day.to_int64())
+    "dayofweek" => Some(((day_pos + 4L) % 7L + 7L) % 7L + 1L)
+    "dayofyear" =>
+      timestamp_digits(text, 0, 4).map(year => {
+        day_pos + 719528L - timestamp_days_before_year(year.to_int64()) + 1L
+      })
+    "hour" => Some(within_day / 3600L)
+    "minute" => Some(within_day / 60L % 60L)
+    "second" => Some(within_day % 60L)
+    "millisecond" => Some((instant.nanoseconds / 1000000).to_int64())
+    "microsecond" => Some((instant.nanoseconds / 1000).to_int64())
+    _ => None
+  }
+}
+
+///|
 fn timestamp_two_digits(value : Int64) -> String {
   if value < 10L {
     "0" + value.to_string()

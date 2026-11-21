@@ -284,6 +284,7 @@ fn scalar_call(
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
     "TIMESTAMP_DIFF" => ("TIMESTAMP_DIFF", "timestamp_diff", 3, 3)
     "TIMESTAMP_TRUNC" => ("TIMESTAMP_TRUNC", "timestamp_trunc", 2, 2)
+    "EXTRACT" => ("EXTRACT", "extract_timestamp", 2, 2)
     "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
     "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)

@@ -144,6 +144,7 @@ fn expression_role(
     | "concat"
     | "date_trunc"
     | "timestamp_trunc"
+    | "extract_timestamp"
     | "date_add"
     | "timestamp_add"
     | "timestamp_sub"

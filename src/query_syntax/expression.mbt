@@ -276,6 +276,7 @@ priv enum ExpressionFrame {
   CaseValue(Array[(Int, Int)], Int, Int, Int)
   CaseElse(Array[(Int, Int)], Int)
   CastTarget(Int)
+  ExtractValue(Array[NamePart], Int, Int)
   IntervalUnit(Int)
 }
 
@@ -830,7 +831,40 @@ fn ExpressionParser::expression(
             let path = self.path(t)
             if self.peek().value == Symbol(40) {
               ignore(self.advance())
-              if self.peek().value == Symbol(41) {
+              if path is [{ value: name, .. }] &&
+                name.length() == 7 &&
+                upper_ascii(name) == "EXTRACT" {
+                self.spend()
+                let word = self.advance()
+                guard word.value is Word(name) && name.length() <= 11 else {
+                  raise ExpressionAbort(
+                    "Expected EXTRACT date part",
+                    word.start,
+                  )
+                }
+                let part = match upper_ascii(name) {
+                  "YEAR" => "year"
+                  "QUARTER" => "quarter"
+                  "MONTH" => "month"
+                  "DAY" => "day"
+                  "DAYOFWEEK" => "dayofweek"
+                  "DAYOFYEAR" => "dayofyear"
+                  "HOUR" => "hour"
+                  "MINUTE" => "minute"
+                  "SECOND" => "second"
+                  "MILLISECOND" => "millisecond"
+                  "MICROSECOND" => "microsecond"
+                  _ =>
+                    raise ExpressionAbort(
+                      "Unsupported EXTRACT date part",
+                      word.start,
+                    )
+                }
+                self.require_keyword("FROM")
+                let part = self.add(StringLiteral(part), word.start, word.end)
+                frames.push(ExtractValue(path, part, t.start))
+                frames.push(Enter(1, depth + 1))
+              } else if self.peek().value == Symbol(41) {
                 let close = self.advance()
                 result = self.add(Call(path, []), t.start, close.end)
               } else {
@@ -1099,6 +1133,16 @@ fn ExpressionParser::expression(
         } else {
           raise ExpressionAbort("Expected WHEN, ELSE or END", next.start)
         }
+      }
+      ExtractValue(path, part, start) => {
+        let close = self.advance()
+        if close.value != Symbol(41) {
+          raise ExpressionAbort(
+            "Expected EXTRACT closing parenthesis",
+            close.start,
+          )
+        }
+        result = self.add(Call(path, [result, part]), start, close.end)
       }
       CastTarget(start) => {
         self.require_keyword("AS")

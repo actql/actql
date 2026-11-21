@@ -252,6 +252,8 @@ pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 pub fn timestamp_instant(String) -> TimestampInstant?
 
+pub fn timestamp_numeric_part(String, String) -> Int64?
+
 pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]

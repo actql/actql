@@ -23821,6 +23821,23 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "extract_timestamp"
+                      ],
+                      "properties": {
+                        "extract_timestamp": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "date_add"
                       ],
                       "properties": {
@@ -29909,6 +29926,23 @@
                       ],
                       "properties": {
                         "timestamp_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extract_timestamp"
+                      ],
+                      "properties": {
+                        "extract_timestamp": {
                           "type": "array",
                           "minItems": 2,
                           "items": {
@@ -56093,6 +56127,23 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "extract_timestamp"
+                          ],
+                          "properties": {
+                            "extract_timestamp": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "date_add"
                           ],
                           "properties": {
@@ -62181,6 +62232,23 @@
                           ],
                           "properties": {
                             "timestamp_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "extract_timestamp"
+                          ],
+                          "properties": {
+                            "extract_timestamp": {
                               "type": "array",
                               "minItems": 2,
                               "items": {

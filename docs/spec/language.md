@@ -2518,6 +2518,19 @@ is applied. Retain enclosing lazy demand, child failure, cancellation and
 workspace under the existing temporal expression owner. The earlier
 `date_diff` Number result and its selected units remain unchanged.
 
+### Numeric UTC Timestamp parts
+
+<!-- requirement-block: scalar-expressions.utc-timestamp-extract -->
+The ordered `extract_timestamp` operation MUST extract a numeric UTC part
+from a Timestamp operand and a mandatory literal part. The admitted parts
+are `year|quarter|month|day|dayofweek|dayofyear|hour|minute|second|millisecond|microsecond`.
+The result is exact signed64 and is NULL when the original Timestamp is NULL.
+Quarter, month, day and day-of-year are one-based; Sunday is day-of-week 1.
+Subsecond parts drop smaller digits without rounding. The original value
+uses the shared canonical Gregorian UTC admission, including negative epoch
+instants. Preserve child failure, enclosing lazy demand, control and resource
+accounting under the existing expression owner.
+
 ### Fixed UTC Timestamp truncation
 
 <!-- requirement-block: scalar-expressions.exact-timestamp-trunc -->
