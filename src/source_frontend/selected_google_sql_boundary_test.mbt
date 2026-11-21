@@ -4,8 +4,7 @@ test "unselected GoogleSQL scalar families retain a named checked lowering refus
   for
     expression in [
       "REGEXP_CONTAINS('abc', 'a')", "REGEXP_EXTRACT('abc', 'a')", "REGEXP_REPLACE('abc', 'a', 'b')",
-      "ARRAY_LENGTH([1, 2])", "JSON_VALUE('{}', '$.n')", "TO_JSON_STRING(1)", "UNIX_SECONDS(1)",
-      "SHA256('a')",
+      "ARRAY_LENGTH([1, 2])", "JSON_VALUE('{}', '$.n')", "UNIX_SECONDS(1)", "SHA256('a')",
     ] {
     assert_true(
       lower("SELECT " + expression + " AS result", Sql, Some(context))

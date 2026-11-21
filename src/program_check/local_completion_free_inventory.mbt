@@ -548,6 +548,7 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "array_concat"
     | "array_to_string"
     | "format_strings"
+    | "to_json_string"
     | "asin"
     | "asinh"
     | "atan"

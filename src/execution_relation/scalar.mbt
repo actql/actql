@@ -705,6 +705,7 @@ pub fn boolean_pair(
     | ArrayConcat
     | ArrayToString
     | FormatStrings
+    | ToJsonString
     | Substring
     | LeftString
     | RightString

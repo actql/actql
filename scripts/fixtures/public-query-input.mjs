@@ -682,6 +682,10 @@ export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', forma
   text: "SELECT FARM_FINGERPRINT('a') AS result",
   expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
     contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
+export const toJsonStringOriginal = {name: 'to-json-string-original', format: 'sql',
+  text: 'SELECT TO_JSON_STRING(1) AS result',
+  expected: [{result: '1'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
 const formatStringsOriginal = {name: 'format-strings-original', format: 'sql',
   text: "SELECT FORMAT('%s', 'a') AS result",
   expected: [{result: 'a'}], columns: [{name: 'result',
@@ -862,6 +866,7 @@ export const sourceFreeSuccesses = [
   arrayToStringOriginal,
   formatStringsOriginal,
   farmFingerprintOriginal,
+  toJsonStringOriginal,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,

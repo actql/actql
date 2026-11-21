@@ -429,6 +429,11 @@ forms retain their bytes and meanings.
 String operand. The result is INT64 with the operand's nullability.
 The checked Common operation consumes the original UTF-8 bytes.
 
+`TO_JSON_STRING(value[, pretty_print])` selects `to_json_string`.
+The optional Boolean flag and original Value are retained as authored.
+The Common expression emits a String using the admitted Value domains,
+including exact integers and canonical temporal text.
+
 `FORMAT(template[, argument ...])` selects the checked Common
 `format_strings` expression for String inputs. The value of the original
 template can come from a row or Parameter. In this signature `%s` selects

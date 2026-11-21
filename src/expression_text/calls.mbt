@@ -132,7 +132,7 @@ fn Parser::call(
     | "split_part"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
     "instr" => (2, 4)
-    "split" => (1, 2)
+    "split" | "to_json_string" => (1, 2)
     "substring" | "lpad" | "rpad" | "array_to_string" => (2, 3)
     "quantize" => (2, 4)
     "decimal_divide" => (3, 5)

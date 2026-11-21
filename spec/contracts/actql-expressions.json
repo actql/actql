@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "53265aba6c51acb8547f52ba0b4282ee0c0e4ce00a7b5be382f90985c11584ab",
+  "grammar_sha256": "4e5f3f98b935a991dfbad1bf28c86fcd593e4e92c1ae6bad4c2272507dc08d24",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6340,6 +6340,23 @@
               "properties": {
                 "farm_fingerprint": {
                   "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to_json_string"
+              ],
+              "properties": {
+                "to_json_string": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
                 }
               }
             }
@@ -13337,6 +13354,27 @@
                 },
                 "body": {
                   "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "to_json_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
                 }
               }
             }
@@ -25695,6 +25733,23 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to_json_string"
+              ],
+              "properties": {
+                "to_json_string": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -31776,6 +31831,27 @@
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "to_json_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
                 }
               }
             }
@@ -40106,6 +40182,23 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to_json_string"
+              ],
+              "properties": {
+                "to_json_string": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -46189,6 +46282,27 @@
                   "$ref": "#/$defs/machine_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "to_json_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -47470,6 +47584,12 @@
       "identity": "The closed source is {farm_fingerprint:value}; the closed machine form is {op:farm_fingerprint,body:value_node}. Retain the original checked operand.",
       "value": "NULL returns NULL. Otherwise apply Google FarmHash Fingerprint64 to the original UTF-8 bytes without normalization and reinterpret the unsigned 64-bit word as a signed INT64.",
       "evaluation": "The existing evaluator retains the original operand and admits a fixed-size continuation before construction. Meter original scalar progress without copying the complete input, preserving demand, scoped work, limits and cancellation."
+    },
+    "to_json_string": {
+      "signature": "An original JSON-serializable Value and an optional Boolean pretty flag. Return String, nullable only when the supplied flag may be NULL.",
+      "identity": "The closed source is {to_json_string:[value]} or {to_json_string:[value,pretty]}. The closed machine form uses the original ordered operands.",
+      "value": "After all demanded operands succeed, a NULL pretty flag returns SQL NULL. A NULL input Value yields the four-character String null. Otherwise emit compact JSON, or two-space indentation for a true flag, preserving original array elements, admitted object fields and Unicode scalar strings. INT64 and integral Decimal values in the inclusive signed safe range [-2^53,2^53] are numbers. Other INT64 and Decimal values emit their exact decimal spelling as JSON strings. Date and Timestamp retain their Common ISO text. A Json value emits its admitted payload without a wrapper. Opaque references are not serializable.",
+      "evaluation": "Measure before building under the existing Text owner. Retain all original operands, use the original work and logical and physical limits, and preserve demand, failed children and cancellation."
     }
   },
   "regex_ast_contract": {

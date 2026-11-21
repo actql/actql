@@ -130,6 +130,8 @@ pub fn contract_value_phase_construction_inventory(@value_contract.Contract, @de
 
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
+pub fn decimal_wire_text(DecimalValue) -> String
+
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] element_count(FrozenArray[T]) -> Int

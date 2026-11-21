@@ -184,6 +184,12 @@ operand. The function uses the existing array value bounds.
 INT64 fingerprint of its UTF-8 bytes. NULL returns NULL.
 [GoogleSQL FARM_FINGERPRINT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#farm_fingerprint)
 
+`TO_JSON_STRING(value[, pretty_print])` serializes an admitted Value
+as JSON text. It distinguishes an input NULL, which produces the String
+`null`, from a NULL pretty flag, which produces SQL NULL. Objects use
+Common field order. Opaque references do not serialize.
+[GoogleSQL TO_JSON_STRING](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/json_functions#to_json_string)
+
 `FORMAT(template[, argument ...])` accepts String inputs, `%s` and
 `%%`. Width and precision can be written directly in the template.
 Other conversion specifiers and runtime width or precision operands are
@@ -309,7 +315,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
-| `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `JSON_VALUE`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
+| `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `JSON_VALUE`, `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |

@@ -403,6 +403,7 @@ fn emit_frames(
                   ArrayConcat => "array_concat"
                   ArrayToString => "array_to_string"
                   FormatStrings => "format_strings"
+                  ToJsonString => "to_json_string"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

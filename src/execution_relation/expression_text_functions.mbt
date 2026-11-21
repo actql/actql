@@ -25,6 +25,7 @@ priv enum TextFunctionKind {
   TextSplit
   TextArrayJoin
   TextFormatStrings
+  TextSqlJson
   TextSubstring
   TextLeft
   TextRight
@@ -132,7 +133,11 @@ fn start_text_function(
   let mut null_result = false
   for i, value in values {
     match value {
+      _ if kind == TextSqlJson && i == 0 => ()
+      Boolean(_) if kind == TextSqlJson => ()
       Null => null_result = true
+      _ if kind == TextSqlJson =>
+        return Err({ kind: Scalar(InvalidOperand), expression, })
       Captured(@admitted.Array(_)) if kind == TextArrayJoin && i == 0 => ()
       Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
         ()
@@ -295,6 +300,8 @@ fn start_text_function(
       2 + (if null_result { 0 } else { ARRAY_TEXT_JOIN_SLOTS })
     } else if kind == TextFormatStrings {
       2 + (if values[0] is Text(_) { FORMAT_STRINGS_SLOTS } else { 0 })
+    } else if kind == TextSqlJson {
+      2 + (if null_result { 0 } else { SQL_JSON_CURSOR_SLOTS })
     } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
@@ -449,7 +456,9 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextArrayJoin || kind == TextFormatStrings {
+    reserved: if kind == TextArrayJoin ||
+      kind == TextFormatStrings ||
+      kind == TextSqlJson {
       values.length() * 3 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||

@@ -195,7 +195,8 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
     'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
-    'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original'];
+    'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original',
+    'to-json-string-original'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
   assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
@@ -230,6 +231,8 @@ test('default numeric oracle requires runnable checking and same Saved after ori
     [{x: '1'}, {x: '2'}, {x: '3'}]);
   assert.deepEqual(observed.find(entry => entry.name === 'farm-fingerprint-original').rows,
     [{result: '-5528939962900187677'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'to-json-string-original').rows,
+    [{result: '1'}]);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {

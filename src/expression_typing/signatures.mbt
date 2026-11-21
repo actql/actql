@@ -203,6 +203,43 @@ fn cast_target(body : @decode.Cursor) -> @contract.Contract raise Stop {
 }
 
 ///|
+priv enum SqlJsonTypeVisit {
+  InspectJsonType(@contract.Contract, Int)
+  InspectJsonFields(@contract.Fields, Int, Int)
+}
+
+///|
+fn check_sql_json_type(
+  t : Types,
+  contract : @contract.Contract,
+  source : @decode.Cursor,
+) -> Unit raise Stop {
+  let pending = [InspectJsonType(contract, 0)]
+  while pending.pop() is Some(task) {
+    spend(t.budget, source)
+    match task {
+      InspectJsonType(current, depth) => {
+        if depth > t.budget.limits.max_depth {
+          fail(source, BudgetExceeded)
+        }
+        match current.shape {
+          ResourceRef(..) | ContentRef(..) =>
+            fail(source, TypeMismatch("JSON-serializable Value"))
+          Array(item, ..) => pending.push(InspectJsonType(item, depth + 1))
+          Object(fields) => pending.push(InspectJsonFields(fields, 0, depth))
+          _ => ()
+        }
+      }
+      InspectJsonFields(fields, index, depth) =>
+        if @contract.field_at(fields, index) is Some(field) {
+          pending.push(InspectJsonFields(fields, index + 1, depth))
+          pending.push(InspectJsonType(field.contract, depth + 1))
+        }
+    }
+  }
+}
+
+///|
 fn text_time(tag : String) -> Bool {
   [
     "split_part", "utf8_truncate", "try_number", "parse_timestamp", "try_timestamp",
@@ -350,6 +387,23 @@ fn infer(
     "make_date" => {
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)
+    }
+    "to_json_string" => {
+      let input = nodes[node.children[0]]
+      if immediate_null(input) {
+        let hint = primitive(t, JsonType, false, input.source)
+        provide(t, input.inferred, hint, input.source)
+      }
+      check_sql_json_type(
+        t,
+        resolve_type(t, input.inferred, input.source),
+        input.source,
+      )
+      let nullable = match node.children.get(1) {
+        Some(pretty) => require_type(t, nodes, pretty, "boolean").nullable
+        None => false
+      }
+      primitive(t, StringType, nullable, source)
     }
     "format_strings" => {
       let nullable = arguments(t, nodes, node, "string")
