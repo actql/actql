@@ -11516,7 +11516,7 @@
         "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mjs",
+        "./effect-command-key.mts",
         "./effect-input-export.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./effect-physical-dispatch.mjs",

@@ -1079,3 +1079,7 @@ target/
 /scripts/test-package-release-carrier-peer-scope.d.mts
 /reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mjs
 /reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.d.mts
+/adapters/host-node/effect-command-key.mjs
+/adapters/host-node/effect-command-key.d.mts
+/adapters/host-node/effect-command-key.test.mjs
+/adapters/host-node/effect-command-key.test.d.mts

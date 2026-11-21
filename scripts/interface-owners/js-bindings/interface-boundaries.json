@@ -43094,7 +43094,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43104,7 +43104,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43114,7 +43114,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43124,7 +43124,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43134,7 +43134,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43144,7 +43144,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43154,7 +43154,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43164,7 +43164,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43174,7 +43174,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43184,7 +43184,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43202,7 +43202,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43212,7 +43212,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43222,7 +43222,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43232,7 +43232,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43242,7 +43242,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43252,7 +43252,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43262,7 +43262,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43272,7 +43272,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43282,7 +43282,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -43292,7 +43292,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "import {runtimeField}"
               },
               {
@@ -46249,7 +46249,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mjs",
+        "./effect-command-key.mts",
         "node:crypto",
         "node:timers/promises",
         "node:util"
@@ -92570,7 +92570,7 @@
         "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mjs",
+        "./effect-command-key.mts",
         "./effect-input-export.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./effect-physical-dispatch.mjs",

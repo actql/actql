@@ -4748,7 +4748,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "The original Common continuation owns traversal"
               },
               {
@@ -4758,7 +4758,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "advanceEffectCommandKey"
               },
               {
@@ -4768,8 +4768,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
-                "anchor": "advance.call(moon, key, quantum)"
+                "path": "adapters/host-node/effect-command-key.mts",
+                "anchor": "advance!.call(moon, key, quantum)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -4778,7 +4778,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "Keep the exact original"
               },
               {
@@ -4788,7 +4788,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "await yieldEventLoop"
               },
               {
@@ -4798,7 +4798,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "EffectCommandKeyCleanupPending"
               },
               {
@@ -4808,7 +4808,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -4838,7 +4838,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-command-key.test.mjs",
+                "path": "adapters/host-node/effect-command-key.test.mts",
                 "anchor": "failed private retirement preserves"
               },
               {
@@ -4860,7 +4860,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "The original Common continuation owns traversal"
               },
               {
@@ -4870,7 +4870,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "advanceEffectCommandKey"
               },
               {
@@ -4880,8 +4880,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
-                "anchor": "advance.call(moon, key, quantum)"
+                "path": "adapters/host-node/effect-command-key.mts",
+                "anchor": "advance!.call(moon, key, quantum)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -4890,7 +4890,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "Keep the exact original"
               },
               {
@@ -4900,7 +4900,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "await yieldEventLoop"
               },
               {
@@ -4910,7 +4910,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "EffectCommandKeyCleanupPending"
               },
               {
@@ -4920,7 +4920,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-command-key.mjs",
+                "path": "adapters/host-node/effect-command-key.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -4950,7 +4950,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-command-key.test.mjs",
+                "path": "adapters/host-node/effect-command-key.test.mts",
                 "anchor": "failed private retirement preserves"
               },
               {
@@ -6421,7 +6421,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mjs",
+        "./effect-command-key.mts",
         "node:crypto",
         "node:timers/promises",
         "node:util"

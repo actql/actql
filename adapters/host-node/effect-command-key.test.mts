@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {advanceEffectCommandKey, retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
+import type {EffectCommandKeyCleanupFailure} from './effect-command-key.mjs';
 
 test('Host key caller advances only the same opaque original with a captured method and receiver', async () => {
   const original = Object.freeze({});
@@ -8,7 +9,7 @@ test('Host key caller advances only the same opaque original with a captured met
   const moon = {
     get clientProgramEffectCommandKeyAdvance() {
       reads++;
-      return function (key, quantum) {
+      return function (this: unknown, key: typeof original, quantum: number) {
         assert.equal(this, moon);
         assert.equal(key, original);
         assert.equal(quantum, 7);
@@ -53,10 +54,11 @@ test('failed private retirement preserves the same retry callback and original f
     if (!available) throw cleanupFailure;
     return true;
   };
-  let failure;
+  let failure!: EffectCommandKeyCleanupFailure;
   await assert.rejects(retireEffectCommandKeyWorkspace(originalCleanup, originalFailure), error => {
-    failure = error;
-    return error.cause === originalFailure && error.cleanupError === cleanupFailure;
+    failure = error as EffectCommandKeyCleanupFailure;
+    return (error as EffectCommandKeyCleanupFailure).cause === originalFailure &&
+      (error as EffectCommandKeyCleanupFailure).cleanupError === cleanupFailure;
   });
   assert.equal(failure.cleanupPending, true);
   assert.equal(failure.cleanupHandle.status().pending, true);
