@@ -1395,3 +1395,7 @@ target/
 /adapters/host-common/observation.test.d.mts
 /adapters/host-node/managed-run-observation.test.mjs
 /adapters/host-node/managed-run-observation.test.d.mts
+/adapters/host-node/client-request-journal-sql.mjs
+/adapters/host-node/client-request-journal-sql.d.mts
+/adapters/host-node/journal-lifecycle-limits.test.mjs
+/adapters/host-node/journal-lifecycle-limits.test.d.mts

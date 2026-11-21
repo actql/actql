@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9aca91e7c8ea5d054804dc7cbe6888094648c39723010396aeef96c210d49b23",
+      "sha256": "ffec290008d00f83bd42da3ef9f1271b8b8bffcdef21f5cef011855fd3d2c527",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28341,145 +28341,6 @@
           "async": false
         },
         {
-          "name": "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:configure/init:configure",
-          "parameters": [
-            "page"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:enter/init:enter",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:leave/init:leave",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:register/init:register",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/init:register/init:register/init:register",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/boundedPrimarySql",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/init:exec/init:exec",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/init:prepare/init:prepare",
-          "parameters": [
-            "sql"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/retireWal/retireWal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/wrap/wrap/init:all/init:all",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/wrap/wrap/init:get/init:get",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/wrap/wrap/init:run/init:run",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedPrimarySql/wrap/wrap/wrap",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
           "name": "cid/cid",
           "parameters": [
             "value"
@@ -28542,16 +28403,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "guardJournalCurrentness/guardJournalCurrentness",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "guardJournalCurrentness/guardJournalCurrentness#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -29742,20 +29593,6 @@
           "name": "retainedResultNames/retainedResultNames",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
-          "parameters": [
-            "key"
           ],
           "async": false
         },
@@ -31096,29 +30933,6 @@
         {
           "operations": [
             "assertOriginalClientRequestJournalFacilityCurrent",
-            "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
-            "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
-            "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
-            "boundedJournalWalFrames/init:configure/init:configure",
-            "boundedJournalWalFrames/init:enter/init:enter",
-            "boundedJournalWalFrames/init:leave/init:leave",
-            "boundedJournalWalFrames/init:register/init:register",
-            "boundedJournalWalFrames/init:register/init:register/init:register",
-            "boundedJournalWalFrames/reclaim/reclaim/reclaim",
-            "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
-            "boundedPrimarySql/boundedPrimarySql",
-            "boundedPrimarySql/init:exec/init:exec",
-            "boundedPrimarySql/init:prepare/init:prepare",
-            "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
-            "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
-            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
-            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
-            "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
-            "boundedPrimarySql/retireWal/retireWal",
-            "boundedPrimarySql/wrap/wrap/init:all/init:all",
-            "boundedPrimarySql/wrap/wrap/init:get/init:get",
-            "boundedPrimarySql/wrap/wrap/init:run/init:run",
-            "boundedPrimarySql/wrap/wrap/wrap",
             "facilityOperations/facilityOperations",
             "facilityPlatformOperations/facilityPlatformOperations",
             "facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
@@ -31126,9 +30940,7 @@
             "inspectJournalSnapshot/inspectJournalSnapshot#4",
             "observeOriginalClientRequestJournalCustody",
             "openClientRequestJournal/initializationCleanup/init:close/init:close",
-            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8",
-            "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
-            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8"
           ],
           "exports": [
             "assertOriginalClientRequestJournalFacilityCurrent",
@@ -31143,12 +30955,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function snapshotPrimarySqlLimits(value) {"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimarySqlLimits(value: unknown):"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function snapshotPrimaryExecutionLimits(value) {"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
               },
               {
                 "path": "adapters/host-node/host-journal-facility-fields.cjs",
@@ -31185,15 +30997,15 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const originalJournalCustodies = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "const beginOperation = () => {"
               },
               {
@@ -31203,15 +31015,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "if (supported !== 1) fail('ClientRequestJournalTemporaryUnavailable');"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "if (operationActive) fail('ClientRequestJournalSqlCleanupPending');"
               },
               {
@@ -31571,111 +31383,6 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.test.mjs",
                 "anchor": "test('owned native format refusal retains the captured close and Store exclusion until its real ACK'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "guardJournalCurrentness/guardJournalCurrentness",
-            "guardJournalCurrentness/guardJournalCurrentness#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function guardJournalCurrentness("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Journal calls have no historical issuance or session-work ceiling."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/journal-lifecycle-limits.test.mjs",
-                "anchor": "new original Journal operations remain usable beyond former 4096 lifetime attempts"
               }
             ]
           }
@@ -32702,76 +32409,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/local-node/README.md",
-                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
-                "anchor": "function retainedBudgetFailureMessage"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
-                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
-              },
-              {
-                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
-                "anchor": "original budget bridge"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "assertOriginalClientRequestJournal"
           ],
@@ -33541,6 +33178,7 @@
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
         "./client-observation-journal.mjs",
+        "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
@@ -33552,6 +33190,589 @@
         "node:fs/promises",
         "node:path",
         "node:sqlite",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-request-journal-sql.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "0814f8e96482e780757d3b4730a5731564c5426413fa2504147a431603dfbd3a",
+      "role": "physical-io",
+      "owner": "Existing Client request/Run/submission Owners and same physical journal",
+      "exports": [
+        "applyOriginal",
+        "boundJournalDatabaseExtent",
+        "boundedJournalWalFrames",
+        "boundedPrimarySql",
+        "fail",
+        "guardJournalCurrentness",
+        "journalDatabaseGeometry",
+        "operationDescriptors",
+        "operationKeys",
+        "selectJournalTemporaryStorage",
+        "snapshotPrimaryExecutionLimits",
+        "snapshotPrimarySqlLimits"
+      ],
+      "operations": [
+        {
+          "name": "boundedJournalWalFrames",
+          "parameters": [
+            "maxFrames",
+            "sourceBytes",
+            "maxDatabaseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:configure/init:configure",
+          "parameters": [
+            "page"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:enter/init:enter",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:leave/init:leave",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:register/init:register",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:register/init:register/init:register",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql",
+          "parameters": [
+            "connection",
+            "limits",
+            "executionLimits",
+            "assertCurrent",
+            "walFrames"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/boundedPrimarySql",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:exec/init:exec",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:prepare/init:prepare",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/retireWal/retireWal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:all/init:all",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:get/init:get",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/init:run/init:run",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/wrap/wrap/wrap",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundJournalDatabaseExtent",
+          "parameters": [
+            "database",
+            "maxDatabaseBytes",
+            "executionLimits",
+            "walFrames",
+            "temporarySelected",
+            "retainedGeometry",
+            "prepareWalCheckpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "guardJournalCurrentness",
+          "parameters": [
+            "journal",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "guardJournalCurrentness/guardJournalCurrentness",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "guardJournalCurrentness/guardJournalCurrentness#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalDatabaseGeometry",
+          "parameters": [
+            "database",
+            "maxDatabaseBytes",
+            "walFrames"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectJournalTemporaryStorage",
+          "parameters": [
+            "database",
+            "executionLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimaryExecutionLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimarySqlLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "boundedJournalWalFrames",
+            "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
+            "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
+            "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
+            "boundedJournalWalFrames/init:configure/init:configure",
+            "boundedJournalWalFrames/init:enter/init:enter",
+            "boundedJournalWalFrames/init:leave/init:leave",
+            "boundedJournalWalFrames/init:register/init:register",
+            "boundedJournalWalFrames/init:register/init:register/init:register",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
+            "boundedPrimarySql",
+            "boundedPrimarySql/boundedPrimarySql",
+            "boundedPrimarySql/init:exec/init:exec",
+            "boundedPrimarySql/init:prepare/init:prepare",
+            "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
+            "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
+            "boundedPrimarySql/retireWal/retireWal",
+            "boundedPrimarySql/wrap/wrap/init:all/init:all",
+            "boundedPrimarySql/wrap/wrap/init:get/init:get",
+            "boundedPrimarySql/wrap/wrap/init:run/init:run",
+            "boundedPrimarySql/wrap/wrap/wrap",
+            "boundJournalDatabaseExtent",
+            "fail/fail",
+            "journalDatabaseGeometry",
+            "selectJournalTemporaryStorage",
+            "snapshotPrimaryExecutionLimits",
+            "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
+            "snapshotPrimarySqlLimits",
+            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
+          ],
+          "exports": [
+            "applyOriginal",
+            "boundJournalDatabaseExtent",
+            "boundedJournalWalFrames",
+            "boundedPrimarySql",
+            "fail",
+            "journalDatabaseGeometry",
+            "operationDescriptors",
+            "operationKeys",
+            "selectJournalTemporaryStorage",
+            "snapshotPrimaryExecutionLimits",
+            "snapshotPrimarySqlLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The complete separate Journal disposition must precede this preparation:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimarySqlLimits(value: unknown):"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
+              },
+              {
+                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const iteratorOriginal = field(globalThis, 'Iterator');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationDatabaseClosed = true;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const iteratorPrototype = field(iteratorOriginal, 'prototype');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const originalJournalCustodies = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const beginOperation = () => {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (supported !== 1) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (operationActive) fail('ClientRequestJournalSqlCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (typeof iteratorOriginal !== 'function' || isProxy(iteratorOriginal)) unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "selectedSql?.retireClosedNativeAliases();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationSql?.retireClosedNativeAliases();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "That disposition includes the actual selected SQLite allocator's necessary"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The retained descriptors, constructor/prototype aliases"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This is the finite Journal facility, not a universal allocator lease or another"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-observation-extent.test.mjs",
+                "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "anchor": "temporary storage precedes the schema-loading Pager pragma"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "failed original cursor close and pending database close retain the same native connection until its close ACK"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "selected preparation current callback cannot reenter the same Journal before native preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
+                "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "guardJournalCurrentness",
+            "guardJournalCurrentness/guardJournalCurrentness",
+            "guardJournalCurrentness/guardJournalCurrentness#2"
+          ],
+          "exports": [
+            "guardJournalCurrentness"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function guardJournalCurrentness<Journal extends object>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/journal-lifecycle-limits.test.mts",
+                "anchor": "new original Journal operations remain usable beyond former 4096 lifetime attempts"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
         "node:util"
       ],
       "compilerFields": [],
