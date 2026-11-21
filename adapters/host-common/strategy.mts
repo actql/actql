@@ -1,6 +1,7 @@
 // Trusted JavaScript coordination only. Checked readiness, selected ownership,
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
+// @ts-expect-error TS7016: remove after generating strategy-action declarations.
 import {strategyAction} from './strategy-actions.mjs';
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   beginFailedExecutionSiteOperation,
@@ -37,46 +38,280 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
   './execution-sites.mjs';
-import {createManagedSiteTransferCoordinator} from
-  './managed-site-transfer.mjs';
-import {storeCompletedResultPublicationPayload} from
-  './durable-result-payload.mjs';
-import {publishCompletedEffectFreeRun} from
-  './completed-run-publication.mjs';
-import {prepareCompletedEffectFreeRunPublication} from
-  './run-publication-preflight.mjs';
-import {ExecutionAuthorizationError, missingAuthorizationGate} from
-  './authorization-gate.mjs';
+// @ts-expect-error TS7016: remove after migrating the Site Transfer coordinator.
+import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs';
+// @ts-expect-error TS7016: remove after migrating durable result payload storage.
+import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
+// @ts-expect-error TS7016: remove after migrating completed-run publication.
+import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
+// @ts-expect-error TS7016: remove after migrating publication preflight.
+import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
+// @ts-expect-error TS7016: remove after migrating the authorization gate.
+import {ExecutionAuthorizationError, missingAuthorizationGate} from './authorization-gate.mjs';
 import {projectTaskObservation, projectTaskLogicalObservation} from './task-observation.mjs';
+// @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {ledgerUsageSnapshotHasPendingResources} from './runtime-core.mjs';
 
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+import type {withManagedOutputRows} from '../store-local/managed-memory-representations.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type CommonObject = Extract<SynchronousRuntimeData, object>;
+type SiteOperation = ReturnType<typeof startExecutionSiteOperation>;
+type SiteInstallation = ReturnType<typeof installExecutionSites>;
+type SiteInput = NonNullable<Parameters<typeof executionSiteCandidate>[0]>['inputs'][number];
+type SiteCandidate = Extract<ReturnType<typeof executionSiteCandidate>, {excluded: undefined}>;
+type SiteDescription = ReturnType<typeof executionSiteDescription>;
+type SuccessProgress = ReturnType<typeof beginExecutionSiteHostTaskSuccess>;
+type CleanupStatus = Readonly<{pending?: unknown; errors?: unknown}>;
+type CleanupHandle = Readonly<{status(): CleanupStatus | undefined; retry(): Awaitable<unknown>}>;
+type SiteInstallationCleanup = Readonly<{status(): CleanupStatus | undefined; retry(): SynchronousRuntimeData}>;
+type RememberCleanup = (error: unknown, releaseOwner?: object) => void;
+type CloseOwner = Readonly<{
+  close?(): unknown;
+  afterFailure?(error: unknown, remember: RememberCleanup): void;
+}>;
+type RowConsumer = Parameters<typeof withManagedOutputRows>[1];
+type RetainedRead = (accept: RowConsumer, signal?: AbortSignal) => Awaitable<unknown>;
+type RetainedRows = <Value>(accept: RowConsumer, signal: AbortSignal | undefined, commit: () => Value) => ReturnType<typeof withManagedOutputRows<Value>>;
+type DispatchResult = CloseOwner & Readonly<{
+  status?: string;
+  checkpoint?: object | null;
+  cleanupPending?: unknown;
+  completed?: unknown;
+  material?: object | null;
+  carrierMaterial?: object | null;
+  siteMaterial?: object | null;
+  materialGeneration?: object | null;
+  publicationOutput?: unknown;
+  diagnostic?: Readonly<Record<string, unknown>>;
+  withRows?: RetainedRows;
+  readRetained?: RetainedRead;
+  refreshCompletedScratch?(): Awaitable<unknown>;
+}>;
+type ManagedOutput = SiteInput & Readonly<{
+  completed: unknown;
+  carrierMaterial?: object | null;
+  scratchOwner: DispatchResult;
+  withRows?: RetainedRows;
+  close?: CloseOwner['close'];
+  releaseOwner?: CloseOwner;
+}>;
+type SiteResolution = Readonly<{materials: readonly object[]; records: readonly unknown[]}>;
+type ResolveSiteInputs = (inputs: readonly unknown[], signal?: AbortSignal) => Promise<SiteResolution>;
+type SiteTransferCoordinator = Readonly<{
+  resolve(candidate: SiteCandidate, inputs: readonly unknown[], signal?: AbortSignal): Promise<SiteResolution>;
+  releaseSource(output: ManagedOutput): Awaitable<unknown>;
+  close(): unknown;
+}>;
+type PreparedTask = Readonly<{
+  task: number;
+  durationMilliseconds: bigint | null;
+  acceptsSiteTransfer?: boolean;
+  siteCapacity?: SiteCandidate['capacity'];
+  inputs?: readonly object[];
+  outputs?: ReadonlyMap<number, Partial<ManagedOutput>>;
+  releasableProducers?: readonly number[];
+}>;
+type ReleasingTask = Omit<PreparedTask, 'outputs'> & {outputs?: Map<number, ManagedOutput>};
+type SiteTask = Readonly<{
+  task: number;
+  executionSite?: object;
+  resolveSiteInputs?: ResolveSiteInputs;
+  siteCompletionReady?(): boolean;
+}>;
+type CompletionPermit = Readonly<{isAvailable(): boolean; assertAvailable(): undefined}>;
+type PhysicalSource = Pick<ManagedOutput, 'completed' | 'material' | 'withRows'>;
+type Contribution = Readonly<{
+  registration: CommonObject;
+  managedSelectionKey?: string;
+  run(task: unknown, signal?: AbortSignal, permit?: CompletionPermit): Awaitable<DispatchResult | null | undefined>;
+  prepareNext?(outputs: ReadonlyMap<number, ManagedOutput>): Awaitable<PreparedTask | null | undefined>;
+  runPrepared?(task: SiteTask, signal?: AbortSignal): Awaitable<DispatchResult | null | undefined>;
+  beforeNext?(physicalSource: (task: number) => PhysicalSource | undefined): Awaitable<unknown>;
+  finish?(): Awaitable<unknown>;
+}>;
+type CompletedTask = Readonly<{
+  task: number;
+  executionSite: SiteDescription;
+  taskElapsedMilliseconds: number;
+  plannerObserverMilliseconds?: number;
+  [key: string]: unknown;
+}>;
+type CandidateFact = Readonly<{
+  task: number;
+  registrationKey?: string;
+  site: SiteDescription;
+  scope?: string;
+}>;
+type CandidateComparison = CandidateFact & Readonly<{durationMilliseconds: bigint}>;
+type CandidateExclusion = CandidateFact & Readonly<{reason: string}>;
+type PublicationDefinition = Readonly<{name: string; identity: string; wire: string}>;
+type ResultOccurrence = Readonly<{
+  name: string;
+  task: number;
+  definition: Readonly<{result_definition_cid: string}>;
+  definitionContract: unknown;
+}>;
+type CheckedResultOccurrence = Pick<ResultOccurrence, 'name' | 'task'>;
+type PublicationInventory = Readonly<{
+  programDefinitionCid: string | undefined;
+  occurrences: readonly ResultOccurrence[];
+  requestInventory: readonly Readonly<{result_name: string; result_definition_cid: string}>[];
+}>;
+type OutputExportControl = Readonly<{
+  beginManagedResultImport(host: object, result: number, completed: unknown, material: object, limits: unknown): unknown;
+  appendManagedResultImport(importing: unknown, row: string, limits: unknown): SynchronousRuntimeData;
+  finishManagedResultImport(importing: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
+  transformManagedResultImport(importing: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
+  cancelManagedResultImport(importing: unknown): SynchronousRuntimeData;
+  beginResult(host: object, result: number, limits: unknown, output: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
+}>;
+type Core = Readonly<{
+  siteControl: unknown;
+  requireActivation?(setup: object): SynchronousRuntimeData;
+  coverActivation?(setup: object, task: number): boolean;
+  authorizeActivation?(setup: object, task: number, decision: unknown): boolean;
+  programDefinitionCid?(setup: object): string | undefined;
+  programHasEffects?(setup: object): boolean;
+  resultInventory?(setup: object): readonly ResultOccurrence[];
+  count(setup: object): number;
+  next(setup: object, observeFailure: unknown): CommonObject | null | undefined;
+  nextTask?(setup: object): number;
+  task?(dispatch: unknown): number;
+  registration?(dispatch: unknown): CommonObject | null | undefined;
+  managedProducers?(setup: object): readonly number[];
+  selectManaged?(setup: object, task: number, registration: unknown): boolean;
+  taskCapacity(setup: object, task: number): unknown;
+  completed(setup: object, task: number): boolean;
+  managedMatches?(setup: object, task: number, completed: unknown): boolean;
+  managedCarrierMatches?(setup: object, task: number, completed: unknown): boolean;
+  finished(setup: object): boolean;
+  stop(setup: object): SynchronousRuntimeData;
+  closeOutputs(setup: object): SynchronousRuntimeData;
+  usage(setup: object): CommonObject;
+  explain(setup: object, maxBytes: number, maxNodes: number): SynchronousRuntimeData;
+  output(setup: object, task: number): CommonObject | null | undefined;
+  preparationUsageIsolated?(setup: object, holder: unknown): boolean;
+  outputExportControl?: OutputExportControl;
+  publicationControl?: Readonly<{issueResultArtifact?: unknown}>;
+}>;
+type ActivationScope = Readonly<{connection: string; resource: string; operation: 'write'}>;
+type Authorization = Readonly<{
+  authorize(boundary: 'activation', scope: ActivationScope,
+    options: Readonly<{subjectCid: string | undefined; signal: AbortSignal | undefined}>):
+    Awaitable<Readonly<{action: string; runtimeDecision?: unknown}>>;
+  cover(boundary: 'activation', scope: ActivationScope): SynchronousRuntimeData;
+  isProtectedSite(key: string): boolean;
+}>;
+type CompletionEvent = Readonly<{task: number; output: unknown; readRetained?: RetainedRead}>;
+type TaskStartEvent = Readonly<{
+  task: number;
+  registrationKey?: string;
+  managed: boolean;
+  executionSite: SiteDescription;
+  explanation: unknown;
+  usage: object;
+}>;
+type ResultPublication = Readonly<{
+  outputLimits?: unknown;
+  contractLimits?: unknown;
+  runDefinition?: unknown;
+  invocation?: unknown;
+  retention?: unknown;
+  evidenceContext?: unknown;
+  transformation?: unknown;
+  resultProgress?: unknown;
+}>;
+type PreflightOwner = ReturnType<typeof preflightSetupCleanup>;
+type PreflightCleanupOptions = Readonly<{
+  core: Core;
+  setup: object;
+  siteCleanup?: SiteInstallationCleanup;
+  preparationHolder?: unknown;
+}>;
+type RetainPreflightCleanup = (owner: PreflightOwner) => SynchronousRuntimeData;
+type PreflightEvent = Readonly<{
+  programDefinitionCid: string | undefined;
+  resultInventory: readonly CheckedResultOccurrence[];
+  publicationInventory: PublicationInventory | undefined;
+  publicationControl: Core['publicationControl'];
+}>;
+type StrategyOptions = Readonly<{
+  setup: object;
+  runtime: Readonly<{
+    core: Core;
+    contributions: readonly Contribution[];
+    sitePolicy?: object;
+    observeFailure?: unknown;
+    authorization?: Authorization;
+  }>;
+  control?: Readonly<{
+    signal?: AbortSignal;
+    observeCompletion?: (event: CompletionEvent) => Awaitable<unknown>;
+    observeTaskStart?: (event: TaskStartEvent) => Awaitable<unknown>;
+    taskObservation?: object;
+  }>;
+  publication?: Readonly<{beforeCompute?: (event: PreflightEvent) => Awaitable<unknown>}>;
+  cleanup?: Readonly<{retainPreflightCleanup?: RetainPreflightCleanup; preparationHolder?: unknown}>;
+}>;
+type InstalledExecution = Readonly<{
+  status: 'host-tasks-waiting' | 'host-tasks-failed' | 'host-tasks-completed';
+  checkpoint?: object;
+  failure: unknown;
+  completed: readonly CompletedTask[];
+  candidateExclusions: readonly CandidateExclusion[];
+  candidateComparisons: readonly CandidateComparison[];
+  programDefinitionCid: string | undefined;
+  resultInventory: readonly CheckedResultOccurrence[];
+  publicationInventory: PublicationInventory | undefined;
+  publicationPreflight?: unknown;
+  publishEffectFreeRun(store: unknown, publication: unknown, signal?: AbortSignal, resource?: unknown): Promise<unknown>;
+  storePublicationResult(result: number, store: unknown, publication: ResultPublication, signal?: AbortSignal, resource?: unknown): Promise<unknown>;
+  refreshCompletedScratch(): Promise<void>;
+  usage(): object;
+  cleanupPending(): boolean;
+  cleanup(): Promise<boolean>;
+  explain(maxBytes?: number, maxNodes?: number): unknown;
+  output(task: number): unknown;
+  effectPhysicalSource(task: number): PhysicalSource | undefined;
+  close(): Promise<void> | undefined;
+}>;
+
 export class StrategyHostError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  declare code: string;
+  declare primaryFailure?: unknown;
+  declare primaryDiagnostic?: unknown;
+  declare cleanupErrors: readonly unknown[];
+  declare cleanupPending?: boolean;
+  declare cleanupHandle?: unknown;
+
+  constructor(code: string) { super(code); this.code = code; }
 }
 
-const active = new WeakSet();
-const releasedPreflightSetups = new WeakSet();
-const publicationContract = value => value !== null &&
-  typeof value === 'object' && typeof value.name === 'string' &&
-  typeof value.identity === 'string' && typeof value.wire === 'string';
-const failureMember = (value, name) => {
+const active = new WeakSet<object>();
+const releasedPreflightSetups = new WeakSet<object>();
+const publicationContract = (value: unknown): value is PublicationDefinition => value !== null &&
+  typeof value === 'object' && typeof (value as PublicationDefinition).name === 'string' &&
+  typeof (value as PublicationDefinition).identity === 'string' && typeof (value as PublicationDefinition).wire === 'string';
+const failureMember = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
 
-function ownedStrategyFailure(reason, fallbackCode) {
+function ownedStrategyFailure(reason: unknown, fallbackCode: string) {
   const code = typeof failureMember(reason, 'code') === 'string'
-    ? failureMember(reason, 'code') : fallbackCode;
+    ? failureMember(reason, 'code') as string : fallbackCode;
   const failure = new StrategyHostError(code);
   const name = failureMember(reason, 'name');
   if (typeof name === 'string') failure.name = name;
   failure.cause = reason;
   failure.primaryFailure = reason;
   try {
-    const diagnostic = Object.getOwnPropertyDescriptor(reason, 'primaryDiagnostic');
+    const diagnostic = Object.getOwnPropertyDescriptor(reason as object, 'primaryDiagnostic');
     if (diagnostic !== undefined && Object.hasOwn(diagnostic, 'value')) {
       failure.primaryDiagnostic = diagnostic.value;
     }
@@ -94,7 +329,7 @@ function ownedStrategyFailure(reason, fallbackCode) {
 // behavior and original thrown value. Its separate cleanup observer releases
 // the Site holding only after an explicit underlying recovery handle confirms
 // physical reclamation.
-function retainSiteResult(operation, result, retainedBytes) {
+function retainSiteResult(operation: SiteOperation, result: DispatchResult | null | undefined, retainedBytes: bigint) {
   const closeProgress = beginRetainedExecutionSiteClose(operation);
   const holdingProgress = beginRetainedExecutionSiteHolding(
     closeProgress,
@@ -103,8 +338,8 @@ function retainSiteResult(operation, result, retainedBytes) {
   const holding = retainExecutionSiteOperationHolding(
     operation, result?.material ?? result, retainedBytes,
   );
-  let closeResult;
-  let closeFailure;
+  let closeResult: unknown;
+  let closeFailure: unknown;
   let cleanupTracked = false;
   const release = () => {
     releaseExecutionSiteHolding(holding);
@@ -142,7 +377,7 @@ function retainSiteResult(operation, result, retainedBytes) {
         progress();
         throw reason;
       }
-      if (closeResult != null && typeof closeResult.then === 'function') {
+      if (closeResult != null && typeof (closeResult as PromiseLike<unknown>).then === 'function') {
         closeResult = Promise.resolve(closeResult).then(
           value => {
             recordRetainedExecutionSiteCloseSucceeded(closeProgress);
@@ -162,10 +397,10 @@ function retainSiteResult(operation, result, retainedBytes) {
       }
       return closeResult;
     },
-    afterFailure(reason, remember) {
+    afterFailure(reason: unknown, remember: RememberCleanup) {
       if (cleanupTracked || progress() === 'RetainedSiteHoldingFinished' ||
           reason !== closeFailure) return;
-      const upstream = failureMember(reason, 'cleanupHandle');
+      const upstream = failureMember(reason, 'cleanupHandle') as CleanupHandle | undefined;
       if (failureMember(reason, 'cleanupPending') !== true ||
           !upstream || typeof failureMember(upstream, 'status') !== 'function') {
         return;
@@ -174,7 +409,7 @@ function retainSiteResult(operation, result, retainedBytes) {
       cleanupTracked = true;
       const state = () => {
         try {
-          const value = upstream.status();
+          const value = upstream!.status();
           if (value?.pending === false) {
             recordRetainedExecutionSiteCleanupStopped(closeProgress);
           }
@@ -202,10 +437,10 @@ function retainSiteResult(operation, result, retainedBytes) {
 // Core-owned synchronous outputs have no connector close callback. Keep their
 // Site holdings through the exact common output lifetime and release them only
 // after the Core close succeeds or its explicit cleanup handle confirms it.
-function coreOutputSiteOwner(core, setup, siteInstallation) {
-  const retained = new Map();
+function coreOutputSiteOwner(core: Core, setup: object, siteInstallation: SiteInstallation) {
+  const retained = new Map<ReturnType<typeof retainExecutionSiteOperationHolding>, ReturnType<typeof beginRetainedExecutionSiteHolding>>();
   const closeProgress = beginRetainedExecutionSiteClose(siteInstallation);
-  let closeFailure;
+  let closeFailure: unknown;
   let cleanupTracked = false;
   const progress = () => {
     for (const [holding, holdingProgress] of retained) {
@@ -221,7 +456,7 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
     }
   };
   return Object.freeze({
-    retain(operation, value, retainedBytes) {
+    retain(operation: SiteOperation, value: unknown, retainedBytes: bigint) {
       const holding = retainExecutionSiteOperationHolding(
         operation, value, retainedBytes,
       );
@@ -255,9 +490,9 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
       recordRetainedExecutionSiteCloseSucceeded(closeProgress);
       progress();
     },
-    afterFailure(reason, remember) {
+    afterFailure(reason: unknown, remember: RememberCleanup) {
       if (cleanupTracked || retained.size === 0 || reason !== closeFailure) return;
-      const upstream = failureMember(reason, 'cleanupHandle');
+      const upstream = failureMember(reason, 'cleanupHandle') as CleanupHandle | undefined;
       if (failureMember(reason, 'cleanupPending') !== true ||
           !upstream || typeof failureMember(upstream, 'status') !== 'function') {
         return;
@@ -266,7 +501,7 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
       cleanupTracked = true;
       const state = () => {
         try {
-          const value = upstream.status();
+          const value = upstream!.status();
           if (value?.pending === false) {
             recordRetainedExecutionSiteCleanupStopped(closeProgress);
           }
@@ -285,7 +520,7 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
         async retry() {
           if (state().pending && typeof failureMember(upstream, 'retry') ===
               'function') {
-            await upstream.retry();
+            await upstream!.retry();
           }
           return state();
         },
@@ -301,10 +536,10 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
 // This owner exists only after immutable preflight refuses, before any
 // Compute contribution has entered. It owns this exact setup, not an execution
 // or a Result. Successful stop/output-close steps are never repeated.
-function preflightSetupCleanup({core, setup, siteCleanup, preparationHolder}) {
+function preflightSetupCleanup({core, setup, siteCleanup, preparationHolder}: PreflightCleanupOptions) {
   let stopped = false, outputsClosed = false, released = false;
-  let closeAttempted = false, closeFailed = false, closeFailure;
-  let cleanupFailure;
+  let closeAttempted = false, closeFailed = false, closeFailure: unknown;
+  let cleanupFailure: unknown;
   const settle = () => {
     if (released) return true;
     try {
@@ -351,7 +586,8 @@ function preflightSetupCleanup({core, setup, siteCleanup, preparationHolder}) {
 
 // One installed receiver owns both the refused setup and any partial Site
 // installation. Exception wrappers are not the custody transport.
-function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup, preparationHolder}) {
+function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup, preparationHolder}:
+  PreflightCleanupOptions & Readonly<{primary: unknown; retainPreflightCleanup?: RetainPreflightCleanup}>): never {
   if (retainPreflightCleanup !== undefined) {
     const owner = preflightSetupCleanup({core, setup, siteCleanup, preparationHolder});
     // The installed receiver consumes its pending setup synchronously, before
@@ -405,7 +641,7 @@ export async function runInstalledStrategy({
   control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
   publication: {beforeCompute} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
-}) {
+}: StrategyOptions): Promise<InstalledExecution> {
   if (retainPreflightCleanup !== undefined && typeof retainPreflightCleanup !== 'function') {
     throw new StrategyHostError('InvalidPreflightCleanupReceiver');
   }
@@ -457,7 +693,7 @@ export async function runInstalledStrategy({
         }))),
     });
   active.add(setup);
-  let preflight;
+  let preflight: unknown;
   try {
     if (beforeCompute !== undefined) {
       signal?.throwIfAborted();
@@ -474,7 +710,7 @@ export async function runInstalledStrategy({
   }
   // Snapshot the implementation set before invoking any implementation. Opaque
   // registration object identity, never a display name, selects the driver.
-  const installed = new Map();
+  const installed = new Map<unknown, Contribution>();
   for (const entry of contributions) {
     if (entry.registration == null || installed.has(entry.registration) ||
         typeof entry.run !== 'function') {
@@ -498,7 +734,7 @@ export async function runInstalledStrategy({
       core.siteControl,
     );
   } catch (primary) {
-    const siteCleanup = failureMember(primary, 'cleanupHandle');
+    const siteCleanup = failureMember(primary, 'cleanupHandle') as SiteInstallationCleanup | undefined;
     if (retainPreflightCleanup === undefined ||
         typeof failureMember(siteCleanup, 'status') !== 'function' ||
         typeof failureMember(siteCleanup, 'retry') !== 'function') throw primary;
@@ -509,13 +745,13 @@ export async function runInstalledStrategy({
       authorization,
       subjectCid: programDefinitionCid,
     },
-  );
+  ) as SiteTransferCoordinator;
   // Every activation is proven inside the admitted envelope by a cheap local
   // check: an unprotected in-process Site running pure compute over captured
   // inputs is covered without evaluation; a Host-declared protected Site needs
   // an evaluated dispatch decision for its exact scope (reused per Run, never
   // widened). No per-row callback, bulk pass or extra hashing.
-  const authorizeActivation = async (site, entry, index) => {
+  const authorizeActivation = async (site: object, entry: Contribution, index: number) => {
     const siteKey = executionSiteDescription(site).key;
     const scope = Object.freeze({
       connection: siteKey,
@@ -550,20 +786,20 @@ export async function runInstalledStrategy({
   // usable status authority cannot release its Site operation. There is no
   // safe retry to invent, but the reservation and teardown responsibility
   // must remain visible.
-  const unconfirmedSiteOperations = new Set();
+  const unconfirmedSiteOperations = new Set<SiteOperation>();
   const settleSiteAfterFailure = (
-    operation,
-    error,
+    operation: SiteOperation,
+    error: unknown,
     alreadySettled = false,
   ) => {
     const cleanupRequired = failureMember(error, 'cleanupPending') === true;
-    const upstream = failureMember(error, 'cleanupHandle');
+    const upstream = failureMember(error, 'cleanupHandle') as CleanupHandle | undefined;
     const failureProgress = beginFailedExecutionSiteOperation(
       operation,
       cleanupRequired,
       alreadySettled,
     );
-    const drive = cleanupStopped => {
+    const drive = (cleanupStopped: boolean) => {
       if (cleanupRequired && cleanupStopped) {
         recordFailedExecutionSiteOperationStop(operation, failureProgress);
       }
@@ -598,7 +834,7 @@ export async function runInstalledStrategy({
     const combined = Object.freeze({
       status() {
         let state;
-        try { state = upstream.status(); }
+        try { state = upstream!.status(); }
         catch (failure) {
           return Object.freeze({pending: true, errors: Object.freeze([failure])});
         }
@@ -615,8 +851,8 @@ export async function runInstalledStrategy({
         });
       },
       async retry() {
-        if (upstream.status()?.pending !== false &&
-            typeof upstream.retry === 'function') await upstream.retry();
+        if (upstream!.status()?.pending !== false &&
+            typeof upstream!.retry === 'function') await upstream!.retry();
         return combined.status();
       },
     });
@@ -624,45 +860,45 @@ export async function runInstalledStrategy({
     failure.cleanupPending = combined.status().pending;
     return failure;
   };
-  const completed = [];
-  const candidateExclusions = [];
-  const candidateComparisons = [];
-  const outputs = [];
-  const managedOutputs = new Map();
-  const publicationOutputs = new Map();
-  const pendingCleanup = new Set();
-  const pendingCloses = new Set();
+  const completed: CompletedTask[] = [];
+  const candidateExclusions: CandidateExclusion[] = [];
+  const candidateComparisons: CandidateComparison[] = [];
+  const outputs: ReturnType<typeof retainSiteResult>[] = [];
+  const managedOutputs = new Map<number, ManagedOutput>();
+  const publicationOutputs = new Map<number, unknown>();
+  const pendingCleanup = new Set<CleanupHandle>();
+  const pendingCloses = new Set<Promise<unknown>>();
   // A release without a recovery handle has no safe implicit retry contract.
   // Retain its owner and report unknown cleanup rather than forgetting it.
-  const unconfirmedRelease = new Set();
-  let cleanupInFlight;
+  const unconfirmedRelease = new Set<object>();
+  let cleanupInFlight: Promise<boolean> | undefined;
   let refreshingCompletedScratch = false;
   let failed = false;
-  let failure;
-  let checkpointPause;
+  let failure: unknown;
+  let checkpointPause: object | undefined;
   let closed = false;
-  let closeResult;
-  const rememberCleanup = (error, releaseOwner) => {
-    const handle = error?.cleanupHandle;
+  let closeResult: Promise<void> | undefined;
+  const rememberCleanup: RememberCleanup = (error, releaseOwner) => {
+    const handle = (error as {cleanupHandle?: CleanupHandle} | null | undefined)?.cleanupHandle;
     if (handle && typeof handle.status === 'function' && typeof handle.retry === 'function') {
       pendingCleanup.add(handle);
     } else if (releaseOwner) {
       unconfirmedRelease.add(releaseOwner);
     }
   };
-  const rememberFailure = (error, releaseOwner) => {
+  const rememberFailure: RememberCleanup = (error, releaseOwner) => {
     if (!failed) failure = error;
     failed = true;
     rememberCleanup(error, releaseOwner);
   };
-  const rememberOwnedReleaseFailure = (error, owner) => {
+  const rememberOwnedReleaseFailure = (error: unknown, owner?: CloseOwner) => {
     rememberCleanup(error, owner);
     owner?.afterFailure?.(error, rememberCleanup);
   };
-  const releaseOwnedResult = owner => {
+  const releaseOwnedResult = (owner?: CloseOwner) => {
     try {
       const result = owner?.close?.();
-      return result != null && typeof result.then === 'function'
+      return result != null && typeof (result as PromiseLike<unknown>).then === 'function'
         ? Promise.resolve(result).catch(error => {
           rememberOwnedReleaseFailure(error, owner);
           throw error;
@@ -675,7 +911,7 @@ export async function runInstalledStrategy({
   };
   const knownCleanupPending = () => {
     for (const handle of pendingCleanup) {
-      try { if (handle.status().pending) return true; }
+      try { if (handle.status()!.pending) return true; }
       catch { return true; }
     }
     return false;
@@ -688,7 +924,7 @@ export async function runInstalledStrategy({
   );
   // Borrow only a completed physical record already retained by this Host.
   // The receiving Core Result pin still checks its exact occurrence/material.
-  const managedPhysicalSource = task => {
+  const managedPhysicalSource = (task: number) => {
     if (closed || failed || !Number.isSafeInteger(task) || task < 0 || task >= core.count(setup)) {
       throw new StrategyHostError('InvalidEffectPhysicalSource');
     }
@@ -713,8 +949,8 @@ export async function runInstalledStrategy({
       }
       signal?.throwIfAborted();
       const managedInputs = core.managedProducers?.(setup) ?? [];
-      const prepared = [];
-      const excludedManagedCandidateCodes = [];
+      const prepared: {entry: Contribution; task: PreparedTask; siteCandidate: SiteCandidate}[] = [];
+      const excludedManagedCandidateCodes: number[] = [];
       for (const entry of installed.values()) {
         const task = await entry.prepareNext?.(managedOutputs);
         if (task == null) continue;
@@ -725,7 +961,7 @@ export async function runInstalledStrategy({
             site,
             task: task.task,
             registration: entry.registration,
-            inputs: Array.isArray(task.inputs) ? task.inputs : [],
+            inputs: Array.isArray(task.inputs) ? task.inputs as readonly SiteInput[] : [],
             durationMilliseconds: task.durationMilliseconds,
             acceptsSiteTransfer: task.acceptsSiteTransfer === true,
             capacity: task.siteCapacity,
@@ -752,7 +988,7 @@ export async function runInstalledStrategy({
           }
         }
       }
-      const managedTask = prepared.length ? core.nextTask(setup) : -1;
+      const managedTask = prepared.length ? core.nextTask!(setup) : -1;
       for (const candidate of prepared) {
         if (candidate.task.task !== managedTask) {
           throw new StrategyHostError('InvalidManagedCandidate');
@@ -784,7 +1020,8 @@ export async function runInstalledStrategy({
             ManagedCandidateEstimateUnavailable: 'ManagedCandidateEstimateUnavailable',
             ManagedCandidateTransferUnavailable: 'ManagedSiteTransferUnavailable',
             ManagedCandidateNoCompatibleStrategy: 'NoCompatibleManagedStrategy',
-          }[outcome];
+          }[outcome as 'ManagedCandidateEstimateUnavailable' |
+            'ManagedCandidateTransferUnavailable' | 'ManagedCandidateNoCompatibleStrategy'];
           if (code === undefined) {
             throw new StrategyHostError('InvalidManagedCandidateFallback');
           }
@@ -793,13 +1030,13 @@ export async function runInstalledStrategy({
       }
       const task = managed ? managed.task : core.next(setup, observeFailure);
       if (task == null) break;
-      const index = managed ? task.task : core.task(task);
-      const entry = managed ? managed.entry : installed.get(core.registration(task));
+      const index = managed ? (task as PreparedTask).task : core.task!(task);
+      const entry = managed ? managed.entry : installed.get(core.registration!(task));
       if (!entry || (managed && typeof entry.runPrepared !== 'function')) {
         throw new StrategyHostError('MissingStrategyImplementation');
       }
       signal?.throwIfAborted();
-      if (managed && !core.selectManaged(setup, index, managed.entry.registration)) {
+      if (managed && !core.selectManaged!(setup, index, managed.entry.registration)) {
         throw new StrategyHostError('ManagedSelectionRejected');
       }
       let siteCandidate = managed?.siteCandidate;
@@ -889,8 +1126,8 @@ export async function runInstalledStrategy({
       const siteBinding = bindExecutionSiteCandidate(siteCandidate);
       const siteOperation = startExecutionSiteOperation(siteBinding);
       let siteInputsResolved = siteCandidate.transfers.length === 0;
-      let siteResolution;
-      const resolveSiteInputs = (inputs, transferSignal = signal) => {
+      let siteResolution: Promise<SiteResolution> | undefined;
+      const resolveSiteInputs: ResolveSiteInputs = (inputs, transferSignal = signal) => {
         if (!siteResolution) {
           siteResolution = transfers.resolve(
             siteCandidate, inputs, transferSignal,
@@ -905,26 +1142,26 @@ export async function runInstalledStrategy({
         executionSiteOperationAvailable(siteOperation);
       const siteCompletionPermit = Object.freeze({
         isAvailable: siteCompletionReady,
-        assertAvailable() {
+        assertAvailable(): undefined {
           if (!siteCompletionReady()) {
             throw new StrategyHostError('ExecutionSiteCompletionNotReady');
           }
         },
       });
       const siteTask = managed ? Object.freeze({
-        ...task,
+        ...task as PreparedTask,
         executionSite: siteCandidate.site,
         resolveSiteInputs,
         siteCompletionReady,
       }) : task;
-      let result, siteResult;
-      let successProgress;
+      let result: DispatchResult | null | undefined, siteResult: ReturnType<typeof retainSiteResult> | undefined;
+      let successProgress: SuccessProgress | undefined;
       // The same physical task boundary is measured for every realization.
       // This is diagnostic timing, never a cost estimate or execution proof.
       const taskStarted = performance.now();
       try {
         result = await (managed
-          ? entry.runPrepared(siteTask, signal)
+          ? entry.runPrepared!(siteTask as SiteTask, signal)
           : entry.run(task, signal, siteCompletionPermit));
         if (result?.status === 'waiting_checkpoint') {
           if (result.checkpoint == null) {
@@ -1029,7 +1266,7 @@ export async function runInstalledStrategy({
                   index,
                   result.completed,
                 ) === true
-                : core.managedMatches(setup, index, result.completed));
+                : core.managedMatches!(setup, index, result.completed));
             recordExecutionSiteHostTaskManagedBinding(
               siteInstallation,
               successProgress,
@@ -1076,13 +1313,13 @@ export async function runInstalledStrategy({
         managedOutputs.set(index, Object.freeze({
           task: index,
           completed: result.completed,
-          material: result.material ?? result.carrierMaterial,
+          material: (result.material ?? result.carrierMaterial)!,
           carrierMaterial: result.carrierMaterial,
           site: siteCandidate.site,
-          siteMaterial: result.siteMaterial ?? result.material ??
-            result.carrierMaterial,
-          materialGeneration: result.materialGeneration ?? result.material ??
-            result.carrierMaterial,
+          siteMaterial: (result.siteMaterial ?? result.material ??
+            result.carrierMaterial)!,
+          materialGeneration: (result.materialGeneration ?? result.material ??
+            result.carrierMaterial)!,
           scratchOwner: result,
           withRows: result.withRows,
           close: siteResult?.close,
@@ -1100,7 +1337,7 @@ export async function runInstalledStrategy({
         executionSite: executionSiteDescription(siteCandidate.site),
       }));
       projectTaskObservation(taskObservation, 'task_completed', index,
-        completed.at(-1).taskElapsedMilliseconds);
+        completed.at(-1)!.taskElapsedMilliseconds);
       projectTaskLogicalObservation(taskObservation, 'settled', index);
       if (observeCompletion) {
         const output = result?.completed ?? core.output(setup, index);
@@ -1110,11 +1347,11 @@ export async function runInstalledStrategy({
         // callback-supplied substitute. Failure stops future tasks but cannot
         // undo this already completed task's independent result.
         const readRetained = typeof result?.readRetained === 'function'
-          ? async (accept, readSignal) => {
+          ? async (accept: RowConsumer, readSignal?: AbortSignal) => {
               if (siteResult?.status().released) {
                 throw new StrategyHostError('RetainedUnavailable');
               }
-              return result.readRetained(accept, readSignal);
+              return result.readRetained!(accept, readSignal);
             }
           : undefined;
         try { await observeCompletion(Object.freeze({task: index, output,
@@ -1123,8 +1360,8 @@ export async function runInstalledStrategy({
         signal?.throwIfAborted();
       }
       if (managed) {
-        for (const producer of task.releasableProducers ?? []) {
-          const output = task.outputs?.get(producer);
+        for (const producer of (task as PreparedTask).releasableProducers ?? []) {
+          const output = (task as ReleasingTask).outputs?.get(producer);
           if (output?.siteMaterial) {
             await transfers.releaseSource(output);
           }
@@ -1133,7 +1370,7 @@ export async function runInstalledStrategy({
           } else if (output?.close) {
             await output.close();
           }
-          task.outputs?.delete(producer);
+          (task as ReleasingTask).outputs?.delete(producer);
           managedOutputs.delete(producer);
         }
       }
@@ -1159,7 +1396,7 @@ export async function runInstalledStrategy({
   const outcome = checkpointPause !== undefined && !failed ? undefined
     : strategyAction.outcome(executionSiteHostTaskRunOutcome(siteInstallation, failed, runFinished));
   if (outcome === 'HostTaskRunInvalid') throw new StrategyHostError('InvalidStrategyOutcome');
-  let execution;
+  let execution: InstalledExecution;
   execution = Object.freeze({
     // Internal task records only, not Program/Run publication or partial success.
     status: checkpointPause !== undefined && !failed ? 'host-tasks-waiting'
@@ -1173,7 +1410,7 @@ export async function runInstalledStrategy({
     resultInventory: checkedResultInventory,
     publicationInventory,
     ...(preflight === undefined ? {} : {publicationPreflight: preflight}),
-    async publishEffectFreeRun(store, publication, signal, publicationResource) {
+    async publishEffectFreeRun(store: unknown, publication: unknown, signal?: AbortSignal, publicationResource?: unknown) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (programHasEffects) {
         throw new StrategyHostError('EffectfulProgramRequiresEffectRun');
@@ -1201,7 +1438,7 @@ export async function runInstalledStrategy({
         signal,
       }, publicationResource);
     },
-    async storePublicationResult(result, store, publication, signal, publicationResource) {
+    async storePublicationResult(result: number, store: unknown, publication: ResultPublication, signal?: AbortSignal, publicationResource?: unknown) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (!Number.isSafeInteger(result) || result < 0 ||
           result >= resultInventory.length ||
@@ -1224,8 +1461,8 @@ export async function runInstalledStrategy({
       const beginManagedResult = managed === undefined ||
           typeof managed.withRows !== 'function'
         ? undefined
-        : async (host, result, limits) => {
-          const importing = core.outputExportControl.beginManagedResultImport(
+        : async (host: object, result: number, limits: unknown) => {
+          const importing = core.outputExportControl!.beginManagedResultImport(
             host,
             result,
             managed.completed,
@@ -1234,27 +1471,27 @@ export async function runInstalledStrategy({
           );
           let finished = false;
           try {
-            const exported = await managed.withRows(
-              row => core.outputExportControl.appendManagedResultImport(
+            const exported = await managed.withRows!(
+              row => core.outputExportControl!.appendManagedResultImport(
                 importing, row, limits,
               ),
               signal,
               () => publication.transformation === undefined
-                ? core.outputExportControl.finishManagedResultImport(importing, signal,
+                ? core.outputExportControl!.finishManagedResultImport(importing, signal,
                   publication.resultProgress)
-                : core.outputExportControl.transformManagedResultImport(
+                : core.outputExportControl!.transformManagedResultImport(
                   importing, publication.transformation, signal, publication.resultProgress),
             );
             finished = true;
             return exported;
           } finally {
             if (!finished) {
-              core.outputExportControl.cancelManagedResultImport(importing);
+              core.outputExportControl!.cancelManagedResultImport(importing);
             }
           }
         };
-      const beginResult = beginManagedResult ?? ((host, result, limits) =>
-        core.outputExportControl.beginResult(
+      const beginResult = beginManagedResult ?? ((host: object, result: number, limits: unknown) =>
+        core.outputExportControl!.beginResult(
           host, result, limits, publicationOutputs.get(occurrence.task),
           publication.transformation, signal, publication.resultProgress,
         ));
@@ -1311,16 +1548,16 @@ export async function runInstalledStrategy({
       cleanupInFlight = (async () => {
         // Attempt every independent recovery even when an earlier one fails.
         // Only an explicit recovery handle authorizes retry; never run Compute.
-        const errors = [];
-        const attempted = new Set();
+        const errors: unknown[] = [];
+        const attempted = new Set<CleanupHandle>();
         const cleanupProgress = beginExecutionSiteHostCleanup(siteInstallation);
         const retryKnown = async () => {
           for (const handle of [...pendingCleanup]) {
             if (attempted.has(handle)) continue;
             attempted.add(handle);
             try {
-              if (handle.status().pending) await handle.retry();
-              if (!handle.status().pending) pendingCleanup.delete(handle);
+              if (handle.status()!.pending) await handle.retry();
+              if (!handle.status()!.pending) pendingCleanup.delete(handle);
             } catch (error) { errors.push(error); }
           }
         };
@@ -1369,7 +1606,7 @@ export async function runInstalledStrategy({
       }
       return core.explain(setup, maxBytes, maxNodes);
     },
-    output(task) {
+    output(task: number) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (!Number.isSafeInteger(task) ||
           task < (firstTask === 0 ? 0 : 1) || task >= core.count(setup)) {
@@ -1380,7 +1617,7 @@ export async function runInstalledStrategy({
     // Physical observation for the installed Effect Site adapter. The
     // MoonBit captured-source pin must still verify this exact generation
     // before any row import or Preview use; this handle grants no apply.
-    effectPhysicalSource(task) {
+    effectPhysicalSource(task: number) {
       if (closed || !programHasEffects || failed || !core.finished(setup) ||
           !Number.isSafeInteger(task) || task < 0 ||
           task >= core.count(setup)) {
@@ -1392,8 +1629,8 @@ export async function runInstalledStrategy({
       if (closed) return closeResult;
       closed = true;
       let closeFailed = false;
-      let closeFailure;
-      const releaseFailed = (error, owner) => {
+      let closeFailure: unknown;
+      const releaseFailed = (error: unknown, owner: object) => {
         if (!closeFailed) closeFailure = error;
         closeFailed = true;
         rememberOwnedReleaseFailure(error, owner);
@@ -1408,7 +1645,7 @@ export async function runInstalledStrategy({
       }
       try {
         const result = transfers.close();
-        if (result != null && typeof result.then === 'function') {
+        if (result != null && typeof (result as PromiseLike<unknown>).then === 'function') {
           const pending = Promise.resolve(result).then(
             () => {}, error => releaseFailed(error, transfers),
           ).finally(() => pendingCloses.delete(pending));
@@ -1418,7 +1655,7 @@ export async function runInstalledStrategy({
       for (const output of outputs) {
         try {
           const result = releaseOwnedResult(output);
-          if (result != null && typeof result.then === 'function') {
+          if (result != null && typeof (result as PromiseLike<unknown>).then === 'function') {
             const pending = Promise.resolve(result).then(
               () => {}, error => releaseFailed(error, output),
             ).finally(() => pendingCloses.delete(pending));

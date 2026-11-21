@@ -6,7 +6,6 @@ import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import type {SynchronousResultCheck} from '../host-common/runtime-result.mjs';
 import type {ManagedFailure} from '../host-common/managed-failure.mjs';
-// @ts-expect-error TS7016: remove after migrating the installed strategy runner.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {createExecutionSiteControlFixture} from '../host-common/execution-site-control.fixture.mjs';
 import {numericStrategyContribution} from '../reference-compute-node/strategy-bundle.mjs';
@@ -385,7 +384,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
     const candidates = reverse
       ? [alternate, productLocal] : [productLocal, alternate];
     const result = await runInstalledStrategy({setup, runtime: {core, contributions: [source, ...candidates]}});
-    assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+    assert.equal(result.status, 'host-tasks-completed', (result.failure as Error | undefined)?.stack);
     assert.equal(ran, localSupported ? 'local' : 'alternate');
     assert.equal(selected, registrations[ran!]);
   }
@@ -893,7 +892,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         explain: () => ({}),
       };
       const result = await runInstalledStrategy({setup, runtime: {core, contributions: [...sourceEntries, local]}});
-      assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+      assert.equal(result.status, 'host-tasks-completed', (result.failure as Error | undefined)?.stack);
       assert.equal(providerUses, 1);
       assert.equal(advances, 2);
       assert.deepEqual(appended, orderedMaterials.map(material =>
@@ -1153,7 +1152,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     explain: () => ({}),
   };
   const result = await runInstalledStrategy({setup, runtime: {core, contributions: [source, local]}});
-  assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+  assert.equal(result.status, 'host-tasks-completed', (result.failure as Error | undefined)?.stack);
   assert.equal(sourceClosed, true);
   assert.equal(outputClosed, false);
   await result.close();

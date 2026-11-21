@@ -2249,31 +2249,31 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional copied facts"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Object.freeze({event, task, durationMs})"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "observers.get(observer)"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "observers.get(observer as object)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "try { project"
               },
               {
@@ -2283,7 +2283,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional projection never changes"
               }
             ],
@@ -2295,8 +2295,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               },
               {
                 "path": "docs/design/node-host-observability.md",
@@ -2305,7 +2305,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "InvalidTaskObservation"
               }
             ],
@@ -2325,31 +2325,31 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional copied facts"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Object.freeze({event, task, durationMs})"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "observers.get(observer)"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "observers.get(observer as object)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "try { project"
               },
               {
@@ -2359,7 +2359,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "Optional projection never changes"
               }
             ],
@@ -2371,8 +2371,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
-                "anchor": "new WeakMap()"
+                "path": "adapters/host-common/task-observation.mts",
+                "anchor": "new WeakMap<object, Observer>()"
               },
               {
                 "path": "docs/design/node-host-observability.md",
@@ -2381,7 +2381,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/task-observation.mjs",
+                "path": "adapters/host-common/task-observation.mts",
                 "anchor": "InvalidTaskObservation"
               }
             ],
