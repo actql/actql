@@ -2973,7 +2973,7 @@
                 "anchor": "test('a later export failure releases every earlier prepared Result',"
               },
               {
-                "path": "adapters/host-common/completed-effect-capture-retirement.test.mjs",
+                "path": "adapters/host-common/completed-effect-capture-retirement.test.mts",
                 "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}${preparedProjection ? ' using prepared Source projection' : ''}`,"
               },
               {
@@ -3405,7 +3405,7 @@
                 "anchor": "test('a later export failure releases every earlier prepared Result',"
               },
               {
-                "path": "adapters/host-common/completed-effect-capture-retirement.test.mjs",
+                "path": "adapters/host-common/completed-effect-capture-retirement.test.mts",
                 "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}${preparedProjection ? ' using prepared Source projection' : ''}`,"
               },
               {

@@ -3,7 +3,16 @@ import test from 'node:test';
 import {retireCompletedEffectfulCapture} from
   './completed-run-publication.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+type RetirementOptions = Parameters<typeof retireCompletedEffectfulCapture>[0];
+type Control = RetirementOptions['control'];
+type Run = RetirementOptions['runDefinition'];
+type PrepareSources = Parameters<Control['prepareCapturedEffectSourceInventory']>;
+type ValidateSources = Parameters<Control['capturedEffectSourceInventoryFromCaptureValid']>;
+type RestoreSource = Parameters<Control['admitCapturedEffectSourceFromCapture']>;
+type DependencyBindings = Parameters<Control['capturedEffectDependencyPayloadBindings']>;
+type MetadataReader<Value> = (plaintext: undefined, read: Readonly<{releaseBytes(): string}>) => Value | PromiseLike<Value>;
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 
 for (const preparedProjection of [false, true]) {
 for (const dependencyPayloads of [false, true]) {
@@ -43,29 +52,29 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       [previewCid, {namespace: 'publication-private',
         manifest_cid: previewCid, objects: [{}]}],
     ]);
-    const visits = [];
+    const visits: string[] = [];
     let failCaptureDeletion = true;
     let captureCustody = true;
     const store = {storeAuthorityCid: cid('0'),
-      async inspectPhysicalHolding(key) { return holdings.get(key); },
+      async inspectPhysicalHolding(key: string) { return holdings.get(key); },
       // The fixture has metadata only. Retirement inspection never supplies
       // payload usability or consumption evidence.
-      async inspectPhysicalHoldingForRetirement(key) { return holdings.get(key); },
-      async retireEffectCaptureCustody(definition) {
+      async inspectPhysicalHoldingForRetirement(key: string) { return holdings.get(key); },
+      async retireEffectCaptureCustody(definition: Run) {
         assert.equal(definition.identity, run.identity);
         const retired = captureCustody;
         captureCustody = false;
         return retired;
       },
-      async forgetEffectCaptureCustody(definition) {
+      async forgetEffectCaptureCustody(definition: Run) {
         assert.equal(definition.identity, run.identity);
         assert.equal(holdings.size, 0, 'custody is forgotten only after all holdings retire');
         captureCustody = false;
       },
-      async readPrivateEvidence(_name, _semantic, _holding, consume) {
+      async readPrivateEvidence<Value>(_name: string, _semantic: string, _holding: string, consume: MetadataReader<Value>) {
         return consume(undefined, {releaseBytes: () => JSON.stringify(body)});
       },
-      async retirePhysicalHolding(key) {
+      async retirePhysicalHolding(key: string) {
         visits.push(key);
         if (key === captureCid && failCaptureDeletion) {
           failCaptureDeletion = false;
@@ -77,7 +86,7 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     let chainChecked=false,projectionCalls=0;
     const originalSource={};
     const control = {
-      admit(name, wire) { return {name, wire, identity: wire === 'run'
+      admit(name: string, wire: string) { return {name, wire, identity: wire === 'run'
         ? run.identity : wire === 'captured' ? capturedCid :
           wire === 'source' ? sourceArtifactCid : cid('2')}; },
       admitRunEvidence() { return {identity: cid('3')}; },
@@ -89,15 +98,16 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       effectComputationCaptureHoldingCid() { return captureCid; },
       effectfulComputationEvidenceChainValid() {assert.equal(preparedProjection,false);chainChecked=true; return true; },
       ...(preparedProjection?{hasPreparedCapturedEffectRun:()=>true,
-      prepareCapturedEffectSourceInventory(chain,preview,sources,authority){
+      prepareCapturedEffectSourceInventory(chain: PrepareSources[0], preview: PrepareSources[1],
+        sources: PrepareSources[2], authority: PrepareSources[3]): readonly object[] | undefined {
         assert.equal(chain.capturedRun.identity,capturedCid);assert.equal(chain.runDefinition.identity,run.identity);
         assert.equal(authority,store.storeAuthorityCid);assert.equal(chain.invocation.wire,'invocation');
         chainChecked=true;
         assert.deepEqual(sources.map(source=>source.memberIndex),[0]);projectionCalls++;
         return [originalSource];
       }}:{}),
-      capturedEffectSourceInventoryFromCaptureValid(preview, sources,
-        invocation, captured, storeAuthorityCid) {
+      capturedEffectSourceInventoryFromCaptureValid(preview: ValidateSources[0], sources: ValidateSources[1],
+        invocation: ValidateSources[2], captured: ValidateSources[3], storeAuthorityCid: ValidateSources[4]) {
         assert.equal(preparedProjection,false,'prepared projection does not repeat whole-context admission');
         assert.equal(captured.identity, capturedCid);
         assert.equal(invocation.wire, 'invocation');
@@ -105,8 +115,9 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
         assert.deepEqual(sources.map(s => s.memberIndex), [0]);
         return true;
       },
-      admitCapturedEffectSourceFromCapture(_preview, memberIndex,
-        invocation, artifact, captured, storeAuthorityCid) {
+      admitCapturedEffectSourceFromCapture(_preview: RestoreSource[0], memberIndex: RestoreSource[1],
+        invocation: RestoreSource[2], artifact: RestoreSource[3], captured: RestoreSource[4],
+        storeAuthorityCid: RestoreSource[5]) {
         assert.equal(preparedProjection,false,'prepared typed Source is consumed directly');
         assert.equal(memberIndex, 0);
         assert.equal(artifact.identity, sourceArtifactCid);
@@ -115,14 +126,16 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
         assert.equal(storeAuthorityCid, store.storeAuthorityCid);
         return {};
       },
-      capturedEffectSourceHoldingCid(source) {if(preparedProjection)assert.strictEqual(source,originalSource);return sourceCid; },
-      capturedEffectDependencyPayloadBindings(_captured, dependencies) {
+      capturedEffectSourceHoldingCid(source: object) {if(preparedProjection)assert.strictEqual(source,originalSource);return sourceCid; },
+      capturedEffectDependencyPayloadBindings(_captured: DependencyBindings[0], dependencies: DependencyBindings[1]) {
         assert.deepEqual(dependencies, body.effect_dependency_payloads);
         return dependencies;
       },
     };
+    // Only the retirement path is exercised; these explicit metadata ports do
+    // not claim to be original Core admission or a complete production Store.
     const options = {store, control, runDefinition: run,
-      contractLimits: {maxWireBytes: 1000, maxNodes: 100, maxDepth: 10}};
+      contractLimits: {maxWireBytes: 1000, maxNodes: 100, maxDepth: 10}} as unknown as RetirementOptions;
     if(preparedProjection&&!dependencyPayloads&&!publicResults){
       const original=control.prepareCapturedEffectSourceInventory;
       control.prepareCapturedEffectSourceInventory=()=>undefined;

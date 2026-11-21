@@ -1241,3 +1241,5 @@ target/
 /adapters/host-common/run-publication-preflight.d.mts
 /adapters/host-common/completed-run-publication.mjs
 /adapters/host-common/completed-run-publication.d.mts
+/adapters/host-common/completed-effect-capture-retirement.test.mjs
+/adapters/host-common/completed-effect-capture-retirement.test.d.mts
