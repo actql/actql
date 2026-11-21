@@ -113751,7 +113751,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "cf299c8a5f04952b2de823dbc131c219d2c86c640e33ae786bb95ee802428093",
+      "sha256": "ce713a789bfa67189abb1a8e3ac8c175384b6806d69ccf8fc200c69a384c53c3",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
@@ -113916,43 +113916,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "export function beginOrdinaryHostControl("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
-                "anchor": "names.some(name => originals?.[name] !== state.originals[name])"
+                "path": "adapters/host-node/ordinary-host-control.mts",
+                "anchor": "names.some(name => originals?.[name] !== state.originals![name])"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "state.children.set(record, child);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "if (state.flight !== undefined) return state.flight;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "new Error('InstalledHostAssetCleanupPending'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "state.closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "const buffer = Buffer.allocUnsafe("
               }
             ],
@@ -113984,43 +113984,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "export function beginOrdinaryHostControl("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
-                "anchor": "names.some(name => originals?.[name] !== state.originals[name])"
+                "path": "adapters/host-node/ordinary-host-control.mts",
+                "anchor": "names.some(name => originals?.[name] !== state.originals![name])"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "state.children.set(record, child);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "if (state.flight !== undefined) return state.flight;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "new Error('InstalledHostAssetCleanupPending'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "state.closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-control.mjs",
+                "path": "adapters/host-node/ordinary-host-control.mts",
                 "anchor": "const buffer = Buffer.allocUnsafe("
               }
             ],
@@ -125692,7 +125692,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bd258368cf5d092102ae7faa8be438d56d18064b2fcc23b2242c91b029a966a0",
+      "sha256": "5d043aa59e61cb17995cf0e2f12030a1c836fcc6d5282c18d33a9cd151ab5747",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -125782,19 +125782,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "export function createLocalResultAuthorization({moon, authorization,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const scope = {connection, resource, operation: 'read'};"
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "const scope: Scope = {connection, resource, operation: 'read'};"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const connection = authorization?.siteKey ?? 'actql-remote-host';"
               }
             ],
@@ -125806,13 +125806,13 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "if (outcome.outcome !== 'delegate') {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "} finally { gate.close(); }"
               }
             ],
@@ -125824,7 +125824,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "A read cannot synthesize a Checkpoint/claim or treat Delegate as Allow."
               }
             ],
@@ -125863,23 +125863,23 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "run(facts: ReadFacts, operation?: Operation) {return promised(facts, operation, 'run');}"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
               }
             ],
@@ -125891,19 +125891,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "} finally { gate.close(); }"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               }
             ],
@@ -125947,19 +125947,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "export function createLocalResultAuthorization({moon, authorization,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const scope = {connection, resource, operation: 'read'};"
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "const scope: Scope = {connection, resource, operation: 'read'};"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const connection = authorization?.siteKey ?? 'actql-remote-host';"
               }
             ],
@@ -125971,13 +125971,13 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "if (outcome.outcome !== 'delegate') {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "} finally { gate.close(); }"
               }
             ],
@@ -125989,7 +125989,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "A read cannot synthesize a Checkpoint/claim or treat Delegate as Allow."
               }
             ],

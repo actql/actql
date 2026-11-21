@@ -55290,7 +55290,7 @@
                 "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
               },
               {
@@ -55396,8 +55396,8 @@
                 "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "run(facts: ReadFacts, operation?: Operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -55510,7 +55510,7 @@
                 "anchor": "standardAccountPreparation = await preparation.prepareStandardAccount("
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
               },
               {
@@ -55710,7 +55710,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
               },
               {
@@ -55804,7 +55804,7 @@
                 "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "} finally { gate.close(); }"
               },
               {
@@ -55910,7 +55910,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
               {
@@ -62506,7 +62506,7 @@
                 "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
               },
               {
@@ -62620,8 +62620,8 @@
                 "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "run(facts: ReadFacts, operation?: Operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -62747,7 +62747,7 @@
               },
               {
                 "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;",
-                "path": "adapters/host-node/local-result-authorization.mjs"
+                "path": "adapters/host-node/local-result-authorization.mts"
               },
               {
                 "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,",
@@ -62962,7 +62962,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
               },
               {
@@ -63064,7 +63064,7 @@
                 "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "} finally { gate.close(); }"
               },
               {
@@ -63178,7 +63178,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
               {

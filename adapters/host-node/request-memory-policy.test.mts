@@ -6,6 +6,17 @@ import {beginOrdinaryHostControl, ordinaryHostControlInput} from './ordinary-hos
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
 
+import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
+
+type RequestMemory = NonNullable<ReturnType<typeof snapshotRequestMemory>>;
+type ResourcePort = Parameters<typeof localResourceResultReadLimits>[0]['clientLocalPreparationResourceLimits'];
+type ResourceArgs = Parameters<ResourcePort>;
+type MemorySelection = [bigint | undefined, bigint | undefined];
+type Admission = {
+  original: object;
+  ports: NonNullable<ReturnType<typeof resources.prepareOriginalLocalPreparationPorts>>;
+};
+
 test('installed memory pair is detached once before await and survives equal Saved configuration', async () => {
   const originals = {host: {}, installation: {}, generation: {}, supplier: {}, moduleLifetime: {}};
   let reads = 0, retained = 67108864, execution = 134217728;
@@ -14,13 +25,13 @@ test('installed memory pair is detached once before await and survives equal Sav
   const scope = beginOrdinaryHostControl(originals, {installation: {requestMemory: selected}});
   retained = execution = 1;
   await Promise.resolve();
-  const actual = ordinaryHostControlInput(scope, originals).installation.requestMemory;
+  const actual = (ordinaryHostControlInput(scope, originals).installation as {requestMemory: RequestMemory}).requestMemory;
   assert.deepEqual(actual, {retainedBytes: 67108864, executionBytes: 134217728});
   assert(Object.isFrozen(actual)); assert.notStrictEqual(actual, selected);
   assert.strictEqual(snapshotRequestMemory(actual), actual); assert.equal(reads, 2);
-  const policy = {}, calls = [];
+  const policy = {}, calls: MemorySelection[] = [];
   const moon = {clientLocalResourcePolicyOriginal: () => policy,
-    clientLocalPreparationResourceLimits(original, r, e) {
+    clientLocalPreparationResourceLimits(original: ResourceArgs[0], r?: bigint, e?: bigint) {
       assert.strictEqual(original, policy); calls.push([r, e]);
       return [1n, 1n, 1n, 20000000n, r ?? 536870912n, e ?? 536870912n];
     }, clientLocalResourcePolicyRowCeiling: () => 1000000};
@@ -39,7 +50,7 @@ test('row and batch limits retain the finite Common selection independently of w
   let retained = 64n * 1024n * 1024n;
   const moon = {
     clientLocalResourcePolicyOriginal: () => original,
-    clientLocalPreparationResourceLimits(policy) {
+    clientLocalPreparationResourceLimits(policy: ResourceArgs[0]) {
       assert.strictEqual(policy, original);
       return [1n, 1n, 1n, 65536n, retained, retained];
     },
@@ -71,30 +82,31 @@ test('memory snapshot rejects partial and inexact representation without inventi
 test('same original Resource supplier receives the Core pair once and cannot be reopened or resized', () => {
   // Actual Resource supplier/adapter; Core phase results are explicit doubles.
   // Real Common admission and tariff coverage is in the MoonBit components.
-  const policy = {}, parent = {}, input = {}, calls = []; let admission;
-  const ok = value => ({$tag: 1, _0: value});
+  const policy = {}, parent = {}, input = {}, calls: MemorySelection[] = []; let admission!: Admission;
+  const ok = (value: unknown) => ({$tag: 1, _0: value});
   const moon = {
     clientLocalResourcePolicyOriginal: () => policy,
-    clientLocalPreparationResourceLimits(original, r, e) {
+    clientLocalPreparationResourceLimits(original: ResourceArgs[0], r?: bigint, e?: bigint) {
       assert.strictEqual(original, policy); calls.push([r, e]); return [100n,100n,100n,1000n,r,e];
     },
-    clientProgramPrepareLocalPreparationAdmission(original, actual) {
+    clientProgramPrepareLocalPreparationAdmission(original: object, actual: object) {
       assert.strictEqual(actual, input);
-      admission = {original, ports: resources.prepareOriginalLocalPreparationPorts(original, actual)};
+      admission = {original, ports: resources.prepareOriginalLocalPreparationPorts(original, actual)!};
       return ok(admission);
     },
-    clientProgramBeginRequestPreparation(actual, receipt, selected) {
+    clientProgramBeginRequestPreparation(actual: Admission, receipt: object, selected: unknown) {
       assert.strictEqual(actual, admission); assert.strictEqual(receipt, input);
       assert.strictEqual(selected, policy); assert.equal(actual.ports.status(0), 0); return ok(parent);
     },
-    clientProgramAbortRequestPreparation(actual) {
+    clientProgramAbortRequestPreparation(actual: unknown) {
       assert.strictEqual(actual, parent);
       assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0), 0);
       assert.equal(admission.ports.status(2), 0); return ok(undefined);
     },
   };
   const memory = snapshotRequestMemory({retainedBytes: 67108864, executionBytes: 134217728});
-  const state = {context: Object.freeze({runtime: moon, requestMemory: memory})};
+  // Only the preparation ports this fixture executes are installed.
+  const state = {context: Object.freeze({runtime: moon, requestMemory: memory})} as unknown as RequestPreparationState;
   assert.strictEqual(openRequestPreparation(state, input, () => {}, () => false), parent);
   assert.deepEqual(calls, [[67108864n,134217728n]]);
   assert.equal(admission.ports.limit(4), 67108864n);
@@ -104,7 +116,7 @@ test('same original Resource supplier receives the Core pair once and cannot be 
   assert.equal(admission.ports.report(0,0,0,0n,0n,0n,67108865n,0n,0n,67108865n,0,0,0), -42);
   const original = state.original;
   cleanupRequestInput(state);
-  assert.equal(resources.ordinaryManagedRunStatus(original).stopped, true);
+  assert.equal(resources.ordinaryManagedRunStatus(original!).stopped, true);
   assert.equal(state.original, undefined); assert.equal(calls.length, 1);
 });
 
@@ -117,6 +129,6 @@ test('Request memory ingress refuses frozen accessors and proxies before callbac
   const contexts = [{runtime, requestMemory: memoryAccessor}, {runtime, requestMemory: proxy},
     {runtime, get requestMemory() {touched++; return undefined;}}];
   for (const context of contexts) assert.throws(() => openRequestPreparation(
-    {context}, {}, () => {}, () => false), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    {context} as unknown as RequestPreparationState, {}, () => {}, () => false), {code: 'NodeLocalPreparationAdmissionUnavailable'});
   assert.equal(touched, 0);
 });

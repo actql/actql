@@ -1697,6 +1697,12 @@ target/
 /adapters/local-node/request-preparation-adapter.d.mts
 /adapters/host-node/ordinary-node-resource-runtime.cjs
 /adapters/host-node/ordinary-node-resource-runtime.d.cts
+/adapters/host-node/ordinary-host-control.mjs
+/adapters/host-node/ordinary-host-control.d.mts
+/adapters/host-node/request-memory-policy.test.mjs
+/adapters/host-node/request-memory-policy.test.d.mts
+/adapters/host-node/local-result-authorization.mjs
+/adapters/host-node/local-result-authorization.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs
