@@ -11,7 +11,7 @@ import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
-import {issuedEffectSetReceiptWires} from
+import {issuedEffectSetReceiptWires, retainIssuedEffectSetReceipt} from
   '../host-common/effect-receipt-custody.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
@@ -68,6 +68,26 @@ async function fixture(t) {
 const open = root => openEffectLedger({moon, root, authorityScopeCid,
   callerRequestId: 'request-1', maxEntryBytes: 4096});
 const effect = runtimeCore(moon).effectApplicationControl;
+
+test('Effect receipt custody refuses unissued evidence without a ledger or preview', () => {
+  const unissued = {set: {wire: 'unissued'}, members: [{wire: 17}]};
+  assert.throws(() => issuedEffectSetReceiptWires(unissued, undefined, undefined),
+    {code: 'EffectSetReceiptEvidenceNotOwned'});
+});
+
+test('Effect receipt custody retains only the string wires it actually checked', () => {
+  const ledger = {}, preview = {};
+  const reads = {set: 0, member: 0};
+  const set = {get wire() { return reads.set++ === 0 ? 'original set' : 17; }};
+  const member = {get wire() { return reads.member++ === 0 ? 'original member' : 23; }};
+  const retained = retainIssuedEffectSetReceipt({set, members: [member], ledger, preview});
+  assert.deepEqual(issuedEffectSetReceiptWires(retained, ledger, preview),
+    {setWire: 'original set', memberWires: ['original member']});
+  assert.deepEqual(reads, {set: 1, member: 1});
+  assert.throws(() => retainIssuedEffectSetReceipt({
+    set: {wire: 'set'}, members: [{wire: 23}], ledger, preview,
+  }), {code: 'EffectSetReceiptEvidenceNotOwned'});
+});
 
 test('bounded formal history replay reuses admitted original transitions after restart', async t => {
   const root = await fixture(t);

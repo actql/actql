@@ -4546,20 +4546,6 @@
             "preview"
           ],
           "async": false
-        },
-        {
-          "name": "retainIssuedEffectSetReceipt/own/own",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainIssuedEffectSetReceipt/retainIssuedEffectSetReceipt",
-          "parameters": [
-            "member"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -4567,9 +4553,7 @@
           "operations": [
             "issuedEffectSetReceiptWires",
             "issuedEffectSetReceiptWires/issuedEffectSetReceiptWires",
-            "retainIssuedEffectSetReceipt",
-            "retainIssuedEffectSetReceipt/own/own",
-            "retainIssuedEffectSetReceipt/retainIssuedEffectSetReceipt"
+            "retainIssuedEffectSetReceipt"
           ],
           "exports": [
             "issuedEffectSetReceiptWires",
@@ -4677,7 +4661,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/effect-receipt-custody.mts",
-                "anchor": "!Array.isArray(members) || members.length === 0 ||"
+                "anchor": "if (!Number.isInteger(count) || count < 1 || count > 0xffffffff) fail();"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -4821,7 +4805,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/effect-receipt-custody.mts",
-                "anchor": "!Array.isArray(members) || members.length === 0 ||"
+                "anchor": "if (!Number.isInteger(count) || count < 1 || count > 0xffffffff) fail();"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",

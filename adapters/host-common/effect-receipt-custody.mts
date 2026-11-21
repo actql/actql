@@ -6,25 +6,30 @@ type ContractFields = {readonly name?: unknown; readonly identityField?: unknown
 type IssuedFields = {readonly set?: ContractFields; readonly members?: readonly ContractFields[]};
 const issuedSets = new WeakMap<object, {ledger: unknown; preview: unknown}>();
 
-const fail = (): never => {
+const fail: () => never = () => {
   throw Object.assign(new Error('EffectSetReceiptEvidenceNotOwned'), {
     code: 'EffectSetReceiptEvidenceNotOwned',
   });
 };
 
 export function retainIssuedEffectSetReceipt({set, members, ledger, preview}: {set: ContractFields; members: readonly ContractFields[]; ledger: unknown; preview: unknown}) {
-  if (!set || typeof set.wire !== 'string' ||
-      !Array.isArray(members) || members.length === 0 ||
-      members.some(member => typeof member?.wire !== 'string') ||
-      !ledger || !preview) fail();
-  const own = (contract: ContractFields) => Object.freeze({
-    name: contract.name,
-    identityField: contract.identityField,
-    identity: contract.identity,
-    wire: contract.wire as string,
-  });
-  const value = Object.freeze({set: own(set),
-    members: Object.freeze(members.map(own))});
+  if (!set || !Array.isArray(members) || !ledger || !preview) fail();
+  const count = members.length;
+  if (!Number.isInteger(count) || count < 1 || count > 0xffffffff) fail();
+  const own = (contract: ContractFields | undefined) => {
+    const wire = contract?.wire;
+    if (contract === undefined || typeof wire !== 'string') fail();
+    return Object.freeze({
+      name: contract.name,
+      identityField: contract.identityField,
+      identity: contract.identity,
+      wire,
+    });
+  };
+  const ownedSet = own(set);
+  const ownedMembers = [];
+  for (let index = 0; index < count; index++) ownedMembers.push(own(members[index]));
+  const value = Object.freeze({set: ownedSet, members: Object.freeze(ownedMembers)});
   issuedSets.set(value, Object.freeze({ledger, preview}));
   return value;
 }
@@ -33,12 +38,13 @@ export function issuedEffectSetReceiptWires(value: IssuedFields, ledger: unknown
   setWire: string; memberWires: readonly string[];
 }> {
   const owner = issuedSets.get(value);
-  if (owner?.ledger !== ledger || owner?.preview !== preview ||
+  if (owner === undefined || owner.ledger !== ledger || owner.preview !== preview ||
       typeof value?.set?.wire !== 'string' ||
       !Array.isArray(value.members)) fail();
+  // Issuance only registers frozen copies of checked original wires.
+  const original = value as ReturnType<typeof retainIssuedEffectSetReceipt>;
   return Object.freeze({
-    setWire: value.set!.wire as string,
-    // The WeakMap only receives frozen copies of validated string wires.
-    memberWires: Object.freeze(value.members!.map(member => member.wire as string)),
+    setWire: original.set.wire,
+    memberWires: Object.freeze(original.members.map(member => member.wire)),
   });
 }
