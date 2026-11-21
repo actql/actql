@@ -18,6 +18,7 @@ export function createLocalReadAuthorizations({moon, authorization,
   }
   const observeCallbacks = observation?.applicationCallbackState.bind(observation);
   const connection = authorization?.siteKey ?? 'actql-remote-host';
+  const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});
   let retainedAccount = observeInstalledAccount(moon, authorization);
   let identity = JSON.parse(moon.executionAuthorizationAccountJson(retainedAccount));
   const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;
@@ -110,5 +111,10 @@ export function createLocalReadAuthorizations({moon, authorization,
     run(facts, operation) {return promised(facts, operation, 'run');},
     // Internal installed metadata consumer, never a public permission field.
     runImmediate(facts, operation) {return authorize(facts, operation, 'run', false);},
+    // Static metadata has the installed scope and no Run reference. Check the
+    // current Account at every boundary, including immediately before egress.
+    staticPlanImmediate({principalId: actual}) {
+      return authorize({principalId: actual, indexKey: staticPlanScope}, undefined, 'run', false);
+    },
   });
 }

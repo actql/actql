@@ -119371,7 +119371,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bd258368cf5d092102ae7faa8be438d56d18064b2fcc23b2242c91b029a966a0",
+      "sha256": "46740fddf79d84ceea03d5c421afd3d40bd9cd67e216ebe7b97b4db106017bd6",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -119422,6 +119422,13 @@
           "parameters": [
             "facts",
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:staticPlanImmediate/init:staticPlanImmediate",
+          "parameters": [
+            "actual"
           ],
           "async": false
         },
@@ -119744,6 +119751,82 @@
               {
                 "path": "adapters/host-node/logical-task-observation.test.mjs",
                 "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:staticPlanImmediate/init:staticPlanImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "staticPlanImmediate({principalId: actual}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "      const egress = await authorizeEgress(request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function hasStaticExplanationPort(name) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
               }
             ]
           }

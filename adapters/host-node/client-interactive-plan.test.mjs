@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
+import {sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
 import {connect} from '../../packages/sdk/index.mjs';
@@ -108,6 +113,61 @@ test('static Explanation refuses denied egress before preparation or wire access
   egressAllowed = true;
   await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
   assert.equal(prepared, 1);
+});
+
+test('static Explanation checks the current Account run-read decision before projection and egress', async t => {
+  const folder = await mkdtemp(join(tmpdir(), 'actql-static-account-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const accountConfig = join(folder, 'account.json');
+  const change = (outcome, resource = 'run') => writeFile(accountConfig,
+    sourceReadAccountConfiguration({connection: 'site', resource, outcome}));
+  await change('allow');
+  const evaluated = [];
+  // The actual Local observer and authorization adapter use explicit Common
+  // ports here. The fixture only supplies the result of the selected tuple.
+  const moon = {
+    executionAuthorizationAdmit(wire) {return JSON.parse(wire);},
+    executionAuthorizationAccountJson(account) {
+      return JSON.stringify({state: 'admitted', account_id: account.account_id});
+    },
+    executionAuthorizationEvaluate(account, principal, site, resource, operation) {
+      evaluated.push([principal, site, resource, operation]);
+      const [entry] = account.entries;
+      return {outcome: entry.resource.any_of.includes(resource) ? entry.outcome : 'deny'};
+    },
+    executionAuthorizationEvaluationJson: JSON.stringify,
+  };
+  const {staticPlanImmediate} = createLocalReadAuthorizations({moon,
+    authorization: {siteKey: 'site', accountConfig},
+    principalId: 'person', namespaceId: 'original', authorityScopeCid: cid('a')});
+  const view = await staticExplanationFixture();
+  const selected = {...request, principalId: 'person'};
+  let prepared = 0;
+  let revoke = false;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: staticPlanImmediate,
+    async withOriginal(actual, visit) {
+      assert.strictEqual(actual, selected);
+      prepared++;
+      if (revoke) {
+        await change('deny');
+        return await visit({get plan() {assert.fail('Changed Account must block wire access');}}, () => {});
+      }
+      return await visit(explanationWires(view), () => {});
+    }});
+  assert.deepEqual(await read(selected, value => value), view);
+  const blocked = () => assert.fail('Denied Account must not deliver any facet');
+  for (const [outcome, resource] of [['deny', 'run'], ['delegate', 'run'], ['allow', 'result/out']]) {
+    await change(outcome, resource);
+    await assert.rejects(read(selected, blocked), {code: 'StaticExplanationAccessDenied'});
+  }
+  await change('allow');
+  await assert.rejects(read({...selected, principalId: 'foreign'}, blocked), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 1);
+  revoke = true;
+  await assert.rejects(read(selected, blocked), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 2);
+  assert.ok(evaluated.length > 0);
+  assert.ok(evaluated.every(tuple => tuple.join('/') === 'person/site/run/read'));
 });
 
 test('static Explanation refuses foreign Context and preserves final original current loss', async () => {

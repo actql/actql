@@ -64719,6 +64719,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+            "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+            "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const staticEffectExplanation = preparation !== undefined &&"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "      const egress = await authorizeEgress(request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function hasStaticExplanationPort(name) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -66470,6 +66550,28 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+          "parameters": [
+            "request",
+            "visit"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
           "parameters": [
             "value"
@@ -67077,6 +67179,13 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+          "parameters": [
+            "request"
+          ],
           "async": false
         },
         {
@@ -67900,6 +68009,17 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:readSequenceContracts/init:readSequenceContracts",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal",
+            "visit"
+          ],
           "async": false
         },
         {
@@ -68855,7 +68975,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2e190975f263adfcd26a68af38ee07b3c20a53b6b908447fd99e0d963bf8eb3b"
+      "sha256": "6299fe8a1040370c2a6a665aed7c6aa0a2b02dda84ca235236b4ddffc945731a"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
