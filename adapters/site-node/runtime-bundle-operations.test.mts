@@ -6,14 +6,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {signRemoteRuntimeBundle} from
   './remote-bundle-signature.mjs';
 
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
 const execute = promisify(execFile);
-const control = runtimeCore(moon).remoteBundleControl;
+const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>})
+  .remoteBundleControl;
 
 test('bundle CLI installs updates rolls back and reclaims durably',
   async t => {
@@ -64,43 +69,43 @@ test('bundle CLI installs updates rolls back and reclaims durably',
       }), {mode: 0o600}),
     ]);
     const cli = new URL('./runtime-bundle-cli.mjs', import.meta.url);
-    const run = async (...arguments_) => {
+    const run = async (...arguments_: string[]) => {
       const {stdout} = await execute(process.execPath, [
         cli.pathname,
         configurationPath,
         ...arguments_,
       ]);
-      return JSON.parse(stdout);
+      return JSON.parse(stdout) as {state: readonly string[]; runtimeBundleCid: string} | null;
     };
 
     assert.deepEqual(
-      (await run('install', envelopePath, componentPath)).state,
+      (await run('install', envelopePath, componentPath))!.state,
       ['0', '0', '0'],
     );
     assert.deepEqual(
-      (await run('activate', runtimeBundleCid)).state,
+      (await run('activate', runtimeBundleCid))!.state,
       ['1', '1', '0'],
     );
-    assert.equal((await run('active')).runtimeBundleCid, runtimeBundleCid);
+    assert.equal((await run('active'))!.runtimeBundleCid, runtimeBundleCid);
     assert.deepEqual(
-      (await run('drain', runtimeBundleCid)).state,
+      (await run('drain', runtimeBundleCid))!.state,
       ['2', '2', '0'],
     );
     assert.equal(await run('active'), null);
     assert.deepEqual(
-      (await run('rollback', runtimeBundleCid)).state,
+      (await run('rollback', runtimeBundleCid))!.state,
       ['3', '1', '0'],
     );
     assert.deepEqual(
-      (await run('drain', runtimeBundleCid)).state,
+      (await run('drain', runtimeBundleCid))!.state,
       ['4', '2', '0'],
     );
     assert.deepEqual(
-      (await run('reclaim', runtimeBundleCid)).state,
+      (await run('reclaim', runtimeBundleCid))!.state,
       ['5', '3', '0'],
     );
     assert.deepEqual(
-      (await run('reclaim', runtimeBundleCid)).state,
+      (await run('reclaim', runtimeBundleCid))!.state,
       ['5', '3', '0'],
     );
   });

@@ -1,20 +1,29 @@
 import {sign, verify} from 'node:crypto';
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 
-const fail = (code, cause) => {
+type BundleControl = ReturnType<typeof remoteBundleControl>;
+type Projector = Pick<BundleControl, 'signatureEnvelopeProjection'>;
+type Signer = Projector & Pick<BundleControl, 'identity' | 'signaturePreimage' | 'prepareSignatureEnvelope'>;
+type Verifier = Projector & Pick<BundleControl, 'admitSignatureEnvelope' | 'signatureEnvelopeManifest' | 'signaturePreimage'>;
+type Envelope = Parameters<BundleControl['admitSignatureEnvelope']>[0];
+type SigningOptions = Readonly<{keyId: string; privateKey: Parameters<typeof sign>[2]}>;
+type Authorities = ReadonlyMap<string, ReadonlyMap<string, Parameters<typeof verify>[2]>>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
-function envelopeObject(value, control) {
+function envelopeObject(value: unknown, control: Projector) {
   const [version, keyId, runtimeBundleCid, body, signature] =
     control.signatureEnvelopeProjection(value);
   return Object.freeze({version, keyId, runtimeBundleCid, body, signature});
 }
 
-export function signRemoteRuntimeBundle(manifest, control, {
+export function signRemoteRuntimeBundle(manifest: unknown, control: Signer, {
   keyId,
   privateKey,
-}) {
+}: SigningOptions) {
   if (!text(keyId) || privateKey === undefined ||
       typeof control?.identity !== 'function' ||
       typeof control?.signaturePreimage !== 'function' ||
@@ -34,8 +43,8 @@ export function signRemoteRuntimeBundle(manifest, control, {
   );
 }
 
-export function admitSignedRemoteRuntimeBundle(envelope, authorities,
-  control) {
+export function admitSignedRemoteRuntimeBundle(envelope: Envelope, authorities: Authorities,
+  control: Verifier) {
   if (envelope === null || typeof envelope !== 'object' ||
       !text(envelope.version) || !text(envelope.keyId) ||
       !text(envelope.runtimeBundleCid) ||

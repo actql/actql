@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {remoteBundleControl} from './remote-bundle-control.mjs';
 
-const control = runtimeCore(moon).remoteBundleControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
 
-const manifest = revision => Object.freeze({
+const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>})
+  .remoteBundleControl;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+
+const manifest = (revision: string) => Object.freeze({
   issuerAuthority: 'bundle-authority-a',
   bundleName: 'local-runtime',
   revision,
@@ -19,7 +24,7 @@ const manifest = revision => Object.freeze({
   strategyRevision: 'strategy/1',
 });
 
-const commit = transition => control.commitTransition(transition, true);
+const commit = (transition: unknown) => control.commitTransition(transition, true);
 
 test('Remote Bundle canonical identity is independent of adapter state', () => {
   const prepared = control.prepare(manifest('local/1'));

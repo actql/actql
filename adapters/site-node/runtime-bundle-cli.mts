@@ -1,27 +1,43 @@
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import process from 'node:process';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {runRuntimeBundleOperation} from
   './runtime-bundle-operations.mjs';
+import type {RuntimeBundleOperationsStore} from './runtime-bundle-operations.mjs';
+// @ts-expect-error TS7016: remove when the physical Runtime Bundle Store is migrated.
 import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 
-const fail = code => {
+type ConfigurationData = Readonly<{
+  storeRoot?: unknown;
+  targetTriple?: unknown;
+  authorities?: unknown;
+  maxBundles?: unknown;
+  maxOwners?: unknown;
+  maxComponentBytes?: unknown;
+}>;
+type AuthorityData = Readonly<{authority?: unknown; keyId?: unknown; publicKeyPath?: unknown}>;
+
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
-async function readConfiguration(path) {
-  const value = JSON.parse(await readFile(path, 'utf8'));
+async function readConfiguration(path: string) {
+  const value = JSON.parse(await readFile(path, 'utf8')) as ConfigurationData | null;
   if (value === null || typeof value !== 'object' ||
       !text(value.storeRoot) || !text(value.targetTriple) ||
       !Array.isArray(value.authorities) || value.authorities.length === 0) {
     fail('InvalidRemoteBundleCliConfiguration');
   }
-  const bundleAuthorities = new Map();
-  for (const entry of value.authorities) {
+  const bundleAuthorities = new Map<string, Map<string, Buffer>>();
+  for (const entry of value.authorities as readonly (AuthorityData | null)[]) {
     if (entry === null || typeof entry !== 'object' ||
         !text(entry.authority) || !text(entry.keyId) ||
         !text(entry.publicKeyPath)) {
@@ -45,19 +61,19 @@ async function readConfiguration(path) {
       ...(value.maxOwners === undefined
         ? {} : {maxOwners: Number(value.maxOwners)}),
       ...(value.maxComponentBytes === undefined
-        ? {} : {maxComponentBytes: BigInt(value.maxComponentBytes)}),
+        ? {} : {maxComponentBytes: BigInt(value.maxComponentBytes as Parameters<typeof BigInt>[0])}),
     }),
   });
 }
 
-async function parseOperation(arguments_) {
+async function parseOperation(arguments_: readonly string[]) {
   const [kind, first, second] = arguments_;
   if (!text(kind)) fail('MissingRemoteBundleOperation');
   if (kind === 'install') {
     if (!text(first) || !text(second)) fail('InvalidRemoteBundleOperation');
     return Object.freeze({
       kind,
-      envelope: JSON.parse(await readFile(first, 'utf8')),
+      envelope: JSON.parse(await readFile(first, 'utf8')) as unknown,
       componentPath: second,
     });
   }
@@ -75,8 +91,8 @@ export async function main(arguments_ = process.argv.slice(2)) {
   const [configurationPath, ...operationArguments] = arguments_;
   if (!text(configurationPath)) fail('MissingRemoteBundleConfiguration');
   const configuration = await readConfiguration(configurationPath);
-  const control = runtimeCore(moon).remoteBundleControl;
-  const store = await openRuntimeBundleStore(
+  const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>}).remoteBundleControl;
+  const store: RuntimeBundleOperationsStore & {close(): void} = await openRuntimeBundleStore(
     configuration.storeRoot,
     configuration.options,
   );

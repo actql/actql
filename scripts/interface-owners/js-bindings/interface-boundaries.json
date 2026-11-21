@@ -15467,6 +15467,565 @@
       "sha256": "236396748ba0f14df744026adb1862005e2fd5d9ef9e7d4284db7727bedcac79"
     },
     {
+      "module": "adapters/host-common/remote-bundle-control.mjs",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "responsibilityFacet": "supplemental",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRemoteBundleControl/createRemoteBundleControl",
+            "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl",
+            "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#2",
+            "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#3",
+            "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#4",
+            "createRemoteBundleControl/createRemoteBundleControl#10",
+            "createRemoteBundleControl/createRemoteBundleControl#11",
+            "createRemoteBundleControl/createRemoteBundleControl#12",
+            "createRemoteBundleControl/createRemoteBundleControl#13",
+            "createRemoteBundleControl/createRemoteBundleControl#14",
+            "createRemoteBundleControl/createRemoteBundleControl#15",
+            "createRemoteBundleControl/createRemoteBundleControl#16",
+            "createRemoteBundleControl/createRemoteBundleControl#17",
+            "createRemoteBundleControl/createRemoteBundleControl#18",
+            "createRemoteBundleControl/createRemoteBundleControl#19",
+            "createRemoteBundleControl/createRemoteBundleControl#2",
+            "createRemoteBundleControl/createRemoteBundleControl#20",
+            "createRemoteBundleControl/createRemoteBundleControl#21",
+            "createRemoteBundleControl/createRemoteBundleControl#22",
+            "createRemoteBundleControl/createRemoteBundleControl#23",
+            "createRemoteBundleControl/createRemoteBundleControl#24",
+            "createRemoteBundleControl/createRemoteBundleControl#25",
+            "createRemoteBundleControl/createRemoteBundleControl#26",
+            "createRemoteBundleControl/createRemoteBundleControl#27",
+            "createRemoteBundleControl/createRemoteBundleControl#28",
+            "createRemoteBundleControl/createRemoteBundleControl#29",
+            "createRemoteBundleControl/createRemoteBundleControl#3",
+            "createRemoteBundleControl/createRemoteBundleControl#30",
+            "createRemoteBundleControl/createRemoteBundleControl#31",
+            "createRemoteBundleControl/createRemoteBundleControl#32",
+            "createRemoteBundleControl/createRemoteBundleControl#33",
+            "createRemoteBundleControl/createRemoteBundleControl#34",
+            "createRemoteBundleControl/createRemoteBundleControl#35",
+            "createRemoteBundleControl/createRemoteBundleControl#36",
+            "createRemoteBundleControl/createRemoteBundleControl#37",
+            "createRemoteBundleControl/createRemoteBundleControl#38",
+            "createRemoteBundleControl/createRemoteBundleControl#39",
+            "createRemoteBundleControl/createRemoteBundleControl#4",
+            "createRemoteBundleControl/createRemoteBundleControl#40",
+            "createRemoteBundleControl/createRemoteBundleControl#41",
+            "createRemoteBundleControl/createRemoteBundleControl#42",
+            "createRemoteBundleControl/createRemoteBundleControl#43",
+            "createRemoteBundleControl/createRemoteBundleControl#44",
+            "createRemoteBundleControl/createRemoteBundleControl#5",
+            "createRemoteBundleControl/createRemoteBundleControl#6",
+            "createRemoteBundleControl/createRemoteBundleControl#7",
+            "createRemoteBundleControl/createRemoteBundleControl#8",
+            "createRemoteBundleControl/createRemoteBundleControl#9",
+            "remoteBundleControl"
+          ],
+          "exports": [
+            "remoteBundleControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/remote-bundle-control.mts",
+                "anchor": "remoteBundleControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-common/remote-bundle-control.test.mts",
+                "anchor": "test('Remote Bundle drain retains owners and gates reclamation"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "remoteBundleControl"
+      ],
+      "operations": [
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl",
+          "parameters": [
+            "members"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl/createRemoteBundleControl#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#10",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#11",
+          "parameters": [
+            "distribution",
+            "body",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#12",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#13",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#14",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#15",
+          "parameters": [
+            "distribution",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#16",
+          "parameters": [
+            "distribution",
+            "binding",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#17",
+          "parameters": [
+            "body",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#18",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#19",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#20",
+          "parameters": [
+            "request",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#21",
+          "parameters": [
+            "request",
+            "body",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#22",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#23",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#24",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#25",
+          "parameters": [
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#26",
+          "parameters": [
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#27",
+          "parameters": [
+            "body",
+            "claimedCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#28",
+          "parameters": [
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#29",
+          "parameters": [
+            "manifest",
+            "keyId",
+            "signature"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#3",
+          "parameters": [
+            "body",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#30",
+          "parameters": [
+            "envelope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#31",
+          "parameters": [
+            "current",
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#32",
+          "parameters": [
+            "activation",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#33",
+          "parameters": [
+            "activation",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#34",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#35",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#36",
+          "parameters": [
+            "activeBundleCid",
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#37",
+          "parameters": [
+            "record",
+            "maxOwners"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#38",
+          "parameters": [
+            "activeBundleCid",
+            "record",
+            "maxOwners"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#39",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#40",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#41",
+          "parameters": [
+            "activeBundleCid",
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#42",
+          "parameters": [
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#43",
+          "parameters": [
+            "transition",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#44",
+          "parameters": [
+            "manifest",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#6",
+          "parameters": [
+            "distribution",
+            "body",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#8",
+          "parameters": [
+            "scope",
+            "catalog",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteBundleControl/createRemoteBundleControl#9",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteBundleControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "91c0e698f25cdf12393c8e7b58bbb4529f8a74494462cc6d4e121fa57d27276a"
+    },
+    {
       "module": "adapters/host-common/remote-credential-control.mjs",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
@@ -21197,166 +21756,6 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl#10",
-            "remoteBundleControl/remoteBundleControl#11",
-            "remoteBundleControl/remoteBundleControl#12",
-            "remoteBundleControl/remoteBundleControl#13",
-            "remoteBundleControl/remoteBundleControl#14",
-            "remoteBundleControl/remoteBundleControl#15",
-            "remoteBundleControl/remoteBundleControl#16",
-            "remoteBundleControl/remoteBundleControl#17",
-            "remoteBundleControl/remoteBundleControl#18",
-            "remoteBundleControl/remoteBundleControl#19",
-            "remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl#20",
-            "remoteBundleControl/remoteBundleControl#21",
-            "remoteBundleControl/remoteBundleControl#22",
-            "remoteBundleControl/remoteBundleControl#23",
-            "remoteBundleControl/remoteBundleControl#24",
-            "remoteBundleControl/remoteBundleControl#25",
-            "remoteBundleControl/remoteBundleControl#26",
-            "remoteBundleControl/remoteBundleControl#27",
-            "remoteBundleControl/remoteBundleControl#28",
-            "remoteBundleControl/remoteBundleControl#29",
-            "remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl#30",
-            "remoteBundleControl/remoteBundleControl#31",
-            "remoteBundleControl/remoteBundleControl#32",
-            "remoteBundleControl/remoteBundleControl#33",
-            "remoteBundleControl/remoteBundleControl#34",
-            "remoteBundleControl/remoteBundleControl#35",
-            "remoteBundleControl/remoteBundleControl#36",
-            "remoteBundleControl/remoteBundleControl#37",
-            "remoteBundleControl/remoteBundleControl#38",
-            "remoteBundleControl/remoteBundleControl#39",
-            "remoteBundleControl/remoteBundleControl#4",
-            "remoteBundleControl/remoteBundleControl#40",
-            "remoteBundleControl/remoteBundleControl#41",
-            "remoteBundleControl/remoteBundleControl#42",
-            "remoteBundleControl/remoteBundleControl#43",
-            "remoteBundleControl/remoteBundleControl#44",
-            "remoteBundleControl/remoteBundleControl#5",
-            "remoteBundleControl/remoteBundleControl#6",
-            "remoteBundleControl/remoteBundleControl#7",
-            "remoteBundleControl/remoteBundleControl#8",
-            "remoteBundleControl/remoteBundleControl#9",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "remoteBundleControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
               }
             ]
           }
@@ -33253,377 +33652,6 @@
           "async": false
         },
         {
-          "name": "remoteBundleControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl",
-          "parameters": [
-            "members"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-          "parameters": [
-            "component"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#10",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#11",
-          "parameters": [
-            "distribution",
-            "body",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#12",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#13",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#14",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#15",
-          "parameters": [
-            "distribution",
-            "scope"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#16",
-          "parameters": [
-            "distribution",
-            "binding",
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#17",
-          "parameters": [
-            "body",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#18",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#19",
-          "parameters": [
-            "request",
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#20",
-          "parameters": [
-            "request",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#21",
-          "parameters": [
-            "request",
-            "body",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#22",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#23",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#24",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#25",
-          "parameters": [
-            "manifest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#26",
-          "parameters": [
-            "manifest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#27",
-          "parameters": [
-            "body",
-            "claimedCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#28",
-          "parameters": [
-            "manifest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#29",
-          "parameters": [
-            "manifest",
-            "keyId",
-            "signature"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#3",
-          "parameters": [
-            "body",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#30",
-          "parameters": [
-            "envelope"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#31",
-          "parameters": [
-            "current",
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#32",
-          "parameters": [
-            "activation",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#33",
-          "parameters": [
-            "activation",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#34",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#35",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#36",
-          "parameters": [
-            "activeBundleCid",
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#37",
-          "parameters": [
-            "record",
-            "maxOwners"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#38",
-          "parameters": [
-            "activeBundleCid",
-            "record",
-            "maxOwners"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#39",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#40",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#41",
-          "parameters": [
-            "activeBundleCid",
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#42",
-          "parameters": [
-            "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#43",
-          "parameters": [
-            "transition",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#44",
-          "parameters": [
-            "manifest",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#6",
-          "parameters": [
-            "distribution",
-            "body",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#7",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#8",
-          "parameters": [
-            "scope",
-            "catalog",
-            "revision"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteBundleControl/remoteBundleControl#9",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteSiteControl",
           "parameters": [
             "moon"
@@ -35192,6 +35220,7 @@
         "./ledger-usage.mjs",
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
+        "./remote-bundle-control.mjs",
         "./remote-credential-control.mjs",
         "./remote-standard-source-control.mjs",
         "./result-output-limits.mjs",
@@ -35201,7 +35230,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8879eeb77fb9c03c4dda7097dd2cce14450b8e31cd559cc35e4b53e9718912de"
+      "sha256": "50fdfdb49a868b900deb017876d24eaa0a98a913dddc736d34a38c5fe3a1273d"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

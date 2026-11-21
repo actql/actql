@@ -1639,5 +1639,17 @@ target/
 /adapters/host-common/remote-credential-control.test.d.mts
 /adapters/host-common/remote-standard-source-control.mjs
 /adapters/host-common/remote-standard-source-control.d.mts
+/adapters/host-common/remote-bundle-control.mjs
+/adapters/host-common/remote-bundle-control.d.mts
+/adapters/host-common/remote-bundle-control.test.mjs
+/adapters/host-common/remote-bundle-control.test.d.mts
+/adapters/site-node/remote-bundle-signature.mjs
+/adapters/site-node/remote-bundle-signature.d.mts
+/adapters/site-node/runtime-bundle-cli.mjs
+/adapters/site-node/runtime-bundle-cli.d.mts
+/adapters/site-node/runtime-bundle-operations.mjs
+/adapters/site-node/runtime-bundle-operations.d.mts
+/adapters/site-node/runtime-bundle-operations.test.mjs
+/adapters/site-node/runtime-bundle-operations.test.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
