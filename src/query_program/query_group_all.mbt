@@ -108,7 +108,8 @@ fn inferred_group_keys(
           normalize(path, members, node)
           continue
         }
-        match @query.expression_node(expression, node).unwrap().kind {
+        let kind = @query.expression_node(expression, node).unwrap().kind
+        match kind {
           Parenthesized(child)
           | Unary(_, child)
           | Cast(child, _)
@@ -123,11 +124,15 @@ fn inferred_group_keys(
             }
           Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) =>
             pending.append(args)
-          SearchedCase(branches, otherwise) => {
+          SearchedCase(branches, otherwise)
+          | SimpleCase(_, branches, otherwise) => {
             pending.push(otherwise)
             for (condition, value) in branches {
               pending.push(value)
               pending.push(condition)
+            }
+            if kind is SimpleCase(operand, _, _) {
+              pending.push(operand)
             }
           }
           _ => ()

@@ -169,6 +169,13 @@ export const pipeResultExecutionFailures = [
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
 export const queryCompositionSuccesses = [
+  {
+    name: 'simple-case-original', format: 'sql',
+    text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",
+    expected: [{result: 'one'}, {result: 'other'}, {result: 'other'}],
+    columns: [{name: 'result', contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}],
+    unordered: true, sourceReadCount: 0, sourceReadSessionCount: 0,
+  },
   ...['sql', 'aql-text'].map(format => ({
     name: `cte-join-right-shared-capture-${format}`, format,
     text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id',

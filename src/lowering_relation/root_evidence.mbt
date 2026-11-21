@@ -100,6 +100,8 @@ pub fn emit_root_evidence(
           @typing.IsTrue => "true"
           @typing.NotTrue => "not_true"
           @typing.IsNull => "null"
+          @typing.CaseMatch => "case_match"
+          @typing.CaseNoMatch => "case_no_match"
         },
       )
       @encode.end_object(out)

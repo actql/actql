@@ -343,6 +343,7 @@ pub fn is_source_free_scalar_projection(query : Query) -> Bool {
       | Parenthesized(_)
       | Predicate(_, _)
       | SearchedCase(_, _)
+      | SimpleCase(_, _, _)
       | Cast(_, _)
       | Interval(_, _) => ()
     }
