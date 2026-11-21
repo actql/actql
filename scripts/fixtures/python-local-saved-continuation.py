@@ -63,6 +63,7 @@ async def observe_read(host, result, stop_phase=None):
 
     core, store = host._core, host._core._store
     scope = carrier = source = None
+    stopped_advance = None
     beats = []
     core_turns = 0
     async with asyncio.TaskGroup() as tasks:
@@ -103,7 +104,13 @@ async def observe_read(host, result, stop_phase=None):
                 if phase == stop_phase:
                     if physical is not None:
                         assert not physical.eof
+                    stopped_advance = reader._advance
+                    assert stopped_advance is not None and not stopped_advance.done()
+                    assert stopped_advance.cancelling() == 0
                     await reader.aclose()
+                    assert reader._advance is stopped_advance and stopped_advance.done()
+                    assert stopped_advance.cancelling() == 1
+                    assert type(stopped_advance.exception()) is StopAsyncIteration
                     break
     assert sys.getprofile() is None
     assert carrier is not None and scope is not None and beats[0]['phase'] == 'core'
@@ -111,24 +118,38 @@ async def observe_read(host, result, stop_phase=None):
     assert carrier not in host._saved_result_reads
     receipt = plain(await reader.delivery_attempt())
     if stop_phase is not None:
-        assert reading.cancelled() and reader.rows_yielded == 0
+        assert stopped_advance is not None
+        assert reading.result() == [] and reader.rows_yielded == 0
         assert receipt == {'kind': 'not_found'}
         return None, receipt, beats, core_turns, reader.attempt_id
     assert receipt['attempt']['attempt_id'] == reader.attempt_id
     return reading.result(), receipt, beats, core_turns, reader.attempt_id
 
 
-async def exercise(state_dir):
+async def prepare_original(state_dir, report_wait_failure=None):
     assert not state_dir.exists()
-    values = [f'{ordinal:03}-' + 'x' * 236 for ordinal in range(96)]
+    values = ['x' * 16512]
     expected = [{'s': value} for value in values]
     wire = b''.join(json.dumps(row, separators=(',', ':')).encode() + b'\n' for row in expected)
-    query = "SELECT s FROM UNNEST([" + ','.join("'" + value + "'" for value in values) + "]) AS s ORDER BY s"
+    query = "SELECT '" + values[0] + "' AS s"
     async with await AsyncClient.open(state_dir=state_dir) as creator:
         submission = creator.new_submission()
         execution = await creator.start_source(query, format='sql', submission_ref=submission)
-        assert (await execution.wait())['status'] == 'succeeded'
+        try:
+            assert (await execution.wait())['status'] == 'succeeded'
+        except Exception as failure:
+            if report_wait_failure is not None:
+                try:
+                    report_wait_failure(failure)
+                except BaseException:
+                    pass  # Optional evidence cannot replace the original failure.
+            raise
         reference = plain(execution.ref)
+    return reference, expected, wire
+
+
+async def exercise(state_dir):
+    reference, expected, wire = await prepare_original(state_dir)
     async with await AsyncClient.open(state_dir=state_dir) as client:
         original = await client.attach(reference)
         assert plain(original.ref) == reference
