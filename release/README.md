@@ -123,7 +123,7 @@ node scripts/test-package-release-install.mjs <original-RC-directory> \
 ```
 
 The upper digest does not replace the original child digest. The launcher
-requires the same complete four-package Node cohort, exact source/version,
+requires the complete selected Node cohort, exact source/version,
 child-manifest bytes and all original archive identities. Its existing full
 cohort verifier still reads the retained `development` manifest and original
 development tarballs. The flat fixed set does not contain that supplier lineage;
@@ -136,8 +136,9 @@ The resulting receipt binds `releaseSetBinding.manifestSha256`, `targetId` and
 `cohortManifestSha256` plus exact artifact identities and requested platform/profile
 DATA. Actual executed cases and the observed Node/OS remain separate; this
 association does not certify every requested platform/profile or owner approval.
-The legacy child-only public mode remains available with a null upper binding,
-and cannot be reported as acceptance of an owner-approved upper digest.
+The legacy child-only public mode remains available for the four-package
+cohort with a null upper binding and cannot be reported as acceptance of an
+owner-approved upper digest.
 
 The digest selects the exact original Node cohort child manifest retained by
 the approved upper set. It is not a new version choice or approval. The
@@ -172,6 +173,42 @@ A public package download is
 not live Cloud or Provider acceptance. The actual public mode remains
 unexecuted until the real candidate/version is selected and published; its
 inert component fixtures do not qualify that runtime boundary or a release.
+
+### Optional Node and OpenAI Provider cohort
+
+For a future explicitly selected Node release with configured Model Tasks,
+use the existing `actql-package-release-cohort/0.1` recipe with this package
+order: `client-wire`, `sdk`, `local-node`, `node`, `provider-ai-sdk`.
+Select a single approved version for all five and list all five scoped names
+in the same npm target of the release request. Freeze that target with the
+original `node-npm` child. The checked-in four-package recipe and historical
+receipts remain valid for their original Node and SDK scope.
+
+The complete child verifier checks the original and staged Provider identity,
+runtime and type entrances, and byte-identical `npm-shrinkwrap.json`. Run
+`test-package-release-install.mjs <original-RC-directory>` before publication.
+The five-package run keeps the ordinary Node and SDK installations and cases
+above. It also installs the five original staged tarballs in a separate fresh
+consumer and runs the existing controlled HTTPS case with reported usage. The
+fixture requires one call, typed Result and usage evidence, and a separate
+process reading the same original Saved result first with zero provider calls
+or egress checks. Both Provider processes must complete their first close.
+
+Once all five exact archives have been published through the separately
+approved process, use the public command above with both the original child
+and selected upper digests. The Provider consumer requests only the exact
+`@actql/node` and `@actql/provider-ai-sdk` versions from npm. Its lockfile
+and all five installed ActQL payloads are checked before and after the same
+controlled case. The ordinary Node and SDK consumers install only their
+respective exact entries from that same five-package target. One receipt
+connects all three installations and the two runtime scopes to the same
+upper digest, child digest and archive identities. Promotion review checks
+the declared scopes and identity correspondence for the five-package target.
+Review of the actual job and owner acceptance remain separate.
+
+Version selection, registry publication, tag changes and live OpenAI
+validation require their own approval. Node-only package and public install
+checks retain their original scopes.
 
 Both private and public harness modes now explicitly retain their owned
 consumer directory after success as well as failure, including the original

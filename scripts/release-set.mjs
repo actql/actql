@@ -11,6 +11,7 @@ import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
+import {nodeReleaseIncludesProvider} from './package-release.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -391,12 +392,14 @@ function admitPromotionReviewRequest(request, fixed, plan) {
   return structuredClone(request);
 }
 
-function nodePromotionReceiptIdentity(bytes, item, fixed) {
+async function nodePromotionReceiptIdentity(bytes, item, fixed) {
   const body = JSON.parse(bytes), target = fixed.manifest.request.targets.find(value => value.id === item.targetId);
   const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
   const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === target.id), binding = body.releaseSetBinding;
-  assert.deepEqual(artifacts.map(value => value.name), ['@actql/client-wire', '@actql/sdk', '@actql/local-node', '@actql/node'],
-    'This receipt adapter is the actual original four-package Node consumer');
+  const includesProvider = nodeReleaseIncludesProvider(artifacts.map(value => {
+    assert(value.name.startsWith('@actql/'));
+    return value.name.slice('@actql/'.length);
+  }));
   assert.equal(body.version, 'actql-release-install-acceptance/0.1');
   assert.equal(body.sourceSha, fixed.manifest.request.source.commit);
   assert.equal(body.registry, 'https://registry.npmjs.org/');
@@ -410,10 +413,51 @@ function nodePromotionReceiptIdentity(bytes, item, fixed) {
   assert.deepEqual(body.artifacts, artifacts.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})));
   for (const field of ['publicObservationFile', 'publicObservationAfterFile', 'publicRuntimeScope', 'node', 'platform', 'arch']) literal(body[field]);
   assert(body.approvalAcceptance && typeof body.approvalAcceptance === 'object'); literal(body.approvalAcceptance.status);
+  assert.equal(Object.hasOwn(body, 'providerAcceptance'), includesProvider,
+    'Provider acceptance must correspond to the explicit five-package target');
+  let declaredNodeSdkInstallations, declaredProviderAcceptance;
+  if (includesProvider) {
+    assert(Array.isArray(body.publicPayloads) && body.publicPayloads.length === 2,
+      'Five-package acceptance requires both original Node and SDK installations');
+    declaredNodeSdkInstallations = [
+      nodeInstalledReceiptIdentity(body.publicPayloads[0], '@actql/node', artifacts.slice(0, -1), binding.version),
+      nodeInstalledReceiptIdentity(body.publicPayloads[1], '@actql/sdk', artifacts.slice(0, 2), binding.version),
+    ];
+    declaredProviderAcceptance = await nodeProviderReceiptIdentity(body.providerAcceptance, artifacts, binding.version);
+  }
   return {id: item.id, targetId: item.targetId, kind: item.kind, manifestSha256: binding.manifestSha256,
     cohortManifestSha256: binding.cohortManifestSha256, node: body.node, platform: body.platform, arch: body.arch,
     publicRuntimeScope: body.publicRuntimeScope, declaredApprovalAcceptance: structuredClone(body.approvalAcceptance),
+    ...(includesProvider ? {declaredNodeSdkInstallations, declaredProviderAcceptance} : {}),
     qualification: 'original receipt identity correspondence only; actual trusted job, install, rows/current/close/profile and owner acceptance remain unproved'};
+}
+
+function nodeInstalledReceiptIdentity(installed, entry, artifacts, version) {
+  assert.equal(installed?.entry, entry);
+  assert.equal(installed.version, version);
+  assert.equal(installed.lockfileVersion, 3);
+  assert(Number.isSafeInteger(installed.lockBytes) && installed.lockBytes > 0);
+  digestText(installed.lockSha256);
+  assert.deepEqual(installed.payloads.map(({name, version, integrity, originalArchiveSha256}) =>
+    ({name, version, integrity, sha256: originalArchiveSha256})),
+    artifacts.map(({name, version, integrity, sha256}) => ({name, version, integrity, sha256})),
+    'Consumer must bind the exact installed archives to the original target');
+  return {entry, lockSha256: installed.lockSha256};
+}
+
+async function nodeProviderReceiptIdentity(provider, artifacts, version) {
+  exact(provider, ['entry', 'installed', 'phases']);
+  assert.equal(provider.entry, '@actql/provider-ai-sdk');
+  const {installed, phases} = provider;
+  const identity = nodeInstalledReceiptIdentity(installed, provider.entry, artifacts, version);
+  assert.deepEqual(phases.map(value => [value.case, value.phase, value.status]),
+    [['usage-reported', 'usage-reported', 'passed'], ['usage-reported', 'cold', 'passed']]);
+  const {checkPackedProviderObservation} = await import('./test-packed-provider-ai-sdk.mjs');
+  for (const phase of phases)
+    checkPackedProviderObservation({caseId: phase.case, phase: phase.phase, pid: phase.pid,
+      originalPid: phases[0].pid, observation: phase.actual});
+  return {...identity,
+    scope: 'one controlled HTTPS call with reported usage, original Saved first in a distinct process with zero egress, and first close'};
 }
 
 async function promotionReceiptIdentity(bytes,item,fixed,directory) {
@@ -552,6 +596,9 @@ export function releasePromotionReviewSummary(checked) {
     `Child SHA256: ${item.cohortManifestSha256}; observed Node/OS: ${escape(JSON.stringify([item.node, item.platform, item.arch]))}`,
     `Declared business scope: ${escape(JSON.stringify(item.publicRuntimeScope))}`,
     `Declared approval acceptance (not promoted): ${escape(JSON.stringify(item.declaredApprovalAcceptance))}`);
+    if (item.declaredProviderAcceptance) lines.push(
+      `Declared Node and SDK installations: ${escape(JSON.stringify(item.declaredNodeSdkInstallations))}`,
+      `Declared Provider scope: ${escape(JSON.stringify(item.declaredProviderAcceptance))}`);
   }
   lines.push('', 'Post-freeze limitations (supplied DATA):',
     ...checked.request.limitations.map(value => `- ${escape(value)}`));

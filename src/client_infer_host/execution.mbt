@@ -1772,6 +1772,19 @@ pub fn sealing_observation(active : Execution) -> Bool {
 }
 
 ///|
+let standard_model_request_bytes : Int64 = 65536L
+
+///|
+let standard_model_response_bytes : Int64 = 65536L
+
+///|
+/// Project the standard ReserveSlots transfer requirement for an auto-derived
+/// execution contract. HTTP profile limits and original Ledger admission stay separate.
+pub fn standard_model_attempt_transfer_bytes() -> Int64 {
+  standard_model_request_bytes + standard_model_response_bytes
+}
+
+///|
 /// Existing installed Local bounds for the initial source-free configuration.
 /// This preset does not resolve model policy, dependencies or authorization.
 pub fn standard_limits() -> Limits {
@@ -1820,8 +1833,8 @@ pub fn standard_limits() -> Limits {
     model: {
       max_items: 100,
       max_work: 10000,
-      max_request_bytes: 65536L,
-      max_response_bytes: 65536L,
+      max_request_bytes: standard_model_request_bytes,
+      max_response_bytes: standard_model_response_bytes,
       value_limits: { max_nodes: 10000, max_depth: 64, max_text_bytes: 65536, },
       ledger: {
         planning_work: 10000,
