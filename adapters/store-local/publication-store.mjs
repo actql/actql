@@ -54,6 +54,7 @@ import {createRunMetadataInventory} from './run-metadata-inventory.mjs';
 import {createPublicationReferenceOwner} from './publication-reference-owner.mjs';
 import {createPublicationTrustedClock} from './publication-trusted-clock.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
+import {createCommittedResultReaders, createDurableResultBindingVerifier} from './publication-result-reader.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
@@ -1394,58 +1395,8 @@ async function openOriginalLocalPublicationStore(
       nativeContractRead, parseContract,
     });
 
-  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal, retainedBinding, readDemand) => {
-    if (contract.name !== 'durable_result_binding') {
-      fail('InvalidPublicationCommitEvidence');
-    }
-    // Only the private selected reader supplies this same already parsed
-    // body. Other internal callers still interpret their own contract here.
-    const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;
-    if (binding.store_authority_cid !== configuration.storeAuthorityCid ||
-        binding.physical_sha256 !== cidHex(binding.material_generation_cid)) {
-      fail('PublicationDurableBindingMismatch');
-    }
-    const physical = await verifyObject(binding.material_generation_cid, readDemand);
-    readDemand?.finish();
-    if (physical.bytes !== binding.byte_count) {
-      fail('PublicationDurableBindingMismatch');
-    }
-    const original = await readOriginal(binding.result_schema_cid, false);
-    const schemaBytes = original.bytes;
-    const schemaCid = original.physicalCid ?? `sha256:${createHash('sha256')
-      .update(schemaBytes).digest('hex')}`;
-    if (schemaCid !== binding.result_schema_cid) {
-      fail('PublicationDurableBindingMismatch');
-    }
-    const schemaWire = schemaBytes.toString('utf8');
-    let schema;
-    try { schema = JSON.parse(schemaWire); }
-    catch (error) { fail('PublicationDurableBindingMismatch', error); }
-    if (schema === null || typeof schema !== 'object' ||
-        Array.isArray(schema) || !Array.isArray(binding.result_fields) ||
-        binding.result_fields.length !== Object.keys(schema).length ||
-        binding.result_fields.some(field =>
-          typeof field !== 'string' ||
-          !Object.prototype.hasOwnProperty.call(schema, field))) {
-      fail('PublicationDurableBindingMismatch');
-    }
-    if (readDemand !== undefined) {
-      let units = schemaWire.length;
-      for (const field of binding.result_fields) units += field.length;
-      // The temporary JS schema tree is not part of the returned metadata.
-      // Its exact wire and the field-name holding survive until use completes.
-      readDemand.data(9, 2 + binding.result_fields.length, units);
-      readDemand.finish();
-    }
-    return Object.freeze({
-      binding,
-      physical,
-      schema: Object.freeze({
-        cid: schemaCid,
-        wire: schemaWire,
-      }),
-    });
-  };
+  const verifyDurableResultBinding = createDurableResultBindingVerifier(configuration,
+    {parseContract, readSemanticOriginal, cidHex, verifyObject});
 
   const {createAttempt, beginPublicationAttempt, beginPublicationAttemptWithRecords, latestRecordContract,
     latestRecord, appendRecord, appendInitialPublicationRecords} =
@@ -2368,198 +2319,12 @@ async function openOriginalLocalPublicationStore(
     configuration, objectPath, cidHex, active, physicalContentReadWindowBytes,
   );
 
-  const withCommittedResult = async (
-    key,
-    resultDefinitionCid,
-    authorize,
-    use,
-    readDemand,
-  ) => {
-    active();
-    cidHex(resultDefinitionCid);
-    if (typeof authorize !== 'function' || typeof use !== 'function') {
-      fail('InvalidPublicationObjectConsumer');
-    }
-    const request = Object.freeze({...key, resultDefinitionCid});
-    if (authorize(request) !== true) fail('PublicationLookupDenied');
-    const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid, undefined, readDemand,
-    );
-    const keyHash = indexKey(key);
-    await requireResultNotDeleted(
-      keyHash, selected, resultDefinitionCid, readDemand,
-    );
-    const authorization = Object.freeze({
-      ...request,
-      durableResultBindingCid: selected.contract.identity,
-      logicalResultCid: selected.value.logical_result_cid,
-      resultSchemaCid: selected.value.result_schema_cid,
+  const {withCommittedResult, consumeCommittedResult, withCommittedResultRows} =
+    createCommittedResultReaders(activeResultReaders, {
+      active, cidHex, consumeObject, readSemanticOriginal, verifyDurableResultBinding,
+      requireCommittedResultBinding: (...args) => requireCommittedResultBinding(...args),
+      requireResultNotDeleted: (...args) => requireResultNotDeleted(...args),
     });
-    if (authorize(authorization) !== true) fail('PublicationLookupDenied');
-    const materialCid = selected.value.material_generation_cid;
-    activeResultReaders.set(
-      materialCid, (activeResultReaders.get(materialCid) ?? 0) + 1,
-    );
-    let scopeActive = true, physicalReadPending = false, readerRetired = false;
-    const retireReader = () => {
-      if (scopeActive || physicalReadPending || readerRetired) return;
-      readerRetired = true;
-      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
-      if (remaining === 0) activeResultReaders.delete(materialCid);
-      else activeResultReaders.set(materialCid, remaining);
-    };
-    try {
-      const verified = await verifyDurableResultBinding(selected.contract,
-        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand), selected.value, readDemand);
-      await requireResultNotDeleted(
-        keyHash, selected, resultDefinitionCid, readDemand,
-      );
-      const metadata = Object.freeze({
-        durableResultBindingCid: selected.contract.identity,
-        logicalResultCid: verified.binding.logical_result_cid,
-        resultSchemaCid: verified.binding.result_schema_cid,
-        resultSchemaWire: verified.schema.wire,
-        resultFields: Object.freeze([...verified.binding.result_fields]),
-        rowCount: verified.binding.row_count,
-        payloadBytes: verified.physical.bytes,
-      });
-      let scopeOpen = true;
-      let consumed = false;
-      const consume = async accept => {
-        if (!scopeOpen || consumed || typeof accept !== 'function') {
-          fail('InvalidPublicationObjectConsumer');
-        }
-        consumed = true;
-        physicalReadPending = true;
-        return consumeObject(materialCid, accept, () => {
-          // Scope completion alone is not the consuming FD's close ACK.
-          // A failed close keeps this same reader until its original cleanup
-          // callback acknowledges retirement, without reopening or rereading.
-          physicalReadPending = false;
-          retireReader();
-        });
-      };
-      try { return await use(metadata, consume); }
-      finally { scopeOpen = false; }
-    } finally {
-      scopeActive = false;
-      retireReader();
-    }
-  };
-
-  const consumeCommittedResult = async (
-    key,
-    resultDefinitionCid,
-    authorize,
-    accept,
-  ) => withCommittedResult(
-    key,
-    resultDefinitionCid,
-    authorize,
-    async (metadata, consume) => {
-      const consumed = await consume(accept);
-      return Object.freeze({
-        durableResultBindingCid: metadata.durableResultBindingCid,
-        logicalResultCid: metadata.logicalResultCid,
-        resultSchemaCid: metadata.resultSchemaCid,
-        resultSchemaWire: metadata.resultSchemaWire,
-        resultFields: metadata.resultFields,
-        rowCount: metadata.rowCount,
-        bytes: consumed.bytes,
-      });
-    },
-  );
-
-  const withCommittedResultRows = async (
-    key,
-    resultDefinitionCid,
-    authorize,
-    frameLimits,
-    use,
-    frameControl,
-    _attemptIdentity,
-    readDemand,
-  ) => {
-    if (!exactKeys(frameLimits, [
-      'maxRowBytes', 'maxDepth', 'maxFrameBytes',
-    ]) || !Object.values(frameLimits).every(quantity) ||
-        typeof use !== 'function' || frameControl === null ||
-        typeof frameControl !== 'object' ||
-        typeof frameControl.prepareDurableResultRowFrames !== 'function' ||
-        typeof frameControl.feedDurableResultRowFrames !== 'function' ||
-        typeof frameControl.finishDurableResultRowFrames !== 'function' ||
-        typeof frameControl.cancelDurableResultRowFrames !== 'function') {
-      fail('InvalidPublicationRowConsumer');
-    }
-    return withCommittedResult(
-      key,
-      resultDefinitionCid,
-      authorize,
-      async (metadata, consume) => {
-        let scopeOpen = true;
-        let rowsConsumed = false;
-        const readRows = async (accept, beforeBufferGrowth) => {
-          if (!scopeOpen || rowsConsumed || typeof accept !== 'function') {
-            fail('InvalidPublicationRowConsumer');
-          }
-          rowsConsumed = true;
-          const growing = readDemand !== undefined;
-          if (growing && (typeof beforeBufferGrowth !== 'function' ||
-              ['prepareGrowingDurableResultRowFrames', 'durableResultRowFrameGrowth',
-                'growDurableResultRowFrameBuffer'].some(name => typeof frameControl[name] !== 'function'))) {
-            fail('InvalidPublicationRowConsumer');
-          }
-          const prepareFrames = growing ? frameControl.prepareGrowingDurableResultRowFrames
-            : frameControl.prepareDurableResultRowFrames;
-          const frames = Reflect.apply(prepareFrames, frameControl, [{
-            maxBytes: metadata.payloadBytes,
-            maxRows: metadata.rowCount,
-            maxRowBytes: frameLimits.maxRowBytes,
-            maxDepth: frameLimits.maxDepth,
-            maxFrameBytes: frameLimits.maxFrameBytes,
-          }]);
-          let rowIndex = 0, frameCapacity = 0;
-          try {
-            const physical = await consume(async chunk => {
-              if (growing) {
-                const needed = frameControl.durableResultRowFrameGrowth(frames, chunk.byteLength);
-                if (needed > frameCapacity) {
-                  // The original delivery owner flushes staged output and
-                  // grows its SAME READ parent before old/new row backing.
-                  const admitted = await beforeBufferGrowth(needed);
-                  if (!Number.isSafeInteger(admitted) || admitted < needed ||
-                      admitted > Math.min(frameLimits.maxRowBytes, metadata.payloadBytes)) {
-                    fail('InvalidPublicationRowConsumer');
-                  }
-                  frameControl.growDurableResultRowFrameBuffer(frames, admitted);
-                  frameCapacity = admitted;
-                }
-              }
-              const rows = frameControl.feedDurableResultRowFrames(
-                frames, chunk,
-              );
-              for (const row of rows) {
-                await accept(row, rowIndex);
-                rowIndex++;
-              }
-            });
-            const summary = frameControl.finishDurableResultRowFrames(frames);
-            if (summary.rows !== metadata.rowCount ||
-                summary.bytes !== physical.bytes) {
-              fail('PublicationDurableBindingMismatch');
-            }
-            return summary;
-          } catch (error) {
-            frameControl.cancelDurableResultRowFrames(frames);
-            throw error;
-          }
-        };
-        try { return await use(metadata, readRows); }
-        finally { scopeOpen = false; }
-      },
-      readDemand,
-    );
-  };
 
   const {collectRunMetadataContracts, bindMetadataContractObjects, metadataResultBindings, removeRunMetadataDirectories} =
     createRunMetadataInventory(configuration, {attemptsDirectory, deliveriesDirectory, manifestReadsDirectory,

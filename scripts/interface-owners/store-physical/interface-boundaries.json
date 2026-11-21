@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa8e8a05ae986efb077441ae183d3af4bb7eed8dffda62f2f66011c158466aae",
+      "sha256": "1ead04c42229615e3147c3f46b15e4564cde3c2311fd8e46846a26bf55c8f439",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6572,24 +6572,6 @@
           "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "authorize",
-            "accept"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
-          "parameters": [
-            "metadata",
-            "consume"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
@@ -6993,6 +6975,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
           "parameters": [
             "holdingCid"
@@ -7377,88 +7373,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "authorize",
-            "use",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
-          "parameters": [
-            "accept"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/verified/verified",
-          "parameters": [
-            "cid",
-            "includeNative"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
-          "parameters": [
-            "key",
-            "resultDefinitionCid",
-            "authorize",
-            "frameLimits",
-            "use",
-            "frameControl",
-            "_attemptIdentity",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
-          "parameters": [
-            "metadata",
-            "consume"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
-          "parameters": [
-            "accept",
-            "beforeBufferGrowth"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
-          "parameters": [
-            "chunk"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
           "parameters": [
             "operation"
@@ -7814,8 +7728,6 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
-            "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
@@ -7891,15 +7803,6 @@
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
-            "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/verified/verified",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -7928,7 +7831,9 @@
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
             "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8175,7 +8080,7 @@
                 "anchor": "lastClockObservation = {clockContractCid,state,value,checksummed:true};"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-reader.mts",
                 "anchor": "let scopeActive = true, physicalReadPending = false, readerRetired = false;"
               },
               {
@@ -8183,8 +8088,8 @@
                 "anchor": "const readResultRetentionExtension = async ("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;"
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) as DurableResultBinding : retainedBinding;"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -8253,7 +8158,7 @@
                 "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-reader.mts",
                 "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
               },
               {
@@ -8545,7 +8450,7 @@
                 "anchor": "assert.equal(opens,1);assert.equal(syncs,1);assert.equal(closes,1);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-reader.mts",
                 "anchor": "return consumeObject(materialCid, accept, () => {"
               },
               {
@@ -8553,7 +8458,7 @@
                 "anchor": "the selected original still receives its actual containing-directory ACK"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-reader.mts",
                 "anchor": "const verified = await verifyDurableResultBinding(selected.contract,\n        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand), selected.value, readDemand);"
               },
               {
@@ -8903,7 +8808,7 @@
                 "anchor": "the same successful write is not a second wire admission"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-result-reader.mts",
                 "anchor": "if (scopeActive || physicalReadPending || readerRetired) return;"
               },
               {
@@ -11380,10 +11285,282 @@
               }
             ]
           }
+        }
+      ],
+      "imports": [
+        "../host-common/managed-failure.mjs",
+        "./delivery-attempt-index.mjs",
+        "./native-metadata-mutation-owner.mjs",
+        "./object-writer-owner.mjs",
+        "./physical-holding-record-reader.mjs",
+        "./physical-holding-record-writer.mjs",
+        "./physical-retirement-owner.mjs",
+        "./prepared-custody-queue.mjs",
+        "./prepared-holder-owner.mjs",
+        "./prepared-publication-store-ownership.mjs",
+        "./publication-commit-owner.mjs",
+        "./publication-custody-records.mjs",
+        "./publication-metadata-deletion-markers.mjs",
+        "./publication-metadata-inventory.mjs",
+        "./publication-object-consumer.mjs",
+        "./publication-object-verifier.mjs",
+        "./publication-store-bootstrap.mjs",
+        "./publication-store-format.mjs",
+        "./publication-store-inputs.mjs",
+        "./publication-store-io.mjs",
+        "./publication-store-ownership.mjs",
+        "./publication-store-private-evidence.mjs",
+        "./result-deletion-owner.mjs",
+        "node:buffer",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-result-reader.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c1c19f4d2fceb8ce873de8a15038ee291c99292722301c4af456b688c70b340a",
+      "exports": [
+        "createCommittedResultReaders",
+        "createDurableResultBindingVerifier"
+      ],
+      "operations": [
+        {
+          "name": "createCommittedResultReaders",
+          "parameters": [
+            "activeResultReaders",
+            "active",
+            "cidHex",
+            "consumeObject",
+            "readSemanticOriginal",
+            "verifyDurableResultBinding",
+            "requireCommittedResultBinding",
+            "requireResultNotDeleted"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCommittedResultReaders/consumeCommittedResult/consumeCommittedResult",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "authorize",
+            "accept"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
+          "parameters": [
+            "metadata",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResult/withCommittedResult",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "authorize",
+            "use",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResult/withCommittedResult/consume/consume",
+          "parameters": [
+            "accept"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResult/withCommittedResult/consume/consume/consume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResult/withCommittedResult/verified/verified",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "authorize",
+            "frameLimits",
+            "use",
+            "frameControl",
+            "_attemptIdentity",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
+          "parameters": [
+            "metadata",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
+          "parameters": [
+            "accept",
+            "beforeBufferGrowth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
+          "parameters": [
+            "chunk"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDurableResultBindingVerifier",
+          "parameters": [
+            "configuration",
+            "parseContract",
+            "readSemanticOriginal",
+            "cidHex",
+            "verifyObject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDurableResultBindingVerifier/verifyDurableResultBinding/verifyDurableResultBinding",
+          "parameters": [
+            "contract",
+            "readOriginal",
+            "retainedBinding",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDurableResultBindingVerifier/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCommittedResultReaders",
+            "createCommittedResultReaders/consumeCommittedResult/consumeCommittedResult",
+            "createCommittedResultReaders/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
+            "createCommittedResultReaders/withCommittedResult/withCommittedResult",
+            "createCommittedResultReaders/withCommittedResult/withCommittedResult/consume/consume",
+            "createCommittedResultReaders/withCommittedResult/withCommittedResult/consume/consume/consume",
+            "createCommittedResultReaders/withCommittedResult/withCommittedResult/verified/verified",
+            "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows",
+            "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
+            "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
+            "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
+            "createDurableResultBindingVerifier",
+            "createDurableResultBindingVerifier/verifyDurableResultBinding/verifyDurableResultBinding",
+            "createDurableResultBindingVerifier/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding"
+          ],
+          "exports": [
+            "createCommittedResultReaders",
+            "createDurableResultBindingVerifier"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A scoped Result reader retires only after both its use callback ends"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const metadata = Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "durableResultBindingCid: selected.contract.identity,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "if (scopeActive || physicalReadPending || readerRetired) return;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "physicalReadPending = false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "fail('PublicationDurableBindingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "frameControl.cancelDurableResultRowFrames(frames);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const prepareFrames = growing ? frameControl.prepareGrowingDurableResultRowFrames"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result consumption retains its reader until the same failed FD close acknowledges"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
+              }
+            ]
+          }
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows"
+            "createCommittedResultReaders/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows"
           ],
           "exports": [],
           "attributes": {
@@ -11395,8 +11572,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readRows = async (accept, beforeBufferGrowth)"
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const readRows: ReadRows = async (accept, beforeBufferGrowth)"
               }
             ],
             "identity": [
@@ -11435,8 +11612,8 @@
                 "anchor": "fn result_read_row_cost("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
               }
             ],
             "extension": [
@@ -11457,40 +11634,7 @@
             ]
           }
         }
-      ],
-      "imports": [
-        "../host-common/managed-failure.mjs",
-        "./delivery-attempt-index.mjs",
-        "./native-metadata-mutation-owner.mjs",
-        "./object-writer-owner.mjs",
-        "./physical-holding-record-reader.mjs",
-        "./physical-holding-record-writer.mjs",
-        "./physical-retirement-owner.mjs",
-        "./prepared-custody-queue.mjs",
-        "./prepared-holder-owner.mjs",
-        "./prepared-publication-store-ownership.mjs",
-        "./publication-commit-owner.mjs",
-        "./publication-custody-records.mjs",
-        "./publication-metadata-deletion-markers.mjs",
-        "./publication-metadata-inventory.mjs",
-        "./publication-object-consumer.mjs",
-        "./publication-object-verifier.mjs",
-        "./publication-store-bootstrap.mjs",
-        "./publication-store-format.mjs",
-        "./publication-store-inputs.mjs",
-        "./publication-store-io.mjs",
-        "./publication-store-ownership.mjs",
-        "./publication-store-private-evidence.mjs",
-        "./result-deletion-owner.mjs",
-        "node:buffer",
-        "node:crypto",
-        "node:fs",
-        "node:fs/promises",
-        "node:path"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+      ]
     },
     {
       "module": "adapters/store-local/publication-reference-owner.mjs",

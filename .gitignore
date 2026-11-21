@@ -1553,3 +1553,5 @@ target/
 /adapters/store-local/run-metadata-inventory.d.mts
 /adapters/store-local/publication-reference-owner.mjs
 /adapters/store-local/publication-reference-owner.d.mts
+/adapters/store-local/publication-result-reader.mjs
+/adapters/store-local/publication-result-reader.d.mts

@@ -10564,8 +10564,8 @@
                 "anchor": "fn result_read_row_cost("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
               }
             ],
             "extension": [
@@ -112639,8 +112639,8 @@
                 "anchor": "fn result_read_row_cost("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
               }
             ],
             "extension": [
