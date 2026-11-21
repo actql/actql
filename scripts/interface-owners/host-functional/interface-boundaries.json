@@ -130580,7 +130580,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/rest-source-page.mts",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions) {"
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions): PageFactory {"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mts",
@@ -130792,7 +130792,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/rest-source-page.mts",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions) {"
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions): PageFactory {"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mts",

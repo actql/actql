@@ -133,7 +133,7 @@ export function restReadTransportConstructionUnits(original: Pick<RestReadOrigin
 // Exact Host capsule/control inventory around the separately quoted Core
 // parser. No JSON/text payload is copied here: its original readWire remains
 // in the static Source definition, while input+Core Bytes use the native quote.
-export function restReadOriginalControlUnits(count: number): RestConstructionUnits {
+export function restReadOriginalControlUnits(count: number): [...RestConstructionUnits] {
   if (!Number.isSafeInteger(count) || count < 1) fail('InvalidRestReadOriginal');
   const n = BigInt(count);
   // Each original: limits vector9, input Buffer control1, returned capsule

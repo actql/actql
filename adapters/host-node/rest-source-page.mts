@@ -16,18 +16,24 @@ type CapturableRead = Omit<RestSourceRead, 'method'> & Readonly<{method?: 'GET'}
 type Source = Pick<DefinitionSource, 'limits' | 'resource'> & Readonly<{
   pagination: DefinitionSource['pagination'] & Readonly<{parameter?: string}>;
   read?: CapturableRead;
-  fields: readonly Readonly<{name: string}>[];
+  fields: DefinitionSource['fields'];
 }>;
 type Transform = (...args: Parameters<RestSourceTransform>) =>
   ReturnType<RestSourceTransform> & Readonly<{then?: never}>;
-type SynchronousProjection = (method: Transform, receiver: undefined,
-  args: Readonly<Parameters<RestSourceTransform>>) => unknown;
+export type RestSourceProjection = (method: Transform, receiver: undefined,
+  args: Readonly<Parameters<RestSourceTransform>>) => ReturnType<Transform>;
 type PageOptions = Readonly<{moon: unknown; decodePage?: Transform}> & (
   Readonly<{source: Source; request: RestSourceRead | RestReadOriginal}> |
   Readonly<{source: Source & Readonly<{read: CapturableRead}>; request?: undefined}>
 );
 type Progress = Readonly<{pageIndex: number; rowCount: number}>;
 type Response = Readonly<{accepted: boolean; statusCode: number; body: ArrayBufferView}>;
+type PageReader = Readonly<{
+  fetchPage(progress: Progress): Readonly<ReturnType<typeof restSourcePageRequest>>;
+  decodePage(response: Response, progress: Progress): Readonly<{projectedPage: unknown; rowCount: number; done: boolean}>;
+}>;
+type PageFactory = (input?: unknown, project?: RestSourceProjection) => PageReader;
+type TransformPageFactory = (input: unknown, project: RestSourceProjection) => PageReader;
 
 const isProxy = types.isProxy;
 
@@ -65,7 +71,10 @@ const names = ['clientProgramRowSourceProjectJsonPage', 'clientProgramRowSourceJ
   'clientProgramRowSourceCursorHasNext', 'clientProgramRowSourceCursorNext',
   'clientProgramRowSourceCursorIssueCode'] as const;
 
-export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions) {
+export function restSourcePageReader(options: PageOptions & Readonly<{decodePage: Transform}>): TransformPageFactory;
+export function restSourcePageReader(options: PageOptions & Readonly<{decodePage?: undefined}>): PageFactory;
+export function restSourcePageReader(options: PageOptions): TransformPageFactory;
+export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions): PageFactory {
   const original = Object.freeze(Object.fromEntries(names.map(name => {
     const method = (moon as Readonly<Record<string, unknown>> | null | undefined)?.[name];
     if (typeof method !== 'function') fail('RestSourcePageProjectionUnavailable');
@@ -80,7 +89,7 @@ export function restSourcePageReader({moon, source, decodePage, request: capture
     : Object.freeze([...source.pagination.next]);
   const parameter = source.pagination.parameter;
   const request = capturedRequest ?? captureRestSourceRead({method: 'GET', ...source.read}, parameter);
-  const columns = Object.freeze(source.fields.map(field => field.name));
+  const columns = Object.freeze(source.fields.map(field => field.name)) as readonly string[];
   const transformContext = Object.freeze({resource, columns});
   const cursorResult = (result: unknown) => {
     if (runtimeIsError(result)) {
@@ -108,7 +117,7 @@ export function restSourcePageReader({moon, source, decodePage, request: capture
       ...(wire ? {rowsWire: original.clientProgramRowSourceJsonPageRowsWire(projected) as string} : {}),
       rowCount: original.clientProgramRowSourceTypedJsonPageRowCount(page) as number, nextCursor};
   };
-  return function preparePageReader(_input: unknown, applySynchronousProjection?: SynchronousProjection) {
+  return function preparePageReader(_input?: unknown, applySynchronousProjection?: RestSourceProjection) {
     if (transform !== undefined && typeof applySynchronousProjection !== 'function') {
       fail('RestSourceTransformOwnerUnavailable');
     }
