@@ -1499,3 +1499,5 @@ target/
 /adapters/store-local/publication-store-io.d.mts
 /adapters/store-local/publication-store-bootstrap.mjs
 /adapters/store-local/publication-store-bootstrap.d.mts
+/adapters/store-local/publication-store-ownership.mjs
+/adapters/store-local/publication-store-ownership.d.mts
