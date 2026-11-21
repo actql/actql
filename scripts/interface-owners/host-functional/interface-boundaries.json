@@ -28636,55 +28636,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
-          "parameters": [
-            "identity",
-            "namespaceId",
-            "currentAuthorization",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
-          "parameters": [
-            "identity",
-            "namespaceId",
-            "ref",
-            "currentAuthorization",
-            "captureSourceOperation",
-            "localExecutionOwner",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
           "parameters": [
             "identity",
@@ -28716,6 +28667,11 @@
         },
         {
           "name": "openClientRequestJournal/openClientRequestJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/openClientRequestJournal#2",
           "parameters": [],
           "async": false
         },
@@ -28797,10 +28753,6 @@
             "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
-            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
-            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
-            "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
-            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
             "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
@@ -29745,9 +29697,8 @@
         {
           "operations": [
             "openClientRequestJournal/journal/init:lookupOriginalSourceOperation/init:lookupOriginalSourceOperation",
-            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
-            "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
-            "openClientRequestJournal/sourceOperations/sourceOperations"
+            "openClientRequestJournal/sourceOperations/sourceOperations",
+            "openClientRequestJournal/openClientRequestJournal#2"
           ],
           "exports": [],
           "attributes": {
@@ -30992,7 +30943,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
@@ -31570,7 +31521,6 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/observation.mjs",
         "../host-common/run-state-observation.mjs",
-        "../host-common/runtime-result.mjs",
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
@@ -37089,7 +37039,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
@@ -37613,6 +37563,7 @@
         "cid",
         "createJournalKeyedLookupStorage",
         "createJournalRunRecords",
+        "createJournalRunStart",
         "evidenceJson",
         "freezeAdmissionEvidence",
         "instant",
@@ -37877,6 +37828,74 @@
             "requestControl",
             "publicationControl"
           ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart",
+          "parameters": [
+            "select",
+            "selectRef",
+            "reserve",
+            "reservePhysicalStart",
+            "localExecutionOwnerInsert",
+            "ensureOpen",
+            "transact",
+            "getDeliveredJournal",
+            "sourceOperations",
+            "ownedOriginal",
+            "captureOriginalLocalExecutionOwner",
+            "validLocalExecutionOwnerReceipt",
+            "maxRunDefinitionWireBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reserveDispatch/init:reserveDispatch",
+          "parameters": [
+            "identity",
+            "namespaceId",
+            "currentAuthorization",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart",
+          "parameters": [
+            "identity",
+            "namespaceId",
+            "ref",
+            "currentAuthorization",
+            "captureSourceOperation",
+            "localExecutionOwner",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -38179,7 +38198,12 @@
             "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
             "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2"
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
+            "createJournalRunStart/init:reserveDispatch/init:reserveDispatch",
+            "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
+            "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
+            "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart",
+            "createJournalRunStart"
           ],
           "exports": [
             "admission",
@@ -38209,7 +38233,8 @@
             "retainJournalRunStateFrame",
             "sameRunStateRow",
             "createJournalRunRecords",
-            "createJournalKeyedLookupStorage"
+            "createJournalKeyedLookupStorage",
+            "createJournalRunStart"
           ],
           "attributes": {
             "responsibility": [
@@ -38288,6 +38313,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "export function createJournalKeyedLookupStorage(database: Pick<JournalSqlConnection, 'prepare'>,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "export function createJournalRunStart({select, selectRef, reserve, reservePhysicalStart, localExecutionOwnerInsert}: RunStartStatements,"
               }
             ],
             "inputsOutputs": [
@@ -39161,11 +39190,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/started/started",
+            "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart/started/started#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed provider operation may additionally retain its exact first"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-source-operation.mts",
+                "anchor": "export function bindClientSourceOperationRowRun(source: object, moon: JobRuntime, program: unknown,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal and Store receiver remain one pair; neither a lookup result nor a"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each checked Source occurrence retains one original preparation and RowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "commits the exact record under the original Run and task occurrence before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "lost original-record COMMIT reply keeps the saved material and never enters or replaces the send"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "current cancellation after scope issue refuses before recording or physical send"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original bindings remain unavailable. Original Strings, row bindings, SQLite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lookup yields unresolved original DATA only; it does not reconstruct a live"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "confirmed same-Journal physical claim issues one original scope and commits exact material before send"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/runtime-result.mjs",
         "./client-request-journal-sql.mjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
@@ -52294,7 +52397,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
@@ -139021,7 +139124,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {

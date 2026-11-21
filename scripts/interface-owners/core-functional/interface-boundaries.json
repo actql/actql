@@ -6893,7 +6893,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {

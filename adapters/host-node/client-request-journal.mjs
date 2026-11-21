@@ -12,14 +12,13 @@ import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
   from '../store-local/publication-store.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {clientSourceOperationStorage} from './client-source-operation.mjs';
 import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCurrentness,
   createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, instant, logicalPlanOriginalShape, retainedIdentity, retainedRunDefinition, retainedRunFacts,
-  createJournalKeyedLookupStorage, createJournalRunRecords,
+  createJournalKeyedLookupStorage, createJournalRunRecords, createJournalRunStart,
   admitJournalRunDefinitionRow, readJournalRunDefinitionRow, retainJournalRunStateFrame, sameRunStateRow,
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
@@ -229,6 +228,12 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       run_definition_cid = ? AND dispatch_reserved = 1 AND
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
+
+  const {reserveDispatch, reservePhysicalStart: startPhysical} =
+    createJournalRunStart({select, selectRef, reserve, reservePhysicalStart, localExecutionOwnerInsert},
+      {ensureOpen, transact, getDeliveredJournal: () => deliveredJournal, sourceOperations,
+        ownedOriginal, captureOriginalLocalExecutionOwner, validLocalExecutionOwnerReceipt},
+      maxRunDefinitionWireBytes);
 
   const {requestCancellation, recordCancellationOperation, lookupCancellationOperation} =
     createJournalCancellation(database, {selectRef, requestUsage, submissionIssued, cancellationUsage,
@@ -744,172 +749,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
         originalInferRun: issued.originalInferRun,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames, submission}, requestControl, publicationControl);
     },
-    // One physical transaction applies the common MoonBit start decision.
-    // A committed reservation records possible dispatch before any work. A
-    // later caller must reconcile that Run rather than run Compute again.
-    reserveDispatch(identity, {namespaceId, currentAuthorization},
-      requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(namespaceId) || typeof currentAuthorization !== 'boolean' ||
-          typeof requestControl?.clientRunStartAction !== 'function') {
-        fail('InvalidClientRunStart');
-      }
-      const fields = checkedIdentity(identity, requestControl);
-      return transact('start', 'ClientRunStartUnknown',
-        error => typeof error?.code === 'string' &&
-          (error.code.startsWith('ClientRequest') ||
-            error.code.startsWith('ClientRun')), () => {
-        const row = select.get(fields.authorityScopeCid, fields.requestId);
-        if (row === undefined || row.namespace_id !== namespaceId) {
-          fail('ClientRunStartDenied');
-        }
-        const retained = retainedIdentity(row, requestControl);
-        const definition = retainedRunDefinition(row, publicationControl,
-          maxRunDefinitionWireBytes);
-        const action = requestControl.clientRunStartAction(identity, retained,
-          definition, row.run_definition_cid, row.dispatch_reserved === 1,
-          currentAuthorization);
-        if (action === 0) {
-          if (reserve.run(fields.authorityScopeCid, fields.requestId)
-            .changes !== 1) {
-            fail('ClientRequestJournalCorrupt');
-          }
-          return Object.freeze({kind: 'reserved',
-            ...admission({...row, revision: Number(row.revision) + 1})});
-        }
-        if (action === 1) {
-          return Object.freeze({kind: 'reconcile', ...admission(row)});
-        }
-        fail(action === 3 ? 'ClientRequestIntentConflict' :
-          action === 5 ? 'ClientRunStartDenied' :
-          'ClientRequestJournalCorrupt');
-      });
-    },
-    // The exact durable claim precedes the call that can start physical
-    // Compute. A missing claim is safe to resume; a claim or legacy unknown
-    // is never evidence that Compute did not run.
-    reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization,
-      captureSourceOperation, localExecutionOwner},
-      requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(namespaceId) || !text(ref?.namespaceId) ||
-          !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
-          typeof currentAuthorization !== 'boolean' ||
-          typeof requestControl?.clientRunPhysicalStartWithCancellationAction !==
-            'function') {
-        fail('InvalidClientRunPhysicalStart');
-      }
-      const fields = checkedIdentity(identity, requestControl);
-      let sourceOriginal, captureOriginal, captureReceiver;
-      if (captureSourceOperation !== undefined) {
-        if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
-        const {program, compiled, capture, store} = captureSourceOperation;
-        const checkStore = store?.privateEvidenceWireLimit;
-        if (typeof capture !== 'function' ||
-            typeof checkStore !== 'function' ||
-            typeof requestControl.clientProgramMatchesRequestIdentity !== 'function' ||
-            requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
-          fail('ForeignClientSourceOperation');
-        }
-        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-        if (row === undefined) fail('ForeignClientSourceOperation');
-        const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
-        publicationControl.checkClientCompiledRunOwner(compiled, program);
-        publicationControl.checkClientCompiledRunDefinition(compiled, definition);
-        // Existing same-Store active guard only; its numeric result is neither
-        // the Source operation's capacity nor a private-evidence permission.
-        Reflect.apply(checkStore, store, []);
-        sourceOriginal = Object.freeze({ref: Object.freeze({...ref}), program, compiled,
-          definition, identity, requestControl, publicationControl,
-          // The same Owner may deliver its bounded method facade. Retain
-          // that exact original, which dispatch receives, not the inaccessible
-          // inner method table. Copies still fail the nominal Source check.
-          journal: deliveredJournal, store, checkStore,
-          requestId: fields.requestId, requestScopeCid: fields.logicalRequestScopeCid,
-          intentCid: fields.intentFingerprintCid});
-        captureOriginal = capture;
-        captureReceiver = captureSourceOperation;
-      }
-      // Only the actual compiled effect-free Prepared original can qualify;
-      // source text, a caller boolean or an empty local worker map cannot.
-      let localOwnerProgram, localOwnerCompiled;
-      if (localExecutionOwner !== undefined && ownedOriginal !== undefined) {
-        const {program, compiled} = localExecutionOwner;
-        try {
-          if (requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
-            fail('ForeignClientLocalExecutionOwner');
-          }
-          publicationControl.checkClientCompiledRunOwner(compiled, program);
-          const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-          if (row === undefined) fail('ForeignClientLocalExecutionOwner');
-          const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
-          publicationControl.checkClientCompiledRunDefinition(compiled, definition);
-          publicationControl.checkClientCompiledLocalExecutionOwner(compiled, definition);
-          const inferred = checked(requestControl.clientProgramComposedInferOccurrences(program));
-          const serialized = requestControl.clientProgramSerializationOccurrences(program);
-          if (requestControl.clientProgramAcquisitionCount(program) !== 0 ||
-              !Array.isArray(inferred) || inferred.length !== 0 ||
-              !Array.isArray(serialized) || serialized.length !== 0) {
-            fail('ForeignClientLocalExecutionOwner');
-          }
-          localOwnerProgram = program; localOwnerCompiled = compiled;
-        } catch (cause) {fail('ForeignClientLocalExecutionOwner', cause);}
-      }
-      const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
-        error => typeof error?.code === 'string' &&
-          (error.code.startsWith('ClientRun') ||
-            error.code.startsWith('ClientRequest')), () => {
-        const row = select.get(fields.authorityScopeCid, fields.requestId);
-        if (row === undefined || row.namespace_id !== namespaceId ||
-            ref.namespaceId !== namespaceId ||
-            ref.authorityScopeCid !== fields.authorityScopeCid ||
-            ref.runDefinitionCid !== row.run_definition_cid) {
-          fail('ClientRunPhysicalStartDenied');
-        }
-        const retained = retainedIdentity(row, requestControl);
-        const definition = retainedRunDefinition(row, publicationControl,
-          maxRunDefinitionWireBytes);
-        const action = requestControl.clientRunPhysicalStartWithCancellationAction(
-          identity, retained, definition, row.run_definition_cid,
-          row.dispatch_reserved === 1,
-          row.pre_dispatch_failure_confirmed === 0 &&
-            row.physical_start_reserved === 0,
-          currentAuthorization, row.cancellation_requested === 1);
-        if (action === 0) {
-          return false;
-        }
-        if (action !== 1) {
-          fail(action === 3 ? 'ClientRequestIntentConflict' :
-            action === 5 ? 'ClientRunPhysicalStartDenied' :
-            'ClientRequestJournalCorrupt');
-        }
-        if (localOwnerProgram !== undefined) {
-          publicationControl.checkClientCompiledRunOwner(localOwnerCompiled, localOwnerProgram);
-          publicationControl.checkClientCompiledRunDefinition(localOwnerCompiled, definition);
-          publicationControl.checkClientCompiledLocalExecutionOwner(localOwnerCompiled, definition);
-          const receipt = captureOriginalLocalExecutionOwner(ownedOriginal);
-          // Unsupported native ownership proof preserves ordinary execution;
-          // its absent receipt cannot later be promoted into a stop witness.
-          if (receipt !== undefined) {
-            if (!validLocalExecutionOwnerReceipt(receipt)) fail('ForeignClientLocalExecutionOwner');
-            localExecutionOwnerInsert.run(ref.namespaceId, ref.authorityScopeCid,
-              ref.runDefinitionCid, receipt.token, receipt.anchor.identity,
-              receipt.anchor.device, receipt.anchor.inode);
-          }
-        }
-        if (reservePhysicalStart.run(ref.namespaceId,
-          ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
-          fail('ClientRequestJournalCorrupt');
-        }
-        return true;
-      });
-      // No lookup/recovery API exposes this issuer. In particular a lost COMMIT
-      // response throws before a scope can reach physical Source dispatch.
-      if (started && sourceOriginal !== undefined) {
-        Reflect.apply(captureOriginal, captureReceiver, [sourceOperations.issue(sourceOriginal)]);
-      }
-      return started;
-    },
+    reserveDispatch,
+    reservePhysicalStart: startPhysical,
     persistOriginalKeyedLookupActivation,
     persistOriginalKeyedLookupPage,
     lookupOriginalSourceOperation(ref, occurrence) {
