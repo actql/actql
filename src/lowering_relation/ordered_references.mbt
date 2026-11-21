@@ -195,7 +195,8 @@ fn prepare_ordered_reference_material(
             | DateLiteral(_)
             | TypedNull
             | EmptyArray
-            | CurrentTimestamp => ()
+            | CurrentTimestamp
+            | CurrentDate => ()
             Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)

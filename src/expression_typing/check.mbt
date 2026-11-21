@@ -47,7 +47,9 @@ fn check_impl(
   let safe : Map[Int, Bool] = Map([])
   let mut requires_query_time = false
   for node in nodes {
-    requires_query_time = requires_query_time || node.tag == "current_timestamp"
+    requires_query_time = requires_query_time ||
+      node.tag == "current_timestamp" ||
+      node.tag == "current_date"
     let contract = resolve_type(t, node.inferred, node.source)
     if ["array", "empty_array", "object"].contains(node.tag) &&
       !constructor_safe(t, node.inferred, safe, node.source) {

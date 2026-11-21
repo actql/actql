@@ -352,6 +352,12 @@ It is not a frontend clock read, Timestamp literal, authored Parameter or
 authority for a Source/Effect or an operational clock. A missing original
 execution context remains an implementation limitation.
 
+`CURRENT_DATE()` and an unquoted, unqualified `CURRENT_DATE` lower to
+`{current_date: []}`. The Date is the UTC day of the same original query
+invocation time as `CURRENT_TIMESTAMP()`. Quoted bare identifiers and qualified
+field references retain their ordinary field lookup. The zero-argument form
+follows the [GoogleSQL UTC default](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#current_date).
+
 SQL fixed intervals use `TIMESTAMP_ADD(value, INTERVAL amount UNIT)`,
 `TIMESTAMP_SUB(value, INTERVAL amount UNIT)` or Timestamp `+`/`-` that interval.
 The original integral token is retained exactly, and dynamic amounts require

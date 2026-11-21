@@ -508,6 +508,7 @@ fn infer(
     }
     "#null" => put(t, Hole, true, source)
     "current_timestamp" => primitive(t, TimestampType, false, source)
+    "current_date" => primitive(t, DateType, false, source)
     "date_literal" => {
       let text = string(node.body)
       charge(t.budget, source, text)

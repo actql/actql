@@ -82,7 +82,8 @@ fn check_backend_capabilities(
         | DateLiteral(_)
         | TypedNull
         | EmptyArray
-        | CurrentTimestamp => 0
+        | CurrentTimestamp
+        | CurrentDate => 0
         Unary(_, _) | Cast(_) | Property(_, _, _) => 1
         Object(fields) => fields.length()
         Binary(_, _, _) | Subscript(_, _) | ArrayOffset(_, _, _) => 2
@@ -107,7 +108,8 @@ fn check_backend_capabilities(
         | DateLiteral(_)
         | TypedNull
         | EmptyArray
-        | CurrentTimestamp => ()
+        | CurrentTimestamp
+        | CurrentDate => ()
         Unary(_, child) => pending.push(child)
         Property(child, _, _) => pending.push(child)
         Subscript(value, index) | ArrayOffset(value, index, _) => {

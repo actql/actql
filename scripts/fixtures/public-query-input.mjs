@@ -656,6 +656,14 @@ const dateCalendarOriginal = {name: 'date-calendar-boundaries', format: 'sql',
     {name: 'days', contract: {type: 'int64', nullable: false}},
     {name: 'first_day', contract: {type: 'date', nullable: false}},
   ], sourceReadCount: 0};
+const currentDateOriginal = {name: 'current-date-query-time', format: 'sql',
+  text: 'WITH query_clock AS (SELECT CURRENT_TIMESTAMP() AS ts) '
+    + 'SELECT CURRENT_DATE = CURRENT_DATE() AS same_day, '
+    + 'CURRENT_DATE() = DATE(EXTRACT(YEAR FROM ts), EXTRACT(MONTH FROM ts), EXTRACT(DAY FROM ts)) '
+    + 'AS same_original_utc_day FROM query_clock',
+  expected: [{same_day: true, same_original_utc_day: true}],
+  columns: ['same_day', 'same_original_utc_day'].map(name => ({name,
+    contract: {type: 'boolean', nullable: false}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -749,6 +757,7 @@ export const sourceFreeSuccesses = [
   extractTimestampOriginal,
   makeDateOriginal,
   dateCalendarOriginal,
+  currentDateOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

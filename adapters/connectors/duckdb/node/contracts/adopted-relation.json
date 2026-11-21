@@ -1,7 +1,7 @@
 {
-  "registry_cid": "sha256:667beb55da34d205607e43602dac25d0cd36c9a199b537292124d32f6165077f",
+  "registry_cid": "sha256:8bc8dfd9520fe84e20359f2aedc297ec6972ee03d6679c9c24bec9bf7c296966",
   "values_cid": "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae",
-  "fragment_cid": "sha256:cc0bef439cdd1001981e77cf15f0aafef836a0e4846f18353cb8a263824937f1",
+  "fragment_cid": "sha256:db1bd37f1e8558c32cd1523f7dbc2aa23a5736a6ae34ed3d3bedef5308e5e1cc",
   "graph_cid": "sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84",
   "registry": {
     "REL.select": {
@@ -37,7 +37,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:2993e0da1d8716393c43641948679e4903c30aa8f23d473af28034bfaf5356f7"
+          "cid": "sha256:450c06fecbf7b57af2b0defe5646ae1ed9a25f00a436991f30ddcabbf2c53b4a"
         }
       }
     },
@@ -487,7 +487,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:cc0bef439cdd1001981e77cf15f0aafef836a0e4846f18353cb8a263824937f1"
+        "cid": "sha256:db1bd37f1e8558c32cd1523f7dbc2aa23a5736a6ae34ed3d3bedef5308e5e1cc"
       }
     },
     "TEA.calendar.bucket": {
@@ -1547,12 +1547,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074"
+        "cid": "sha256:926b5a81556bbaaed87fc32ee21f47aee6990800af0a12257593841768d1be80"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:a0b2e7c55b4b52690ad4844a536fcba649f5270c610e9bfec1ba5bfe46ef3965"
+        "cid": "sha256:fdaadf3b24f42cdd8d4cb0f8c9bf9cefb4979f6a754641df078987035c84d568"
       }
     },
     "params_schema": {

@@ -125,8 +125,16 @@ fn emit_frames(
         @encode.key(output, "body")
         pending.push(EndObject)
         match expr.body {
-          CurrentTimestamp => {
-            pending.push(Op("current_timestamp"))
+          CurrentTimestamp | CurrentDate => {
+            pending.push(
+              Op(
+                if expr.body is CurrentDate {
+                  "current_date"
+                } else {
+                  "current_timestamp"
+                },
+              ),
+            )
             @encode.begin_array(output)
             @encode.end_array(output)
           }

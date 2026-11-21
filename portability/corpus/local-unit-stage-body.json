@@ -8,7 +8,7 @@
       "empty": false,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074",
+        "expression_contract_cid": "sha256:926b5a81556bbaaed87fc32ee21f47aee6990800af0a12257593841768d1be80",
         "bindings": {},
         "binding_references": [],
         "parameters": {
@@ -59,7 +59,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:46cd0ab0b8c63b2611c63ba36838b30bf9d7de48261d8fec722c2a557e81ae85"
+      "expected_cid": "sha256:776e5b0ba3bb9c6a69a9afc1789ff46fba3e25697838d74a7a00f4f2a0b5d177"
     },
     {
       "name": "n-only",
@@ -67,7 +67,7 @@
       "empty": false,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074",
+        "expression_contract_cid": "sha256:926b5a81556bbaaed87fc32ee21f47aee6990800af0a12257593841768d1be80",
         "bindings": {},
         "binding_references": [],
         "parameters": {
@@ -115,7 +115,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:24c3f05087b13cd61b586c0858763625fbcb68f1783ca362665a7306c0478c50"
+      "expected_cid": "sha256:01ecd6b72101b21076c3de507e42bbb366000500fc409d0f253765c27e170af1"
     },
     {
       "name": "empty",
@@ -123,7 +123,7 @@
       "empty": true,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074",
+        "expression_contract_cid": "sha256:926b5a81556bbaaed87fc32ee21f47aee6990800af0a12257593841768d1be80",
         "bindings": {},
         "binding_references": [],
         "parameters": {},
@@ -149,7 +149,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:00cffccd34ac7b1fd4b4499b17e5f7f3b2a8076e4aefd95216b4c44f73e75029"
+      "expected_cid": "sha256:e10292aa49a1b5ce1e545f2557403265264e5aa1a85545ff87aab56e5ff66180"
     }
   ]
 }

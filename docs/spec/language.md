@@ -3940,6 +3940,14 @@ operation with non-null Timestamp result, preserving the closed authored
 `{current_timestamp: []}` and machine `{op: "current_timestamp", body: []}`
 forms without replacing the operation by a literal or hidden Parameter.
 
+<!-- requirement-block: scalar-expressions.query-date-signature -->
+`CURRENT_DATE()` and the bare SQL keyword spelling `CURRENT_DATE` MUST select
+the zero-argument `current_date` operation with non-null Date result. The
+closed authored `{current_date: []}` and machine `{op: "current_date", body: []}`
+forms project the UTC date of the same original invocation value as
+`current_timestamp`. Static checking retains the dependency. Evaluation,
+absence and recovery use the same original query-time rules below.
+
 <!-- requirement-block: scalar-expressions.query-time-original -->
 For an ordinary single-query-invocation Run, every demanded occurrence, row,
 fragment and continuation MUST use the same admitted Run definition's
@@ -11640,7 +11648,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:1ec56c903418a33bc05a91b6c1a96376c390187c5d0bb9627308601ac59ec616
+../../spec/contracts/actql-aoa.json# sha256:7742c9df18a453d44dafa6a84ba41a4759513fce3c45129b8908cf5ede8cb4a7
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11649,13 +11657,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:16afd05883e2bcdf21123f17e0a5bd2e8b458378ccdcc4ed5a90da741e37638c
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:aa6f73fdbc9b4ee6efe4d7a2bc4d27c23ccc69b3ce27d11d0035017427323cbd
+../../spec/contracts/actql-expressions.json# sha256:926b5a81556bbaaed87fc32ee21f47aee6990800af0a12257593841768d1be80
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:701b10fd88b3b48d99bf2394d9f35ddff9a995f4a464e4d5e5e755519ec8aaca
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:80628107e49be875d93947e834992a9f8500be8a1fe6b979389d00e46afe1b63
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:ea4f701bcba078ff175aed56bddc799d5b7b33b23c18bb1d5f7570020e6dc883
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:a0b2e7c55b4b52690ad4844a536fcba649f5270c610e9bfec1ba5bfe46ef3965
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e7a452567669421a1e96eec44bff56071784e1a0fd95603a9e395a8c2a8168a2
+../../spec/contracts/actql-expressions.json#/laws sha256:cbe34c3ad4b0e9d8a1e2b3fbde5381c6bb080b03975f5c2596929255e9b11a11
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:fdaadf3b24f42cdd8d4cb0f8c9bf9cefb4979f6a754641df078987035c84d568
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:a7fa9e391f83e162b6bee845a84419176b088767c7d0ed099130f4df4b97da6c
 ```
 
 <!-- stage-contract-pins:start -->

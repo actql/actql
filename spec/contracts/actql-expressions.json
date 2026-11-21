@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "33ef486e2667918f9d2837efbcc48fd5b29da126b362447f6c559cbcb5767071",
+  "grammar_sha256": "39f915a86e4cd1e290c230fb468bf6535296128413222cc31b739008a71333e8",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6103,6 +6103,21 @@
               ],
               "properties": {
                 "current_timestamp": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "current_date"
+              ],
+              "properties": {
+                "current_date": {
                   "type": "array",
                   "minItems": 0,
                   "maxItems": 0,
@@ -12974,6 +12989,25 @@
               "properties": {
                 "op": {
                   "const": "current_timestamp"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "current_date"
                 },
                 "body": {
                   "type": "array",
@@ -25295,6 +25329,21 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "current_date"
+              ],
+              "properties": {
+                "current_date": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "timestamp_add"
               ],
               "properties": {
@@ -31241,6 +31290,25 @@
               "properties": {
                 "op": {
                   "const": "current_timestamp"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "current_date"
                 },
                 "body": {
                   "type": "array",
@@ -39534,6 +39602,21 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "current_date"
+              ],
+              "properties": {
+                "current_date": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "timestamp_add"
               ],
               "properties": {
@@ -45498,6 +45581,25 @@
               ],
               "properties": {
                 "op": {
+                  "const": "current_date"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 0,
+                  "items": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "timestamp_add"
                 },
                 "body": {
@@ -46922,6 +47024,13 @@
       "source": "DATE_TRUNC(date, MONTH) retains the original Date operand.",
       "value": "Return the first day of the month containing the original Date.",
       "demand": "Retain original eager child order, strict NULL, child failure, enclosing lazy demand, work and cancellation."
+    },
+    "current_date": {
+      "signature": "Zero operands and a non-null Date. SQL CURRENT_DATE and CURRENT_DATE() select the same closed current_date operation.",
+      "value": "Project the UTC calendar date of the original admitted QueryEvaluationTime used by current_timestamp.",
+      "demand": "Retain the original query-time dependency, lazy demand, absence behavior, value accounting and cancellation.",
+      "recovery": "Use the same retained original through lookup and cold recovery. No additional clock read or authority.",
+      "identity": "The closed source is {current_date:[]} and the closed machine node is {op:current_date,body:[]}."
     }
   },
   "regex_ast_contract": {

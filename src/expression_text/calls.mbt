@@ -54,7 +54,7 @@ fn Parser::call(
   token : Token,
 ) -> Node raise ExpressionError {
   let (minimum, maximum) = match name {
-    "current_timestamp" => (0, 0)
+    "current_timestamp" | "current_date" => (0, 0)
     "byte_length"
     | "octet_length"
     | "unicode"

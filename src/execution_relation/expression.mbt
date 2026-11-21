@@ -566,7 +566,8 @@ fn advance_expression_frame_impl(
           | Literal(_)
           | DateLiteral(_)
           | TypedNull
-          | CurrentTimestamp => true
+          | CurrentTimestamp
+          | CurrentDate => true
           Unary(_, _)
           | Array(_)
           | EmptyArray
@@ -626,16 +627,26 @@ fn advance_expression_frame_impl(
           }
           Literal(value) | DateLiteral(value) =>
             frame.state = Return(capture(value.value))
-          CurrentTimestamp => {
+          CurrentTimestamp | CurrentDate => {
             guard frame.query_time is Some(original) else {
               return Err({
                 kind: QueryEvaluationTimeUnavailable,
                 expression: expr,
               })
             }
-            frame.state = Return(
-              capture(@publication.query_evaluation_time_value(original).value),
-            )
+            let original = @publication.query_evaluation_time_value(original)
+            if body is CurrentDate {
+              guard original.value is @admitted.Timestamp(text) else {
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              match date_calendar_result(expr, text[:10].to_owned()) {
+                Ok(date) => frame.state = Return(date)
+                Err(issue) =>
+                  return Err({ kind: Scalar(issue), expression: expr, })
+              }
+            } else {
+              frame.state = Return(capture(original.value))
+            }
           }
           TypedNull => frame.state = Return(Null)
           Property(child, name, index) => {

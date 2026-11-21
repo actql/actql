@@ -34,6 +34,7 @@ pub enum ExpressionBody {
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
   CurrentTimestamp
+  CurrentDate
 }
 
 ///|
@@ -230,6 +231,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | DateLiteral(_)
     | TypedNull
     | CurrentTimestamp
+    | CurrentDate
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
@@ -350,6 +352,7 @@ fn expression_tag(
 ) -> Unit raise ExpressionStop {
   match tag {
     "current_timestamp"
+    | "current_date"
     | "field"
     | "literal"
     | "date_literal"
@@ -532,7 +535,8 @@ fn expression_children(
     | "typed_literal"
     | "field"
     | "$param"
-    | "current_timestamp" => []
+    | "current_timestamp"
+    | "current_date" => []
     "decimal_divide" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -1160,6 +1164,7 @@ fn lower_typed_expression_measured(
           Property(args[0], name, ordinal)
         }
         "current_timestamp" => CurrentTimestamp
+        "current_date" => CurrentDate
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -1465,7 +1470,8 @@ fn lower_typed_expression_measured(
           | DateLiteral(_)
           | TypedNull
           | EmptyArray
-          | CurrentTimestamp => false
+          | CurrentTimestamp
+          | CurrentDate => false
         },
       }
     }

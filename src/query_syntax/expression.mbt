@@ -899,6 +899,10 @@ fn ExpressionParser::expression(
                 frames.push(Argument(path, [], t.start, depth))
                 frames.push(Enter(1, depth + 1))
               }
+            } else if path is [{ value: name, quoted: false, }] &&
+              name.length() == 12 &&
+              upper_ascii(name) == "CURRENT_DATE" {
+              result = self.add(Call(path, []), t.start, t.end)
             } else {
               result = self.add(
                 Reference(path),

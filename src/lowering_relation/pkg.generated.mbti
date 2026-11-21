@@ -1355,6 +1355,7 @@ pub enum ExpressionBody {
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
   CurrentTimestamp
+  CurrentDate
 }
 
 pub struct ExpressionIssue {
