@@ -1019,3 +1019,11 @@ target/
 /scripts/release-vector-scalar-fixtures.d.mts
 /scripts/release-vector-scalar-fixtures.test.mjs
 /scripts/release-vector-scalar-fixtures.test.d.mts
+/scripts/fixtures/cte-value-table-receipts.mjs
+/scripts/fixtures/cte-value-table-receipts.d.mts
+/scripts/fixtures/vector-scalar-installed-source.mjs
+/scripts/fixtures/vector-scalar-installed-source.d.mts
+/scripts/fixtures/packed-vector-scalar-source.mjs
+/scripts/fixtures/packed-vector-scalar-source.d.mts
+/scripts/fixtures/release-vector-scalar-worker.mjs
+/scripts/fixtures/release-vector-scalar-worker.d.mts

@@ -6,14 +6,48 @@ import {mkdir, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {vectorScalarSourceRows, vectorScalarSourceSchema} from
   './vector-scalar-source-input.mjs';
+import type {createInstalledConnectorTable, InstalledConnectorTable} from '@actql/local-node';
+import type {
+  ConnectorRuntimeHandle, ConnectorRuntimeOwner, RowPageRequest, RowSourceDeclarationFacts,
+} from '@actql/local-node/connector-installation';
 
-const canonical = value => Array.isArray(value)
+// This fixture calls two generated JS exports. The constructor result is
+// opaque here and still passes through the installed checked() boundary.
+type VectorRuntimePort = {
+  clientProgramRowSourceRestoreRelationDeclaration(
+    connectorId: string, registration: string, revision: string, views: string, catalogCid: string | undefined,
+  ): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: ConnectorRuntimeHandle): string;
+};
+type Helpers = Pick<typeof import('@actql/local-node/connector-installation'),
+  'checked' | 'rowSourceCheckEnvironment' | 'installRowSourceAuthorization' |
+  'openRowSourceCredentialSite' | 'createInstalledRowSource' | 'retainInstalledHostInitializationFailure'>;
+type InstallationInputs = {
+  moon: ConnectorRuntimeOwner; helpers: Helpers;
+  createInstalledConnectorTable: typeof createInstalledConnectorTable;
+  directory: string;
+};
+type DeclarationData = RowSourceDeclarationFacts & {catalog_cid: string};
+type ViewData = {contract_cid: string; output: {schema: {cid: string}}};
+type Profile = Record<'version' | 'connectorId' | 'accountConfigurationWire', string>;
+type LoadInputs = {
+  root: string; principalId: string; moon: ConnectorRuntimeOwner;
+  baseEnvironmentWire: string; runtimeBundleCid: string;
+};
+type Observations = {
+  sourceIo: number; sourceReads: number; sourceReadSessions: number;
+  sourceReadCommands: {resource: string; columns: string[]; requestWire: string}[];
+  acceptedPages: number; issuedGrants: number; closedSites: number;
+};
+
+
+const canonical = (value: unknown): string | undefined => Array.isArray(value)
   ? '[' + value.map(canonical).join(',') + ']'
   : value !== null && typeof value === 'object'
     ? '{' + Object.keys(value).sort().map(key =>
-      JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+      JSON.stringify(key) + ':' + canonical((value as Record<string, unknown>)[key])).join(',') + '}'
     : JSON.stringify(value);
-const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+const cid = (value: unknown) => 'sha256:' + createHash('sha256').update(canonical(value)!).digest('hex');
 const registration = 'vector_fixture';
 const revision = 'vector_fixture/0.1';
 const operation = 'vector_fixture:vectors:read';
@@ -34,9 +68,9 @@ export const vectorScalarViewSpecification = Object.freeze({views: [{
   facts_wire: vectorScalarFactsWire,
 }]});
 
-export function createVectorScalarPageDriver(observations) {
+export function createVectorScalarPageDriver(observations: Observations) {
   return async ({resource, columns, requestWire, operation: selectedOperation,
-    signal, authorizationFor, chargePage, consumePage}) => {
+    signal, authorizationFor, chargePage, consumePage}: RowPageRequest & {requestWire: string}) => {
     signal?.throwIfAborted();
     assert.equal(resource, 'vectors');
     assert.equal(selectedOperation, operation);
@@ -55,7 +89,7 @@ export function createVectorScalarPageDriver(observations) {
     // One physical page of the original three rows. Selecting declared
     // columns is transport projection, never a Vector cast or evaluation.
     const rows = vectorScalarSourceRows.map(row => Object.fromEntries(
-      columns.map(name => [name, structuredClone(row[name])])));
+      columns.map(name => [name, structuredClone(row[name as keyof typeof row])])));
     const bytes = Buffer.from(JSON.stringify(rows));
     const charge = chargePage(bytes);
     await consumePage(rows, {charge});
@@ -64,31 +98,33 @@ export function createVectorScalarPageDriver(observations) {
 }
 
 export async function installVectorScalarFixture({moon, helpers,
-  createInstalledConnectorTable, directory}) {
+  createInstalledConnectorTable, directory}: InstallationInputs): Promise<{
+  connectorTable: InstalledConnectorTable; sourceProfilePath: string; observations: Observations;
+}> {
   assert.deepEqual(JSON.parse(vectorScalarSchemaWire), {
     ...vectorScalarSourceSchema,
     left_vector: {...vectorScalarSourceSchema.left_vector, element_type: 'f32'},
     right_vector: {...vectorScalarSourceSchema.right_vector, element_type: 'f32'},
   });
   await mkdir(directory, {recursive: true});
-  const declaration = helpers.checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-    registration, registration, revision, JSON.stringify(vectorScalarViewSpecification), undefined));
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const view = JSON.parse(declared.view_bodies[0]);
+  const declaration = helpers.checked((moon as VectorRuntimePort).clientProgramRowSourceRestoreRelationDeclaration(
+    registration, registration, revision, JSON.stringify(vectorScalarViewSpecification), undefined)) as ConnectorRuntimeHandle;
+  const declared = JSON.parse((moon as VectorRuntimePort).clientProgramRowSourceDeclarationJson(declaration)) as DeclarationData;
+  const view = JSON.parse(declared.view_bodies[0]) as ViewData;
   const accountConfigurationWire = canonical({
     version: 'actql-execution-account-config/0.1', account_id: 'vector-fixture',
     entries: [{entry_id: 'read', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true},
       operation: {any_of: ['read']}, exclusions: []}],
-  });
+  })!;
   const sourceProfilePath = join(directory, 'source-profile.json');
   await writeFile(sourceProfilePath, canonical({version, connectorId: registration,
     accountConfigurationWire, queryAliases: [{name: 'vectors', sourceRef: declared.views[0].source_ref,
-      sourceViewContractCid: view.contract_cid, schemaContractCid: view.output.schema.cid}]}), {flag: 'wx'});
-  const observations = {sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
+      sourceViewContractCid: view.contract_cid, schemaContractCid: view.output.schema.cid}]})!, {flag: 'wx'});
+  const observations: Observations = {sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
     sourceReadCommands: [], acceptedPages: 0, issuedGrants: 0, closedSites: 0};
   const profileKeys = ['accountConfigurationWire', 'connectorId', 'version'];
-  const check = profile => {
+  const check = (profile: Profile) => {
     assert.deepEqual(Object.keys(profile).sort(), profileKeys);
     assert.equal(profile.version, version);
     assert.equal(profile.connectorId, registration);
@@ -97,13 +133,13 @@ export async function installVectorScalarFixture({moon, helpers,
   };
   const module = {
     check,
-    identityParts: profile => [profile, vectorScalarViewSpecification],
-    async load(profile, {root, principalId, moon: installedMoon,
-      baseEnvironmentWire, runtimeBundleCid}) {
+    identityParts: (profile: Profile) => [profile, vectorScalarViewSpecification],
+    async load(profile: Profile, {root, principalId, moon: installedMoon,
+      baseEnvironmentWire, runtimeBundleCid}: LoadInputs) {
       check(profile);
-      const restored = helpers.checked(installedMoon.clientProgramRowSourceRestoreRelationDeclaration(
-        registration, registration, revision, JSON.stringify(vectorScalarViewSpecification), declared.catalog_cid));
-      const current = JSON.parse(installedMoon.clientProgramRowSourceDeclarationJson(restored));
+      const restored = helpers.checked((installedMoon as VectorRuntimePort).clientProgramRowSourceRestoreRelationDeclaration(
+        registration, registration, revision, JSON.stringify(vectorScalarViewSpecification), declared.catalog_cid)) as ConnectorRuntimeHandle;
+      const current = JSON.parse((installedMoon as VectorRuntimePort).clientProgramRowSourceDeclarationJson(restored)) as DeclarationData;
       const environment = helpers.rowSourceCheckEnvironment(baseEnvironmentWire, current);
       const authorization = await helpers.installRowSourceAuthorization({
         accountConfiguration: accountConfigurationWire, principalId, root,
@@ -123,11 +159,12 @@ export async function installVectorScalarFixture({moon, helpers,
         connectorRegistration: registration, connectorRevision: revision,
         runtimeBundleCid, commonMoon: installedMoon,
         resolveSecret: async () => { throw new Error('VectorFixtureHasNoRemoteSecret'); },
-        admitsApprovalTarget: binding => binding?.catalog_cid === current.catalog_cid &&
-          binding?.resource === 'vectors',
+        admitsApprovalTarget: binding =>
+          (binding as Record<string, unknown> | null | undefined)?.catalog_cid === current.catalog_cid &&
+          (binding as Record<string, unknown> | null | undefined)?.resource === 'vectors',
       });
       const observedSite = {...site,
-        issueReadGrant(options) {
+        issueReadGrant(options: Parameters<typeof site.issueReadGrant>[0]) {
           const grant = site.issueReadGrant(options);
           observations.issuedGrants++;
           return grant;
@@ -144,7 +181,9 @@ export async function installVectorScalarFixture({moon, helpers,
           bindingCid: cid({version: 'actql-vector-fixture-binding/0.1',
             contextCid: authorization.context.contextCid, catalogCid: current.catalog_cid}),
           limits: {maxPages: 1, maxPageBytes: 4096, maxPageRows: 3, maxCaptureRows: 3},
-          readPages: createVectorScalarPageDriver(observations)});
+          // The installed caller supplies requestWire along with RowPageRequest.
+          readPages: createVectorScalarPageDriver(observations) as
+            Parameters<typeof helpers.createInstalledRowSource>[0]['readPages']});
       } catch (cause) {
         throw await helpers.retainInstalledHostInitializationFailure(cause,
           {sourceProfile: observedSite});

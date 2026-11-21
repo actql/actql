@@ -5,6 +5,7 @@
       "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
       "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
       "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
+      "@actql/local-node/runtime": ["./scripts/fixtures/installed-common-runtime.d.ts"],
       "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
       "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
     },

@@ -8,6 +8,8 @@ import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {createServer} from 'node:https';
 import {connect} from '@actql/node';
+import type {NodeConnectionOptions} from '@actql/node';
+import type {AddressInfo} from 'node:net';
 import {createInstalledConnectorTable} from '@actql/local-node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import * as moon from '@actql/local-node/runtime';
@@ -21,38 +23,39 @@ import {encodeRetainedFixture} from './retained-fixture-values.mjs';
 import {requireCompleteInventory, transportWorker} from './packed-query-transport-owner.mjs';
 
 const mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
-assert.ok(['local', 'remote'].includes(mode));
+assert.ok(['local', 'remote'].includes(mode as string));
 const worker = transportWorker();
 const directory = resolve(`vector-state-${mode}`);
 const installed = await installVectorScalarFixture({moon, helpers,
   createInstalledConnectorTable, directory: resolve(`vector-installation-${mode}`)});
 const {connectorTable, sourceProfilePath, observations} = installed;
-const inventoryKey = (kind, index, item) => JSON.stringify(['vector-scalar', kind, index, item.name,
+const inventoryKey = (kind: 'successes' | 'refusals', index: number, item: {name: string}) => JSON.stringify(['vector-scalar', kind, index, item.name,
   createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]);
-const expectedInventory = ['successes', 'refusals'].flatMap(kind =>
+const expectedInventory = (['successes', 'refusals'] as const).flatMap(kind =>
   ({successes, refusals})[kind].map((item, index) => inventoryKey(kind, index, item)));
-const completedInventory = [];
-const receipts = createVerifiedCaseReceipts(mode, writeFile, {
+const completedInventory: string[] = [];
+const receipts = createVerifiedCaseReceipts(mode!, writeFile, {
   prefix: 'vector-scalar', version: 'actql-vector-scalar-acceptance/0.1',
 });
 const observe = () => {
   const journal = new DatabaseSync(join(directory, 'requests', 'client-requests.sqlite3'), {readOnly: true});
   try {
     return {...observations, acceptedRuns: journal.prepare(
-      'SELECT COUNT(*) AS count FROM client_requests').get().count};
+      'SELECT COUNT(*) AS count FROM client_requests').get()!.count as number};
   } finally { journal.close(); }
 };
-let primary;
-let host, server;
+let primary: unknown;
+let host: Awaited<ReturnType<typeof openInstalledRemoteHttpHost>> | undefined,
+  server: ReturnType<typeof createServer> | undefined;
 try {
   const installation = {directory, sourceProfilePath, connectorTable};
-  let options = {mode: 'local', owner: 'local', durability: 'durable', installation};
+  let options: NodeConnectionOptions = {mode: 'local', owner: 'local', durability: 'durable', installation};
   if (mode === 'remote') {
     host = await openInstalledRemoteHttpHost({...installation,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer({key: await readFile('remote.key'), cert: await readFile('remote.crt')}, host.handler);
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    options = {mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+    await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve));
+    options = {mode: 'remote', endpoint: `https://127.0.0.1:${(server.address() as AddressInfo).port}/`,
       token: 'fixture-token', durability: 'durable'};
   }
   await exercisePublicQueryInput(connect, options, {
@@ -80,7 +83,7 @@ try {
 } finally {
   if (server !== undefined) {
     server.closeAllConnections();
-    await new Promise(resolve => server.close(resolve));
+    await new Promise<Error | undefined>(resolve => server!.close(resolve));
   }
   try { await host?.close(); } catch (error) { primary ??= error; }
   if (primary === undefined && observations.closedSites !== 1) {
@@ -92,7 +95,7 @@ try {
     needsTail: false, complete: primary === undefined,
     actualNormal: completedInventory.filter(key => JSON.parse(key)[1] === 'successes').length,
     actualRefusal: completedInventory.filter(key => JSON.parse(key)[1] === 'refusals').length,
-    observations, primaryError: primary?.message}) + '\n');
+    observations, primaryError: (primary as {message?: string} | null | undefined)?.message}) + '\n');
   await writeFile(`retained-cohort-results.${mode}.json`, encodeRetainedFixture([]));
 }
 if (primary !== undefined) throw primary;
