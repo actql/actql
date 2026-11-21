@@ -1,6 +1,6 @@
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
 import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView,
-  WireExplanationContext, WireStaticExplanationView} from '@actql/client-wire';
+  WireExplanationContext, WireStaticExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
 
 export class ExplorerReadError extends Error { readonly code: string }
 export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
@@ -79,6 +79,14 @@ export type OriginalRunPresentationReadModel = Readonly<{
 export function readExistingRunPresentation(client: Pick<Client, 'attach'>,
   ref: RunReference, options: {locale?: 'en' | 'ja'} | undefined,
   ticket: ReadTicket): Promise<OriginalRunPresentationReadModel>;
+export type SavedExplanationReadModel = Readonly<{
+  runRef: RunReference; plan: PlanReadModel;
+  explanation: Readonly<{state: 'projected'}> & Pick<StaticExplanationReadModel, 'story' | 'context'>;
+}> | Readonly<{runRef: RunReference; plan: null;
+  explanation: Extract<WireRunExplanationContextView['explanation'], {state: 'not_projected'}>}>;
+export function readExistingRunContext(client: Pick<Client, 'attach'>,
+  ref: RunReference, presentation: StaticExplanationPresentation,
+  ticket: ReadTicket): Promise<SavedExplanationReadModel>;
 export type OriginalRunStoryReadModel = Readonly<{
   runRef: RunReference; story: PlanStoryModel;
 }>;

@@ -25,6 +25,13 @@ async function jsonReply(response) {
   catch {refused('ExplorerInvalidReply');}
 }
 
+function validNarrative(plan, story, context, locale) {
+  return typeof plan?.logicalMapCid === 'string' && plan.logicalMapCid === story?.logicalMapCid &&
+    plan.compiledPlanCid === story.compiledPlanCid && plan.programDefinitionCid === story.programDefinitionCid &&
+    story.locale === locale && Array.isArray(story.occurrences) && Array.isArray(context) &&
+    context.every(item => typeof item?.text === 'string' && item.origin != null);
+}
+
 // A browser session holds only Gateway presentation credentials in memory.
 // It contains no Host token and conveys no durable execution permission.
 export function createExplorerBrowserSource({origin, fetch: send = globalThis.fetch,
@@ -94,10 +101,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       if (locale !== 'en' && locale !== 'ja') refused('ExplorerInvalidReply');
       const value = await read('static-explanation', {input, locale, ...(options === undefined ? {} : {options})});
       const {plan, story, context} = value ?? {};
-      if (typeof plan?.logicalMapCid !== 'string' || plan.logicalMapCid !== story?.logicalMapCid ||
-          plan.compiledPlanCid !== story.compiledPlanCid || plan.programDefinitionCid !== story.programDefinitionCid ||
-          story.locale !== locale || !Array.isArray(story.occurrences) || !Array.isArray(context) ||
-          context.some(item => typeof item?.text !== 'string' || item.origin == null)) refused('ExplorerInvalidReply');
+      if (!validNarrative(plan, story, context, locale)) refused('ExplorerInvalidReply');
       return value;
     },
     async launchView() {
@@ -120,6 +124,24 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           value.run_ref.namespaceId !== original.namespaceId ||
           value.run_ref.authorityScopeCid !== original.authorityScopeCid ||
           value.run_ref.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      return value;
+    },
+    async runContext(ref, locale = 'en') {
+      const original = Object.freeze({...ref});
+      if (!validRunRef(original) || (locale !== 'en' && locale !== 'ja')) refused('ExplorerInvalidReply');
+      const value = await read('run-explanation-context', {ref: original, locale});
+      if (!validRunRef(value?.runRef) || Object.keys(value).length !== 3 ||
+          value.runRef.namespaceId !== original.namespaceId ||
+          value.runRef.authorityScopeCid !== original.authorityScopeCid ||
+          value.runRef.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      const {plan, explanation} = value;
+      if (explanation?.state === 'projected') {
+        if (Object.keys(explanation).length !== 3 ||
+            !validNarrative(plan, explanation.story, explanation.context, locale)) refused('ExplorerInvalidReply');
+      } else if (plan !== null || explanation?.state !== 'not_projected' ||
+          explanation.reason !== 'not_retained' || Object.keys(explanation).length !== 2) {
+        refused('ExplorerInvalidReply');
+      }
       return value;
     },
     async runPresentation(ref, options) {

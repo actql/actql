@@ -5,7 +5,7 @@ import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {canonicalJson} from '@actql/sdk/host-port';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
-  readExistingRunExplanation, readExistingRunPresentation, readStaticPlan,
+  readExistingRunExplanation, readExistingRunPresentation, readExistingRunContext, readStaticPlan,
   readStaticExplanation} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
@@ -26,6 +26,12 @@ const exact = (value, required, optional = []) => value !== null &&
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => [...required, ...optional].includes(key));
 const fail = (code, status = 400) => {throw Object.assign(new Error(code), {code, status});};
+async function loadExplanationRenderer(ticket) {
+  const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+  ticket.assertCurrent();
+  return (view, locale) => renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
+}
+
 function jsonShape(value) {
   const pending = [[value, 0]]; let count = 0;
   while (pending.length) {
@@ -239,11 +245,9 @@ export function createExplorerGateway({client, origin, assets = new Map(),
             data = await readStaticPlan(client, body.input, body.options ?? {}, ticket);
           } else {
             if (typeof client.explain !== 'function') fail('ExplorerCapabilityUnavailable', 404);
-            const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
-            ticket.assertCurrent();
-            data = await readStaticExplanation(client, body.input, body.options ?? {}, {locale: body.locale,
-              render(view, locale) {return renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);},
-            }, ticket);
+            const render = await loadExplanationRenderer(ticket);
+            data = await readStaticExplanation(client, body.input, body.options ?? {},
+              {locale: body.locale, render}, ticket);
           }
           break;
         case 'run':
@@ -262,6 +266,13 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunExplanation(client, body.ref, ticket);
           break;
+        case 'run-explanation-context': {
+          if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunContext(client, body.ref, {locale: body.locale, render}, ticket);
+          break;
+        }
         case 'run-presentation':
           if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
               body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');

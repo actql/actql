@@ -31164,7 +31164,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "checkedContext(original, view.facts, view.context);"
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
             "ownership": [
@@ -31274,7 +31274,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "checkedContext(original, view.facts, view.context);"
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
             "ownership": [

@@ -1,5 +1,5 @@
 import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
-import {validWireRunExplanationViewShape, validWireStaticExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
+import {validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -348,7 +348,7 @@ function sameDeclaration(actual, expected) {
     Object.hasOwn(expected, name) && sameDeclaration(actual[name], expected[name]));
 }
 
-function checkedContext(story, facts, context) {
+function checkedContext(story, facts, context, saved) {
   const binding = context.binding;
   const effects = story.declaredEffects;
   if (binding.compiled_plan_cid !== story.compiledPlanCid || binding.logical_map_cid !== story.logicalMapCid ||
@@ -372,9 +372,12 @@ function checkedContext(story, facts, context) {
           !ports.every((port, index) => sameDeclaration(port, item.consuming_ports[index]))) refuse('ExplorerInvalidExplanation');
       sources.add(key);
     } else if (item.kind === 'effect_set') {
-      if (sawEffects || effects === undefined || item.unit_id !== effects.unitId ||
+      // A Saved reply carries the computation map and the committed Effect
+      // declarations in Context. A static reply also carries the separate
+      // Effect set, against which every declaration must still agree.
+      if (sawEffects || !saved && (effects === undefined || item.unit_id !== effects.unitId ||
           item.members.length !== effects.members.length || !item.members.every((member, index) =>
-            sameDeclaration(member.declaration, effects.members[index]))) refuse('ExplorerInvalidExplanation');
+            sameDeclaration(member.declaration, effects.members[index])))) refuse('ExplorerInvalidExplanation');
       sawEffects = true;
     } else if (item.producer.state === 'projected') {
       const {step_id, port_id} = item.producer, step = steps.get(step_id);
@@ -382,7 +385,7 @@ function checkedContext(story, facts, context) {
           item.kind === 'model_task' && step.operator !== 'infer') refuse('ExplorerInvalidExplanation');
     }
   }
-  if (sawEffects !== (effects !== undefined)) refuse('ExplorerInvalidExplanation');
+  if (!saved && sawEffects !== (effects !== undefined)) refuse('ExplorerInvalidExplanation');
 }
 
 // The public SDK is the disclosure boundary. These checks prevent mixing
@@ -391,9 +394,13 @@ export function staticExplanationReadModel(view, {locale = 'en', render}) {
   if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
   if (!withinResultDescriptionLimits(view, projectionLimits)) refuse('ExplorerExplanationLimit');
   if (!validWireStaticExplanationViewShape(view)) refuse('ExplorerInvalidExplanation');
+  return explanationContextReadModel(view, locale, render, false);
+}
+
+function explanationContextReadModel(view, locale, render, saved) {
   const plan = planReadModel(view.plan), original = planStory(view.plan, plan, locale);
   checkExplanationFacts(original, view.facts);
-  checkedContext(original, view.facts, view.context);
+  checkedContext(original, view.facts, view.context, saved);
   const narrative = render(view, locale);
   if (!Array.isArray(narrative?.steps) || narrative.steps.length !== view.facts.steps.length ||
       !Array.isArray(narrative.context) || narrative.context.length !== view.context.items.length) {
@@ -404,7 +411,9 @@ export function staticExplanationReadModel(view, {locale = 'en', render}) {
     if (typeof line !== 'string') refuse('ExplorerInvalidExplanation');
     if ((characters += line.length) > explanationLimits.characters) refuse('ExplorerExplanationLimit');
   }
-  const story = attachExplanationFacts(original, view.facts, index => narrative.steps[index]);
+  const scope = saved && view.context.items.some(item => item.kind === 'effect_set')
+    ? 'computation_component' : original.scope;
+  const story = attachExplanationFacts({...original, scope}, view.facts, index => narrative.steps[index]);
   return freeze({plan, story, context: view.context.items.map((item, index) =>
     ({origin: structuredClone(item), text: narrative.context[index]}))});
 }
@@ -552,6 +561,31 @@ export async function readExistingRunPresentation(client, ref, options, ticket) 
   const plan = planReadModel(view.plan_view);
   ticket.assertCurrent();
   return freeze({runRef: original, plan, explanation: {state: 'projected', story}});
+}
+
+// One authorized read of the attached execution supplies every Saved
+// presentation original, including the immutable computation map.
+export async function readExistingRunContext(client, ref, {locale = 'en', render}, ticket) {
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
+  const run = await currentRead(ticket, () => client.attach(original));
+  const view = await currentRead(ticket, () => {
+    if (typeof run.explainContext !== 'function') refuse('ExplorerCapabilityUnavailable');
+    return run.explainContext(projectionLimits);
+  });
+  if (!withinResultDescriptionLimits(view, projectionLimits) ||
+      !validWireRunExplanationContextViewShape(view) ||
+      view.run_ref.namespaceId !== original.namespaceId ||
+      view.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+      view.run_ref.runDefinitionCid !== original.runDefinitionCid) refuse('ExplorerInvalidExplanation');
+  ticket.assertCurrent();
+  if (view.explanation.state === 'not_projected') {
+    return freeze({runRef: original, plan: null, explanation: view.explanation});
+  }
+  const {plan, story, context} = explanationContextReadModel(view.explanation.view, locale, render, true);
+  ticket.assertCurrent();
+  return freeze({runRef: original, plan, explanation: {state: 'projected', story, context}});
 }
 
 // Capture presentation options before the first asynchronous read, then use

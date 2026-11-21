@@ -216,6 +216,23 @@ test('installed Saved Context uses the retained original after Host close and re
     assert.deepEqual(await saved.explainContext(), warm);
     phase = 'cold legacy Facts';
     assert.deepEqual((await saved.explain()).explanation.facts, facts);
+    phase = 'cold Explorer Saved Context';
+    const {harness} = await import('../../packages/explorer/gateway-test.fixture.mjs');
+    const explorer = harness({client});
+    try {
+      const session = await explorer.connect();
+      const response = await explorer.read('run-explanation-context', {ref, locale: 'ja'}, session);
+      assert.equal(response.status, 200);
+      const {data} = await response.json();
+      assert.deepEqual(data.runRef, ref);
+      assert.equal(data.explanation.state, 'projected');
+      assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
+      assert.equal(data.explanation.story.factsCid, facts.self_cid);
+      assert.equal(data.explanation.story.scope, 'computation_component');
+      assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+      assert.match(data.explanation.context.find(item => item.origin.kind === 'model_task').text,
+        /を各入力行に適用/u);
+    } finally {await explorer.gateway.close();}
     await setImmediate();
     assert.deepEqual(originalAttempts(), attempts);
     assert.deepEqual(await readFile('mock/data.json'), before);

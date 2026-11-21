@@ -32,6 +32,13 @@ if (explanation.explanation.state === 'not_projected') {
 // @ts-expect-error The explanation read never supplies execution/control options.
 await browser.explain(ref, {stopOnEntry: true});
 void explanationRef;
+const saved = await browser.runContext(ref, 'ja');
+if (saved.explanation.state === 'projected') {
+  const text: string = saved.explanation.context[0].text;
+  void text;
+}
+// @ts-expect-error The Saved view has only the selected original and locale.
+await browser.runContext(ref, {restart: true});
 const presentation = await browser.runPresentation(ref, {locale: 'ja'});
 if (presentation.explanation.state === 'projected') {
   const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;

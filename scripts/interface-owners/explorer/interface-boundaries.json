@@ -2400,7 +2400,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "68f7d6631b5fbdb2dcda986c2c2c58305a4626b11dad4727655d6d0acd3c18e7",
+      "sha256": "ba0d28027d163fcca52e1b7fa208bf189c6b649e973b19bb7e8556cdafb0adab",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2410,6 +2410,7 @@
         "PlanReadModel",
         "PlanStoryModel",
         "ReadTicket",
+        "SavedExplanationReadModel",
         "StaticExplanationReadModel",
         "createReadEpoch",
         "describeExistingResult",
@@ -2418,6 +2419,7 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunContext",
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
@@ -2489,6 +2491,16 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<WireRunView>"
+        },
+        {
+          "name": "readExistingRunContext",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "presentation: StaticExplanationPresentation",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<SavedExplanationReadModel>"
         },
         {
           "name": "readExistingRunExplanation",
@@ -2793,11 +2805,14 @@
         },
         {
           "operations": [
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext"
           ],
           "exports": [
             "OriginalRunPresentationReadModel",
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext",
+            "SavedExplanationReadModel"
           ],
           "attributes": {
             "responsibility": [
@@ -2862,6 +2877,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
@@ -2949,7 +2968,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a5422f60785e18c130493eb7fa21d8df1a7a48e0e04bdc86ce991978738e45c3",
+      "sha256": "17b4233a00e23e997b2f7609f452cfa1c8534911e6bb08c829ab6be08efad9e6",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -2959,6 +2978,7 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunContext",
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
@@ -3052,6 +3072,28 @@
         {
           "name": "describeExistingResult/run/run",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "explanationContextReadModel/explanationContextReadModel",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationContextReadModel/scope/scope",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationContextReadModel/story/story",
+          "parameters": [
+            "index"
+          ],
           "async": false
         },
         {
@@ -3158,6 +3200,27 @@
         },
         {
           "name": "readExistingRun/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunContext",
+          "parameters": [
+            "client",
+            "ref",
+            "locale",
+            "render",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readExistingRunContext/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunContext/view/view",
           "parameters": [],
           "async": false
         },
@@ -3269,21 +3332,6 @@
             "view",
             "locale",
             "render"
-          ],
-          "async": false
-        },
-        {
-          "name": "staticExplanationReadModel/staticExplanationReadModel",
-          "parameters": [
-            "item",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "staticExplanationReadModel/story/story",
-          "parameters": [
-            "index"
           ],
           "async": false
         },
@@ -3570,10 +3618,14 @@
             "originalRunExplanationOnExecution/view/view",
             "originalRunPlanOnExecution/view/view",
             "readExistingRunPresentation",
-            "readExistingRunPresentation/run/run"
+            "readExistingRunPresentation/run/run",
+            "readExistingRunContext",
+            "readExistingRunContext/run/run",
+            "readExistingRunContext/view/view"
           ],
           "exports": [
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext"
           ],
           "attributes": {
             "responsibility": [
@@ -3638,6 +3690,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
@@ -3653,8 +3709,9 @@
             "readStaticExplanation/readStaticExplanation",
             "sameDeclaration/sameDeclaration",
             "staticExplanationReadModel",
-            "staticExplanationReadModel/staticExplanationReadModel",
-            "staticExplanationReadModel/story/story"
+            "explanationContextReadModel/explanationContextReadModel",
+            "explanationContextReadModel/scope/scope",
+            "explanationContextReadModel/story/story"
           ],
           "exports": [
             "readStaticExplanation",
@@ -4909,7 +4966,7 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f448e6d1767c79e532f1bbed40853b214e9a86d667480e061bcaf8707abfcfd9",
+      "sha256": "dd281955fa24c2f3d5294f2eb5de06f80133c45ce1764cc0779ea4c21bee18fb",
       "exports": [
         "ExplorerCapabilities",
         "createExplorerBrowserSource"
@@ -4920,7 +4977,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -5006,6 +5063,14 @@
             "checkpoint:ReviewReference"
           ],
           "result": "Promise<ReviewObservation>"
+        },
+        {
+          "name": "createExplorerBrowserSource/runContext",
+          "parameters": [
+            "ref: RunReference",
+            "locale?: 'en' | 'ja'"
+          ],
+          "result": "Promise<SavedExplanationReadModel>"
         },
         {
           "name": "createExplorerBrowserSource/runPlan",
@@ -5236,7 +5301,8 @@
         },
         {
           "operations": [
-            "createExplorerBrowserSource/runPresentation"
+            "createExplorerBrowserSource/runPresentation",
+            "createExplorerBrowserSource/runContext"
           ],
           "exports": [],
           "attributes": {
@@ -5302,6 +5368,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
@@ -5383,7 +5453,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "88b4d2dc1f5c600c1cc45576c45527b0b6adf047c9e982619cf09af55b393dfe",
+      "sha256": "3dbc895420a0beed5af89c1935c1a496f243c6a13660be9a02c04d00bdf350c1",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -5473,6 +5543,14 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:runContext/init:runContext",
+          "parameters": [
+            "ref",
+            "locale"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:runPlan/init:runPlan",
           "parameters": [
             "ref"
@@ -5497,13 +5575,6 @@
           "async": true
         },
         {
-          "name": "createExplorerBrowserSource/init:staticExplanation/init:staticExplanation/init:staticExplanation",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
           "name": "createExplorerBrowserSource/invalidate/invalidate",
           "parameters": [],
           "async": false
@@ -5511,6 +5582,13 @@
         {
           "name": "jsonReply/jsonReply",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "validNarrative/validNarrative",
+          "parameters": [
+            "item"
+          ],
           "async": false
         }
       ],
@@ -5716,7 +5794,8 @@
         },
         {
           "operations": [
-            "createExplorerBrowserSource/init:runPresentation/init:runPresentation"
+            "createExplorerBrowserSource/init:runPresentation/init:runPresentation",
+            "createExplorerBrowserSource/init:runContext/init:runContext"
           ],
           "exports": [],
           "attributes": {
@@ -5782,6 +5861,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
@@ -5789,7 +5872,7 @@
         {
           "operations": [
             "createExplorerBrowserSource/init:staticExplanation/init:staticExplanation",
-            "createExplorerBrowserSource/init:staticExplanation/init:staticExplanation/init:staticExplanation"
+            "validNarrative/validNarrative"
           ],
           "exports": [],
           "attributes": {
@@ -6669,7 +6752,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bcf97edc3f472701bddbfac2b13e65647571b61fbf6c1bba783204efd1653b7a",
+      "sha256": "85e107e7a66db96293c748907fbf096f8fe9c04e7ac048e2292925f536fe3fda",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -6729,14 +6812,6 @@
           "name": "createExplorerGateway/createExplorerGateway/read/read",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "createExplorerGateway/createExplorerGateway/read/read/init:render/init:render",
-          "parameters": [
-            "view",
-            "locale"
-          ],
-          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway/settled/settled",
@@ -6813,6 +6888,14 @@
           "name": "exact/exact/exact#2",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadExplanationRenderer/loadExplanationRenderer",
+          "parameters": [
+            "view",
+            "locale"
           ],
           "async": false
         },
@@ -6941,7 +7024,6 @@
             "createExplorerGateway/createExplorerGateway/matches/matches",
             "createExplorerGateway/createExplorerGateway/matches/matches#2",
             "createExplorerGateway/createExplorerGateway/read/read",
-            "createExplorerGateway/createExplorerGateway/read/read/init:render/init:render",
             "createExplorerGateway/createExplorerGateway/settled/settled",
             "createExplorerGateway/createExplorerGateway/ticket/init:assertCurrent/init:assertCurrent",
             "createExplorerGateway/init:close/init:close",
@@ -6964,7 +7046,8 @@
             "startExplorerGateway/init:close/init:close/socket/socket/socket",
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
-            "startExplorerGateway/startExplorerGateway#2"
+            "startExplorerGateway/startExplorerGateway#2",
+            "loadExplanationRenderer/loadExplanationRenderer"
           ],
           "exports": [
             "createExplorerGateway",
@@ -7114,6 +7197,10 @@
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
