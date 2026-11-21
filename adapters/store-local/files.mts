@@ -544,3 +544,4 @@ export async function createLocalRetainedStore(options: StoreConfiguration) {
 export type LocalRetainedStore = Awaited<ReturnType<typeof createLocalRetainedStore>>;
 type SealedBody = Awaited<ReturnType<ReturnType<LocalRetainedStore['reserve']>['seal']>>;
 export type DelegatedReadLease = ReturnType<SealedBody['delegateRead']>['descriptor'];
+export type DelegatedWriteLease = ReturnType<ReturnType<LocalRetainedStore['reserve']>['delegate']>;

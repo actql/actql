@@ -1009,7 +1009,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/delegated-file.mjs",
+                "path": "adapters/store-local/delegated-file.mts",
                 "anchor": "openDelegatedFile"
               },
               {
@@ -1226,7 +1226,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/direct-file.mjs",
+                "path": "adapters/store-local/direct-file.mts",
                 "anchor": "withVerifiedDelegatedFile"
               },
               {
@@ -3737,7 +3737,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "Execution-side lease on a control-owned Store"
               }
             ],
@@ -3753,37 +3753,37 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "ForeignStoreSession"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "never the independent\n// parent holding"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "command: 'release-sealed'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "ForeignStoreReleaseReport"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "not proof that an external writer stopped"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "reservedBytes"
               }
             ],
@@ -3988,13 +3988,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "Execution-side lease on a control-owned Store"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "createProcessStoreLease"
               },
               {
@@ -4004,37 +4004,37 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "ForeignStoreSession"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "never the independent\n// parent holding"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "command: 'release-sealed'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "ForeignStoreReleaseReport"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "not proof that an external writer stopped"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "reservedBytes"
               }
             ],

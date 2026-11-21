@@ -1095,3 +1095,11 @@ target/
 /adapters/store-local/files.test.d.mts
 /adapters/host-node/completion-custody.test.mjs
 /adapters/host-node/completion-custody.test.d.mts
+/adapters/store-local/delegated-file.mjs
+/adapters/store-local/delegated-file.d.mts
+/adapters/store-local/direct-file.mjs
+/adapters/store-local/direct-file.d.mts
+/adapters/store-local/process-service.mjs
+/adapters/store-local/process-service.d.mts
+/adapters/store-local/process-client.mjs
+/adapters/store-local/process-client.d.mts

@@ -4,12 +4,13 @@ import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { RetainedFileError } from './files.mjs';
+import type { DelegatedWriteLease } from './files.mjs';
 
-const fail = code => { throw new RetainedFileError(code); };
-const quantity = n => Number.isSafeInteger(n) && n >= 0;
+const fail: (code: string) => never = code => { throw new RetainedFileError(code); };
+const quantity = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
 
-export async function openDelegatedFile(supplied, signal) {
-  const lease = Object.freeze({ ...supplied });
+export async function openDelegatedFile(supplied: unknown, signal?: AbortSignal) {
+  const lease = Object.freeze({ ...supplied as DelegatedWriteLease });
   if (lease.version !== 'actql-local-file/0.1' ||
       typeof lease.session !== 'string' || !lease.session.length || lease.session.length > 256 ||
       typeof lease.token !== 'string' || !/^[a-f0-9-]{36}$/.test(lease.token) ||
@@ -34,12 +35,12 @@ export async function openDelegatedFile(supplied, signal) {
     if (!state.isFile() || state.dev !== lease.device || state.ino !== lease.inode || state.size !== 0) fail('ForeignStoreFile');
     signal?.throwIfAborted();
   } catch (error) { await close(); throw error; }
-  const append = async (frame, binary = false) => {
+  const append = async (frame: unknown, binary = false) => {
     active();
     if (binary ? !(frame instanceof Uint8Array) : typeof frame !== 'string') fail('InvalidStoreFrame');
-    const size = binary ? frame.byteLength : Buffer.byteLength(frame, 'utf8');
+    const size = binary ? (frame as Uint8Array).byteLength : Buffer.byteLength(frame as string, 'utf8');
     if (size > lease.maxFrameBytes || size > lease.maxBytes - bytes) fail('StoreCapacity');
-    const buffer = binary ? Buffer.from(frame) : Buffer.from(frame, 'utf8');
+    const buffer = binary ? Buffer.from(frame as Uint8Array) : Buffer.from(frame as string, 'utf8');
     busy = true;
     try {
       let offset = 0;
@@ -55,8 +56,8 @@ export async function openDelegatedFile(supplied, signal) {
     finally { busy = false; }
   };
   return Object.freeze({
-    append: text => append(text),
-    appendBytes: bytes => append(bytes, true),
+    append: (text: unknown) => append(text),
+    appendBytes: (bytes: unknown) => append(bytes, true),
     async seal() {
       active();
       busy = true;

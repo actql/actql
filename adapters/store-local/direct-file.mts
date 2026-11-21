@@ -5,12 +5,17 @@ import {open, lstat} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {RetainedFileError} from './files.mjs';
+import type {DelegatedReadLease} from './files.mjs';
+import type {BigIntStats} from 'node:fs';
 
-const fail = code => { throw new RetainedFileError(code); };
-const quantity = value => Number.isSafeInteger(value) && value >= 0;
+type ReadFile = Readonly<Pick<DelegatedReadLease, 'path' | 'bytes'>>;
 
-export async function withVerifiedDelegatedFile(supplied, use, signal, beforeRead) {
-  const lease = Object.freeze({...supplied});
+const fail: (code: string) => never = code => { throw new RetainedFileError(code); };
+const quantity = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+
+export async function withVerifiedDelegatedFile<Value>(supplied: unknown, use: (file: ReadFile) => Value,
+  signal?: AbortSignal, beforeRead?: (bytes: number) => unknown) {
+  const lease = Object.freeze({...supplied as DelegatedReadLease});
   if (lease.version !== 'actql-local-file-read/0.1' ||
       typeof lease.session !== 'string' || !lease.session.length || lease.session.length > 256 ||
       typeof lease.token !== 'string' || !/^[a-f0-9-]{36}$/.test(lease.token) ||
@@ -28,7 +33,7 @@ export async function withVerifiedDelegatedFile(supplied, use, signal, beforeRea
   const fd = await open(lease.path, constants.O_RDONLY | constants.O_NOFOLLOW);
   let value;
   try {
-    const check = state => {
+    const check = (state: BigIntStats) => {
       if (!state.isFile() || state.dev !== BigInt(lease.device) ||
           state.ino !== BigInt(lease.inode) || state.size !== BigInt(lease.bytes)) fail('ForeignStoreFile');
     };

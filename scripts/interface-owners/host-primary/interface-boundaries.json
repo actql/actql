@@ -33886,7 +33886,7 @@
                 "anchor": "Neither operation establishes a logical content"
               },
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "Execution-side lease"
               }
             ],
@@ -33970,7 +33970,7 @@
                 "anchor": "Neither operation establishes a logical content"
               },
               {
-                "path": "adapters/store-local/process-client.mjs",
+                "path": "adapters/store-local/process-client.mts",
                 "anchor": "Execution-side lease"
               }
             ],
