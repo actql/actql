@@ -1,12 +1,47 @@
 // Failure settlement for synchronous managed implementations. A returned
 // Promise and a stopped representation reader are different facts: reservation
 // settlement waits for the latter, while close is attempted immediately.
+import type {SynchronousResultCheck, SynchronousRuntimeData} from './runtime-result.mjs';
+
+type SynchronousAction = () => SynchronousRuntimeData;
+type UncheckedCleanupHandle = Readonly<{status(): unknown; retry(): unknown}>;
+export type ManagedFailureOperations = Readonly<{
+  close: SynchronousAction;
+  settle: SynchronousAction;
+  cleanup_refresh?: SynchronousAction;
+  cleanup_local_continuation?: SynchronousAction;
+}>;
+type CleanupDiagnostic = Readonly<{
+  owner: 'local_managed' | 'managed_operations';
+  phase: string;
+  continuation: 'unavailable' | 'blocked' | 'runnable';
+}>;
+export type ManagedCleanupStatus = Readonly<{
+  pending: boolean;
+  errors: readonly unknown[];
+  cleanupDiagnostic?: CleanupDiagnostic;
+}>;
+type FailureEvidence = Error & {
+  code: string;
+  primaryFailure: unknown;
+  primaryDiagnostic?: unknown;
+  cleanupErrors: readonly unknown[];
+};
+export type ManagedFailure = FailureEvidence & {
+  cleanupPending: boolean;
+  cleanupDiagnostic?: CleanupDiagnostic;
+  cleanupHandle: Readonly<{status(): ManagedCleanupStatus; retry(): Promise<ManagedCleanupStatus>}>;
+};
+type AdditionalCleanup = Readonly<{close?: SynchronousAction; cleanupHandle?: unknown}>;
+
+declare const progressOwnerBrand: unique symbol;
+export type ManagedFailureProgress = Readonly<{[progressOwnerBrand]: true}>;
 
 // Private cleanup lists have two positional diagnostic roles: the first
 // refusal and the latest refusal. Throwable identity includes primitives and
 // undefined; equality or a status snapshot is never a retirement witness.
 // This mutates only diagnostics, not the original cleanup/progress owner.
-export function retainFirstAndLatestCleanupError(errors, error, retainedPrefix = 0) {
+export function retainFirstAndLatestCleanupError<Value>(errors: Value[], error: Value, retainedPrefix = 0) {
   // A caller may already retain a finite initial diagnostic for each original
   // child. Preserve that prefix; only this owner's subsequent retry tail has
   // first/latest roles. The prefix is captured once, not recomputed per retry.
@@ -14,20 +49,20 @@ export function retainFirstAndLatestCleanupError(errors, error, retainedPrefix =
   else errors[retainedPrefix + 1] = error;
 }
 
-const member = (value, name) => {
+const member = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
 
-const cleanupState = (handle, required = false) => {
+const cleanupState = (handle: unknown, required = false) => {
   if (!handle || typeof member(handle, 'status') !== 'function') {
     return {pending: required, errors: []};
   }
   try {
-    const state = handle.status();
+    const state = (handle as UncheckedCleanupHandle).status() as {pending?: unknown; errors?: unknown} | undefined;
     return state && typeof state.pending === 'boolean'
       ? {pending: state.pending,
         errors: Array.isArray(state.errors) ? [...state.errors] : []}
@@ -35,30 +70,30 @@ const cleanupState = (handle, required = false) => {
   } catch (error) { return {pending: true, errors: [error]}; }
 };
 
-function ownedFailure(reason, fallbackCode) {
+function ownedFailure(reason: unknown, fallbackCode: string) {
   const code = typeof member(reason, 'code') === 'string'
-    ? member(reason, 'code') : fallbackCode;
+    ? member(reason, 'code') as string : fallbackCode;
   const hasPrimary = reason !== null &&
     (typeof reason === 'object' || typeof reason === 'function') &&
     Object.hasOwn(reason, 'primaryFailure');
   const primary = hasPrimary ? member(reason, 'primaryFailure') : reason;
-  const failure = new Error(code, {cause: primary});
+  const failure = new Error(code, {cause: primary}) as FailureEvidence;
   if (typeof member(primary, 'name') === 'string') {
-    failure.name = member(primary, 'name');
+    failure.name = member(primary, 'name') as string;
   }
   failure.code = code;
   failure.primaryFailure = primary;
   // Keep immutable diagnostic DATA through this existing ownership wrapper.
   // The receiving public codec validates fields; never invoke an accessor.
   try {
-    const diagnostic = Object.getOwnPropertyDescriptor(reason, 'primaryDiagnostic');
+    const diagnostic = Object.getOwnPropertyDescriptor(reason as object, 'primaryDiagnostic');
     if (diagnostic !== undefined && Object.hasOwn(diagnostic, 'value')) {
       failure.primaryDiagnostic = diagnostic.value;
     }
   } catch { /* A primitive or unavailable diagnostic leaves the original intact. */ }
   failure.cleanupErrors = Object.freeze(
     Array.isArray(member(reason, 'cleanupErrors'))
-      ? [...member(reason, 'cleanupErrors')]
+      ? [...member(reason, 'cleanupErrors') as readonly unknown[]]
       : [],
   );
   return failure;
@@ -73,7 +108,7 @@ const FAILURE_FINISHED = 5;
 
 // Optional observation from the original Local owner. An unsigned JS Int64
 // representation of -1 still means blocked, never runnable cleanup.
-function localCleanupContinuation(operations) {
+function localCleanupContinuation(operations: ManagedFailureOperations) {
   if (typeof operations.cleanup_local_continuation !== 'function') return undefined;
   try {
     const value = operations.cleanup_local_continuation();
@@ -83,7 +118,7 @@ function localCleanupContinuation(operations) {
   } catch { return undefined; }
 }
 
-const managedFailureProgresses = new WeakMap();
+const managedFailureProgresses = new WeakMap<ManagedFailureProgress, {moon: ProgressBindings; progress: unknown}>();
 const requiredProgressMethods = [
   'strategyHostBeginManagedFailureProgress',
   'strategyHostRecordManagedFailureAdditionalClosed',
@@ -93,12 +128,18 @@ const requiredProgressMethods = [
   'strategyHostRecordManagedFailureExecutionSettled',
   'strategyHostRecordManagedFailureCleanupRefreshed',
   'strategyHostManagedFailureAction',
-];
+] as const;
+type ProgressRecordMethod = Exclude<typeof requiredProgressMethods[number],
+  'strategyHostBeginManagedFailureProgress' | 'strategyHostManagedFailureAction'>;
+type ProgressBindings = Readonly<{
+  strategyHostBeginManagedFailureProgress(additionalClosed: boolean, settled: boolean, cleanupRefreshed: boolean): unknown;
+  strategyHostManagedFailureAction(progress: unknown): number;
+} & Record<ProgressRecordMethod, (progress: unknown) => boolean>>;
 
 export function beginManagedFailureProgress(
-  moon,
-  additionalClosed,
-  cleanupRefreshed,
+  moon: ProgressBindings,
+  additionalClosed: boolean,
+  cleanupRefreshed: boolean,
 ) {
   if (moon === null || typeof moon !== 'object' ||
       requiredProgressMethods.some(name => typeof moon[name] !== 'function')) {
@@ -112,31 +153,32 @@ export function beginManagedFailureProgress(
   if (progress === undefined || progress === null) {
     throw new Error('InvalidManagedFailureProgress');
   }
-  const owner = Object.freeze({});
+  const owner = Object.freeze({}) as ManagedFailureProgress;
   managedFailureProgresses.set(owner, {moon, progress});
   return owner;
 }
 
-const managedProgress = owner => {
+const managedProgress = (owner: ManagedFailureProgress) => {
   const state = managedFailureProgresses.get(owner);
   if (state === undefined) throw new Error('ForeignManagedFailureProgress');
   return state;
 };
-const recordProgress = (owner, method) => {
+const recordProgress = (owner: ManagedFailureProgress, method: ProgressRecordMethod) => {
   const state = managedProgress(owner);
   if (state.moon[method](state.progress) !== true) {
     throw new Error('InvalidManagedFailureProgress');
   }
 };
 
-export function recordManagedFailureExecutionSettled(owner) {
+export function recordManagedFailureExecutionSettled(owner: ManagedFailureProgress) {
   recordProgress(owner, 'strategyHostRecordManagedFailureExecutionSettled');
 }
 
 // The MoonBit planner fixes progression. This adapter only performs physical
 // close, stop observation, retry, settlement, and cleanup-refresh calls.
-export function settleFailedManagedOperations(
-  operations, checked, reason, progressOwner, additionalCleanup = [],
+export function settleFailedManagedOperations<Reason>(
+  operations: ManagedFailureOperations, checked: SynchronousResultCheck, reason: Reason,
+  progressOwner: ManagedFailureProgress, additionalCleanup: readonly AdditionalCleanup[] = [],
 ) {
   const progressState = managedProgress(progressOwner);
   const {moon, progress} = progressState;
@@ -145,12 +187,12 @@ export function settleFailedManagedOperations(
     ? member(reason, 'cleanupHandle') : undefined;
   const additional = (Array.isArray(additionalCleanup)
     ? additionalCleanup : []).map(value => Object.seal({
-    close: member(value, 'close'),
+    close: member(value, 'close') as SynchronousAction | undefined,
     handle: member(value, 'cleanupHandle'),
     closed: typeof member(value, 'close') !== 'function',
   }));
-  const cleanupErrors = [];
-  const record = error => { retainFirstAndLatestCleanupError(cleanupErrors, error); };
+  const cleanupErrors: unknown[] = [];
+  const record = (error: unknown) => { retainFirstAndLatestCleanupError(cleanupErrors, error); };
   const additionalClosed = () => additional.every(cleanup => cleanup.closed);
   const observeAdditionalClosed = () => {
     if (additionalClosed()) {
@@ -163,7 +205,7 @@ export function settleFailedManagedOperations(
   const closeAdditional = () => {
     for (const cleanup of additional) {
       if (cleanup.closed) continue;
-      try { cleanup.close(); cleanup.closed = true; }
+      try { cleanup.close!(); cleanup.closed = true; }
       catch (error) { record(error); }
     }
   };
@@ -192,7 +234,7 @@ export function settleFailedManagedOperations(
   };
   const refresh = () => {
     try {
-      if (operations.cleanup_refresh() === true) {
+      if (operations.cleanup_refresh!() === true) {
         recordProgress(
           progressOwner,
           'strategyHostRecordManagedFailureCleanupRefreshed',
@@ -216,7 +258,7 @@ export function settleFailedManagedOperations(
     return selected;
   };
   const drive = () => {
-    const attempted = new Set();
+    const attempted = new Set<number>();
     for (let step = 0; step < 12; step++) {
       let selected;
       try { selected = action(); }
@@ -255,13 +297,13 @@ export function settleFailedManagedOperations(
   if (initiallyFinished && cleanupErrors.length === 0) {
     return reason;
   }
-  const failure = ownedFailure(reason, 'ManagedExecutionFailed');
-  const status = () => {
+  const failure = ownedFailure(reason, 'ManagedExecutionFailed') as ManagedFailure;
+  const status = (): ManagedCleanupStatus => {
     const state = cleanupState(upstream, upstreamRequired);
     const extra = additional.map(cleanup =>
       cleanupState(cleanup.handle, cleanup.handle != null));
-    let pending = true, selected;
-    const statusErrors = [];
+    let pending = true, selected: number | undefined;
+    const statusErrors: unknown[] = [];
     try { selected = action(); pending = selected !== FAILURE_FINISHED; }
     catch (error) { statusErrors.push(error); }
     return Object.freeze({
@@ -272,10 +314,10 @@ export function settleFailedManagedOperations(
         ...cleanupErrors,
         ...statusErrors,
       ]),
-      ...(pending && Number.isInteger(selected) && selected >= 0 && selected < FAILURE_FINISHED
+      ...(pending && Number.isInteger(selected) && (selected as number) >= 0 && (selected as number) < FAILURE_FINISHED
         ? {cleanupDiagnostic: Object.freeze({
           owner: typeof operations.cleanup_local_continuation === 'function' ? 'local_managed' : 'managed_operations',
-          phase: ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'][selected],
+          phase: ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'][selected as number],
           continuation: (() => {
             const cursor = localCleanupContinuation(operations);
             return cursor === undefined ? 'unavailable' : cursor < 0n ? 'blocked' : 'runnable';
@@ -287,19 +329,19 @@ export function settleFailedManagedOperations(
     drive();
     if (cleanupState(upstream, upstreamRequired).pending &&
         typeof member(upstream, 'retry') === 'function') {
-      try { await upstream.retry(); } catch (error) { record(error); }
+      try { await (upstream as UncheckedCleanupHandle).retry(); } catch (error) { record(error); }
     }
     for (const cleanup of additional) {
       if (cleanupState(cleanup.handle, cleanup.handle != null).pending &&
           typeof member(cleanup.handle, 'retry') === 'function') {
-        try { await cleanup.handle.retry(); }
+        try { await (cleanup.handle as UncheckedCleanupHandle).retry(); }
         catch (error) { record(error); }
       }
     }
     drive();
     return status();
   };
-  let retryFlight;
+  let retryFlight: Promise<ManagedCleanupStatus> | undefined;
   const handle = Object.freeze({
     status,
     retry() {
@@ -316,7 +358,7 @@ export function settleFailedManagedOperations(
           const current = localCleanupContinuation(operations);
           if (typeof current !== 'bigint' || current <= previous) break;
           previous = current;
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
           const ready = localCleanupContinuation(operations);
           if (typeof ready !== 'bigint' || ready < previous) break;
           state = await retryOnce();

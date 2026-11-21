@@ -1,12 +1,9 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import type {LeasedOutputBody, LocalOutputFault, LocalStoreLease, LocalStoreLeaseFactory} from './retained-store.mjs';
+import type {SynchronousResultCheck} from '../host-common/runtime-result.mjs';
 
 type WireLimits = Parameters<typeof registerRetainedInput>[3]['wire'] & Readonly<{max_bytes: number}>;
-// The selected Common operations decode synchronously. Their data shape is
-// inspected at each use, but none of these results is a deferred check.
-type LocalOutputChecked = (result: unknown) => void | null | boolean | number | bigint | string |
-  (object & Readonly<{then?: never}>);
 type RetainedOutput = Readonly<{
   key: string;
   limits: Readonly<{wire: WireLimits; max_batch_bytes: number}>;
@@ -32,7 +29,7 @@ type BoundRepresentation = Readonly<{
 const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
 export function prepareLocalRetainedOutput(
-  output: RetainedOutput, createLease: LocalStoreLeaseFactory | undefined, checked: LocalOutputChecked,
+  output: RetainedOutput, createLease: LocalStoreLeaseFactory | undefined, checked: SynchronousResultCheck,
   signal?: AbortSignal, faultInjection?: LocalOutputFault,
 ) {
   if (!createLease) throw new TypeError('LocalOutputStoreRequired');

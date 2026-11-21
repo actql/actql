@@ -1191,3 +1191,7 @@ target/
 /adapters/local-node/managed-row-cause-diagnostic.test.d.mts
 /adapters/local-node/managed-advance-diagnostic.test.mjs
 /adapters/local-node/managed-advance-diagnostic.test.d.mts
+/adapters/host-common/managed-failure.mjs
+/adapters/host-common/managed-failure.d.mts
+/adapters/local-node/managed-output-custody.mjs
+/adapters/local-node/managed-output-custody.d.mts

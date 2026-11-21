@@ -3,37 +3,46 @@
 // it never starts or advances another Compute attempt.
 import {settleFailedManagedOperations} from '../host-common/managed-failure.mjs';
 import {managedMemoryReleaseFailureMatches} from '../store-local/managed-memory-representations.mjs';
+import type {registerManagedMemoryInput} from '../store-local/managed-memory-representations.mjs';
+import type {ManagedCleanupStatus, ManagedFailure, ManagedFailureOperations, ManagedFailureProgress}
+  from '../host-common/managed-failure.mjs';
+import type {SynchronousResultCheck, SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-const completedRetirements = new WeakMap();
-const completedRetirementFlights = new WeakMap();
-function retirementProgress(operations) {
+type LocalOperations = ManagedFailureOperations & Readonly<{cleanup_progress?(): SynchronousRuntimeData}>;
+type ScratchOperations = Pick<ManagedFailureOperations, 'cleanup_refresh' | 'cleanup_local_continuation'>;
+type MemoryOwner = Pick<ReturnType<typeof registerManagedMemoryInput>, 'close'>;
+type ObservedFailure = Readonly<{primaryFailure?: unknown; cleanupHandle?: ManagedFailure['cleanupHandle']}>;
+
+const completedRetirements = new WeakMap<object, {operations: LocalOperations; after: bigint}>();
+const completedRetirementFlights = new WeakMap<object, Promise<boolean>>();
+function retirementProgress(operations: LocalOperations) {
   if (typeof operations.cleanup_progress !== 'function') return undefined;
   const value = operations.cleanup_progress();
   return typeof value === 'bigint' && value >= 0n && value <= (1n << 63n) - 1n
     ? value : undefined;
 }
 
-function retainProgressingCleanup(failure, operations) {
+function retainProgressingCleanup(failure: ManagedFailure, operations: LocalOperations) {
   if (typeof operations.cleanup_progress !== 'function') return failure;
   const original = failure.cleanupHandle;
   const originalRetry = original.retry;
   const originalStatus = original.status;
   const observe = operations.cleanup_progress.bind(operations);
-  let flight;
+  let flight: Promise<ManagedCleanupStatus> | undefined;
   const retry = () => {
     if (flight !== undefined) return flight;
     flight = Promise.resolve().then(async () => {
       let previous = observe();
       for (;;) {
         const state = await Reflect.apply(originalRetry, original, []);
-        if (state.pending !== true || state.errors?.length > 0) return state;
+        if (state.pending !== true || (state.errors?.length as number) > 0) return state;
         const current = observe();
         // Only original bounded scratch retirement justifies another slice.
         // A provider/reader stall or failed observation stays caller-retryable.
         if (typeof previous !== 'bigint' || typeof current !== 'bigint' ||
             current <= previous) return state;
         previous = current;
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
       }
     }).finally(() => { flight = undefined; });
     return flight;
@@ -44,11 +53,12 @@ function retainProgressingCleanup(failure, operations) {
   return failure;
 }
 
-export function closeCompletedLocalManagedOutput(operations, checked, progress) {
+export function closeCompletedLocalManagedOutput(operations: LocalOperations,
+  checked: SynchronousResultCheck, progress: ManagedFailureProgress) {
   let before;
   try { before = retirementProgress(operations); } catch { /* No automatic continuation. */ }
   let synthetic = true;
-  let reason = new Error('LocalManagedOutputCleanupPending');
+  let reason: unknown = new Error('LocalManagedOutputCleanupPending');
   try {
     operations.close();
     if (typeof operations.cleanup_refresh !== 'function') {
@@ -58,7 +68,7 @@ export function closeCompletedLocalManagedOutput(operations, checked, progress) 
   } catch (error) { reason = error; synthetic = false; }
   const failure = settleFailedManagedOperations(operations, checked, reason, progress);
   if (failure !== reason) {
-    const owned = retainProgressingCleanup(failure, operations);
+    const owned = retainProgressingCleanup(failure as ManagedFailure, operations);
     if (synthetic && typeof before === 'bigint') {
       try {
         const after = retirementProgress(operations);
@@ -75,16 +85,18 @@ export function closeCompletedLocalManagedOutput(operations, checked, progress) 
 // Await only an original completed-output retirement that already made finite
 // scratch progress. The memory registry's release callback stays synchronous;
 // its own recovery handle alone acknowledges the physical representation cut.
-export async function closeCompletedLocalManagedOutputAsync(operations, checked, progress, memory) {
+export async function closeCompletedLocalManagedOutputAsync(operations: LocalOperations, checked: SynchronousResultCheck,
+  progress: ManagedFailureProgress, memory?: MemoryOwner) {
   try {
     await (memory === undefined
       ? closeCompletedLocalManagedOutput(operations, checked, progress) : memory.close());
     return;
   } catch (failure) {
-    if (memory !== undefined && !managedMemoryReleaseFailureMatches(memory, failure)) throw failure;
-    const inner = completedRetirements.has(failure) ? failure : failure?.primaryFailure;
+    if (memory !== undefined && !managedMemoryReleaseFailureMatches(memory, failure as object)) throw failure;
+    const inner = completedRetirements.has(failure as object) ? failure as ManagedFailure
+      : (failure as ObservedFailure | null | undefined)?.primaryFailure as ManagedFailure;
     const original = completedRetirements.get(inner);
-    const handle = failure?.cleanupHandle;
+    const handle = (failure as ObservedFailure | null | undefined)?.cleanupHandle;
     if (original?.operations !== operations || typeof handle?.retry !== 'function' ||
         typeof handle?.status !== 'function') throw failure;
     let flight = completedRetirementFlights.get(inner);
@@ -111,11 +123,11 @@ export async function closeCompletedLocalManagedOutputAsync(operations, checked,
 // Finalization failure can leave more than one local retirement quantum. Keep
 // the dispatch alive while the original driver proves runnable finite work;
 // never poll an external owner or substitute a new Compute attempt.
-const failureCleanupFlights = new WeakMap();
-export function continueLocalManagedFailureCleanup(failure, operations) {
+const failureCleanupFlights = new WeakMap<object, Promise<unknown>>();
+export function continueLocalManagedFailureCleanup<Failure>(failure: Failure, operations: ScratchOperations): Promise<Awaited<Failure>> {
   if (failure === null || typeof failure !== 'object') return Promise.resolve(failure);
   const existing = failureCleanupFlights.get(failure);
-  if (existing !== undefined) return existing;
+  if (existing !== undefined) return existing as Promise<Awaited<Failure>>;
   const flight = continueFailureCleanup(failure, operations).finally(() => {
     failureCleanupFlights.delete(failure);
   });
@@ -126,33 +138,33 @@ export function continueLocalManagedFailureCleanup(failure, operations) {
 // MoonBit's JS ABI may expose an Int64 as its unsigned 64-bit bit pattern.
 // Normalize the original witness, but never wrap an out-of-domain value into
 // authority to run cleanup. In particular, unsigned -1 still means blocked.
-function cleanupContinuation(operations) {
-  const value = operations.cleanup_local_continuation();
+function cleanupContinuation(operations: ScratchOperations) {
+  const value = operations.cleanup_local_continuation!();
   if (typeof value !== 'bigint' || value < -(1n << 63n) ||
       value > (1n << 64n) - 1n) return undefined;
   return BigInt.asIntN(64, value);
 }
 
-async function continueFailureCleanup(failure, operations) {
-  const handle = failure?.cleanupHandle;
+async function continueFailureCleanup<Failure>(failure: Failure, operations: ScratchOperations): Promise<Awaited<Failure>> {
+  const handle = (failure as ObservedFailure | null | undefined)?.cleanupHandle;
   if (typeof operations.cleanup_local_continuation !== 'function' ||
-      typeof handle?.retry !== 'function' || typeof handle?.status !== 'function') return failure;
+      typeof handle?.retry !== 'function' || typeof handle?.status !== 'function') return failure as Awaited<Failure>;
   try {
     let previous = cleanupContinuation(operations);
     while (typeof previous === 'bigint' && previous >= 0n &&
         handle.status()?.pending === true) {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
       // A reader/cancellation may change eligibility while yielded.
       const ready = cleanupContinuation(operations);
       if (typeof ready !== 'bigint' || ready < previous) break;
       const state = await handle.retry();
-      if (state?.pending !== true || state.errors?.length > 0) break;
+      if (state?.pending !== true || (state.errors?.length as number) > 0) break;
       const current = cleanupContinuation(operations);
       if (typeof current !== 'bigint' || current <= previous) break;
       previous = current;
     }
   } catch { /* Original failure and recovery owner remain authoritative. */ }
-  return failure;
+  return failure as Awaited<Failure>;
 }
 
 
@@ -160,7 +172,7 @@ async function continueFailureCleanup(failure, operations) {
 // existing scratch cleanup, never output close, stop, retention release or work.
 // Retry only a typed local continuation that made finite retirement progress;
 // a provider/reader/physical stall preserves its original reservation.
-export async function refreshCompletedLocalManagedScratch(operations, available) {
+export async function refreshCompletedLocalManagedScratch(operations: ScratchOperations, available: () => boolean) {
   if (typeof operations.cleanup_refresh !== 'function' ||
       typeof operations.cleanup_local_continuation !== 'function' ||
       typeof available !== 'function') {
@@ -170,7 +182,7 @@ export async function refreshCompletedLocalManagedScratch(operations, available)
   operations.cleanup_refresh();
   let previous = cleanupContinuation(operations);
   while (typeof previous === 'bigint' && previous >= 0n) {
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     if (!available()) throw new Error('ReleasedLocalManagedOutput');
     const ready = cleanupContinuation(operations);
     if (typeof ready !== 'bigint' || ready < previous) return;

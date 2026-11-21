@@ -384,7 +384,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "closeCompletedLocalManagedOutput"
               },
               {
@@ -418,7 +418,7 @@
                 "anchor": "publication remains atomic"
               },
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "current <= previous"
               }
             ],
@@ -493,7 +493,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -503,7 +503,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -513,7 +513,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -523,7 +523,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -533,7 +533,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -543,7 +543,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -553,7 +553,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -563,7 +563,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
@@ -577,7 +577,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/managed-output-custody.mjs",
+                "path": "adapters/local-node/managed-output-custody.mts",
                 "anchor": "export function closeCompletedLocalManagedOutput("
               },
               {
