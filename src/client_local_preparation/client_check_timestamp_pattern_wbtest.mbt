@@ -80,7 +80,7 @@ test "timestamp pattern diagnosis preserves valid modes and missing original pro
 }
 
 ///|
-test "text-time Check reports the original input output and replacement ceiling" {
+test "Text-time Check reports the original input, output and replacement ceiling" {
   for
     (sql, code) in [
       (
