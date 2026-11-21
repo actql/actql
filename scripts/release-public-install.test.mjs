@@ -17,7 +17,13 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 let root, directory, manifest, original, manifestSha256, fixedDirectory, fixedSet;
 
 before(async () => {
-  root = await mkdtemp(join(tmpdir(), 'actql-public-consumer-component-')); directory = join(root, 'cohort');
+  root = await mkdtemp(join(tmpdir(), 'actql-public-consumer-component-'));
+  ({directory, manifest, original, manifestSha256, fixedDirectory, fixedSet} = await cohortFixture(root));
+});
+after(async () => {if (root) await rm(root, {recursive: true, force: true});});
+
+async function cohortFixture(root, provider = false) {
+  const directory = join(root, 'cohort');
   const development = join(directory, 'development'); await mkdir(development, {recursive: true});
   const packRoot = join(root, 'pack-environment'); await mkdir(packRoot);
   const packEnvironment = publicConsumerEnvironment(process.env, packRoot);
@@ -25,15 +31,20 @@ before(async () => {
   await writeFile(packEnvironment.npm_config_userconfig, `registry=${publicNpmRegistry}\n`);
   await writeFile(packEnvironment.npm_config_globalconfig, '');
   const cohort = admitCohort({version: 'actql-package-release-cohort/0.1', packageVersion: '0.0.7-rc.1',
-    registry: publicNpmRegistry, access: 'public', tag: 'candidate-synthetic', packages: ['client-wire', 'sdk', 'local-node', 'node']});
+    registry: publicNpmRegistry, access: 'public', tag: 'candidate-synthetic',
+    packages: ['client-wire', 'sdk', 'local-node', 'node', ...(provider ? ['provider-ai-sdk'] : [])]});
   const license = join(root, 'LICENSE'); await writeFile(license, 'Independent inert fixture license\n');
   const packages = [], tarballs = {};
   for (const [index, name] of cohort.packages.entries()) {
     const path = join(root, `original-${name}`); await mkdir(path);
+    const dependencies = index && name !== 'provider-ai-sdk'
+      ? {[`@actql/${cohort.packages[index - 1]}`]: '0.0.0-development'} : {};
     await writeFile(join(path, 'package.json'), JSON.stringify({name: `@actql/${name}`, version: '0.0.0-development',
-      private: true, type: 'module', files: ['index.mjs', 'index.d.ts'],
+      private: true, type: 'module', files: ['index.mjs', 'index.d.ts', ...(name === 'provider-ai-sdk' ? ['npm-shrinkwrap.json'] : [])],
       exports: {'.': {types: './index.d.ts', default: './index.mjs'}},
-      dependencies: index ? {[`@actql/${cohort.packages[index - 1]}`]: '0.0.0-development'} : {}}));
+      dependencies}));
+    if (name === 'provider-ai-sdk') await writeFile(join(path, 'npm-shrinkwrap.json'), JSON.stringify({
+      name: '@actql/provider-ai-sdk', lockfileVersion: 3, packages: {'': {name: '@actql/provider-ai-sdk'}}}));
     await writeFile(join(path, 'index.mjs'), 'export const inert = 73;\n');
     await writeFile(join(path, 'index.d.ts'), 'export declare const inert: number;\n');
     execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', development, '--cache', join(root, 'npm-cache')],
@@ -43,21 +54,21 @@ before(async () => {
     packages.push(item); tarballs[name] = item.originalSha256;
   }
   await writeFile(join(development, 'packed-client-packages.json'), JSON.stringify({revision: 'a'.repeat(40), tarballs}));
-  manifest = {version: 'actql-package-release/0.1', sourceSha: 'a'.repeat(40), preparedAt: '2000-01-01T00:00:00Z',
+  const manifest = {version: 'actql-package-release/0.1', sourceSha: 'a'.repeat(40), preparedAt: '2000-01-01T00:00:00Z',
     cohort, recipeSha256: 'b'.repeat(64), cohortSha256: 'c'.repeat(64), toolchain: {fixture: true},
     generation: 'normal-prepack-then-metadata-and-license-only', packages};
-  original = Buffer.from(JSON.stringify(manifest)); manifestSha256 = sha(original);
+  const original = Buffer.from(JSON.stringify(manifest)), manifestSha256 = sha(original);
   await writeFile(join(directory, 'release.json'), original);
-  fixedDirectory = join(root, 'fixed');
-  fixedSet = await freezeReleaseSet({request: {schemaVersion: 'actql-release-request/0.1', releaseId: 'inert-node-install-binding',
+  const fixedDirectory = join(root, 'fixed');
+  const fixedSet = await freezeReleaseSet({request: {schemaVersion: 'actql-release-request/0.1', releaseId: 'inert-node-install-binding',
     version: manifest.cohort.packageVersion, source: {repository: 'https://github.com/actql/actql', commit: manifest.sourceSha, branch: 'main'},
     targets: [{id: 'node', ecosystem: 'npm', packages: manifest.packages.map(value => value.name), platforms: ['darwin-arm64'],
       profiles: ['local', 'remote'], destination: publicNpmRegistry, channels: [manifest.cohort.tag]}],
     notes: {summary: 'Inert upper binding only', breakingChanges: [], migration: [], knownLimitations: ['No product/runtime/publication']}},
     policy: {schemaVersion: 'actql-release-policy/0.1', allowedLines: ['0.0'], publicationAuthority: 'external-owner-approval-required'},
     cohorts: [{targetId: 'node', kind: 'node-npm', directory}], destination: fixedDirectory});
-});
-after(async () => {if (root) await rm(root, {recursive: true, force: true});});
+  return {directory, manifest, original, manifestSha256, fixedDirectory, fixedSet};
+}
 
 async function transport() {
   const routes = new Map(), calls = [];
@@ -76,11 +87,15 @@ async function transport() {
   return {routes, calls, fetchResponse, observe: () => observeNpmPackageRelease(directory, manifestSha256, {fetchResponse})};
 }
 
-async function consumer(t, entry = 'node') {
+async function consumer(t, entry = 'node', fixture = {directory, manifest}) {
+  const {directory, manifest} = fixture;
   const path = await mkdtemp(join(root, 'installed-')); t.after(() => rm(path, {recursive: true, force: true}));
   const scope = join(path, 'node_modules/@actql'); await mkdir(scope, {recursive: true});
-  const packages = {'': {dependencies: {[`@actql/${entry}`]: manifest.cohort.packageVersion}}};
-  const names = entry === 'node' ? manifest.cohort.packages : ['client-wire', 'sdk'];
+  const dependencies = {[`@actql/${entry}`]: manifest.cohort.packageVersion};
+  if (entry === 'provider-ai-sdk') dependencies['@actql/node'] = manifest.cohort.packageVersion;
+  const packages = {'': {dependencies}};
+  const names = entry === 'provider-ai-sdk' ? manifest.cohort.packages
+    : entry === 'node' ? ['client-wire', 'sdk', 'local-node', 'node'] : ['client-wire', 'sdk'];
   for (const name of names) {
     const item = manifest.packages.find(value => value.name === `@actql/${name}`), scratch = join(path, `extract-${name}`);
     const payload = await unpack(join(directory, item.file), scratch); await rename(payload, join(scope, name));
@@ -99,6 +114,34 @@ test('public consumer: mode is explicit, digest-bound and never falls back to lo
   for (const args of [[], ['rc', '--public-registry'], ['rc', '--public-registry', 'HEAD'],
     ['rc', '--registry', 'http://127.0.0.1:9'], ['rc', '--public-registry', 'a'.repeat(64), '--fallback']])
     assert.throws(() => releaseInstallSelection(args));
+});
+
+test('optional public Provider binds its original fifth artifact and installs both exact entries', async t => {
+  const providerRoot = await mkdtemp(join(root, 'provider-'));
+  const f = await cohortFixture(providerRoot, true);
+  const selection = releaseInstallSelection([f.directory, '--public-registry', f.manifestSha256,
+    '--release-set', f.fixedDirectory, f.fixedSet.sha256, '--target', 'node']);
+  const binding = await verifyPublicNodeReleaseBinding(selection);
+  const provider = f.manifest.packages.at(-1);
+  assert.equal(binding.artifacts.length, 5);
+  assert.equal(binding.artifacts.at(-1).name, '@actql/provider-ai-sdk');
+  assert.equal(binding.artifacts.at(-1).sha256, provider.sha256);
+  await assert.rejects(verifyPublicNodeReleaseBinding(upperSelection(f.directory)));
+  assert.throws(() => publicInstallCommand(manifest, 'provider-ai-sdk'));
+  assert.deepEqual(publicInstallCommand(f.manifest, 'provider-ai-sdk').slice(-2),
+    ['@actql/node@0.0.7-rc.1', '@actql/provider-ai-sdk@0.0.7-rc.1']);
+  const nodeOnly = await consumer(t, 'node', f);
+  assert.equal((await verifyPublicConsumer(nodeOnly.path, f.manifest, 'node')).payloads.length, 4);
+  const installed = await consumer(t, 'provider-ai-sdk', f);
+  assert.deepEqual((await verifyPublicConsumer(installed.path, f.manifest, 'provider-ai-sdk')).payloads.map(row => row.name),
+    ['@actql/client-wire', '@actql/sdk', '@actql/local-node', '@actql/node', '@actql/provider-ai-sdk']);
+  installed.lock.packages[''].dependencies['@actql/provider-ai-sdk'] = '0.0.7-rc.2';
+  await installed.save();
+  await assert.rejects(verifyPublicConsumer(installed.path, f.manifest, 'provider-ai-sdk'), /selected exact public entries/u);
+  installed.lock.packages[''].dependencies['@actql/provider-ai-sdk'] = '0.0.7-rc.1';
+  await installed.save();
+  await writeFile(join(installed.path, 'node_modules/@actql/provider-ai-sdk/npm-shrinkwrap.json'), '{}');
+  await assert.rejects(verifyPublicConsumer(installed.path, f.manifest, 'provider-ai-sdk'), /payload differs/u);
 });
 
 const upperSelection = (originalDirectory = directory, fixed = fixedDirectory, digest = fixedSet.sha256) =>

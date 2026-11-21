@@ -6,8 +6,9 @@ import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, execute} from './health-monitor-adapters.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
-import {publicConsumerEnvironment, releaseConsumerDestination} from './release-public-install.mjs';
-import {verifyPackageRelease} from './package-release.mjs';
+import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestination,
+  verifyPublicConsumer} from './release-public-install.mjs';
+import {nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
 // Assertions over the original child report only; this issues no Run authority
@@ -49,7 +50,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
 
 export async function runPackedProviderAI(root, {repository = fileURLToPath(new URL('../', import.meta.url)),
   retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES,
-  release = process.env.ACTQL_PACKED_PROVIDER_RELEASE, cases, command = execute} = {}) {
+  release = process.env.ACTQL_PACKED_PROVIDER_RELEASE, publicRegistry = false, cases, command = execute} = {}) {
   const software = release ?? retained;
   assert(isAbsolute(root) && typeof software === 'string' && isAbsolute(software) &&
     (release === undefined || retained === undefined),
@@ -63,9 +64,10 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   const releaseManifest = release === undefined ? undefined : await verifyPackageRelease(release);
   const releaseManifestPath = release === undefined ? undefined : join(release, 'release.json');
   const releaseManifestBytes = release === undefined ? undefined : await readFile(releaseManifestPath);
+  assert(!publicRegistry || releaseManifest !== undefined, 'Public Provider install requires an original release');
   if (releaseManifest !== undefined) {
     assert.equal(releaseManifest.sourceSha, source.revision);
-    assert.deepEqual(releaseManifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node', 'provider-ai-sdk']);
+    assert(nodeReleaseIncludesProvider(releaseManifest.cohort.packages), 'Provider acceptance requires the explicit five-package cohort');
   }
   root = await releaseConsumerDestination(root, [repository, software]);
   await mkdir(root);
@@ -94,10 +96,11 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
       const prepared = releaseManifest === undefined ? await prepareHealthPackages({repository, root: caseRoot,
         source: {sha: source.revision, dirty: false}, retained,
         optionalProvider: join(retained, 'optional-provider'), command: run, normalLifecycle: true})
-        : await installRelease(caseRoot, release, releaseManifest, releaseManifestPath, run);
+        : await installRelease(caseRoot, release, releaseManifest, releaseManifestPath, run, publicRegistry);
       preparedCases.push(prepared);
       report.preparations.push({case: id, consumer: prepared.consumer,
-        manifestPath: prepared.manifestPath, manifest: prepared.manifest});
+        manifestPath: prepared.manifestPath, manifest: prepared.manifest,
+        ...(publicRegistry ? {publicPayload: prepared.publicPayload} : {})});
       await copyFile(join(repository, 'scripts/fixtures/normal-openai-installed.fixture.mjs'),
         join(prepared.consumer, 'fixture.mjs'));
       await copyFile(join(repository, 'scripts/fixtures/external-rest/conformance.mjs'),
@@ -125,7 +128,11 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     } catch (failure) {failures.push(failure);}
   }
   for (const prepared of preparedCases) {
-    try {await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);}
+    try {
+      if (publicRegistry) assert.deepEqual(await verifyPublicConsumer(prepared.consumer, prepared.manifest, 'provider-ai-sdk'),
+        prepared.publicPayload, 'Public Provider installation changed during acceptance');
+      else await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+    }
     catch (failure) {cleanup.push(failure);}
   }
   try {assert.deepEqual(checkoutState(repository), source);}
@@ -147,11 +154,18 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   return report;
 }
 
-async function installRelease(root, release, manifest, manifestPath, run) {
+async function installRelease(root, release, manifest, manifestPath, run, publicRegistry) {
   const consumer = join(root, 'consumer');
   const env = publicConsumerEnvironment(process.env, root);
   await Promise.all([consumer, env.HOME, env.TMPDIR].map(path => mkdir(path)));
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+  if (publicRegistry) {
+    await writeFile(env.npm_config_userconfig, '');
+    await writeFile(env.npm_config_globalconfig, '');
+    await run('npm', publicInstallCommand(manifest, 'provider-ai-sdk'), {cwd: consumer, env, name: 'install-release'});
+    const publicPayload = await verifyPublicConsumer(consumer, manifest, 'provider-ai-sdk');
+    return {manifest, manifestPath, consumer, publicPayload};
+  }
   await run('npm', ['install', '--ignore-scripts=false', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => join(release, row.file))], {cwd: consumer, env, name: 'install-release'});
   await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer);
