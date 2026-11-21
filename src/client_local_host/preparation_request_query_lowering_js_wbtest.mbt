@@ -150,6 +150,7 @@ test "Request query lowerer keeps original quote through short grows and typed l
       @source_publication.prepared_published_request_copy_geometry(
         publication, environment,
       ).unwrap(),
+      publication,
     ).unwrap()
     let base = @resources.preparation_capacity_working_extents(
       parent.capacity,
@@ -546,12 +547,14 @@ test "Request literal copies grow the original quote before repeated alias lower
       None,
       catalog,
       geometry,
+      publication,
     ).unwrap()
     let no_request = request_query_lowering_data_bytes(
       syntax,
       None,
       catalog,
       (0, 0L),
+      publication,
     ).unwrap()
     let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
     let copied = (geometry.0.to_int64() + geometry.1) * tokens
@@ -873,7 +876,13 @@ test "original integer context is funded before lowerer entry and short grow ret
     let copy = @source_publication.prepared_published_request_copy_geometry(
       publication, environment,
     ).unwrap()
-    let bytes = request_query_lowering_data_bytes(selected, None, catalog, copy).unwrap()
+    let bytes = request_query_lowering_data_bytes(
+      selected,
+      None,
+      catalog,
+      copy,
+      publication,
+    ).unwrap()
     let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
     assert_true(bytes >= tokens * 1472L)
     let base = @resources.preparation_capacity_working_extents(
