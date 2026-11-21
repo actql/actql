@@ -48,7 +48,7 @@ const scanBuilders = new Set([
 const identity = ([module, name]) => `${module}:${name}`;
 const common = directory + 'client_keyed_protocol_construction.mbt';
 const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keyed_lookup_protocol_metadata']);
-const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
+const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
 const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
@@ -190,7 +190,9 @@ export function resourceLifecycleProblems(sources, {
           module === common;
         const owner = module === common && ['keyed_protocol_built', 'with_keyed_protocol_construction', 'with_keyed_body_construction', 'grow_keyed_body_construction'].includes(fn?.name) ||
           module === directory + 'client_keyed_lookup_identity.mbt' && beginFinish.has(fn?.name);
-        if (!declaration && !owner && !inScope(i)) issue('private-construction-forgery', i);
+        const dependencyField = module === common && token.value === 'KeyedProtocolDependencies' &&
+          list[i - 2]?.value === 'dependencies' && list[i - 1]?.value === ':';
+        if (!declaration && !dependencyField && !owner && !inScope(i)) issue('private-construction-forgery', i);
       }
       if (['retained_bytes', 'execution_bytes'].includes(token.value) && list[i - 1]?.value === '.') {
         const next = list[i + 1]?.value, following = list[i + 2]?.value;

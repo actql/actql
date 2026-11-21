@@ -22,7 +22,10 @@ fn build_client_effect_keyed_generic_dependency_bodies(
   max_nodes : Int,
   max_depth : Int,
   before_body : ((Int, Int, Int) -> Bool)?,
-  serial? : (((Int, Int, Int) -> Bool)?, () -> Unit)? = None,
+  serial? : (
+    ((Int, Int, Int) -> Bool)?,
+    (Array[@publication.CapturedEffectDependencyBody]) -> Bool,
+  )? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -97,8 +100,8 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     remaining -= bytes
     // The synchronous admission returned. No parser cursor is in the
     // retained dependency body or the duplicate table.
-    if serial_member && serial is Some((_, completed)) {
-      completed()
+    if serial_member && serial is Some((_, completed)) && !completed(bodies) {
+      raise GenericKeyedDependencyStop(ConstructionRefused)
     }
   }
   fn append(
@@ -565,12 +568,12 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match reserve_keyed_dependency_serial_controls(lookup) {
+      match reserve_keyed_dependency_serial_controls(lookup, max_depth) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let cursor : KeyedDependencySerialCursor = { reusable: 0L, pending: -1L, }
+      let cursor = new_keyed_dependency_serial_cursor()
 
       let before = (
         bytes : Int,
@@ -605,7 +608,15 @@ fn prepare_client_effect_keyed_generic_dependencies(
           Some((bytes, nodes, depth) => {
             before(bytes, nodes, depth, serial_cursor)
           }),
-          () => cursor.retire(),
+          bodies => {
+            match cursor.record_body(bodies, max_nodes, max_depth) {
+              Ok(_) => true
+              Err(issue) => {
+                primary.val = Some(issue)
+                false
+              }
+            }
+          },
         ),
       )
       let bodies = match
@@ -622,7 +633,13 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      Ok(keyed_protocol_built(bodies, dependency_bodies=Some(bodies)))
+      Ok(
+        keyed_protocol_built(
+          bodies,
+          dependency_bodies=Some(bodies),
+          measured_bodies=cursor.measured,
+        ),
+      )
     },
     bodies => {
       guard !lookup.closed &&

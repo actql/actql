@@ -53,7 +53,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
-  serial? : (((Int, Int, Int) -> Bool)?, () -> Unit)? = None,
+  serial? : (
+    ((Int, Int, Int) -> Bool)?,
+    (Array[@publication.CapturedEffectDependencyBody]) -> Bool,
+  )? = None,
   retain_catalog? : Bool = true,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
@@ -149,8 +152,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     remaining -= bytes
     // The synchronous admission returned. No parser cursor is in the
     // retained dependency body or the duplicate table.
-    if serial_member && serial is Some((_, completed)) {
-      completed()
+    if serial_member && serial is Some((_, completed)) && !completed(bodies) {
+      raise NativeLookupDependencyStop(ConstructionRefused)
     }
   }
   fn append(
