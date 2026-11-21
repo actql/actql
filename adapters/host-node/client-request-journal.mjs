@@ -69,12 +69,14 @@ function inspectExplanationOriginalStorage(database) {
   return row !== undefined;
 }
 
-// The Context companion uses the same committed original Facts and Run.
+// The Context companion carries the original Invocation Template for bounded
+// cold validation against the committed Run Definition.
 // Keep the deployed Facts table unchanged so a pre-Context journal remains
 // readable without migration, and never create the companion on a read.
 const explanationContextOriginalTable = `CREATE TABLE client_run_explanation_context_originals (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
-  context_wire TEXT NOT NULL
+  context_wire TEXT NOT NULL,
+  invocation_template_wire TEXT NOT NULL
 ) STRICT`;
 function inspectExplanationContextOriginalStorage(database) {
   const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_run_explanation_context_originals'")
@@ -2956,6 +2958,7 @@ export function openClientRequestJournal(directory, {
     matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
     if (includeContext) {
       selected.context = context ? 'c.context_wire' : 'NULL';
+      selected.template = context ? 'c.invocation_template_wire' : 'NULL';
       selected.contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
     }
     return selected;
@@ -2973,7 +2976,9 @@ export function openClientRequestJournal(directory, {
         THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
-          THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes` : ''}
+          THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes,
+        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.template})='text'
+          THEN length(CAST(${sql.template} AS BLOB)) ELSE -1 END ELSE 0 END AS invocation_template_bytes` : ''}
       ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
     if (row === undefined) return undefined;
     if (row.facet_matches !== 1 || row.bindings_bounded !== 1 ||
@@ -2983,22 +2988,30 @@ export function openClientRequestJournal(directory, {
       fail('ClientRequestJournalCorrupt');
     }
     const contextBytes = includeContext ? row.context_bytes : 0;
+    const invocationTemplateBytes = includeContext ? row.invocation_template_bytes : 0;
     if (!Number.isSafeInteger(contextBytes) || contextBytes < 0 ||
-        row.facts_bytes + contextBytes > maxRunDefinitionWireBytes ||
-        row.context_present === 1 && (contextBytes < 1 || row.facts_present !== 1)) {
+        !Number.isSafeInteger(invocationTemplateBytes) || invocationTemplateBytes < 0 ||
+        row.facts_bytes + contextBytes + invocationTemplateBytes > maxRunDefinitionWireBytes ||
+        row.context_present === 1 &&
+          (contextBytes < 1 || invocationTemplateBytes < 1 || row.facts_present !== 1)) {
       fail('ClientRequestJournalCorrupt');
     }
     const extent = {definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
       factsBytes: row.facts_bytes,
-      storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes + contextBytes + 142};
-    if (includeContext) extent.contextBytes = contextBytes;
+      storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes +
+        contextBytes + invocationTemplateBytes + 142};
+    if (includeContext) {
+      extent.contextBytes = contextBytes;
+      extent.invocationTemplateBytes = invocationTemplateBytes;
+    }
     return Object.freeze(extent);
   };
   const readExplanationSelection = (ref, extent, includeContext) => {
     const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes];
-    if (includeContext) bounds.push(extent?.contextBytes);
+    if (includeContext) bounds.push(extent?.contextBytes, extent?.invocationTemplateBytes);
     if (!bounds.every(value => Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
-        includeContext && (extent.factsBytes + extent.contextBytes > maxRunDefinitionWireBytes ||
+        includeContext && (extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes > maxRunDefinitionWireBytes ||
+          (extent.contextBytes === 0) !== (extent.invocationTemplateBytes === 0) ||
           extent.contextBytes > 0 && extent.factsBytes === 0) ||
         extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value, 142)) {
       fail('InvalidClientRunExplanationExtent');
@@ -3021,10 +3034,13 @@ export function openClientRequestJournal(directory, {
         THEN ${sql.facts} ELSE NULL END AS facts_wire
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
-          AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire` : ''}
+          AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire,
+        CASE WHEN ${sql.contextPresent} AND typeof(${sql.template})='text'
+          AND length(CAST(${sql.template} AS BLOB)) = ? THEN ${sql.template} ELSE NULL END AS invocation_template_wire` : ''}
       ${sql.from}`);
     const row = includeContext
-      ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, extent.contextBytes,
+      ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+        extent.contextBytes, extent.invocationTemplateBytes,
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)
       : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
@@ -3032,13 +3048,17 @@ export function openClientRequestJournal(directory, {
     if (row.facet_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
         row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null ||
         includeContext && ((row.context_present === 1) !== (extent.contextBytes > 0) ||
-          row.context_present === 1 && (row.context_wire === null || row.facts_present !== 1))) {
+          row.context_present === 1 && (row.context_wire === null ||
+            row.invocation_template_wire === null || row.facts_present !== 1))) {
       fail('ClientRequestJournalCorrupt');
     }
     const result = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
       programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
       factsWire: row.facts_present === 1 ? row.facts_wire : undefined};
-    if (includeContext) result.contextWire = row.context_present === 1 ? row.context_wire : undefined;
+    if (includeContext) {
+      result.contextWire = row.context_present === 1 ? row.context_wire : undefined;
+      result.invocationTemplateWire = row.context_present === 1 ? row.invocation_template_wire : undefined;
+    }
     return Object.freeze(result);
   };
   const insertExplanationOriginal = (ref, original) => {
@@ -3051,7 +3071,8 @@ export function openClientRequestJournal(directory, {
     if (original.contextWire !== undefined) {
       if (!inspectExplanationContextOriginalStorage(database)) database.exec(explanationContextOriginalTable);
       database.prepare(`INSERT INTO client_run_explanation_context_originals
-        (run_definition_cid, context_wire) VALUES (?, ?)`).run(ref.runDefinitionCid, original.contextWire);
+        (run_definition_cid, context_wire, invocation_template_wire) VALUES (?, ?, ?)`)
+        .run(ref.runDefinitionCid, original.contextWire, original.invocationTemplateWire);
     }
   };
 
@@ -3147,9 +3168,9 @@ export function openClientRequestJournal(directory, {
             if (!inspectExplanationContextOriginalStorage(database)) fail('ClientRequestExplanationEvidenceMissing');
             // Compare the companion inside SQLite. A retry cannot backfill
             // absent Context or read a second unquoted copy of it.
-            const context = database.prepare(`SELECT context_wire = ? AS original_matches
+            const context = database.prepare(`SELECT (context_wire = ? AND invocation_template_wire = ?) AS original_matches
               FROM client_run_explanation_context_originals WHERE run_definition_cid = ?`)
-              .get(originalExplanation.contextWire, existing.run_definition_cid);
+              .get(originalExplanation.contextWire, originalExplanation.invocationTemplateWire, existing.run_definition_cid);
             if (context === undefined) fail('ClientRequestExplanationEvidenceMissing');
             if (context.original_matches !== 1) fail('ClientRequestExplanationEvidenceMismatch');
           }
@@ -3673,7 +3694,8 @@ export function openClientRequestJournal(directory, {
           if (original === null || typeof original !== 'object' || Array.isArray(original)) fail('InvalidClientRunExplanationOriginal');
           const fields = operationDescriptors(original), field = fields.factsWire;
           const companion = fields.contextWire;
-          if (operationKeys(fields).length !== (companion === undefined ? 1 : 2) || field === undefined ||
+          const template = fields.invocationTemplateWire;
+          if (operationKeys(fields).length !== (companion === undefined ? 1 : 3) || field === undefined ||
               !Object.hasOwn(field, 'value') || typeof field.value !== 'string' || field.value.length === 0) {
             fail('InvalidClientRunExplanationOriginal');
           }
@@ -3681,14 +3703,17 @@ export function openClientRequestJournal(directory, {
           let bytes = Buffer.byteLength(factsWire);
           const captured = {factsWire};
           if (companion !== undefined) {
-            if (!Object.hasOwn(companion, 'value') || typeof companion.value !== 'string' || companion.value.length === 0) {
+            if (!Object.hasOwn(companion, 'value') || typeof companion.value !== 'string' || companion.value.length === 0 ||
+                template === undefined || !Object.hasOwn(template, 'value') ||
+                typeof template.value !== 'string' || template.value.length === 0) {
               fail('InvalidClientRunExplanationOriginal');
             }
             if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(explanationContextOriginalTable)) {
               fail('ClientRequestExplanationStorageUnavailable');
             }
             captured.contextWire = companion.value;
-            bytes += Buffer.byteLength(captured.contextWire);
+            captured.invocationTemplateWire = template.value;
+            bytes += Buffer.byteLength(captured.contextWire) + Buffer.byteLength(captured.invocationTemplateWire);
           }
           if (bytes > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
           explanationOriginal = Object.freeze(captured);

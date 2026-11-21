@@ -28409,7 +28409,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "847442d53454f37c35ab3622da72f2f22222e4b9beaf0ea975468577607b2e6f",
+      "sha256": "b66b74848a5a9d0eaeb9a9a2d5dbba3b6397decac83fe07d749c96e2f8e92eca",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33755,7 +33755,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('Context joins the same committed Plan and Facts"
+                "anchor": "test('Context and Template join the same committed Plan and Facts"
               }
             ],
             "failure": [
@@ -33770,11 +33770,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "extent.factsBytes + extent.contextBytes > maxRunDefinitionWireBytes"
+                "anchor": "extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes > maxRunDefinitionWireBytes"
               },
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('Context checks combined UTF-8 extent"
+                "anchor": "test('Context and Template enforce a paired aggregate extent"
               }
             ],
             "extension": [
@@ -33786,11 +33786,11 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('Context joins the same committed Plan and Facts"
+                "anchor": "test('Context and Template join the same committed Plan and Facts"
               },
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('Context checks combined UTF-8 extent"
+                "anchor": "test('Context and Template enforce a paired aggregate extent"
               }
             ]
           }
@@ -46880,7 +46880,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "e6e70fe5869ff873248d94af13e4183ea16095888d08cb2965a6bbc29f1aa59c",
+      "sha256": "bcebfdd0b3c22dbbb912774ee948bc729323b46186412e9f57ab731a75805708",
       "exports": [
         "commonjs:sql"
       ],
