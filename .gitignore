@@ -1321,3 +1321,7 @@ target/
 /adapters/host-node/fixtures/ordinary-source-binding.fixture.d.mts
 /adapters/host-node/client-source-operation.mjs
 /adapters/host-node/client-source-operation.d.mts
+/adapters/host-node/client-source-operation.test.mjs
+/adapters/host-node/client-source-operation.test.d.mts
+/adapters/host-node/fixtures/original-plan-journal.mjs
+/adapters/host-node/fixtures/original-plan-journal.d.mts

@@ -4,20 +4,49 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership}
-  from '../store-local/publication-store.mjs';
-import {createPublicationContractControlFixture}
-  from '../host-common/publication-contract-control.fixture.mjs';
+// @ts-expect-error TS7016: remove after publication-store has an authored TypeScript entry.
+import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+// @ts-expect-error TS7016: remove after publication-contract-control.fixture has an authored TypeScript entry.
+import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {bindClientSourceOperation, bindClientSourceOperationRowRun}
   from './client-source-operation.mjs';
 import {request, requestControl, controls, definition, options}
   from './fixtures/original-plan-journal.mjs';
 
+type OperationRuntime = Parameters<typeof bindClientSourceOperationRowRun>[1];
+type OriginalJob = Parameters<ReturnType<typeof bindClientSourceOperationRowRun>>[0];
+type Occurrence = Readonly<{stage: number; input: number; task: number}>;
+type Reference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
+type RunFrame = Readonly<{revision: number; physicalStartReserved: boolean; physicalCloseConfirmed: boolean;
+  observedTerminalOutcome: string | null}>;
+type Journal = Readonly<{
+  acceptDefinition(original: typeof request, admission: typeof options, control: object, publication: object): {ref: Reference};
+  reserveDispatch(original: typeof request, intent: Readonly<{namespaceId: string; currentAuthorization: boolean}>,
+    control: object, publication: object): unknown;
+  reservePhysicalStart(original: typeof request, intent: Readonly<{namespaceId: string; ref: Reference;
+    currentAuthorization: boolean; captureSourceOperation?: CaptureSource;
+    localExecutionOwner?: Readonly<{program: object; compiled: object}>}>,
+    control: object, publication: object): boolean;
+  lookupRunDefinition(ref: Reference, control: object, publication: object): RunFrame | undefined;
+  lookupOriginalSourceOperation(ref: Reference, occurrence: Occurrence): Readonly<{originalWire: string}> | undefined;
+  sourceOperationConfigured: boolean;
+  observeStoppedLocalExecutionOwner(ref: Reference, frame: RunFrame): boolean;
+  markPhysicalClose(ref: Reference, outcome: 'failed', frame: RunFrame): unknown;
+  close(): unknown;
+}>;
+type CaptureSource = Readonly<{program: object; compiled: object; store: object; capture(value: object): void}>;
+type MutableInventory = {acquisitions: number; infer: object[]; serialization: number[][];
+  effects: boolean; graphCarrier: boolean};
+type InventoryChange = {[Key in keyof MutableInventory]: [Key, MutableInventory[Key]]}[keyof MutableInventory];
+type MutableInventoryFields = Record<keyof MutableInventory, MutableInventory[keyof MutableInventory]>;
+
 // Real same-file SQLite/COMMIT/reopen, with explicit semantic-control stand-ins.
 // These cases do not replace the separate actual Common binding counter.
-function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProjection = false,
-  journalOptions = {}) {
+function fixture(t: TestContext, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProjection = false,
+  journalOptions: Readonly<Record<string, unknown>> = {}) {
   const parent = fileURLToPath(new URL('../../_build/source-operation-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const directory = fs.mkdtempSync(join(parent, 'case-'));
@@ -25,29 +54,29 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
   const {publication: previous} = controls();
   const program = Object.freeze({}), compiled = Object.freeze({}), prepared = Object.freeze({});
   const publication = Object.freeze({...previous,
-    checkClientCompiledRunOwner(value, owner) {assert.equal(value, compiled); assert.equal(owner, program);},
-    checkClientCompiledRunDefinition(value, run) {assert.equal(value, compiled); assert.equal(run.identity, definition.identity);}});
-  const jobs = new WeakMap(), records = new WeakMap();
+    checkClientCompiledRunOwner(value: unknown, owner: unknown) {assert.equal(value, compiled); assert.equal(owner, program);},
+    checkClientCompiledRunDefinition(value: unknown, run: typeof definition) {assert.equal(value, compiled); assert.equal(run.identity, definition.identity);}});
+  const jobs = new WeakMap<object, OriginalJob>(), records = new WeakMap<object, string>();
   const control = Object.freeze({...requestControl,
-    ...(missingJobProjection ? {} : {clientProgramBigQueryJobReadMatchesRowRun: (job, run, acquisition) =>
-      jobs.get(job)?.frame.run === run && jobs.get(job)?.frame.acquisition === acquisition}),
-    clientProgramBigQueryJobOriginalRecordMatchesRequest: (job, issued, record) => jobs.get(job)?.request === issued && jobs.get(job)?.record === record,
-    clientProgramBigQueryJobOriginalRecordWire: record => records.get(record),
-    clientProgramMatchesRequestIdentity: (value, identity) => value === program && identity === request,
-    clientRunStartAction: (_identity, _retained, _run, _cid, reserved, current) => !current ? 5 : reserved ? 1 : 0,
-    clientRunPhysicalStartWithCancellationAction: (_identity, _retained, _run, _cid, reserved, fresh, current, cancelled) =>
+    ...(missingJobProjection ? {} : {clientProgramBigQueryJobReadMatchesRowRun: (job: unknown, run: unknown, acquisition: unknown) =>
+      jobs.get(job as object)?.frame.run === run && jobs.get(job as object)?.frame.acquisition === acquisition}),
+    clientProgramBigQueryJobOriginalRecordMatchesRequest: (job: unknown, issued: unknown, record: unknown) => jobs.get(job as object)?.request === issued && jobs.get(job as object)?.record === record,
+    clientProgramBigQueryJobOriginalRecordWire: (record: unknown) => records.get(record as object)!,
+    clientProgramMatchesRequestIdentity: (value: unknown, identity: unknown) => value === program && identity === request,
+    clientRunStartAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown, reserved: boolean, current: boolean) => !current ? 5 : reserved ? 1 : 0,
+    clientRunPhysicalStartWithCancellationAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown, reserved: boolean, fresh: boolean, current: boolean, cancelled: boolean) =>
       !current ? 5 : reserved && fresh && !cancelled ? 1 : 0});
-  let journal = openClientRequestJournal(directory, {...journalOptions, sourceOperationLimits: limits});
+  let journal: Journal = openClientRequestJournal(directory, {...journalOptions, sourceOperationLimits: limits});
   const accepted = journal.acceptDefinition(request, options, control, publication);
   journal.reserveDispatch(request, {namespaceId: options.namespaceId, currentAuthorization: true}, control, publication);
   const ref = accepted.ref;
-  let scope, storeClosed = false;
+  let scope: object | undefined, storeClosed = false;
   const store = Object.freeze({privateEvidenceWireLimit() {
     assert.equal(this, store);
     if (storeClosed) throw Object.assign(new Error('PublicationStoreClosed'), {code: 'PublicationStoreClosed'});
     return 4096;
   }});
-  const capture = {program, compiled, store, capture(value) {assert.equal(this, capture); scope = value;}};
+  const capture: CaptureSource = {program, compiled, store, capture(value) {assert.equal(this, capture); scope = value;}};
   const start = (selection = capture) => journal.reservePhysicalStart(request,
     {namespaceId: options.namespaceId, ref, currentAuthorization: true,
       captureSourceOperation: selection}, control, publication);
@@ -55,25 +84,25 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
   const frame = Object.freeze({run: {}, acquisition: {}, requestId: 'original-attempt',
     runInvocationCid: 'sha256:' + '6'.repeat(64), dispatchRequestCid: 'sha256:' + '7'.repeat(64)});
   const jobRead = {}, firstRequest = {}, record = {};
-  const recordWire = jobId => JSON.stringify({
+  const recordWire = (jobId: string) => JSON.stringify({
     body: JSON.stringify({configuration: {query: {query: 'SELECT 1', useLegacySql: false}},
       jobReference: {jobId, location: 'EU', projectId: 'acme-project'}}),
     format: 'actql.bigquery-job-original/0.1', jobId, location: 'EU', method: 'POST',
     path: '/bigquery/v2/projects/acme-project/jobs', project: 'acme-project'});
   const wire = recordWire(frame.requestId);
-  const moon = control;
+  const moon: OperationRuntime = control;
   const occurrence = {stage: 0, input: 0, task: 0};
   const original = Object.freeze({jobRead, request: firstRequest, record, wire, frame});
-  const registerJob = original => {jobs.set(original.jobRead, original); records.set(original.record, original.wire);};
+  const registerJob = (original: OriginalJob) => {jobs.set(original.jobRead as object, original); records.set(original.record as object, original.wire);};
   registerJob(original);
   return {directory, ref, program, compiled, prepared, control, publication, frame, moon, occurrence, original, store,
     get journal() {return journal;}, get scope() {return scope;}, start,
-    source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, journal, store, program, selected, value);},
-    port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
+    source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope!, journal, store, program, selected, value);},
+    port(value: object) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
     reopenWithoutSourceOperations() {journal.close(); journal = openClientRequestJournal(directory);},
     closeStore() {storeClosed = true;}, registerJob, recordWire,
-    mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
+    mutate(sql: string) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
 }
 
 test('confirmed same-Journal physical claim issues one original scope and commits exact material before send', t => {
@@ -91,7 +120,7 @@ test('confirmed same-Journal physical claim issues one original scope and commit
   assert.throws(() => port(f.original, () => sent++), {code: 'ClientSourceOperationAlreadyEntered'});
   assert.equal(sent, 1);
   f.reopen();
-  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence)!.originalWire, f.original.wire);
   let captured = 0;
   assert.equal(f.start({program: f.program, compiled: f.compiled, store: f.store, capture() {captured++;}}), false);
   assert.equal(captured, 0);
@@ -107,21 +136,21 @@ test('bounded Journal facade remains the exact same Source operation owner witho
       maxParameterBytes: 65536, maxResultRows: 1000}});
   assert.equal(f.start(), true);
   const source = f.source();
-  assert.throws(() => bindClientSourceOperation(f.scope, {...f.journal}, f.store,
+  assert.throws(() => bindClientSourceOperation(f.scope!, {...f.journal}, f.store,
     f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
   let sends = 0;
   f.port(source)(f.original, () => {sends++;});
   assert.equal(sends, 1);
-  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire,
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence)!.originalWire,
     f.original.wire);
 });
 
 test('copied scope and different original Program or prepared Source cannot bind a RowRun', t => {
   const f = fixture(t); f.start();
   assert.throws(() => bindClientSourceOperation({...f.scope}, f.journal, f.store, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
-  assert.throws(() => bindClientSourceOperation(f.scope, f.journal, f.store, {}, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
-  assert.throws(() => bindClientSourceOperation(f.scope, {}, f.store, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
-  assert.throws(() => bindClientSourceOperation(f.scope, f.journal, {}, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope!, f.journal, f.store, {}, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope!, {}, f.store, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperation(f.scope!, f.journal, {}, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
   const source = f.source();
   assert.throws(() => bindClientSourceOperationRowRun(source, f.moon, f.program, {...f.prepared}, f.frame), {code: 'ForeignClientSourceOperation'});
   assert.throws(() => bindClientSourceOperationRowRun(source, {...f.moon}, f.program, f.prepared, f.frame), {code: 'ForeignClientSourceOperation'});
@@ -151,7 +180,7 @@ test('an unavailable Common original Job/RowRun projection cannot be replaced by
 test('lost original-record COMMIT reply keeps the saved material and never enters or replaces the send', t => {
   const f = fixture(t); f.start(); const port = f.port(f.source());
   const exec = DatabaseSync.prototype.exec; let injected = false, sent = 0;
-  DatabaseSync.prototype.exec = function(sql) {
+  DatabaseSync.prototype.exec = function(this: DatabaseSync, sql: string) {
     const result = Reflect.apply(exec, this, [sql]);
     if (sql === 'COMMIT' && !injected) {injected = true; throw new Error('OriginalRecordCommitReplyLost');}
     return result;
@@ -161,13 +190,13 @@ test('lost original-record COMMIT reply keeps the saved material and never enter
   assert.equal(injected, true); assert.equal(sent, 0);
   assert.throws(() => port(f.original, () => sent++), {code: 'ClientSourceOperationAlreadyEntered'});
   f.reopen();
-  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence)!.originalWire, f.original.wire);
   assert.equal(f.start(), false); assert.equal(sent, 0);
 });
 
 test('lost first physical-start COMMIT reply cannot issue a live Source scope', t => {
   const f = fixture(t); const exec = DatabaseSync.prototype.exec; let injected = false;
-  DatabaseSync.prototype.exec = function(sql) {
+  DatabaseSync.prototype.exec = function(this: DatabaseSync, sql: string) {
     const result = Reflect.apply(exec, this, [sql]);
     if (sql === 'COMMIT' && !injected) {injected = true; throw new Error('PhysicalStartCommitReplyLost');}
     return result;
@@ -201,8 +230,8 @@ test('same-Run sibling original Sources retain separate keys without releasing t
   f.port(first)(f.original, () => sent++);
   bindClientSourceOperationRowRun(second, f.moon, f.program, prepared, frame)(original, () => sent++);
   assert.equal(sent, 2);
-  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
-  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, secondAt).originalWire, original.wire);
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence)!.originalWire, f.original.wire);
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, secondAt)!.originalWire, original.wire);
 });
 
 test('missing original-operation storage bounds refuse before the physical-start CAS', t => {
@@ -210,7 +239,7 @@ test('missing original-operation storage bounds refuse before the physical-start
   assert.equal(f.journal.sourceOperationConfigured, false);
   assert.throws(() => f.start(), {code: 'ClientSourceOperationUnavailable'});
   assert.equal(f.scope, undefined);
-  assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).physicalStartReserved, false);
+  assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication)!.physicalStartReserved, false);
 });
 
 test('record capacity refusal cannot fall back or rebind another attempt at the same original occurrence', t => {
@@ -248,7 +277,8 @@ test('private source-operation bounds refuse accessors and unknown fields before
 
 // Physical SQLite/Store originals are real; semantic compiler controls below
 // are explicit stand-ins. Public process-kill tests separately exercise Common.
-async function localOwnerFixture(t, {legacy = false, beforeOpen} = {}) {
+async function localOwnerFixture(t: TestContext, {legacy = false, beforeOpen}:
+  Readonly<{legacy?: boolean; beforeOpen?: (directory: string) => void | Promise<void>}> = {}) {
   const parent = fileURLToPath(new URL('../../_build/local-owner-journal-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const root = fs.mkdtempSync(join(parent, 'case-'));
@@ -258,26 +288,26 @@ async function localOwnerFixture(t, {legacy = false, beforeOpen} = {}) {
     storeAuthorityCid: 'sha256:' + 'a'.repeat(64), capacityBytes: 1024 * 1024,
     maxObjectBytes: 64 * 1024, maxObjects: 100, maxContractNodes: 4096, maxContractDepth: 64};
   const storeControl = createPublicationContractControlFixture();
-  const program = {}, compiled = {}, inventory = {acquisitions: 0, infer: [], serialization: [], effects: false, graphCarrier: false};
+  const program = {}, compiled = {}, inventory: MutableInventory = {acquisitions: 0, infer: [], serialization: [], effects: false, graphCarrier: false};
   const {publication: previous} = controls();
   const publication = {...previous,
-    checkClientCompiledRunOwner(value, actual) {assert.equal(value, compiled); assert.equal(actual, program);},
-    checkClientCompiledRunDefinition(value, actual) {assert.equal(value, compiled); assert.equal(actual.identity, definition.identity);},
-    checkClientCompiledLocalExecutionOwner(value, actual) {
+    checkClientCompiledRunOwner(value: unknown, actual: unknown) {assert.equal(value, compiled); assert.equal(actual, program);},
+    checkClientCompiledRunDefinition(value: unknown, actual: typeof definition) {assert.equal(value, compiled); assert.equal(actual.identity, definition.identity);},
+    checkClientCompiledLocalExecutionOwner(value: unknown, actual: typeof definition) {
       assert.equal(value, compiled); assert.equal(actual.identity, definition.identity);
       assert.equal(inventory.effects, false); assert.equal(inventory.graphCarrier, false);
     }};
   const control = {...requestControl,
-    clientProgramMatchesRequestIdentity: (actual, identity) => actual === program && identity === request,
-    clientProgramAcquisitionCount: actual => {assert.equal(actual, program); return inventory.acquisitions;},
-    clientProgramSerializationOccurrences: actual => {assert.equal(actual, program); return inventory.serialization;},
-    clientProgramComposedInferOccurrences: actual => {assert.equal(actual, program); return {$tag: 1, _0: inventory.infer};},
-    clientRunStartAction: (_identity, _retained, _run, _cid, reserved, current) => !current ? 5 : reserved ? 1 : 0,
-    clientRunPhysicalStartWithCancellationAction: (_identity, _retained, _run, _cid, reserved, fresh, current, cancelled) =>
+    clientProgramMatchesRequestIdentity: (actual: unknown, identity: unknown) => actual === program && identity === request,
+    clientProgramAcquisitionCount: (actual: unknown) => {assert.equal(actual, program); return inventory.acquisitions;},
+    clientProgramSerializationOccurrences: (actual: unknown) => {assert.equal(actual, program); return inventory.serialization;},
+    clientProgramComposedInferOccurrences: (actual: unknown) => {assert.equal(actual, program); return {$tag: 1, _0: inventory.infer};},
+    clientRunStartAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown, reserved: boolean, current: boolean) => !current ? 5 : reserved ? 1 : 0,
+    clientRunPhysicalStartWithCancellationAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown, reserved: boolean, fresh: boolean, current: boolean, cancelled: boolean) =>
       !current ? 5 : reserved && fresh && !cancelled ? 1 : 0};
   if (beforeOpen !== undefined) await beforeOpen(publicationDirectory);
   let owner = await prepareLocalPublicationStoreOwnership(publicationDirectory);
-  let journal = openClientRequestJournal(directory, {}, legacy ? undefined : owner);
+  let journal: Journal = openClientRequestJournal(directory, {}, legacy ? undefined : owner);
   let store = await openLocalPublicationStore(storeConfiguration, storeControl,
     undefined, undefined, owner);
   const accepted = journal.acceptDefinition(request, options, control, publication);
@@ -289,12 +319,12 @@ async function localOwnerFixture(t, {legacy = false, beforeOpen} = {}) {
     get journal() {return journal;},
     start(value = {program, compiled}) {return journal.reservePhysicalStart(request,
       {namespaceId: options.namespaceId, ref, currentAuthorization: true, localExecutionOwner: value}, control, publication);},
-    frame() {return journal.lookupRunDefinition(ref, control, publication);},
+    frame() {return journal.lookupRunDefinition(ref, control, publication)!;},
     rows() {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
       try {return db.prepare('SELECT * FROM client_local_execution_owners').all();} finally {db.close();}},
-    mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
+    mutate(sql: string) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3'));
       try {db.exec(sql);} finally {db.close();}},
-    async reopen(beforeReopen) {journal.close(); await store.close();
+    async reopen(beforeReopen?: (directory: string) => void | Promise<void>) {journal.close(); await store.close();
       assert.equal((await closePreparedLocalPublicationStoreOwnership(owner)).pending, false);
       if (beforeReopen !== undefined) await beforeReopen(publicationDirectory);
       owner = await prepareLocalPublicationStoreOwnership(publicationDirectory);
@@ -325,10 +355,10 @@ test('local execution owner receipt rejects foreign and external-work originals 
   for (const value of [{program: {}, compiled: f.compiled}, {program: f.program, compiled: {}}]) {
     assert.throws(() => f.start(value), {code: 'ForeignClientLocalExecutionOwner'});
   }
-  for (const [key, value] of [['acquisitions', 1], ['infer', [{}]], ['serialization', [[0, 0]]], ['effects', true], ['graphCarrier', true]]) {
-    const previous = f.inventory[key]; f.inventory[key] = value;
+  for (const [key, value] of [['acquisitions', 1], ['infer', [{}]], ['serialization', [[0, 0]]], ['effects', true], ['graphCarrier', true]] satisfies InventoryChange[]) {
+    const previous = f.inventory[key]; (f.inventory as MutableInventoryFields)[key] = value;
     assert.throws(() => f.start(), {code: 'ForeignClientLocalExecutionOwner'});
-    f.inventory[key] = previous;
+    (f.inventory as MutableInventoryFields)[key] = previous;
   }
   assert.equal(f.frame().physicalStartReserved, false); assert.equal(f.rows().length, 0);
 });

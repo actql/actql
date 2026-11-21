@@ -3799,13 +3799,13 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "lost original-record COMMIT reply keeps the saved material and never enters or replaces the send"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "current cancellation after scope issue refuses before recording or physical send"
               }
             ],
@@ -3823,11 +3823,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "confirmed same-Journal physical claim issues one original scope and commits exact material before send"
               },
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA"
               }
             ]
@@ -4503,11 +4503,11 @@
             },
             "verification": [
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt atomically binds the original start"
               },
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
               },
               {
@@ -32320,11 +32320,11 @@
                 "anchor": "function assertOriginalExecutionOwner(plan, program, control)"
               },
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt atomically binds the original start"
               },
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
               },
               {

@@ -6941,11 +6941,11 @@
             },
             "verification": [
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt atomically binds the original start"
               },
               {
-                "path": "adapters/host-node/client-source-operation.test.mjs",
+                "path": "adapters/host-node/client-source-operation.test.mts",
                 "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
               },
               {
