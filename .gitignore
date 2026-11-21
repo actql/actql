@@ -1575,3 +1575,5 @@ target/
 /adapters/store-local/publication-physical-accounting.d.mts
 /adapters/store-local/publication-store.mjs
 /adapters/store-local/publication-store.d.mts
+/adapters/store-local/delivery-attempt-schema.mjs
+/adapters/store-local/delivery-attempt-schema.d.mts

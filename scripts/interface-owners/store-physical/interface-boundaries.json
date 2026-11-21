@@ -4224,7 +4224,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "768819be468fb15c0545d6d9e41bde33776249cc6e7a9f10887168924b3e1e04",
+      "sha256": "09838ae111ddbb4672b96f9d28ceebb9ebb11557dcda86f2350444153ca55eb5",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4233,6 +4233,14 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
           ],
           "async": false
         },
@@ -5052,9 +5060,7 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-          "parameters": [
-            "row"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -5063,15 +5069,8 @@
           "async": false
         },
         {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-          "parameters": [
-            "name"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -5086,16 +5085,6 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
           "parameters": [],
           "async": false
         },
@@ -5526,11 +5515,8 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
             "openDeliveryAttemptIndex/preparationOriginal/preparationOriginal",
             "openDeliveryAttemptIndex/prepare/prepare",
@@ -5573,7 +5559,8 @@
             "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows/selectedPublicationRows#2",
             "openDeliveryAttemptIndex/transaction/transaction",
             "openDeliveryAttemptIndex/usage/usage",
-            "openDeliveryAttemptIndex/validate/validate/validate"
+            "openDeliveryAttemptIndex/validate/validate/validate",
+            "fail/fail"
           ],
           "exports": [
             "openDeliveryAttemptIndex"
@@ -5705,7 +5692,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
                 "anchor": "logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,"
               },
               {
@@ -5981,7 +5968,7 @@
                 "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
               },
               {
-                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
                 "anchor": "// Private format 15 is intentionally breaking. Refuse old stores before"
               },
               {
@@ -6187,6 +6174,148 @@
         }
       ],
       "referenceQualification": "Format 15 receipt ownership repair reviewed against the existing Store contract: identical receipt bodies may belong to distinct attempts; exact attempt/record ACK ownership is unchanged. Removed private-version upgrade callbacks are not retained. Fresh initialization and same-version recovery retain the existing single contract assignment; public exports and normative 0.1 contracts are unchanged. Syntax/hash evidence is not runtime acceptance. Receipt-conflict SQL is prepared on first use by the existing connection holder and retired with that same owner; transaction, conflict, COMMIT and Unknown boundaries are unchanged. The fixed 24-entry schema-admission loop reuses one original connection statement while preserving every ordered live read, exact SQL refusal and original database cleanup; no schema result or authority is cached."
+    },
+    {
+      "module": "adapters/store-local/delivery-attempt-schema.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "cdfba8c2d73bcecd909cebcfc0eeda12daaf7fc6ae077d39f6e9aa0aa9a9e577",
+      "exports": [
+        "admitDeliveryIndexSchema",
+        "selectDeliveryIndexCreation"
+      ],
+      "operations": [
+        {
+          "name": "admitDeliveryIndexSchema",
+          "parameters": [
+            "initialize",
+            "initializeEmpty",
+            "maxEntries",
+            "prepare",
+            "exec",
+            "transaction",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitDeliveryIndexSchema/admitDeliveryIndexSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitDeliveryIndexSchema/admitDeliveryIndexSchema/admitDeliveryIndexSchema",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitDeliveryIndexSchema/admitDeliveryIndexSchema#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitDeliveryIndexSchema/readResultRecovery/readResultRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectDeliveryIndexCreation",
+          "parameters": [
+            "create",
+            "prepare",
+            "fail"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitDeliveryIndexSchema",
+            "admitDeliveryIndexSchema/admitDeliveryIndexSchema",
+            "admitDeliveryIndexSchema/admitDeliveryIndexSchema/admitDeliveryIndexSchema",
+            "admitDeliveryIndexSchema/admitDeliveryIndexSchema#2",
+            "admitDeliveryIndexSchema/readResultRecovery/readResultRecovery",
+            "selectDeliveryIndexCreation"
+          ],
+          "exports": [
+            "admitDeliveryIndexSchema",
+            "selectDeliveryIndexCreation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "export function admitDeliveryIndexSchema("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "return {state, selected, readResultRecovery, resultRecovery, physicalHeader};"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "Reuse this connection's statement, not any schema row or admission."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "if (initialize) transaction.run(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "if (schemaDefinition.get(type,name)?.sql !== sql) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "if (initializeEmpty && !initialize) fail("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "const schemaDefinition = prepare("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema.mts",
+                "anchor": "// Private format 15 is intentionally breaking. Refuse old stores before"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "anchor": "schema admission reuses one original statement for all 24 ordered live reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-schema-statements.test.mjs",
+                "anchor": "schema admission still refuses exact SQL mismatch and closes the same DB without repair"
+              }
+            ]
+          }
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing exclusive Store delivery lookup, grant-use metadata, native transaction and pending-original cleanup; not a permission evaluator or separate Ledger"
     },
     {
       "module": "adapters/store-local/publication-store.mjs",
