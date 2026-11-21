@@ -1,5 +1,6 @@
 import {installModelProviders, prepareInstalledModelProviderDefaults} from './installed-model.mjs';
 import {prepareInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {installedSourceConfigurationReader, reserveInstalledSourceRuntimeIdentity} from './installed-host-services.mjs';
 import {fileURLToPath} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -88,6 +89,44 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
+    projectOpenAIProvider() {
+      return track(async () => {
+        check();
+        const construction = reader();
+        return construction.prepareModelTaskInput(Object.freeze({
+          // The selection borrows the original registry strings. No key,
+          // credential source or new Provider authority belongs to this view.
+          capacity: () => capacity(1n, 0n, 0n, 8n),
+          project() {
+            if (project === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
+            const original = installedProjectOriginalsForRuntime(project, moon);
+            const registry = original.modelRegistry;
+            if (registry === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
+            const providerId = moon.clientProjectModelRegistryDefaultProvider(registry);
+            const count = moon.clientProjectModelRegistryProviderCount(registry);
+            if (typeof providerId !== 'string' || providerId.length === 0 || providerId.length > 256 ||
+                !Number.isSafeInteger(taskLimits?.maxMembers) || !Number.isSafeInteger(count) ||
+                count < 1 || count > taskLimits.maxMembers) {
+              fail('InstalledProjectOpenAIProviderUnavailable');
+            }
+            for (let index = 0; index < count; index++) {
+              if (moon.clientProjectModelRegistryProviderName(registry, index) !== providerId) continue;
+              if (moon.clientProjectModelRegistryProviderType(registry, index) !== 'openai' ||
+                  moon.clientProjectModelRegistryProviderKeyEnvironment(registry, index) !== 'OPENAI_API_KEY') {
+                fail('InstalledProjectOpenAIProviderUnavailable');
+              }
+              check();
+              if (installedProjectOriginalsForRuntime(project, moon) !== original) {
+                fail('ForeignInstalledProjectOriginal');
+              }
+              return Object.freeze({providerId});
+            }
+            fail('InstalledProjectOpenAIProviderUnavailable');
+          },
+          retained: () => capacity(1n),
+        }));
+      });
+    },
     prepareConfiguration(project) {
       return track(async () => {
         check();

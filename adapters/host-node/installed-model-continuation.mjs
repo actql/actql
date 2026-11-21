@@ -3,7 +3,7 @@
 // a source of dispatch permission from historical bytes.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -1130,6 +1130,24 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
         if (!owner.available) fail('ModelContinuationClosed');
         signal?.throwIfAborted();
+        if (operation.hasModelCredentialPreparation?.()) {
+          operation.prepareModelCredentials(preparedCallSet, owner.entries, () => {
+            assertAuthorizationAccountCurrent(decision);
+            if (claim !== undefined) {
+              const current = (journalPort ?? cp.journal).admitResume(claim,
+                {checkpointCid: existing.checkpointCid});
+              if (current.resolutionCid !== decision.admission.resolutionCid ||
+                  current.configurationCid !== gate.configurationCid) {
+                fail('ModelCredentialResumeChanged');
+              }
+            }
+            if (checkpoints() !== cp || !owner.available || !token.available ||
+                live.get(preparedCallSet) !== owner || !owner.currentProvider()) {
+              fail('ModelProviderBindingChanged');
+            }
+            signal?.throwIfAborted();
+          });
+        }
         if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals, declaredResults, parentResume});
         owner.decision = decision;
         if (rawBinding?.complete !== true) {

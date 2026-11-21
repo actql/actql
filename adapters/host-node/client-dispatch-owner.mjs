@@ -18,6 +18,7 @@ import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
+import {isModelCredentialRefusal} from './infer-operation.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
 // Read only inert own data, including one existing primaryFailure diagnostic
@@ -233,6 +234,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     new Error('ClientRunCancellationRequested'));
   const live = ref => current(ref)?.settled === false;
   const operation = ref => current(ref)?.promise;
+  const credentialRefusalPending = ref => {
+    const entry = current(ref);
+    return entry?.requestId !== undefined && entry.settled &&
+      entry.ref.namespaceId === ref.namespaceId && entry.ref.authorityScopeCid === ref.authorityScopeCid &&
+      !entry.stopObserved && isModelCredentialRefusal(entry.primaryFailure);
+  };
   const failureMessage = ref => {
     const entry = current(ref);
     return entry === undefined ? undefined : publicBudgetFailureMessage(
@@ -1518,6 +1525,24 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return entry.promise;
   };
 
+  function settleRetainedEntry(entry) {
+    if (entry.retainedCleanup !== undefined) return entry.retainedCleanup;
+    entry.retainedCleanup = Promise.resolve().then(async () => {
+      try {
+        await settleCleanup(entry);
+        await finishRun(entry);
+        releaseAcquisition(entry);
+      } catch (failure) { entry.cleanupFailure = failure; }
+      retire(entry);
+    }).finally(() => {entry.retainedCleanup = undefined;});
+    return entry.retainedCleanup;
+  }
+  // The accepted initial Run retained a physical preparation, but the nominal
+  // credential refusal proves this Model never reached Entry. A wait can help
+  // settle that exact stopped owner. It cannot restart dispatch or confirm stop.
+  const settleCredentialRefusal = ref => credentialRefusalPending(ref)
+    ? settleRetainedEntry(current(ref)) : undefined;
+
   const drain = async () => {
     for (;;) {
       const running = [...entries.values()].filter(entry => !entry.settled);
@@ -1525,13 +1550,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await Promise.allSettled(running.map(entry => entry.promise));
     }
     for (const entry of [...entries.values()]) {
-      try {
-        await settleCleanup(entry);
-        await finishRun(entry);
-        releaseAcquisition(entry);
-      }
-      catch (failure) { entry.cleanupFailure = failure; }
-      retire(entry);
+      await settleRetainedEntry(entry);
     }
     if (entries.size > 0) {
       throw Object.assign(new Error('ClientDispatchCleanupPending'), {
@@ -1547,5 +1566,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       });
     }
   };
-  return Object.freeze({start, track, cancel, live, operation, failureMessage, drain});
+  return Object.freeze({start, track, cancel, live, operation, failureMessage, drain,
+    credentialRefusalPending, settleCredentialRefusal});
 }

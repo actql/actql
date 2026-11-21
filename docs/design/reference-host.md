@@ -1696,6 +1696,15 @@ and parsed as a new input before the same schema admission. External wire and
 ordinary JS-row consumers retain their existing checked entrances. No JS JSON
 parser, numeric conversion, cursor fallback or independent Reader is added.
 
+The Notion users codec retains its full provider envelope, value bounds and
+user identity checks. It supplies the original count and next cursor as DATA
+to the existing Common cursor progress. Its checked row wire flows into the
+managed reader without decoding rows into JavaScript objects and encoding them
+again. The existing cursor-reader allowance and request-construction quote
+cover the retained progress and captured calls under the same reader. A
+valid full prefix reaches the original current check before a later request
+can be refused for row exhaustion.
+
 #### Original finite GET declarations
 
 The author tool validates an original GET declaration through its installed

@@ -201,9 +201,7 @@ test('Notion constructor captures original services and provider before configur
   assert.equal(f.readerInput.operation, 'notion:users:list');
   assert.throws(() => f.readerInput.preparePageReader({resource: 'foreign', columns: []}, () => {}),
     {code: 'UndeclaredNotionResource'});
-  // This existing full-envelope plugin keeps the legacy JSON representation;
-  // the row-only REST cursor mode is not selected by a Program or this adapter.
-  assert.equal(f.implementationInput.cursorProgress, undefined);
+  assert.equal(f.implementationInput.cursorProgress, true);
   assert(Object.isFrozen(f.implementationInput.requestConstruction));
 });
 
