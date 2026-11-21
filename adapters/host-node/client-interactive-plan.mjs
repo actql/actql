@@ -47,6 +47,14 @@ export function installClientStaticPlan({moon, control, prepare, authorize, read
 const explanationReplyOverhead = Buffer.byteLength('{"plan":,"facts":,"context":}', 'utf8');
 const staticExplanationFailure = code => Object.assign(new Error(code), {code});
 
+function assertSynchronousStaticCurrent(assertCurrent) {
+  const result = assertCurrent();
+  if (typeof result?.then === 'function') {
+    void Promise.resolve(result).catch(() => {});
+    throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
+  }
+}
+
 // The structural facets use the same already-issued Plan and Map. This is a
 // consistency check of the typed compiler projection, never a permission.
 function originalStaticExplanation({plan, facts, context}) {
@@ -81,22 +89,34 @@ export function installClientStaticEffectExplanation({authorize, authorizeEgress
         throw staticExplanationFailure('StaticExplanationReadLimit');
       }
     }
+    let active = true;
+    let entered = false;
+    let completed = false;
+    const assertActive = () => {
+      if (!active) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
+    };
     const requireAccess = async () => {
+      assertActive();
       signal?.throwIfAborted();
-      if (await authorizeEgress(request) !== true || await authorize(request) !== true) {
+      const egress = await authorizeEgress(request);
+      assertActive();
+      const authorized = egress === true && await authorize(request);
+      assertActive();
+      if (authorized !== true) {
         throw staticExplanationFailure('StaticExplanationAccessDenied');
       }
       signal?.throwIfAborted();
     };
     await requireAccess();
-    let entered = false;
-    const result = await withOriginal(request, async function consumeOriginal(wires, assertCurrent) {
+    async function consumeOriginal(wires, assertCurrent) {
+      assertActive();
       if (entered || typeof assertCurrent !== 'function') {
         throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
       }
       entered = true;
       await requireAccess();
-      assertCurrent();
+      assertActive();
+      assertSynchronousStaticCurrent(assertCurrent);
       if (wires === null || typeof wires !== 'object') {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
@@ -124,11 +144,26 @@ export function installClientStaticEffectExplanation({authorize, authorizeEgress
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
       await requireAccess();
-      assertCurrent();
+      assertActive();
+      assertSynchronousStaticCurrent(assertCurrent);
       signal?.throwIfAborted();
-      return await consume(view);
-    });
-    if (!entered) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
-    return result;
+      const delivery = await consume(view);
+      assertActive();
+      completed = true;
+      return delivery;
+    }
+    try {
+      const result = await withOriginal(request, function visitOriginal(wires, assertCurrent) {
+        const delivery = consumeOriginal(wires, assertCurrent);
+        // An invalid owner can abandon the visit. Keep the same rejecting
+        // promise available to an owner that awaits it.
+        void delivery.catch(() => {});
+        return delivery;
+      });
+      if (!completed) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
+      return result;
+    } finally {
+      active = false;
+    }
   };
 }

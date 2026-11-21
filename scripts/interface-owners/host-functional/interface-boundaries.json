@@ -24911,7 +24911,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eaff815f79a71bf6b36d7e0bbedbea6b9ab7195f5b7c37feb6df25bb650a77e6",
+      "sha256": "ec6603a3496ef63d3e8ec99cc38ccfb75aec43387e999b7e03cfdb88e737a3b6",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -24919,6 +24919,11 @@
         "installClientStaticPlan"
       ],
       "operations": [
+        {
+          "name": "assertSynchronousStaticCurrent/assertSynchronousStaticCurrent",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "installClientStaticEffectExplanation",
           "parameters": [
@@ -24937,12 +24942,17 @@
           "async": true
         },
         {
-          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/consumeOriginal",
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
           "parameters": [
             "wires",
             "assertCurrent"
           ],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installClientStaticPlan",
@@ -25297,9 +25307,11 @@
         },
         {
           "operations": [
+            "assertSynchronousStaticCurrent/assertSynchronousStaticCurrent",
             "installClientStaticEffectExplanation",
             "installClientStaticEffectExplanation/readStaticEffectExplanation",
-            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/consumeOriginal"
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal"
           ],
           "exports": [
             "installClientStaticEffectExplanation"
@@ -25332,7 +25344,11 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "const result = await withOriginal(request, async function consumeOriginal(wires, assertCurrent) {"
+                "anchor": "if (!completed) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "function assertSynchronousStaticCurrent(assertCurrent) {"
               }
             ],
             "failure": [
@@ -25371,6 +25387,14 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('static Explanation refuses foreign Context and preserves final original current loss', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses an owner return before the visitor completes', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses asynchronous current at both disclosure boundaries', async () => {"
               }
             ]
           }

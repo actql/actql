@@ -130,6 +130,54 @@ test('static Explanation refuses foreign Context and preserves final original cu
   assert.equal(currentChecks, 2);
 });
 
+test('static Explanation refuses an owner return before the visitor completes', async () => {
+  const egress = Promise.withResolvers();
+  let egressChecks = 0;
+  let authorizationChecks = 0;
+  let dropped;
+  const unreadable = {get plan() {assert.fail('Returned owner must not supply wires');}};
+  const read = installClientStaticEffectExplanation({
+    authorize() {authorizationChecks++; return true;},
+    authorizeEgress() {return ++egressChecks === 2 ? egress.promise : true;},
+    withOriginal(_request, visit) {
+      dropped = visit(unreadable, () => assert.fail('Returned owner must not be used'));
+      void dropped.catch(() => {});
+      return 'returned early';
+    },
+  });
+  const consume = () => assert.fail('Incomplete visit must not deliver');
+  try {
+    await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+  } finally {
+    egress.resolve(true);
+  }
+  await assert.rejects(dropped, {code: 'StaticExplanationOriginalUnavailable'});
+  assert.equal(authorizationChecks, 1);
+
+  let lateVisit;
+  const absent = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    withOriginal(_request, visit) {lateVisit = visit;}});
+  await assert.rejects(absent(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+  await assert.rejects(lateVisit(unreadable, () => assert.fail('Late visit must not check current')),
+    {code: 'StaticExplanationOriginalUnavailable'});
+});
+
+test('static Explanation refuses asynchronous current at both disclosure boundaries', async () => {
+  const view = await staticExplanationFixture();
+  const consume = () => assert.fail('Asynchronous assertion must stop delivery');
+  for (const pass of [1, 2]) {
+    let assertions = 0;
+    const wires = pass === 1 ? {get plan() {assert.fail('Asynchronous assertion must stop wire access');}}
+      : explanationWires(view);
+    const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+      withOriginal: (_request, visit) => visit(wires, () => {
+        if (++assertions === pass) return Promise.reject(new Error('asynchronous assertion'));
+      })});
+    await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+    assert.equal(assertions, pass);
+  }
+});
+
 test('public static plan admits its original snapshot before options and returns the same read producer', async t => {
   const events = [], receipt = {}, admitted = new WeakSet();
   let captured, bound, finished = 0;
