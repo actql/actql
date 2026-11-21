@@ -30,6 +30,22 @@ test('Mock harness observation waits for the original operation and returns its 
   assert(Number.isSafeInteger(records[0].wallNs) && records[0].wallNs >= 0);
 });
 
+test('Mock harness observation uses the dedicated shared-file phase without any template', async () => {
+  const records = [], original = {sharedFile: true};
+  const value = await performance.observeNativeMockHarnessPhase(records, 'shared-file-scenario',
+    () => original);
+  assert.equal(value, original);
+  assert.equal(records[0].phase, 'shared-file-scenario');
+  assert.equal(Object.hasOwn(records[0], 'template'), false);
+  assert.equal(records[0].state, 'completed');
+  for (const [phase, label] of [['shared-file-scenario', 'deal-review-mock'], ['scenario', 'shared-file-mock']]) {
+    await assert.rejects(performance.observeNativeMockHarnessPhase(records, phase,
+      () => {throw new Error('Invalid label must refuse before the original operation');}, label),
+    /Mock harness template belongs only to its scenario/u);
+  }
+  assert.equal(records.length, 1);
+});
+
 test('Mock harness observation retains original failures including unconfirmed registry closure', async () => {
   for (const [phase, template] of [['scenario', 'deal-review-mock'], ['registry-close', undefined]]) {
     const records = [], primary = new Error('original failed operation');

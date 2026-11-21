@@ -171,8 +171,8 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
     const runScenarioCommand = (args, cwd) => run(process.execPath, [launcher, ...args], cwd);
     if (sharedFileMock) {
-      scenarios.push(await observe('scenario', () => runNativeSharedFileMockScenario({root,
-        launcherTimings: 'required', run: runScenarioCommand}), 'shared-file-mock'));
+      scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
+        launcherTimings: 'required', run: runScenarioCommand})));
     } else {
       for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
         root, template, launcherTimings: 'required', run: runScenarioCommand}), template));
