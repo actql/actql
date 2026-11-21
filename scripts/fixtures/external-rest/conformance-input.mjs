@@ -2,14 +2,13 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync} from 'node:fs';
-import {isAbsolute, resolve, sep} from 'node:path';
+import {resolve, sep} from 'node:path';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const closed = (value, keys) => record(value) && Object.keys(value).length === keys.length &&
   keys.every(key => Object.hasOwn(value, key));
 const sha256 = value => typeof value === 'string' && /^[0-9a-f]{64}$/u.test(value);
 const gitIdentity = value => typeof value === 'string' && /^[0-9a-f]{40}$/u.test(value);
-const absolute = value => typeof value === 'string' && isAbsolute(value);
 const name = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/u.test(value);
 const connection = value => typeof value === 'string' && /^[a-z][a-z0-9_-]*$/u.test(value);
 const relative = value => typeof value === 'string' &&
@@ -18,20 +17,7 @@ const relative = value => typeof value === 'string' &&
 const fixtureTarget = value => typeof value === 'string' && value.startsWith('/') &&
   !value.startsWith('//') && !/[\\#\s\u0000-\u001f\u007f]/u.test(value);
 
-export function readRestConformanceInput(path) {
-  const selected = JSON.parse(readFileSync(path, 'utf8'));
-  const fields = ['kind', 'sourceSha', 'sourceTree', 'manifestPath',
-    'manifestSha256', 'outputRoot', 'accountConfigurationPath', 'mode'];
-  if (selected?.mode === 'author') fields.push('casePath', 'caseSha256');
-  assert(closed(selected, fields) && selected.kind === 'actql-standard-rest-normal/0.1' &&
-    ['empty', 'one', 'paged', 'notion-users', 'author'].includes(selected.mode) &&
-    gitIdentity(selected.sourceSha) && gitIdentity(selected.sourceTree) &&
-    sha256(selected.manifestSha256) &&
-    ['manifestPath', 'outputRoot', 'accountConfigurationPath'].every(key => absolute(selected[key])) &&
-    (selected.mode !== 'author' || absolute(selected.casePath) && sha256(selected.caseSha256)),
-  'Invalid actql-standard-rest-normal/0.1 descriptor; select a runtime, Account and case explicitly');
-  return selected;
-}
+export {readRestConformanceInput} from '../../connector-conformance-input.mjs';
 
 // Open only a named input under the case directory. Retain the checked bytes
 // for staging rather than reopening an author's file during installation.

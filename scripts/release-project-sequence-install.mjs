@@ -1,8 +1,9 @@
 // Existing Native RC consumer's optional public Node companion. This is fixture
 // preparation, not a runtime supplier, serialized trust proof or publication.
 import assert from 'node:assert/strict';
-import {copyFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {copyFile, lstat, mkdir, open, readFile, readdir, realpath, writeFile} from 'node:fs/promises';
+import {basename, dirname, join, resolve} from 'node:path';
+import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
 
@@ -14,7 +15,66 @@ export function assertReleaseProjectCohort(native, node) {
     ['@actql/client-wire', '@actql/local-node', '@actql/node', '@actql/sdk']);
 }
 
-export async function prepareReleaseProjectNode({directory, nativeManifest, originalNodeManifest, originalNodeManifestBytes, root, repository,
+export function runReleaseProjectCli(run, launcher, args, project) {
+  // The original initializer creates the project; its cwd must already exist.
+  // All later commands remain in that same independently owned project.
+  return run(process.execPath, [launcher, ...args], args[0] === 'init' ? dirname(project) : project);
+}
+
+// The full verifiers establish package contents at cohort boundaries. The
+// command fence re-observes the exact named archive bytes without unpacking
+// them or re-running generation. Keep the original physical leaves as well.
+async function archiveDigest(path, expected) {
+  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const before = await file.stat({bigint: true});
+    assert(before.isFile() && before.size > 0n && before.size <= BigInt(Number.MAX_SAFE_INTEGER));
+    if (expected.bytes !== undefined) assert.equal(before.size, BigInt(expected.bytes));
+    const hash = createHash('sha256');
+    let total = 0;
+    for await (const chunk of file.createReadStream({autoClose: false, start: 0, end: Number(before.size) - 1})) {
+      hash.update(chunk); total += chunk.length;
+    }
+    assert.equal(BigInt(total), before.size);
+    const after = await file.stat({bigint: true});
+    const named = await lstat(path, {bigint: true});
+    for (const key of ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs']) {
+      assert.equal(after[key], before[key], 'Archive changed while reading');
+      assert.equal(named[key], before[key], 'Original archive path changed');
+    }
+    assert.equal(hash.digest('hex'), expected.sha256, 'Original archive bytes changed');
+    return {dev: before.dev, ino: before.ino, mode: before.mode};
+  } finally {
+    await file.close();
+  }
+}
+
+export async function retainReleaseProjectArchives(directory, manifest, manifestBytes, developmentBytes) {
+  const root = await realpath(directory);
+  const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+  assert.deepEqual(JSON.parse(manifestBytes), manifest);
+  const members = [{name: 'release.json', bytes: manifestBytes.length, sha256: sha256(manifestBytes)}];
+  for (const item of manifest.packages) {
+    assert.equal(item.file, basename(item.file));
+    members.push({name: item.file, bytes: item.bytes, sha256: item.sha256});
+    if (developmentBytes !== undefined) {
+      assert.equal(item.originalFile, basename(item.originalFile));
+      members.push({name: 'development/' + item.originalFile, sha256: item.originalSha256});
+    }
+  }
+  if (developmentBytes !== undefined) members.push({name: 'development/packed-client-packages.json',
+    bytes: developmentBytes.length, sha256: sha256(developmentBytes)});
+  const originals = [];
+  for (const member of members) originals.push(await archiveDigest(join(root, member.name), member));
+  return async () => {
+    assert.equal(await realpath(directory), root, 'Original release directory changed');
+    for (const [index, member] of members.entries()) {
+      assert.deepEqual(await archiveDigest(join(root, member.name), member), originals[index]);
+    }
+  };
+}
+
+export async function prepareReleaseProjectNode({directory, nativeManifest, originalNodeManifest, originalNodeManifestBytes, originalNodeDevelopmentManifestBytes, root, repository,
   registry, run, verifySource, verifyManifest = verifyPackageRelease}) {
   assert.equal(typeof verifySource, 'function');
   await verifySource();
@@ -22,8 +82,9 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
   const manifest = await verifyManifest(directory);
   assert.deepEqual(manifest, originalNodeManifest, 'Use the exact Node cohort admitted before opening the registry');
   assertReleaseProjectCohort(nativeManifest, manifest);
-  const originalManifest = await readFile(join(directory, 'release.json'));
-  assert.deepEqual(originalManifest, originalNodeManifestBytes);
+  assert(Buffer.isBuffer(originalNodeDevelopmentManifestBytes), 'Original development manifest bytes are required');
+  const verifyArchives = await retainReleaseProjectArchives(directory, manifest,
+    originalNodeManifestBytes, originalNodeDevelopmentManifestBytes);
   const consumer = join(root, 'sequence-consumer'), observations = join(root, 'sequence-observations');
   const cases = join(root, 'sequence-cases');
   await mkdir(consumer); await mkdir(observations); await mkdir(cases); await mkdir(join(consumer, 'projects'));
@@ -43,8 +104,7 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
     await verifySource();
     for (const [name, bytes] of fixtureBodies) assert.deepEqual(await readFile(join(consumer, name)), bytes,
       'Original authored sequence fixture changed');
-    assert.deepEqual(await readFile(join(directory, 'release.json')), originalManifest);
-    assert.deepEqual(await verifyManifest(directory), manifest);
+    await verifyArchives();
     const scope = join(consumer, 'node_modules/@actql');
     for (const path of [consumer, join(consumer, 'node_modules'), scope]) {
       const value = await lstat(path); assert(value.isDirectory() && !value.isSymbolicLink());
@@ -85,5 +145,8 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
     if (failed) throw primary;
     return response;
   };
-  return {consumer, projects: join(consumer, 'projects'), observations, cases, manifest, verify, node};
+  const verifyRelease = async () => {
+    assert.deepEqual(await verifyManifest(directory), manifest);
+  };
+  return {consumer, projects: join(consumer, 'projects'), observations, cases, manifest, verify, verifyRelease, node};
 }

@@ -615,3 +615,82 @@ test "binary evaluates left before right; missing value is never a null" {
     is Number(5.0),
   )
 }
+
+///|
+test "simple CASE compares in order and evaluates only the selected result" {
+  let clauses =
+    #|[{"when":{"literal":0},"then":{"divide":[{"literal":1},{"literal":0}]}},{"when":{"literal":2},"then":{"literal":9}},{"when":{"divide":[{"literal":1},{"literal":0}]},"then":{"literal":7}}]
+  let selector =
+    #|{"add":[{"literal":1},{"literal":1}]}
+  let source = "{\"case\":{\"operand\":" +
+    selector +
+    ",\"when\":" +
+    clauses +
+    ",\"else\":{\"divide\":[{\"literal\":1},{\"literal\":0}]}}}"
+  let workspace = { ..row_workspace(100), live: 5, peak: 5, }
+  guard evaluate_expression_with_workspace(
+      lowered(source),
+      {},
+      [],
+      { remaining: 100, max_frames: 10, },
+      workspace,
+    ).unwrap()
+    is Number(9.0) else {
+    fail("expected the first matching branch")
+  }
+  assert_eq(workspace.live, 5)
+  assert_true(
+    run_expr(
+      (
+        #|{"case":{"operand":{"literal":null},"when":[{"when":{"literal":null},"then":{"literal":9}}],"else":{"literal":4}}}
+      ),
+    ).unwrap()
+    is Number(4.0),
+  )
+  assert_true(
+    run_expr(
+      (
+        #|{"case":{"operand":{"literal":4},"when":[{"when":{"literal":5},"then":{"literal":9}}]}}
+      ),
+    ).unwrap()
+    is Null,
+  )
+}
+
+///|
+test "simple CASE yields during text comparison and cancels retained workspace" {
+  let text = String::make(150, 'x')
+  let source = "{\"case\":{\"operand\":{\"literal\":\"" +
+    text +
+    "\"},\"when\":[{\"when\":{\"literal\":\"" +
+    text +
+    "\"},\"then\":{\"literal\":7}}]}}"
+  let execution = start_expression_execution(
+    lowered(source),
+    {},
+    [],
+    10000,
+    10,
+    100,
+  ).unwrap()
+  for _ in 0..<16 {
+    if execution.frame.state is CompareSimpleCase(_, _) {
+      break
+    }
+    assert_true(
+      advance_expression_execution(execution) is Ok(ExpressionContinue),
+    )
+  }
+  assert_true(execution.frame.state is CompareSimpleCase(_, _))
+  assert_true(execution.frame.workspace.live > 0)
+  assert_true(advance_expression_execution(execution) is Ok(ExpressionContinue))
+  assert_true(execution.frame.state is CompareSimpleCase(_, _))
+  let remaining = expression_execution_remaining(execution)
+  assert_true(cancel_expression_execution(execution))
+  assert_eq(expression_execution_remaining(execution), remaining)
+  assert_eq(execution.frame.workspace.live, 0)
+  assert_true(
+    advance_expression_execution(execution)
+    is Err({ kind: InvalidControlLimits, .. }),
+  )
+}

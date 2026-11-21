@@ -2982,7 +2982,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4106,7 +4106,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -6628,7 +6628,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8841,7 +8841,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9681,7 +9681,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -37151,7 +37151,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -38817,7 +38817,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -39055,7 +39055,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -40561,7 +40561,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -40849,7 +40849,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -42935,7 +42935,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -47477,7 +47477,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7cac6a2afee245177f87a984638c3c9df8c6307b091cd3ee61c907c256d1c033",
+      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -47496,7 +47496,7 @@
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
-          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , static_models ? : Bool"
         },
         {
           "name": "[I]borrow_request_effect_preparation",
@@ -53526,7 +53526,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53622,7 +53622,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53936,7 +53936,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -57532,7 +57532,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -57666,7 +57666,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -57923,7 +57923,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -58021,7 +58021,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -58389,7 +58389,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -58650,7 +58650,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -58823,7 +58823,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -58936,7 +58936,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -60363,7 +60363,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -61079,7 +61079,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -63903,7 +63903,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -67513,7 +67513,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -67657,7 +67657,7 @@
         },
         {
           "name": "client_program_borrow_request_effect_plan_input",
-          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , static_models : Bool , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
           "name": "client_program_borrow_request_model_plan_input",
@@ -68041,7 +68041,7 @@
         },
         {
           "name": "client_program_read_request_checked_static_plan",
-          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
+          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
         {
           "name": "client_program_read_request_explanation",
@@ -68232,7 +68232,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "19b99ec67dd7c7f168440592f5c52c6b90cae582735ba46566ed20e6b6304944"
+      "sha256": "9f5ae64b37ecdc41bceddadb1438ea386d262303ca951ad6db725efd93f15029"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -73146,7 +73146,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -97425,7 +97425,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -97878,7 +97878,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -98934,7 +98934,7 @@
         },
         {
           "name": "[I]request_prepared_static_plan_view",
-          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , infers ? : Array [ @ publication_host . ClientInferPlanGraph ]"
         },
         {
           "name": "[I]reserve_request_native_document_read",
@@ -99225,7 +99225,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -99278,7 +99278,7 @@
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "4af982cc2f6bcca3f27e76e00aed819da73c8abb375f4b37b51940dad51dc40e"
+      "sha256": "fbc6b3c5c565d64b64de0961dbfe01664ac1476a39452e770f1110bc3954ee04"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
@@ -102629,7 +102629,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "67da869657eff336ea1565ed1fa231c9d62f9bf6ab677daeebc2e91f2e428bd2",
+      "sha256": "2683f5434a19a94c9a3c94960d3e929d8278f3086f7d90e290b3f93b6de8e78f",
       "exports": [],
       "operations": [
         {
@@ -102651,7 +102651,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
             "LocalCommandPreparationOriginal::select_business_file_source"
@@ -102725,7 +102724,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "8ffa75a356261d2ff866a500af0aa354c2323dd8a9e1e9b8f292140885cc0735",
+      "sha256": "db79899a8be65499b0ba74d663e5481cae165252412bd6f1007a8c7de393a44b",
       "exports": [],
       "operations": [
         {
@@ -102766,7 +102765,7 @@
         },
         {
           "name": "local_command_failure_text",
-          "declaration": "local_command_failure_text ( message : String , json : Bool ) - > String"
+          "declaration": "local_command_failure_text ( message : String , json : Bool , primary ? : LocalCommandPreparationIssue ?"
         },
         {
           "name": "local_command_json_selected",
@@ -104132,12 +104131,12 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "0b9a5ff1a98258b7a89ad9321589948cb1b04e48afd23ae9ebf419afe577ea1d",
+      "sha256": "376f0146de470ddd460f0134d19165130861c0776bcf362745a0c9b4e8b91ca2",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_file_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , source : @ sourceviews . SourceAcquisition , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
         },
         {
           "name": "[T]LocalCommandPreparationOriginal::with_business_request",
@@ -104170,7 +104169,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_whole_file_request_module",
             "[T]LocalCommandPreparationOriginal::with_business_request",
             "LocalCommandBusinessPreparation::adopt_request_run",
@@ -110474,12 +110472,16 @@
     },
     {
       "module": "src/client_local_host/preparation_request_query_contracts.mbt",
-      "sha256": "f225e63bf9abc9e611992d7d11e04686b38f911a159bd31b2da3292ffd101a08",
+      "sha256": "81889107dd8f8f3e61d8cbf71c139031e703bb9414e4361426eb8add6e93d54f",
       "exports": [],
       "operations": [
         {
           "name": "[I]admit_request_query_acquisition_contracts",
           "declaration": "[ I ] admit_request_query_acquisition_contracts ( owner : ClientRequestPreparation [ I ] , input : I , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]admit_request_query_acquisition_contracts_for_original",
+          "declaration": "[ I ] admit_request_query_acquisition_contracts_for_original ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , direct : @ publication_host . ClientDirectAcquisitionOccurrences , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "request_query_acquisition_constructor_bytes",
@@ -110493,8 +110495,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]admit_request_query_acquisition_contracts",
+            "[I]admit_request_query_acquisition_contracts_for_original",
             "request_query_acquisition_constructor_bytes"
           ],
           "exports": [],
@@ -110565,7 +110567,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "ded1937260fa272e3ab430e5417058c7d34e66807e70f8ea58339355e909e58b",
+      "sha256": "57f75c049c4c16931d33426eb3eb06d56dadfa21fcfa9cdaccc8508d1d0c6e29",
       "exports": [],
       "operations": [
         {
@@ -110588,7 +110590,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_file_request_module",
             "[T]local_command_query_preparation_result",
             "local_command_file_row"
@@ -111201,7 +111202,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "49ebc4800c5c4d5705b24ff28c34643c9f66dc16e6cd809f6b49ca5b84256463",
+      "sha256": "84262445a5ab71540a483de35ef384f0da6a4206981e9d2daa94f580205a971c",
       "exports": [],
       "operations": [
         {
@@ -112485,12 +112486,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "925c6e5f2dae8cd2c8e218eced70c098e90c4487ecdfd32f46765f098af1b9e5",
+      "sha256": "0107ec3f9f10f8c0b43c49db444d2c32b0ef379658b4181a8d26ecdfd80c6a2d",
       "exports": [],
       "operations": [
         {
           "name": "request_whole_source_route_frontier_bytes",
-          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , ) - > Int64 ?"
+          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , select_query ? : Bool"
         },
         {
           "name": "request_whole_source_route_scan_count",
@@ -112504,7 +112505,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "request_whole_source_route_frontier_bytes",
             "request_whole_source_route_scan_count"
           ],
@@ -112576,12 +112576,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "0e3397ed73b35c560a35facf3016d5232812d227fde2ccb046740478438c9dfc",
+      "sha256": "a0b19d838e0ff32c4a89227688468cc981b74ff3df92787f84595556e693a1cd",
       "exports": [],
       "operations": [
         {
           "name": "[I]reserve_request_whole_source_routes",
-          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , select_query ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -112591,7 +112591,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]reserve_request_whole_source_routes"
           ],
           "exports": [],
@@ -112753,9 +112752,17 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
-      "sha256": "5dacd96b3a3c8021f06c98678cb2012e1ad56a785fd4e3feeb98009baba8a62d",
+      "sha256": "b83d257f4bdb3f8faa572762275746b1d6bddb8d46fa2be35259a9150529e745",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]prepare_request_native_file_source_inputs",
+          "declaration": "[ I ] prepare_request_native_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , bodies : ( String , String ) ? , ) - > Result [ ClientRequestNativeFileSourceInputs , ClientRequestNativeFileSourceIssue , ]"
+        },
+        {
+          "name": "[I]reserve_request_selected_whole_source_inputs",
+          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
         {
           "name": "[I]reserve_request_whole_source_construction",
           "declaration": "[ I ] reserve_request_whole_source_construction ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
@@ -112768,7 +112775,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
+            "[I]prepare_request_native_file_source_inputs",
+            "[I]reserve_request_selected_whole_source_inputs",
             "[I]reserve_request_whole_source_construction"
           ],
           "exports": [],
@@ -113076,12 +113084,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "4f95177a8376f03eafa704553fc75902bf58383dda66e2869785ae3642255a96",
+      "sha256": "7e15f78c0337bbc5b8afed0bf3d5bdde7de01ee76b6c8c4bf46dcab725e176df",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > LocalCommandFileSources raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
+        },
+        {
+          "name": "local_command_file_listing",
+          "declaration": "local_command_file_listing ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -113091,8 +113103,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "[I]prepare_local_native_whole_files_request_module"
+            "[I]prepare_local_native_whole_files_request_module",
+            "local_command_file_listing"
           ],
           "exports": [],
           "attributes": {
@@ -113162,7 +113174,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "d8c55f3c07506b1dee1cf7b24f072b73aa9e4aa0c4926c15eef8afb5e0facbd6",
+      "sha256": "b395ca75482d96bfe03368ca33491968a754c49441dbdfe47278cbde89fcf45d",
       "exports": [],
       "operations": [
         {
@@ -113176,6 +113188,14 @@
         {
           "name": "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
           "declaration": "NativeLocalHostConnection : : prepare_original_managed_whole_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileWholeSource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::matches_provider",
+          "declaration": "NativeRelationFileWholeSource : : matches_provider ( self : Self , acquisition : @ rows . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::provider_capacity",
+          "declaration": "NativeRelationFileWholeSource : : provider_capacity ( self : Self , ) - > @ execution . ExecutionCapacity"
         },
         {
           "name": "snapshot_managed_whole_relation_file_sources",
@@ -113193,7 +113213,9 @@
             "managed_relation_file_originals_match",
             "managed_whole_relation_file_sources_match",
             "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
-            "snapshot_managed_whole_relation_file_sources"
+            "snapshot_managed_whole_relation_file_sources",
+            "NativeRelationFileWholeSource::matches_provider",
+            "NativeRelationFileWholeSource::provider_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -113358,7 +113380,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "767786a72446b8180349695a85470cbee7efaed4243f40415b8e3fea1e46b991",
+      "sha256": "590674389e0a27442f6ff9ace8a20b610110ceb1251d73e97fdea5c7e2c59446",
       "exports": [],
       "operations": [
         {

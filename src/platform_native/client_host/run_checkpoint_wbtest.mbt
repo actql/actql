@@ -407,3 +407,222 @@ test "Native Checkpoint closure and resume intent survive commit reply loss toge
     reopened.close_checked().unwrap()
   }
 }
+
+///|
+fn checkpoint_test_resolve_with_operations(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  mode : String,
+  current : () -> Bool,
+  now : () -> String,
+  operations : NativeClientJournalOperationAccess,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let prefix = "ACTQL_TEST_CLIENT_" + mode + "_"
+  let resolution_wire = @env.get_env_var(prefix + "RESOLUTION_WIRE").unwrap()
+  let verified_wire = @env.get_env_var(prefix + "VERIFIED_WIRE").unwrap()
+  journal.resolve_effect_checkpoint_with_operations(
+    request,
+    epoch_test_crypto(),
+    verified_wire,
+    {
+      key_id: "reviewer-key",
+      reviewer_id: "native-reviewer",
+      expected_authority_scope_cid: "sha256:" + "5".repeat(64),
+      authority_context_cid: "sha256:" + "6".repeat(64),
+      policy_cid: "sha256:" + "7".repeat(64),
+      proof_preimage: @checkpoint.resolution_proof_preimage(
+        resolution_wire,
+        native_checkpoint_limits(),
+      ).unwrap(),
+    },
+    [{ key_id: "reviewer-key", reviewer_id: "native-reviewer", }],
+    [
+      {
+        key_id: "host-key",
+        public_key_pem: @env.get_env_var("ACTQL_TEST_CLIENT_HOST_PUBLIC_KEY").unwrap(),
+      },
+    ],
+    current,
+    now,
+    Some(operations),
+  )
+}
+
+///|
+test "Checkpoint original operation access admits construction before the same durable CAS" {
+  let database = epoch_test_database("checkpoint-routed-approval")
+  let (journal, request, waiting) = checkpoint_test_waiting(database, [])
+  let calls : Array[String] = []
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    before_construction: Some((bytes, nodes, depth) => {
+      if bytes <= 0 || nodes != 32 || depth != 4 {
+        return Err(@host.ClientJournalEncodingIssue::Encoding)
+      }
+      calls.push("construct")
+      Ok(())
+    }),
+    compare_exchange: (table, key, revision, body) => {
+      if table == "client_runs" {
+        if !calls.contains("construct") {
+          return Err(@sqlite.CapacityExceeded)
+        }
+        calls.push("run-cas")
+      }
+      database.compare_exchange(table, key, revision, body)
+    },
+  }
+  let approved = checkpoint_test_resolve_with_operations(
+    journal,
+    request,
+    "APPROVE",
+    () => true,
+    () => "2026-10-10T00:02:00.000Z",
+    access,
+  )
+  let approved = match approved {
+    Ok(value) => value
+    Err(issue) =>
+      fail("checkpoint routed commit: " + selected_policy_journal_issue(issue))
+  }
+  assert_eq(approved.revision, waiting.revision + 1L)
+  assert_eq(approved.checkpoint.unwrap().state.status, @publication.Resuming)
+  assert_true(calls.contains("construct"))
+  assert_true(calls.contains("run-cas"))
+  assert_eq(calls[calls.length() - 1], "commit")
+  assert_false(database.transaction_fenced())
+  database.close_checked().unwrap()
+}
+
+///|
+test "Checkpoint constructor refusal rolls back original waiting and foreign access is rejected" {
+  let database = epoch_test_database("checkpoint-routed-refusal")
+  let foreign = epoch_test_database("checkpoint-routed-foreign")
+  let (journal, request, waiting) = checkpoint_test_waiting(database, [])
+  let calls : Array[String] = []
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    before_construction: Some((_, _, _) => {
+      calls.push("construct-refused")
+      Err(@host.ClientJournalEncodingIssue::CapacityExceeded)
+    }),
+  }
+  assert_true(
+    checkpoint_test_resolve_with_operations(
+      journal,
+      request,
+      "APPROVE",
+      () => true,
+      () => "2026-10-10T00:02:00.000Z",
+      access,
+    )
+    is Err(CapacityExceeded),
+  )
+  assert_true(calls.contains("construct-refused"))
+  assert_eq(calls[calls.length() - 1], "rollback")
+  assert_false(
+    calls.any(value => value.has_prefix("compare_exchange:client_runs:")),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("original waiting Run missing")
+  }
+  assert_eq(after.revision, waiting.revision)
+  assert_eq(
+    after.checkpoint.unwrap().state.wire,
+    waiting.checkpoint.unwrap().state.wire,
+  )
+  assert_true(after.checkpoint.unwrap().resolution_cid is None)
+  assert_false(database.transaction_fenced())
+  let foreign_calls : Array[String] = []
+  assert_true(
+    checkpoint_test_resolve_with_operations(
+      journal,
+      request,
+      "APPROVE",
+      () => true,
+      () => "2026-10-10T00:02:00.000Z",
+      journal_test_operation_access(foreign, foreign_calls),
+    )
+    is Err(CustodyLost),
+  )
+  assert_eq(foreign_calls.length(), 0)
+  assert_true(
+    checkpoint_test_resolve_with_operations(
+      journal,
+      request,
+      "APPROVE",
+      () => false,
+      () => "2026-10-10T00:02:00.000Z",
+      access,
+    )
+    is Err(AuthorizationDenied),
+  )
+  database.close_checked().unwrap()
+  foreign.close_checked().unwrap()
+}
+
+///|
+test "Checkpoint original operation lost COMMIT remains Unknown and fences further resolution" {
+  let database = epoch_test_database("checkpoint-routed-lost-commit")
+  let (journal, request, waiting) = checkpoint_test_waiting(database, [])
+  let calls : Array[String] = []
+  let ordinary = journal_test_read_access(database, calls)
+  let reads = {
+    ..ordinary,
+    transaction: operation => {
+      if operation is JournalCommit && calls.contains("resolution-cas") {
+        database.commit().unwrap()
+        calls.push("commit-reply-lost")
+        Err(@sqlite.Busy)
+      } else {
+        (ordinary.transaction)(operation)
+      }
+    },
+  }
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    reads,
+    before_construction: Some((_, _, _) => Ok(())),
+    compare_exchange: (table, key, revision, body) => {
+      if table == "client_runs" {
+        calls.push("resolution-cas")
+      }
+      database.compare_exchange(table, key, revision, body)
+    },
+  }
+  assert_true(
+    checkpoint_test_resolve_with_operations(
+      journal,
+      request,
+      "APPROVE",
+      () => true,
+      () => "2026-10-10T00:02:00.000Z",
+      access,
+    )
+    is Err(TransactionUnknown),
+  )
+  assert_true(calls.contains("commit-reply-lost"))
+  assert_true(journal.fenced)
+  assert_true(database.transaction_fenced())
+  assert_true(journal.admitted_record is None)
+  let row = database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  let retained = read_run_record(row).unwrap()
+  assert_eq(retained.revision, waiting.revision + 1L)
+  assert_eq(retained.checkpoint.unwrap().state.status, @publication.Resuming)
+  let before = calls.length()
+  assert_true(
+    checkpoint_test_resolve_with_operations(
+      journal,
+      request,
+      "APPROVE",
+      () => true,
+      () => "2026-10-10T00:02:00.000Z",
+      access,
+    )
+    is Err(Fenced),
+  )
+  assert_eq(calls.length(), before)
+  database.close_checked().unwrap()
+}

@@ -189,6 +189,20 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     Ok(value) => value
     Err(_) => return Err(Journal(ForeignRun))
   }
+  let plan = match
+    capture_native_effect_run_plan_original(
+      prepared,
+      allowed,
+      definition,
+      observation,
+      before_construction=run_metadata_construction(
+        self.journal.database,
+        operations.map(value => value.reads),
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
   let packet : NativeClientEffectMaterialOriginalPacket = {
     intent_cid: preparation.intent_cid,
     materials_cid,
@@ -293,6 +307,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     publication_policy_originals=policy_wire,
     local_run_policy_original~,
     run_observation_originals=Some(observation),
+    run_plan_original=Some(plan),
     current_fence=Some(current),
     operations~,
   )

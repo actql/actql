@@ -37,6 +37,8 @@ const serialDependencyFunding = new Set([
   'reserve_keyed_dependency_serial_controls', 'grow_keyed_dependency_body',
 ]);
 const serialDependencyModule = directory + 'client_keyed_dependency_serial_cursor.mbt';
+const measuredDependencyRange = 'ReturnedKeyedDependencyRange';
+const measuredDependencyInput = 'measured_bodies';
 const serialDependencyConsumers = new Set([
   `${directory}client_keyed_declared_file_journal.mbt:prepare_declared_file_lookup_dependencies`,
   `${directory}client_effect_generic_keyed_dependency.mbt:prepare_client_effect_keyed_generic_dependencies`,
@@ -51,7 +53,7 @@ const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keye
 const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|measured_bodies|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
@@ -102,6 +104,13 @@ function functions(list) {
     let name = i + 1;
     if (list[name]?.value === '[') name = close(list, name, '[', ']') + 1;
     if (list[name]?.kind !== 'word') continue;
+    let functionName = list[name].value;
+    if (list[name + 1]?.value === ':' && list[name + 2]?.value === ':' &&
+        list[name + 3]?.kind === 'word') {
+      declarations.add(name);
+      name += 3;
+      functionName += `::${list[name].value}`;
+    }
     declarations.add(name);
     let j = name + 1, parens = 0, brackets = 0;
     for (; j < list.length; j++) {
@@ -115,7 +124,7 @@ function functions(list) {
     }
     if (list[j]?.value !== '{') continue;
     const end = close(list, j, '{', '}');
-    result.push({name: list[name].value, start: i, body: j, end});
+    result.push({name: functionName, start: i, body: j, end});
     i = end;
   }
   return {result, declarations};
@@ -180,6 +189,19 @@ export function resourceLifecycleProblems(sources, {
           !(serialDependencyConsumers.has(id) && inScope(i) ||
             module === serialDependencyModule && bodyGrowthOwners.has(id))) {
         issue('unclassified-serial-dependency-funding', i);
+      }
+      if (token.value === measuredDependencyRange) {
+        const prior = list[i - 1]?.value;
+        const declaration = module === serialDependencyModule && fn === undefined && prior === '{' &&
+          list[i - 2]?.value === 'KeyedDependencyMeasuredBodies' && list[i - 3]?.value === 'enum';
+        const issuer = module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::record_body';
+        const settlementPattern = module === directory + 'client_keyed_lookup_identity.mbt' &&
+          fn?.name === 'finish_keyed_lookup_protocol_metadata' && ['let', 'is'].includes(prior);
+        if (!declaration && !issuer && !settlementPattern) issue('unclassified-measured-dependency-range', i);
+      }
+      if (token.value === measuredDependencyInput &&
+          !(module === common && fn?.name === 'keyed_protocol_built' || serialDependencyConsumers.has(id) && inScope(i))) {
+        issue('unclassified-measured-dependency-input', i);
       }
       if (scanBuilders.has(token.value) && !inScope(i)) issue('unsettled-scan-builder', i);
       if (rawResource.has(token.value) && (keyedOwner || fn === undefined) && !lowOwners.has(id)) issue('unclassified-reservation-mutation', i);

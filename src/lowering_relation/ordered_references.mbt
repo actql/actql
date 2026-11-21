@@ -283,7 +283,7 @@ fn prepare_ordered_reference_material(
                 return Err(ReferenceLimit)
               }
             }
-            Case(clauses, otherwise) => {
+            Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
               guard append_path(path, "/body/else") is Some(else_path) else {
                 return Err(ReferenceLimit)
               }
@@ -293,6 +293,14 @@ fn prepare_ordered_reference_material(
               if !push(Visit(otherwise, else_path)) ||
                 !push(Clauses(clauses, 0, when_path)) {
                 return Err(ReferenceLimit)
+              }
+              if expr.body is SimpleCase(operand, _, _) {
+                guard append_path(path, "/body/operand") is Some(operand_path) else {
+                  return Err(ReferenceLimit)
+                }
+                if !push(Visit(operand, operand_path)) {
+                  return Err(ReferenceLimit)
+                }
               }
             }
           }

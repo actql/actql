@@ -39,6 +39,9 @@ const readPorts = (ownerOf, resourceFields = () => ({})) => {
 };
 const expression=(name,ports)=>{
   if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
+  if (['recipeOf', 'decideTargetRead'].includes(name) && ports.targetPlanOf === undefined) {
+    ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
+  }
   if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {

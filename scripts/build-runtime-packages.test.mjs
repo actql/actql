@@ -469,9 +469,18 @@ for (const name of Object.keys(packages)) {
 for (const name of Object.keys(packages)) {
   test(`${name} retains its real prepack runtime preparation`, () => {
     const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'), 'utf8'));
-    assert.equal(manifest.scripts.prepack, (name === 'local-node' ? 'node ../../scripts/generate-credential-scope-binding.mjs --check && ' : '') +
-      `node ../../scripts/build-runtime-packages.mjs ${name}` +
-      (name === 'local-node' ? ' && node ../../scripts/build-local-node-adapters.mjs' : ''));
+    const runtime = ['node', '../../scripts/build-runtime-packages.mjs', name];
+    if (name !== 'local-node') {
+      assert.equal(manifest.scripts.prepack, runtime.join(' '));
+      return;
+    }
+    const steps = manifest.scripts.prepack.split('&&').map(step => step.trim().split(/\s+/u));
+    assert.deepEqual(steps, [
+      ['node', '../../scripts/generate-credential-scope-binding.mjs', '--check'],
+      runtime,
+      ['node', '../../scripts/build-local-node-adapters.mjs'],
+      ['node', '../../scripts/build-connector-authoring.mjs'],
+    ]);
   });
 }
 

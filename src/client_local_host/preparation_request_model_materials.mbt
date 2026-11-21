@@ -329,3 +329,45 @@ pub fn[I] prepare_request_model_contract_materials(
     },
   )
 }
+
+///|
+// Static Effect reader overlap, before exposing the original occurrences.
+// The fixed eight records cover the three captured cleanup functions and their
+// immutable method record, the occurrence/current/wire closures and iterator.
+// Their original references fit 32 slots and eight control words. Per Infer,
+// retain its nominal occurrence (2 refs/3 words), the execution reader's result
+// and wire callback (together bounded by 6 refs/1 word). Three simultaneously
+// growing vectors (occurrences/executions/graphs) retain old plus new backing,
+// bounded by 12N reference items through the existing collection geometry.
+// Contract/codec and Graph constructors reserve their own additional overlap.
+// All of this is representation on the SAME Effect Request, not a new budget.
+fn request_effect_static_model_controls_bytes(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Int64? {
+  guard @publication_host.prepared_client_effect_infer_count(prepared)
+    is Some(count) else {
+    return None
+  }
+  let n = count.to_int64()
+  guard @shape.collection_construction_extent({
+      records: 8L + 3L * n,
+      record_references: 32L + 8L * n,
+      record_words: 8L + 4L * n,
+      reference_arrays: 3L,
+      reference_items: 12L * n,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(units) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: units.record_headers,
+    reference_slots: units.reference_slots,
+    scalar_words: units.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}

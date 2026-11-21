@@ -2,12 +2,14 @@
 // The measured interval belongs to this exact collector Array. It accounts
 // for original admissions whose direct or outer policy constructor returned.
 // Earlier disjoint intervals remain on the same collector.
-priv struct KeyedDependencyMeasuredBodies {
-  bodies : Array[@publication.CapturedEffectDependencyBody]
-  start : Int
-  end : Int
-  bytes : Int64
-  previous : KeyedDependencyMeasuredBodies?
+priv enum KeyedDependencyMeasuredBodies {
+  ReturnedKeyedDependencyRange(
+    bodies~ : Array[@publication.CapturedEffectDependencyBody],
+    start~ : Int,
+    end~ : Int,
+    bytes~ : Int64,
+    previous~ : KeyedDependencyMeasuredBodies?
+  )
 }
 
 ///|
@@ -106,12 +108,20 @@ fn KeyedDependencySerialCursor::record_body(
   if first < end {
     let (start, preceding, previous) = match self.measured {
       None => (first, 0L, None)
-      Some(original) => {
-        guard physical_equal(original.bodies, bodies) && original.end <= first else {
+      Some(
+        ReturnedKeyedDependencyRange(
+          bodies=original,
+          start=low,
+          end=high,
+          bytes=prior,
+          previous~
+        )
+      ) => {
+        guard physical_equal(original, bodies) && high <= first else {
           return Err(Assembly("foreign_dependency_body_extent"))
         }
-        if original.end == first {
-          (original.start, original.bytes, original.previous)
+        if high == first {
+          (low, prior, previous)
         } else {
           (first, 0L, self.measured)
         }
@@ -121,7 +131,15 @@ fn KeyedDependencySerialCursor::record_body(
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))
     }
-    self.measured = Some({ bodies, start, end, bytes: total, previous, })
+    self.measured = Some(
+      ReturnedKeyedDependencyRange(
+        bodies~,
+        start~,
+        end~,
+        bytes=total,
+        previous~,
+      ),
+    )
   }
   self.available_retained += self.pending_retained - keep
   self.available_execution += self.pending_execution - keep
@@ -138,11 +156,12 @@ fn reserve_keyed_dependency_serial_controls(
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   // One body and one range certificate, plus the old/new certificate overlap
   // while updating the serial state. The extent stack is funded separately.
-  // Also keep the policy hook and up to two disjoint policy range records.
+  // Keep the batch hooks and the checked range carriers until settlement.
+  // Five live range records plus one replacement each reserve a variant tag.
   guard @execution.preparation_representation_cost({
-      record_headers: 39L,
-      reference_slots: 61L,
-      scalar_words: 57L,
+      record_headers: 43L,
+      reference_slots: 67L,
+      scalar_words: 71L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -157,6 +176,12 @@ fn reserve_keyed_dependency_serial_controls(
     None,
   )
 }
+
+///|
+// The Request interval, two policy invocations and the Catalog suffix. The
+// Generic suffix can be split by at most one separately borrowed retention
+// body, because its one original identity is inserted at most once.
+let keyed_dependency_measured_range_capacity : Int = 5
 
 ///|
 let keyed_dependency_member_bytes : Int64 = 4096L

@@ -38,10 +38,12 @@ fn local_initial_resolution_signature_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   signing_use : @credential.LocalSigningCredentialUse,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[String, NativeClientRunJournalIssue] {
-  local_initial_resolution_result_locked(host, original, signing_use).map(value => {
-    value.0
-  })
+  local_initial_resolution_result_locked(host, original, signing_use, reads~).map(value => {
+      value.0
+    },
+  )
 }
 
 ///|
@@ -51,14 +53,17 @@ fn local_initial_resolution_result_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   signing_use : @credential.LocalSigningCredentialUse,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String, String?), NativeClientRunJournalIssue] {
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
   }
   let row = match
-    host.database.read(
+    read_client_journal_value(
+      host.database,
       "client_local_signing_result_originals",
       original.operation_cid,
+      reads,
     ) {
     Err(issue) => return Err(Physical(issue))
     Ok(value) if value.revision == 0L => value
@@ -101,9 +106,11 @@ fn local_initial_resolution_result_locked(
     None => None
     Some(cid) => {
       let saved = match
-        host.database.read(
+        read_client_journal_value(
+          host.database,
           "client_local_signing_candidate_originals",
           original.operation_cid,
+          reads,
         ) {
         Ok(value) if value.revision == 0L &&
           value.body.length() <= native_checkpoint_limits().max_wire_bytes =>
@@ -135,7 +142,9 @@ fn store_local_initial_resolution_signature_locked(
   attested? : @checkpoint.AdmittedResolution? = None,
   attested_limits? : @checkpoint.WireLimits = native_checkpoint_limits(),
   capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
   }
@@ -202,7 +211,7 @@ fn store_local_initial_resolution_signature_locked(
         return Err(ChangedIntent)
       }
       let original_body = match
-        local_initial_host_prepared_locked(host, original) {
+        local_initial_host_prepared_locked(host, original, reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -254,7 +263,7 @@ fn store_local_initial_resolution_signature_locked(
   // The wire and its small authenticated packet spend the same existing
   // per-Run grant bucket. No new reservation, quota or physical holding is made.
   let (_, _, runs) = match
-    host.local_grant_custody(host.epoch.crypto, capture~) {
+    host.local_grant_custody(host.epoch.crypto, capture~, operations~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -268,10 +277,12 @@ fn store_local_initial_resolution_signature_locked(
   }
   if candidate is Some(bytes) {
     match
-      host.database.insert(
+      insert_client_journal_value(
+        host.database,
         "client_local_signing_candidate_originals",
         original.operation_cid,
         bytes,
+        operations,
       ) {
       Ok(0L) => ()
       Ok(_) => return Err(CustodyLost)
@@ -279,10 +290,12 @@ fn store_local_initial_resolution_signature_locked(
     }
   }
   match
-    host.database.insert(
+    insert_client_journal_value(
+      host.database,
       "client_local_signing_result_originals",
       original.operation_cid,
       packet,
+      operations,
     ) {
     Ok(0L) => ()
     Ok(_) => return Err(CustodyLost)
@@ -307,7 +320,13 @@ fn store_local_initial_resolution_signature_locked(
     Err(_) => return Err(CustodyLost)
     Ok(_) => ()
   }
-  match local_initial_resolution_signature_locked(host, original, signing_use) {
+  match
+    local_initial_resolution_signature_locked(
+      host,
+      original,
+      signing_use,
+      reads~,
+    ) {
     Ok(value) if value == signature => Ok(())
     Ok(_) => Err(CustodyLost)
     Err(issue) => Err(issue)

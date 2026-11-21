@@ -1,8 +1,9 @@
 // Build-time author DATA projection. Existing Source declarations and Host
 // manifests remain the semantic and installation authorities.
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {dirname, join, parse, resolve, sep} from 'node:path';
-import {checkHostBundle, generateInstallations} from './connector-host-bundles.mjs';
+import {checkHostBundle, renderHostInstallations} from './connector-host-bundle-contract.mjs';
 import {createRequire} from 'node:module';
 import {releaseVersion} from './release-version.mjs';
 
@@ -49,7 +50,7 @@ function installedReadValidator(authorRoot) {
   try {
     const entry = require.resolve('@actql/local-node/connector-authoring');
     version = installedHostVersion(entry);
-    namespace = require(entry);
+    namespace = require('@actql/local-node/connector-authoring');
   }
   catch (cause) {
     if (cause?.code === 'MODULE_NOT_FOUND' || cause?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
@@ -160,7 +161,7 @@ function unaliasedOutput(path) {
   }
 }
 
-export function writeRestConnector({definitionPath, outputRoot, check = false}) {
+export function writeRestConnector({definitionPath, outputRoot, check = false, installedToolkit = false}) {
   const authorRoot = dirname(resolve(definitionPath)), root = resolve(outputRoot);
   const projection = projectRestConnector(JSON.parse(readFileSync(definitionPath, 'utf8')),
     {authorRoot});
@@ -171,7 +172,14 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
       path = join(path, part);
       if (lstatSync(path).isSymbolicLink()) fail('aliased transform');
     }
-    files[projection.transform.destination] = readFileSync(path, 'utf8');
+    const transform = readFileSync(path, 'utf8');
+    if (installedToolkit) {
+      const checked = spawnSync(process.execPath, ['--input-type=module', '--check'],
+        {input: transform, stdio: ['pipe', 'ignore', 'ignore']});
+      if (checked.error) throw checked.error;
+      if (checked.status !== 0) fail('transform syntax');
+    }
+    files[projection.transform.destination] = transform;
   }
   // Validate every selected destination before the first write, including
   // dangling links and aliases above a new output directory.
@@ -186,18 +194,25 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
       mkdirSync(dirname(destination), {recursive: true}); writeFileSync(destination, contents);
     }
   }
-  // Reuse the original manifest loader/table generator, including its finite
-  // implementation inventory and lazy export mapping. The application can
-  // supply this table through normal installation.connectorTable; no custom
-  // Host package or connector Common compilation is needed for registration.
   const entry = checkHostBundle(root, projection.registration,
     join(root, `src/connectors/${projection.registration}/host-bundle.json`));
-  const registration = generateInstallations([entry], join(root, 'index.mjs'), root);
+  const index = join(root, 'index.mjs');
+  let registration;
+  if (installedToolkit) {
+    // The installed standard generator owns its entry and the one selected
+    // transform. It uses the same Host renderer over that finite inventory.
+    const modules = [entry.source.module];
+    if (projection.transform !== undefined) modules.push(projection.transform.destination);
+    registration = renderHostInstallations([entry], index, root, {implementationModules: () => modules});
+  } else {
+    const {generateInstallations} = createRequire(import.meta.url)('./connector-host-bundles.mjs');
+    registration = generateInstallations([entry], index, root);
+  }
   if (check) {
-    if (!existsSync(join(root, 'index.mjs')) || readFileSync(join(root, 'index.mjs'), 'utf8') !== registration) {
+    if (!existsSync(index) || readFileSync(index, 'utf8') !== registration) {
       throw new Error('StaleRestConnectorProjection:index.mjs');
     }
-  } else writeFileSync(join(root, 'index.mjs'), registration);
+  } else writeFileSync(index, registration);
   return Object.freeze({registration: projection.registration,
     files: Object.freeze([...Object.keys(files), 'index.mjs'].sort()),
     authorFiles: Object.freeze(['connector.json', ...(projection.transform ? [projection.transform.source] : [])]),

@@ -9,6 +9,7 @@ priv enum ExpressionFrame {
   EndObject
   Op(String)
   CaseWhen(Array[(Expression, Expression)])
+  CaseOperand(Expression)
   Clauses(Array[(Expression, Expression)], Int)
   ClauseWhen(Expression)
   VectorScoreRest(VectorMetric, Expression)
@@ -404,12 +405,15 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Expressions([condition, yes, no], 0))
           }
-          Case(clauses, otherwise) => {
+          Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
             pending.push(Op("case"))
             @encode.begin_object(output)
             @encode.key(output, "else")
             pending.push(EndObject)
             pending.push(CaseWhen(clauses))
+            if expr.body is SimpleCase(operand, _, _) {
+              pending.push(CaseOperand(operand))
+            }
             pending.push(Expr(otherwise))
           }
         }
@@ -433,6 +437,10 @@ fn emit_frames(
         } else {
           @encode.end_object(output)
         }
+      CaseOperand(operand) => {
+        @encode.key(output, "operand")
+        pending.push(Expr(operand))
+      }
       CaseWhen(clauses) => {
         @encode.key(output, "when")
         @encode.begin_array(output)

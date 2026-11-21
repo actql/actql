@@ -80,8 +80,11 @@ fn NativeClientRunJournal::save_effect_ledger(
   self : NativeClientRunJournal,
   original : NativeClientRunRecord,
   entries : Array[@effect.EffectLedgerEntry],
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  match confirm_effect_ledger_custody(self.database, original) {
+  let reads = operations.map(original => original.reads)
+
+  match confirm_effect_ledger_custody(self.database, original, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -91,27 +94,35 @@ fn NativeClientRunJournal::save_effect_ledger(
     checkpoint: Some({ ..checkpoint, effect_ledger: entries, }),
   }
   let (body, _) = match
-    effect_ledger_custody_with_responses(self.database, next) {
+    effect_ledger_custody_with_responses(self.database, next, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let key = @host.client_request_scope_cid(original.request)
-  let witness = match self.database.read("client_effect_custody", key) {
+  let witness = match
+    read_client_journal_value(
+      self.database,
+      "client_effect_custody",
+      key,
+      reads,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
   self.invalidate_operation_record()
   match
-    self.database.compare_exchange(
+    compare_exchange_client_journal_value(
+      self.database,
       "client_effect_custody",
       key,
       witness.revision,
       body,
+      operations,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  self.save(next)
+  self.save_with_operations(next, operations~)
 }
 
 ///|
@@ -149,6 +160,34 @@ pub fn NativeClientRunJournal::record_effect_row_dispatch(
   current : () -> Bool,
   clock : () -> Int64,
 ) -> Result[NativeClientEffectRowDispatchAction, NativeClientRunJournalIssue] {
+  self.record_effect_row_dispatch_with_operations(
+    claim,
+    locator,
+    key,
+    basis,
+    current,
+    clock,
+    None,
+  )
+}
+
+///|
+fn NativeClientRunJournal::record_effect_row_dispatch_with_operations(
+  self : NativeClientRunJournal,
+  claim : NativeClientEffectResumeClaim,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  basis : @effect.EffectLedgerBasis,
+  current : () -> Bool,
+  clock : () -> Int64,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectRowDispatchAction, NativeClientRunJournalIssue] {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+
   if !current() {
     return Err(AuthorizationDenied)
   }
@@ -156,114 +195,119 @@ pub fn NativeClientRunJournal::record_effect_row_dispatch(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    match self.effect_resume_fence_locked(claim, at) {
-      Ok(Current) => ()
-      Ok(SettlementOnly) => return Ok(NoSend)
-      Ok(Stale) => return Err(Checkpoint(StaleRevision))
-      Err(issue) => return Err(issue)
-    }
-    let record = match self.retained(claim.request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    guard record.checkpoint is Some(checkpoint) else { return Err(CustodyLost) }
-    let scope = @host.client_request_logical_scope(claim.request)
-    let limits = native_client_effect_ledger_limits()
-    let prepared = match
-      @effect.issue_prepared_effect_ledger_entry(
-        basis,
-        limits.max_wire_bytes,
-        limits.max_nodes,
-        limits.max_depth,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(Ledger(issue)))
-    }
-    let dispatching = match
-      @effect.issue_next_effect_ledger_entry(
-        prepared,
-        "dispatching",
-        None,
-        limits.max_wire_bytes,
-        limits.max_nodes,
-        limits.max_depth,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(Ledger(issue)))
-    }
-    if basis.effect_preview_cid !=
-      checkpoint.artifact.checkpoint.required_artifact_cid ||
-      !@effect.effect_ledger_entry_admits_dispatch(
-        dispatching,
-        scope,
+  self.transaction_with_reads(
+    () => {
+      match self.effect_resume_fence_locked(claim, at, reads~) {
+        Ok(Current) => ()
+        Ok(SettlementOnly) => return Ok(NoSend)
+        Ok(Stale) => return Err(Checkpoint(StaleRevision))
+        Err(issue) => return Err(issue)
+      }
+      let record = match self.retained(claim.request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      guard record.checkpoint is Some(checkpoint) else {
+        return Err(CustodyLost)
+      }
+      let scope = @host.client_request_logical_scope(claim.request)
+      let limits = native_client_effect_ledger_limits()
+      let prepared = match
+        @effect.issue_prepared_effect_ledger_entry(
+          basis,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(Ledger(issue)))
+      }
+      let dispatching = match
+        @effect.issue_next_effect_ledger_entry(
+          prepared,
+          "dispatching",
+          None,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(Ledger(issue)))
+      }
+      if basis.effect_preview_cid !=
+        checkpoint.artifact.checkpoint.required_artifact_cid ||
+        !@effect.effect_ledger_entry_admits_dispatch(
+          dispatching,
+          scope,
+          locator,
+          key,
+          basis.canonical_request_cid,
+        ) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let prior = effect_ledger_head(
+        checkpoint.effect_ledger,
+        @effect.logical_item_locator_cid(locator),
+      )
+      if prior is Some(entry) &&
+        !@effect.effect_ledger_entry_matches_basis(entry, basis) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let action = @effect.effect_row_recovery_action_from_entry(
         locator,
+        basis.intent_fingerprint_cid,
         key,
         basis.canonical_request_cid,
-      ) {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let prior = effect_ledger_head(
-      checkpoint.effect_ledger,
-      @effect.logical_item_locator_cid(locator),
-    )
-    if prior is Some(entry) &&
-      !@effect.effect_ledger_entry_matches_basis(entry, basis) {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let action = @effect.effect_row_recovery_action_from_entry(
-      locator,
-      basis.intent_fingerprint_cid,
-      key,
-      basis.canonical_request_cid,
-      prior,
-      false,
-    )
-    if action >= 3 && action <= 7 {
-      return Ok(OriginalRowRetained(prior.unwrap()))
-    }
-    if action != 0 && action != 1 {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let prior = prior.unwrap_or(prepared)
-    let dispatching = match
-      @effect.issue_next_effect_ledger_entry(
         prior,
-        "dispatching",
-        None,
-        limits.max_wire_bytes,
-        limits.max_nodes,
-        limits.max_depth,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(Ledger(issue)))
-    }
-    if !@effect.effect_ledger_entry_follows(Some(prior), dispatching) {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let entries = checkpoint.effect_ledger.copy()
-    if action == 0 {
-      entries.push(prior)
-    }
-    entries.push(dispatching)
-    if entries.length() > 128 {
-      return Err(CapacityExceeded)
-    }
-    match self.save_effect_ledger(record, entries) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    Ok(
-      DispatchRecorded({
-        journal: self,
-        request: claim.request,
-        checkpoint_cid: claim.checkpoint_cid,
-        resolution_cid: claim.resolution_cid,
-        dispatching,
-      }),
-    )
-  })
+        false,
+      )
+      if action >= 3 && action <= 7 {
+        return Ok(OriginalRowRetained(prior.unwrap()))
+      }
+      if action != 0 && action != 1 {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let prior = prior.unwrap_or(prepared)
+      let dispatching = match
+        @effect.issue_next_effect_ledger_entry(
+          prior,
+          "dispatching",
+          None,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(Ledger(issue)))
+      }
+      if !@effect.effect_ledger_entry_follows(Some(prior), dispatching) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let entries = checkpoint.effect_ledger.copy()
+      if action == 0 {
+        entries.push(prior)
+      }
+      entries.push(dispatching)
+      if entries.length() > 128 {
+        return Err(CapacityExceeded)
+      }
+      match self.save_effect_ledger(record, entries, operations~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      Ok(
+        DispatchRecorded({
+          journal: self,
+          request: claim.request,
+          checkpoint_cid: claim.checkpoint_cid,
+          resolution_cid: claim.resolution_cid,
+          dispatching,
+        }),
+      )
+    },
+    reads~,
+  )
 }
 
 ///|

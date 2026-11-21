@@ -86543,7 +86543,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "7fdfc0a0d68cec27d24797e7e06b8fbe270fbaf75b2e1a24e99ddb22096735a5",
+      "sha256": "bdd3e430e7dc88eb1b9da6b6030f1a60325f879580adaba2fb5b3c3a34b7e1be",
       "exports": [],
       "operations": [
         {

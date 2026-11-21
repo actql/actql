@@ -250,6 +250,7 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
   }
   if tag == "case" {
     allowed.push("else")
+    allowed.push("operand")
   }
   if ["regex_match", "regex_extract", "regex_replace"].contains(tag) {
     allowed.push("flags")
@@ -264,7 +265,7 @@ fn body_role(tag : String, name : String) -> Role {
     ("cast", "target") => CastTarget
     ("empty_array", "items") => ItemContract
     ("case", "when") => Branches
-    ("case", "else") => Expr
+    ("case", "else" | "operand") => Expr
     (
       _,
       "precision"

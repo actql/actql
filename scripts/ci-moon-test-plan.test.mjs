@@ -110,8 +110,9 @@ test('a source-bound Moon plan narrows execution without omitting whole checks o
   const {plan} = fixture();
   const selected = validateSelection(selectTargets(['src/a/code.mbt'], {moonTests:plan}));
   assert.equal(selected.moonTests, plan); assert.deepEqual(selected.targets, ['js', 'wasm', 'native']);
-  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'session-controls', 'pipeline-evidence'])
+  for (const name of ['core', 'host', 'client', 'native', 'python-wheels', 'session-evidence', 'session-controls', 'pipeline-evidence'])
     assert.equal(gateJobRequired(selected, name), true, name);
+  assert.equal(gateJobRequired(selected, 'native-macos'), false);
   assert.equal(deepProofRequired(selected), true);
   assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, targetSensitiveDiff:true}).moonTests, undefined);
   assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, event:'push'}).moonTests, undefined);
@@ -129,6 +130,7 @@ test('graph failure remains an explained full selection and never an empty/succe
 test('the same final gate rejects every failed/cancelled/missing selected owner with a Moon plan', () => {
   const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
   const outcomes = Object.fromEntries(gateJobs.map(name => [name, {result:gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  outcomes['python-wheels'].outputs = {'linux-x64': hash};
   const envelope = {sourceRevision:hash, selection}, context = {sourceRevision:hash, event:'pull_request'};
   assert.doesNotThrow(() => verifyGate(envelope, outcomes, context));
   for (const name of gateJobs.filter(name => gateJobRequired(selection, name))) {
@@ -310,6 +312,7 @@ test('the actual pinned compiler graph narrows a real Gmail source change and re
   const sourceRevision = git(['rev-parse', 'HEAD']).trim();
   const results = Object.fromEntries(gateJobs.map(name => [name,
     {result: gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  results['python-wheels'].outputs = {'linux-x64': sourceRevision};
   const context = {event: 'pull_request', sourceRevision, draft: false};
   verifyGate({sourceRevision, selection}, results, context);
   assert.throws(() => verifyGate({sourceRevision, selection},
@@ -346,7 +349,7 @@ test('the actual repository Native compiler retains full profiles and partitions
   assert.equal(selection.event, 'pull_request');
   assert.equal(gateJobRequired(selection, 'main-performance'), true, 'Ready full input must retain positive performance acceptance');
   for (const name of gateJobs) assert.equal(gateJobRequired(selection, name),
-    !['focused-tests', 'health-quick'].includes(name), name);
+    !['focused-tests', 'health-quick', 'native-macos'].includes(name), name);
   const executionPackages = nativeMoonPackages({CI_PLAN:JSON.stringify({sourceRevision:hash, selection})});
   assert.equal(executionPackages, undefined, 'Full fallback must not narrow the original Native entrance');
   const selected = nativeCoreTestSelection(repository, ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'],
