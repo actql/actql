@@ -1211,3 +1211,7 @@ target/
 /adapters/host-common/strategy.d.mts
 /adapters/host-common/task-observation.mjs
 /adapters/host-common/task-observation.d.mts
+/adapters/host-common/strategy-actions.test.mjs
+/adapters/host-common/strategy-actions.test.d.mts
+/adapters/host-common/publication-action.test.mjs
+/adapters/host-common/publication-action.test.d.mts

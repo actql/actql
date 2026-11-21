@@ -1,7 +1,6 @@
 // Trusted JavaScript coordination only. Checked readiness, selected ownership,
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
-// @ts-expect-error TS7016: remove after generating strategy-action declarations.
 import {strategyAction} from './strategy-actions.mjs';
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   beginFailedExecutionSiteOperation,
@@ -1016,12 +1015,11 @@ export async function runInstalledStrategy({
             retainedInputs.length,
             excludedManagedCandidateCodes,
           ));
-          const code = {
+          const code = ({
             ManagedCandidateEstimateUnavailable: 'ManagedCandidateEstimateUnavailable',
             ManagedCandidateTransferUnavailable: 'ManagedSiteTransferUnavailable',
             ManagedCandidateNoCompatibleStrategy: 'NoCompatibleManagedStrategy',
-          }[outcome as 'ManagedCandidateEstimateUnavailable' |
-            'ManagedCandidateTransferUnavailable' | 'ManagedCandidateNoCompatibleStrategy'];
+          } as Partial<Record<typeof outcome, string>>)[outcome];
           if (code === undefined) {
             throw new StrategyHostError('InvalidManagedCandidateFallback');
           }
