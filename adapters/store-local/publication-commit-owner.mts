@@ -1,13 +1,49 @@
 // One public-index commit attempt owns the transition from prepared custody
 // to a durably confirmed index. The Store supplies its existing I/O and
 // capacity owners; this owner neither accounts capacity nor changes the wire.
-const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
+type Awaitable<T> = T | PromiseLike<T>;
+type CleanupStatus = Readonly<{pending: boolean}>;
+type Cleanup = Readonly<{status(): CleanupStatus; retry(): unknown}>;
+type Custody<Entry> = Cleanup & Readonly<{
+  settleAdopted(): unknown;
+  resolveConfirmed(existing: Entry | undefined): unknown;
+}>;
+type Failure = Error & {
+  primaryFailure?: unknown;
+  outcome?: 'unknown';
+  reconciliationFailure?: unknown;
+  cleanupPending?: boolean;
+  cleanupErrors?: readonly unknown[];
+  cleanupHandle?: Cleanup;
+};
+type FailureFactory = (code: string, cause: unknown) => Failure;
+type PrimaryFailure = Readonly<{
+  code?: unknown; outcome?: unknown;
+  cleanupHandle?: Readonly<{status?: () => CleanupStatus; retry?: () => unknown}>;
+}> | null | undefined;
+type CommitInput<Entry, Admitted, Key> = Readonly<{entry: Entry; admitted: Admitted; key: Key}>;
+type Operations<Entry, Admitted, Key> = Readonly<{
+  confirm(key: Key): Awaitable<Entry | undefined>;
+  sameContent(existing: Entry, admitted: Admitted): Awaitable<boolean>;
+  conflict(): never;
+  verifyExistingInventory(existing: Entry): unknown;
+  adopt(): unknown;
+  stage(): unknown;
+  beginCustody(): Awaitable<Custody<Entry>>;
+  cancelStage?(): undefined;
+  install(markInstalled: () => undefined): unknown;
+  adoptObjects(): unknown;
+  adoptSchemas(): unknown;
+  makeFailure: FailureFactory;
+}>;
+
+const custodyFailure = (primary: unknown, custody: Cleanup, reconciliation: unknown, makeFailure: FailureFactory) => {
   if (custody.status().pending !== true) return primary;
-  const child = primary?.cleanupHandle;
+  const child = (primary as PrimaryFailure)?.cleanupHandle;
   const childStatus = child?.status, childRetry = child?.retry;
   let cleanup = custody;
   if (child !== undefined && child !== custody) {
-    let flight;
+    let flight: Promise<CleanupStatus> | undefined;
     const status = () => Object.freeze({pending: typeof childStatus !== 'function' ||
       Reflect.apply(childStatus,child,[]).pending !== false || custody.status().pending});
     cleanup = Object.freeze({status,retry() {
@@ -22,11 +58,11 @@ const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
       return flight;
     }});
   }
-  const code = typeof primary?.code === 'string'
-    ? primary.code : 'PublicationCommitUnknown';
+  const code = typeof (primary as PrimaryFailure)?.code === 'string'
+    ? (primary as PrimaryFailure)!.code as string : 'PublicationCommitUnknown';
   const failure = makeFailure(code, primary);
   failure.primaryFailure = primary;
-  if (primary?.outcome === 'unknown') failure.outcome = 'unknown';
+  if ((primary as PrimaryFailure)?.outcome === 'unknown') failure.outcome = 'unknown';
   failure.reconciliationFailure = reconciliation;
   failure.cleanupPending = true;
   failure.cleanupErrors = Object.freeze(
@@ -36,10 +72,11 @@ const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
   return failure;
 };
 
-export function createPublicationCommitOwner({entry, admitted, key}, operations) {
+export function createPublicationCommitOwner<Entry, Admitted, Key>(
+  {entry, admitted, key}: CommitInput<Entry, Admitted, Key>, operations: Operations<Entry, Admitted, Key>) {
   let installed = false;
-  let custody;
-  const sameContent = existing => operations.sameContent(existing, admitted);
+  let custody: Custody<Entry>;
+  const sameContent = (existing: Entry) => operations.sameContent(existing, admitted);
 
   return Object.freeze({
     async commit() {

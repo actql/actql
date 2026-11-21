@@ -1349,3 +1349,11 @@ target/
 /adapters/store-local/physical-retirement-owner.d.mts
 /adapters/store-local/physical-retirement-owner.test.mjs
 /adapters/store-local/physical-retirement-owner.test.d.mts
+/adapters/store-local/object-writer-owner.mjs
+/adapters/store-local/object-writer-owner.d.mts
+/adapters/store-local/object-writer-owner.test.mjs
+/adapters/store-local/object-writer-owner.test.d.mts
+/adapters/store-local/publication-commit-owner.mjs
+/adapters/store-local/publication-commit-owner.d.mts
+/adapters/store-local/publication-commit-owner.test.mjs
+/adapters/store-local/publication-commit-owner.test.d.mts

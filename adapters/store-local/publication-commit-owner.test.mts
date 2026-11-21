@@ -2,14 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
-const failure = code => Object.assign(new Error(code), {code});
+type Entry = Readonly<{public_index_entry_cid: string}>;
+type Admitted = Readonly<{identity: string}>;
+type Key = Readonly<{runDefinitionCid: string}>;
+type Ports = Parameters<typeof createPublicationCommitOwner<Entry, Admitted, Key>>[1];
+type Operations = {-readonly [Name in keyof Ports]: Ports[Name]};
+type Custody = Awaited<ReturnType<Operations['beginCustody']>>;
+type CommitFailure = Error & Readonly<{code: string; primaryFailure: unknown; outcome?: string;
+  reconciliationFailure?: unknown; cleanupPending: boolean; cleanupErrors: readonly unknown[];
+  cleanupHandle: Readonly<{status(): Readonly<{pending: boolean}>;
+    retry(): Promise<Readonly<{pending: boolean}>>}>}>;
+const failure = (code: string) => Object.assign(new Error(code), {code});
 
 function fixture() {
-  const entry = Object.freeze({public_index_entry_cid: 'entry'});
-  const admitted = Object.freeze({identity: 'entry'});
-  const key = Object.freeze({runDefinitionCid: 'run'});
-  const calls = [];
-  let current;
+  const entry: Entry = Object.freeze({public_index_entry_cid: 'entry'});
+  const admitted: Admitted = Object.freeze({identity: 'entry'});
+  const key: Key = Object.freeze({runDefinitionCid: 'run'});
+  const calls: string[] = [];
+  let current: Entry | undefined;
   let pending = true;
   let objectsAdopted = false, schemasAdopted = false;
   const custody = Object.freeze({
@@ -22,18 +32,18 @@ function fixture() {
       calls.push('settle');
       pending = false;
     },
-    async resolveConfirmed(confirmed) {
+    async resolveConfirmed(confirmed: Entry | undefined) {
       calls.push('resolve');
       pending = false;
       return {outcome: confirmed === undefined ? 'uncommitted' : 'committed'};
     },
   });
-  const operations = {
+  const operations: Operations = {
     async confirm() { calls.push('confirm'); return current; },
     async sameContent() { calls.push('same'); return true; },
     async verifyExistingInventory() { calls.push('inventory'); },
     async stage() { calls.push('stage'); },
-    beginCustody() { calls.push('custody'); return custody; },
+    beginCustody() { calls.push('custody'); return custody as Partial<Custody> as Custody; },
     async install(markInstalled) {
       calls.push('link');
       markInstalled();
@@ -53,7 +63,7 @@ function fixture() {
   };
   return {
     entry, admitted, key, operations, calls, custody,
-    setCurrent: value => { current = value; },
+    setCurrent: (value: Entry | undefined) => { current = value; },
   };
 }
 
@@ -96,9 +106,9 @@ test('a lost response after link retains committed-versus-idempotent identity',
 
 test('new commit retains custody until both object and schema adoption finish', async () => {
   const {entry, admitted, key, operations, calls, custody} = fixture();
-  let entered, release;
-  const reachedSchemas = new Promise(resolve => {entered = resolve;});
-  const schemaAdoption = new Promise(resolve => {release = resolve;});
+  let entered!: () => void, release!: () => void;
+  const reachedSchemas = new Promise<void>(resolve => {entered = resolve;});
+  const schemaAdoption = new Promise<void>(resolve => {release = resolve;});
   const adoptSchemas = operations.adoptSchemas;
   operations.adoptSchemas = async () => {
     await adoptSchemas();
@@ -130,12 +140,12 @@ test('unconfirmed commit retains primary, reconciliation and custody owner',
     await assert.rejects(createPublicationCommitOwner(
       {entry, admitted, key}, operations,
     ).commit(), error => {
-      assert.equal(error.code, 'EIO');
-      assert.equal(error.primaryFailure, primary);
-      assert.equal(error.reconciliationFailure, reconciliation);
-      assert.equal(error.cleanupPending, true);
-      assert.equal(error.cleanupHandle, custody);
-      assert.deepEqual(error.cleanupErrors, [reconciliation]);
+      assert.equal((error as CommitFailure).code, 'EIO');
+      assert.equal((error as CommitFailure).primaryFailure, primary);
+      assert.equal((error as CommitFailure).reconciliationFailure, reconciliation);
+      assert.equal((error as CommitFailure).cleanupPending, true);
+      assert.equal((error as CommitFailure).cleanupHandle, custody);
+      assert.deepEqual((error as CommitFailure).cleanupErrors, [reconciliation]);
       return true;
     });
     assert.deepEqual(calls, ['confirm', 'stage', 'custody', 'confirm']);
@@ -167,8 +177,8 @@ test('failed custody construction returns only its staged reservation', async ()
 
 test('original storage cleanup precedes payload retry using captured methods and receiver', async () => {
   const {entry,admitted,key,operations} = fixture();
-  let storagePending = true, payloadPending = true, confirms = 0, release;
-  const ordered = [], wait = new Promise(resolve=>{release=resolve;});
+  let storagePending = true, payloadPending = true, confirms = 0, release!: () => void;
+  const ordered: string[] = [], wait = new Promise<void>(resolve=>{release=resolve;});
   const child = {
     status() {assert.equal(this,child);return {pending:storagePending};},
     async retry() {assert.equal(this,child);await wait;ordered.push('storage');storagePending=false;},
@@ -177,12 +187,12 @@ test('original storage cleanup precedes payload retry using captured methods and
   const custody = {status:()=>({pending:payloadPending}),async retry(){
     assert.equal(storagePending,false);ordered.push('payload');payloadPending=false;
   }};
-  operations.beginCustody = () => custody;
+  operations.beginCustody = () => custody as Partial<Custody> as Custody;
   operations.install = async () => {throw primary;};
   operations.confirm = async () => {if(confirms++===0)return undefined;throw failure('STILL_UNKNOWN');};
-  let retained;
+  let retained!: CommitFailure;
   await assert.rejects(createPublicationCommitOwner({entry,admitted,key},operations).commit(),error=>{
-    retained=error;return error.outcome==='unknown'&&error.primaryFailure===primary;
+    retained=error as CommitFailure;return (error as CommitFailure).outcome==='unknown'&&(error as CommitFailure).primaryFailure===primary;
   });
   child.status = () => assert.fail('changed storage status was invoked');
   child.retry = () => assert.fail('changed storage retry was invoked');

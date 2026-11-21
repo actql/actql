@@ -4,14 +4,62 @@
 import {constants} from 'node:fs';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
+import type {Hash} from 'node:crypto';
+
+type Awaitable<T> = T | PromiseLike<T>;
+type Allocation = Readonly<{isFile(): boolean; size: number}>;
+type Handle<State extends Allocation> = Readonly<{
+  write(bytes: Uint8Array, offset: number, length: number, position: number):
+    Awaitable<Readonly<{bytesWritten: number}>>;
+  sync(): unknown;
+  stat(): Awaitable<State>;
+  close(): Awaitable<boolean | void>;
+}>;
+type Reservation = Readonly<{held: boolean; release(): boolean | void}>;
+type Operations<Custody, State extends Allocation> = Readonly<{
+  stagingDirectory: string;
+  objectsDirectory: string;
+  open(path: string, flags: number, mode: number): Awaitable<Handle<State>>;
+  link(staging: string, final: string): unknown;
+  unlink(path: string): unknown;
+  syncDirectory(path: string): unknown;
+  fail(code: string): never;
+  objectPath(cid: string): string;
+  isReclaiming(cid: string): boolean;
+  registerCustody(cid: string, bytes: number, state: State): Awaitable<Custody>;
+  protectInstallation?: boolean;
+  accountInstalled(bytes: number, custody: Custody | undefined, cid: string, state: State): undefined;
+  discardInstallation?(cid: string, bytes: number, state: State, custody: Custody | undefined): undefined;
+  confirmInstalled?(cid: string, bytes: number, state: State, custody: Custody | undefined, installed: boolean): unknown;
+  finishUntrackedCustody(custody: Custody): unknown;
+  reclaimCustody(custody: Custody): Awaitable<boolean>;
+  verifyObject(cid: string): Awaitable<Readonly<{bytes: number}>>;
+}>;
+type SealResult<Custody> = Readonly<{cid: string; bytes: number; created: boolean; custody?: Custody}>;
+type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 
 // Measure the nominal view's storage, not a caller-owned length property.
 const typedArrayByteLength = Object.getOwnPropertyDescriptor(
   Object.getPrototypeOf(Uint8Array.prototype), 'byteLength',
-).get;
+)!.get!;
 
-class ObjectWriterOwner {
-  constructor(maxBytes, trackCustody, reservation, operations) {
+class ObjectWriterOwner<Custody, State extends Allocation> {
+  declare maxBytes: number;
+  declare trackCustody: boolean;
+  declare reservation: Reservation;
+  declare operations: Operations<Custody, State>;
+  declare temporary: string;
+  declare hash: Hash;
+  declare bytes: number;
+  declare acceptedBytes: number;
+  declare handle: Handle<State> | undefined;
+  declare finished: boolean;
+  declare cleanupPending: boolean;
+  declare custody: Custody | undefined;
+  declare busy: Promise<unknown>;
+  declare ready: Promise<void>;
+
+  constructor(maxBytes: number, trackCustody: boolean, reservation: Reservation, operations: Operations<Custody, State>) {
     this.maxBytes = maxBytes;
     this.trackCustody = trackCustody;
     this.reservation = reservation;
@@ -48,7 +96,7 @@ class ObjectWriterOwner {
     }
   }
 
-  queue(operation) {
+  queue<Result>(operation: () => Awaitable<Result>) {
     const result = this.busy.then(operation);
     this.busy = result.catch(() => {});
     return result;
@@ -64,7 +112,7 @@ class ObjectWriterOwner {
       this.handle = undefined;
     }
     try { await this.operations.unlink(this.temporary); }
-    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    catch (error) { if ((error as CodedCause)?.code !== 'ENOENT') throw error; }
     // A fresh successful seal already retains this SAME allocation at its
     // synced final name and full Store charge. The private staging alias is
     // not a second durable object or publication. A resurrected crash alias
@@ -86,8 +134,8 @@ class ObjectWriterOwner {
     }
   }
 
-  append(frame) {
-    let length;
+  append(frame: unknown) {
+    let length: number;
     if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
       length = Reflect.apply(typedArrayByteLength, frame, []);
     } else if (typeof frame === 'string') {
@@ -122,7 +170,7 @@ class ObjectWriterOwner {
       try {
         let offset = 0;
         while (offset < buffer.byteLength) {
-          const result = await this.handle.write(
+          const result = await this.handle!.write(
             buffer, offset, buffer.byteLength - offset, this.bytes + offset,
           );
           if (result.bytesWritten === 0) {
@@ -139,7 +187,7 @@ class ObjectWriterOwner {
     });
   }
 
-  seal(expectedCid) {
+  seal(expectedCid?: string) {
     return this.queue(async () => {
       await this.ready;
       if (this.finished) {
@@ -147,18 +195,18 @@ class ObjectWriterOwner {
       }
       this.finished = true;
       let installed = false;
-      let result;
+      let result: SealResult<Custody> | undefined;
       let failed = false;
-      let primaryFailure;
+      let primaryFailure: unknown;
       try {
-        await this.handle.sync();
-        const state = await this.handle.stat();
+        await this.handle!.sync();
+        const state = await this.handle!.stat();
         if (!state.isFile() || state.size !== this.bytes) {
           this.operations.fail('IncompletePublicationWrite');
         }
         // Do not publish a staging file whose original FD is still pending.
         // The existing failure cleanup retries this handle, never the write.
-        if (await this.handle.close() === false) {
+        if (await this.handle!.close() === false) {
           this.operations.fail('PublicationStoreCleanupPending');
         }
         this.handle = undefined;
@@ -187,7 +235,7 @@ class ObjectWriterOwner {
           this.operations.accountInstalled(this.bytes, this.custody, cid, state);
           await this.operations.syncDirectory(this.operations.objectsDirectory);
         } catch (error) {
-          if (error?.code !== 'EEXIST') throw error;
+          if ((error as CodedCause)?.code !== 'EEXIST') throw error;
           const existing = await this.operations.verifyObject(cid);
           if (existing.bytes !== this.bytes) {
             this.operations.fail('PublicationObjectIdentityMismatch');
@@ -224,7 +272,7 @@ class ObjectWriterOwner {
       }
       await this.cleanupAndRelease(installed);
       this.custody = undefined;
-      return result;
+      return result!;
     });
   }
 
@@ -268,15 +316,15 @@ class ObjectWriterOwner {
 
 // Only the existing Store writer facade escapes this module. The owner itself
 // remains reachable through that facade until cleanup has settled.
-export function createObjectWriterOwner(
-  maxBytes, trackCustody, reservation, operations,
+export function createObjectWriterOwner<Custody, State extends Allocation>(
+  maxBytes: number, trackCustody: boolean, reservation: Reservation, operations: Operations<Custody, State>,
 ) {
   const owner = new ObjectWriterOwner(
     maxBytes, trackCustody, reservation, operations,
   );
   return Object.freeze({
-    append: frame => owner.append(frame),
-    seal: expectedCid => owner.seal(expectedCid),
+    append: (frame: unknown) => owner.append(frame),
+    seal: (expectedCid?: string) => owner.seal(expectedCid),
     cancel: () => owner.cancel(),
     status: () => owner.status(),
   });

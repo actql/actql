@@ -3540,7 +3540,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "A single writer owns its staging file"
               },
               {
@@ -3554,7 +3554,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "createObjectWriterOwner"
               },
               {
@@ -3562,21 +3562,21 @@
                 "anchor": "bounded UTF-8 text or bounded byte frames"
               },
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "this.operations.accountInstalled(this.bytes, this.custody, cid, state);"
               },
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "await this.cleanupAndRelease(installed);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "Measure the nominal view"
               },
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "this.operations.discardInstallation?.(cid, this.bytes, state, this.custody);"
               },
               {
@@ -3586,7 +3586,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "one-shot Store capability"
               },
               {
@@ -3600,7 +3600,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "this.busy.then(operation)"
               },
               {
@@ -3642,7 +3642,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "this.maxBytes"
               },
               {
@@ -3664,13 +3664,13 @@
                 "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               },
               {
-                "path": "adapters/store-local/object-writer-owner.mjs",
+                "path": "adapters/store-local/object-writer-owner.mts",
                 "anchor": "async cleanupTemporary(finalNameAcknowledged = false) {"
               }
             ],
             "verification": [
               {
-                "path": "adapters/store-local/object-writer-owner.test.mjs",
+                "path": "adapters/store-local/object-writer-owner.test.mts",
                 "anchor": "test("
               },
               {
@@ -4135,7 +4135,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "One public-index commit attempt"
               },
               {
@@ -4145,7 +4145,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "createPublicationCommitOwner"
               },
               {
@@ -4155,13 +4155,13 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "sameContent"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "custody = await operations.beginCustody()"
               },
               {
@@ -4171,25 +4171,25 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "operations.confirm(key)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "PublicationCommitUnknown"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "custody.status().pending"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/publication-commit-owner.mjs",
+                "path": "adapters/store-local/publication-commit-owner.mts",
                 "anchor": "capacity owners"
               }
             ],
@@ -4201,15 +4201,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/publication-commit-owner.test.mjs",
+                "path": "adapters/store-local/publication-commit-owner.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/publication-commit-owner.test.mjs",
+                "path": "adapters/store-local/publication-commit-owner.test.mts",
                 "anchor": "failed custody construction returns only its staged reservation"
               },
               {
-                "path": "adapters/store-local/publication-commit-owner.test.mjs",
+                "path": "adapters/store-local/publication-commit-owner.test.mts",
                 "anchor": "original storage cleanup precedes payload retry using captured methods and receiver"
               }
             ]

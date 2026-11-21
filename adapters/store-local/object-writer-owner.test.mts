@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import type {BinaryLike} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 
-const digest = value => `sha256:${createHash('sha256')
+const digest = (value: BinaryLike) => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
-const failure = code => Object.assign(new Error(code), {code});
+const failure = (code: string) => Object.assign(new Error(code), {code});
 
 test('writer open failure stays observed before the payload caller resumes', () => {
   // The payload reader may yield before its first writer operation. Exercise
@@ -59,6 +60,9 @@ test('failed alias unlink after a real final-name ACK keeps the same reservation
   assert.deepEqual(counts(),{releases:1,closeCalls:1,unlinkCalls:2,syncCalls:2,linked:1});
 });
 
+type FixtureAllocation = Readonly<{isFile(): boolean; size: number}>;
+type Operations = Parameters<typeof createObjectWriterOwner<never, FixtureAllocation>>[3];
+
 function fixture(maxBytes = 4) {
   let held = true;
   let releases = 0;
@@ -71,9 +75,9 @@ function fixture(maxBytes = 4) {
   let syncCalls = 0;
   let linked = 0;
   let size = 0;
-  const writes = [];
+  const writes: {buffer: Uint8Array; offset: number; length: number}[] = [];
   const handle = {
-    async write(buffer, offset, length) {
+    async write(buffer: Uint8Array, offset: number, length: number) {
       if (emptyWrites-- > 0) return {bytesWritten: 0};
       writes.push({buffer, offset, length});
       size += length;
@@ -95,7 +99,7 @@ function fixture(maxBytes = 4) {
       return true;
     },
   });
-  const operations = {
+  const operations: Omit<Operations, 'finishUntrackedCustody'> = {
     stagingDirectory: '/writer-staging',
     objectsDirectory: '/writer-objects',
     async open() { return handle; },
@@ -117,7 +121,7 @@ function fixture(maxBytes = 4) {
     accountInstalled() {},
   };
   return {
-    writer: createObjectWriterOwner(maxBytes, false, reservation, operations),
+    writer: createObjectWriterOwner(maxBytes, false, reservation, operations as Operations),
     writes: () => writes,
     failClose: () => { closeFailures++; },
     failUnlink: () => { unlinkFailures++; },
@@ -187,7 +191,7 @@ test('a shadowed byteLength cannot admit an oversized typed frame or allocate',
     Object.defineProperty(frame, 'byteLength', {value: 1});
     const allocate = Buffer.allocUnsafeSlow;
     let allocations = 0;
-    Buffer.allocUnsafeSlow = function(size) {
+    Buffer.allocUnsafeSlow = function(size: number) {
       allocations++;
       return Reflect.apply(allocate, Buffer, [size]);
     };
