@@ -1721,6 +1721,8 @@ target/
 /adapters/host-node/initial-control-host-input.test.d.mts
 /adapters/host-node/source-managed-original-input.test.mjs
 /adapters/host-node/source-managed-original-input.test.d.mts
+/adapters/host-node/source-alias-publication.mjs
+/adapters/host-node/source-alias-publication.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs

@@ -96695,7 +96695,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7f465dc9fb9ed0dadb1f4d50d05884509ecaf5ada33291742b160cffd8645d9",
+      "sha256": "ee8071e84b23dcfc8415d7fe2f0e1fd0339acd92cbb8674659fb7c887fb0d455",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -97050,8 +97050,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97062,11 +97062,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "const preparedEnvironment = typeof moon.clientProgramPreparePublicSourceEnvironment"
               },
               {
@@ -97080,8 +97080,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -97092,11 +97092,11 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "original: Object.freeze({wire, preparedEnvironment})});"
               },
               {
@@ -97110,8 +97110,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -97122,11 +97122,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "return retained !== undefined && retained.moon === moon && retained.environment === environment"
               },
               {
@@ -97140,7 +97140,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "// Process-local custody of metadata admitted by the installed Source loader."
               },
               {
@@ -97152,12 +97152,12 @@
                 "anchor": "# Checked Program construction"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "const publicationOriginals = new WeakMap();"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "const publicationOriginals = new WeakMap<object, RetainedPublication>();"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97170,8 +97170,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97182,12 +97182,12 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublicationOriginal(moon, environment, publication) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublicationOriginal(moon: Runtime, environment: unknown, publication: object) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97200,7 +97200,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "throw new TypeError('InvalidSourceNamespaceDeclaration');"
               },
               {
@@ -97212,11 +97212,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "throw new TypeError('InvalidPublicSourcePublication');"
               },
               {
@@ -97230,7 +97230,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "// close it. The proof covers the unfiltered installation, never visible aliases."
               },
               {
@@ -97242,8 +97242,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function retireSourceAliasPublicationOriginal(moon, environment, publication) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function retireSourceAliasPublicationOriginal(moon: Runtime, environment: unknown, publication: object) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97256,7 +97256,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "function admitRegistrationRange("
               },
               {
@@ -97278,7 +97278,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "function admitRegistrationRange("
               },
               {
@@ -97290,11 +97290,11 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "publicationOriginals.delete(publication);"
               },
               {
@@ -97350,7 +97350,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97364,7 +97364,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97378,7 +97378,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97392,7 +97392,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97406,7 +97406,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97420,7 +97420,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97434,7 +97434,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97448,7 +97448,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97462,7 +97462,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "storeTargets"
               },
               {
@@ -97494,8 +97494,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97506,11 +97506,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "const preparedEnvironment = typeof moon.clientProgramPreparePublicSourceEnvironment"
               },
               {
@@ -97520,8 +97520,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -97532,11 +97532,11 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "original: Object.freeze({wire, preparedEnvironment})});"
               },
               {
@@ -97546,8 +97546,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -97558,11 +97558,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "return retained !== undefined && retained.moon === moon && retained.environment === environment"
               },
               {
@@ -97572,7 +97572,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "// Process-local custody of metadata admitted by the installed Source loader."
               },
               {
@@ -97584,12 +97584,12 @@
                 "anchor": "# Checked Program construction"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "const publicationOriginals = new WeakMap();"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "const publicationOriginals = new WeakMap<object, RetainedPublication>();"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97598,8 +97598,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function splitSourceAliasProfile(profile) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function splitSourceAliasProfile(profile: unknown) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97610,12 +97610,12 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublicationOriginal(moon, environment, publication) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublicationOriginal(moon: Runtime, environment: unknown, publication: object) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97624,7 +97624,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "throw new TypeError('InvalidSourceNamespaceDeclaration');"
               },
               {
@@ -97636,11 +97636,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "throw new TypeError('InvalidPublicSourcePublication');"
               },
               {
@@ -97650,7 +97650,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "// close it. The proof covers the unfiltered installation, never visible aliases."
               },
               {
@@ -97662,8 +97662,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function retireSourceAliasPublicationOriginal(moon, environment, publication) {"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function retireSourceAliasPublicationOriginal(moon: Runtime, environment: unknown, publication: object) {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -97672,7 +97672,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "function admitRegistrationRange("
               },
               {
@@ -97690,7 +97690,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "function admitRegistrationRange("
               },
               {
@@ -97702,11 +97702,11 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+                "path": "adapters/host-node/source-alias-publication.mts",
+                "anchor": "export function sourceAliasPublication(moon: Runtime, environment: unknown,"
               },
               {
-                "path": "adapters/host-node/source-alias-publication.mjs",
+                "path": "adapters/host-node/source-alias-publication.mts",
                 "anchor": "publicationOriginals.delete(publication);"
               },
               {
