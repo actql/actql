@@ -4286,9 +4286,13 @@ fn original_composed_keyed_consumer(
   if managed is Some((owner, _)) {
     retire_installed_managed_run(owner).unwrap()
   }
-  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  if declared_dependency_closure {
+    assert_eq(usage.reserved_execution_bytes, 0L)
+  }
+  assert_eq(usage.attempts, prior_attempts + 3)
 }
 
 ///|
