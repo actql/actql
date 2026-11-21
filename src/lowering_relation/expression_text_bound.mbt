@@ -3,7 +3,7 @@
 /// producer and typed-node identity checks. This view is not Host admission.
 struct ExpressionTextBound {
   original : @context.TextBoundResolution
-  timestamp : @context.TimestampPatternResolution?
+  pattern : @context.PatternResolution?
 }
 
 ///|
@@ -33,5 +33,28 @@ pub fn text_bound_filter(
 pub fn text_bound_timestamp_pattern(
   value : ExpressionTextBound,
 ) -> @timestamp.Pattern? {
-  value.timestamp.map(pattern => @context.timestamp_pattern_ast(pattern))
+  if value.pattern is Some(@context.Timestamp(pattern)) {
+    Some(@context.timestamp_pattern_ast(pattern))
+  } else {
+    None
+  }
+}
+
+///|
+/// The exact checked regex and its authored flags remain sidecar data of this
+/// occurrence. The runtime receives the original AST without another parser.
+pub fn text_bound_regex_pattern(
+  value : ExpressionTextBound,
+) -> (@regex.Pattern, String?)? {
+  if value.pattern is Some(@context.Regex(pattern)) &&
+    @context.regex_pattern_operation(pattern) is @context.Match {
+    Some(
+      (
+        @context.regex_pattern_ast(pattern),
+        @context.regex_pattern_flags(pattern),
+      ),
+    )
+  } else {
+    None
+  }
 }

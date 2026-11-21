@@ -127,6 +127,7 @@ priv enum Evaluation {
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
+  RegexMatching(RegexMatchFrame)
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   FormatText(TextFunctionState, FormatStrings)
   SqlJsonText(TextFunctionState, SqlJsonCursor)
@@ -433,6 +434,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
     | FormatText(state, _)
     | SqlJsonText(state, _)
     | JsonValueText(state, _) => state.builder = None
+    RegexMatching(state) => if state.search is Some(search) { search.cancel() }
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -1759,6 +1761,41 @@ fn advance_expression_frame_impl(
               }
               continue
             }
+            if op == @lower.RegexMatch {
+              if charge_value(left, left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if charge_value(value, frame.current_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              guard value is Text(_) && (left is Text(_) || left is Null) else {
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              release_slots(workspace, 1)
+              let right_root = frame.current_root
+              frame.current_root = None
+              if left is Text(text) {
+                match
+                  start_regex_match(
+                    expr, text, left_root, right_root, workspace,
+                  ) {
+                  Ok(state) => frame.state = RegexMatching(state)
+                  Err(issue) => return Err(issue)
+                }
+                if !drain {
+                  return Ok(None)
+                }
+              } else {
+                if release(left_root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+                if release(right_root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+                frame.state = Return(Null)
+              }
+              continue
+            }
             if op == @lower.ParseTimestamp ||
               op == @lower.FormatTimestamp ||
               op == @lower.Utf8Truncate ||
@@ -2276,6 +2313,30 @@ fn advance_expression_frame_impl(
             release_slots(workspace, state.roots.length() * 3 + 3 + state.count)
             frame.current_root = state.root
             frame.result_prepaid = state.root is Some(_)
+            frame.state = Return(value)
+          }
+        }
+      }
+      RegexMatching(state) => {
+        frame.active = state.expression
+        match advance_regex_match(state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            if release(state.left_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: state.expression,
+              })
+            }
+            if release(state.right_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: state.expression,
+              })
+            }
+            state.search = None
+            release_slots(workspace, REGEX_MATCH_SLOTS + state.workspace.slots)
             frame.state = Return(value)
           }
         }

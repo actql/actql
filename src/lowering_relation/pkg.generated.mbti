@@ -17,6 +17,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/regex_pattern",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
@@ -1048,6 +1049,8 @@ pub fn text_bound_output(ExpressionTextBound) -> @text_time_bounds.Output
 
 pub fn text_bound_policy(ExpressionTextBound) -> @check_environment.TextTime
 
+pub fn text_bound_regex_pattern(ExpressionTextBound) -> (@regex_pattern.Pattern, String?)?
+
 pub fn text_bound_timestamp_pattern(ExpressionTextBound) -> @timestamp_pattern.Pattern?
 
 pub fn time_series_end(PreparedTimeSeries) -> String
@@ -1229,6 +1232,7 @@ pub(all) enum BinaryOperator {
   Utf8Truncate
   ParseTimestamp
   FormatTimestamp
+  RegexMatch
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

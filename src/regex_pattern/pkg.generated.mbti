@@ -2,6 +2,7 @@
 package "actql/actql/regex_pattern"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -29,7 +30,7 @@ pub fn parse(String, Limits) -> Result[Pattern, Issue]
 
 pub fn root(Pattern) -> Int
 
-pub fn start_search(Pattern, String, SearchOptions) -> Result[Search, SearchIssue]
+pub fn start_search(Pattern, String, SearchOptions, reserve~ : (@decode_shape.CollectionConstructionExtent) -> Bool) -> Result[Search, SearchIssue]
 
 pub fn usage(Pattern) -> (Int, Int, Int)
 
@@ -86,6 +87,7 @@ pub(all) enum SearchIssue {
   InvalidSearchOptions
   MalformedInput(Int)
   SearchWorkspaceLimit
+  SearchCancelled
 } derive(Eq, @debug.Debug)
 
 pub(all) struct SearchOptions {

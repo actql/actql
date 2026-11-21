@@ -139,6 +139,7 @@ pub(all) enum BinaryOperator {
   Utf8Truncate
   ParseTimestamp
   FormatTimestamp
+  RegexMatch
 } derive(Eq, Debug)
 
 ///|
@@ -466,6 +467,7 @@ fn expression_tag(
     | "try_timestamp"
     | "parse_timestamp"
     | "format_timestamp"
+    | "regex_match"
     | "nfkc"
     | "case_fold"
     | "utf8_truncate"
@@ -556,7 +558,7 @@ fn expression_children(
         @decode.lookup(obj, "right").unwrap(),
       ]
     }
-    "parse_timestamp" | "format_timestamp" => {
+    "parse_timestamp" | "format_timestamp" | "regex_match" => {
       let obj = @decode.open_object(body).unwrap()
       let value = @decode.lookup(obj, "value").unwrap()
       if @decode.lookup(obj, "pattern") is Some(pattern) {
@@ -1045,6 +1047,8 @@ fn lower_typed_expression_measured(
             ) {
             Some(@context.Pattern(@context.Timestamp(_))) =>
               ["parse_timestamp", "format_timestamp"].contains(operation)
+            Some(@context.Pattern(@context.Regex(_))) =>
+              operation == "regex_match"
             Some(@context.Pattern(@context.Like(pattern))) if operation ==
               "like" => {
               let node = @typing.node_at(typed, obligation.node_index).unwrap()
@@ -1081,7 +1085,7 @@ fn lower_typed_expression_measured(
           }
           if [
               "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
-              "format_timestamp",
+              "format_timestamp", "regex_match",
             ].contains(operation) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
@@ -1335,6 +1339,7 @@ fn lower_typed_expression_measured(
         "try_timestamp" => Unary(TryTimestamp, args[0])
         "parse_timestamp" => Binary(ParseTimestamp, args[0], args[1])
         "format_timestamp" => Binary(FormatTimestamp, args[0], args[1])
+        "regex_match" => Binary(RegexMatch, args[0], args[1])
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
@@ -1666,9 +1671,9 @@ fn original_expression_text_bound(
     is Some(@context.Envelope(original)) else {
     return None
   }
-  let timestamp = match @typing.node_form(typed, obligation.node_index) {
+  let pattern = match @typing.node_form(typed, obligation.node_index) {
     Some(@typing.Expression(operation, _)) if [
-        "parse_timestamp", "format_timestamp",
+        "parse_timestamp", "format_timestamp", "regex_match",
       ].contains(operation) =>
       match
         original_expression_discharge(
@@ -1678,12 +1683,24 @@ fn original_expression_text_bound(
           budget,
           bound=Some((bound, step)),
         ) {
-        Some(@context.Pattern(@context.Timestamp(pattern))) => Some(pattern)
+        Some(@context.Pattern(pattern)) => {
+          let matches = match pattern {
+            @context.Timestamp(_) => operation != "regex_match"
+            @context.Regex(regex) =>
+              operation == "regex_match" &&
+              @context.regex_pattern_operation(regex) is @context.Match
+            @context.Like(_) => false
+          }
+          if !matches {
+            return None
+          }
+          Some(pattern)
+        }
         _ => return None
       }
     _ => None
   }
-  Some({ original, timestamp, })
+  Some({ original, pattern, })
 }
 
 ///|

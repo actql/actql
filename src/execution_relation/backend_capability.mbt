@@ -188,7 +188,8 @@ fn check_backend_capabilities(
             | DecimalDivide(_)
             | Utf8Truncate
             | ParseTimestamp
-            | FormatTimestamp => ()
+            | FormatTimestamp
+            | RegexMatch => ()
           }
           pending.push(right)
           pending.push(left)

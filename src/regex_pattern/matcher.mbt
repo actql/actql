@@ -11,6 +11,7 @@ pub(all) enum SearchIssue {
   InvalidSearchOptions
   MalformedInput(Int)
   SearchWorkspaceLimit
+  SearchCancelled
 } derive(Eq, Debug)
 
 ///|
@@ -86,6 +87,8 @@ struct Search {
   pattern : Pattern
   text : String
   options : SearchOptions
+  reserve : (@shape.CollectionConstructionExtent) -> Bool
+  mut advancing : Bool
   mut continuations : Array[Continuation]
   mut choices : Array[Choice]
   mut marks : Array[Mark]
@@ -109,13 +112,47 @@ pub enum SearchPoll {
 }
 
 ///|
+// Four grow-only Array backings overlap through capture assembly. The common
+// collection owner charges each wrapper, geometric backing and old/new peak.
+// A cell holds at most a Continuation and Task (2H1R6W), a Mark and Span,
+// a Choice, or a captured Some borrowing its retained mark's Span. Retained
+// cells and the one replacement cell are separate. The fixed controls hold
+// the search/options, whole-match Span/result, callback aliases, transition
+// and outcome wrappers, and that one additional replacement cell.
+fn search_construction_extent(
+  entries : Int64,
+) -> @shape.CollectionConstructionExtent? {
+  guard @shape.collection_construction_extent({
+      records: 8L + 2L * entries,
+      record_references: 16L + entries,
+      record_words: 32L + 6L * entries,
+      reference_arrays: 4L,
+      reference_items: entries,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(body) else {
+    return None
+  }
+  @shape.add_collection_construction_extents(
+    body,
+    @shape.collection_construction_quotation_extent(),
+  )
+}
+
+///|
 /// The caller supplies the admitted input and owns the work charge for every
 /// advance. The entry ceiling covers all four vectors, including result
-/// captures while they overlap the search state.
+/// captures while they overlap the search state. The separate reserve
+/// callback supplies backing before construction or growth and retains it
+/// through consumption of a returned Match. It does not debit matcher work.
 pub fn start_search(
   pattern : Pattern,
   text : String,
   options : SearchOptions,
+  reserve~ : (@shape.CollectionConstructionExtent) -> Bool,
 ) -> Result[Search, SearchIssue] {
   if options.from < 0 || options.from > text.length() || options.max_entries < 0 {
     return Err(InvalidSearchOptions)
@@ -126,10 +163,15 @@ pub fn start_search(
       return Err(MalformedInput(options.from))
     }
   }
+  guard search_construction_extent(0L) is Some(extent) && reserve(extent) else {
+    return Err(SearchWorkspaceLimit)
+  }
   Ok({
     pattern,
     text,
     options,
+    reserve,
+    advancing: false,
     continuations: [],
     choices: [],
     marks: [],
@@ -158,6 +200,13 @@ fn reserve_entry(search : Search) -> Unit raise SearchStop {
     search.captures.length().to_int64()
   if used >= search.options.max_entries.to_int64() {
     raise SearchStop(SearchWorkspaceLimit)
+  }
+  guard search_construction_extent(used + 1L) is Some(extent) &&
+    (search.reserve)(extent) else {
+    raise SearchStop(SearchWorkspaceLimit)
+  }
+  if search.phase is Done {
+    raise SearchStop(SearchCancelled)
   }
 }
 
@@ -482,10 +531,17 @@ fn advance_search(search : Search) -> SearchPoll raise SearchStop {
 ///|
 /// Advance a single task, class item, source start, or retained capture.
 pub fn Search::advance(search : Search) -> SearchPoll {
-  advance_search(search) catch {
+  if search.advancing {
+    search.cancel()
+    return SearchFailed(SearchCancelled)
+  }
+  search.advancing = true
+  let outcome = advance_search(search) catch {
     SearchStop(issue) => {
       search.cancel()
       SearchFailed(issue)
     }
   }
+  search.advancing = false
+  outcome
 }

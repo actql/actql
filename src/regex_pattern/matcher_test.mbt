@@ -9,7 +9,9 @@ fn search(
   text : String,
   options : SearchOptions,
 ) -> Result[Match?, SearchIssue] raise {
-  let matcher = start_search(parse(pattern, limits()).unwrap(), text, options)
+  let matcher = start_search(parse(pattern, limits()).unwrap(), text, options, reserve=_ => {
+    true
+  })
   match matcher {
     Err(issue) => Err(issue)
     Ok(matcher) => {
@@ -101,6 +103,7 @@ test "regex search bounds frame storage and retires after cancellation or limit"
     parse("(a|aa)+b", limits()).unwrap(),
     "a".repeat(200),
     options,
+    reserve=_ => true,
   ).unwrap()
   for _ in 0..<12 {
     assert_true(matcher.advance() is SearchContinue)
@@ -111,4 +114,74 @@ test "regex search bounds frame storage and retires after cancellation or limit"
     search("(a|aa)+b", "a".repeat(200), { ..options, max_entries: 32, })
     is Err(SearchWorkspaceLimit),
   )
+}
+
+///|
+test "regex search reserves overlapping backing before constructing captures" {
+  let pattern = parse("(a)", limits()).unwrap()
+  for limit in [4, 5] {
+    let requested : Array[Int] = []
+    let mut complete_geometry = true
+    let matcher = start_search(pattern, "a", search_options(), reserve=extent => {
+      // Independently price the retained wrappers, four Array growth peaks,
+      // one work cell, quote controls and each live entry body.
+      let entries = ((extent.reference_slots - 70L) / 4L).to_int()
+      complete_geometry = complete_geometry &&
+        extent.record_headers == 41L + 2L * entries.to_int64() &&
+        extent.reference_slots == 70L + 4L * entries.to_int64() &&
+        extent.scalar_words == 82L + 6L * entries.to_int64()
+      requested.push(entries)
+      entries <= limit
+    }).unwrap()
+    let mut ended = false
+    for _ in 0..<32 {
+      match matcher.advance() {
+        SearchContinue => ()
+        SearchComplete(Some(found)) => {
+          assert_eq(limit, 5)
+          assert_eq(capture_span(found, 1), Some({ start: 0, end: 1, }))
+          ended = true
+          break
+        }
+        SearchFailed(SearchWorkspaceLimit) => {
+          assert_eq(limit, 4)
+          ended = true
+          break
+        }
+        _ => fail("unexpected matcher outcome")
+      }
+    }
+    assert_true(ended && complete_geometry)
+    assert_eq(requested, [0, 1, 2, 3, 4, 5])
+    assert_true(matcher.advance() is SearchTerminal)
+  }
+}
+
+///|
+test "regex search reuses backing across misses and cancels before a refused write" {
+  let pattern = parse("a", limits()).unwrap()
+  let mut calls = 0
+  let matcher = start_search(pattern, "zzza", search_options(), reserve=_ => {
+    calls += 1
+    true
+  }).unwrap()
+  let mut match_start = -1
+  for _ in 0..<32 {
+    if matcher.advance() is SearchComplete(Some(found)) {
+      match_start = match_span(found).start
+      break
+    }
+  }
+  assert_eq((match_start, calls), (3, 2))
+  let owner : Ref[Search?] = Ref(None)
+  let matcher = start_search(pattern, "a", search_options(), reserve=_ => {
+    if owner.val is Some(value) {
+      value.cancel()
+    }
+    true
+  }).unwrap()
+  owner.val = Some(matcher)
+  assert_true(matcher.advance() is SearchFailed(SearchCancelled))
+  owner.val = None
+  assert_true(matcher.advance() is SearchTerminal)
 }

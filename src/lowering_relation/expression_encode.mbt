@@ -51,6 +51,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Utf8Truncate => "utf8_truncate"
     ParseTimestamp => "parse_timestamp"
     FormatTimestamp => "format_timestamp"
+    RegexMatch => "regex_match"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -350,6 +351,21 @@ fn emit_frames(
             op == FormatTimestamp => {
             pending.push(Op(binary_name(op)))
             @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions([("pattern", pattern), ("value", value)], 0),
+            )
+          }
+          Binary(RegexMatch, value, pattern) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_pattern(bound) is Some((_, flags)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_match"))
+            @encode.begin_object(output)
+            if flags is Some(flags) {
+              @encode.key(output, "flags")
+              @encode.string_value(output, flags)
+            }
             pending.push(
               ObjectExpressions([("pattern", pattern), ("value", value)], 0),
             )
