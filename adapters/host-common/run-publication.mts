@@ -60,7 +60,7 @@ type CleanupStatus = Readonly<{pending: boolean; errors?: readonly unknown[]}>;
 type CleanupOwner = Readonly<{
   status(): CleanupStatus;
   retry?(): Awaitable<unknown>;
-  resolveConfirmed?(value: undefined): SynchronousRuntimeData;
+  resolveConfirmed?(value: undefined): Awaitable<CleanupStatus>;
 }>;
 type PublicationResult = Readonly<{
   state: 'succeeded';
@@ -111,6 +111,7 @@ type Control = Readonly<{
     unknownAppendAttempted: boolean): ReturnType<typeof publicationAction<'commitFailure'>>;
   publicationUnknownRetryAction(resolved: boolean, pending: boolean, retryAvailable: boolean,
     attempted: boolean): ReturnType<typeof publicationAction<'unknownRetry'>>;
+  retireCapturedComputation?(capturedRun: Contract): undefined;
   effectFreeChainValid(run: Contract, invocation: Contract, definitions: readonly Contract[], artifacts: readonly Contract[],
     manifest: Contract, receipt: Contract, capturedRun: Contract, limits: Limits, signal?: AbortSignal): Awaitable<boolean>;
   effectFreeCommitValid(run: Contract, invocation: Contract, definitions: readonly Contract[], artifacts: readonly Contract[],
@@ -688,7 +689,7 @@ function cleanupState(handle: unknown, required: boolean) {
   } catch (error) { return {pending: true, errors: [error]}; }
 }
 
-function capturedComputationLifetime(control: unknown, capturedRun: unknown): ComputationLifetime {
+function capturedComputationLifetime(control: Control, capturedRun: Contract): ComputationLifetime {
   const original = member(control, 'retireCapturedComputation');
   if (original !== undefined && typeof original !== 'function') {
     fail('InvalidCapturedComputationRetirement');
@@ -701,7 +702,7 @@ function capturedComputationLifetime(control: unknown, capturedRun: unknown): Co
       if (retiring) fail('CapturedComputationRetirementBusy');
       retiring = true;
       try {
-        if (original !== undefined) Reflect.apply(original as (value: unknown) => SynchronousRuntimeData, control, [capturedRun]);
+        if (original !== undefined) Reflect.apply(original as NonNullable<Control['retireCapturedComputation']>, control, [capturedRun]);
         retired = true;
       } finally {retiring = false;}
     },
