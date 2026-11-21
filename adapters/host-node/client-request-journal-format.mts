@@ -4,6 +4,8 @@ import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync, openS
   writeFileSync, type BigIntStats} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import type {SQLOutputValue} from 'node:sqlite';
+import type {WireRunRef} from '../../packages/client-wire/index.js';
+import {cid, structuralExplanationOriginalShape, text} from './client-request-journal-records.mjs';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {inspectHostJournalDirectory} from './host-journal-directory.mjs';
 import {inspectClientSourceOperationStorage, sourceOperationTable} from './client-source-operation.mjs';
@@ -944,4 +946,132 @@ export function initializeJournalSchema(database: JournalSqlConnection,
       // file keeps its fsync; the existing final directory ACK precedes ready.
       for (const [name,bytes] of pendingFormatMarkers) writeFormatMarker(name,bytes);
     }
+}
+
+// These are the scalar and text projections of the two exact SELECTs below.
+// Their existing binding, length and NULL checks still decide admission.
+type ExplanationExtent = Readonly<{
+  definitionBytes: number; evidenceBytes: number; factsBytes: number; storedBytes: number;
+}>;
+type ExplanationProbeRow = Readonly<{
+  facts_present: number; facet_matches: number; bindings_bounded: number;
+  definition_bytes: number; evidence_bytes: number; facts_bytes: number;
+}>;
+type ExplanationOriginalRow = Readonly<{
+  facts_present: number; facet_matches: number; evidence_present: number;
+  definition_wire: string | null; evidence_wire: string | null;
+  program_cid: string | null; parameters_cid: string | null; facts_wire: string | null;
+}>;
+
+// Explicit Explanation operations only. Ordinary status/Plan reads neither
+// fetch these bytes nor silently create this optional feature. The installed
+// caller must pre-admit its schema/statement and row/codec construction.
+export function readJournalExplanationOriginal(database: JournalSqlConnection,
+  ref: WireRunRef, maxRunDefinitionWireBytes: number) {
+  if (!inspectExplanationOriginalStorage(database)) return undefined;
+  // Compare binding scalars inside SQLite instead of returning potentially
+  // corrupt unbounded strings. Byte length includes UTF-8 expansion and NUL;
+  // an over-limit row returns NULL, never a valid-looking truncated original.
+  // Native file/statement work still belongs to the original physical owner.
+  const row = database.prepare(`SELECT
+      namespace_id = ? AND authority_scope_cid = ? AS original_ref_matches,
+      CASE WHEN typeof(facts_wire) = 'text' AND
+        length(CAST(facts_wire AS BLOB)) BETWEEN 1 AND ?
+        THEN facts_wire ELSE NULL END AS facts_wire
+      FROM client_run_explanation_originals WHERE run_definition_cid = ?`)
+    .get(ref.namespaceId, ref.authorityScopeCid, maxRunDefinitionWireBytes, ref.runDefinitionCid);
+  if (row === undefined) return undefined;
+  if (row.original_ref_matches !== 1) {
+    fail('ClientRequestJournalCorrupt');
+  }
+  const original = {factsWire: row.facts_wire};
+  if (!structuralExplanationOriginalShape(original) || Buffer.byteLength(original.factsWire) > maxRunDefinitionWireBytes) {
+    fail('ClientRequestJournalCorrupt');
+  }
+  return Object.freeze(original);
+}
+// The explicit structural reader first asks only for scalar byte extents.
+// No accepted-row string (including binding CIDs) crosses this probe. The
+// same connection retains/prepares these fixed SQL statements under its
+// existing selected statement/SQL/operand ownership, not the read's codec.
+function explanationReadSelection(database: JournalSqlConnection,
+  ensureOpen: () => undefined, ref: WireRunRef) {
+  ensureOpen();
+  if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
+    fail('InvalidClientRunLookup');
+  }
+  const facet = inspectExplanationOriginalStorage(database);
+  return {facet, from: `FROM client_requests r${facet
+      ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}
+      WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`,
+  facts: facet ? 'f.facts_wire' : 'NULL',
+  present: facet ? 'f.run_definition_cid IS NOT NULL' : '0',
+  matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
+}
+export function probeJournalExplanation(database: JournalSqlConnection,
+  ensureOpen: () => undefined, ref: WireRunRef, maxRunDefinitionWireBytes: number) {
+  const sql = explanationReadSelection(database, ensureOpen, ref);
+  const row = database.prepare(`SELECT
+      ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
+      CASE WHEN typeof(r.run_definition_wire)='text' THEN length(CAST(r.run_definition_wire AS BLOB)) ELSE -1 END AS definition_bytes,
+      CASE WHEN r.run_admission_evidence_json IS NULL THEN 0 WHEN typeof(r.run_admission_evidence_json)='text'
+        THEN length(CAST(r.run_admission_evidence_json AS BLOB)) ELSE -1 END AS evidence_bytes,
+      CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
+        AND typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71 THEN 1 ELSE 0 END AS bindings_bounded,
+      CASE WHEN ${sql.present} THEN CASE WHEN typeof(${sql.facts})='text'
+        THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes
+      ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid) as ExplanationProbeRow | undefined;
+  if (row === undefined) return undefined;
+  if (row.facet_matches !== 1 || row.bindings_bounded !== 1 ||
+      ![row.definition_bytes, row.evidence_bytes, row.facts_bytes].every(value =>
+        Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
+      row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1) {
+    fail('ClientRequestJournalCorrupt');
+  }
+  return Object.freeze({definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
+    factsBytes: row.facts_bytes, storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes + 142});
+}
+export function readJournalExplanation(database: JournalSqlConnection,
+  ensureOpen: () => undefined, ref: WireRunRef, extent: ExplanationExtent,
+  maxRunDefinitionWireBytes: number) {
+  const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes];
+  if (!bounds.every(value => Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
+      extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value, 142)) {
+    fail('InvalidClientRunExplanationExtent');
+  }
+  const sql = explanationReadSelection(database, ensureOpen, ref);
+  // Recheck EACH scalar/wire inside the same native full-row SELECT. A
+  // changed/corrupt row cannot return oversized text after a small probe;
+  // NULL is an explicit rejected original, never truncated valid evidence.
+  const row = database.prepare(`SELECT ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
+      CASE WHEN typeof(r.run_definition_wire)='text' AND length(CAST(r.run_definition_wire AS BLOB)) BETWEEN 1 AND ?
+        THEN r.run_definition_wire ELSE NULL END AS definition_wire,
+      CASE WHEN r.run_admission_evidence_json IS NULL THEN NULL WHEN typeof(r.run_admission_evidence_json)='text'
+        AND length(CAST(r.run_admission_evidence_json AS BLOB)) BETWEEN 1 AND ? THEN r.run_admission_evidence_json ELSE NULL END AS evidence_wire,
+      r.run_admission_evidence_json IS NOT NULL AS evidence_present,
+      CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
+        THEN r.program_definition_cid ELSE NULL END AS program_cid,
+      CASE WHEN typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71
+        THEN r.parameter_values_cid ELSE NULL END AS parameters_cid,
+      CASE WHEN ${sql.present} AND typeof(${sql.facts})='text' AND length(CAST(${sql.facts} AS BLOB)) BETWEEN 1 AND ?
+        THEN ${sql.facts} ELSE NULL END AS facts_wire
+      ${sql.from}`).get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid) as ExplanationOriginalRow | undefined;
+  if (row === undefined) return undefined;
+  if (row.facet_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
+      row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null) {
+    fail('ClientRequestJournalCorrupt');
+  }
+  return Object.freeze({definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
+    programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
+    factsWire: row.facts_present === 1 ? row.facts_wire : undefined});
+}
+export function insertJournalExplanationOriginal(database: JournalSqlConnection,
+  ref: WireRunRef, original: Readonly<{factsWire: string}>): void {
+  // This runs inside the SAME semantic acceptance transaction, after the
+  // original request row and before its COMMIT. No backfill path calls it.
+  if (!inspectExplanationOriginalStorage(database)) database.exec(explanationOriginalTable);
+  database.prepare(`INSERT INTO client_run_explanation_originals
+      (namespace_id, authority_scope_cid, run_definition_cid, facts_wire) VALUES (?, ?, ?, ?)`)
+    .run(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, original.factsWire);
 }

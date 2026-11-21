@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d9314c8bb25d7def998da0aadc8d7d432767f7cb033367271b99fc1c3c315ba7",
+      "sha256": "f212b00cdf49b7116e0c567db65e43a2754a91b0d68f18de2808a01566485398",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29056,32 +29056,10 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection",
           "parameters": [
             "ref",
             "extent"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection#2",
-          "parameters": [
-            "sum",
-            "value"
           ],
           "async": false
         },
@@ -31832,259 +31810,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### Retained structural explanation read"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
-                "anchor": "reserve_request_explanation_read"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "openClientRequestJournal/readExplanationSelection/readExplanationSelection"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### Retained structural explanation read"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
-                "anchor": "reserve_request_explanation_read"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### Retained structural explanation read"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
-                "anchor": "reserve_request_explanation_read"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
-              },
-              {
-                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
-                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection#2"
           ],
           "exports": [],
           "attributes": {
@@ -32509,7 +32235,7 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31fed5ecebbee92a2b79a0eb975c82f69a0a9315fde5880fc6fe772b32fcbcd9",
+      "sha256": "802b609d71fe13c231f1ce9141ca1ff9329faadcd07be9b170f573982c103957",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -32523,6 +32249,7 @@
         "explanationOriginalTable",
         "hexKey",
         "initializeJournalSchema",
+        "insertJournalExplanationOriginal",
         "inspectExplanationOriginalStorage",
         "inspectJournalNativeStorage",
         "inspectJournalSnapshot",
@@ -32539,6 +32266,9 @@
         "nameMarkerName",
         "nameTables",
         "nameTriggers",
+        "probeJournalExplanation",
+        "readJournalExplanation",
+        "readJournalExplanationOriginal",
         "readJournalFormatFeatures",
         "restartMarker",
         "restartMarkerName",
@@ -32741,6 +32471,15 @@
         {
           "name": "initializeJournalSchema/initializeSchema/initializeSchema/initializeSchema#9",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "insertJournalExplanationOriginal",
+          "parameters": [
+            "database",
+            "ref",
+            "original"
+          ],
           "async": false
         },
         {
@@ -32997,6 +32736,58 @@
           "parameters": [
             "name",
             "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "probeJournalExplanation",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "ref",
+            "maxRunDefinitionWireBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "probeJournalExplanation/probeJournalExplanation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readJournalExplanation",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "ref",
+            "extent",
+            "maxRunDefinitionWireBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readJournalExplanation/readJournalExplanation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readJournalExplanation/readJournalExplanation#2",
+          "parameters": [
+            "sum",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readJournalExplanationOriginal",
+          "parameters": [
+            "database",
+            "ref",
+            "maxRunDefinitionWireBytes"
           ],
           "async": false
         },
@@ -34394,7 +34185,9 @@
             "syncDirectory",
             "validEpochAuthority",
             "validJournalRowUsage/validJournalRowUsage",
-            "validLocalExecutionOwnerReceipt"
+            "validLocalExecutionOwnerReceipt",
+            "readJournalExplanationOriginal",
+            "insertJournalExplanationOriginal"
           ],
           "exports": [
             "cancellationMarker",
@@ -34429,7 +34222,9 @@
             "usageMarkerName",
             "validEpochAuthority",
             "validJournalRowUsage",
-            "validLocalExecutionOwnerReceipt"
+            "validLocalExecutionOwnerReceipt",
+            "readJournalExplanationOriginal",
+            "insertJournalExplanationOriginal"
           ],
           "attributes": {
             "responsibility": [
@@ -36618,12 +36413,437 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "probeJournalExplanation"
+          ],
+          "exports": [
+            "probeJournalExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "probeJournalExplanation/probeJournalExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readJournalExplanation"
+          ],
+          "exports": [
+            "readJournalExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readJournalExplanation/readJournalExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readJournalExplanation/readJournalExplanation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-format-inspection.mjs",
         "../store-local/publication-store.mjs",
+        "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
