@@ -1895,7 +1895,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:343e031b2aa4b41a3896aaefd913967428a28375ec35c1ddb4da299fa4240093 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:1ee79980e0ce17acbb3e94013f526f0e02174222bc2fa2de283766154e119c10 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:e34e3bbe1499f945cb80ef813f6f647524d602e1e1152c6d884bd7a38e4f7cab -->
 
 <a id="parameter-value-projection"></a>
@@ -2974,7 +2974,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:983a5da29681f37068b6f9cdbf361e0effee5254cf227551b3033602783f055e
+../../../spec/contracts/actql-check-environment.json# sha256:d7e18e929a2e33500c1e1954badb073fcb07bf2f6f160cd3eabcb120049183c0
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:27cb211cc9578f9b5fac27dc3d75c5236b13eebe501224b14f21eafbccda2d25
@@ -3015,11 +3015,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:ec3cdf0aa52168cf6425115daad2debcf01cca7460e1c66f838d5b5a1b224753
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:1aa075c2e2b33b737f9042e034ac45b9edf6e891c38c17ca13a9967bb282a0d0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:743f6ce6f4c373784c88a484ec0f17920ab5d58c33881eeb41872669792bee7e
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:8c1160ad40beeef2063b1035bbcffd4f2c083a2af99eb5be4da6ac9156a2aa84
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:ce7df95dc9d069472f6dd61273acb6e5d09aba605347cddda5c4a23c6e5e52f6

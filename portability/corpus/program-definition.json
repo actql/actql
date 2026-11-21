@@ -6,49 +6,49 @@
       "import_mode": 0,
       "accepted": false,
       "id": "p",
-      "expected_cid": "sha256:c2b1fc14b2bdbbb5adee3c8589f4b5fbb3def2148f6733a105e374b29975e59d"
+      "expected_cid": "sha256:793e7987ef46089eca0374863a249d632bda907a273ce9acb728fb7dcc7223e9"
     },
     {
       "import_mode": 0,
       "accepted": false,
       "id": "another-program",
-      "expected_cid": "sha256:37f355806dedeedbe484dfe7ad960d9507439b46a1d2b762b01609253114be21"
+      "expected_cid": "sha256:1352948188371ccd211cd86b81fcf042daad0310016ca3474ccdb2db8af6456d"
     },
     {
       "import_mode": 0,
       "accepted": true,
       "id": "p",
-      "expected_cid": "sha256:d48b61c478ec58193e6c6d627d9be7f821eb5974a8d90078495ae88a55b5a91c"
+      "expected_cid": "sha256:3562670e32e9e879f7d443fc0d5c11c74622516292bf2ac8f07f2b54a4cb4a1f"
     },
     {
       "import_mode": 0,
       "accepted": true,
       "id": "another-program",
-      "expected_cid": "sha256:a64247cb8d2fac7ef3bdabaa889cb2c7f01d61bfdfd5b06a388cd9d707413b36"
+      "expected_cid": "sha256:4c4732040fac3aeb423a236b531853b9a88530a539d4d82ea86ba8e3d9cab384"
     },
     {
       "import_mode": 1,
       "accepted": false,
       "id": "p",
-      "expected_cid": "sha256:6404d7d20f576b8ac5fb1dc4ccfb19fe3891bfc69d7f147269e2b64aa39a7cce"
+      "expected_cid": "sha256:ff522dd5206c093bb48fb17bc63499f549fecfe2018ec21a93d234789784acec"
     },
     {
       "import_mode": 1,
       "accepted": false,
       "id": "another-program",
-      "expected_cid": "sha256:fb58261fe972ac4aa5de70b6aab91623f246e206375856d15f6f1d214f8b318f"
+      "expected_cid": "sha256:bc59bfae45ef81f959209633cb4542e9dd6bbfc4996a98ce42d2409e34fbd083"
     },
     {
       "import_mode": 2,
       "accepted": false,
       "id": "p",
-      "expected_cid": "sha256:01d6938809a1df9e3638067d12a9c77d97e6b071ffe5b68d8eb885196ec3bfc9"
+      "expected_cid": "sha256:b0ab30c4d9a266eb5d69c71a7067066bda2a219fb9733f96bacde2dbc3bccdee"
     },
     {
       "import_mode": 2,
       "accepted": false,
       "id": "another-program",
-      "expected_cid": "sha256:a57cc749eea3d4e5487530c1eae7a7dbe6f1bb734dadeb3216adece63597c38c"
+      "expected_cid": "sha256:79b220fa5779e9f24628c670467d9e3573004b84b4b73bff9aba417f22c94399"
     }
   ]
 }
