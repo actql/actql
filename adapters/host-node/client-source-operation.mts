@@ -81,7 +81,9 @@ export const sourceOperationTable = `CREATE TABLE client_source_operation_origin
 // Absence is compatible with old journals, not proof of an unattempted Source.
 // The existing physical-start fence still prevents issuing a fresh live scope
 // for a restored/Unknown Run, whether this optional DATA table exists or not.
-export function inspectClientSourceOperationStorage(database: Pick<DatabaseSync, 'prepare'>) {
+export function inspectClientSourceOperationStorage(database: Readonly<{
+  prepare(sql: string): Readonly<{get(maxSqlLength: number): ReturnType<ReturnType<DatabaseSync['prepare']>['get']>}>;
+}>) {
   const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'")
     .get(sourceOperationTable.length + 1);
   if (row !== undefined && row.sql !== sourceOperationTable) {

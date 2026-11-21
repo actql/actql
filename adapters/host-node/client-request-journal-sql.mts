@@ -16,7 +16,7 @@ type PreparedStatement = Readonly<{
   run(...values: SqlValue[]): ReturnType<StatementSync['run']>;
   all(...values: SqlValue[]): Row[];
 }>;
-type JournalSqlConnection = Readonly<{
+export type JournalSqlConnection = Readonly<{
   prepare(sql: string): PreparedStatement;
   exec(sql: string): void;
 }>;

@@ -1403,3 +1403,5 @@ target/
 /adapters/host-node/client-request-journal-records.d.mts
 /adapters/host-node/local-values-capacity.mjs
 /adapters/host-node/local-values-capacity.d.mts
+/adapters/host-node/client-request-journal-format.mjs
+/adapters/host-node/client-request-journal-format.d.mts
