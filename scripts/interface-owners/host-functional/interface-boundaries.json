@@ -57050,8 +57050,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -57072,8 +57072,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -57094,7 +57094,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "import {canonicalJson, contentCid} from './local-account-config.mjs';"
               },
               {
@@ -57116,7 +57116,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "// shared declarations are retained once only when their bodies are identical."
               },
               {
@@ -57138,8 +57138,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -57156,8 +57156,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "const refuse = cause => {"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "const refuse: (cause: unknown) => never = cause => {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57174,8 +57174,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57192,7 +57192,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "const maxEnvironmentBytes = 16 * 1024 * 1024;"
               },
               {
@@ -57214,7 +57214,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "// Compose independently published installation facts without turning either"
               },
               {
@@ -57270,8 +57270,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -57284,8 +57284,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -57298,7 +57298,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "import {canonicalJson, contentCid} from './local-account-config.mjs';"
               },
               {
@@ -57312,7 +57312,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "// shared declarations are retained once only when their bodies are identical."
               },
               {
@@ -57326,8 +57326,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -57340,8 +57340,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "const refuse = cause => {"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "const refuse: (cause: unknown) => never = cause => {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57354,8 +57354,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
-                "anchor": "export function composeInstalledCheckEnvironment(moon, baseWire,"
+                "path": "adapters/host-node/installed-check-environment.mts",
+                "anchor": "export function composeInstalledCheckEnvironment<Moon extends Checker>(moon: Moon, baseWire: string,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57368,7 +57368,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "const maxEnvironmentBytes = 16 * 1024 * 1024;"
               },
               {
@@ -57382,7 +57382,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "// Compose independently published installation facts without turning either"
               },
               {
@@ -57422,7 +57422,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-check-environment.mjs",
+                "path": "adapters/host-node/installed-check-environment.mts",
                 "anchor": "export function installedCheckEnvironmentInputs("
               }
             ],
