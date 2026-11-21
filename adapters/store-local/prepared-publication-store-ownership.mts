@@ -173,3 +173,34 @@ export function closePreparedLocalPublicationStoreOwnership(original: unknown) {
   }).finally(() => { entry.cleanupFlight = undefined; });
   return entry.cleanupFlight;
 }
+
+export function beginPreparedStoreAdoption(preparedOriginal: unknown) {
+  const prepared = preparedOriginal === undefined ? undefined : originalPreparedStoreOwnership(preparedOriginal);
+  if (prepared !== undefined) {
+    if (prepared.phase !== 'prepared' || prepared.closing) fail('PublicationStoreOwnershipLost');
+    prepared.phase = 'adopting';
+  }
+  return prepared;
+}
+
+export function retainPreparedStoreAdoptionFailure(prepared: PreparedOwnership | undefined, cause: unknown) {
+  if (prepared !== undefined && prepared.ownership !== undefined) {
+    // Retain any original failed child before observing its cleanup ports.
+    // Parent retirement never erases an unreadable/pending child carrier.
+    try {
+      const property = cause !== null && typeof cause === 'object'
+        ? Object.getOwnPropertyDescriptor(cause, 'cleanupHandle') : undefined;
+      if (property !== undefined) {
+        if (!Object.hasOwn(property, 'value')) throw new TypeError('UnobservedStoreCleanup');
+        prepared.child = property.value as unknown;
+        prepared.childStatus = (prepared.child as {status?: Observer}).status;
+        prepared.childRetry = (prepared.child as {retry?: Observer}).retry;
+        if (typeof prepared.childStatus !== 'function' || typeof prepared.childRetry !== 'function') {
+          throw new TypeError('UnobservedStoreCleanup');
+        }
+      }
+    } catch { prepared.unknownChild = true; }
+    if (prepared.phase === 'adopting') prepared.phase = 'prepared';
+    prepared.closing = true;
+  }
+}

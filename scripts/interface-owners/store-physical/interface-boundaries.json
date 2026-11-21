@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2e0cf718b39390a94a8972aa749d7c5d5c5fe1f35537864ce1de04c03f540f6e",
+      "sha256": "ace619241e2e9750af87b84bd7745ec8501a5cf519775e6d752fb399959fbb2c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6218,13 +6218,6 @@
           "parameters": [
             "total",
             "segment"
-          ],
-          "async": false
-        },
-        {
-          "name": "indexKey",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -9501,7 +9494,6 @@
           "operations": [
             "<module>",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
-            "indexKey",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
@@ -11722,7 +11714,7 @@
                 "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "prepared.phase = 'adopting';"
               },
               {
@@ -11774,7 +11766,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "} catch { prepared.unknownChild = true; }"
               },
               {
@@ -13610,6 +13602,7 @@
         "./prepared-publication-store-ownership.mjs",
         "./publication-commit-owner.mjs",
         "./publication-store-bootstrap.mjs",
+        "./publication-store-inputs.mjs",
         "./publication-store-io.mjs",
         "./publication-store-ownership.mjs",
         "./result-deletion-owner.mjs",
@@ -13624,18 +13617,138 @@
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
+      "module": "adapters/store-local/publication-store-inputs.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "909c8b468ca139032359db42827a5a8a166f2fea7c7fb2da9a82b51bcb8a6b23",
+      "exports": [
+        "indexKey",
+        "validateConfiguration",
+        "validateContractControl"
+      ],
+      "operations": [
+        {
+          "name": "indexKey",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateConfiguration",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateContractControl",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "indexKey",
+            "validateConfiguration",
+            "validateContractControl"
+          ],
+          "exports": [
+            "indexKey",
+            "validateConfiguration",
+            "validateContractControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-inputs.mts",
+                "anchor": "export function validateConfiguration(options: unknown)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-inputs.mts",
+                "anchor": "hash.update('actql-local-public-index-key/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-inputs.mts",
+                "anchor": "return value;"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Input validation and index-key encoding are synchronous steps of the existing Store operations."
+            },
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-inputs.mts",
+                "anchor": "fail('InvalidPublicationStoreConfiguration');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The existing Store caller owns operation cancellation; these synchronous checks retain no cleanup."
+            },
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-inputs.mts",
+                "anchor": "!quantity(options.maxObjectBytes) || options.maxObjectBytes === 0"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "same original fresh owner is adopted once and only Store close releases it"
+              },
+              {
+                "path": "adapters/store-local/semantic-publication-commit.test.mjs",
+                "anchor": "semantic metadata commits its payload and final names without intermediate custody persistence"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing physical Store configuration, control intake and index-key encoding only."
+    },
+    {
       "module": "adapters/store-local/prepared-publication-store-ownership.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f4fd67671445a7de3a102531c91c11c58ce3547d9c4eb5432580eb10d1f11824",
+      "sha256": "ec1ee52316d8f5ddaafee674a7391c380833a17bcf238026999f1396bdb6f5c9",
       "exports": [
         "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
         "assertOriginalPreparedLocalPublicationStoreOwnership",
+        "beginPreparedStoreAdoption",
         "captureOriginalLocalExecutionOwner",
         "closePreparedLocalPublicationStoreOwnership",
         "originalLocalExecutionOwnerStopped",
         "originalPreparedStoreOwnership",
         "prepareLocalPublicationStoreOwnership",
-        "releasePreparedOwnership"
+        "releasePreparedOwnership",
+        "retainPreparedStoreAdoptionFailure"
       ],
       "operations": [
         {
@@ -13651,6 +13764,13 @@
           "parameters": [
             "original",
             "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginPreparedStoreAdoption",
+          "parameters": [
+            "preparedOriginal"
           ],
           "async": false
         },
@@ -13731,6 +13851,14 @@
           "name": "releasePreparedOwnership/releasePreparedOwnership#2",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainPreparedStoreAdoptionFailure",
+          "parameters": [
+            "prepared",
+            "cause"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -13749,14 +13877,18 @@
             "releasePreparedOwnership/releasePreparedOwnership",
             "releasePreparedOwnership/releasePreparedOwnership#2",
             "originalPreparedStoreOwnership",
-            "releasePreparedOwnership"
+            "releasePreparedOwnership",
+            "beginPreparedStoreAdoption",
+            "retainPreparedStoreAdoptionFailure"
           ],
           "exports": [
             "assertOriginalPreparedLocalPublicationStoreOwnership",
             "closePreparedLocalPublicationStoreOwnership",
             "prepareLocalPublicationStoreOwnership",
             "originalPreparedStoreOwnership",
-            "releasePreparedOwnership"
+            "releasePreparedOwnership",
+            "beginPreparedStoreAdoption",
+            "retainPreparedStoreAdoptionFailure"
           ],
           "attributes": {
             "responsibility": [
@@ -13827,7 +13959,7 @@
                 "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "prepared.phase = 'adopting';"
               },
               {
@@ -13879,7 +14011,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "} catch { prepared.unknownChild = true; }"
               },
               {

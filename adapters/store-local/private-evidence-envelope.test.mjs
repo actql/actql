@@ -29,7 +29,7 @@ const start = productSource.indexOf('  const preparePrivateEvidenceInput =');
 const end = productSource.indexOf('  const preparePrivateEvidenceBytes =', start);
 assert.ok(start >= 0 && end > start);
 const encoderStart = productSource.indexOf('function encodePrivateEvidenceEnvelope(');
-const encoderEnd = productSource.indexOf('\nfunction validateConfiguration', encoderStart);
+const encoderEnd = productSource.indexOf('\nexport async function openLocalPublicationStore', encoderStart);
 assert.ok(encoderStart >= 0 && encoderEnd > encoderStart);
 const currentSource = productSource.slice(encoderStart, encoderEnd) + '\n' +
   productSource.slice(start, end);

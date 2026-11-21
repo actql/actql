@@ -44,7 +44,9 @@ import {cidPattern, exactKeys, fail, localDurability, PublicationStoreError, qua
   retainStoreOpeningFailure, syncDirectoryPath, writeExclusive} from './publication-store-io.mjs';
 import {removeOpeningTree, storeBootstrapAcquisition} from './publication-store-bootstrap.mjs';
 import {acquireStoreOwnership} from './publication-store-ownership.mjs';
-import {originalPreparedStoreOwnership, releasePreparedOwnership} from './prepared-publication-store-ownership.mjs';
+import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStoreAdoptionFailure}
+  from './prepared-publication-store-ownership.mjs';
+import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
   assertOriginalPreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner,
@@ -242,71 +244,6 @@ function retainPrivateRawCleanup(descriptor, content) {
   return cleanup;
 }
 
-function validateConfiguration(options) {
-  const fields = [
-    'directory',
-    'storeAuthorityCid',
-    'capacityBytes',
-    'maxObjectBytes',
-    'maxObjects',
-    'maxContractNodes',
-    'maxContractDepth',
-  ];
-  if ((!exactKeys(options, fields) &&
-      !exactKeys(options, [...fields, 'privateEvidenceKey'])) ||
-      options.privateEvidenceKey !== undefined &&
-        (!(options.privateEvidenceKey instanceof Uint8Array) ||
-          options.privateEvidenceKey.byteLength !== 32) ||
-      typeof options.directory !== 'string' ||
-      options.directory.length === 0 ||
-      !cidPattern.test(options.storeAuthorityCid) ||
-      !quantity(options.capacityBytes) ||
-      !quantity(options.maxObjectBytes) || options.maxObjectBytes === 0 ||
-      !quantity(options.maxObjects) || options.maxObjects === 0 ||
-      !quantity(options.maxContractNodes) || options.maxContractNodes === 0 ||
-      !quantity(options.maxContractDepth) || options.maxContractDepth === 0) {
-    fail('InvalidPublicationStoreConfiguration');
-  }
-  return Object.freeze({...options, directory: resolve(options.directory),
-    privateEvidenceKey: options.privateEvidenceKey === undefined
-      ? undefined : Buffer.from(options.privateEvidenceKey)});
-}
-
-function validateContractControl(value) {
-  if (value === null || typeof value !== 'object' ||
-      typeof value.admit !== 'function' ||
-      typeof value.recordTransition !== 'function' ||
-      typeof value.deliveryTransition !== 'function' ||
-      typeof value.deliverySuccessValid !== 'function' ||
-      typeof value.trustedClockNotBefore !== 'function' ||
-      typeof value.recordAllowsCommit !== 'function' ||
-      typeof value.effectFreeCommitValid !== 'function') {
-    fail('InvalidPublicationContractControl');
-  }
-  return value;
-}
-
-function indexKey(value) {
-  if (!exactKeys(value, [
-    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof value.namespaceId !== 'string' || value.namespaceId.length === 0 ||
-      !cidPattern.test(value.authorityScopeCid) ||
-      !cidPattern.test(value.runDefinitionCid)) {
-    fail('InvalidPublicationIndexKey');
-  }
-  const hash = createHash('sha256');
-  hash.update('actql-local-public-index-key/0.1\0', 'utf8');
-  for (const text of [value.namespaceId, value.authorityScopeCid,
-    value.runDefinitionCid]) {
-    const bytes = Buffer.from(text, 'utf8');
-    const length = Buffer.alloc(8);
-    length.writeBigUInt64BE(BigInt(bytes.byteLength));
-    hash.update(length);
-    hash.update(bytes);
-  }
-  return hash.digest('hex');
-}
-
 export async function openLocalPublicationStore(
   supplied,
   suppliedControl,
@@ -319,34 +256,12 @@ export async function openLocalPublicationStore(
     if (typeof operationalCurrent !== 'function') fail('InvalidPublicationStoreCurrent');
     operationalCurrent();
   }
-  const prepared = preparedOriginal === undefined ? undefined : originalPreparedStoreOwnership(preparedOriginal);
-  if (prepared !== undefined) {
-    if (prepared.phase !== 'prepared' || prepared.closing) fail('PublicationStoreOwnershipLost');
-    prepared.phase = 'adopting';
-  }
+  const prepared = beginPreparedStoreAdoption(preparedOriginal);
   try {
     return await openOriginalLocalPublicationStore(supplied, suppliedControl, durability,
       suppliedBootstrap, prepared, operationalCurrent);
   } catch (cause) {
-    if (prepared !== undefined && prepared.ownership !== undefined) {
-      // Retain any original failed child before observing its cleanup ports.
-      // Parent retirement never erases an unreadable/pending child carrier.
-      try {
-        const property = cause !== null && typeof cause === 'object'
-          ? Object.getOwnPropertyDescriptor(cause, 'cleanupHandle') : undefined;
-        if (property !== undefined) {
-          if (!Object.hasOwn(property, 'value')) throw new TypeError('UnobservedStoreCleanup');
-          prepared.child = property.value;
-          prepared.childStatus = prepared.child.status;
-          prepared.childRetry = prepared.child.retry;
-          if (typeof prepared.childStatus !== 'function' || typeof prepared.childRetry !== 'function') {
-            throw new TypeError('UnobservedStoreCleanup');
-          }
-        }
-      } catch { prepared.unknownChild = true; }
-      if (prepared.phase === 'adopting') prepared.phase = 'prepared';
-      prepared.closing = true;
-    }
+    retainPreparedStoreAdoptionFailure(prepared, cause);
     throw cause;
   }
 }
