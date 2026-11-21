@@ -57635,8 +57635,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -57649,8 +57649,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -57663,8 +57663,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "const cid = (value: BinaryLike) => `sha256:${createHash('sha256').update(value).digest('hex')}`;"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57677,7 +57677,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// This is not a capability grant, execution owner or reconciliation journal."
               },
               {
@@ -57691,8 +57691,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -57705,8 +57705,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57719,7 +57719,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "import {closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync} from 'node:fs';"
               },
               {
@@ -57733,7 +57733,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// Bounded content observation of the selected installation's declared files."
               },
               {
@@ -57747,7 +57747,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// Bounded content observation of the selected installation's declared files."
               },
               {
@@ -57761,7 +57761,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.test.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.test.mts",
                 "anchor": "test('implementation binding has an independent content preimage and survives identical reconstruction', async t => {"
               },
               {
@@ -57779,8 +57779,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -57793,8 +57793,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -57807,8 +57807,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "const cid = (value: BinaryLike) => `sha256:${createHash('sha256').update(value).digest('hex')}`;"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57821,7 +57821,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// This is not a capability grant, execution owner or reconciliation journal."
               },
               {
@@ -57835,8 +57835,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "export function captureInstalledConnectorImplementation(entry) {"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -57849,8 +57849,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+                "path": "adapters/host-node/installed-connector-implementation.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -57863,7 +57863,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "import {closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync} from 'node:fs';"
               },
               {
@@ -57877,7 +57877,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// Bounded content observation of the selected installation's declared files."
               },
               {
@@ -57891,7 +57891,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.mts",
                 "anchor": "// Bounded content observation of the selected installation's declared files."
               },
               {
@@ -57905,7 +57905,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-connector-implementation.test.mjs",
+                "path": "adapters/host-node/installed-connector-implementation.test.mts",
                 "anchor": "test('implementation binding has an independent content preimage and survives identical reconstruction', async t => {"
               },
               {
@@ -128094,7 +128094,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ],
@@ -128194,11 +128194,11 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command composition retains exact contract bodies and source catalog while quoting before projection'"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               },
               {
@@ -134109,17 +134109,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-authored-command.mjs",
+                "path": "adapters/host-node/installed-authored-command.mts",
                 "anchor": "export function authoredCommandProjection"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-authored-command.mjs",
+                "path": "adapters/host-node/installed-authored-command.mts",
                 "anchor": "cid(preimage) !== contract_cid"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ],
@@ -134139,13 +134139,13 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.mjs",
-                "anchor": "capacity(wire)"
+                "path": "adapters/host-node/installed-authored-command.mts",
+                "anchor": "capacity(wire: string)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ],
@@ -134154,7 +134154,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/installed-authored-command.mjs",
+                "path": "adapters/host-node/installed-authored-command.mts",
                 "anchor": "geometry.retained.nodes, geometry.retained.text, geometry.retained.wire"
               },
               {
@@ -134170,11 +134170,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command composition retains exact contract bodies and source catalog while quoting before projection'"
               },
               {
-                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "path": "adapters/host-node/installed-authored-command.test.mts",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ]

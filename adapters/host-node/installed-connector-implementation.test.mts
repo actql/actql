@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, writeFile, rm, symlink, rename} from 'node:fs/promises';
@@ -8,8 +9,8 @@ import {pathToFileURL} from 'node:url';
 import {captureInstalledConnectorImplementation} from './installed-connector-implementation.mjs';
 import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
 
-const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
-async function fixture(t) {
+const hash = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-implementation-binding-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const path = 'adapters/connectors/local/iceberg/worker.py';

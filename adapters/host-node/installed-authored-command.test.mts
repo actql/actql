@@ -3,8 +3,9 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {authoredCommandProjection} from './installed-authored-command.mjs';
 import {canonicalJson} from './local-account-config.mjs';
-const cid = value => 'sha256:' + createHash('sha256').update(canonicalJson(value)).digest('hex');
-const contract = body => ({...body, cid: cid(body)});
+type Quote = Parameters<Parameters<typeof authoredCommandProjection>[0]['clientProgramInstalledSourceConstructionCapacity']>;
+const cid = (value: unknown) => 'sha256:' + createHash('sha256').update(canonicalJson(value)).digest('hex');
+const contract = <Material extends object>(body: Material) => ({...body, cid: cid(body)});
 function fixture() {
   const role = contract({schema: 'actql.contract/0.1', id: 'fixture.input', version: 'external',
     kind: 'command_input', body: {type: 'object', fields: {}, additional_properties: false}});
@@ -17,8 +18,8 @@ function fixture() {
     contracts: [], manifest_entry: '{}', view_bodies: [], evidence_schemas: [], evidence_capabilities: []});
   const commands = Object.freeze([Object.freeze({resource: 'files', body: canonicalJson(command)})]);
   const specification = Object.freeze({operation: 'files.write', commands, contracts: Object.freeze([canonicalJson(role)])});
-  const quantity = Object.freeze({original: 'controlled construction quantity'}), quotes = [];
-  const moon = {clientProgramInstalledSourceConstructionCapacity(...values) {quotes.push(values); return {$tag: 1, _0: quantity};}};
+  const quantity = Object.freeze({original: 'controlled construction quantity'}), quotes: Quote[] = [];
+  const moon = {clientProgramInstalledSourceConstructionCapacity(...values: Quote) {quotes.push(values); return {$tag: 1, _0: quantity};}};
   return {wire, specification, command, role, quantity, quotes, moon};
 }
 

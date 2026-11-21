@@ -1,34 +1,39 @@
 // Bounded content observation of the selected installation's declared files.
 // This is not a capability grant, execution owner or reconciliation journal.
 import {createHash} from 'node:crypto';
+import type {BinaryLike} from 'node:crypto';
 import {closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
-const fail = code => { throw Object.assign(new TypeError(code), {code}); };
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+type ImplementationFile = Readonly<{path?: unknown; href?: unknown}>;
+type ImplementationInput = Readonly<{
+  name?: unknown; registration?: unknown; revision?: unknown; implementationFiles?: unknown;
+}>;
+const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };
+const cid = (value: BinaryLike) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const maxBytes = 16 * 1024 * 1024;
 
-function observe(entry) {
-  if (!/^[a-z][a-z0-9_]*$/u.test(entry?.name ?? '') ||
+function observe(entry: ImplementationInput) {
+  if (!/^[a-z][a-z0-9_]*$/u.test((entry?.name ?? '') as string) ||
       entry.registration !== entry.name || typeof entry.revision !== 'string' ||
       !Array.isArray(entry.implementationFiles) || entry.implementationFiles.length < 1 ||
       entry.implementationFiles.length > 128) fail('InvalidConnectorImplementationInventory');
   let remaining = maxBytes;
   const seen = new Set();
-  const files = entry.implementationFiles.map(file => {
+  const files = (entry.implementationFiles as readonly ImplementationFile[]).map(file => {
     const path = file?.path;
     if (typeof path !== 'string' || path.includes('\\') ||
         path.split('/').some(part => !part || part === '.' || part === '..') || seen.has(path) ||
-        !(path.startsWith(`adapters/connectors/${entry.name}/`) && /\.(mjs|py|in|lock|md)$/u.test(path) ||
-          path.startsWith(`src/connectors/${entry.name}/`) && path.endsWith('.json') ||
-          new RegExp(`^spec/contracts/actql-${entry.name}-[a-z0-9-]+\\.json$`, 'u').test(path))) {
+        !(path.startsWith(`adapters/connectors/${entry.name as string}/`) && /\.(mjs|py|in|lock|md)$/u.test(path) ||
+          path.startsWith(`src/connectors/${entry.name as string}/`) && path.endsWith('.json') ||
+          new RegExp(`^spec/contracts/actql-${entry.name as string}-[a-z0-9-]+\\.json$`, 'u').test(path))) {
       fail('InvalidConnectorImplementationInventory');
     }
     seen.add(path);
     let url;
-    try { url = new URL(file.href); } catch { fail('InvalidConnectorImplementationInventory'); }
+    try { url = new URL(file.href as string | URL); } catch { fail('InvalidConnectorImplementationInventory'); }
     if (url.protocol !== 'file:' || url.search || url.hash) fail('InvalidConnectorImplementationInventory');
     const actual = fileURLToPath(url);
     if (!actual.endsWith(`/${path}`)) fail('InvalidConnectorImplementationInventory');
@@ -43,7 +48,7 @@ function observe(entry) {
     if (realpathSync(dirname(actual)) !== join(realpathSync(root), dirname(path))) {
       fail('InvalidConnectorImplementationFile');
     }
-    let fd;
+    let fd: number | undefined;
     try {
       // A replaced FIFO must not block before fstat can reject it. This flag
       // leaves regular-file reads unchanged on the supported Local platforms.
@@ -71,15 +76,15 @@ function observe(entry) {
     registration: entry.registration, revision: entry.revision, files}, {dataKeys: true}));
 }
 
-export function captureInstalledConnectorImplementation(entry) {
+export function captureInstalledConnectorImplementation(entry: ImplementationInput | null | undefined) {
   // Snapshot metadata as data. A caller cannot mutate the inventory after its
   // CID is included in an approved installation binding.
   const selected = Object.freeze({name: entry?.name, registration: entry?.registration,
     revision: entry?.revision, implementationFiles: Array.isArray(entry?.implementationFiles)
-      ? Object.freeze(entry.implementationFiles.map(file => Object.freeze({...file}))) : undefined});
+      ? Object.freeze((entry.implementationFiles as readonly ImplementationFile[]).map(file => Object.freeze({...file}))) : undefined});
   const identity = observe(selected);
   return Object.freeze({identity,
-    assertCurrent() {
+    assertCurrent(): undefined {
       if (observe(selected) !== identity) fail('InstalledConnectorImplementationChanged');
     }});
 }
