@@ -51,6 +51,7 @@ assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
+const maxCalls = usageMode === 'reported' ? 1n : 2n;
 const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
 const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = {
@@ -144,7 +145,7 @@ const authorization = {
 const providerOptions = {modelId: 'fixture-chat',
   generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
   transportTimeouts,
-  budget: {maxCalls: 2n, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n,
+  budget: {maxCalls, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n,
     maxDurationMs: BigInt(phaseTimeoutMs)},
   observeEgress: () => {
     egressChecks++;
@@ -330,6 +331,7 @@ if (failed) throw primary;
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
+  ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
   ...(phase === 'cold' ? {egressChecks,
     ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
     : {tasks: taskCount, requests: taskCount, ...(missingKey ? {credentialRefused: true} : {}),
