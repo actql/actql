@@ -24895,7 +24895,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ac6bfabc78f377a2b113f6dca562e48f5de95c2fcd2edc52596f35a348073b35",
+      "sha256": "edd587f33aa9d0a82da868ff3f34fc27c414a67bfe36610c9eb7dfc1302a6776",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -24941,8 +24941,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24959,8 +24959,8 @@
                 "anchor": "## Negotiated Interactive Run Control contracts"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24977,8 +24977,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24987,7 +24987,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "// Static planning reuses the installed preparation and compiler owners. This"
               },
               {
@@ -25013,8 +25013,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25023,7 +25023,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "throw new TypeError('InvalidClientStaticPlanInstallation');"
               },
               {
@@ -25041,7 +25041,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "request.signal?.throwIfAborted();"
               },
               {
@@ -25059,7 +25059,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "if (typeof wire !== 'string' || Buffer.byteLength(wire, 'utf8') > request.maxWireBytes) {"
               },
               {
@@ -25077,7 +25077,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "// Static planning reuses the installed preparation and compiler owners. This"
               },
               {
@@ -25125,8 +25125,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               }
             ],
             "inputsOutputs": [
@@ -25139,8 +25139,8 @@
                 "anchor": "## Negotiated Interactive Run Control contracts"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               }
             ],
             "identity": [
@@ -25153,13 +25153,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "// Static planning reuses the installed preparation and compiler owners. This"
               },
               {
@@ -25181,13 +25181,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+                "path": "adapters/host-node/client-interactive-plan.mts",
+                "anchor": "export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>("
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "throw new TypeError('InvalidClientStaticPlanInstallation');"
               },
               {
@@ -25201,7 +25201,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "request.signal?.throwIfAborted();"
               },
               {
@@ -25215,7 +25215,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "if (typeof wire !== 'string' || Buffer.byteLength(wire, 'utf8') > request.maxWireBytes) {"
               },
               {
@@ -25229,7 +25229,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "// Static planning reuses the installed preparation and compiler owners. This"
               },
               {

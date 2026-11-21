@@ -1,8 +1,32 @@
 // Static planning reuses the installed preparation and compiler owners. This
 // service has no request journal, Source acquisition or execution dependency.
 import {validWirePlanViewShape, validWireEffectfulStaticPlanViewShape} from '../../packages/client-wire/index.mjs';
+import type {WirePlanView, WireEffectfulStaticPlanView} from '../../packages/client-wire/interactive-control.generated.js';
 
-export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {
+type StaticPlanRequest = Readonly<{
+  maxWireBytes: number;
+  maxNodes: number;
+  maxDepth: number;
+  signal?: AbortSignal;
+}>;
+type StaticPlanKind = 'effects' | 'tasks' | 'values';
+type StaticPlanView = WirePlanView | WireEffectfulStaticPlanView;
+type StaticPlanInstallation<Request, Prepared> = Readonly<{
+  moon: Readonly<{clientProgramRequiresTaskCompilation(prepared: Awaited<Prepared>): boolean}>;
+  control: Readonly<{
+    readCheckedClientStaticPlan(prepared: Awaited<Prepared>, kind: StaticPlanKind, request: Request): unknown;
+  }>;
+  prepare: ((request: Request) => Prepared) & Readonly<{
+    assertOwned(prepared: Awaited<Prepared>): undefined;
+    kindOf(prepared: Awaited<Prepared>): 'effectful' | 'effect_free';
+  }>;
+  authorize: (request: Request) => boolean | PromiseLike<boolean>;
+  readOriginal?: (request: Request) => unknown;
+}>;
+
+export function installClientStaticPlan<Request extends StaticPlanRequest, Prepared>(
+  {moon, control, prepare, authorize, readOriginal}: StaticPlanInstallation<Request, Prepared>,
+): (request: Request) => Promise<StaticPlanView> {
   if (typeof prepare !== 'function' || typeof prepare.assertOwned !== 'function' ||
       typeof prepare.kindOf !== 'function' || typeof authorize !== 'function' ||
       typeof control?.readCheckedClientStaticPlan !== 'function' ||
@@ -12,10 +36,10 @@ export function installClientStaticPlan({moon, control, prepare, authorize, read
   }
   const denied = () => Object.assign(new Error('ClientConnectionDenied'),
     {code: 'ClientConnectionDenied'});
-  return async request => {
+  return async (request: Request) => {
     if (await authorize(request) !== true) throw denied();
     request.signal?.throwIfAborted();
-    let kind, wire;
+    let kind: StaticPlanKind | undefined, wire: unknown;
     if (readOriginal !== undefined) wire = await readOriginal(request);
     else {
       // Explicit compiler ports used by component callers. The installed
@@ -29,7 +53,7 @@ export function installClientStaticPlan({moon, control, prepare, authorize, read
     if (typeof wire !== 'string' || Buffer.byteLength(wire, 'utf8') > request.maxWireBytes) {
       throw new TypeError('InvalidClientHostPlanView');
     }
-    const view = JSON.parse(wire);
+    const view: unknown = JSON.parse(wire);
     if (!(kind === 'effects' ? validWireEffectfulStaticPlanViewShape(view)
       : validWirePlanViewShape(view) || kind === undefined && validWireEffectfulStaticPlanViewShape(view))) {
       throw new TypeError('InvalidClientHostPlanView');
@@ -38,6 +62,6 @@ export function installClientStaticPlan({moon, control, prepare, authorize, read
     // access is checked again after asynchronous preparation.
     request.signal?.throwIfAborted();
     if (await authorize(request) !== true) throw denied();
-    return view;
+    return view as StaticPlanView;
   };
 }
