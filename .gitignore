@@ -1153,3 +1153,7 @@ target/
 /adapters/store-local/managed-manifest.d.mts
 /adapters/store-local/managed-physical-representation.mjs
 /adapters/store-local/managed-physical-representation.d.mts
+/adapters/store-local/managed-manifest.test.mjs
+/adapters/store-local/managed-manifest.test.d.mts
+/adapters/local-node/retained-input.test.mjs
+/adapters/local-node/retained-input.test.d.mts

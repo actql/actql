@@ -724,7 +724,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/retained-input.test.mjs",
+                "path": "adapters/local-node/retained-input.test.mts",
                 "anchor": "test("
               },
               {
@@ -1990,7 +1990,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/managed-manifest.test.mjs",
+                "path": "adapters/store-local/managed-manifest.test.mts",
                 "anchor": "test("
               },
               {

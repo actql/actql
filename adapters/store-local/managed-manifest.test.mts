@@ -1,7 +1,6 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
-import * as manifestControl from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createHash} from 'node:crypto';
 import {mkdtemp, rmdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -11,25 +10,33 @@ import {snapshotPhysicalManifest,
   consumePhysicalManifestFiles as consumePhysicalManifestFilesRaw} from
   './managed-manifest.mjs';
 
+type Consume = Parameters<typeof consumePhysicalManifestFilesRaw>;
+type StoreOptions = Partial<Parameters<typeof createLocalRetainedStore>[0]>;
+type Body = Consume[2][number];
+type Chunk = {cid: string; byte_length: number; row_count: number};
+
+const runtimePath = '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const manifestControl = await import(runtimePath) as Consume[7];
+
 const consumePhysicalManifestFiles = (
-  store, supplied, bodies, interpretation, bounded, session, decode,
-  signal, beforeRead,
+  store: Consume[0], supplied: Consume[1], bodies: Consume[2], interpretation: Consume[3],
+  bounded: Consume[4], session: Consume[5], decode: Consume[6], signal?: Consume[8], beforeRead?: Consume[9],
 ) => consumePhysicalManifestFilesRaw(
   store, supplied, bodies, interpretation, bounded, session, decode,
   manifestControl, signal, beforeRead,
 );
 
-const sha = text => `sha256:${createHash('sha256').update(text).digest('hex')}`;
+const sha = (text: string) => `sha256:${createHash('sha256').update(text).digest('hex')}`;
 const expected = Object.freeze({schema_contract_cid: sha('fixture-schema'),
   view_contract_cid: sha('fixture-ordered-view'), codec_contract_cid: sha('fixture-newline-codec')});
 const limits = Object.freeze({maxChunks: 10, maxManifestBytes: 4096, maxReferencedBytes: 1000});
-const manifest = chunks => ({version: 'actql-managed-physical-manifest/0.1', ...expected,
+const manifest = <Entry extends Chunk>(chunks: Entry[]) => ({version: 'actql-managed-physical-manifest/0.1', ...expected,
   row_count: chunks.reduce((n, c) => n + c.row_count, 0), chunks});
-const chunk = body => ({cid: body.cid, byte_length: body.bytes, row_count: 1});
-const canonical = value => Array.isArray(value) ? value.map(canonical) :
-  value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
+const chunk = (body: Body) => ({cid: body.cid, byte_length: body.bytes, row_count: 1});
+const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) :
+  value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical((value as Record<string, unknown>)[k])])) : value;
 
-async function fixture(t, options = {}) {
+async function fixture(t: TestContext, options: StoreOptions = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-manifest-'));
   const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 100, maxFrameBytes: 4, ...options});
   t.after(async () => { store.close(); await store.cleanup(); await rmdir(directory); });
@@ -103,7 +110,7 @@ test('snapshot rejects invalid shapes, counts, overflow and hostile metadata wit
 
 test('actual sealed physical chunks are consumed in occurrence order without logical row encoding', async t => {
   const {store, bodies: [a, b]} = await fixture(t);
-  const input = manifest([chunk(a), chunk(b), chunk(a)]), seen = [], charged = [];
+  const input = manifest([chunk(a), chunk(b), chunk(a)]), seen: [number, string][] = [], charged: number[] = [];
   const result = await consumePhysicalManifestFiles(store, input, [a, b, a], expected, limits,
     'owned-session', async (file, index) => {
       seen.push([index, await readFile(file.path, 'utf8')]); return 1;
@@ -208,10 +215,10 @@ test('empty result still requires an exact live Store and cancellation is checke
 test('two manifest consumers hold the same generation independently within reader capacity', {timeout: 3000}, async t => {
   const {store, bodies} = await fixture(t, {maxReadersPerBody: 2, maxReadBufferBytes: 10});
   const input = manifest(bodies.map(chunk));
-  let release, bothEntered, entered = 0;
-  const gate = new Promise(resolve => { release = resolve; });
-  const ready = new Promise(resolve => { bothEntered = resolve; });
-  const consume = session => consumePhysicalManifestFiles(store, input, bodies, expected, limits,
+  let release!: () => void, bothEntered!: () => void, entered = 0;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const ready = new Promise<void>(resolve => { bothEntered = resolve; });
+  const consume = (session: string) => consumePhysicalManifestFiles(store, input, bodies, expected, limits,
     session, async (_file, index) => {
       if (index === 0) {
         if (++entered === 2) bothEntered();

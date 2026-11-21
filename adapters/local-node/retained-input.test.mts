@@ -2,20 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {readLocalRetainedInput} from './retained-input.mjs';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+type Read = Parameters<typeof readLocalRetainedInput>;
+type Prepare = Parameters<Read[0]['strategyPrepareDurableResultRowFrames']>;
+type Consume = Parameters<typeof registerRetainedInput>[2]['consume'];
+type Event = string | ['charge', bigint] | ['row', string];
 
-const bytes = text => new TextEncoder().encode(text);
-const checked = result => { if (result?.error) throw result.error; return result; };
-function fixture(consume, overrides = {}, bodyBytes) {
-  const material = {}, input = {}, events = [];
+const runtimePath = '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon = await import(runtimePath) as Read[0];
+
+const bytes = (text: string) => new TextEncoder().encode(text);
+const checked: Read[2] = result => {
+  if ((result as {error?: unknown} | null | undefined)?.error) throw (result as {error: unknown}).error;
+  return result;
+};
+function fixture(consume: Consume, overrides: Partial<Pick<Read[1], 'charge'>> = {}, bodyBytes?: number) {
+  const material = {}, input = {}, events: Event[] = [];
   registerRetainedInput(material, read => read === input, Object.freeze({consume,
     ...(bodyBytes === undefined ? {} : {bytes: bodyBytes})}),
     {wire: {max_bytes: 100}, maxFrameBytes: 64});
   const operation = {material, input,
     frames: {maxBytes: 100, maxRows: 3, maxRowBytes: 64, maxDepth: 4, maxFrameBytes: 64},
     begin: () => events.push('begin'),
-    charge: value => events.push(['charge', value]),
-    append: value => events.push(['row', value]),
+    charge: (value: bigint) => events.push(['charge', value]),
+    append: (value: string) => events.push(['row', value]),
     finish: () => events.push('finish'),
     ...overrides,
   };
@@ -23,7 +32,7 @@ function fixture(consume, overrides = {}, bodyBytes) {
 }
 
 test('Local retained reader charges provisional bytes and verifies only after the Store read completes', async () => {
-  let events;
+  let events: Event[];
   const f = fixture(async accept => {
     await accept(bytes('[{"id":3}'));
     await accept(bytes(']'));
@@ -38,8 +47,8 @@ test('Local retained reader charges provisional bytes and verifies only after th
 
 test('Local reader bounds the static frame constructor by the same sealed stream extent', async () => {
   for (const known of [true, false]) {
-    const prepared = [];
-    const facade = {...moon, strategyPrepareDurableResultRowFrames(...args) {
+    const prepared: Prepare[] = [];
+    const facade = {...moon, strategyPrepareDurableResultRowFrames(...args: Prepare) {
       prepared.push(args); return moon.strategyPrepareDurableResultRowFrames(...args);
     }};
     const f = fixture(async accept => {await accept(bytes('[{"id":3}]'));}, {}, known ? 10 : undefined);
@@ -51,13 +60,13 @@ test('Local reader bounds the static frame constructor by the same sealed stream
 });
 
 test('A custom extent accessor remains on the legacy framing path without invocation', async () => {
-  const material = {}, input = {}, prepared = [];
+  const material = {}, input = {}, prepared: Prepare[] = [];
   const f = fixture(async () => {});
   registerRetainedInput(material, read => read === input, Object.freeze({
-    get bytes() { assert.fail('custom extent getter must not run'); },
+    get bytes() { return assert.fail('custom extent getter must not run'); },
     consume: async accept => { await accept(bytes('[{"id":3}]')); },
   }), {wire: {max_bytes: 100}, maxFrameBytes: 64});
-  const facade = {...moon, strategyPrepareDurableResultRowFrames(...args) {
+  const facade = {...moon, strategyPrepareDurableResultRowFrames(...args: Prepare) {
     prepared.push(args); return moon.strategyPrepareDurableResultRowFrames(...args);
   }};
   assert.deepEqual(await readLocalRetainedInput(facade, {...f.operation, material, input}, checked),
@@ -105,8 +114,8 @@ test('Local import rejects unreserved bytes before row acceptance and preserves 
 test('Local import checks cancellation before begin and after an awaited Store read', async () => {
   for (const before of [true, false]) {
     const controller = new AbortController();
-    let release;
-    const gate = new Promise(resolve => { release = resolve; });
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
     const f = fixture(async accept => { await gate; await accept(bytes('[]')); });
     if (before) controller.abort();
     const work = readLocalRetainedInput(
@@ -119,8 +128,8 @@ test('Local import checks cancellation before begin and after an awaited Store r
 });
 
 test('Local reader snapshots port operations and refuses unsupported frames before beginning', async () => {
-  let release;
-  const gate = new Promise(resolve => { release = resolve; });
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
   const f = fixture(async accept => { await gate; await accept(bytes('[{}]')); });
   const work = readLocalRetainedInput(moon, f.operation, checked);
   f.operation.append = () => assert.fail('replacement append');
