@@ -263,6 +263,15 @@ pub fn[T] managed_publication_bridge_import_usage(
 }
 
 ///|
+/// Immutable schema of the same receiving bridge. Omitted cells can still
+/// consume retained value and name slots under this original schema.
+pub fn[T] managed_publication_bridge_import_schema(
+  bridge : ManagedPublicationBridge[T],
+) -> @schema.Schema {
+  bridge.admitted.buffer.schema
+}
+
+///|
 /// A private Table projection still belongs to this exact completed generation.
 /// It is not a public Result occurrence or publication capability.
 pub fn[T] managed_publication_bridge_matches_table_input_export(

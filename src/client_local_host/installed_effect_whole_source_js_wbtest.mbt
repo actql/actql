@@ -1009,8 +1009,10 @@ test "managed Effect public Result keeps its captured pin after a refused bridge
 
 ///|
 #cfg(target="js")
-test "publication bridge quotes complete shallow and nested rows by observed shape" {
-  let limits : @local.LocalImportLimits = {
+fn publication_bridge_quote_test_limits(
+  columns : Int,
+) -> @local.LocalImportLimits {
+  {
     max_rows: 17,
     values: {
       max_nodes: 1000,
@@ -1019,7 +1021,7 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
       max_work: 10000,
     },
     wire: {
-      max_columns: 1,
+      max_columns: columns,
       max_order_work: 10000,
       max_bytes: 10000,
       max_nodes: 1000,
@@ -1033,6 +1035,24 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
     },
     max_batch_bytes: 10000,
   }
+}
+
+///|
+#cfg(target="js")
+test "publication bridge quotes complete shallow and nested rows by observed shape" {
+  let limits = publication_bridge_quote_test_limits(1)
+  let schema = @schema.from_presence_fields(
+    [
+      (
+        Unqualified("k"),
+        @contract.primitive(JsonType, nullable=false),
+        Required,
+      ),
+    ],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  let prefix : @execution.ValueUsage = { nodes: 4, text_bytes: 10, work: 0, }
   let text = "é".repeat(300)
   for
     (wire, observed_nodes) in [
@@ -1041,35 +1061,146 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
     ] {
     let bytes = @scalar.admit_utf8_length64(wire, 10000L).unwrap()
     assert_true(bytes > 600L)
-    let quoted = publication_bridge_copy_row_limits(limits, wire, bytes, 4)
-    assert_eq(quoted.wire.max_nodes, observed_nodes)
-    assert_eq(quoted.row.max_nodes, observed_nodes)
-    assert_eq(quoted.values.max_nodes, 4 + observed_nodes)
-    assert_eq(quoted.row.max_bytes, limits.row.max_bytes)
-    assert_eq(quoted.row.max_depth, limits.row.max_depth)
-    let (rows, _, text_bytes, original) = @local.local_import_next_retention_extent(
+    let (_, _, text_bytes, original) = @local.local_import_next_retention_extent(
       limits, 1L, 4L, 10L, bytes,
     ).unwrap()
-    let (measured_rows, measured_nodes, measured_text, measured) = @local.local_import_next_retention_extent(
-      quoted, 1L, 4L, 10L, bytes,
+    let (measured, measured_nodes, measured_text) = reserve_publication_bridge_row_copy(
+      limits,
+      schema,
+      wire,
+      bytes,
+      1L,
+      prefix,
+      0L,
+      _ => true,
     ).unwrap()
-    assert_eq(measured_rows, rows)
     assert_eq(measured_nodes, 4L + observed_nodes.to_int64())
     assert_eq(measured_text, text_bytes)
     assert_eq(
       original - measured,
       4L * 64L * (bytes - observed_nodes.to_int64()),
     )
-    // Geometry without matching length never reduces the original quote.
-    let fallback = publication_bridge_copy_row_limits(
+    let (_, expected_nodes, expected_text, expected) = @local.local_import_next_retention_extent(
       limits,
-      wire,
+      1L,
+      4L,
+      10L,
       bytes + 1L,
-      4,
+    ).unwrap()
+    assert_eq(
+      reserve_publication_bridge_row_copy(
+        limits,
+        schema,
+        wire,
+        bytes + 1L,
+        1L,
+        prefix,
+        0L,
+        _ => true,
+      ),
+      Some((expected, expected_nodes, expected_text)),
     )
-    assert_eq(fallback.row.max_nodes, limits.row.max_nodes)
-    assert_eq(fallback.wire.max_nodes, limits.wire.max_nodes)
-    assert_eq(fallback.values.max_nodes, limits.values.max_nodes)
+  }
+}
+
+///|
+#cfg(target="js")
+test "publication bridge funds a sparse row before copying its nested present Values" {
+  let missing_name = "absent_" + "long".repeat(40)
+  let nested = @contract.array_contract(
+    @contract.object_contract(
+      [("x", @contract.primitive(StringType, nullable=false))],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=1,
+    ).unwrap(),
+    nullable=false,
+  ).unwrap()
+  let number = @contract.primitive(NumberType, nullable=false)
+  let name_bytes = missing_name.length() + 3
+  let schema = @schema.from_presence_fields(
+    [
+      (Unqualified("id"), number, Required),
+      (Unqualified(missing_name), number, Conditional),
+      (Unqualified("p"), nested, Required),
+    ],
+    max_fields=3,
+    max_name_bytes=name_bytes,
+  ).unwrap()
+  let events = @carrier.events(
+    @carrier.typed_rows(schema),
+    id=Unqualified("id"),
+    time=Unqualified("id"),
+  ).unwrap()
+  let pipeline = @pipeline.check_carriers(
+    retained_metadata_test_cursor("[{\"events\":true,\"as\":\"rows\"}]"),
+    [("events", events)],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lower.bind_parameters(
+    @lower.prepare(pipeline, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 10000,
+      max_identifier_bytes: 10000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let limits = publication_bridge_quote_test_limits(3)
+  let wire = "{\"id\":3,\"p\":[{\"x\":\"é\"}]}"
+  let bytes = @scalar.admit_utf8_length64(wire, limits.row.max_bytes.to_int64()).unwrap()
+  // Five emitted nodes, three possible presence slots, and three views
+  // of the five decoder nodes. The two one-byte empty buffers are prepaid.
+  let exact = 64L * (1L + 8L + 3L * 5L) +
+    8L * (5L * bytes + name_bytes.to_int64() - 2L)
+  for allowance in [exact - 1L, exact] {
+    let output = @execution.prepare_admitted_output(
+      owner,
+      Step(0),
+      1,
+      limits.values,
+    ).unwrap()
+    let calls = []
+    let funded = reserve_publication_bridge_row_copy(
+      limits,
+      schema,
+      wire,
+      bytes,
+      0L,
+      { nodes: 0, text_bytes: 0, work: 0, },
+      0L,
+      additional => {
+        calls.push(additional)
+        additional <= allowance
+      },
+    )
+    assert_eq(calls, [exact])
+    if allowance == exact {
+      let (_, nodes, text) = funded.unwrap()
+      @execution.append_admitted_output_wire(output, wire, limits.row).unwrap()
+      let retained = @execution.finish_admitted_output(output).unwrap()
+      let observed = @execution.admitted_output_usage(retained)
+      assert_eq(@execution.admitted_output_row_count(retained), 1)
+      assert_eq(observed.nodes, 6)
+      assert_eq(observed.text_bytes, name_bytes + 3)
+      assert_true(observed.nodes.to_int64() <= nodes)
+      assert_true(observed.text_bytes.to_int64() <= text)
+    } else {
+      assert_true(funded is None)
+      let retained = @execution.finish_admitted_output(output).unwrap()
+      assert_eq(@execution.admitted_output_row_count(retained), 0)
+    }
   }
 }
 

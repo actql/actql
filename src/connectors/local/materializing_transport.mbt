@@ -12,31 +12,37 @@ pub fn local_import_start_retention_capacity(
 }
 
 ///|
-// A complete incoming row wire bounds every newly decoded value node and
-// text byte, including columns outside the receiving projection. Each bridge
-// accumulates its own bound: equal producers never share a parsed copy.
+// The default copies the previous wire-based bound. Presence-aware consumers
+// can supply an independently bounded retained row inventory without changing
+// the decoder's complete wire extent. Each bridge keeps its own prefix.
 pub fn local_import_next_retention_extent(
   limits : LocalImportLimits,
   rows : Int64,
   nodes : Int64,
   text : Int64,
   wire_bytes : Int64,
+  pending_value_nodes? : Int64? = None,
+  pending_value_text? : Int64? = None,
 ) -> (Int64, Int64, Int64, Int64)? {
   let max_rows = limits.max_rows.to_int64()
   let max_nodes = limits.values.max_nodes.to_int64()
   let max_text = limits.values.max_text_bytes.to_int64()
+  let value_nodes = pending_value_nodes.unwrap_or(wire_bytes)
+  let value_text = pending_value_text.unwrap_or(wire_bytes)
   guard rows >= 0L &&
     rows <= max_rows &&
     nodes >= 0L &&
     nodes <= max_nodes &&
     text >= 0L &&
     text <= max_text &&
-    wire_bytes >= 0L else {
+    wire_bytes >= 0L &&
+    value_nodes >= 0L &&
+    value_text >= 0L else {
     return None
   }
   let next_rows = rows + Int64::min(1L, max_rows - rows)
-  let next_nodes = nodes + Int64::min(wire_bytes, max_nodes - nodes)
-  let next_text = text + Int64::min(wire_bytes, max_text - text)
+  let next_nodes = nodes + Int64::min(value_nodes, max_nodes - nodes)
+  let next_text = text + Int64::min(value_text, max_text - text)
   guard local_import_start_retention_capacity(limits) is Some(start) &&
     local_import_retention_capacity({
       max_rows: next_rows.to_int(),

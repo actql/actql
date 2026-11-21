@@ -258,14 +258,14 @@ fn LocalValuesExecution::publication_original_for_task(
 }
 
 ///|
-// One preflight cursor and its four copied limit records at a time. The
-// source row is borrowed from the existing producer transport.
+// One preflight cursor, three copied limit records and the pending Value
+// bounds at a time. The row is borrowed from the original producer transport.
 let publication_bridge_row_quote_controls : Int64 = {
   let source = @source.json_source_preflight_control_extent()
   @execution.preparation_representation_cost({
     record_headers: source.record_headers + 7L,
-    reference_slots: source.reference_slots + 9L,
-    scalar_words: source.scalar_words + 22L,
+    reference_slots: source.reference_slots + 10L,
+    scalar_words: source.scalar_words + 23L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -274,14 +274,21 @@ let publication_bridge_row_quote_controls : Int64 = {
 ///|
 // Measure the complete emitted row, including its object wrapper and nested
 // values. The same Source cursor stops before grammar and retires before the
-// decoder. Keep the old quote when the original wire cannot be measured.
-fn publication_bridge_copy_row_limits(
+// decoder. Keep the byte-derived bound if the original wire cannot be measured.
+fn reserve_publication_bridge_row_copy(
   limits : @local.LocalImportLimits,
+  schema : @schema.Schema,
   row : String,
   bytes : Int64,
-  prefix_nodes : Int,
-) -> @local.LocalImportLimits {
-  match
+  prefix_rows : Int64,
+  prefix : @execution.ValueUsage,
+  previous_extent : Int64,
+  reserve : (Int64) -> Bool,
+) -> (Int64, Int64, Int64)? {
+  guard bytes >= 0L && bytes <= limits.row.max_bytes.to_int64() else {
+    return None
+  }
+  let (quote, row_nodes) = match
     installed_effect_dependency_wire_geometry(
       row,
       limits.row.max_bytes,
@@ -290,33 +297,57 @@ fn publication_bridge_copy_row_limits(
       _ => true,
     ) {
     Some(geometry) if geometry.input_bytes.to_int64() == bytes &&
-      geometry.node_upper > 0 &&
-      prefix_nodes >= 0 &&
-      prefix_nodes <= limits.values.max_nodes => {
+      geometry.node_upper > 0 => {
       // Even a sparse row uses the original schema's field slots.
       let nodes = Int::max(geometry.node_upper, limits.wire.max_columns)
-      // Receiving admission retains each emitted value once. Container
-      // members and vector items are bounded by the full row's wire nodes.
-      // JSON wrappers and reference envelopes only add wire nodes, and
-      // an absent cell does not add a retained value. Preserve the exact
-      // already-admitted prefix separately from the pending row.
-      let prefix = prefix_nodes.to_int64()
-      let value_nodes = Int64::min(
-        limits.values.max_nodes.to_int64(),
-        prefix + geometry.node_upper.to_int64(),
-      ).to_int()
-      {
-        ..limits,
-        values: { ..limits.values, max_nodes: value_nodes, },
-        wire: {
-          ..limits.wire,
-          max_nodes: Int::min(limits.wire.max_nodes, nodes),
+      (
+        {
+          ..limits,
+          wire: {
+            ..limits.wire,
+            max_nodes: Int::min(limits.wire.max_nodes, nodes),
+          },
+          row: {
+            ..limits.row,
+            max_nodes: Int::min(limits.row.max_nodes, nodes),
+          },
         },
-        row: { ..limits.row, max_nodes: Int::min(limits.row.max_nodes, nodes), },
-      }
+        geometry.node_upper.to_int64(),
+      )
     }
-    _ => limits
+    _ => (limits, bytes)
   }
+  // The complete wire bounds the row and every present Value. Presence
+  // admission also retains an entry for every omitted slot and charges its
+  // name even though neither appears in the wire. The original schema bounds
+  // both, independently of the transient decoder and the admitted prefix.
+  let (presence_nodes, presence_text) = if @schema.all_fields_required(schema) {
+    (0L, 0L)
+  } else {
+    (
+      @schema.field_count(schema).to_int64(),
+      @schema.field_reference_name_bytes(schema).to_int64(),
+    )
+  }
+  guard @local.local_import_next_retention_extent(
+      quote,
+      prefix_rows,
+      prefix.nodes.to_int64(),
+      prefix.text_bytes.to_int64(),
+      bytes,
+      pending_value_nodes=Some(row_nodes + presence_nodes),
+      pending_value_text=Some(bytes + presence_text),
+    )
+    is Some((_, nodes, text, required)) else {
+    return None
+  }
+  // This bridge owns its copied prefix and one decoder. Only the positive
+  // high-water difference is admitted; no earlier copy is reclaimed here.
+  let extent = Int64::max(previous_extent, required)
+  if extent > previous_extent && !reserve(extent - previous_extent) {
+    return None
+  }
+  Some((extent, nodes, text))
 }
 
 ///|
@@ -414,21 +445,17 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         }
         guard @execution.managed_publication_bridge_import_usage(bridge)
           is Some(usage) &&
-          @local.local_import_next_retention_extent(
-            publication_bridge_copy_row_limits(imports, row, bytes, usage.nodes),
-            index.to_int64(),
-            usage.nodes.to_int64(),
-            usage.text_bytes.to_int64(),
+          reserve_publication_bridge_row_copy(
+            imports,
+            @execution.managed_publication_bridge_import_schema(bridge),
+            row,
             bytes,
+            index.to_int64(),
+            usage,
+            copy_extent,
+            reserve,
           )
-          is Some((_, nodes, text, quote)) else {
-          @execution.close_managed_publication_bridge(bridge)
-          return Err(MissingOutput)
-        }
-        // Each bridge retains its own copied prefix. Charge only the new
-        // high-water difference, with one decoder beside that prefix.
-        let extent = Int64::max(copy_extent, quote)
-        if extent > copy_extent && !reserve(extent - copy_extent) {
+          is Some((extent, nodes, text)) else {
           @execution.close_managed_publication_bridge(bridge)
           return Err(MissingOutput)
         }
