@@ -1830,7 +1830,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "be1ca03d859c028c999649e1ae5c4e7bb584b31b36f0426f77d8dffdf64eb2fc",
+      "sha256": "af1c406e392acb0f80fffda9be5101b97bd00843d6b607d422cc0b96b88039c4",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1978,7 +1978,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "14e9161180a09482b254716928fe25a8472260a666575d9225855c7d41ec2c03",
+      "sha256": "857dc9023c55b1757bbaf2c4a74d19029089603cc234e222dc66fedd76e5849d",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -1990,7 +1990,7 @@
         {
           "name": "BoundPlanExplorer",
           "parameters": [
-            "{model}: {model: PlanReadModel}"
+            "{model, initialView}: {model: PlanReadModel; initialView: 'list' | 'flow'}"
           ],
           "result": null
         },
@@ -2067,7 +2067,9 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#6",
-          "parameters": [],
+          "parameters": [
+            "entry"
+          ],
           "result": null
         },
         {
@@ -2077,9 +2079,7 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#8",
-          "parameters": [
-            "entry"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -2115,7 +2115,7 @@
         {
           "name": "PlanExplorer",
           "parameters": [
-            "{model, scopeKey}: PlanExplorerProps"
+            "{model, scopeKey, initialView = 'list'}: PlanExplorerProps"
           ],
           "result": null
         }
@@ -4340,7 +4340,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "2eb5598cd62762db91a49dfef48d99c9dc33c8c5bb7eef85a91ce1feb1b00c73",
+      "sha256": "f5d10fb0ae87804936ec657d97835438bba91ef3b45c3d26eb53dec487bf0648",
       "exports": [],
       "operations": [
         {
@@ -4369,7 +4369,75 @@
           "result": null
         },
         {
+          "name": "App/<call>/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#4",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#5",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle",
+          "parameters": [
+            "event: KeyboardEvent"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle/<call>",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle/<call>#2",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
           "name": "App/<call>#10",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#11",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#12",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#13",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#14",
           "parameters": [
             "event"
           ],
@@ -4382,51 +4450,41 @@
         },
         {
           "name": "App/<call>#3",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#4",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#5",
-          "parameters": [
-            "{text}",
-            "index"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#6",
-          "parameters": [
-            "occurrence"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#7",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#8",
           "parameters": [
-            "occurrence"
+            "event"
           ],
           "result": null
         },
         {
           "name": "App/<call>#9",
           "parameters": [
-            "event"
+            "line",
+            "index"
           ],
           "result": null
         },
@@ -4460,6 +4518,20 @@
         {
           "name": "App/lookupCancellation/<call>",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/openDraft",
+          "parameters": [
+            "event: ChangeEvent<HTMLInputElement>"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/openDraft/<call>",
+          "parameters": [
+            "value"
+          ],
           "result": null
         },
         {
@@ -4516,6 +4588,11 @@
           "result": null
         },
         {
+          "name": "App/readRun/current",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "App/requestCancellation",
           "parameters": [],
           "result": null
@@ -4536,6 +4613,214 @@
           "name": "App/session/<call>",
           "parameters": [],
           "result": null
+        },
+        {
+          "name": "sameRun",
+          "parameters": [
+            "original: RunReference",
+            "other: RunReference | undefined"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin",
+          "parameters": [
+            "{step}: {step: Step}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard",
+          "parameters": [
+            "{ordinal, label, title, detail, observed, children}: {\n  ordinal: number; label: string; title: string; detail?: string; observed?: boolean; children: ReactNode;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading",
+          "parameters": [
+            "{story, context}: {story: ExplanationStoryModel; context: StoryContext}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#10",
+          "parameters": [
+            "text"
+          ],
+          "result": "text is string"
+        },
+        {
+          "name": "StoryHeading/<call>#11",
+          "parameters": [
+            "text"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#3",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#4",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#5",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#6",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#7",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#8",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#9",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps",
+          "parameters": [
+            "{story, context, boundary}: {story: ExplanationStoryModel; context: StoryContext; boundary?: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#3",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#4",
+          "parameters": [
+            "{origin, text}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#5",
+          "parameters": [
+            "{declaration,write_fields}",
+            "position"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#3",
+          "parameters": [
+            "{origin,text}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#4",
+          "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#5",
+          "parameters": [
+            "{origin,text}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryText",
+          "parameters": [
+            "{text}: {text: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryText/<call>",
+          "parameters": [
+            "part",
+            "index"
+          ],
+          "result": null
         }
       ],
       "imports": [
@@ -4547,6 +4832,7 @@
         "@actql/explorer-ui/run-observation",
         "@actql/explorer-ui/styles.css",
         "@actql/explorer/browser-source",
+        "@actql/sdk",
         "react",
         "react-dom/client"
       ],
@@ -4563,27 +4849,38 @@
             "App/<call>/<call>",
             "App/<call>/<call>/<call>",
             "App/<call>/<call>#2",
+            "App/<call>/<call>#3",
+            "App/<call>/<call>#4",
+            "App/<call>/<call>#5",
+            "App/<call>/toggle",
+            "App/<call>/toggle/<call>",
+            "App/<call>/toggle/<call>#2",
+            "App/<call>#10",
+            "App/<call>#11",
+            "App/<call>#12",
+            "App/<call>#13",
+            "App/<call>#14",
             "App/<call>#2",
             "App/<call>#3",
             "App/<call>#4",
             "App/<call>#5",
             "App/<call>#6",
             "App/<call>#7",
+            "App/<call>#8",
+            "App/<call>#9",
             "App/importCancellation",
             "App/invalidate",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
             "App/lookupCancellation",
             "App/lookupCancellation/<call>",
+            "App/openDraft",
+            "App/openDraft/<call>",
             "App/perform",
             "App/perform/<call>",
             "App/prepareCancellation",
-            "App/readPlan",
-            "App/readPlan/<call>",
             "App/readReview",
             "App/readReview/<call>",
-            "App/readRun",
-            "App/readRun/<call>",
             "App/requestCancellation",
             "App/requestCancellation/<call>",
             "App/session",
@@ -4687,7 +4984,10 @@
         },
         {
           "operations": [
-            "App/<call>#8"
+            "App/readRun",
+            "App/readRun/<call>",
+            "App/readRun/current",
+            "sameRun"
           ],
           "exports": [],
           "attributes": {
@@ -4753,21 +5053,53 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }
         },
         {
           "operations": [
-            "App/<call>#10",
-            "App/<call>#9"
+            "App/readPlan",
+            "App/readPlan/<call>",
+            "StepOrigin",
+            "StepOrigin/<call>",
+            "StoryCard",
+            "StoryHeading",
+            "StoryHeading/<call>",
+            "StoryHeading/<call>#10",
+            "StoryHeading/<call>#11",
+            "StoryHeading/<call>#2",
+            "StoryHeading/<call>#3",
+            "StoryHeading/<call>#4",
+            "StoryHeading/<call>#5",
+            "StoryHeading/<call>#6",
+            "StoryHeading/<call>#7",
+            "StoryHeading/<call>#8",
+            "StoryHeading/<call>#9",
+            "StorySteps",
+            "StorySteps/<call>",
+            "StorySteps/<call>/<call>",
+            "StorySteps/<call>/<call>#2",
+            "StorySteps/<call>/<call>#3",
+            "StorySteps/<call>/<call>#4",
+            "StorySteps/<call>/<call>#5",
+            "StorySteps/<call>#2",
+            "StorySteps/<call>#3",
+            "StorySteps/<call>#4",
+            "StorySteps/<call>#5",
+            "StoryText",
+            "StoryText/<call>"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "packages/explorer/app/main.tsx",
-                "anchor": "<button value=\"static-explanation\""
+                "anchor": "value=\"static-explanation\""
               }
             ],
             "inputsOutputs": [
@@ -4835,7 +5167,7 @@
     {
       "module": "packages/explorer/assets.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7966ce983bdff94eae62d3b32cdf5ff7bd19b710357c81a1739643f42d76c173",
+      "sha256": "151fde18ebace0f815b67a9267497c13c44f041e10bd11feff07d1e90ce10572",
       "exports": [
         "loadExplorerAssets"
       ],
@@ -6752,7 +7084,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "85e107e7a66db96293c748907fbf096f8fe9c04e7ac048e2292925f536fe3fda",
+      "sha256": "bd1a5df3fc52e8c673ed8c193126c1df191013b48b26d4420f677a80afe69da7",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",

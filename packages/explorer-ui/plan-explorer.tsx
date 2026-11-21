@@ -35,18 +35,18 @@ function OriginalEdge({id, sourceX, sourceY, targetX, targetY, sourcePosition, t
 // Keep parallel Join input labels at their original target ports, rather than
 // overlapping at the midpoint shared by two edges from one producer.
 const edgeTypes = {default: OriginalEdge};
-export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string};
+export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow'};
 
 // Scope changes remount selection and the renderer. This component accepts an
 // already admitted original model and has no Client, transport or control API.
-export function PlanExplorer({model, scopeKey}: PlanExplorerProps) {
+export function PlanExplorer({model, scopeKey, initialView = 'list'}: PlanExplorerProps) {
   return <BoundPlanExplorer key={`${scopeKey}:${model.compiledPlanCid}:${model.logicalMapCid}`}
-    model={model}/>;
+    model={model} initialView={initialView}/>;
 }
-function BoundPlanExplorer({model}: {model: PlanReadModel}) {
+function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialView: 'list' | 'flow'}) {
   const flow = useMemo(() => flowPresentation(model) as {nodes: LogicalNode[]; edges: Edge[]}, [model]);
   const [selected, select] = useState<string | undefined>();
-  const [mode, show] = useState<'flow' | 'list'>('list');
+  const [mode, show] = useState<'flow' | 'list'>(initialView);
   // This bounded presentation key excludes labels/observations. Repeated reads
   // of the same topology do not restart ELK or reset the user's viewport.
   const layoutKey = useMemo(() => JSON.stringify(layoutInput(flow)), [flow]);
@@ -70,16 +70,7 @@ function BoundPlanExplorer({model}: {model: PlanReadModel}) {
     width: flowNodeWidth, height: flowNodeHeight(node.data.original.ports.length),
   })) : [], [currentLayout, flow]);
   const original = model.nodes.find(node => node.id === selected);
-  return <section className="actql-explorer" aria-label="ActQL static Plan">
-    <header className="actql-explorer-header">
-      <div><p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>
-        <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
-        <p>Recorded ports. Layout does not indicate execution order.</p></div>
-      <nav aria-label="Plan presentation">
-        <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
-        <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
-      </nav>
-    </header>
+  const originalMetadata = <>
     <dl className="actql-explorer-identities"><dt>Compiled Plan</dt><dd>{model.compiledPlanCid}</dd>
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
     <p className="actql-explorer-unavailable"><CircleHelp aria-hidden/>Source origins unavailable in this projection.
@@ -108,6 +99,18 @@ function BoundPlanExplorer({model}: {model: PlanReadModel}) {
       <p>Resolved targets: unknown. Changed values: unknown. Current permission: unknown.
         Gate: unknown. Approval: unknown. Sealed Preview: unavailable.</p>
     </section>}
+  </>;
+  return <section className="actql-explorer" aria-label="ActQL static Plan">
+    <header className="actql-explorer-header">
+      <div><p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>
+        <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
+        <p>Recorded ports. Layout does not indicate execution order.</p></div>
+      <nav aria-label="Plan presentation">
+        <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
+        <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
+      </nav>
+    </header>
+    {mode === 'list' && originalMetadata}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div className="actql-explorer-flow">
       <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
@@ -131,5 +134,9 @@ function BoundPlanExplorer({model}: {model: PlanReadModel}) {
           {port.source.kind === 'stage_input' ? ' · unresolved Stage input locator' : ''}
         </li>)}</ul></> : <p>Select an original occurrence to inspect its ports.</p>}
     </aside>
+    {mode === 'flow' && <details className="actql-explorer-flow-metadata">
+      <summary>Original Plan metadata</summary>
+      {originalMetadata}
+    </details>}
   </section>;
 }

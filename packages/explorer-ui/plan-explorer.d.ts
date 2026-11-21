@@ -4,5 +4,5 @@ export type {OriginalCancellation, CancellationObservation, CancellationPanelPro
 export {RunInspector} from './run-inspector.js';
 import type {ReactElement} from 'react';
 import type {PlanReadModel} from './read-model.js';
-export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string};
+export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow'};
 export function PlanExplorer(props: PlanExplorerProps): ReactElement;
