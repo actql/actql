@@ -266,6 +266,9 @@ test('plural Mock fixture authors one document and two exact same-Run UPDATE mem
   assert.deepEqual(source.data.map(value=>value.items_path),[
     ['salesforce','Account','rows'],['salesforce','Contact','rows']]);
   assert.deepEqual(source.writes.map(value=>value.resource),['Account','Contact']);
+  assert.deepEqual(source.writes.map(value=>[value.permission,value.observe_permission]),[
+    ['salesforce:record:update','salesforce:record:observe'],
+    ['salesforce:contact:update','salesforce:contact:observe']]);
   const program=JSON.parse(files['multiple-targets.program.json']);
   assert.equal(program.stages.length,1);const stage=program.stages[0];
   assert.deepEqual(stage.inputs,{accounts:{connector:'salesforce',resource:'Account'},

@@ -117093,7 +117093,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "094b3c70322311d0202a829e79602aca5cfccd64f677ae940dbf40a8202d5265",
+      "sha256": "51864ca4585832dd6a30955451ce74454685e8b12e4e42618665c1434ee02559",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118242,6 +118242,10 @@
               {
                 "path": "adapters/host-node/mock-file-target.test.mjs",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }

@@ -83557,7 +83557,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "197030beb6a1583b17e48a2556a85b2b1da9dde8104e762f1bc85cb4563fdee8",
+      "sha256": "36ee7b6fd2d4600428fa0a2fbbc4c4f6bf44ca06975fc177f2bb8075baeb1dac",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -83571,6 +83571,7 @@
         "installedRowEffectUpdateObservation",
         "installedRowEffectUpdateObservations",
         "installedRowEffectUpdateTargetReadAccess",
+        "prepareInstalledTargetPlanRecipes",
         "resolveInstalledRowEffectConstruction",
         "retainInstalledRowEffectAdapter",
         "validateInstalledUpdateOwnerSelections"
@@ -83875,12 +83876,20 @@
             "managedPlanDefinition",
             "managedPlanRecipe",
             "managedPlanRecipes",
+            "managedTargetPlanRecipes",
             "managedPlanConstruction"
           ],
           "async": true
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#2",
           "parameters": [
             "item"
           ],
@@ -85593,6 +85602,21 @@
           "async": false
         },
         {
+          "name": "prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "mappings",
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
           "parameters": [],
           "async": false
@@ -86312,9 +86336,13 @@
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields/fields",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
-            "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
+            "prepareInstalledTargetPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
           ],
-          "exports": [],
+          "exports": [
+            "prepareInstalledTargetPlanRecipes"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -86407,6 +86435,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }
@@ -87015,6 +87047,7 @@
           "operations": [
             "createInstalledRowEffect",
             "createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffect/createInstalledRowEffect#2",
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
@@ -87789,6 +87822,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }
