@@ -19,5 +19,12 @@ export function restoreInstalledRowUpdateMembers(context, maxMembers, invalidCod
         byIndex.has(entry.memberIndex)) fail(invalidCode);
     byIndex.set(entry.memberIndex, entry);
   }
-  return Object.freeze({requests: Object.freeze(indexes.map(index => restoreMember(context, index, byIndex.get(index))))});
+  const requests = new Array(indexes.length);
+  for (let position = 0; position < indexes.length; position++) {
+    if (position in indexes) {
+      const index = indexes[position];
+      requests[position] = restoreMember(context, index, byIndex.get(index));
+    }
+  }
+  return Object.freeze({requests: Object.freeze(requests)});
 }

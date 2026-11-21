@@ -15,6 +15,17 @@ test('update recovery retains original global indexes before restoring any selec
   assert.deepEqual(seen, [first, last]);
   assert.equal(requests.requests[0][0], context.members[1]);
   assert.equal(requests.requests[1][0], context.members[3]);
+  const sparse = new Array(2);
+  sparse[1] = 3;
+  const restored = restoreInstalledRowUpdateMembers({...context, memberIndexes: sparse}, 4, 'InvalidOriginal',
+    (_original, index, entry) => {
+      assert.equal(index, 3);
+      assert.equal(entry, last);
+      return [context.members[index]];
+    });
+  assert.equal(restored.requests.length, 2);
+  assert.equal(0 in restored.requests, false);
+  assert.equal(restored.requests[1][0], context.members[3]);
   for (const invalid of [
     {...context, memberIndexes: [3, 1]},
     {...context, memberIndexes: [1, 1]},

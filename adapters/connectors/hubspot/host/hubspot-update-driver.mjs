@@ -140,31 +140,30 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       },
     });
   };
-  const restoreMember = ({recorded, members, body, requestTags}, index, saved) => {
-    const member = members[index]; selected(member);
-    const changes = body?.effects?.[index]?.changes,
-      claims = recorded.members[index]?.claims;
-    if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-        Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-        !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-        claims.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
-    const value = JSON.parse(saved.wire);
-    if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
-        Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
-        encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
-        !Array.isArray(value.requests) || value.requests.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
-    return Object.freeze(value.requests.map((wire, row) => {
-      const rebuilt = requests.restore({member, wire, requestTag: requestTags?.[index]?.[row]});
-      const facts = requests.requestFacts(rebuilt.request);
-      if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-          encode(facts.value) !== encode(changes[row].after?.value) ||
-          encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignHubSpotUpdateRecovery');
-      requests.prepareTargetRead(rebuilt.request, targetReadLimits);
-      return rebuilt.request;
-    }));
-  };
   const restore = context => restoreInstalledRowUpdateMembers(context, maxMembers,
-    'InvalidHubSpotUpdateRecovery', restoreMember);
+    'InvalidHubSpotUpdateRecovery', ({recorded, members, body, requestTags}, index, saved) => {
+      const member = members[index]; selected(member);
+      const changes = body?.effects?.[index]?.changes,
+        claims = recorded.members[index]?.claims;
+      if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
+          Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
+          !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
+          claims.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
+      const value = JSON.parse(saved.wire);
+      if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
+          Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
+          encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
+          !Array.isArray(value.requests) || value.requests.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
+      return Object.freeze(value.requests.map((wire, row) => {
+        const rebuilt = requests.restore({member, wire, requestTag: requestTags?.[index]?.[row]});
+        const facts = requests.requestFacts(rebuilt.request);
+        if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
+            encode(facts.value) !== encode(changes[row].after?.value) ||
+            encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignHubSpotUpdateRecovery');
+        requests.prepareTargetRead(rebuilt.request, targetReadLimits);
+        return rebuilt.request;
+      }));
+    });
 
   return Object.freeze({
     kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),

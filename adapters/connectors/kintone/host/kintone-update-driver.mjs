@@ -138,36 +138,36 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return value;
     };
   };
-  const restoreMember = ({recorded, members, body, requestTags, maxRows}, index, saved) => {
-    const member = members[index]; selected(member);
-    const changes = body?.effects?.[index]?.changes,
-      claims = recorded.members[index]?.claims;
-    if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-        Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-        !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-        claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
-    const value = JSON.parse(saved.wire);
-    if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
-        Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
-        !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
-        !Array.isArray(value.requests) || value.requests.length !== changes.length ||
-        value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
-        encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
-    return Object.freeze(value.requests.map((wire, row) => {
-      const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
-      const facts = requests.requestFacts(rebuilt.request);
-      if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-          encode(facts.value) !== encode(changes[row].after?.value) ||
-          encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignKintoneUpdateRecovery');
-      return rebuilt.request;
-    }));
-  };
   const restore = context => {
     const {maxRows} = context;
     if (!Number.isSafeInteger(maxRows) || maxRows < 0 || maxRows > 2147483647) {
       fail('InvalidKintoneUpdateRecovery');
     }
-    return restoreInstalledRowUpdateMembers(context, maxMembers, 'InvalidKintoneUpdateRecovery', restoreMember);
+    return restoreInstalledRowUpdateMembers(context, maxMembers,
+      'InvalidKintoneUpdateRecovery', ({recorded, members, body, requestTags}, index, saved) => {
+        const member = members[index]; selected(member);
+        const changes = body?.effects?.[index]?.changes,
+          claims = recorded.members[index]?.claims;
+        if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
+            Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
+            !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
+            claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
+        const value = JSON.parse(saved.wire);
+        if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
+            Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
+            !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
+            !Array.isArray(value.requests) || value.requests.length !== changes.length ||
+            value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
+            encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
+        return Object.freeze(value.requests.map((wire, row) => {
+          const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
+          const facts = requests.requestFacts(rebuilt.request);
+          if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
+              encode(facts.value) !== encode(changes[row].after?.value) ||
+              encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignKintoneUpdateRecovery');
+          return rebuilt.request;
+        }));
+      });
   };
 
   return Object.freeze({

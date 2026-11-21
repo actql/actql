@@ -2129,7 +2129,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "bf097f3847ad2b760a9c041bbd8b9298013bd394801246ba6cc5e8e87e3dc31d",
+      "sha256": "f288f272b1ee6aaf3f48ad437a62114992a705c043679d228fb80de03f0a26dc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2316,28 +2316,19 @@
         {
           "name": "hubspotUpdateDriver/restore/restore",
           "parameters": [
-            "durable",
-            "recorded",
-            "members",
-            "memberIndexes",
-            "body",
-            "requestTags"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/restore/restore/indexes/indexes",
-          "parameters": [
-            "_",
-            "index"
+            "context"
           ],
           "async": false
         },
         {
           "name": "hubspotUpdateDriver/restore/restore/restore",
           "parameters": [
+            "recorded",
+            "members",
+            "body",
+            "requestTags",
             "index",
-            "offset"
+            "saved"
           ],
           "async": false
         },
@@ -2346,13 +2337,6 @@
           "parameters": [
             "wire",
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/restore/restore/restore#2",
-          "parameters": [
-            "index"
           ],
           "async": false
         },
@@ -2381,6 +2365,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/installed-row-update-recovery.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../site/hubspot-account-read.mjs",
@@ -2420,10 +2405,8 @@
             "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
             "hubspotUpdateDriver/responsePolicy/responsePolicy",
             "hubspotUpdateDriver/restore/restore",
-            "hubspotUpdateDriver/restore/restore/indexes/indexes",
             "hubspotUpdateDriver/restore/restore/restore",
             "hubspotUpdateDriver/restore/restore/restore/restore",
-            "hubspotUpdateDriver/restore/restore/restore#2",
             "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
             "positive/positive",
             "segment/segment/segment"

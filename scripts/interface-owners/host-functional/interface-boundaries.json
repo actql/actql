@@ -7347,6 +7347,123 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-common/installed-row-update-recovery.mjs",
+      "sha256": "758225eefcb3c18aa908e2194ef6a2e36870379d0fc6111eb1a2e92dcd25b334",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Row Effect saved update member selection",
+      "referenceQualification": "Source and retained-codec component references for exact original member selection",
+      "exports": [
+        "restoreInstalledRowUpdateMembers"
+      ],
+      "operations": [
+        {
+          "name": "restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "context",
+            "maxMembers",
+            "invalidCode",
+            "restoreMember"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "index",
+            "offset"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "restoreInstalledRowUpdateMembers",
+            "restoreInstalledRowUpdateMembers/indexes/indexes",
+            "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers"
+          ],
+          "exports": [
+            "restoreInstalledRowUpdateMembers"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "export function restoreInstalledRowUpdateMembers("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const {durable, recorded, members, memberIndexes} = context;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "byIndex.has(entry.memberIndex)) fail(invalidCode);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "index <= indexes[offset - 1])) fail(invalidCode);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const requests = new Array(indexes.length);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery retains original global indexes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
       "sha256": "c8f46eebd8aad540b383264ea6c26900f856859a2da93c505347c44d05a1125e",
