@@ -148,13 +148,14 @@ try {
         assert.match(summary, /StageName and NextStep on Opportunity in salesforce/u);
         assert.doesNotMatch(summary, /connector:\/\/|\baql_|Predicate form not projected/u);
         const computation = await page.locator('.story-computation').innerText();
-        assert.match(computation, /2 checked joins · matches on name/u);
+        assert.equal(beforeRun.story.occurrences.filter(step=>step.explanation.meaning.kind === 'join').length, 3);
+        assert.match(computation, /3 checked joins · matches on name/u);
         assert.match(computation, /Filter rows|Keep rows where/u);
         assert.doesNotMatch(computation, /\baql_|Predicate form not projected/u);
         const titles = await staticSteps.locator('summary > strong').allTextContents();
         assert(titles.includes('Input · Opportunity') && titles.includes('Input · files'));
         assert(titles.every(title=>!title.includes('aql_capture_0')));
-        const inputTitle = staticSteps.locator('summary > strong').filter({hasText: /^Input · Opportunity$/u});
+        const inputTitle = page.locator('summary > strong').filter({hasText: /^Input · Opportunity$/u});
         await inputTitle.click();
         const original = staticSteps.locator('details.story-card[open]').filter({has: inputTitle});
         await original.getByText('Original step and ports', {exact: true}).click();
