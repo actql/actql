@@ -121,7 +121,8 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
-import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes,
+  isModelCredentialRefusal} from './infer-operation.mjs';
 import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -6310,7 +6311,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
               return;
             }
-            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
+            if ((code === 'ModelSavedTerminalFailure' || isModelCredentialRefusal(error?.primaryFailure ?? error)) &&
+                stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
                 !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {

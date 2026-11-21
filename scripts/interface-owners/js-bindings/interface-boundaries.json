@@ -68734,6 +68734,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -68852,10 +68853,8 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "2e190975f263adfcd26a68af38ee07b3c20a53b6b908447fd99e0d963bf8eb3b"
+      "unresolvedSyntax": [],
+      "sha256": "f03d0bf5999b038f76fe172211171176d95138b6636b564658724230f322f057"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -71750,10 +71749,15 @@
             "openNodeInferOperation/run/run#2",
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
-            "openNodeInferOperation/stop/stop"
+            "openNodeInferOperation/stop/stop",
+            "isModelCredentialRefusal",
+            "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+            "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+            "openNodeInferOperation/operation/operation#51"
           ],
           "exports": [
-            "openNodeInferOperation"
+            "openNodeInferOperation",
+            "isModelCredentialRefusal"
           ],
           "attributes": {
             "responsibility": [
@@ -73736,6 +73740,7 @@
         "inferCopyFundingOriginal",
         "inferEvidenceCopyFunded",
         "inferOriginalReadCleanupComplete",
+        "isModelCredentialRefusal",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
         "originalInferCopyFunding",
@@ -73826,6 +73831,18 @@
           "parameters": [
             "read"
           ],
+          "async": false
+        },
+        {
+          "name": "isModelCredentialRefusal",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+          "parameters": [],
           "async": false
         },
         {
@@ -74275,6 +74292,15 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+          "parameters": [
+            "preparedCallSet",
+            "entered",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:prepareOriginalCaptureInventory/init:prepareOriginalCaptureInventory",
           "parameters": [
             "source"
@@ -74595,6 +74621,11 @@
         },
         {
           "name": "openNodeInferOperation/operation/operation#35",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#36",
           "parameters": [
             "control",
             "plan",
@@ -74605,22 +74636,10 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#36",
-          "parameters": [
-            "preparedCallSet",
-            "observe"
-          ],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation/operation/operation#37",
           "parameters": [
             "preparedCallSet",
-            "slot",
-            "record",
-            "proof",
-            "bundle",
-            "attachmentAdmission"
+            "observe"
           ],
           "async": false
         },
@@ -74629,8 +74648,10 @@
           "parameters": [
             "preparedCallSet",
             "slot",
-            "attempt",
-            "authority"
+            "record",
+            "proof",
+            "bundle",
+            "attachmentAdmission"
           ],
           "async": false
         },
@@ -74652,15 +74673,18 @@
         {
           "name": "openNodeInferOperation/operation/operation#40",
           "parameters": [
-            "token",
-            "response"
+            "preparedCallSet",
+            "slot",
+            "attempt",
+            "authority"
           ],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#41",
           "parameters": [
-            "settlement"
+            "token",
+            "response"
           ],
           "async": false
         },
@@ -74674,7 +74698,7 @@
         {
           "name": "openNodeInferOperation/operation/operation#43",
           "parameters": [
-            "slot"
+            "settlement"
           ],
           "async": false
         },
@@ -74695,6 +74719,13 @@
         {
           "name": "openNodeInferOperation/operation/operation#46",
           "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#47",
+          "parameters": [
             "control",
             "compiled",
             "runDefinition",
@@ -74705,12 +74736,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#47",
+          "name": "openNodeInferOperation/operation/operation#48",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#48",
+          "name": "openNodeInferOperation/operation/operation#49",
           "parameters": [
             "ledger",
             "maxSlots",
@@ -74721,7 +74752,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#49",
+          "name": "openNodeInferOperation/operation/operation#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#50",
           "parameters": [
             "control",
             "compiled",
@@ -74731,12 +74767,7 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/operation#50",
+          "name": "openNodeInferOperation/operation/operation#51",
           "parameters": [
             "binding",
             "result",
@@ -74780,7 +74811,9 @@
         {
           "name": "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
           "parameters": [
-            "callback"
+            "callback",
+            "request",
+            "credential"
           ],
           "async": false
         },
@@ -74872,7 +74905,8 @@
         {
           "name": "prepareWithOriginalRawSetter/set/set",
           "parameters": [
-            "callback"
+            "callback",
+            "credential"
           ],
           "async": false
         },
@@ -75000,7 +75034,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
+      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -79584,7 +79618,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
+      "sha256": "0c245d4b9a1c0d7aa9a6bd2b1722dab402941ab0ea3696412e15b1acaf75e220",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -79774,6 +79808,11 @@
         },
         {
           "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
           "parameters": [],
           "async": false
         },
@@ -80577,7 +80616,8 @@
             "installNodeModelContinuation/verifier/verifier#6",
             "installNodeModelContinuation/verifier/verifier#7",
             "installNodeModelContinuation/verifier/verifier#8",
-            "installNodeModelContinuation/verifier/verifier#9"
+            "installNodeModelContinuation/verifier/verifier#9",
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
           ],
           "exports": [
             "installNodeModelContinuation"

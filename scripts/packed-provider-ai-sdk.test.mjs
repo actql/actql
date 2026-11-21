@@ -68,6 +68,7 @@ async function fixture(t) {
       return {stdout: '', pid: 70000};
     }
     const phase = args[1], caseId = basename(dirname(options.cwd)); phases.push(phase);
+    assert(!Object.hasOwn(options.env, 'OPENAI_API_KEY'), 'Fixture must not inherit the operator credential');
     const modules = await lstat(join(options.cwd, 'node_modules'));
     assert(modules.isDirectory() && !modules.isSymbolicLink());
     const profilePath = join(options.cwd, 'case-profile.fixture.json');
@@ -84,7 +85,9 @@ async function fixture(t) {
     const pid = 70001 + phaseCalls.length;
     phaseCalls.push({case: caseId, phase, profile, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
     return {pid, stdout: JSON.stringify({phase,
-      firstCloseReturned: true, aliveScopedFD0: true, calls: phase === 'cold' ? 0 : phase === 'warm' ? 2 : 1,
+      firstCloseReturned: true, aliveScopedFD0: true,
+      calls: ['cold', 'missing-key'].includes(phase) ? 0 : phase === 'warm' ? 2 : 1,
+      ...(phase === 'missing-key' ? {credentialRefused: true} : {}),
       ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
         ? {egressChecks: 0, ...(profile.timeout === null ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
         : {tasks: 1, requests: 1, ...(profile.usage === null ? {} : {usageMode: profile.usage, usageCaptures: 1})}),
@@ -135,7 +138,8 @@ test('optional usage consumers retain separate fresh installations and warm shar
 test('optional timeout originals retain independent installations and same-profile cold Unknown without resend', async t => {
   const f = await fixture(t), result = await withFixtureGitHubSource(f.source.sha,
     () => runPackedProviderAI(join(f.root, 'timeouts'), f));
-  const required = [['warm', ['warm', 'cold']], ['usage-reported', ['usage-reported']],
+  const required = [['warm', ['warm', 'cold']], ['missing-key', ['missing-key']], ['rate-limit', ['rate-limit', 'cold']],
+    ['usage-reported', ['usage-reported']],
     ['usage-zero', ['usage-zero']], ['usage-absent', ['usage-absent']],
     ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']],
     ['timeout-call', ['timeout-call', 'cold']]];

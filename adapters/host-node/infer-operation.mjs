@@ -21,6 +21,18 @@ const cleanedOriginalReads = new WeakSet();
 const isPromise = utilTypes.isPromise;
 const observePromise = Promise.prototype.then;
 
+// Only a refusal from the same prepared physical credential port can end a
+// resumed Run through the existing stopped-Model failure path.
+class ModelCredentialRefusal extends Error {
+  constructor() {
+    super('OpenAIProjectCredentialUnavailable');
+    this.code = 'OpenAIProjectCredentialUnavailable';
+  }
+}
+export function isModelCredentialRefusal(error) {
+  return error instanceof ModelCredentialRefusal;
+}
+
 // A parent may retire this exact descriptor alias after the consumer's actual
 // Core cleanup. This observation issues no ACK and cannot mark another read,
 // release a Scope, or turn a stopped/unknown operation into completed cleanup.
@@ -84,9 +96,9 @@ const metadataUnavailable = () => { throw Object.assign(new Error('InferOriginal
 // after this synchronous constructor. Its mutable port is consumed once and
 // cleared even when the original physical factory refuses or throws.
 function prepareWithOriginalRawSetter(prepare, request, notification, retain) {
-  const set = callback => {
+  const set = (callback, credential) => {
     if (retain === undefined) throw new TypeError('InferRawCaptureBinderUnavailable');
-    retain(callback);
+    retain(callback, request, credential);
     retain = undefined;
   };
   try { return prepare(request, notification, set); }
@@ -248,6 +260,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
   let rawCaptureBound = false;
   let preparedRawCaptureBinders;
+  let credentialPreparations, credentialFailure;
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
@@ -585,6 +598,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalPublicationReceiver = undefined;
       rawCaptureBinder = undefined;
       preparedRawCaptureBinders = undefined;
+      credentialPreparations = credentialFailure = undefined;
       runtimeObservedCallSet = undefined;
       runtimeDiagnostic = undefined;
       assertRuntimeCurrent = undefined;
@@ -716,10 +730,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // The same original preparation envelope must cover this array/reference
   // and setter/callback overlap BEFORE preparation, not at later registration.
   // No provider-global map, slot scheduler or additional physical Call is used.
-  const retainRawCaptureBinder = callback => {
+  const retainRawCaptureBinder = (callback, request, credential) => {
     if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
         typeof callback !== 'function') {
       throw new TypeError('InferRawCaptureBinderUnavailable');
+    }
+    if (credential !== undefined) {
+      if (typeof credential !== 'function') throw new TypeError('InferCredentialPreparationUnavailable');
+      credentialPreparations ??= [];
+      credentialPreparations.push({request, prepare: credential});
     }
     preparedRawCaptureBinders ??= [];
     preparedRawCaptureBinders.push(callback);
@@ -1071,6 +1090,49 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Installation-only wake endpoint of this already claimed operation.
     // It is not an ACK, public capability or permission to begin another call.
     ioNotification,
+    hasModelCredentialPreparation: () => credentialPreparations !== undefined || credentialFailure !== undefined,
+    prepareModelCredentials(preparedCallSet, entered, assertCurrent) {
+      if (credentialFailure !== undefined) throw credentialFailure.cause;
+      if (credentialPreparations === undefined) return;
+      const preparations = credentialPreparations;
+      credentialPreparations = undefined;
+      try {
+        if (closing || reclaimed || rawCaptureBound || preparedCallSet === undefined ||
+            moon.clientProgramInferPreparedCallSet(active) !== preparedCallSet ||
+            egressAdmission === undefined) throw new TypeError('InferCredentialPreparationUnavailable');
+        const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
+        if (!Number.isSafeInteger(count) || count < preparations.length) {
+          throw new TypeError('InferCredentialPreparationUnavailable');
+        }
+        let next = 0;
+        for (let slot = 0; slot < count; slot++) {
+          if (entered.has(slot)) continue;
+          const original = preparations[next++];
+          if (original === undefined ||
+              moon.clientProgramInferPreparedRequest(preparedCallSet, slot) !== original.request) {
+            throw new TypeError('ForeignInferCredentialPreparation');
+          }
+        }
+        if (next !== preparations.length) throw new TypeError('ForeignInferCredentialPreparation');
+        for (const original of preparations) {
+          if (!runtimeCurrent()) throw new TypeError('InferCredentialPreparationUnavailable');
+          checked(moon.clientProgramCheckInferEgressCurrent(egressAdmission));
+          assertCurrent();
+          if (closing || reclaimed || rawCaptureBound ||
+              moon.clientProgramInferPreparedCallSet(active) !== preparedCallSet) {
+            throw new TypeError('InferCredentialPreparationUnavailable');
+          }
+          try { original.prepare(); }
+          catch (cause) {
+            if (cause?.code === 'OpenAIProjectCredentialUnavailable') throw new ModelCredentialRefusal();
+            throw cause;
+          }
+        }
+      } catch (cause) {
+        credentialFailure = {cause};
+        throw cause;
+      }
+    },
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
