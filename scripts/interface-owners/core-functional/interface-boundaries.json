@@ -137,6 +137,1337 @@
       "sha256": "236396748ba0f14df744026adb1862005e2fd5d9ef9e7d4284db7727bedcac79"
     },
     {
+      "module": "adapters/host-common/remote-site-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "remoteSiteControl",
+            "createRemoteSiteControl/site/init:admit/init:admit",
+            "createRemoteSiteControl/site/init:outputIntentProjection/init:outputIntentProjection",
+            "createRemoteSiteControl/site/init:prepare/init:prepare",
+            "createRemoteSiteControl/site/init:prepareCoordinatorObservation/init:prepareCoordinatorObservation",
+            "createRemoteSiteControl/site/init:prepareOutputIntent/init:prepareOutputIntent",
+            "createRemoteSiteControl/site/init:preparePublicationPayload/init:preparePublicationPayload",
+            "createRemoteSiteControl/site/init:restore/init:restore",
+            "createRemoteSiteControl/site/site",
+            "createRemoteSiteControl/site/site#10",
+            "createRemoteSiteControl/site/site#100",
+            "createRemoteSiteControl/site/site#101",
+            "createRemoteSiteControl/site/site#102",
+            "createRemoteSiteControl/site/site#103",
+            "createRemoteSiteControl/site/site#104",
+            "createRemoteSiteControl/site/site#105",
+            "createRemoteSiteControl/site/site#106",
+            "createRemoteSiteControl/site/site#107",
+            "createRemoteSiteControl/site/site#108",
+            "createRemoteSiteControl/site/site#109",
+            "createRemoteSiteControl/site/site#11",
+            "createRemoteSiteControl/site/site#110",
+            "createRemoteSiteControl/site/site#111",
+            "createRemoteSiteControl/site/site#112",
+            "createRemoteSiteControl/site/site#113",
+            "createRemoteSiteControl/site/site#12",
+            "createRemoteSiteControl/site/site#13",
+            "createRemoteSiteControl/site/site#14",
+            "createRemoteSiteControl/site/site#15",
+            "createRemoteSiteControl/site/site#16",
+            "createRemoteSiteControl/site/site#17",
+            "createRemoteSiteControl/site/site#18",
+            "createRemoteSiteControl/site/site#19",
+            "createRemoteSiteControl/site/site#2",
+            "createRemoteSiteControl/site/site#20",
+            "createRemoteSiteControl/site/site#21",
+            "createRemoteSiteControl/site/site#22",
+            "createRemoteSiteControl/site/site#23",
+            "createRemoteSiteControl/site/site#24",
+            "createRemoteSiteControl/site/site#25",
+            "createRemoteSiteControl/site/site#26",
+            "createRemoteSiteControl/site/site#27",
+            "createRemoteSiteControl/site/site#28",
+            "createRemoteSiteControl/site/site#29",
+            "createRemoteSiteControl/site/site#3",
+            "createRemoteSiteControl/site/site#30",
+            "createRemoteSiteControl/site/site#31",
+            "createRemoteSiteControl/site/site#32",
+            "createRemoteSiteControl/site/site#33",
+            "createRemoteSiteControl/site/site#34",
+            "createRemoteSiteControl/site/site#35",
+            "createRemoteSiteControl/site/site#36",
+            "createRemoteSiteControl/site/site#37",
+            "createRemoteSiteControl/site/site#38",
+            "createRemoteSiteControl/site/site#39",
+            "createRemoteSiteControl/site/site#4",
+            "createRemoteSiteControl/site/site#40",
+            "createRemoteSiteControl/site/site#41",
+            "createRemoteSiteControl/site/site#42",
+            "createRemoteSiteControl/site/site#43",
+            "createRemoteSiteControl/site/site#44",
+            "createRemoteSiteControl/site/site#45",
+            "createRemoteSiteControl/site/site#46",
+            "createRemoteSiteControl/site/site#47",
+            "createRemoteSiteControl/site/site#48",
+            "createRemoteSiteControl/site/site#49",
+            "createRemoteSiteControl/site/site#5",
+            "createRemoteSiteControl/site/site#50",
+            "createRemoteSiteControl/site/site#51",
+            "createRemoteSiteControl/site/site#52",
+            "createRemoteSiteControl/site/site#53",
+            "createRemoteSiteControl/site/site#54",
+            "createRemoteSiteControl/site/site#55",
+            "createRemoteSiteControl/site/site#56",
+            "createRemoteSiteControl/site/site#57",
+            "createRemoteSiteControl/site/site#58",
+            "createRemoteSiteControl/site/site#59",
+            "createRemoteSiteControl/site/site#6",
+            "createRemoteSiteControl/site/site#60",
+            "createRemoteSiteControl/site/site#61",
+            "createRemoteSiteControl/site/site#62",
+            "createRemoteSiteControl/site/site#63",
+            "createRemoteSiteControl/site/site#64",
+            "createRemoteSiteControl/site/site#65",
+            "createRemoteSiteControl/site/site#66",
+            "createRemoteSiteControl/site/site#67",
+            "createRemoteSiteControl/site/site#68",
+            "createRemoteSiteControl/site/site#69",
+            "createRemoteSiteControl/site/site#7",
+            "createRemoteSiteControl/site/site#70",
+            "createRemoteSiteControl/site/site#71",
+            "createRemoteSiteControl/site/site#72",
+            "createRemoteSiteControl/site/site#73",
+            "createRemoteSiteControl/site/site#74",
+            "createRemoteSiteControl/site/site#75",
+            "createRemoteSiteControl/site/site#76",
+            "createRemoteSiteControl/site/site#77",
+            "createRemoteSiteControl/site/site#78",
+            "createRemoteSiteControl/site/site#79",
+            "createRemoteSiteControl/site/site#8",
+            "createRemoteSiteControl/site/site#80",
+            "createRemoteSiteControl/site/site#81",
+            "createRemoteSiteControl/site/site#82",
+            "createRemoteSiteControl/site/site#83",
+            "createRemoteSiteControl/site/site#84",
+            "createRemoteSiteControl/site/site#85",
+            "createRemoteSiteControl/site/site#86",
+            "createRemoteSiteControl/site/site#87",
+            "createRemoteSiteControl/site/site#88",
+            "createRemoteSiteControl/site/site#89",
+            "createRemoteSiteControl/site/site#9",
+            "createRemoteSiteControl/site/site#90",
+            "createRemoteSiteControl/site/site#91",
+            "createRemoteSiteControl/site/site#92",
+            "createRemoteSiteControl/site/site#93",
+            "createRemoteSiteControl/site/site#94",
+            "createRemoteSiteControl/site/site#95",
+            "createRemoteSiteControl/site/site#96",
+            "createRemoteSiteControl/site/site#97",
+            "createRemoteSiteControl/site/site#98",
+            "createRemoteSiteControl/site/site#99"
+          ],
+          "exports": [
+            "remoteSiteControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "export function remoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "export function remoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "export function remoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "export function remoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/remote-site-control.mts",
+                "anchor": "function createRemoteSiteControl(moon: CommonSiteBindings)"
+              },
+              {
+                "path": "adapters/host-common/remote-dispatch-wire.test.mts",
+                "anchor": "test('managed output decoding binds canonical physical and logical facts"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRemoteSiteControl/site/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "The existing `RemoteRuntimeCustody` owns historical resource duties separately"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "observed Common record revision. It binds that request/revision to the existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "the same request, material and owner generation. No Source is reread and no new"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Restoration retains all three unresolved output, holding and bundle duties."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "not an independently numbered storage revision. Physical observers and durable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "retain the same obligations; absence of a lost process-local handle is not ACK."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "including after resources have been returned. Cleanup remains bound to the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/failed-partial-runtime-cleanup.md",
+                "anchor": "The selected controller checks exercise original binding, pending stop,"
+              },
+              {
+                "path": "scripts/workers-composition.test.mjs",
+                "anchor": "test('failed partial controller"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRemoteSiteControl/site/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The existing `RemoteRuntimeCustody` separates readable completed restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "completion in Active, Releasing or Unknown cleanup"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "material/holding/evidence binding and observed revision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "resource disposition must be reconstructed before planning release"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "and monotonic revision against that original binding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "resources return. The same existing cleanup planner checks the current record"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A settled operation is distinct from released resources."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "within the same custody. It introduces no additional owner, registry, handle,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The cleanup-only marker cannot be confirmed into readable restoration."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/workers-composition.test.mjs",
+                "anchor": "test('completed cleanup controller retains"
+              },
+              {
+                "path": "src/remote_site_protocol/runtime_restoration_test.mbt",
+                "anchor": "test \"cold completed cleanup retains"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "remoteSiteControl"
+      ],
+      "operations": [
+        {
+          "name": "createRemoteSiteControl/site/init:admit/init:admit",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:outputIntentProjection/init:outputIntentProjection",
+          "parameters": [
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:prepare/init:prepare",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:prepareCoordinatorObservation/init:prepareCoordinatorObservation",
+          "parameters": [
+            "record",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:prepareOutputIntent/init:prepareOutputIntent",
+          "parameters": [
+            "request",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:preparePublicationPayload/init:preparePublicationPayload",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:restore/init:restore",
+          "parameters": [
+            "record",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody",
+          "parameters": [
+            "record",
+            "evidence",
+            "subject",
+            "measurement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody",
+          "parameters": [
+            "record",
+            "expectedRevision",
+            "sourceRequestCid",
+            "sourceWire",
+            "materialGeneration",
+            "sourceMeasurementCid",
+            "measurement",
+            "sourceOwner",
+            "sourceGeneration",
+            "processRequestCid",
+            "processMaterialGeneration",
+            "processOwner",
+            "processGeneration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#10",
+          "parameters": [
+            "request",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#100",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#101",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#102",
+          "parameters": [
+            "journal",
+            "value",
+            "authorized"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#103",
+          "parameters": [
+            "value",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#104",
+          "parameters": [
+            "journal",
+            "replacement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#105",
+          "parameters": [
+            "restart",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#106",
+          "parameters": [
+            "restart",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#107",
+          "parameters": [
+            "value",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#108",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#109",
+          "parameters": [
+            "journal",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#11",
+          "parameters": [
+            "request",
+            "intent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#110",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#111",
+          "parameters": [
+            "admission"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#112",
+          "parameters": [
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#113",
+          "parameters": [
+            "journal",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#12",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#13",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#14",
+          "parameters": [
+            "body",
+            "output",
+            "subject",
+            "maxChunks",
+            "maxManifestBytes",
+            "maxReferencedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#15",
+          "parameters": [
+            "output",
+            "subject",
+            "payloadRequest",
+            "transferRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#16",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#17",
+          "parameters": [
+            "body",
+            "output",
+            "payloadRequest",
+            "transferRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#18",
+          "parameters": [
+            "output",
+            "payloadRequest",
+            "payloadDigest",
+            "transferRecord"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#19",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#2",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#20",
+          "parameters": [
+            "record",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#21",
+          "parameters": [
+            "body",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#22",
+          "parameters": [
+            "result",
+            "transferRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#23",
+          "parameters": [
+            "payloadRequest",
+            "transferRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#24",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#25",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#26",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#27",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#28",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#29",
+          "parameters": [
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#30",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#31",
+          "parameters": [
+            "record",
+            "evidence",
+            "subject",
+            "measurement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#32",
+          "parameters": [
+            "body",
+            "claimedRequestCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#33",
+          "parameters": [
+            "body",
+            "request",
+            "statusReply"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#34",
+          "parameters": [
+            "capability",
+            "issuer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#35",
+          "parameters": [
+            "authority"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#36",
+          "parameters": [
+            "journal",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#37",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#38",
+          "parameters": [
+            "value",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#39",
+          "parameters": [
+            "request",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#40",
+          "parameters": [
+            "request",
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#41",
+          "parameters": [
+            "record",
+            "request",
+            "notSeenBody",
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#42",
+          "parameters": [
+            "journal",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#43",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#44",
+          "parameters": [
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#45",
+          "parameters": [
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#46",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#47",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#48",
+          "parameters": [
+            "record",
+            "body",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#49",
+          "parameters": [
+            "transition",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#50",
+          "parameters": [
+            "record",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#51",
+          "parameters": [
+            "journal",
+            "output",
+            "payloadRequest",
+            "transferRequest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#52",
+          "parameters": [
+            "admission"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#53",
+          "parameters": [
+            "admission",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#54",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#55",
+          "parameters": [
+            "record",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#56",
+          "parameters": [
+            "transition",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#57",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#58",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#59",
+          "parameters": [
+            "record",
+            "revision",
+            "progress",
+            "resultJson"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#6",
+          "parameters": [
+            "body",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#60",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#61",
+          "parameters": [
+            "journal",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#62",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#63",
+          "parameters": [
+            "value",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#64",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#65",
+          "parameters": [
+            "value",
+            "capability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#66",
+          "parameters": [
+            "value",
+            "capability",
+            "issuer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#67",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#68",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#69",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#7",
+          "parameters": [
+            "value",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#70",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#71",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#72",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#73",
+          "parameters": [
+            "value",
+            "material",
+            "holding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#74",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#75",
+          "parameters": [
+            "issuer",
+            "record",
+            "evidenceSubjectCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#76",
+          "parameters": [
+            "measurement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#77",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#78",
+          "parameters": [
+            "measurement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#79",
+          "parameters": [
+            "body",
+            "claimedMeasurementCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#8",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#80",
+          "parameters": [
+            "dispatch",
+            "materialGeneration",
+            "retainedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#81",
+          "parameters": [
+            "dispatch",
+            "output",
+            "measurement",
+            "holdingEvidenceCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#82",
+          "parameters": [
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#83",
+          "parameters": [
+            "body",
+            "claimedSubjectCid",
+            "dispatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#84",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#85",
+          "parameters": [
+            "issuer",
+            "record",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#86",
+          "parameters": [
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#87",
+          "parameters": [
+            "body",
+            "claimedEvidenceCid",
+            "dispatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#88",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#89",
+          "parameters": [
+            "value",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#9",
+          "parameters": [
+            "body",
+            "claimedRequestCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#90",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#91",
+          "parameters": [
+            "record",
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#92",
+          "parameters": [
+            "value",
+            "cancelled",
+            "stopConfirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#93",
+          "parameters": [
+            "value",
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#94",
+          "parameters": [
+            "value",
+            "cancelled",
+            "stopConfirmed",
+            "resourcesReclaimed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#95",
+          "parameters": [
+            "value",
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#96",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#97",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#98",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteSiteControl/site/site#99",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteSiteControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "f1ce42ed3ebce235d919697d76f17afb9f204e76fcf9809e8dec7e80262fb92e"
+    },
+    {
       "module": "adapters/host-common/remote-transfer-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -3944,127 +5275,6 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "remoteSiteControl",
-            "remoteSiteControl/init:admit/init:admit",
-            "remoteSiteControl/init:outputIntentProjection/init:outputIntentProjection",
-            "remoteSiteControl/init:prepare/init:prepare",
-            "remoteSiteControl/init:prepareCoordinatorObservation/init:prepareCoordinatorObservation",
-            "remoteSiteControl/init:prepareOutputIntent/init:prepareOutputIntent",
-            "remoteSiteControl/init:preparePublicationPayload/init:preparePublicationPayload",
-            "remoteSiteControl/init:restore/init:restore",
-            "remoteSiteControl/remoteSiteControl",
-            "remoteSiteControl/remoteSiteControl#10",
-            "remoteSiteControl/remoteSiteControl#100",
-            "remoteSiteControl/remoteSiteControl#101",
-            "remoteSiteControl/remoteSiteControl#102",
-            "remoteSiteControl/remoteSiteControl#103",
-            "remoteSiteControl/remoteSiteControl#104",
-            "remoteSiteControl/remoteSiteControl#105",
-            "remoteSiteControl/remoteSiteControl#106",
-            "remoteSiteControl/remoteSiteControl#107",
-            "remoteSiteControl/remoteSiteControl#108",
-            "remoteSiteControl/remoteSiteControl#109",
-            "remoteSiteControl/remoteSiteControl#11",
-            "remoteSiteControl/remoteSiteControl#110",
-            "remoteSiteControl/remoteSiteControl#111",
-            "remoteSiteControl/remoteSiteControl#112",
-            "remoteSiteControl/remoteSiteControl#113",
-            "remoteSiteControl/remoteSiteControl#12",
-            "remoteSiteControl/remoteSiteControl#13",
-            "remoteSiteControl/remoteSiteControl#14",
-            "remoteSiteControl/remoteSiteControl#15",
-            "remoteSiteControl/remoteSiteControl#16",
-            "remoteSiteControl/remoteSiteControl#17",
-            "remoteSiteControl/remoteSiteControl#18",
-            "remoteSiteControl/remoteSiteControl#19",
-            "remoteSiteControl/remoteSiteControl#2",
-            "remoteSiteControl/remoteSiteControl#20",
-            "remoteSiteControl/remoteSiteControl#21",
-            "remoteSiteControl/remoteSiteControl#22",
-            "remoteSiteControl/remoteSiteControl#23",
-            "remoteSiteControl/remoteSiteControl#24",
-            "remoteSiteControl/remoteSiteControl#25",
-            "remoteSiteControl/remoteSiteControl#26",
-            "remoteSiteControl/remoteSiteControl#27",
-            "remoteSiteControl/remoteSiteControl#28",
-            "remoteSiteControl/remoteSiteControl#29",
-            "remoteSiteControl/remoteSiteControl#3",
-            "remoteSiteControl/remoteSiteControl#30",
-            "remoteSiteControl/remoteSiteControl#31",
-            "remoteSiteControl/remoteSiteControl#32",
-            "remoteSiteControl/remoteSiteControl#33",
-            "remoteSiteControl/remoteSiteControl#34",
-            "remoteSiteControl/remoteSiteControl#35",
-            "remoteSiteControl/remoteSiteControl#36",
-            "remoteSiteControl/remoteSiteControl#37",
-            "remoteSiteControl/remoteSiteControl#38",
-            "remoteSiteControl/remoteSiteControl#39",
-            "remoteSiteControl/remoteSiteControl#4",
-            "remoteSiteControl/remoteSiteControl#40",
-            "remoteSiteControl/remoteSiteControl#41",
-            "remoteSiteControl/remoteSiteControl#42",
-            "remoteSiteControl/remoteSiteControl#43",
-            "remoteSiteControl/remoteSiteControl#44",
-            "remoteSiteControl/remoteSiteControl#45",
-            "remoteSiteControl/remoteSiteControl#46",
-            "remoteSiteControl/remoteSiteControl#47",
-            "remoteSiteControl/remoteSiteControl#48",
-            "remoteSiteControl/remoteSiteControl#49",
-            "remoteSiteControl/remoteSiteControl#5",
-            "remoteSiteControl/remoteSiteControl#50",
-            "remoteSiteControl/remoteSiteControl#51",
-            "remoteSiteControl/remoteSiteControl#52",
-            "remoteSiteControl/remoteSiteControl#53",
-            "remoteSiteControl/remoteSiteControl#54",
-            "remoteSiteControl/remoteSiteControl#55",
-            "remoteSiteControl/remoteSiteControl#56",
-            "remoteSiteControl/remoteSiteControl#57",
-            "remoteSiteControl/remoteSiteControl#58",
-            "remoteSiteControl/remoteSiteControl#59",
-            "remoteSiteControl/remoteSiteControl#6",
-            "remoteSiteControl/remoteSiteControl#60",
-            "remoteSiteControl/remoteSiteControl#61",
-            "remoteSiteControl/remoteSiteControl#62",
-            "remoteSiteControl/remoteSiteControl#63",
-            "remoteSiteControl/remoteSiteControl#64",
-            "remoteSiteControl/remoteSiteControl#65",
-            "remoteSiteControl/remoteSiteControl#66",
-            "remoteSiteControl/remoteSiteControl#67",
-            "remoteSiteControl/remoteSiteControl#68",
-            "remoteSiteControl/remoteSiteControl#69",
-            "remoteSiteControl/remoteSiteControl#7",
-            "remoteSiteControl/remoteSiteControl#70",
-            "remoteSiteControl/remoteSiteControl#71",
-            "remoteSiteControl/remoteSiteControl#72",
-            "remoteSiteControl/remoteSiteControl#73",
-            "remoteSiteControl/remoteSiteControl#74",
-            "remoteSiteControl/remoteSiteControl#75",
-            "remoteSiteControl/remoteSiteControl#76",
-            "remoteSiteControl/remoteSiteControl#77",
-            "remoteSiteControl/remoteSiteControl#78",
-            "remoteSiteControl/remoteSiteControl#79",
-            "remoteSiteControl/remoteSiteControl#8",
-            "remoteSiteControl/remoteSiteControl#80",
-            "remoteSiteControl/remoteSiteControl#81",
-            "remoteSiteControl/remoteSiteControl#82",
-            "remoteSiteControl/remoteSiteControl#83",
-            "remoteSiteControl/remoteSiteControl#84",
-            "remoteSiteControl/remoteSiteControl#85",
-            "remoteSiteControl/remoteSiteControl#86",
-            "remoteSiteControl/remoteSiteControl#87",
-            "remoteSiteControl/remoteSiteControl#88",
-            "remoteSiteControl/remoteSiteControl#89",
-            "remoteSiteControl/remoteSiteControl#9",
-            "remoteSiteControl/remoteSiteControl#90",
-            "remoteSiteControl/remoteSiteControl#91",
-            "remoteSiteControl/remoteSiteControl#92",
-            "remoteSiteControl/remoteSiteControl#93",
-            "remoteSiteControl/remoteSiteControl#94",
-            "remoteSiteControl/remoteSiteControl#95",
-            "remoteSiteControl/remoteSiteControl#96",
-            "remoteSiteControl/remoteSiteControl#97",
-            "remoteSiteControl/remoteSiteControl#98",
-            "remoteSiteControl/remoteSiteControl#99",
             "runtimeCore",
             "runtimeCore/init:resultInventory/init:resultInventory",
             "runtimeCore/init:resultInventory/init:resultInventory/init:resultInventory",
@@ -8527,150 +9737,6 @@
               {
                 "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
                 "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "remoteSiteControl/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "The existing `RemoteRuntimeCustody` owns historical resource duties separately"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "observed Common record revision. It binds that request/revision to the existing"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "the same request, material and owner generation. No Source is reread and no new"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "Restoration retains all three unresolved output, holding and bundle duties."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "not an independently numbered storage revision. Physical observers and durable"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "retain the same obligations; absence of a lost process-local handle is not ACK."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "Stop remains pending until the existing physical Owner reports its confirmed"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "including after resources have been returned. Cleanup remains bound to the"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/failed-partial-runtime-cleanup.md",
-                "anchor": "The selected controller checks exercise original binding, pending stop,"
-              },
-              {
-                "path": "scripts/workers-composition.test.mjs",
-                "anchor": "test('failed partial controller"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "remoteSiteControl/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The existing `RemoteRuntimeCustody` separates readable completed restoration"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "completion in Active, Releasing or Unknown cleanup"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "material/holding/evidence binding and observed revision"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "resource disposition must be reconstructed before planning release"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "and monotonic revision against that original binding"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "resources return. The same existing cleanup planner checks the current record"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "A settled operation is distinct from released resources."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "within the same custody. It introduces no additional owner, registry, handle,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The cleanup-only marker cannot be confirmed into readable restoration."
-              }
-            ],
-            "verification": [
-              {
-                "path": "scripts/workers-composition.test.mjs",
-                "anchor": "test('completed cleanup controller retains"
-              },
-              {
-                "path": "src/remote_site_protocol/runtime_restoration_test.mbt",
-                "anchor": "test \"cold completed cleanup retains"
               }
             ]
           }
@@ -18873,976 +19939,6 @@
           "async": false
         },
         {
-          "name": "remoteSiteControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:admit/init:admit",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:outputIntentProjection/init:outputIntentProjection",
-          "parameters": [
-            "intent"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:prepare/init:prepare",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:prepareCoordinatorObservation/init:prepareCoordinatorObservation",
-          "parameters": [
-            "record",
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:prepareOutputIntent/init:prepareOutputIntent",
-          "parameters": [
-            "request",
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:preparePublicationPayload/init:preparePublicationPayload",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:restore/init:restore",
-          "parameters": [
-            "record",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:restoreCompletedCleanupRuntimeCustody/init:restoreCompletedCleanupRuntimeCustody",
-          "parameters": [
-            "record",
-            "evidence",
-            "subject",
-            "measurement"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/init:restoreFailedPartialRuntimeCustody/init:restoreFailedPartialRuntimeCustody",
-          "parameters": [
-            "record",
-            "expectedRevision",
-            "sourceRequestCid",
-            "sourceWire",
-            "materialGeneration",
-            "sourceMeasurementCid",
-            "measurement",
-            "sourceOwner",
-            "sourceGeneration",
-            "processRequestCid",
-            "processMaterialGeneration",
-            "processOwner",
-            "processGeneration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#10",
-          "parameters": [
-            "request",
-            "intent"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#100",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#101",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#102",
-          "parameters": [
-            "journal",
-            "value",
-            "authorized"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#103",
-          "parameters": [
-            "value",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#104",
-          "parameters": [
-            "journal",
-            "replacement"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#105",
-          "parameters": [
-            "restart",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#106",
-          "parameters": [
-            "restart",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#107",
-          "parameters": [
-            "value",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#108",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#109",
-          "parameters": [
-            "journal",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#11",
-          "parameters": [
-            "request",
-            "intent"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#110",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#111",
-          "parameters": [
-            "admission"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#112",
-          "parameters": [
-            "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#113",
-          "parameters": [
-            "journal",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#12",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#13",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#14",
-          "parameters": [
-            "body",
-            "output",
-            "subject",
-            "maxChunks",
-            "maxManifestBytes",
-            "maxReferencedBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#15",
-          "parameters": [
-            "output",
-            "subject",
-            "payloadRequest",
-            "transferRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#16",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#17",
-          "parameters": [
-            "body",
-            "output",
-            "payloadRequest",
-            "transferRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#18",
-          "parameters": [
-            "output",
-            "payloadRequest",
-            "payloadDigest",
-            "transferRecord"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#19",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#2",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#20",
-          "parameters": [
-            "record",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#21",
-          "parameters": [
-            "body",
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#22",
-          "parameters": [
-            "result",
-            "transferRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#23",
-          "parameters": [
-            "payloadRequest",
-            "transferRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#24",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#25",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#26",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#27",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#28",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#29",
-          "parameters": [
-            "body",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#30",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#31",
-          "parameters": [
-            "record",
-            "evidence",
-            "subject",
-            "measurement"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#32",
-          "parameters": [
-            "body",
-            "claimedRequestCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#33",
-          "parameters": [
-            "body",
-            "request",
-            "statusReply"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#34",
-          "parameters": [
-            "capability",
-            "issuer"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#35",
-          "parameters": [
-            "authority"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#36",
-          "parameters": [
-            "journal",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#37",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#38",
-          "parameters": [
-            "value",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#39",
-          "parameters": [
-            "request",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#40",
-          "parameters": [
-            "request",
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#41",
-          "parameters": [
-            "record",
-            "request",
-            "notSeenBody",
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#42",
-          "parameters": [
-            "journal",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#43",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#44",
-          "parameters": [
-            "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#45",
-          "parameters": [
-            "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#46",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#47",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#48",
-          "parameters": [
-            "record",
-            "body",
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#49",
-          "parameters": [
-            "transition",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#50",
-          "parameters": [
-            "record",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#51",
-          "parameters": [
-            "journal",
-            "output",
-            "payloadRequest",
-            "transferRequest"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#52",
-          "parameters": [
-            "admission"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#53",
-          "parameters": [
-            "admission",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#54",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#55",
-          "parameters": [
-            "record",
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#56",
-          "parameters": [
-            "transition",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#57",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#58",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#59",
-          "parameters": [
-            "record",
-            "revision",
-            "progress",
-            "resultJson"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#6",
-          "parameters": [
-            "body",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#60",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#61",
-          "parameters": [
-            "journal",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#62",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#63",
-          "parameters": [
-            "value",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#64",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#65",
-          "parameters": [
-            "value",
-            "capability"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#66",
-          "parameters": [
-            "value",
-            "capability",
-            "issuer"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#67",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#68",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#69",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#7",
-          "parameters": [
-            "value",
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#70",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#71",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#72",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#73",
-          "parameters": [
-            "value",
-            "material",
-            "holding"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#74",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#75",
-          "parameters": [
-            "issuer",
-            "record",
-            "evidenceSubjectCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#76",
-          "parameters": [
-            "measurement"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#77",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#78",
-          "parameters": [
-            "measurement"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#79",
-          "parameters": [
-            "body",
-            "claimedMeasurementCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#8",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#80",
-          "parameters": [
-            "dispatch",
-            "materialGeneration",
-            "retainedBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#81",
-          "parameters": [
-            "dispatch",
-            "output",
-            "measurement",
-            "holdingEvidenceCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#82",
-          "parameters": [
-            "subject"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#83",
-          "parameters": [
-            "body",
-            "claimedSubjectCid",
-            "dispatch"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#84",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#85",
-          "parameters": [
-            "issuer",
-            "record",
-            "subject"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#86",
-          "parameters": [
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#87",
-          "parameters": [
-            "body",
-            "claimedEvidenceCid",
-            "dispatch"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#88",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#89",
-          "parameters": [
-            "value",
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#9",
-          "parameters": [
-            "body",
-            "claimedRequestCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#90",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#91",
-          "parameters": [
-            "record",
-            "custody"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#92",
-          "parameters": [
-            "value",
-            "cancelled",
-            "stopConfirmed"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#93",
-          "parameters": [
-            "value",
-            "custody"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#94",
-          "parameters": [
-            "value",
-            "cancelled",
-            "stopConfirmed",
-            "resourcesReclaimed"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#95",
-          "parameters": [
-            "value",
-            "custody"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#96",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#97",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#98",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/remoteSiteControl#99",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore",
           "parameters": [
             "moon"
@@ -20078,6 +20174,7 @@
         "./publication-action.mjs",
         "./remote-bundle-control.mjs",
         "./remote-credential-control.mjs",
+        "./remote-site-control.mjs",
         "./remote-standard-source-control.mjs",
         "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
@@ -20087,7 +20184,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0fbaa78f773b0ca0ec554191321af56c4d4c2849cb05a1dd7e6eb7579831851b"
+      "sha256": "7e17c407ff723f78a9e45cbbda5172c66dfbe203ff15902d646bc0e33e866507"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

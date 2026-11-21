@@ -1,17 +1,22 @@
-const fail = (code, cause) => {
+import type {remoteSiteControl} from './remote-site-control.mjs';
+
+type SiteControl = ReturnType<typeof remoteSiteControl>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
-const checkedBody = (bodyText, maxBytes, code) => {
+const checkedBody: (bodyText: unknown, maxBytes: number, code: string) => asserts bodyText is string =
+  (bodyText, maxBytes, code) => {
   if (!text(bodyText) || !Number.isSafeInteger(maxBytes) || maxBytes <= 0 ||
       new TextEncoder().encode(bodyText).byteLength > maxBytes) {
     fail(code);
   }
 };
 
-const admitted = (operation, code) => {
+const admitted = <Value,>(operation: () => Value, code: string): Value => {
   try {
     return operation();
   } catch (error) {
@@ -20,9 +25,9 @@ const admitted = (operation, code) => {
 };
 
 export function admitRemoteDispatchJson(
-  control,
-  bodyText,
-  claimedRequestCid,
+  control: Pick<SiteControl, 'admitJson'>,
+  bodyText: unknown,
+  claimedRequestCid: unknown,
   maxBytes = 65_536,
 ) {
   if (control === null || typeof control !== 'object' ||
@@ -37,10 +42,10 @@ export function admitRemoteDispatchJson(
 }
 
 export function admitRemoteExecutionEvidenceJson(
-  control,
-  bodyText,
-  claimedEvidenceCid,
-  dispatch,
+  control: Pick<SiteControl, 'admitExecutionEvidenceJson'>,
+  bodyText: unknown,
+  claimedEvidenceCid: unknown,
+  dispatch: unknown,
   maxBytes = 65_536,
 ) {
   if (control === null || typeof control !== 'object' ||
@@ -60,10 +65,10 @@ export function admitRemoteExecutionEvidenceJson(
 }
 
 export function admitRemoteManagedOutputSubjectJson(
-  control,
-  bodyText,
-  claimedSubjectCid,
-  dispatch,
+  control: Pick<SiteControl, 'admitManagedOutputSubjectJson'>,
+  bodyText: unknown,
+  claimedSubjectCid: unknown,
+  dispatch: unknown,
   maxBytes = 65_536,
 ) {
   if (control === null || typeof control !== 'object' ||
@@ -83,9 +88,9 @@ export function admitRemoteManagedOutputSubjectJson(
 }
 
 export function admitRemoteManagedOutputMeasurementJson(
-  control,
-  bodyText,
-  claimedMeasurementCid,
+  control: Pick<SiteControl, 'admitManagedOutputMeasurementJson'>,
+  bodyText: unknown,
+  claimedMeasurementCid: unknown,
   maxBytes = 262_144,
 ) {
   if (control === null || typeof control !== 'object' ||

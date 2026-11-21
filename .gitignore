@@ -1669,5 +1669,11 @@ target/
 /adapters/site-node/sqlite-transfer-store-journal.d.mts
 /adapters/site-node/sqlite-transfer-store-journal.test.mjs
 /adapters/site-node/sqlite-transfer-store-journal.test.d.mts
+/adapters/host-common/remote-site-control.mjs
+/adapters/host-common/remote-site-control.d.mts
+/adapters/host-common/remote-dispatch-wire.mjs
+/adapters/host-common/remote-dispatch-wire.d.mts
+/adapters/host-common/remote-dispatch-wire.test.mjs
+/adapters/host-common/remote-dispatch-wire.test.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts

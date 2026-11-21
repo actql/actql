@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {remoteSiteControl} from './remote-site-control.mjs';
+import type {siteControl} from './site-control.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
@@ -11,9 +12,16 @@ import {
 } from
   './remote-dispatch-wire.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
 
-const runtime = runtimeCore(moon);
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+
+const runtime = runtimeCore(moon) as Readonly<{
+  remoteSiteControl: ReturnType<typeof remoteSiteControl>;
+  siteControl: ReturnType<typeof siteControl>;
+}>;
 const control = runtime.remoteSiteControl;
 
 const prepared = () => control.prepare(Object.freeze({
