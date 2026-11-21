@@ -1334,6 +1334,19 @@ fn QueryParser::mark_positional_output(
 }
 
 ///|
+fn QueryParser::retire_anonymous_projection_demands(
+  self : QueryParser,
+  projections : Array[Projection],
+) -> Unit raise QueryAbort {
+  for projection in projections {
+    self.spend(1)
+    if projection.star is None && projection_public_name(projection) is None {
+      self.source.anonymous_output_demands -= 1
+    }
+  }
+}
+
+///|
 // In a fresh parenthesized positional RHS, a terminal SELECT can still use
 // the existing positional slots. Keep every demand from nested producers,
 // intermediate projections and unrecognized continuations.
@@ -1401,13 +1414,7 @@ fn QueryParser::retire_positional_output_demands(
             range = Some(path[0])
           }
         } else {
-          for projection in projections {
-            self.spend(1)
-            if projection.star is None &&
-              projection_public_name(projection) is None {
-              self.source.anonymous_output_demands -= 1
-            }
-          }
+          self.retire_anonymous_projection_demands(projections)
           return
         }
       }
@@ -3330,6 +3337,7 @@ fn QueryParser::pipe_tail(
       if self.source_depth >= 32 {
         raise QueryAbort("Subquery depth limit", self.peek().start)
       }
+      let direct_pipe = self.has("FROM")
       self.source_depth += 1
       let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
@@ -3342,6 +3350,17 @@ fn QueryParser::pipe_tail(
           parsed
         }
       } else {
+        // A strict named set requires genuine names from its direct right
+        // output. Its terminal SELECT needs no anonymous display names.
+        // Keep all demand from producers, intermediate projections and tails.
+        if direct_pipe &&
+          !inner_by_name &&
+          self.source.anonymous_output_demands > 0 &&
+          parsed.sets.is_empty() &&
+          parsed.final_operations.is_empty() &&
+          parsed.operations.last() is Some(Select(projections, _)) {
+          self.retire_anonymous_projection_demands(projections)
+        }
         parsed
       }
       let right = if !parsed.sets.is_empty() {

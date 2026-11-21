@@ -174,6 +174,23 @@ test "parenthesized positional operands only retire the original terminal projec
 }
 
 ///|
+test "strict Pipe BY NAME retires only a direct terminal projection demand" {
+  let head = "FROM records |> SELECT id AS value |> UNION ALL BY NAME "
+  let direct = head + "(FROM records |> SELECT -amount)"
+  let query = parse_query(direct, selected_query_limits()).unwrap()
+  assert_false(anonymous_output_context_required(query))
+  for
+    operand in [
+      "(FROM records |> SELECT -amount, id |> SELECT id)", "(FROM records |> SELECT -amount |> LIMIT 1)",
+      "(SELECT -amount FROM records)",
+    ] {
+    let source = head + operand
+    let query = parse_query(source, selected_query_limits()).unwrap()
+    assert_true(anonymous_output_context_required(query), msg=source)
+  }
+}
+
+///|
 test "published namespace geometry follows resolved producer originals" {
   for
     source in [

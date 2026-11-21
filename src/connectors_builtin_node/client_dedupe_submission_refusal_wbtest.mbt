@@ -237,9 +237,11 @@ extern "js" fn request_original_corresponding_fixture(
   #|  const {setCorrespondingRefusals, setCorrespondingSuccesses} =
   #|    loader('../../../../../scripts/fixtures/set-corresponding-source-input.mjs');
   #|  const {setJoinRefusals} = loader('../../../../../scripts/fixtures/set-join-source-input.mjs');
+  #|  const {graphRowSourceRefusals} = loader('../../../../../scripts/fixtures/graph-row-source-input.mjs');
   #|  const fixture = setCorrespondingRefusals.find(item => item.name === name)
   #|    ?? setCorrespondingSuccesses.find(item => item.name === name)
-  #|    ?? setJoinRefusals.find(item => item.name === name);
+  #|    ?? setJoinRefusals.find(item => item.name === name)
+  #|    ?? graphRowSourceRefusals.find(item => item.name === name);
   #|  if (!fixture || (fixture.sourceRows?.length ?? 0) !== 0)
   #|    throw new Error('ChangedOriginalCorrespondingFixture');
   #|  return {kind: 'aql', input: {format: fixture.format, text: fixture.text}, parameters: null};
@@ -295,18 +297,20 @@ fn check_request_original_corresponding_fixture(
   name : String,
   refusal : Bool,
   numeric? : Bool = false,
+  graph? : Bool = false,
 ) -> Unit raise {
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
   let environment = @publication_host.admit_client_check_environment(
     request_corresponding_publication_fixture(loader, "environment"),
     request_corresponding_publication_fixture(loader, "cid"),
     { text_time: true, veca: false, },
-    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+    { rela: true, sga: graph, tea: true, calendar: false, text_rank: false, },
     numeric_profile_cid=if numeric {
       Some(request_corresponding_publication_fixture(loader, "numeric_cid"))
     } else {
       None
     },
+    graph~,
   ).unwrap()
   let publication = @source_publication.prepare_published_query_environment(
     environment,
@@ -359,7 +363,9 @@ fn check_request_original_corresponding_fixture(
         QueryLowering(
           Publication(Frontend(QueryLowering(UnsupportedProjection)))
         )
-      ) => name == "set-corresponding-refuse-parenthesized-by-name"
+      ) =>
+        name == "set-corresponding-refuse-parenthesized-by-name" ||
+        name == "graph-row-set-anonymous-by-name"
       _ => false
     }
     assert_true(original_cause, msg=reason)
@@ -388,6 +394,15 @@ test "Request original parenthesized BY NAME refusal retains its typed cause" {
 test "Request original joined anonymous BY NAME retains its typed cause" {
   check_request_original_corresponding_fixture(
     "set-join-refuse-anonymous-by-name", true,
+  )
+}
+
+///|
+test "Request original graph-row anonymous BY NAME retains its typed cause" {
+  check_request_original_corresponding_fixture(
+    "graph-row-set-anonymous-by-name",
+    true,
+    graph=true,
   )
 }
 
