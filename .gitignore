@@ -1529,3 +1529,7 @@ target/
 /adapters/store-local/prepared-publication-schema-owner.d.mts
 /adapters/store-local/publication-semantic-reader.mjs
 /adapters/store-local/publication-semantic-reader.d.mts
+/adapters/store-local/publication-trusted-clock.mjs
+/adapters/store-local/publication-trusted-clock.d.mts
+/adapters/store-local/clock-read-bound.test.mjs
+/adapters/store-local/clock-read-bound.test.d.mts

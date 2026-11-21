@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "91d70ef6b00c4fa7f448bc46ee56d3ece11ffeda239766f1962f41524e92af88",
+      "sha256": "7b0d65bf2d27b202a54a254707561dc6b2f615519de8afebc4a8a1107d8e8f07",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7073,26 +7073,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/init:close/init:close",
           "parameters": [],
           "async": false
@@ -7460,14 +7440,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
-          "parameters": [
-            "clockContractCid",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
           "parameters": [],
           "async": false
@@ -7766,13 +7738,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
-          "parameters": [
-            "clockContractCid"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
           "parameters": [
             "key",
@@ -8061,28 +8026,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock",
-          "parameters": [
-            "clockContractCid",
-            "sample"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt",
           "parameters": [
             "name"
@@ -8095,35 +8038,6 @@
             "objects"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock#2",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
@@ -8680,7 +8594,6 @@
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
             "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
-            "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
@@ -8705,7 +8618,6 @@
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
-            "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
             "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
@@ -8736,7 +8648,6 @@
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
@@ -9029,7 +8940,7 @@
                 "anchor": "const runMetadataDeletionStarted = async (runDefinitionCid: unknown) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-trusted-clock.mts",
                 "anchor": "lastClockObservation = {clockContractCid,state,value,checksummed:true};"
               },
               {
@@ -10940,164 +10851,6 @@
           }
         },
         {
-          "operations": [
-            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/status/status",
-            "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock",
-            "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const updateTrustedClock = (clockContractCid, suppliedAt, sample) => {"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readClockObservation = async clockContractCid =>"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const activePhysicalRecordWriters = new Set();"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "clockObservationsPending++;"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "fail('PublicationClockUncertain');"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-clock-commit.test.mjs",
-                "anchor": "test('clock commit retains Store ownership through queued and pending file sync'"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const bytes = checked.byteLength <= configuration.maxObjectBytes"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "They retain the original atomic replacement protocol."
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-clock-commit.test.mjs",
-                "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [],
           "attributes": {
@@ -12524,6 +12277,294 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-trusted-clock.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c394116df863f67590e8f09000caf4278cff41f946dd1a40d632a77c16e329d4",
+      "exports": [
+        "createPublicationTrustedClock"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationTrustedClock",
+          "parameters": [
+            "configuration",
+            "clocksDirectory",
+            "contractControl",
+            "activePhysicalRecordWriters",
+            "active",
+            "cidHex",
+            "syncDirectory"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/createPublicationTrustedClock",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/flushClockFile/flushClockFile/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/observeTrustedClock/observeTrustedClock",
+          "parameters": [
+            "clockContractCid",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/readClockObservation/readClockObservation",
+          "parameters": [
+            "clockContractCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationTrustedClock/sameClockFile/sameClockFile/sameClockFile",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/sampleTrustedClock/sampleTrustedClock",
+          "parameters": [
+            "clockContractCid",
+            "sample"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation/operation",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/updateTrustedClock",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/updateTrustedClock#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationTrustedClock",
+            "createPublicationTrustedClock/createPublicationTrustedClock",
+            "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
+            "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
+            "createPublicationTrustedClock/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
+            "createPublicationTrustedClock/flushClockFile/flushClockFile/status/status",
+            "createPublicationTrustedClock/observeTrustedClock/observeTrustedClock",
+            "createPublicationTrustedClock/readClockObservation/readClockObservation",
+            "createPublicationTrustedClock/sameClockFile/sameClockFile/sameClockFile",
+            "createPublicationTrustedClock/sampleTrustedClock/sampleTrustedClock",
+            "createPublicationTrustedClock/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
+            "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation",
+            "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation/operation",
+            "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
+            "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/updateTrustedClock",
+            "createPublicationTrustedClock/updateTrustedClock/updateTrustedClock/updateTrustedClock#2"
+          ],
+          "exports": [
+            "createPublicationTrustedClock"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "const updateTrustedClock = (clockContractCid: string, suppliedAt: unknown, sample?: () => unknown) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "const readClockObservation = async (clockContractCid: string) =>"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const activePhysicalRecordWriters = new Set();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "clockObservationsPending++;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "fail('PublicationClockUncertain');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-clock-commit.test.mjs",
+                "anchor": "test('clock commit retains Store ownership through queued and pending file sync'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "const bytes = checked.byteLength <= configuration.maxObjectBytes"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-trusted-clock.mts",
+                "anchor": "They retain the original atomic replacement protocol."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-clock-commit.test.mjs",
+                "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/store-local/clock-read-bound.test.mts",
+                "anchor": "real clock FD enlargement refuses before allocating its output buffer"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-semantic-reader.mjs",
