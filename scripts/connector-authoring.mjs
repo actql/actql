@@ -51,6 +51,15 @@ function installedReadValidator(authorRoot) {
   return method.value.bind(namespace);
 }
 
+// The packed author runner uses the same manifest contract as the generator
+// before npm can run a caller-owned lifecycle or resolve another dependency.
+export function restConnectorPackageMetadata(id, hostPackageVersion) {
+  return {name: `@actql-connectors/${id.replaceAll('_', '-')}`,
+    version: '0.0.1', type: 'module',
+    peerDependencies: {'@actql/local-node': hostPackageVersion},
+    exports: {'.': './index.mjs'}, files: ['index.mjs', 'src/connectors', 'adapters/connectors']};
+}
+
 export function projectRestConnector(definition, {hostPackageVersion = selectedHostVersion, authorRoot} = {}) {
   if (!shape(definition, ['version', 'id', 'origin', 'auth', 'sources'], ['transform']) ||
       definition.version !== 'actql-rest-connector/0.1' || !name(definition.id) ||
@@ -111,11 +120,7 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
     `export const publish = installation.publish;\n` +
     `export const load = installation.load;\n`;
   return freeze({registration: id, profileVersion, manifest,
-    files: {'package.json': JSON.stringify({name: `@actql-connectors/${id.replaceAll('_', '-')}`,
-      version: '0.0.1', type: 'module',
-      peerDependencies: {'@actql/local-node': hostPackageVersion},
-      exports: {'.': './index.mjs'},
-      files: ['index.mjs', 'src/connectors', 'adapters/connectors']}, null, 2) + '\n',
+    files: {'package.json': JSON.stringify(restConnectorPackageMetadata(id, hostPackageVersion), null, 2) + '\n',
       [`src/connectors/${id}/host-bundle.json`]: JSON.stringify(manifest, null, 2) + '\n',
       [definitionPath]: JSON.stringify(projected, null, 2) + '\n',
       [viewsPath]: JSON.stringify({views: sources.map(({resource, resource_kind, fields}) =>
