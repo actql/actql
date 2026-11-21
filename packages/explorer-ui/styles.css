@@ -24,6 +24,11 @@
 .actql-explorer dd { margin: 0 0 8px; font-family: monospace; }
 .actql-explorer-unavailable { display: flex; gap: 8px; padding: 12px 24px; background: var(--actql-muted); }
 .actql-explorer-flow { height: 520px; width: 100%; }
+.actql-explorer .react-flow__controls { border: 1px solid var(--actql-border);
+  border-radius: 8px; overflow: hidden; box-shadow: none; }
+.actql-explorer .react-flow__controls-button { display: grid; place-items: center;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 0; }
+.actql-explorer .react-flow__controls-button + button { border-top: 1px solid var(--actql-border); }
 .actql-explorer-flow-metadata { padding: 12px 24px; border-top: 1px solid var(--actql-border); overflow-wrap: anywhere; }
 .actql-explorer-flow-metadata > summary { cursor: pointer; font-weight: 600; }
 .actql-explorer-node { box-sizing: border-box; padding: 16px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }

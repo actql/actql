@@ -2,12 +2,12 @@ export {CheckpointPanel} from './checkpoint-panel.js';
 export {CancellationPanel} from './cancellation-panel.js';
 export {RunInspector} from './run-inspector.js';
 import {useEffect, useMemo, useState} from 'react';
-import {ReactFlow, Handle, Position, BaseEdge, getBezierPath, type EdgeProps, type NodeProps, type Node, type Edge} from '@xyflow/react';
+import {ReactFlow, Controls, Handle, Position, BaseEdge, getBezierPath, type EdgeProps, type NodeProps, type Node, type Edge} from '@xyflow/react';
 import {Button} from '@base-ui/react/button';
 import {Workflow, List, CircleHelp} from 'lucide-react';
 import type {PlanReadModel} from './read-model.js';
 import {flowPresentation} from './flow-model.mjs';
-import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight} from './flow-layout.mjs';
+import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight, flowPortOffsets} from './flow-layout.mjs';
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
@@ -15,6 +15,7 @@ type LogicalNode = Node<{original: Logical; presentation?: {title?: string; stat
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;
   const title = data.presentation?.title ?? (original.names.join(', ') || original.operator || 'Input / output');
+  const offsets = flowPortOffsets(original.ports);
   return <div className="actql-explorer-node" data-selected={selected}
     style={{width: flowNodeWidth, height: flowNodeHeight(original.ports.length)}}>
     <div className="actql-explorer-kind">{original.operator}</div>
@@ -22,16 +23,16 @@ function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
     <p>{data.presentation?.state ?? original.kind}</p>
     {original.ports.map((port, index) => <Handle key={port.port_id} id={port.port_id}
       type={port.role === 'input' ? 'target' : 'source'}
-      position={port.role === 'input' ? Position.Left : Position.Right}
-      isConnectable={false} style={{top: 28 + index * 18}}
+      position={port.role === 'input' ? Position.Top : Position.Bottom}
+      isConnectable={false} style={{left: offsets[index]}}
       aria-label={`${port.role} ${port.port_ordinal}: ${port.carrier}`}/>)}
   </div>;
 }
 const nodeTypes = {logical: LogicalCard};
 function OriginalEdge({id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label}: EdgeProps) {
   const [path] = getBezierPath({sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition});
-  return <><BaseEdge id={id} path={path}/><text x={targetX - 12} y={targetY - 4}
-    textAnchor="end" className="actql-explorer-edge-label">{label}</text></>;
+  return <><BaseEdge id={id} path={path}/><text x={targetX} y={targetY - 9}
+    textAnchor="middle" className="actql-explorer-edge-label">{label}</text></>;
 }
 // Keep parallel Join input labels at their original target ports, rather than
 // overlapping at the midpoint shared by two edges from one producer.
@@ -77,6 +78,7 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     width: flowNodeWidth, height: flowNodeHeight(node.data.original.ports.length),
   })) : [], [currentLayout, flow, selection, workspace]);
   const original = model.nodes.find(node => node.id === selection);
+  const focus = placed.find(node=>node.id === selection) ?? placed[0];
   const originalMetadata = <>
     <dl className="actql-explorer-identities"><dt>Compiled Plan</dt><dd>{model.compiledPlanCid}</dd>
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
@@ -111,7 +113,7 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     <header className="actql-explorer-header">
       <div>{!workspace && <p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>}
         <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
-        <p>Recorded ports. Layout does not indicate execution order.</p></div>
+        <p>Data dependencies · layout does not indicate execution order.</p></div>
       <nav aria-label="Plan presentation">
         <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
         <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
@@ -120,10 +122,13 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     {mode === 'list' && originalMetadata}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div className="actql-explorer-flow">
       <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+        fitViewOptions={focus ? {nodes: [{id: focus.id}], minZoom: 0.9, maxZoom: 1, padding: 0.12} : undefined}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
         connectOnClick={false} deleteKeyCode={null} zoomOnDoubleClick={false}
         onNodeClick={(_, node) => selectOriginal(node.id)}
-        minZoom={0.2} maxZoom={2} aria-label="Original logical ports"/>
+        minZoom={0.2} maxZoom={2} aria-label="Original logical ports">
+        <Controls position="top-right" showInteractive={false} aria-label="Graph zoom"/>
+      </ReactFlow>
     </div> : <p role="status" className="actql-explorer-unavailable">
       {currentLayout?.state === 'unavailable'
         ? 'Flow layout unavailable. Use List to inspect the original occurrences.'

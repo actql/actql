@@ -4,6 +4,11 @@ import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';
 export const flowLayoutDeadlineMs = 5000;
 export const flowNodeWidth = 260;
 export const flowNodeHeight = ports => 108 + ports * 18;
+export function flowPortOffsets(ports) {
+  const totals = {input: 0, output: 0}, seen = {input: 0, output: 0};
+  for (const {role} of ports) totals[role]++;
+  return ports.map(({role}) => flowNodeWidth * ++seen[role] / (totals[role] + 1));
+}
 const refuse = () => { throw new ExplorerReadError('ExplorerInvalidLayout'); };
 
 /** Strip names, source text and all non-layout data before crossing the Worker.
@@ -49,16 +54,21 @@ export function elkGraph(input) {
     if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.ports) || (count += node.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
-    const declared = node.ports.map((port, index) => {
+    const declared = node.ports.map(port => {
       if (typeof port.id !== 'string' || port.id.length < 1 || port.id.length > 256 || ports.has(port.id) ||
           !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.id, port.role);
-      return {id: `port:${port.id}`, width: 0, height: 0,
-        x: port.role === 'input' ? 0 : flowNodeWidth, y: 28 + index * 18,
-        layoutOptions: {'elk.port.side': port.role === 'input' ? 'WEST' : 'EAST'}};
+      return port;
+    });
+    const offsets = flowPortOffsets(declared);
+    const positioned = declared.map((port, index) => {
+      const input = port.role === 'input';
+      return {id: `port:${port.id}`, width: 0, height: 0, x: offsets[index],
+        y: input ? 0 : flowNodeHeight(declared.length),
+        layoutOptions: {'elk.port.side': input ? 'NORTH' : 'SOUTH'}};
     });
     return {id: `node:${node.id}`, width: flowNodeWidth, height: flowNodeHeight(node.ports.length),
-      layoutOptions: {'elk.portConstraints': 'FIXED_POS'}, ports: declared};
+      layoutOptions: {'elk.portConstraints': 'FIXED_POS'}, ports: positioned};
   });
   const edgeIds = new Set();
   const edges = input.edges.map(edge => {
@@ -67,8 +77,8 @@ export function elkGraph(input) {
     edgeIds.add(edge.id);
     return {id: `edge:${edge.id}`, sources: [`port:${edge.source}`], targets: [`port:${edge.target}`]};
   });
-  return {id: 'layout:root', layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'RIGHT',
-    'elk.spacing.nodeNode': '48', 'elk.layered.spacing.nodeNodeBetweenLayers': '80'}, children, edges};
+  return {id: 'layout:root', layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'DOWN',
+    'elk.spacing.nodeNode': '32', 'elk.layered.spacing.nodeNodeBetweenLayers': '48'}, children, edges};
 }
 
 /** Accept placement only. ELK cannot replace edges, nodes, handles or labels. */

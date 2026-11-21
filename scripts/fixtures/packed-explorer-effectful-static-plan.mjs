@@ -263,8 +263,11 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       assert.doesNotMatch(JSON.stringify(explained), /must-remain-unknown/u);
       await page.getByRole('region', {name: 'Original story', exact: true}).waitFor();
       const heading = await page.getByRole('heading', {level: 1}).textContent();
-      for (const expected of ['Declared write update', 'connector://crm-main/Test_Record__c',
-        'fields Name', 'Current decision unknown']) assert(heading.includes(expected), expected);
+      assert.match(heading, /Declare an update to Name/u);
+      assert.doesNotMatch(heading, /connector:\/\/|\baql_|Predicate form not projected/u);
+      const effectCard = page.locator('.story-card').filter({hasText: 'Declared changes'});
+      assert.match(await effectCard.innerText(), /connector:\/\/crm-main\/Test_Record__c/u);
+      assert.match(await effectCard.innerText(), /Current decision unknown/u);
       assert.deepEqual(browserPaths, ['/api/session', '/api/read/launch', '/api/read/plan', '/api/read/static-explanation']);
       assert.deepEqual(errors, []); assert.deepEqual(foreign, []);
       assert.deepEqual(await page.evaluate(() => ({local: Object.keys(localStorage), session: Object.keys(sessionStorage),

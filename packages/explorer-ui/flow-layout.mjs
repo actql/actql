@@ -1,7 +1,7 @@
 import ELK from 'elkjs/lib/elk-api.js';
 import {ExplorerReadError} from './presentation-limits.mjs';
 import {layoutInput, elkGraph, layoutPositions, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
-export {layoutInput, flowNodeWidth, flowNodeHeight, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
+export {layoutInput, flowNodeWidth, flowNodeHeight, flowPortOffsets, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
 
 const browserWorker = () => new Worker(new URL('./flow-layout-worker.mjs', import.meta.url), {type: 'module'});
 
