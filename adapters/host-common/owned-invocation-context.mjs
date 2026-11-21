@@ -167,6 +167,43 @@ export function rowUpdateTransportObservation(response) {
 // It neither selects a target nor grants an operation.
 export const declaredRowUpdateKinds = Object.freeze(['update']);
 
+// Bind one existing target-read phase for built-in providers. The provider's
+// checked request data and response projector stay in the original physical
+// child. The Host obtains the grant for the selected row.
+export function bindDeclaredUpdateTargetRead({readChild, authorizationForRow, operation,
+  slot, rowCount, assertCurrent, signal}) {
+  if (typeof readChild !== 'function' || typeof authorizationForRow !== 'function' ||
+      typeof operation !== 'string' || !operation || slot?.slot !== 'target' ||
+      !Number.isSafeInteger(rowCount) || rowCount < 0) fail();
+  let next = 0, active = false;
+  return async (rowIndex, request, project, currentBeforeSend) => {
+    if (active || rowIndex !== next || rowIndex >= rowCount || typeof project !== 'function' ||
+        typeof currentBeforeSend !== 'function') fail();
+    active = true;
+    next++;
+    try {
+      assertCurrent?.();
+      signal?.throwIfAborted();
+      const http = ownHttpRequest(request);
+      if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
+          Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();
+      const authorization = await authorizationForRow(rowIndex);
+      assertCurrent?.();
+      signal?.throwIfAborted();
+      if (authorization === null || typeof authorization !== 'object' ||
+          nodeTypes.isProxy(authorization) || typeof authorization.useId !== 'string' ||
+          !authorization.useId) fail();
+      const value = await readChild(authorization, {grant: authorization.grant, useId: authorization.useId,
+        operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
+          headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
+        maxRequestBytes: slot.maxRequestBytes, maxResponseBytes: slot.maxResponseBytes,
+        returnRejectedResponse: true, signal, currentBeforeSend}, rowIndex, 'target', project);
+      assertCurrent?.();
+      return value;
+    } finally { active = false; }
+  };
+}
+
 const updateTransportFields = Object.freeze(['method', 'path', 'query', 'headers', 'body', 'responseHeaders']);
 const updateHostFields = Object.freeze(['operation', 'maxRequestBytes', 'maxResponseBytes', 'maxTargetBytes',
   'bodyBytes', 'bodyMediaType', 'responseCustody', 'authorization', 'credential', 'callResource', 'then']);

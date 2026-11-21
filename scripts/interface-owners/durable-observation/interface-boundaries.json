@@ -1485,8 +1485,9 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "56d2562ade22054bf32aa6a5c295bcce7213c6e31d0aae36e01ee55404be705d",
+      "sha256": "099999d2aedfbf6d79d77f1f6950451b298918b2619d6de5e6f1636f4b7b31e4",
       "exports": [
+        "bindDeclaredUpdateTargetRead",
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
         "invocationScopeFields",
@@ -1498,6 +1499,29 @@
         "rowUpdateTransportObservation"
       ],
       "operations": [
+        {
+          "name": "bindDeclaredUpdateTargetRead",
+          "parameters": [
+            "readChild",
+            "authorizationForRow",
+            "operation",
+            "slot",
+            "rowCount",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindDeclaredUpdateTargetRead/bindDeclaredUpdateTargetRead",
+          "parameters": [
+            "rowIndex",
+            "request",
+            "project",
+            "currentBeforeSend"
+          ],
+          "async": true
+        },
         {
           "name": "captureDeclaredUpdateTransport/captureDeclaredUpdateTransport",
           "parameters": [
@@ -1612,6 +1636,8 @@
       "contracts": [
         {
           "operations": [
+            "bindDeclaredUpdateTargetRead",
+            "bindDeclaredUpdateTargetRead/bindDeclaredUpdateTargetRead",
             "captureDeclaredUpdateTransport/captureDeclaredUpdateTransport",
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
@@ -1628,6 +1654,7 @@
             "transportPair"
           ],
           "exports": [
+            "bindDeclaredUpdateTargetRead",
             "declaredRowUpdateKinds",
             "invocationBindingsMatch",
             "invocationScopeFields",

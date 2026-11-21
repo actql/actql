@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "cf6940f7cb0ec1d06d973e99214cb016786ce4447170fe503148cace98b928e9",
+      "sha256": "bdb3fbef1f3329fb9ed6b8127640fb357ce76235595d0f3f8f2a05289e20a320",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -8689,15 +8689,20 @@
           "async": true
         },
         {
+          "name": "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
           "name": "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
           "parameters": [],
           "async": false
         },
         {
           "name": "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
-          "parameters": [
-            "response"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -8794,6 +8799,7 @@
             "kintoneUpdateDriver/kintoneUpdateDriver#2",
             "kintoneUpdateDriver/readScope/readScope/decision/decision",
             "kintoneUpdateDriver/readScope/readScope/readScope",
+            "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",
             "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
             "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
             "kintoneUpdateDriver/restore/restore",

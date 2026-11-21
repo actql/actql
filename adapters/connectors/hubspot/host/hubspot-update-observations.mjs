@@ -69,13 +69,28 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
         objectType.length > policy.maxNameUnits) fail('ForeignHubSpotUpdateCatalog');
     return {...fields, objectType};
   };
-  const scope = ({authorizationFor, readChild, verify, signal}, observations) => {
+  const scope = ({authorizationFor, readChild, readTarget, verify, signal}, observations) => {
     if ([authorizationFor, readChild, verify].some(value => typeof value !== 'function')) {
       fail('HubSpotUpdateReadChildUnavailable');
     }
     const current = async slot => {signal?.throwIfAborted(); await verify(slot); signal?.throwIfAborted();};
     return async (slot, operation, method, path, body, rowIndex, project) => {
       await current(slot);
+      const consume = response => {
+        // The original child retains failed response custody. Snapshot and
+        // decode before that child's projection-complete/shrink boundary.
+        observations.push(response);
+        if (!response.accepted || response.statusCode !== 200) fail('HubSpotUpdateReadRejected');
+        return project(response.body);
+      };
+      if(project.responsePreparation!==undefined)Object.defineProperty(consume,'responsePreparation',
+        {value:project.responsePreparation});
+      const request = {method, path, query: [], headers: [['accept', 'application/json']], body};
+      if (slot === 'target' && readTarget !== undefined) {
+        const result = await readTarget(rowIndex, request, consume, () => current(slot));
+        await current(slot);
+        return result;
+      }
       const selectedAuthorization = await authorizationFor(slot, rowIndex);
       await current(slot);
       if (!selectedAuthorization || nodeTypes.isProxy(selectedAuthorization)) fail('InvalidHubSpotUpdateAuthorization');
@@ -87,21 +102,12 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
         fail('InvalidHubSpotUpdateAuthorization');
       }
       const authorization = original === undefined ? selectedAuthorization : original.value;
-      const http = ownHttpRequest({method, path, query: [], headers: [['accept', 'application/json']], body});
+      const http = ownHttpRequest(request);
       const input = {grant: authorization.grant, useId: selectedAuthorization.useId,
         operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
           headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,
         returnRejectedResponse: true, signal, currentBeforeSend: () => current(slot)};
-      const consume = response => {
-        // The original child retains failed response custody. Snapshot and
-        // decode before that child's projection-complete/shrink boundary.
-        observations.push(response);
-        if (!response.accepted || response.statusCode !== 200) fail('HubSpotUpdateReadRejected');
-        return project(response.body);
-      };
-      if(project.responsePreparation!==undefined)Object.defineProperty(consume,'responsePreparation',
-        {value:project.responsePreparation});
       const result = await readChild(authorization, input, rowIndex, slot, consume);
       await current(slot);
       return result;

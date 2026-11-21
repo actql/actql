@@ -99,7 +99,7 @@ import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
-import {invokeDeclaredRowUpdate, invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
+import {bindDeclaredUpdateTargetRead, invokeDeclaredRowUpdate, invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -1988,13 +1988,27 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // observation must be of exactly the target the row's request selects.
   const observeRows = async ({member, entries, current, read, signal, assertCurrent,
     physicalOperations, operationPhase, runInvocationCid, dispatchRequestCid}) => {
-    const {owned} = ownerOf(member);
+    const {owned, updateWriteSlot} = ownerOf(member);
     assertCurrent?.();
-    const readChild = managedReadChild({member, phase: `${operationPhase}-target`,
+    const phase = `${operationPhase}-target`;
+    const readChild = managedReadChild({member, phase,
       physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal,
       originalTargetAuthorization: read.consumeOriginal});
+    let targetEntry = {authorizationForRow: read.authorizationForRow};
+    if (updateWriteSlot !== undefined) {
+      const recipe = recipeOf(member);
+      const slot = selectInstalledEffectCredentialOperation(recipe, phase, 'target');
+      const operation = owned.targetRead.operation;
+      if (slot === undefined || slot.perRow === false || slot.resource !== undefined ||
+          recipe.rowOperations[slot.operationIndex]?.operation !== operation) {
+        fail('InstalledEffectPhysicalPlanUnavailable');
+      }
+      targetEntry = {readTarget: bindDeclaredUpdateTargetRead({readChild,
+        authorizationForRow: read.authorizationForRow, slot, operation, rowCount: entries.length,
+        assertCurrent, signal})};
+    }
     const observed = await owned.observeTargets({member, entries, current,
-      authorizationForRow: read.authorizationForRow, signal,
+      ...targetEntry, signal,
       ...(readChild === undefined ? {} : typeof readChild === 'function' ? {
         readChild
       } : {ownedReadChild: readChild.owned}),
@@ -2834,7 +2848,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       assertCurrent?.();
     }
     for (const [index, member] of members.entries()) {
-      const {owned} = ownerOf(member);
+      const {owned, updateWriteSlot} = ownerOf(member);
       assertCurrent?.();
       if (proposals[index].length === 0) fail('InstalledRowEffectEmptyMember');
       const description = await describeMember({member, maxRows: proposals[index].length, runInvocationCid,
@@ -2877,7 +2891,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               ...(contentOwner === undefined ? {} : {contentOwner}),
               ...resourceFields(member),
               ...(guarded(member.kind) ? {rowIndex, assertCurrent,
-                authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
+                ...(updateWriteSlot === undefined ?
+                  {authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} : {})} :
                 {authorizationForRow: reads[index]?.authorizationForRow})};
             const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
               create: () => constructor === undefined ? owned.prepareRequestChild(context) :

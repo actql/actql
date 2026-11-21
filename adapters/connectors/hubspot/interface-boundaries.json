@@ -1824,7 +1824,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "058b5807aeac91305cdfe7eef2d8f7ee05451bb1296859b8b7b4deeb660fdd76",
+      "sha256": "77c9c68d4efc4d5a8c0c9f57b5bbe4f2c7fd1fd15d67717432acd1d38fe84d91",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -1950,6 +1950,11 @@
           "async": false
         },
         {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
           "parameters": [
             "slot",
@@ -1994,10 +1999,14 @@
         {
           "operations": [
             "<module>",
+            "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "capture/capture/capture",
             "createHubSpotUpdateObservationAdapter",
             "createHubSpotUpdateObservationAdapter/account/account/account",
             "createHubSpotUpdateObservationAdapter/catalog/catalog",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#2",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#3",
@@ -2005,14 +2014,11 @@
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets",
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets/observed/observed",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope",
-            "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
-            "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
-            "segment/segment/segment",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
-            "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume"
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+            "segment/segment/segment"
           ],
           "exports": [
             "HubSpotUpdateObservationFailure",

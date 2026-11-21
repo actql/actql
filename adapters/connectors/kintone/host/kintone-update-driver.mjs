@@ -81,7 +81,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     return original;
   };
   const readScope = (options, observations) => {
-    const {member, signal, runInvocationCid, dispatchRequestCid, controlConstruction, readChild,
+    const {member, signal, runInvocationCid, dispatchRequestCid, controlConstruction, readChild, readTarget,
       targetAuthorization} = options;
     selected(member);
     if (!isCid(runInvocationCid) || !isCid(dispatchRequestCid) || typeof readChild !== 'function') {
@@ -104,6 +104,19 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     };
     return async (slot, body, rowIndex, project) => {
       await verify(slot);
+      const request = {method: 'POST', path: prefix +
+        (slot === 'target' ? 'records.json' : 'app/form/fields.json'), query: [],
+        headers: [['accept', 'application/json'], ['x-http-method-override', 'GET']], body};
+      const consume = response => {
+        observations.push(response);
+        if (!response.accepted || response.statusCode !== 200) fail('KintoneUpdateReadRejected');
+        return project(response);
+      };
+      if (slot === 'target' && readTarget !== undefined) {
+        const value = await readTarget(rowIndex, request, consume, () => verify(slot));
+        await verify(slot);
+        return value;
+      }
       let authorization, useId;
       const operation = slot === 'target' ? KINTONE_TARGET_READ_OPERATION : KINTONE_FORM_READ_OPERATION;
       if (slot === 'target') {
@@ -122,19 +135,13 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
           typeof useId !== 'string' || !useId || Buffer.byteLength(body) > maxRequestBytes) {
         fail('InvalidKintoneUpdateRead');
       }
-      const http = ownHttpRequest({method: 'POST', path: prefix +
-        (slot === 'target' ? 'records.json' : 'app/form/fields.json'), query: [],
-        headers: [['accept', 'application/json'], ['x-http-method-override', 'GET']], body});
+      const http = ownHttpRequest(request);
       const input = {grant: authorization.grant, useId,
         operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
           headers: http.headers, body: http.body})]]), maxRequestBytes, maxResponseBytes,
         returnRejectedResponse: true, signal, currentBeforeSend: () => verify(slot)};
       // Pass the SAME Site issuer object; useId is only the invocation input.
-      const value = await readChild(authorization, input, rowIndex, slot, response => {
-        observations.push(response);
-        if (!response.accepted || response.statusCode !== 200) fail('KintoneUpdateReadRejected');
-        return project(response);
-      });
+      const value = await readChild(authorization, input, rowIndex, slot, consume);
       await verify(slot);
       return value;
     };
@@ -197,7 +204,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       const original = frame(options.member, options.current), observations = [];
       if (!Array.isArray(options.entries) || options.entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       try {
-        const read = readScope({...original, readChild: options.readChild, signal: options.signal,
+        const read = readScope({...original, readChild: options.readChild, readTarget: options.readTarget, signal: options.signal,
           targetAuthorization: options.authorizationForRow}, observations), rows = [];
         for (const [row, entry] of options.entries.entries()) {
           if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');

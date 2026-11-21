@@ -1,8 +1,46 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {invocationBindingsMatch, invokeDeclaredRowUpdate, invokeScopedCredentialOperation,
+import {bindDeclaredUpdateTargetRead, invocationBindingsMatch, invokeDeclaredRowUpdate, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
   './owned-invocation-context.mjs';
+
+test('declared UPDATE target reads retain the original row grant and refuse a repeated occurrence', async () => {
+  const authority = Object.freeze({grant: {}, useId: 'original-target-use'});
+  const request = {method: 'POST', path: '/target', query: [], headers: [['accept', 'application/json']], body: '{}'};
+  const facts = Object.freeze({before: 'original'}), selected = [];
+  const fence = () => selected.push('send-current');
+  const projector = response => {
+    assert.strictEqual(response, facts);
+    return response.before;
+  };
+  let read;
+  read = bindDeclaredUpdateTargetRead({rowCount: 2, operation: 'original-read',
+    slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 16},
+    assertCurrent() {selected.push('current');},
+    authorizationForRow(index) {selected.push(index); return authority;},
+    async readChild(original, input, index, slot, project) {
+      assert.strictEqual(original, authority);
+      assert.strictEqual(input.grant, authority.grant);
+      assert.strictEqual(input.useId, authority.useId);
+      assert.strictEqual(input.currentBeforeSend, fence);
+      assert.strictEqual(project, projector);
+      assert.equal(input.maxRequestBytes, 2);
+      assert.equal(input.maxResponseBytes, 16);
+      assert.deepEqual([...input.operations], [['original-read', {
+        method: 'POST', path: '/target', headers: [['accept', 'application/json']], body: '{}',
+      }]]);
+      assert.equal(slot, 'target');
+      assert.equal(index, 0);
+      await assert.rejects(read(1, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+      await input.currentBeforeSend();
+      return project(facts);
+    }});
+  await assert.rejects(read(1, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+  assert.equal(await read(0, request, projector, fence), 'original');
+  await assert.rejects(read(0, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+  await assert.rejects(read(1, {...request, body: 'éa'}, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+  assert.deepEqual(selected, ['current', 0, 'current', 'send-current', 'current', 'current']);
+});
 
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
