@@ -10,6 +10,8 @@ import {
 // Values
 pub fn borrow_buffer(BufferPool, BufferSlot, () -> Bool) -> Result[BufferBorrow, BufferIssue]
 
+pub fn borrow_filled_payload_input(BufferPool, BufferSlot, () -> Bool) -> Result[BufferBorrow, BufferIssue]
+
 pub fn borrow_workspace(@physical_resources.SharedCapacity, @physical_resources.SharedAllocation, () -> Bool, () -> Bool) -> Result[WorkspaceLoan, BufferIssue]
 
 pub fn[T] borrow_workspace_original_read(OriginalWorkspaceRead[T], T, WorkspaceLoan) -> @physical_resources.FundedReadClaim[T]?
@@ -39,6 +41,8 @@ pub fn close_pool(BufferPool) -> Result[Unit, BufferIssue]
 pub fn close_workspace(WorkspaceLoan) -> Result[Unit, BufferIssue]
 
 pub fn fill_buffer(BufferPool, BufferSlot, Int, Int, (Int) -> Byte?) -> Result[Unit, BufferIssue]
+
+pub fn filled_payload_input_bytes(BufferPool, BufferBorrow) -> Bytes?
 
 pub fn[T] issue_workspace_original_read(@physical_resources.FundedReadClaim[T], T, WorkspaceLoan) -> Result[OriginalWorkspaceRead[T], @physical_resources.OriginalReadIssue]
 

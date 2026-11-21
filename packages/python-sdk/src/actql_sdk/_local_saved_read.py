@@ -1,6 +1,7 @@
 """Normal saved-Result caller over the existing Core, Store and File Owners."""
 from __future__ import annotations
 
+import asyncio as _asyncio
 from collections.abc import Callable
 from typing import TYPE_CHECKING, TypeVar
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from ._local_product import InstalledLocalHost
 
 _T = TypeVar('_T')
+_SavedPayloadSelection = tuple[ByteFence, CapacityReservation, str, str, int, int]
 
 
 def _original_decimal(text: object, maximum: int) -> int:
@@ -63,21 +65,38 @@ class OriginalSavedResultRead:
         self._clock: _Input | None = None
         self._preparing = self._closing = self._closed = False
 
-    def _current(self, action: Callable[[], _T]) -> _T:
+    def _current(self, action: Callable[[], _T],
+                 selection: _SavedPayloadSelection | None = None) -> _T:
         host = self._host
         installation = host._active()
         source = self._source
         if self._closing or self._source_closed or source is None:
             raise ValueError('Original saved Result read is unavailable')
         result: list[_T] = []
-        def inspect(current: _Output) -> None:
+        def inspect(current: _Output, take_capacity: Callable[[], None] | None = None) -> None:
             self._ensure_active()
             host._core.validate_submission_lookup(source, current)
             self._ensure_active()
+            if take_capacity is not None:
+                take_capacity()
             result.append(action())
             host._core.validate_submission_lookup(source, current)
             self._ensure_active()
-        installation.binding.inspect(inspect)
+        binding = installation.binding
+        if selection is None:
+            binding.inspect(inspect)
+        else:
+            row, capacity, _, _, _, _ = selection
+            store = installation._store
+            if store is None:
+                raise ValueError('Original saved Result physical installation is unavailable')
+            def confirm(actual: CapacityReservation | None) -> None:
+                if actual != capacity:
+                    raise ValueError('Changed original saved payload reservation')
+            with binding.fenced() as fences:
+                store.inspect_capacity_inspected(capacity.namespace, capacity.key, (*fences, row),
+                    inspect=lambda reader, take: binding.inspect_reader(reader, lambda current: inspect(current, take)),
+                    consume=confirm, current=binding._current_observer)
         if len(result) != 1:
             raise ValueError('Incomplete original saved Result current observation')
         return result[0]
@@ -98,13 +117,65 @@ class OriginalSavedResultRead:
         finally:
             self._preparing = False
 
+    def _prepare_turn(self, scope: object) -> None:
+        self._ensure_active()
+        core = self._host._core
+        if (not self._preparing or core._host_operation_scope is not scope
+                or core._host_fuel_phase != 'operation' or core._host_cleanup_depth):
+            raise ValueError('Original saved Result operation changed')
+
+    def _ensure_physical_preparation(self) -> None:
+        host = self._host
+        installation, configuration = host._active(), host._configuration
+        if configuration is None or not configuration.sdk:
+            raise ValueError('Original saved Result configuration is unavailable')
+        if installation._store is None or installation._results is None:
+            raise ValueError('Original saved Result physical installation is unavailable')
+
+    async def prepare_incremental(self, reference: object, name: str, format: str,
+                                  attempt_id: str) -> httpx.Response:
+        self._ensure_active()
+        host, core = self._host, self._host._core
+        scope = core._host_operation_scope
+        if self._preparing or self._source is not None or scope is None:
+            raise ValueError('Original saved Result incremental preparation is unavailable')
+        self._preparing = True
+        try:
+            async with host._operation_lock():
+                self._prepare_turn(scope)
+                self._ensure_physical_preparation()
+                source, definition = host._reserve_original_result_read(reference, name, incremental=True)
+                self._source = source
+                packet = host._read_original_result_projection(source, definition, name, incremental=True)
+            while packet is None:
+                await _asyncio.sleep(0)
+                async with host._operation_lock():
+                    self._prepare_turn(scope)
+                    packet = host._read_original_result_projection(source, definition, name, incremental=True)
+            async with host._operation_lock():
+                self._prepare_turn(scope)
+                selection = self._prepare_payload(source, packet)
+            del packet
+            reader = self._reader
+            assert reader is not None
+            while not reader.eof:
+                async with host._operation_lock():
+                    self._prepare_turn(scope)
+                    self._hash_next_original_chunk(selection)
+                await _asyncio.sleep(0)
+            async with host._operation_lock():
+                self._prepare_turn(scope)
+                return self._finish_payload(source, selection, name, format, attempt_id, rebind=True)
+        finally:
+            self._preparing = False
+
     def prepare_lookup(self, reference: object, name: str,
                        attempt_id: str) -> httpx.Response:
         """Look up the saved original attempt without grant/write/payload work.
 
         The same Core source validates the current Account and stored chain.
         This intentionally opens no File Reader, re-reserves no payload and
-        creates no first delivery; response loss retains the same output loans.
+        creates no first delivery. The independent response owns its wire.
         """
         self._ensure_active()
         if self._preparing or self._source is not None:
@@ -134,13 +205,29 @@ class OriginalSavedResultRead:
             stream = streams[0]
             response = httpx.Response(200, headers={'content-type': 'application/json',
                 'content-encoding': 'identity'}, stream=stream)
-            stream._attached = True
-            return response
         finally:
             self._preparing = False
+        # The current reader has returned. Keep a refused close and its
+        # unattached response registered for the original Host cleanup.
+        with core._host_cleanup():
+            if not self.close():
+                raise RuntimeError('Original saved delivery lookup cleanup is pending')
+        stream._attached = True
+        return response
 
     def _prepare(self, reference: object, name: str, format: str,
                  attempt_id: str) -> httpx.Response:
+        self._ensure_physical_preparation()
+        source, metadata = self._host._retain_original_result_read(reference, name)
+        self._source = source
+        selection = self._prepare_payload(source, metadata)
+        reader = self._reader
+        assert reader is not None
+        while not reader.eof:
+            self._hash_next_original_chunk()
+        return self._finish_payload(source, selection, name, format, attempt_id)
+
+    def _prepare_payload(self, source: _Output, metadata: dict[str, object]) -> _SavedPayloadSelection:
         host, core = self._host, self._host._core
         installation, configuration = host._active(), host._configuration
         if configuration is None or not configuration.sdk:
@@ -148,8 +235,6 @@ class OriginalSavedResultRead:
         store, results = installation._store, installation._results
         if store is None or results is None:
             raise ValueError('Original saved Result physical installation is unavailable')
-        source, metadata = host._retain_original_result_read(reference, name)
-        self._source = source
         result = _original_decimal(metadata['resultOrdinal'], 7)
         binding = _original_decimal(metadata['bindingOrdinal'], 7)
         projection = OriginalCommitProjection.from_saved_read(core, source,
@@ -231,20 +316,33 @@ class OriginalSavedResultRead:
                 self._reader = failure.original_reader
                 raise
         self._current(open_reader)
-        reader = self._reader
-        assert reader is not None
-        while not reader.eof:
-            def hash_chunk() -> None:
-                chunk = root.read_original(reader)
-                root.release_original_chunk(reader, chunk)
-            self._current(hash_chunk)
-        self._current(lambda: root.observe_original(reader))
+        return rows[0], capacities[0], authority, material, result, binding
+
+    def _hash_next_original_chunk(self, selection: _SavedPayloadSelection | None = None) -> None:
+        root, reader = self._root, self._reader
+        assert root is not None and reader is not None
+        def hash_chunk() -> None:
+            chunk = root.read_original(reader)
+            root.release_original_chunk(reader, chunk)
+        self._current(hash_chunk, selection)
+
+    def _finish_payload(self, source: _Output, selection: _SavedPayloadSelection,
+                        name: str, format: str, attempt_id: str, *, rebind: bool = False) -> httpx.Response:
+        host, core = self._host, self._host._core
+        installation = host._active()
+        store = installation._store
+        projection, record = self._projection, self._record
+        root, reader = self._root, self._reader
+        assert store is not None and projection is not None and record is not None
+        assert root is not None and reader is not None
+        row, capacity, authority, material, result, binding = selection
+        self._current(lambda: root.observe_original(reader), selection if rebind else None)
         fact = OriginalReaderFacts(projection, record, root, reader, result, binding,
             authority, material, cleanup=lambda: True, stopped=lambda _: True)
         self._fact = fact
         self._current(fact.validate)
         observation = OriginalStoreReconciliation.from_saved_read(projection, (fact,), store,
-            ((rows[0], capacities[0]),), installation.binding, current=self._ensure_active)
+            ((row, capacity),), installation.binding, current=self._ensure_active)
         self._observation = observation
         try:
             self._evidence = OriginalSDKReadEvidenceStore(observation, cleanup=lambda: True)
@@ -320,13 +418,18 @@ class OriginalSavedResultRead:
             if not core.close_payload_record(self._record):
                 return False
             self._record = None
-        for source in (self._clock, self._request):
-            if source is not None:
-                if not core.close_input(source):
-                    return False
-                if source in host._inputs:
-                    host._inputs.remove(source)
-        self._clock = self._request = None
+        if (clock := self._clock) is not None:
+            if not core.close_input(clock):
+                return False
+            self._clock = None
+            if clock in host._inputs:
+                host._inputs.remove(clock)
+        if (request := self._request) is not None:
+            if not core.close_input(request):
+                return False
+            self._request = None
+            if request in host._inputs:
+                host._inputs.remove(request)
         if self._source is not None:
             if not self._source_closed:
                 if not core.close_submission_lookup(self._source):

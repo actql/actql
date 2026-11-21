@@ -90467,13 +90467,127 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "admit_buffer_borrow",
+            "borrow_filled_payload_input",
+            "filled_payload_input_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "fn admit_buffer_borrow("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn return_buffer_borrow("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn reserve_buffer("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "fn admit_buffer_borrow("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_buffers/buffers_wbtest.mbt",
+                "anchor": "test \"filled delivery fragment uses only the original bounded raw borrow\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "89c5eb32f2aa47aed16a531423eb096f89f74f7258dbfbd670f8da896778ee96",
+      "sha256": "f69c2d7e8276e2786d30fd78356ee7542f0ff4028d5c2f9a849a75dbf593b7bb",
       "operations": [
+        {
+          "name": "admit_buffer_borrow",
+          "declaration": "admit_buffer_borrow ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
+        },
         {
           "name": "borrow_buffer",
           "declaration": "borrow_buffer ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
+        },
+        {
+          "name": "borrow_filled_payload_input",
+          "declaration": "borrow_filled_payload_input ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
         },
         {
           "name": "buffer_byte",
@@ -90522,6 +90636,10 @@
         {
           "name": "fill_buffer",
           "declaration": "fill_buffer ( pool : BufferPool , slot : BufferSlot , start : Int , count : Int , read_byte : ( Int ) - > Byte ? , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "filled_payload_input_bytes",
+          "declaration": "filled_payload_input_bytes ( pool : BufferPool , borrow : BufferBorrow , ) - > Bytes ?"
         },
         {
           "name": "lookup_buffer",
