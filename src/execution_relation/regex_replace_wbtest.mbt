@@ -206,3 +206,48 @@ test "checked regex replace funds simultaneous matcher backing and exact output 
     assert_eq(workspace.live, 0)
   }
 }
+
+///|
+test "checked SQL regex replacement skips an adjacent empty match and retains its dialect" {
+  let source =
+    #|{"regex_replace":{"dialect":"googlesql","value":{"field":"text"},"pattern":{"literal":"a?"},"replacement":{"literal":"[\\0]$"}}}
+  let request = original_string_fragment_request(
+    expression=source,
+    max_pattern_bytes=100,
+    max_output_bytes=65536,
+    max_replacements=65,
+    structured=true,
+  )
+  let expression = @lower.root_at(
+      @lower.fragment_pipeline_roots(@lower.fragment_request_pipeline(request)),
+      0,
+    ).unwrap().expression
+  let writer = @encode.writer(1000, 50, 10)
+  @lower.emit_expression(expression, writer)
+  assert_true(@encode.finish(writer).contains("\"dialect\":\"googlesql\""))
+  for
+    (input, expected) in [
+      ("a🙂a", "[a]$🙂[a]$"),
+      ("", "[]$"),
+      ("a", "[a]$"),
+    ] {
+    assert_true(
+      evaluate_expression(expression, { "text": Text(input) }, [], {
+        remaining: 1000,
+        max_frames: 100,
+      })
+      is Ok(Text(actual)) &&
+      actual == expected,
+    )
+  }
+  let actql = original_regex_replace_expression(
+    "regex_replace(text, 'a?', 'X')",
+  )
+  assert_true(
+    evaluate_expression(actql, { "text": Text("a") }, [], {
+      remaining: 1000,
+      max_frames: 100,
+    })
+    is Ok(Text("XX")),
+  )
+}

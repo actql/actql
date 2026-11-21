@@ -445,6 +445,16 @@ The result is nullable String. No match or an unmatched group returns NULL.
 A participating empty group returns the empty String. The call selects the
 first match and adds no flags, position or occurrence argument.
 
+`REGEXP_REPLACE(value, pattern, replacement)` passes all three original
+String arguments to Common `regex_replace` with the explicit GoogleSQL
+dialect. Pattern and replacement are non-null String literals or bound
+String Parameters. After SQL String decoding, a backslash and one ASCII
+digit select the whole match (zero) or that capturing group. A doubled
+backslash emits one literal backslash. Other escapes and references to
+absent groups fail Check. Matching is left-to-right and nonoverlapping
+with the SQL rule for empty matches in the Common language contract.
+NULL value yields NULL after the original arguments have been checked.
+
 `JSON_VALUE(input[, path])` selects `json_value`. Input is a String or
 admitted Json and the optional path is String. The Common evaluator
 returns nullable String. It retains the original arguments, supports

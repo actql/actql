@@ -415,11 +415,15 @@ fn emit_frames(
           }
           Many(RegexReplace, args) => {
             guard expr.text_bound is Some(bound) &&
-              text_bound_regex_replace(bound) is Some((_, flags, _)) else {
+              text_bound_regex_replace(bound) is Some((_, flags, replacement)) else {
               raise @encode.InvalidStructure
             }
             pending.push(Op("regex_replace"))
             @encode.begin_object(output)
+            if @replacement.syntax(replacement) is GoogleSql {
+              @encode.key(output, "dialect")
+              @encode.string_value(output, "googlesql")
+            }
             if flags is Some(flags) {
               @encode.key(output, "flags")
               @encode.string_value(output, flags)

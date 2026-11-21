@@ -5703,6 +5703,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -12521,6 +12524,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -25130,6 +25136,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -31034,6 +31043,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -39615,6 +39627,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -45519,6 +45534,9 @@
                         "ms",
                         "sm"
                       ]
+                    },
+                    "dialect": {
+                      "const": "googlesql"
                     }
                   }
                 }
@@ -47705,6 +47723,18 @@
       "identity": "The closed source is {json_value:[value]} or {json_value:[value,path]}. The machine form retains the original ordered operands.",
       "value": "Use the root path $ when absent. The linear selector uses dot members, double-quoted members and bracket indexes. A missing or nonscalar selection, JSON null, a NULL operand or malformed input before the selected scalar yields SQL NULL. A malformed selector fails evaluation. Decode selected string escapes; retain the original number token of String input. Admitted Json uses its existing scalar values. Successful String selection does not parse any trailing document text.",
       "evaluation": "Retain original operands, account each path or parent frame before construction and meter scalar progress. Only selected text is measured and built by the existing owner. Preserve demanded failures and cancellation."
+    },
+    "sql_regex_replacement": {
+      "dialect": "googlesql",
+      "ast_contract": {
+        "path": "spec/contracts/actql-production-profile-schemas.json",
+        "pointer": "/schemas/sql_regex_replacement_ast",
+        "cid": "sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148"
+      },
+      "identity": "The explicit dialect is retained in structured source and lowered nodes. Absence selects the existing ActQL syntax and AST identity.",
+      "replacement": "After SQL String decoding, a backslash followed by one ASCII digit 0 through 9 selects the whole match or that group. Two backslashes emit one literal backslash. Other backslash escapes fail Check. Preserve literal scalars exactly, including dollar signs and line endings; coalesce adjacent literal parts. Referenced groups must exist in the checked pattern.",
+      "progress": "Replace nonoverlapping matches in left-to-right order. Suppress an empty match at the end of the previous match. Advance one original Unicode scalar after an empty match without omitting that scalar from output. At the end of input an empty match terminates matching.",
+      "bounds": "Retain the original argument, pattern and template identities and text-time limits. The same capture-count and byte-count evidence applies, including a reference to the whole match. This is an alternate spelling and matching rule on the checked Common replacement operation, with no Host regex fallback."
     }
   },
   "regex_ast_contract": {

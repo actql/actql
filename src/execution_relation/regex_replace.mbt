@@ -18,6 +18,7 @@ priv struct RegexReplaceFrame {
   mut remaining_bytes : Int64
   mut phase : RegexReplacePhase
   mut position : Int
+  mut previous_match : Bool
   mut selected : @regex.Match?
 }
 
@@ -65,6 +66,7 @@ fn start_regex_replace(
       remaining_bytes: @text_bounds.output_bytes(extent),
       phase: FindMatch,
       position: 0,
+      previous_match: false,
       selected: None,
     })
   })
@@ -99,6 +101,27 @@ fn append_regex_replacement_scalar(
 }
 
 ///|
+fn advance_past_empty_regex_match(
+  state : RegexReplaceFrame,
+  end : Int,
+) -> Result[Unit, EvalIssue] {
+  let input = state.output.input
+  if end == input.length() {
+    state.phase = CopyTail
+  } else {
+    // Move the search by one scalar without dropping that scalar from output.
+    guard text_function_scalar(input, end) is Some((_, next, _, _)) else {
+      return Err({
+        kind: Scalar(InvalidOperand),
+        expression: state.output.expression,
+      })
+    }
+    state.phase = FindFrom(next)
+  }
+  Ok(())
+}
+
+///|
 fn advance_regex_replacement_part(
   state : RegexReplaceFrame,
   index : Int,
@@ -120,17 +143,11 @@ fn advance_regex_replacement_part(
       let { start, end, } = @regex.match_span(selected)
       state.selected = None
       state.position = end
+      state.previous_match = true
       if start < end {
         state.phase = FindFrom(end)
-      } else if end == input.length() {
-        state.phase = CopyTail
       } else {
-        // After an empty match, advance search by one original scalar. Leave
-        // that scalar in the unmatched output range until the next match.
-        guard text_function_scalar(input, end) is Some((_, next, _, _)) else {
-          return Err(invalid)
-        }
-        state.phase = FindFrom(next)
+        return advance_past_empty_regex_match(state, end)
       }
     }
   }
@@ -155,6 +172,16 @@ fn advance_regex_replace(
           state.phase = CopyTail
         }
         Ok(RegexComplete(Some(selected))) => {
+          state.search.search = None
+          let { start, end, } = @regex.match_span(selected)
+          // The SQL dialect skips an empty match at the end of the previous
+          // match, preserving the next input scalar and the replacement count.
+          if start == end &&
+            state.previous_match &&
+            start == state.position &&
+            @replacement.syntax(state.replacement) == @replacement.GoogleSql {
+            return advance_past_empty_regex_match(state, end)
+          }
           if state.replacements_left == 0L {
             return Err({
               kind: TextBounds(@text_bounds.ReplacementCeiling),
@@ -162,9 +189,8 @@ fn advance_regex_replace(
             })
           }
           state.replacements_left -= 1L
-          state.search.search = None
           state.selected = Some(selected)
-          state.phase = CopyUnmatched(@regex.match_span(selected).start)
+          state.phase = CopyUnmatched(start)
         }
       }
     FindFrom(from) =>
@@ -217,6 +243,7 @@ fn advance_regex_replace(
       // the search/copy cursor restarts, never the original child evaluation.
       return begin_measured_text_output(output, frame.workspace).map(_ => {
         state.position = 0
+        state.previous_match = false
         state.replacements_left = state.max_replacements
         state.phase = FindFrom(0)
       })

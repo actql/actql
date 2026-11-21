@@ -4613,7 +4613,7 @@
     },
     {
       "requirement_id": "actql.language/text-time.replacement-tokenization",
-      "statement_sha256": "858d65f604bb3f7ea7f374852605dfe8a09e16fa7ead992706c1454b32b95328",
+      "statement_sha256": "0021d0b28943b3704dae368bdecffb4a813ffbe95a349dcdffd90c8469f85317",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -11235,7 +11235,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "ff01907f90b3d65c4c6442cf82f11b17397107014ef296519afb1e303ec440e7",
+      "statement_sha256": "c0a13a9f1716bc9d836a2262ffab6291cbe7bc7ef53a82d1aa31fc2a94935528",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -4373,14 +4373,14 @@ capture is not an omitted field. The capture selection keeps the same pattern,
 parameter and Host envelope obligations. `regex_extract` returns null for
 no match or a nonparticipating capture, and empty String for a participating
 empty capture. `regex_replace` applies a bounded left-to-right
-global replacement. Its closed replacement grammar uses `$$` for a literal
+global replacement. Its default replacement grammar uses `$$` for a literal
 dollar and `$1..$99` for captures; references to absent captures are rejected
 at Check, while an unmatched admitted capture expands to the empty string. The
 portable output ceiling accounts for every literal and repeated capture
 expansion. A limit breach fails atomically.
 
 <!-- requirement-block: text-time.replacement-tokenization -->
-Regex replacement tokenization MUST consume `$$` as one literal dollar, or a
+Default regex replacement tokenization MUST consume `$$` as one literal dollar, or a
 dollar followed by one ASCII digit `1..9` and, when present, one further ASCII
 digit `0..9` as a capture reference. Further digits are literal text: `$100`
 denotes capture 10 followed by literal `0`, not capture 100. Other dollar
@@ -4391,6 +4391,18 @@ capture parts retain their order and repetition. An empty replacement has an
 empty parts array. Its literal UTF-8 byte total, capture reference count and
 maximum capture index (zero with no references) describe these parts, not the
 source spelling or a deduplicated set of captures.
+
+The structured `regex_replace` body may carry the literal
+`dialect: "googlesql"`, as emitted by SQL `REGEXP_REPLACE`. Its checked
+replacement AST uses `actql-sql-regex-replacement-ast/0.1` and consumes one
+backslash and one ASCII digit as a capture (zero is the whole match).
+Two consecutive backslashes emit one backslash. Other escapes are invalid.
+Dollar signs and other literal scalars retain their exact value. Referenced
+groups must exist before any row is evaluated. An empty match immediately
+at the end of the previous match is skipped, and after any empty match the
+search advances one original Unicode scalar without dropping it from output.
+The original Common pattern, argument order, and envelope checks apply to
+both dialects. The default body and AST retain their existing bytes and laws.
 
 The operation/input matrix is closed: `split_part`,
 `utf8_truncate`, `parse_timestamp`, `regex_match`,
@@ -11774,22 +11786,23 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:e72425fce6e45129d35da5d3f904de54a35e8b37d60151d3109c84275ca69578
+../../spec/contracts/actql-aoa.json# sha256:28e28666662b722b8d54058de0ac143aa949062ffd433fb31741f36f7afdba1f
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1
-../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:41b1da20f35236666cf96d0a751891b057655cc376aa9479f66f20651184878d
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:8e83c5ec9efaad835157dd477af858cbba98d1ca5384bc3edd3bb124b65bf275
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/sql_regex_replacement_ast sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:ae6d6c02fd72b00876f40ef1e41fe14e358c407e4e26838268a6f1209986cb97
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:66ea2e5e1bdb8906cab310ff283899b7b161ea821af61e005adf6794d5dd6c4e
+../../spec/contracts/actql-expressions.json# sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:cccd985f9af564a29571835c3f20241cd1a90f0eb351232cd80cf94cda123fe3
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:4ba1e4d13f4ad05be7d600b16fea9621b603ceab4441e568ddd7d7f2e7b1c94d
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:ca6c1eb348331537b725e18f89954570c482b064132af044baff8533bfb9c7c7
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:78b7990cc6c253201291416ae859a8bd0b2776ac640bfede43dd1f54e2efcfd0
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:f450141d58abe67af9af1011cbf580824b9fd2f198d549464a2ee118aebfdd5c
+../../spec/contracts/actql-expressions.json#/laws sha256:8b899bed4cb04e2e64bdaddd5ad31376472fe1243b9900b54afca44074e0591c
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b2be6e567539bf5671e76d1c7d23441cde7814634ae75f5535cdc51c086ef9c0
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0387f61988275e5c086c255cd7cbeec4397069fba9b0e8eb62d7b665d3f98997
 ```
 
 <!-- stage-contract-pins:start -->

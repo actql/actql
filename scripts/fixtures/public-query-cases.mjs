@@ -50,9 +50,13 @@ export function publicQueryCohorts(inputs) {
       assert.ok(allowance <= maxObjects && deliveries <= maxDeliveryAttempts,
         `Public query case ${item.name} exceeds an indivisible cohort budget: ` +
         `${allowance}/${maxObjects} objects, ${deliveries}/${maxDeliveryAttempts} deliveries`);
+      // The same authored failure can recur later in the full corpus. A
+      // changed success inventory must not put both uses of its nonce in one
+      // project. Split at the original occurrence before advancing it.
+      const reusesNonce = kind !== 'refusals' && current[kind].some(entry => entry.name === item.name);
       if (retainedObjectAllowance !== 0 &&
           (retainedObjectAllowance + allowance > maxObjects ||
-            deliveryAttemptAllowance + deliveries > maxDeliveryAttempts)) {
+            deliveryAttemptAllowance + deliveries > maxDeliveryAttempts || reusesNonce)) {
         cohorts.push(current);
         current = {successes: [], executionFailures: [], refusals: []};
         retainedObjectAllowance = 0;

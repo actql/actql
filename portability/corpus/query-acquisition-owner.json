@@ -1,7 +1,7 @@
 {
   "stage_semantics": {
     "version": "actql-stage-semantics/0.1",
-    "expression_contract_cid": "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
+    "expression_contract_cid": "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
     "parameters": {
       "wanted": {
         "type": "string"
@@ -63,7 +63,7 @@
   "program_semantics": {
     "version": "actql-program-semantics/0.1",
     "actql_version": "actql/0.1",
-    "expression_contract_cid": "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
+    "expression_contract_cid": "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
     "parameters": {
       "wanted": {
         "type": "string"
@@ -84,7 +84,7 @@
       "stages": [
         {
           "id": "first",
-          "stage_semantics_cid": "sha256:9b60dc5d1f72b949eede2a6593fbb0388534485ec1a06d8322ac30d308733288",
+          "stage_semantics_cid": "sha256:ac0489cbe896e56e9c51909582f6e46a0b098e68acfd8fec847e351c04f8866f",
           "after": "initial",
           "imports": {}
         }
@@ -99,15 +99,15 @@
       }
     }
   },
-  "program_semantics_cid": "sha256:773e3a886a529a4483afdc4df3f69036439c5244cd07548aa71a9c6806ec136d",
+  "program_semantics_cid": "sha256:e36a41dbe67a5368b377af81342a5f6dd97c5c757a10439b2efde42014f56e75",
   "program_definition": {
     "version": "actql-program-definition/0.1",
     "id": "query.fixture",
-    "program_semantics_cid": "sha256:773e3a886a529a4483afdc4df3f69036439c5244cd07548aa71a9c6806ec136d"
+    "program_semantics_cid": "sha256:e36a41dbe67a5368b377af81342a5f6dd97c5c757a10439b2efde42014f56e75"
   },
-  "program_definition_cid": "sha256:1f75c77c32c830aefabfa2648a6ede47eaef270c72cc99c6dfc80bb2341fcdd3",
+  "program_definition_cid": "sha256:0331c61b455dc85a71e6732236caef7ec2d14057fc4697ddd0f0a606d6f97ddd",
   "owner": {
-    "program_source_cid": "sha256:1f75c77c32c830aefabfa2648a6ede47eaef270c72cc99c6dfc80bb2341fcdd3",
+    "program_source_cid": "sha256:0331c61b455dc85a71e6732236caef7ec2d14057fc4697ddd0f0a606d6f97ddd",
     "stage": "first",
     "input": "records"
   }

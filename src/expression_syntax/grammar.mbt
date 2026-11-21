@@ -273,6 +273,9 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
   if tag == "regex_extract" {
     allowed.push("capture")
   }
+  if tag == "regex_replace" {
+    allowed.push("dialect")
+  }
   if tag == "case" {
     allowed.push("else")
   }
@@ -290,6 +293,7 @@ fn body_role(tag : String, name : String) -> Role {
     ("empty_array", "items") => ItemContract
     ("case", "when") => Branches
     ("case", "else") => Expr
+    ("regex_replace", "dialect") => Data
     (
       _,
       "precision"

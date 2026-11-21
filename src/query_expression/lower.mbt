@@ -304,6 +304,7 @@ fn scalar_call(
     "FORMAT_TIMESTAMP" => ("FORMAT_TIMESTAMP", "format_timestamp", 2, 2)
     "REGEXP_CONTAINS" => ("REGEXP_CONTAINS", "regex_match", 2, 2)
     "REGEXP_EXTRACT" => ("REGEXP_EXTRACT", "regex_extract", 2, 2)
+    "REGEXP_REPLACE" => ("REGEXP_REPLACE", "regex_replace", 3, 3)
     "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -903,6 +904,16 @@ fn append_resolved(
                   lowering.object([
                     ("value", nodes[args[0]]),
                     ("pattern", nodes[args[1]]),
+                  ]),
+                )
+              } else if name == "regex_replace" {
+                lowering.form(
+                  name,
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("pattern", nodes[args[1]]),
+                    ("replacement", nodes[args[2]]),
+                    ("dialect", lowering.add(String("googlesql"))),
                   ]),
                 )
               } else if name == "parse_timestamp" || name == "format_timestamp" {

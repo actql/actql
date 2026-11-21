@@ -10,9 +10,9 @@
     "content_source": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68",
     "content_barrier": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5",
     "content_evidence": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695",
-    "text_time_expression": "sha256:41b1da20f35236666cf96d0a751891b057655cc376aa9479f66f20651184878d",
+    "text_time_expression": "sha256:8e83c5ec9efaad835157dd477af858cbba98d1ca5384bc3edd3bb124b65bf275",
     "text_time_evaluation_envelope": "sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f",
-    "text_time_evaluation_barrier": "sha256:6aca9bab9d16f1875afda2872190de0712f8d7bfc4762482716616a0474a1acf",
+    "text_time_evaluation_barrier": "sha256:92aac088c34ebeb3c7c44fef96bdf630f7aa37b66788d9563903b6ea2d7c8bec",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -27,7 +27,8 @@
     "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd",
     "native_file_content_read": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08",
     "declared_file_content_read": "sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c",
-    "installed_row_source_read": "sha256:3dbdbd48a456fbfc9838dae8eb2f3b9b7577ef9ec8c74b57d5f3f66f475dffbe"
+    "installed_row_source_read": "sha256:3dbdbd48a456fbfc9838dae8eb2f3b9b7577ef9ec8c74b57d5f3f66f475dffbe",
+    "sql_regex_replacement_ast": "sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148"
   },
   "schemas": {
     "lookup_source": {
@@ -2677,6 +2678,9 @@
                       }
                     }
                   }
+                },
+                "dialect": {
+                  "const": "googlesql"
                 }
               }
             }
@@ -4825,6 +4829,9 @@
                             }
                           }
                         }
+                      },
+                      "dialect": {
+                        "const": "googlesql"
                       }
                     }
                   }
@@ -7615,7 +7622,85 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "sql_regex_replacement_ast": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sql-regex-replacement-ast-0.1.json",
+      "title": "GoogleSQL regex replacement canonical AST",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "parts",
+        "literal_utf8_bytes",
+        "capture_reference_count",
+        "max_capture_index",
+        "ast_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sql-regex-replacement-ast/0.1"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "literal"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "capture"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "capture"
+                  },
+                  "capture": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "literal_utf8_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_reference_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_capture_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "ast_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
     }
   },
-  "registry_cid": "sha256:d53506364f09072bc71c81d7e9ce32990fb47e0b21b27676d86ac1d6b10aef66"
+  "registry_cid": "sha256:89c5918a962a4087f8a514b5c64e3b64903a94597f47c905b877d5812867d02c"
 }

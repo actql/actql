@@ -3374,6 +3374,8 @@ pub(all) enum RegexPatternIssue {
   MultipleCaptures(Int)
   Pattern(Int, @regex_pattern.Issue)
   Replacement(Int, @regex_replacement.Issue)
+  SqlReplacement(Int, @regex_replacement.Issue)
+  SqlReplacementCapture(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RegexPatternLimits {

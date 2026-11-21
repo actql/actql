@@ -709,6 +709,23 @@ const regexpExtractBound = {name: 'regexp-extract-bound', format: 'sql',
   parameterDeclarations: {pattern: {type: 'string'}}, parameters: {pattern: 'a(b)c'},
   expected: [{result: 'b'}], columns: [{name: 'result',
     contract: {type: 'string', nullable: true}}], sourceReadCount: 0};
+export const regexpReplaceOriginal = {name: 'regexp-replace-original', format: 'sql',
+  text: String.raw`SELECT REGEXP_REPLACE('banana', 'ana', 'X') AS overlap,
+    REGEXP_REPLACE('abc', 'b(.)', r'[\0|\1]$') AS capture,
+    REGEXP_REPLACE('a🙂a', 'a?', '$1') AS adjacent,
+    REGEXP_REPLACE('a', '(a)', r'\12\\') AS one_digit,
+    REGEXP_REPLACE(NULL, 'a', 'X') AS absent`,
+  expected: [{overlap: 'bXna', capture: 'a[bc|c]$', adjacent: '$1🙂$1',
+    one_digit: 'a2\\', absent: null}],
+  columns: [...['overlap', 'capture', 'adjacent', 'one_digit'].map(name => ({
+    name, contract: {type: 'string', nullable: false},
+  })), {name: 'absent', contract: {type: 'string', nullable: true}}], sourceReadCount: 0};
+const regexpReplaceBound = {name: 'regexp-replace-bound', format: 'sql',
+  text: "SELECT REGEXP_REPLACE('abc', @pattern, @replacement) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}, replacement: {type: 'string'}},
+  parameters: {pattern: 'a(b)c', replacement: 'e\u0301\r\n\\1$'},
+  expected: [{result: 'e\u0301\r\nb$'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
 export const jsonValueOriginals = [
   {name: 'json-value-original', format: 'sql',
     text: "SELECT JSON_VALUE('{}', '$.n') AS result",
@@ -909,6 +926,8 @@ export const sourceFreeSuccesses = [
   regexpContainsBoundaries,
   regexpExtractOriginal,
   regexpExtractBound,
+  regexpReplaceOriginal,
+  regexpReplaceBound,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
@@ -917,6 +936,12 @@ export const sourceFreeSuccesses = [
   ...aggregateDefaultFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
+  {name: 'regexp-replace-invalid-escape', format: 'sql',
+    text: String.raw`SELECT REGEXP_REPLACE(NULL, 'a', r'\x') AS result`,
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'regexp-replace-missing-capture', format: 'sql',
+    text: String.raw`SELECT REGEXP_REPLACE(NULL, '(a)', r'\2') AS result`,
+    expectedCode: 'ClientProgramInvalidInput'},
   {name: 'regexp-extract-multiple-captures', format: 'sql',
     text: "SELECT REGEXP_EXTRACT(NULL, '(a)(b)') AS result",
     expectedCode: 'ClientProgramInvalidInput'},

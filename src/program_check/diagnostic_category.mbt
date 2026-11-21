@@ -392,6 +392,8 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
       Patterns(
         Regex(
           MultipleCaptures(_)
+          | SqlReplacementCapture(_)
+          | SqlReplacement(_, InvalidReplacement(_) | InvalidUnicode(_))
           | Pattern(
             _,
             InvalidSyntax(_)

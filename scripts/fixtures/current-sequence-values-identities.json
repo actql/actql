@@ -3,7 +3,7 @@
   "prepared": false,
   "grammar": {
     "version": "actql-grammar-manifest/0.1",
-    "source_grammar_cid": "sha256:c0fe5a3bd9b3ef10dac1dd28094200fbfc9f907a73d57534dc9ba45d59189566",
+    "source_grammar_cid": "sha256:424b661af1fff4831605914d6f8285502c9ae638a71ea585e92a885f656c9073",
     "operations": [
       "analytic",
       "append",
@@ -78,19 +78,19 @@
       "window_events",
       "window_group"
     ],
-    "expression_contract_cid": "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
+    "expression_contract_cid": "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
     "expression_text_grammar_sha256": "8f78cdce151e28cd59d130d1258e167f6ca80ee2bebd8122c62905028b223390",
     "expression_text_rules_sha256": "1656fb90fc607479737553b5973e05728e50f3061d1e6e248556460268425f5e",
     "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
     "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
     "query_text_grammar_sha256": "671cb09b71389839bd0c8098e51026df9290d54c7ff11ee9935ffb911a4a649f",
-    "query_text_rules_sha256": "636f4cf8b92d959164ca96ea8a8f89706259de6d9337f4aba13b48a1909f44c1",
-    "grammar_manifest_cid": "sha256:73870cff9009179a80639f0c03619d38f39004eba13c930c26d431b87e79c982"
+    "query_text_rules_sha256": "6514d010a1c37da7b9b920b34bce33d691f3fc9ae8a1f2436ef5082990366ce3",
+    "grammar_manifest_cid": "sha256:fdffab2438ffef622ddeec21727b4c54e81cc946fb7a6139d449ac4bec115d32"
   },
   "values_dependencies": {
-    "unit": "sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80",
-    "proof": "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937",
-    "resultPlan": "sha256:2a5ff7a83e88f3bf507493129a8ddfb7a64b6505b23a5841281d4dc807d6dcb5",
+    "unit": "sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed",
+    "proof": "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2",
+    "resultPlan": "sha256:a121993388042b8c293b59b0dbf5368c8e768ae97cf4888145eb749f1c8684b8",
     "contracts": [
       "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911",
       "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a",
@@ -98,10 +98,11 @@
       "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72",
       "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971",
       "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
-      "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
       "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
+      "sha256:424b661af1fff4831605914d6f8285502c9ae638a71ea585e92a885f656c9073",
       "sha256:44d5fccfc562b1292224b6d8920dc8c56e59bf3066417bd50c2b942545b07ac7",
       "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1",
+      "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
       "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4",
       "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f",
       "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325",
@@ -118,12 +119,11 @@
       "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae",
       "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78",
       "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
-      "sha256:a467217ec0e412c47a9d71b241dafeb104780978e70ab0d022b7c603231f8fbb",
       "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
       "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
-      "sha256:c0fe5a3bd9b3ef10dac1dd28094200fbfc9f907a73d57534dc9ba45d59189566",
       "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9",
-      "sha256:dd7495bc524193d9ad28d0cdf0e9d5f731070e455a69b81a62ef0d66b6771873"
+      "sha256:dd7495bc524193d9ad28d0cdf0e9d5f731070e455a69b81a62ef0d66b6771873",
+      "sha256:eeb27a1dbc35f0227ca53a1ed4b15b975580ad2b0da166527bb5f274a38dafce"
     ],
     "local": {
       "version": "actql-stage-semantics/0.1",
@@ -131,7 +131,7 @@
       "bindings": {},
       "parameter_references": [],
       "parameters": {},
-      "expression_contract_cid": "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
+      "expression_contract_cid": "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
       "local_body": {
         "effects": {},
         "inputs": {},
@@ -171,7 +171,7 @@
     "semantics": {
       "version": "actql-program-semantics/0.1",
       "actql_version": "actql/0.1",
-      "expression_contract_cid": "sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1",
+      "expression_contract_cid": "sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d",
       "parameters": {},
       "parameter_references": [],
       "bindings": {},
@@ -182,7 +182,7 @@
             "id": "source",
             "after": "initial",
             "imports": {},
-            "stage_semantics_cid": "sha256:718b165c57396244bea5b686a0c58e37dcbba84675a91960bca418c15761cf01"
+            "stage_semantics_cid": "sha256:be335a611e963454bfed6657596a11be3d138175d5a897f87e1f20621e8ba648"
           }
         ],
         "exports": {
@@ -195,28 +195,28 @@
         }
       }
     },
-    "semanticsCid": "sha256:625726b9e4859bf25cd19e3ec741687f2f1fa1e18c3248aac5ef4bca256ff228",
+    "semanticsCid": "sha256:428e427916c53c5814e6cb36f102c9dccb816f9dc4c7fec7ad0a2d1e819dcebd",
     "definition": {
       "version": "actql-program-definition/0.1",
       "id": "client-values",
-      "program_semantics_cid": "sha256:625726b9e4859bf25cd19e3ec741687f2f1fa1e18c3248aac5ef4bca256ff228"
+      "program_semantics_cid": "sha256:428e427916c53c5814e6cb36f102c9dccb816f9dc4c7fec7ad0a2d1e819dcebd"
     },
-    "programCid": "sha256:8836ca770f8b32750d1b720b89979f9995e44ca4e715fdecab8345a3acc8079b"
+    "programCid": "sha256:e861fc6fa4e71e6ecea723bb3e88025dbfb2b1843b76f2a5d547fb010bfcf408"
   },
-  "aoa_contract_cid": "sha256:e72425fce6e45129d35da5d3f904de54a35e8b37d60151d3109c84275ca69578",
-  "barrier_contract_manifest_cid": "sha256:d4cddc2b234b133a3c9b14516c54d0a441291d9b4a963731a2a217fead4c06c1",
+  "aoa_contract_cid": "sha256:28e28666662b722b8d54058de0ac143aa949062ffd433fb31741f36f7afdba1f",
+  "barrier_contract_manifest_cid": "sha256:9f6ff2d4dc43d5e148a7d718f1892fba84ad1570cd6d327ebef66c272cbf93b4",
   "run_preimages": {
     "template": {
       "version": "actql-bound-invocation-template/0.1",
-      "barrier_contract_manifest_cid": "sha256:d4cddc2b234b133a3c9b14516c54d0a441291d9b4a963731a2a217fead4c06c1",
+      "barrier_contract_manifest_cid": "sha256:9f6ff2d4dc43d5e148a7d718f1892fba84ad1570cd6d327ebef66c272cbf93b4",
       "check_environment_cid": "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
-      "grammar_manifest_cid": "sha256:73870cff9009179a80639f0c03619d38f39004eba13c930c26d431b87e79c982",
+      "grammar_manifest_cid": "sha256:fdffab2438ffef622ddeec21727b4c54e81cc946fb7a6139d449ac4bec115d32",
       "invocation_bindings_cid": "sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f",
       "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
-      "program_definition_cid": "sha256:8836ca770f8b32750d1b720b89979f9995e44ca4e715fdecab8345a3acc8079b",
+      "program_definition_cid": "sha256:e861fc6fa4e71e6ecea723bb3e88025dbfb2b1843b76f2a5d547fb010bfcf408",
       "required_profile_contracts": [],
       "source_evidence": "unbound",
-      "bound_invocation_template_cid": "sha256:701472c49515a472af5200ea73e19ad9c7e8aa2837733e5855e2c4aec406b31e"
+      "bound_invocation_template_cid": "sha256:6305f443485a9d2771085d7ce42522d19eff22406eb60f21578af17e4f4b1d06"
     },
     "executable": {
       "version": "actql-executable-plan/0.1",
@@ -224,7 +224,7 @@
         {
           "version": "actql-bound-witness/0.1",
           "dependencies": [
-            "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937"
+            "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2"
           ],
           "derivation": {
             "op": "source"
@@ -233,12 +233,12 @@
           "role": "proven_upper_bound",
           "source": {
             "kind": "program",
-            "proof_cid": "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937",
-            "semantic_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/steps/0"
+            "proof_cid": "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2",
+            "semantic_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/steps/0"
           },
           "unit": "rows",
           "value": 2,
-          "witness_cid": "sha256:ef5a0ddf7f00855c87b8036c0ff74f318d886ff2dff9dc64a75965658cacae8e"
+          "witness_cid": "sha256:16f19f06d5728270ba0e2904144c82a15a707e466e820351339517c284c09706"
         },
         {
           "version": "actql-bound-witness/0.1",
@@ -281,14 +281,14 @@
       ],
       "data_edges": [],
       "execution_material": {
-        "aoa_contract_cid": "sha256:e72425fce6e45129d35da5d3f904de54a35e8b37d60151d3109c84275ca69578",
-        "barrier_contract_manifest_cid": "sha256:d4cddc2b234b133a3c9b14516c54d0a441291d9b4a963731a2a217fead4c06c1",
+        "aoa_contract_cid": "sha256:28e28666662b722b8d54058de0ac143aa949062ffd433fb31741f36f7afdba1f",
+        "barrier_contract_manifest_cid": "sha256:9f6ff2d4dc43d5e148a7d718f1892fba84ad1570cd6d327ebef66c272cbf93b4",
         "check_environment_cid": "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
         "effect_plan_logical_cids": {},
-        "grammar_manifest_cid": "sha256:73870cff9009179a80639f0c03619d38f39004eba13c930c26d431b87e79c982",
+        "grammar_manifest_cid": "sha256:fdffab2438ffef622ddeec21727b4c54e81cc946fb7a6139d449ac4bec115d32",
         "invocation_binding_names": [],
         "invocation_bindings_cid": "sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f",
-        "invocation_template_cid": "sha256:701472c49515a472af5200ea73e19ad9c7e8aa2837733e5855e2c4aec406b31e",
+        "invocation_template_cid": "sha256:6305f443485a9d2771085d7ce42522d19eff22406eb60f21578af17e4f4b1d06",
         "parameter_names": [],
         "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
         "program": {
@@ -338,39 +338,39 @@
             }
           }
         },
-        "program_definition_cid": "sha256:8836ca770f8b32750d1b720b89979f9995e44ca4e715fdecab8345a3acc8079b",
+        "program_definition_cid": "sha256:e861fc6fa4e71e6ecea723bb3e88025dbfb2b1843b76f2a5d547fb010bfcf408",
         "result_plan_logical_cids": {
-          "answer": "sha256:2a5ff7a83e88f3bf507493129a8ddfb7a64b6505b23a5841281d4dc807d6dcb5"
+          "answer": "sha256:a121993388042b8c293b59b0dbf5368c8e768ae97cf4888145eb749f1c8684b8"
         }
       },
       "limit_bindings": [
         {
           "version": "actql-execution-limit-binding/0.1",
           "effective_max": 2,
-          "resolved_limit_cid": "sha256:873a86d44b0088d65605fe7a5f819ee55d8d5c92659911fb4a1edc057ba2a006",
-          "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/rows",
+          "resolved_limit_cid": "sha256:6b572c263182b76b9e0bcc3ae96920f18b48d6673b235deb121d67dbba0878c8",
+          "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/rows",
           "target": {
             "kind": "result_publication",
             "measure": "rows",
             "result_name": "rows",
-            "unit_definition_cid": "sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80"
+            "unit_definition_cid": "sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed"
           },
           "unit": "rows",
-          "binding_cid": "sha256:369fd36f27f2f5bc8d7d01ad1803a56178f8a628d0cf3289a50eded8966afae4"
+          "binding_cid": "sha256:f23012e121a88a2a5a9df0dba77ecd2b662e08a20affe95290542746a38d2e54"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
           "effective_max": 1000,
-          "resolved_limit_cid": "sha256:fec7c8e4d68bebfa9356bfca4fdf77ff99d261e714775c455ba65e4e42782c57",
-          "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/bytes",
+          "resolved_limit_cid": "sha256:c244b06141babae76c66339c7536756b5d1d5ef84efafe20221ada65337a6163",
+          "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/bytes",
           "target": {
             "kind": "result_publication",
             "measure": "bytes",
             "result_name": "rows",
-            "unit_definition_cid": "sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80"
+            "unit_definition_cid": "sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed"
           },
           "unit": "bytes",
-          "binding_cid": "sha256:2b30856bd5edd683191019ca7ca1b83279da96604c5484052e98ef587e04d844"
+          "binding_cid": "sha256:c5153af4e50579340e0f5811a729ecff59a5cea6f311ff0012ae0fa4114c29d8"
         }
       ],
       "nodes": [
@@ -412,7 +412,7 @@
           }
         }
       ],
-      "plan_fact_manifest_cid": "sha256:7a2576e06ee5552d6d27de9848038c81d1d9edd0229c8c71072bc402649eed6f",
+      "plan_fact_manifest_cid": "sha256:fa77756b01f9cff8aeb02abdb11329f6fa823c41455e8da797ccf13ad6c63917",
       "plan_facts": [
         {
           "kind": "resolved_limit",
@@ -443,7 +443,7 @@
               {
                 "version": "actql-bound-witness/0.1",
                 "dependencies": [
-                  "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937"
+                  "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2"
                 ],
                 "derivation": {
                   "op": "source"
@@ -452,19 +452,19 @@
                 "role": "proven_upper_bound",
                 "source": {
                   "kind": "program",
-                  "proof_cid": "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937",
-                  "semantic_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/steps/0"
+                  "proof_cid": "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2",
+                  "semantic_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/steps/0"
                 },
                 "unit": "rows",
                 "value": 2,
-                "witness_cid": "sha256:ef5a0ddf7f00855c87b8036c0ff74f318d886ff2dff9dc64a75965658cacae8e"
+                "witness_cid": "sha256:16f19f06d5728270ba0e2904144c82a15a707e466e820351339517c284c09706"
               }
             ],
             "effective_max": 2,
             "enforcement": "engine_atomic",
-            "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/rows",
+            "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/rows",
             "unit": "rows",
-            "resolved_limit_cid": "sha256:873a86d44b0088d65605fe7a5f819ee55d8d5c92659911fb4a1edc057ba2a006"
+            "resolved_limit_cid": "sha256:6b572c263182b76b9e0bcc3ae96920f18b48d6673b235deb121d67dbba0878c8"
           }
         },
         {
@@ -496,9 +496,9 @@
             ],
             "effective_max": 1000,
             "enforcement": "engine_atomic",
-            "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/bytes",
+            "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/bytes",
             "unit": "bytes",
-            "resolved_limit_cid": "sha256:fec7c8e4d68bebfa9356bfca4fdf77ff99d261e714775c455ba65e4e42782c57"
+            "resolved_limit_cid": "sha256:c244b06141babae76c66339c7536756b5d1d5ef84efafe20221ada65337a6163"
           }
         }
       ],
@@ -531,7 +531,7 @@
             {
               "version": "actql-bound-witness/0.1",
               "dependencies": [
-                "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937"
+                "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2"
               ],
               "derivation": {
                 "op": "source"
@@ -540,19 +540,19 @@
               "role": "proven_upper_bound",
               "source": {
                 "kind": "program",
-                "proof_cid": "sha256:7d3af1daba06d76e11432e593ccc0d8b9f738996f74af00220d3dbebfcc16937",
-                "semantic_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/steps/0"
+                "proof_cid": "sha256:55aa5b52a7f3e12e8df79697f197b9534cf58075f00662f6e4400335bfaf9ff2",
+                "semantic_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/steps/0"
               },
               "unit": "rows",
               "value": 2,
-              "witness_cid": "sha256:ef5a0ddf7f00855c87b8036c0ff74f318d886ff2dff9dc64a75965658cacae8e"
+              "witness_cid": "sha256:16f19f06d5728270ba0e2904144c82a15a707e466e820351339517c284c09706"
             }
           ],
           "effective_max": 2,
           "enforcement": "engine_atomic",
-          "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/rows",
+          "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/rows",
           "unit": "rows",
-          "resolved_limit_cid": "sha256:873a86d44b0088d65605fe7a5f819ee55d8d5c92659911fb4a1edc057ba2a006"
+          "resolved_limit_cid": "sha256:6b572c263182b76b9e0bcc3ae96920f18b48d6673b235deb121d67dbba0878c8"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -581,9 +581,9 @@
           ],
           "effective_max": 1000,
           "enforcement": "engine_atomic",
-          "subject_ref": "unit:sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80#/results/rows/bytes",
+          "subject_ref": "unit:sha256:8543529a786565a7249af438bbef0919dff94b0f1ef7ca67b08dbf0b59e845ed#/results/rows/bytes",
           "unit": "bytes",
-          "resolved_limit_cid": "sha256:fec7c8e4d68bebfa9356bfca4fdf77ff99d261e714775c455ba65e4e42782c57"
+          "resolved_limit_cid": "sha256:c244b06141babae76c66339c7536756b5d1d5ef84efafe20221ada65337a6163"
         }
       ],
       "root_refs": [
@@ -597,30 +597,30 @@
         }
       ],
       "source_state_requirements": [],
-      "executable_plan_cid": "sha256:3500ef6b3457f8cd872b7c710d99eadeeace5540d6dfac1a5db4c3b7d61cffdd"
+      "executable_plan_cid": "sha256:cbe64e5ec98931b6b675cfc9a6be95e98c36d5446a58c6eedff90e06033d5e35"
     },
     "compiled": {
       "version": "actql-compiled-plan/0.1",
-      "aoa_contract_cid": "sha256:e72425fce6e45129d35da5d3f904de54a35e8b37d60151d3109c84275ca69578",
+      "aoa_contract_cid": "sha256:28e28666662b722b8d54058de0ac143aa949062ffd433fb31741f36f7afdba1f",
       "aoa_ir_version": "aoa-pipeline:0.1",
       "aoa_logical_cid": "sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723",
       "compiler_version": "actql-moonbit-0.0.1",
-      "executable_plan_cid": "sha256:3500ef6b3457f8cd872b7c710d99eadeeace5540d6dfac1a5db4c3b7d61cffdd",
-      "program_definition_cid": "sha256:8836ca770f8b32750d1b720b89979f9995e44ca4e715fdecab8345a3acc8079b",
-      "program_semantics_cid": "sha256:625726b9e4859bf25cd19e3ec741687f2f1fa1e18c3248aac5ef4bca256ff228",
-      "compiled_plan_cid": "sha256:42a28d7a8ec77c308b4b23d32b93ee44d7df9c71e40db00a1083ed67b6115b65"
+      "executable_plan_cid": "sha256:cbe64e5ec98931b6b675cfc9a6be95e98c36d5446a58c6eedff90e06033d5e35",
+      "program_definition_cid": "sha256:e861fc6fa4e71e6ecea723bb3e88025dbfb2b1843b76f2a5d547fb010bfcf408",
+      "program_semantics_cid": "sha256:428e427916c53c5814e6cb36f102c9dccb816f9dc4c7fec7ad0a2d1e819dcebd",
+      "compiled_plan_cid": "sha256:87f5c6bb6aa3910c98d17cb864398f07a8c03a5fb372a6e077ab5567d55bb1c3"
     },
     "run": {
       "version": "actql-run-definition/0.1",
       "authorization_context_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "compiled_plan_cid": "sha256:42a28d7a8ec77c308b4b23d32b93ee44d7df9c71e40db00a1083ed67b6115b65",
+      "compiled_plan_cid": "sha256:87f5c6bb6aa3910c98d17cb864398f07a8c03a5fb372a6e077ab5567d55bb1c3",
       "created_at": "2026-09-30T00:00:00.000Z",
       "input_artifact_set_cid": "sha256:ca6f3f743acfb4611a89a9e85d33ba472bc0aad7acb37ac3821aedc1229d58df",
-      "invocation_template_cid": "sha256:701472c49515a472af5200ea73e19ad9c7e8aa2837733e5855e2c4aec406b31e",
+      "invocation_template_cid": "sha256:6305f443485a9d2771085d7ce42522d19eff22406eb60f21578af17e4f4b1d06",
       "run_id": "cloud-run-1",
       "scope_id": "cloud-scope",
       "valid_until": "2099-01-01T00:00:00.000Z",
-      "run_definition_cid": "sha256:a2557d843dfbe72f394201467c3c368789dddd7234e3c5b7387f672f470d018c"
+      "run_definition_cid": "sha256:98f93cee8d5507255e9e62c7e6a5a4a46178fb1824cce03402d0159a82015a31"
     }
   }
 }

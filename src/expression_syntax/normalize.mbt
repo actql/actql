@@ -300,6 +300,11 @@ fn finish(
           invalid(cursor, origin, InvalidArguments)
         }
       }
+      if tag == "regex_replace" &&
+        part(value, "dialect") is Some(dialect) &&
+        !(dialect.value is @map.String("googlesql")) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "vector_score" &&
         !(part(value, "metric")
         is Some({ value: @map.String("cosine" | "dot" | "l2"), .. })) {

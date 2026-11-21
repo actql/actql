@@ -1,11 +1,7 @@
 ///|
 test "unselected GoogleSQL scalar families retain a named checked lowering refusal" {
   let context = bind_query_context([], "fixture.environment").unwrap()
-  for
-    expression in [
-      "REGEXP_REPLACE('abc', 'a', 'b')", "ARRAY_LENGTH([1, 2])", "UNIX_SECONDS(1)",
-      "SHA256('a')",
-    ] {
+  for expression in ["ARRAY_LENGTH([1, 2])", "UNIX_SECONDS(1)", "SHA256('a')"] {
     assert_true(
       lower("SELECT " + expression + " AS result", Sql, Some(context))
       is Err(QueryLowering(Expression({ issue: UnsupportedFunction, .. }))),
@@ -84,4 +80,16 @@ test "REGEXP_EXTRACT reaches the checked source-free SQL entrance" {
   ).unwrap()
   assert_true(prepared.document.contains("\"regex_extract\":"))
   assert_false(prepared.document.contains("\"capture\":"))
+}
+
+///|
+test "REGEXP_REPLACE reaches the checked source-free SQL entrance" {
+  let context = bind_query_context([], "fixture.environment").unwrap()
+  let prepared = lower(
+    "SELECT REGEXP_REPLACE('abc', 'b(.)', r'[\\0,\\1]') AS result",
+    Sql,
+    Some(context),
+  ).unwrap()
+  assert_true(prepared.document.contains("\"regex_replace\":"))
+  assert_true(prepared.document.contains("\"dialect\":\"googlesql\""))
 }
