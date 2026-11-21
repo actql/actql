@@ -67836,8 +67836,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -67854,8 +67854,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -67868,7 +67868,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "import {canonicalJson, contentCid} from './local-account-config.mjs';"
               },
               {
@@ -67882,7 +67882,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "// The registered contract is flat; no private/nested object is retained."
               },
               {
@@ -67896,8 +67896,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -67910,7 +67910,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidInstalledHostCapacityPolicy', {cause}),"
               },
               {
@@ -67924,8 +67924,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -67938,7 +67938,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "// Explicit Host configuration of the existing capacity contract. This is"
               },
               {
@@ -67952,7 +67952,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidInstalledHostCapacityPolicy', {cause}),"
               },
               {
@@ -67993,8 +67993,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits: unknown) {"
               }
             ],
             "identity": [
@@ -68041,7 +68041,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "const response = BigInt(files) * BigInt(pages) * request;"
               },
               {
@@ -68081,7 +68081,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68091,7 +68091,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68101,7 +68101,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68111,7 +68111,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68121,7 +68121,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68131,7 +68131,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68141,7 +68141,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68151,7 +68151,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68161,7 +68161,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "export function selectInstalledLocalMaterializationEnvironment("
               },
               {
@@ -68185,8 +68185,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -68199,8 +68199,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -68213,7 +68213,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "import {canonicalJson, contentCid} from './local-account-config.mjs';"
               },
               {
@@ -68227,7 +68227,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "// The registered contract is flat; no private/nested object is retained."
               },
               {
@@ -68241,8 +68241,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -68255,7 +68255,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidInstalledHostCapacityPolicy', {cause}),"
               },
               {
@@ -68269,8 +68269,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function snapshotHostCapacityPolicy(value) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function snapshotHostCapacityPolicy(value: unknown): CapacityPolicy | undefined {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -68283,7 +68283,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "// Explicit Host configuration of the existing capacity contract. This is"
               },
               {
@@ -68297,7 +68297,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidInstalledHostCapacityPolicy', {cause}),"
               },
               {
@@ -68402,7 +68402,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "The materializing Local Task and SDK collection share one installed byte"
               },
               {
@@ -68412,13 +68412,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function localResourceResultReadLimits(moon, requestMemory)"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function localResourceResultReadLimits(moon: ResourcePolicy, requestMemory: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "const original = moon.clientLocalResourcePolicyOriginal();"
               },
               {
@@ -68428,7 +68428,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "no allocation or permission."
               }
             ],
@@ -68437,7 +68437,7 @@
             },
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "fail('LocalResultReadPolicyProjection')"
               }
             ],
@@ -68446,7 +68446,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "const maxRetainedValueBytes = Number(limits[4]);"
               },
               {

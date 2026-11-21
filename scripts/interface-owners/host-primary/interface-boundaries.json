@@ -10858,8 +10858,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits) {"
+                "path": "adapters/host-node/installed-host-policy.mts",
+                "anchor": "export function localFilesLookupExecutionPolicy(sourceLimits: unknown) {"
               }
             ],
             "identity": [
@@ -10906,7 +10906,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-policy.mjs",
+                "path": "adapters/host-node/installed-host-policy.mts",
                 "anchor": "const response = BigInt(files) * BigInt(pages) * request;"
               },
               {
