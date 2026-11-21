@@ -507,6 +507,8 @@ pub fn[I, A] construct_request_effect_materials(ClientRequestPreparation[I], I, 
 
 pub fn[I] construct_request_static_effect_context(ClientRequestPreparation[I], I, @run_publication_host.ClientStaticEffectExplanationOriginal, @run_publication_host.ClientEffectCompilation, Int, Int, Int, Int) -> Result[String, ClientRequestStaticContextIssue]
 
+pub fn[I] construct_request_static_effect_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientStaticEffectExplanationOriginal, @run_publication_host.ClientEffectCompilation, Int, Int, Int, Int) -> Result[(String, String), ClientRequestStaticContextIssue]
+
 pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientRequestPreparationIssue]
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
@@ -2130,6 +2132,7 @@ pub(all) enum ClientRequestPreparationIssue {
 pub(all) enum ClientRequestStaticContextIssue {
   Preparation(ClientRequestPreparationIssue)
   Context(@run_publication_host.ClientStaticExplanationSourceIssue)
+  Facts(@run_publication_host.ClientExplanationFactsIssue)
   Encoding(@encode_core.EncodeFailure)
   Contract(@run_publication.PublicationContractIssue)
 } derive(@debug.Debug)

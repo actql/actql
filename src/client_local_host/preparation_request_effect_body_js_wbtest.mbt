@@ -608,3 +608,81 @@ test "static Effect Context measures and emits on the original working Request" 
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static Effect Explanation pairs Facts and Context with one Plan and final current fence" {
+  let calls = Ref(0)
+  let refuse_at : Ref[Int?] = Ref(None)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    calls.val += 1
+    refuse_at.val != Some(calls.val)
+  })
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let read_pair = () => {
+    construct_request_static_effect_explanation(
+      parent, input, original, compiled, 65536, 8192, 64, 10000,
+    )
+  }
+  let before = calls.val
+  let (facts, context) = match read_pair() {
+    Ok(value) => value
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  let checks = calls.val - before
+  assert_true(checks > 1)
+  let parse = (name, wire) => {
+    @publication.parse_interactive_run_control_shape(
+      name, wire, 65536, 8192, 64,
+    ).unwrap()
+  }
+  let plan = parse("effectful_static_plan_view", plan)
+  let base_view = @identity.object_field(
+    @identity.object_field(plan, "computation").unwrap(),
+    "plan_view",
+  ).unwrap()
+  let plan_map = @identity.object_field(base_view, "logical_map").unwrap()
+  let facts = parse("explanation_facts", facts)
+  let context_binding = @identity.object_field(
+    parse("explanation_context", context),
+    "binding",
+  ).unwrap()
+  guard @identity.object_field(plan_map, "self_cid")
+    is Some(@identity.String(map_cid)) &&
+    @identity.object_field(base_view, "compiled_plan_cid")
+    is Some(@identity.String(plan_cid)) else {
+    fail("original static Plan binding is required")
+  }
+  for facet in [facts, context_binding] {
+    assert_true(
+      @identity.object_field(facet, "compiled_plan_cid")
+      is Some(@identity.String(value)) &&
+      value == plan_cid,
+    )
+    assert_true(
+      @identity.object_field(facet, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+  }
+  // Observe the same synchronous sequence and revoke just its last current
+  // check. Both admitted outputs are then withheld from the caller together.
+  refuse_at.val = Some(calls.val + checks)
+  assert_true(read_pair() is Err(Preparation(Capacity(_))))
+  assert_eq(Some(calls.val), refuse_at.val)
+  assert_true(parent.phase == EffectCompiled)
+  refuse_at.val = None
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
