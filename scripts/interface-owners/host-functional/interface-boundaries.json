@@ -13829,7 +13829,7 @@
     {
       "module": "adapters/host-common/scoped-strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec5a195bdbc9cb77e0e35df40927780009e610f967c5ca65043d1e1d9ec3c441",
+      "sha256": "d9efc23e1cb21e91b372ec57bd243e8041a4c9c3f16a8214ba7381c85fa11a76",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -13872,8 +13872,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -13886,8 +13886,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -13900,7 +13900,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// input cache, binding, request context or environment is retained here."
               },
               {
@@ -13914,7 +13914,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// input cache, binding, request context or environment is retained here."
               },
               {
@@ -13928,7 +13928,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// The callback may run consumers while outputs are live. All task handles are"
               },
               {
@@ -13942,7 +13942,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "if (typeof consume !== 'function') throw new TypeError('A scoped consumer is required');"
               },
               {
@@ -13956,8 +13956,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -13970,7 +13970,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "throw new Error('Workers strategy failed', {cause:report.failure});"
               },
               {
@@ -13984,7 +13984,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "import {runInstalledStrategy} from './strategy.mjs';"
               },
               {
@@ -14016,8 +14016,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -14030,8 +14030,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -14044,7 +14044,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// input cache, binding, request context or environment is retained here."
               },
               {
@@ -14058,7 +14058,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// input cache, binding, request context or environment is retained here."
               },
               {
@@ -14072,7 +14072,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "// The callback may run consumers while outputs are live. All task handles are"
               },
               {
@@ -14086,7 +14086,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "if (typeof consume !== 'function') throw new TypeError('A scoped consumer is required');"
               },
               {
@@ -14100,8 +14100,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
-                "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
+                "path": "adapters/host-common/scoped-strategy.mts",
+                "anchor": "export async function withScopedStrategy<Result>("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -14114,7 +14114,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "throw new Error('Workers strategy failed', {cause:report.failure});"
               },
               {
@@ -14128,7 +14128,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/scoped-strategy.mjs",
+                "path": "adapters/host-common/scoped-strategy.mts",
                 "anchor": "import {runInstalledStrategy} from './strategy.mjs';"
               },
               {

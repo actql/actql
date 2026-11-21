@@ -1683,6 +1683,14 @@ target/
 /adapters/host-common/manifest-access.d.mts
 /adapters/host-common/result-retention.mjs
 /adapters/host-common/result-retention.d.mts
+/adapters/host-common/scoped-strategy.mjs
+/adapters/host-common/scoped-strategy.d.mts
+/adapters/host-common/local-js-host.mjs
+/adapters/host-common/local-js-host.d.mts
+/adapters/host-node/finalizer-fixture.mjs
+/adapters/host-node/finalizer-fixture.d.mts
+/adapters/workers/shared-host.test.mjs
+/adapters/workers/shared-host.test.d.mts
 /adapters/host-common/content-output-demand.test.mjs
 /adapters/host-common/content-output-demand.test.d.mts
 /adapters/host-common/recovered-source-content-control.test.mjs

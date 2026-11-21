@@ -3,9 +3,17 @@ import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {createExecutionSiteControlFixture} from
   '../host-common/execution-site-control.fixture.mjs';
 import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
+import type {ScopedStrategyFailure} from '../host-common/scoped-strategy.mjs';
+
+// The lifecycle fixture uses only the dispatch, output and close ports.
+type FixtureCore = Parameters<typeof withScopedStrategy>[1];
+type FailureView = Readonly<{
+  errors?: readonly Readonly<{cause?: unknown}>[];
+  cleanupHandle?: ScopedStrategyFailure['cleanupHandle'];
+}>;
 
 const siteControl = createExecutionSiteControlFixture();
-export async function finalizerCase(kind, scoped = false) {
+export async function finalizerCase(kind: string, scoped = false) {
   const first = kind === 'undefined' ? undefined : kind === 'null' ? null : new Error('first');
   const registration = {}, setup = {};
   let finished = 0, closed = 0, complete = false, consumed = 0;
@@ -16,9 +24,9 @@ export async function finalizerCase(kind, scoped = false) {
     registration: () => registration, completed: () => complete,
     finished: () => complete, stop() {}, usage: () => ({}),
     closeOutputs() { closed++; }, output: () => complete ? 1 : undefined,
-  };
+  } as unknown as FixtureCore;
   const entries = [{
-    registration, run() { complete = true; },
+    registration, run(): undefined { complete = true; },
     finish() { finished++; throw first; },
   }, {
     registration: {}, run() { throw new Error('unused'); },
@@ -31,9 +39,9 @@ export async function finalizerCase(kind, scoped = false) {
     } catch (error) {
       return {
         failed: error instanceof AggregateError,
-        firstPreserved: error.errors?.[0]?.cause === first,
-        pending: error.cleanupHandle?.status().pending,
-        cleanup: await error.cleanupHandle?.retry(), finished, closed, consumed,
+        firstPreserved: (error as FailureView).errors?.[0]?.cause === first,
+        pending: (error as ScopedStrategyFailure).cleanupHandle?.status().pending,
+        cleanup: await (error as ScopedStrategyFailure).cleanupHandle?.retry(), finished, closed, consumed,
       };
     }
   }
@@ -48,7 +56,7 @@ export async function finalizerCase(kind, scoped = false) {
   };
 }
 
-export async function asynchronousCloseCase(kind) {
+export async function asynchronousCloseCase(kind: string) {
   const registration = {}, setup = {};
   let complete = false, closed = 0, retries = 0, pending = true;
   const recovery = {status: () => ({pending}), retry() { retries++; pending = false; }};
@@ -61,7 +69,7 @@ export async function asynchronousCloseCase(kind) {
     registration: () => registration, completed: () => complete,
     finished: () => complete, stop() {}, usage: () => ({}),
     closeOutputs() { closed++; }, output: () => complete ? 1 : undefined,
-  };
+  } as unknown as FixtureCore;
   try {
     await withScopedStrategy(setup, core, [{registration, run() {
       complete = true;
@@ -69,7 +77,7 @@ export async function asynchronousCloseCase(kind) {
     }}], () => 1);
     return {failed: false};
   } catch (error) {
-    return {failed: error instanceof AggregateError, firstPreserved: error.errors?.[0] === first,
-      pending: error.cleanupHandle?.status().pending ?? false, closed, retries};
+    return {failed: error instanceof AggregateError, firstPreserved: (error as ScopedStrategyFailure).errors?.[0] === first,
+      pending: (error as ScopedStrategyFailure).cleanupHandle?.status().pending ?? false, closed, retries};
   }
 }

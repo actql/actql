@@ -6,7 +6,7 @@ import {finalizerCase} from '../host-node/finalizer-fixture.mjs';
 test('JS Host binding snapshots its runtime without installing contributions', () => {
   const setup = {};
   const usage = {};
-  const runtime = {strategyHostUsage: value => {
+  const runtime = {strategyHostUsage: (value: object) => {
     assert.equal(value, setup);
     return usage;
   }};
