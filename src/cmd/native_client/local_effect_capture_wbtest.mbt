@@ -274,3 +274,28 @@ test "Native complete Unit inventory keeps an unconsumed Result alias" {
   assert_eq(native_mock_effect_extra_unit_results(prepared, 0), 1)
   assert_eq(native_mock_effect_extra_unit_results(prepared, 1), 0)
 }
+
+///|
+test "Native serial Source snapshots reuse the actual overlapping constructor peak" {
+  let fixed = @execution.execution_capacity(100L, 120L).unwrap()
+  // The 30-byte snapshot remains live beside the 50-byte decoder.
+  let captured = native_mock_effect_import_workspace(fixed, 60L, 30L, 50L).unwrap()
+  assert_eq(captured, 80L)
+  // After the old bare wire and local aliases returned, the second Source
+  // needs 65 bytes including its narrower decoder. The prior peak suffices.
+  assert_eq(
+    native_mock_effect_import_workspace(fixed, captured, 40L, 25L),
+    Some(80L),
+  )
+  // The old high-water cannot replace live baseline+snapshot overlap.
+  assert_eq(
+    native_mock_effect_import_workspace(fixed, captured, 70L, 15L),
+    Some(90L),
+  )
+  assert_true(
+    native_mock_effect_import_workspace(
+      fixed, captured, 9223372036854775807L, 1L,
+    )
+    is None,
+  )
+}

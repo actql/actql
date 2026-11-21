@@ -35,6 +35,7 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64) -> Bool)? = None,
 ) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue] {
   if !self.available.val {
     return Err(MissingOutput)
@@ -67,6 +68,7 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
       bridge_max_name_bytes,
       limits,
       before_row~,
+      reserve_row_copy~,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)

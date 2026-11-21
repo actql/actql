@@ -1244,7 +1244,7 @@ fn NativeRelationFileCapture::admit_response(
       Some(provider),
       Some(input),
       Some(bytes.length()),
-      raw_candidate=content.raw_response.map(value => value.metadata),
+      raw_storage=content.raw_custody.map(custody => RetainStorage(custody)),
     ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
     file_require(
       @resources.grow_capacity_reservation(

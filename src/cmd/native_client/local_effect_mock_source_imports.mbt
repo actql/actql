@@ -263,67 +263,80 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         ] {
         construction.retain_wire(self.original, retained_wire)
       }
-      let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
-          stream, receipt,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      // Original writer measurements precede snapshot allocation. This is an
-      // additional retained original, not an assumption that parsing freed it.
-      if !construction.prepare(
-          self.original,
-          Int::max(1, bytes),
-          Int::max(1, nodes),
-          Int::max(1, depth),
-        ) {
-        stop("LocalOriginalEffectProposalsUnavailable")
+      guard construction.source_snapshot is None else {
+        stop("LocalOriginalEffectImportsUnavailable")
       }
-      let snapshot = @execution.start_completed_relation_export_snapshot(
-          stream,
-          receipt,
-          wire.max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
-          limits.output_workspace,
+      construction.source_snapshot = Some(0L)
+      fn capture_result() -> Unit raise ClientStop {
+        let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
+            stream, receipt,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        // Original writer measurements precede snapshot allocation. This is an
+        // additional retained original, not an assumption that parsing freed it.
+        if !construction.prepare_snapshot(
+            self.original,
+            Int::max(1, bytes),
+            Int::max(1, nodes),
+            Int::max(1, depth),
+          ) {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        let snapshot = @execution.start_completed_relation_export_snapshot(
+            stream,
+            receipt,
+            wire.max_bytes,
+            wire.max_nodes,
+            wire.max_depth,
+            limits.output_workspace,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        source.snapshot = Some(snapshot)
+        while !snapshot
+              .advance(256)
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Completed(issue)
+              })
+              .native_effect_proposal(self.original).0 {
+          continue
+        }
+        let (rows_wire, _) = snapshot
+          .finish()
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        snapshot.cancel()
+        source.snapshot = None
+        source._snapshot_wire = Some(rows_wire)
+        source.captures.push(
+          @run_host.admit_client_effect_dependency_capture(
+            held.materials.unwrap(),
+            held.inputs,
+            artifact,
+            index,
+            exported,
+            receipt,
+            rows_wire,
+            wire.max_bytes,
+            wire.max_nodes,
+            wire.max_depth,
+            before_body=Some((bytes, nodes, depth) => {
+              construction.prepare_canonical(self.original, bytes, nodes, depth)
+            }),
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::Dependency(issue)
+          })
+          .native_effect_proposal(self.original),
         )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      source.snapshot = Some(snapshot)
-      while !snapshot
-            .advance(256)
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original).0 {
-        continue
+        source.close_export()
       }
-      let (rows_wire, _) = snapshot
-        .finish()
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      snapshot.cancel()
-      source.snapshot = None
-      source._snapshot_wire = Some(rows_wire)
-      source.captures.push(
-        @run_host.admit_client_effect_dependency_capture(
-          held.materials.unwrap(),
-          held.inputs,
-          artifact,
-          index,
-          exported,
-          receipt,
-          rows_wire,
-          wire.max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
-          before_body=Some((bytes, nodes, depth) => {
-            construction.prepare_canonical(self.original, bytes, nodes, depth)
-          }),
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
-        .native_effect_proposal(self.original),
-      )
-      source.close_export()
+      capture_result()
+      // The successful capture owns its immutable dependency bodies. The
+      // bare row text was dropped by close_export and the last local alias
+      // has returned. The Artifact still owns its Export receipt and refs.
+      construction.source_snapshot = None
     }
     source.manifest = Some(
       @run_host.issue_client_effect_local_manifest(

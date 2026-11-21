@@ -1062,7 +1062,11 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_publication_bridge_fixed_entries(ManagedCompletedOutput[T]) -> Int
+
 pub fn[T] managed_publication_bridge_import_geometry(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, Int) -> ManagedPublicationBridgeLimits?
+
+pub fn[T] managed_publication_bridge_import_usage(ManagedPublicationBridge[T]) -> ValueUsage?
 
 pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
 

@@ -128,6 +128,18 @@ pub fn[T] managed_publication_bridge_import_geometry(
 }
 
 ///|
+/// Fixed field and binding slots from the original managed output. This
+/// sizing read does not inspect rows or grant permission to copy them.
+pub fn[T] managed_publication_bridge_fixed_entries(
+  output : ManagedCompletedOutput[T],
+) -> Int {
+  Int::max(
+    output.bindings.length(),
+    @schema.field_count(output.material.receipt.schema),
+  )
+}
+
+///|
 pub fn[T] prepare_managed_publication_bridge(
   output : ManagedCompletedOutput[T],
   material : ManagedRetainedOutput[T],
@@ -232,6 +244,22 @@ pub fn[T] append_managed_publication_bridge_wire(
       Err(Admission(issue))
     }
   }
+}
+
+///|
+/// Completed value admission from this same live publication copy. This reads
+/// DATA only, after append has returned its transient decoder workspace.
+pub fn[T] managed_publication_bridge_import_usage(
+  bridge : ManagedPublicationBridge[T],
+) -> ValueUsage? {
+  if !bridge.live.val ||
+    bridge.finished ||
+    !bridge.admitted.buffer.open ||
+    bridge.admitted.buffer.reading {
+    return None
+  }
+  let budget = bridge.admitted.buffer.budget
+  Some({ nodes: budget.nodes, text_bytes: budget.text, work: budget.work, })
 }
 
 ///|

@@ -220,7 +220,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
-    if !construction.prepare(
+    if !construction.prepare_snapshot(
         self.original,
         Int::max(1, bytes),
         Int::max(1, nodes),

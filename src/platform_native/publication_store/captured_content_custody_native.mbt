@@ -269,8 +269,8 @@ fn CapturedContentCustody::register(
 }
 
 ///|
-/// One physical write for the already selected candidate. A later call cannot
-/// regenerate or resend it; failed/uncertain writes keep this exact custody.
+/// Persist the already selected candidate once. Equal confirmed Content may
+/// share its durable holding. Failed or uncertain writes keep this custody.
 pub fn CapturedContentCustody::persist(
   self : Self,
   bytes : Bytes,
@@ -297,7 +297,17 @@ fn CapturedContentCustody::persist_in_scope(
     self.store.database.insert("captured_content", self.holding, self.intent) {
     Ok(0L) => self.intent_owned = true
     Ok(_) => return Err(StateCollision)
-    Err(@sqlite.Collision) => return Err(RecoveryRequired)
+    Err(@sqlite.Collision) => {
+      // A fresh Source capture can have the same ContentRef as an earlier
+      // capture in this Run. Require the exact sealed record and quota before
+      // opening its bytes in confirm. Never write or reserve them a second
+      // time, or reuse an unresolved record or raw-response attempt.
+      guard self.original is Content(_) else { return Err(RecoveryRequired) }
+      return match self.confirm_record_in_scope() {
+        Err(StateCollision) => Err(RecoveryRequired)
+        result => result
+      }
+    }
     Err(issue) => return Err(Database(issue))
   }
   self.reservation_attempted = true

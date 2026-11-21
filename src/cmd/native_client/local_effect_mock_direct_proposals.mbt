@@ -90,6 +90,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
     recipe,
     retained: 0L,
     workspace: 0L,
+    source_snapshot: None,
   }
   held.construction = Some(construction)
   let observation = @run_host.client_effect_direct_sources_publication_observation(
@@ -152,9 +153,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
         bridge.entries,
         bridge.name_bytes,
         limits,
-        before_row=Some(text => {
+        reserve_row_copy=Some(bytes => {
           construction
-          .prepare_row_result(text, bridge.row)
+          .reserve_row_copy(bytes)
           .retain_mock_effect_proposal_issue(report)
         }),
       )

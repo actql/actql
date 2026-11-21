@@ -7,6 +7,9 @@ priv struct LocalNativeMockEffectImportConstruction {
   mut recipe : Array[@execution.ExecutionCapacity]
   mut retained : Int64
   mut workspace : Int64
+  // Borrowed only by one acquired Source snapshot. Failure leaves the active
+  // extent on the original operation until command cleanup.
+  mut source_snapshot : Int64?
 }
 
 ///|
@@ -147,17 +150,92 @@ fn LocalNativeMockEffectImportConstruction::prepare_canonical(
 }
 
 ///|
-fn LocalNativeMockEffectImportConstruction::prepare(
+// Snapshot emission returns only its row text. The stepper, writer and
+// discarded field vector cannot escape. Keep the entire former constructor
+// peak before entry, and carry only the returned wire into later dependency
+// admission. This reuses logical workspace without releasing physical backing.
+fn LocalNativeMockEffectImportConstruction::prepare_snapshot(
   self : Self,
   original : LocalCommandPreparationOriginal,
   bytes : Int,
   nodes : Int,
   depth : Int,
 ) -> Bool {
-  self.prepare_body(
-    original,
-    native_mock_effect_dependency_body_capacity(bytes, nodes, depth),
-  )
+  let capacity = native_mock_effect_dependency_body_capacity(
+    bytes, nodes, depth,
+  ).bind(peak => {
+    // The original logical wire also includes the Relation wrapper, so its
+    // measured UTF-8 bytes bound every UTF-16 unit in the returned rows.
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 2L,
+      scalar_words: 2L,
+      owned_utf16_units: bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    }).bind(retained => {
+      @execution.execution_capacity(
+        retained,
+        Int64::max(
+          retained,
+          @execution.execution_capacity_execution_bytes(peak),
+        ),
+      )
+    })
+  })
+  if self.source_snapshot is Some(_) && capacity is Some(value) {
+    return self.reserve_source_snapshot(
+      original,
+      @execution.execution_capacity_retained_bytes(value),
+      @execution.execution_capacity_execution_bytes(value),
+    )
+  }
+  self.prepare_body(original, capacity)
+}
+
+///|
+// The fixed recipe and the next synchronous constructor share a workspace,
+// but either can coexist with the still-open Source snapshot. Reuse the same
+// committed execution peak across successive snapshots, without a Ledger refund.
+fn native_mock_effect_import_workspace(
+  fixed : @execution.ExecutionCapacity,
+  high_water : Int64,
+  live_snapshot : Int64,
+  constructor_workspace : Int64,
+) -> Int64? {
+  let fixed_workspace = @execution.execution_capacity_execution_bytes(fixed) -
+    @execution.execution_capacity_retained_bytes(fixed)
+  @execution.checked_preparation_add_product(
+    live_snapshot,
+    Int64::max(fixed_workspace, constructor_workspace),
+    1L,
+  ).map(required => Int64::max(high_water, required))
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::reserve_source_snapshot(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  additional : Int64,
+  constructor_workspace : Int64,
+) -> Bool {
+  guard self.source_snapshot == Some(0L) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      Int64::max(self.workspace, constructor_workspace),
+      additional,
+      0L,
+    )
+    is Some(workspace) else {
+    original.retain_primary(
+      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+    )
+    return false
+  }
+  if !self.resize(original, self.recipe, self.retained, workspace) {
+    return false
+  }
+  self.source_snapshot = Some(additional)
+  true
 }
 
 ///|
@@ -184,14 +262,17 @@ fn LocalNativeMockEffectImportConstruction::prepare_body_result(
       @execution.execution_capacity_retained_bytes(body),
       1L,
     )
-    is Some(retained) else {
+    is Some(retained) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      self.workspace,
+      self.source_snapshot.unwrap_or(0L),
+      @execution.execution_capacity_execution_bytes(body) -
+      @execution.execution_capacity_retained_bytes(body),
+    )
+    is Some(workspace) else {
     return Err(Managed(InsufficientCapacity))
   }
-  let workspace = Int64::max(
-    self.workspace,
-    @execution.execution_capacity_execution_bytes(body) -
-    @execution.execution_capacity_retained_bytes(body),
-  )
   self.resize_result(self.recipe, retained, workspace)
 }
 
@@ -277,38 +358,21 @@ fn Result::retain_mock_effect_proposal_issue(
 }
 
 ///|
-// The original producer wire is borrowed. Fund its preserving row decoder and
-// retained cells on the SAME capture before the bridge allocates them. The
-// existing normalizing body recipe conservatively covers this decoder too.
-fn LocalNativeMockEffectImportConstruction::prepare_row(
+// The publication bridge computes the additional peak from the same admitted
+// copy before allocating. Keep the charge on the original capture reservation.
+fn LocalNativeMockEffectImportConstruction::reserve_row_copy(
   self : Self,
-  original : LocalCommandPreparationOriginal,
-  wire : String,
-  limits : @execution.RetainedRowDecodeLimits,
-) -> Bool {
-  self
-  .prepare_row_result(wire, limits)
-  .retain_mock_effect_proposal_issue(issue => {
-    original.retain_primary(CommandBusinessEffectProposals(issue))
-  })
-}
-
-///|
-fn LocalNativeMockEffectImportConstruction::prepare_row_result(
-  self : Self,
-  wire : String,
-  limits : @execution.RetainedRowDecodeLimits,
+  additional : Int64,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
-  guard @scalar.admit_utf8_length(wire, limits.max_bytes) is Ok(bytes) else {
-    return Err(ManagedExport(Bridge(Wire(InputLimit))))
+  guard @execution.checked_preparation_add_product(
+      self.retained,
+      additional,
+      1L,
+    )
+    is Some(retained) else {
+    return Err(Managed(InsufficientCapacity))
   }
-  self.prepare_body_result(
-    native_mock_effect_dependency_body_capacity(
-      Int::max(1, bytes),
-      Int::min(limits.max_nodes, Int::max(1, bytes)),
-      Int::min(limits.max_depth, Int::max(1, bytes)),
-    ),
-  )
+  self.resize_result(self.recipe, retained, self.workspace)
 }
 
 ///|
@@ -347,7 +411,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
       schema: limits.identity.schema,
       max_batch_bytes: Int::min(wire.max_bytes, 16384),
     },
-    before_row=Some(text => construction.prepare_row(self.original, text, row)),
+    reserve_row_copy=Some(bytes => {
+      construction
+      .reserve_row_copy(bytes)
+      .retain_mock_effect_proposal_issue(issue => {
+        self.original.retain_primary(CommandBusinessEffectProposals(issue))
+      })
+    }),
   )
   .map_err(issue => LocalNativeMockEffectProposalIssue::ManagedExport(issue))
   .native_effect_proposal(self.original)

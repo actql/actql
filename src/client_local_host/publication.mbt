@@ -143,6 +143,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64) -> Bool)? = None,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val || !physical_equal(captured, self.run) {
     return Err(MissingOutput)
@@ -170,6 +171,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       bridge_max_name_bytes,
       limits,
       before_row~,
+      reserve_row_copy~,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)
@@ -268,6 +270,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64) -> Bool)? = None,
 ) -> Result[
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
@@ -277,6 +280,35 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   }
   guard (operations.material)() is Some(material) else {
     return Err(MissingOutput)
+  }
+  let copy_funding = match reserve_row_copy {
+    None => None
+    Some(reserve) => {
+      // The ingress policy comes from the original row decoder. The final
+      // Result can have a narrower wire than the complete producer row.
+      let imports : @local.LocalImportLimits = {
+        max_rows: limits.max_rows,
+        values: limits.values,
+        wire: {
+          ..limits.payload_wire,
+          max_bytes: row_limits.max_bytes,
+          max_nodes: row_limits.max_nodes,
+          max_depth: row_limits.max_depth,
+          max_columns: @execution.managed_publication_bridge_fixed_entries(
+            completed,
+          ),
+        },
+        row: row_limits,
+        max_batch_bytes: row_limits.max_bytes,
+      }
+      guard @local.local_materializing_import_start_capacity(imports)
+        is Some(start) &&
+        reserve(start) &&
+        self.available.val else {
+        return Err(MissingOutput)
+      }
+      Some((imports, reserve))
+    }
   }
   let bridge = match
     @execution.prepare_managed_publication_bridge(
@@ -290,6 +322,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
+  let mut copy_extent = 0L
   for index in 0..<(operations.output_rows)() {
     let row = match (operations.output_row)(index) {
       Ok(value) => value
@@ -301,6 +334,41 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     if before_row is Some(prepare) && !prepare(row) {
       @execution.close_managed_publication_bridge(bridge)
       return Err(MissingOutput)
+    }
+    let funded = match copy_funding {
+      None => None
+      Some((imports, reserve)) => {
+        let bytes = match
+          @scalar.admit_utf8_length64(row, row_limits.max_bytes.to_int64()) {
+          Ok(value) => value
+          Err(_) => {
+            @execution.close_managed_publication_bridge(bridge)
+            return Err(Bridge(Wire(InputLimit)))
+          }
+        }
+        guard @execution.managed_publication_bridge_import_usage(bridge)
+          is Some(usage) &&
+          @local.local_import_next_retention_extent(
+            imports,
+            index.to_int64(),
+            usage.nodes.to_int64(),
+            usage.text_bytes.to_int64(),
+            bytes,
+          )
+          is Some((_, nodes, text, quote)) else {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(MissingOutput)
+        }
+        // Each bridge retains its own copied prefix. Charge only the new
+        // high-water difference, with one decoder beside that prefix.
+        let extent = Int64::max(copy_extent, quote)
+        if extent > copy_extent && !reserve(extent - copy_extent) {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(MissingOutput)
+        }
+        copy_extent = extent
+        Some((nodes, text))
+      }
     }
     // The Host's storage callback can reenter retirement. Keep this cheap
     // execution fence in addition to the bridge's original material checks.
@@ -315,6 +383,16 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         @execution.close_managed_publication_bridge(bridge)
         return Err(Bridge(issue))
       }
+    }
+    if funded is Some((nodes, text)) &&
+      !(@execution.managed_publication_bridge_import_usage(bridge)
+      is Some(usage) &&
+      usage.nodes >= 0 &&
+      usage.nodes.to_int64() <= nodes &&
+      usage.text_bytes >= 0 &&
+      usage.text_bytes.to_int64() <= text) {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(MissingOutput)
     }
   }
   let output = match @execution.finish_managed_publication_bridge(bridge) {

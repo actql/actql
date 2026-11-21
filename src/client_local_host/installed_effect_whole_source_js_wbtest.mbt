@@ -907,6 +907,31 @@ fn retained_effect_whole_source_export_control(
       )
       assert_eq(calls.val, 1)
       assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
+      // The eight-byte original row adds one row slot, eight potential
+      // value nodes, eight wire nodes and two views of eight decoder nodes.
+      // The empty frame and decoder already reserve one byte each.
+      let row_growth = 64L * (1L + 8L + 8L + 2L * 8L) + 8L * (5L * 8L - 2L)
+      let offered : Array[Int64] = []
+      assert_true(
+        execution.prepare_captured_result_export(
+          dag,
+          0,
+          row,
+          1000,
+          10000,
+          export_limits,
+          reserve_row_copy=Some(bytes => {
+            offered.push(bytes)
+            offered.length() == 1 || bytes <= row_growth - 1L
+          }),
+        )
+        is Err(MissingOutput),
+      )
+      assert_eq(offered.length(), 2)
+      assert_true(offered[0] > 0L)
+      assert_eq(offered[1], row_growth)
+      assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
+      let funded : Array[Int64] = []
       let owned = execution
         .prepare_captured_result_export(
           dag,
@@ -915,13 +940,13 @@ fn retained_effect_whole_source_export_control(
           1000,
           10000,
           export_limits,
-          before_row=Some(_ => {
-            calls.val += 1
-            true
+          reserve_row_copy=Some(bytes => {
+            funded.push(bytes)
+            funded.length() == 1 || bytes <= row_growth
           }),
         )
         .unwrap()
-      assert_eq(calls.val, 2)
+      assert_eq(funded, offered)
       let output = owned.output_export()
       let actual = StringBuilder()
       while output.next().unwrap() is Some(wire) {

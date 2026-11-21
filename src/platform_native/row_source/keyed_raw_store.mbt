@@ -83,33 +83,17 @@ fn NativeRelationFileCapture::advance_raw_response(
       content.phase = PrepareRawStore
     }
     PrepareRawStore => {
-      guard content.raw_response is Some(original) &&
-        self.ledger is Some(ledger) &&
-        self.metadata is Some(metadata) else {
+      guard content.raw_response is Some(original) else {
         return Err(Unavailable)
-      }
-      let (retained, execution) = match
-        file_capture_construction_capacity(
-          self.selection.unwrap(),
-          self.limits,
-          self.acquisition.unwrap(),
-          self.response_provider,
-          Some(input),
-          Some(bytes.length()),
-          raw_candidate=Some(original.metadata),
-        ) {
-        Some(value) => value
-        None => return Err(Capacity)
       }
       match
-        @resources.grow_capacity_reservation(
-          ledger, metadata, retained, execution,
+        self.resize_keyed_content_capacity(
+          input,
+          bytes.length(),
+          raw_storage=Some(ConstructRaw(original.metadata)),
         ) {
-        Err(issue) => return Err(Resource(issue))
+        Err(issue) => return Err(issue)
         Ok(_) => ()
-      }
-      if !self.retained_keyed_original() {
-        return Err(Unavailable)
       }
       let child = match
         input.store.prepare_lookup_raw_custody(
@@ -151,10 +135,19 @@ fn NativeRelationFileCapture::advance_raw_response(
       }
       guard self.retained_keyed_original() &&
         content.raw_response is Some(original) &&
-        content.raw_custody
-        .unwrap()
-        .matches_lookup_raw_confirmed(original.metadata) else {
+        content.raw_custody is Some(custody) &&
+        custody.matches_lookup_raw_confirmed(original.metadata) else {
         return Err(Unavailable)
+      }
+      match
+        self.resize_keyed_content_capacity(
+          input,
+          bytes.length(),
+          raw_storage=Some(RetainStorage(custody)),
+          return_workspace=true,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
       content.phase = ProjectContent
       self.phase = Received

@@ -281,6 +281,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           recipe: state._retained_import_recipes[0],
           retained: 0L,
           workspace: 0L,
+          source_snapshot: None,
         })
       }
       if entry == 0 && state.lookup is Some(lookup) {
