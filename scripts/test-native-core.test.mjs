@@ -1098,11 +1098,14 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   }
   copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
     join(checkout, 'proofs/relation-pipeline/proof-parts.mjs'));
-  // Keep the public authored template import real in the copied wrapper
-  // checkout; no second handwritten Mock project fixture is maintained here.
-  mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
-  copyFileSync(new URL('../packages/native-cli/lib/project-template.mjs', import.meta.url),
-    join(checkout, 'packages/native-cli/lib/project-template.mjs'));
+  // Keep both authored Project inputs at their original relative paths in
+  // the isolated wrapper checkout.
+  for (const path of ['packages/native-cli/lib/project-template.mjs',
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs']) {
+    const target = join(checkout, path);
+    mkdirSync(dirname(target), {recursive: true});
+    copyFileSync(new URL('../' + path, import.meta.url), target);
+  }
   mkdirSync(join(checkout, 'spec/contracts'), {recursive: true});
   for (const name of ['actql-query-acquisition.json', 'actql-query-process-evidence.json']) {
     copyFileSync(new URL('../spec/contracts/' + name, import.meta.url),
