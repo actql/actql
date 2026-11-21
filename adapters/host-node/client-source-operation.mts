@@ -8,28 +8,28 @@ type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; ru
 type SourceOperationLimits = Readonly<{maxRecords: number; maxWireBytes: number}>;
 type RunRow = Readonly<Record<string, unknown>>;
 type StorageOptions = Readonly<{
-  ensureOpen: () => void;
+  ensureOpen: () => undefined;
   transact(operation: 'source_operation', unknownCode: string, known: (error: unknown) => boolean,
-    action: () => void): void;
+    action: () => undefined): undefined;
   readRun(ref: RunReference): RunRow | undefined;
   limits?: SourceOperationLimits;
 }>;
 type JobRuntime = Readonly<{
-  clientProgramBigQueryJobReadMatchesRowRun?(jobRead: unknown, run: unknown, acquisition: unknown): unknown;
-  clientProgramBigQueryJobOriginalRecordMatchesRequest(jobRead: unknown, request: unknown, record: unknown): unknown;
-  clientProgramBigQueryJobOriginalRecordWire(record: unknown): unknown;
+  clientProgramBigQueryJobReadMatchesRowRun?(jobRead: unknown, run: unknown, acquisition: unknown): boolean;
+  clientProgramBigQueryJobOriginalRecordMatchesRequest(jobRead: unknown, request: unknown, record: unknown): boolean;
+  clientProgramBigQueryJobOriginalRecordWire(record: unknown): string;
 }>;
 type RunOriginal = Readonly<{
   ref: RunReference; compiled: unknown; program: unknown; identity: unknown;
   definition: Readonly<{identity: string; wire: string}>;
   requestControl: JobRuntime & Readonly<{
-    clientProgramMatchesRequestIdentity(program: unknown, identity: unknown): unknown;
+    clientProgramMatchesRequestIdentity(program: unknown, identity: unknown): boolean;
   }>;
   publicationControl: Readonly<{
-    checkClientCompiledRunOwner(compiled: unknown, program: unknown): unknown;
-    checkClientCompiledRunDefinition(compiled: unknown, definition: RunOriginal['definition']): unknown;
+    checkClientCompiledRunOwner(compiled: unknown, program: unknown): undefined;
+    checkClientCompiledRunDefinition(compiled: unknown, definition: RunOriginal['definition']): undefined;
   }>;
-  checkStore: () => unknown; journal: object; store: object;
+  checkStore: () => number; journal: object; store: object;
   requestId: string; requestScopeCid: string; intentCid: string;
 }>;
 type RowFrame = Readonly<{
@@ -40,8 +40,8 @@ type JobOriginal = Readonly<{
 }>;
 type JobPort = <Result>(original: JobOriginal, sendOriginal: () => Result) => Result;
 type RunBinding = Readonly<{
-  original: RunOriginal; current: () => void;
-  persist(occurrence: Occurrence, frame: RowFrame, wire: string): void;
+  original: RunOriginal; current: () => undefined;
+  persist(occurrence: Occurrence, frame: RowFrame, wire: string): undefined;
   bindings: Map<string, object>; maximumRecords: number;
 }>;
 type SourceBinding = {
@@ -125,7 +125,7 @@ export function clientSourceOperationStorage(database: Pick<DatabaseSync, 'prepa
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const key = (ref: RunReference, occurrence: Occurrence) => [ref.namespaceId, ref.authorityScopeCid,
     ref.runDefinitionCid, occurrence.stage, occurrence.input, occurrence.task];
-  const currentRun = (original: RunOriginal) => {
+  const currentRun = (original: RunOriginal): undefined => {
     ensureOpen();
     Reflect.apply(original.checkStore, original.store, []);
     original.publicationControl.checkClientCompiledRunOwner(original.compiled, original.program);
