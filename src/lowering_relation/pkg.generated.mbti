@@ -1625,6 +1625,7 @@ pub(all) enum ManyOperator {
   GenerateArray
   ArrayConcat
   ArrayToString
+  FormatStrings
   Substring
   LeftString
   RightString

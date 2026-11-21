@@ -347,6 +347,10 @@ fn infer(
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)
     }
+    "format_strings" => {
+      let nullable = arguments(t, nodes, node, "string")
+      primitive(t, StringType, nullable, source)
+    }
     "array_to_string" => {
       let item = primitive(t, StringType, false, source)
       let hint = put(t, Sequence(item, None), false, source)

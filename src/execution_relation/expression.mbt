@@ -128,6 +128,7 @@ priv enum Evaluation {
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
+  FormatText(TextFunctionState, FormatStrings)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
   ArrayConcat(ArrayConcatState)
@@ -424,7 +425,8 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.selection_root = None
   frame.selection_pending = false
   match frame.state {
-    TextFunction(state) | ArrayTextJoin(state, _) => state.builder = None
+    TextFunction(state) | ArrayTextJoin(state, _) | FormatText(state, _) =>
+      state.builder = None
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -873,6 +875,7 @@ fn advance_expression_frame_impl(
               continue
             }
             if op == @lower.ArrayToString ||
+              op == @lower.FormatStrings ||
               op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
@@ -883,7 +886,12 @@ fn advance_expression_frame_impl(
               op == @lower.RightString ||
               op == @lower.LPad ||
               op == @lower.RPad {
-              let valid = if op == @lower.Split {
+              let valid = if op == @lower.FormatStrings {
+                // The shared completion releases the child entries together
+                // with the fixed cursor slots. Check that sum before any
+                // multiplication of the variable arity.
+                children.length() <= (2147483647 - FORMAT_STRINGS_SLOTS - 3) / 3
+              } else if op == @lower.Split {
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
@@ -903,6 +911,8 @@ fn advance_expression_frame_impl(
                 TextArguments({
                   kind: if op == @lower.ArrayToString {
                     TextArrayJoin
+                  } else if op == @lower.FormatStrings {
+                    TextFormatStrings
                   } else if op == @lower.Split {
                     TextSplit
                   } else if op == @lower.Repeat {
@@ -951,7 +961,8 @@ fn advance_expression_frame_impl(
               | TimestampSubtraction
               | ArrayConcat
               | GenerateArray
-              | ArrayToString => Null
+              | ArrayToString
+              | FormatStrings => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1334,6 +1345,21 @@ fn advance_expression_frame_impl(
                   part: None,
                   separator: false,
                   seen: false,
+                })
+              } else if state.kind == TextFormatStrings &&
+                args.values[0] is Text(_) {
+                frame.state = FormatText(state, {
+                  values: args.values,
+                  template_position: 0,
+                  argument: 1,
+                  phase: FormatLiteral,
+                  left: false,
+                  width: 0,
+                  precision: -1,
+                  argument_position: 0,
+                  argument_end: 0,
+                  scalar_count: 0,
+                  padding: 0,
                 })
               } else {
                 frame.state = TextFunction(state)
@@ -1963,6 +1989,7 @@ fn advance_expression_frame_impl(
               | GenerateArray
               | ArrayConcat
               | ArrayToString
+              | FormatStrings
               | Substring
               | LeftString
               | RightString
@@ -2222,6 +2249,18 @@ fn advance_expression_frame_impl(
       ArrayTextJoin(state, join) => {
         frame.active = state.expression
         match advance_array_text_join(state, join, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      FormatText(state, format) => {
+        frame.active = state.expression
+        match advance_format_strings(state, format, workspace) {
           Err(issue) => return Err(issue)
           Ok(None) => ()
           Ok(Some(value)) =>

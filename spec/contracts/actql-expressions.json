@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "9e598e95576eb12db1b82e4142e5ced6410d9b5d10a89c6c43b1d2e56f5c8b37",
+  "grammar_sha256": "47dabc7418a5b753ffbe50b6b9d84d176e1d2a338fd1fc9781fa18deb8a56608",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6311,6 +6311,22 @@
                     "index": {
                       "$ref": "#/$defs/expression"
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "format_strings"
+              ],
+              "properties": {
+                "format_strings": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/expression"
                   }
                 }
               }
@@ -13272,6 +13288,26 @@
                     "index": {
                       "$ref": "#/$defs/expression"
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "format_strings"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/expression"
                   }
                 }
               }
@@ -25603,6 +25639,22 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "format_strings"
+              ],
+              "properties": {
+                "format_strings": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -31647,6 +31699,26 @@
                     "index": {
                       "$ref": "#/$defs/machine_expression"
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "format_strings"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
                   }
                 }
               }
@@ -39950,6 +40022,22 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "format_strings"
+              ],
+              "properties": {
+                "format_strings": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -45997,6 +46085,26 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "format_strings"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -47266,6 +47374,12 @@
       "identity": "The closed source is {array_to_string:[array,delimiter,...]} and the closed machine form uses the same ordered body and operation name.",
       "value": "Evaluate supplied operands eagerly in order. A NULL argument gives NULL. Omit NULL elements when replacement is omitted, otherwise use the supplied replacement. Insert the original delimiter only between retained or replaced elements. Empty output is an empty String.",
       "backing": "Keep original operands during sizing and construction. Admit the full String extent before allocating the result. Preserve original Unicode scalars, existing budgets, cancellation and child failures."
+    },
+    "format_strings": {
+      "signature": "A String template followed by zero or more String operands. The result is String and nullable if any original operand is nullable.",
+      "identity": "The closed source is {format_strings:[template,...operands]} and the closed machine form uses the same ordered body and operation name.",
+      "value": "After original ordered operand evaluation, a NULL template returns NULL. A non-NULL template accepts %s with optional static width and scalar precision, and %% for literal percent. The - flag selects right padding, other non-applicable flags are ignored. Malformed, unsupported or mismatched templates fail. A valid template with a NULL argument returns NULL.",
+      "evaluation": "Preserve original scalars, lazy demand, demanded child failure, value and workspace limits, and cancellation. Meter progress and admit the complete result under the same owner before materializing text."
     }
   },
   "regex_ast_contract": {

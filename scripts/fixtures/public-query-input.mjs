@@ -678,6 +678,10 @@ const arrayToStringOriginal = {name: 'array-to-string', format: 'sql',
   expected: [{joined: 'a', skipped: '|x', replaced: 'n||n|x'}],
   columns: ['joined', 'skipped', 'replaced'].map(name => ({name,
     contract: {type: 'string', nullable: false}})), sourceReadCount: 0};
+const formatStringsOriginal = {name: 'format-strings-original', format: 'sql',
+  text: "SELECT FORMAT('%s', 'a') AS result",
+  expected: [{result: 'a'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
 const logicalAggregateColumns = ['all_true', 'any_true'].map(name => ({name,
   contract: {type: 'boolean', nullable: true}}));
 const logicalAggregateSuccesses = [
@@ -852,6 +856,7 @@ export const sourceFreeSuccesses = [
   currentDateOriginal,
   arrayConcatOriginal,
   arrayToStringOriginal,
+  formatStringsOriginal,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,

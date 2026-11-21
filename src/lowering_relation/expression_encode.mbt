@@ -401,6 +401,7 @@ fn emit_frames(
                   GenerateArray => "generate_array"
                   ArrayConcat => "array_concat"
                   ArrayToString => "array_to_string"
+                  FormatStrings => "format_strings"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

@@ -425,6 +425,13 @@ only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
 
+`FORMAT(template[, argument ...])` selects the checked Common
+`format_strings` expression for String inputs. The value of the original
+template can come from a row or Parameter. In this signature `%s` selects
+a String argument with optional static width and scalar precision. `%%`
+emits one literal percent. The frontend retains the complete original
+argument list without interpreting the template.
+
 `TO_DECIMAL(value, precision, scale)` uses the existing explicit Decimal target
 form. Precision and scale are original integral Number literals with
 `1 <= precision <= 38` and `0 <= scale <= precision`; transparent parentheses

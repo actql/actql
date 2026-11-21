@@ -8,7 +8,7 @@
       "empty": false,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:717ffbd2e92c5cac1939bbef97735d92dd7973a946cf96591f594e4567f5cb1c",
+        "expression_contract_cid": "sha256:2034a5b3555b3c5e7a3fddb91e8d50c7fc6cc2d23f56f0b06daa11051d78bdfe",
         "bindings": {},
         "binding_references": [],
         "parameters": {
@@ -59,7 +59,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:cc2604f22f5ec22f27287a2bffb8a0e0726d6bfb0077caf452c443566b74a8f9"
+      "expected_cid": "sha256:1c128de7802c40e29f230dda1c1b9c7294b614e2ce890030adcd43fc0f7e14bf"
     },
     {
       "name": "n-only",
@@ -67,7 +67,7 @@
       "empty": false,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:717ffbd2e92c5cac1939bbef97735d92dd7973a946cf96591f594e4567f5cb1c",
+        "expression_contract_cid": "sha256:2034a5b3555b3c5e7a3fddb91e8d50c7fc6cc2d23f56f0b06daa11051d78bdfe",
         "bindings": {},
         "binding_references": [],
         "parameters": {
@@ -115,7 +115,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:60d2599a196e7390883492e83aeacf35a336ca358e3d8d986e939958a9ad234a"
+      "expected_cid": "sha256:19eee19f4ecb18a019cfd6abca9e6a75e18929cb64b4677dcf16d16c44def2f4"
     },
     {
       "name": "empty",
@@ -123,7 +123,7 @@
       "empty": true,
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:717ffbd2e92c5cac1939bbef97735d92dd7973a946cf96591f594e4567f5cb1c",
+        "expression_contract_cid": "sha256:2034a5b3555b3c5e7a3fddb91e8d50c7fc6cc2d23f56f0b06daa11051d78bdfe",
         "bindings": {},
         "binding_references": [],
         "parameters": {},
@@ -149,7 +149,7 @@
           "effects": {}
         }
       },
-      "expected_cid": "sha256:5f74d7b89516ff0cddbfc6a431cb85dd89722e25cf2d0ad5001f2745489f0a6b"
+      "expected_cid": "sha256:5f3d86950b9af03ba6e4b6b91723a8b17007e43775d9b57ea1ce32eb322be267"
     }
   ]
 }

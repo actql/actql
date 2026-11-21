@@ -140,6 +140,7 @@ fn Parser::call(
     "concat"
     | "concat_strict"
     | "array_concat"
+    | "format_strings"
     | "coalesce"
     | "greatest"
     | "least" => (1, self.tokens.length())

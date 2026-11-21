@@ -24,6 +24,7 @@ priv enum TextFunctionKind {
   TextReplace
   TextSplit
   TextArrayJoin
+  TextFormatStrings
   TextSubstring
   TextLeft
   TextRight
@@ -292,6 +293,8 @@ fn start_text_function(
   }
   let reserved = (if kind == TextArrayJoin {
       2 + (if null_result { 0 } else { ARRAY_TEXT_JOIN_SLOTS })
+    } else if kind == TextFormatStrings {
+      2 + (if values[0] is Text(_) { FORMAT_STRINGS_SLOTS } else { 0 })
     } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
@@ -446,7 +449,7 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextArrayJoin {
+    reserved: if kind == TextArrayJoin || kind == TextFormatStrings {
       values.length() * 3 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||
