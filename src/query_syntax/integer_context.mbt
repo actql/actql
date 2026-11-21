@@ -67,8 +67,24 @@ fn integer_context_name(
 
 ///|
 fn integer_context_call_name(path : Array[NamePart]) -> Bool {
-  guard path.length() == 1 && path[0].value.length() == 3 else { return false }
+  guard path.length() == 1 else { return false }
   let name = path[0].value
+  if name.length() == 14 {
+    let expected = "GENERATE_ARRAY"
+    for index in 0..<14 {
+      let actual = name[index].to_int()
+      let unit = if actual >= 97 && actual <= 122 {
+        actual - 32
+      } else {
+        actual
+      }
+      if unit != expected[index].to_int() {
+        return false
+      }
+    }
+    return true
+  }
+  guard name.length() == 3 else { return false }
   let a = name[0].to_int()
   let b = name[1].to_int()
   let c = name[2].to_int()
@@ -83,6 +99,10 @@ fn integer_context_call(
   path : Array[NamePart],
   budget : IntegerContextBudget,
 ) -> Bool raise IntegerContextStop {
+  if path.length() == 1 && path[0].value.length() == 14 {
+    integer_context_spend(budget, amount=14)
+    return integer_context_call_name(path)
+  }
   // Preserve the existing short-circuit character Work accounting. The same
   // fixed predicate supplies both the parser fact and the selected pass.
   ignore(
@@ -242,6 +262,7 @@ fn integer_context_expressions(
   match operation {
     Where(expression) | Having(expression, _) | Qualify(expression, _) =>
       [expression]
+    UnnestSource(expression, _, _) => [expression]
     Extend(projections) | Select(projections, _) =>
       projections.filter_map(p => p.expression)
     Group(keys, projections, _) =>
@@ -501,6 +522,12 @@ fn integer_context_operation(
       )
     Where(expression) =>
       Where(integer_context_expression(expression, false, budget, tasks, task))
+    UnnestSource(expression, element, offset) =>
+      UnnestSource(
+        integer_context_expression(expression, false, budget, tasks, task),
+        element,
+        offset,
+      )
     Having(expression, calls) =>
       Having(
         integer_context_expression(expression, false, budget, tasks, task),

@@ -150,6 +150,7 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  GenerateArray
   Substring
   LeftString
   RightString
@@ -429,6 +430,7 @@ fn expression_tag(
     | "instr"
     | "replace"
     | "split"
+    | "generate_array"
     | "substring"
     | "left"
     | "right"
@@ -1372,6 +1374,7 @@ fn lower_typed_expression_measured(
         "translate" => Many(Translate, args)
         "instr" => Many(Instr, args)
         "split" => Many(Split, args)
+        "generate_array" => Many(GenerateArray, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)
         "right" => Many(RightString, args)

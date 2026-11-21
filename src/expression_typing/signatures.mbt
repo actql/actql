@@ -343,6 +343,39 @@ fn infer(
     )
   }
   match tag {
+    "generate_array" => {
+      let nullable = arguments(t, nodes, node, "int64")
+      fn literal_argument(id : Int) -> Int64? raise Stop {
+        let child = nodes[id]
+        if child.tag == "typed_literal" {
+          let spelling = string(part(child.body, "value"))
+          spend(t.budget, child.source, amount=spelling.length())
+          @scalar.read_decimal_int64(spelling).to_option()
+        } else {
+          None
+        }
+      }
+      let maximum = match
+        (
+          literal_argument(node.children[0]),
+          literal_argument(node.children[1]),
+          match node.children.get(2) {
+            Some(step) => literal_argument(step)
+            None => Some(1L)
+          },
+        ) {
+        (Some(start), Some(end), Some(step)) =>
+          @value.signed64_progression_count(start, end, step)
+        _ => None
+      }
+      let item = @contract.primitive(Signed64Type, nullable=false)
+      let max_items = maximum.map(count => count.to_int64())
+      typed(
+        t,
+        @contract.array_contract(item, nullable~, max_items~).unwrap(),
+        source,
+      )
+    }
     "split" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable

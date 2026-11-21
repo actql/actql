@@ -95,6 +95,7 @@ priv enum Continuation {
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
   TemporalArguments(TemporalArgumentsState)
+  GenerateArrayArguments(GenerateArrayArguments)
 }
 
 ///|
@@ -121,6 +122,7 @@ priv enum Evaluation {
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
   SplitFunction(SplitFunctionState)
+  GenerateArray(GenerateArrayState)
   PropertyName(PropertyNameState)
   FieldName(FieldNameState)
   ObjectName(ObjectNameState)
@@ -813,6 +815,23 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
+            if op == @lower.GenerateArray {
+              if (children.length() != 2 && children.length() != 3) ||
+                !reserve_slots(workspace, children.length() * 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                GenerateArrayArguments({
+                  expression: expr,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
             if op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
@@ -882,7 +901,8 @@ fn advance_expression_frame_impl(
               | DateDifference
               | DateAddition
               | TimestampAddition
-              | TimestampSubtraction => Null
+              | TimestampSubtraction
+              | GenerateArray => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1219,6 +1239,40 @@ fn advance_expression_frame_impl(
                 Err(issue) => return Err(issue)
               }
               frame.state = TextFunction(state)
+            }
+          }
+          GenerateArrayArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(GenerateArrayArguments(args))
+              frame.state = Enter(next)
+            } else {
+              match start_generate_array(frame, args) {
+                Err(issue) => return Err(issue)
+                Ok(Some(state)) => frame.state = GenerateArray(state)
+                Ok(None) => {
+                  for root in args.roots {
+                    if release(root) is Some(issue) {
+                      return Err({
+                        kind: LogicalValue(issue),
+                        expression: args.expression,
+                      })
+                    }
+                  }
+                  release_slots(workspace, args.children.length() * 3 + 1)
+                  frame.state = Return(Null)
+                }
+              }
             }
           }
           Property(expr, name, index) => {
@@ -1800,6 +1854,7 @@ fn advance_expression_frame_impl(
               | Translate
               | Instr
               | Split
+              | GenerateArray
               | Substring
               | LeftString
               | RightString
@@ -2006,6 +2061,27 @@ fn advance_expression_frame_impl(
               }
             }
             release_slots(workspace, state.reserved + state.allocated)
+            frame.current_root = state.root
+            frame.result_prepaid = state.root is Some(_)
+            frame.state = Return(value)
+          }
+        }
+      }
+      GenerateArray(state) => {
+        frame.active = state.expression
+        match advance_generate_array(frame, state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            for root in state.roots {
+              if release(root) is Some(issue) {
+                return Err({
+                  kind: LogicalValue(issue),
+                  expression: state.expression,
+                })
+              }
+            }
+            release_slots(workspace, state.roots.length() * 3 + 3 + state.count)
             frame.current_root = state.root
             frame.result_prepaid = state.root is Some(_)
             frame.state = Return(value)

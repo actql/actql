@@ -250,6 +250,7 @@ fn scalar_call(
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "MOD" => ("MOD", "exact_modulo", 2, 2)
     "DIV" => ("DIV", "integer_divide", 2, 2)
+    "GENERATE_ARRAY" => ("GENERATE_ARRAY", "generate_array", 2, 3)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "CBRT" => ("CBRT", "cbrt", 1, 1)
     "SIN" => ("SIN", "sin", 1, 1)

@@ -183,7 +183,8 @@ async function numericFixture(t, fault) {
     }
     const rows = fault === 'live' || (cold && fault === 'saved') ||
       (fault === 'old-saved' && hosts.get(cwd) === nativeDefaultNumericQueries.length + 1) ? [{total: 4}] : entry.rows;
-    return {stdout: rows.map(value => JSON.stringify(value)).join('\n')+'\n'};
+    const returned = cold && entry.unordered ? rows.toReversed() : rows;
+    return {stdout: returned.map(value => JSON.stringify(value)).join('\n')+'\n'};
   };
   return {project, cli, calls, runs, saved, hosts};
 }
@@ -193,7 +194,8 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   const observed = await observeNativeDefaultNumericQueries(fixture);
   const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
-    'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal'];
+    'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
+    'generate-array-signed64', 'generate-array-unnest'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
   assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
@@ -222,6 +224,10 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   assert.deepEqual(observed.find(entry => entry.name === 'date-literal').rows, [{x: '2026-01-02'}]);
   assert.deepEqual(observed.find(entry => entry.name === 'timestamp-literal').rows,
     [{x: '2026-01-02T03:04:05.000Z'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'generate-array-signed64').rows,
+    [{x: ['1', '2', '3']}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'generate-array-unnest').rows,
+    [{x: '1'}, {x: '2'}, {x: '3'}]);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {

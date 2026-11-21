@@ -2909,6 +2909,7 @@ fn compile_steps(
           query_limits,
           max_work,
           construction.parameter_resolver(),
+          correlated~,
         )
         let requires_element_scope = preserved_scope is Some(_) ||
           value_table_scope is Some(_) ||

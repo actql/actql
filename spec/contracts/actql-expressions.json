@@ -5640,6 +5640,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "generate_array"
+              ],
+              "properties": {
+                "generate_array": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "byte_length"
               ],
               "properties": {
@@ -12184,6 +12201,27 @@
                   "type": "array",
                   "minItems": 1,
                   "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "generate_array"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
@@ -24403,6 +24441,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "generate_array"
+              ],
+              "properties": {
+                "generate_array": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "byte_length"
               ],
               "properties": {
@@ -30033,6 +30088,27 @@
                   "type": "array",
                   "minItems": 1,
                   "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "generate_array"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
@@ -38224,6 +38300,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "generate_array"
+              ],
+              "properties": {
+                "generate_array": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "byte_length"
               ],
               "properties": {
@@ -43869,6 +43962,27 @@
               ],
               "properties": {
                 "op": {
+                  "const": "generate_array"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "byte_length"
                 },
                 "body": {
@@ -45358,6 +45472,12 @@
       "value": "If requested length does not exceed input scalar length, return that many leftmost input scalars. Otherwise append repeated pattern scalars, using only the needed prefix of the last repetition, to produce the requested length. The omitted pattern is U+0020; an explicit empty pattern fails even for truncation, equal or zero length. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
       "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
       "identity": "The closed source is {rpad: [value, length, pattern?]}; the machine node is {op: rpad, body: [value, length, pattern?]}. SQL RPAD selects this operation. Preserve omission as omission, distinct from explicit NULL or an explicit space pattern."
+    },
+    "generate_array": {
+      "source": "The closed source argument array contains start, end and optional step. All operands are checked signed64; omitted step is 1. Entry evaluates each operand through the ordinary demanded expression schedule.",
+      "type": "The result is an Array of non-null signed64. Any NULL argument gives a NULL array. Wrong direction gives a typed empty array. Zero step is an evaluation refusal.",
+      "evaluation": "Start and every subsequent value reached by adding step within the inclusive end are emitted in that order. The exact count, output representation and work must fit the existing array construction and resource limits before builder allocation. Signed endpoints and steps are never converted through binary floating point.",
+      "identity": "The machine node is {op: generate_array, body: [start, end, optional step]} in original argument order."
     },
     "split": {
       "signature": "One STRING value expression and an optional ordinary STRING delimiter expression. The result is Array(String) with non-null String elements, nullable exactly when any supplied operand is nullable. Untyped NULL takes the unique STRING signature at either position. No implicit conversion, BYTES, regular-expression or collation overload is admitted. The domain is the existing finite, bounded String domain.",

@@ -184,6 +184,14 @@ external rows. Floating-spelled literals (`5.0`, `5e0`) and declared Number
 columns/parameters keep their existing contracts. Explicit `CAST(... AS INT64)`
 is a distinct conversion with its documented rounding and range rules.
 
+`GENERATE_ARRAY(start, end[, step])` uses the same exact signed64 literal
+context. It lowers to the common `generate_array` expression in a projection
+or an `UNNEST` operand. The default step is positive one. Generation stops at
+the inclusive end without rounding either bound or a produced item. A step
+pointing away from the end returns an empty array with signed64 items. Any
+NULL operand gives a NULL array. Zero step is an evaluation refusal. The
+complete result must fit the existing array representation and resource limits.
+
 The same unsigned exact-integer decoder supplies literal LIMIT/OFFSET, bounded type arguments, ORDER/GROUP column positions and navigation offsets. Each context retains its own positivity, column-range, parameter and role checks; hex spelling does not bypass them. Named numeric operation arguments use the ordinary expression numeric admission. Integer UNPIVOT row aliases still reach the existing explicitly unsupported lowering boundary; accepting an integer token is not evidence of integer-label execution. No separate numeric runtime, cast or execution owner is introduced.
 
 `ABS(expr)` in SQL and Pipe has exactly one finite binary64 `number` operand

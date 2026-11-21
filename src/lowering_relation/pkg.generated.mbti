@@ -1616,6 +1616,7 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  GenerateArray
   Substring
   LeftString
   RightString

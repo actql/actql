@@ -686,6 +686,7 @@ pub fn boolean_pair(
     | Translate
     | Instr
     | Split
+    | GenerateArray
     | Substring
     | LeftString
     | RightString

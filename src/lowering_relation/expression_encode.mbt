@@ -387,6 +387,7 @@ fn emit_frames(
                   Translate => "translate"
                   Instr => "instr"
                   Split => "split"
+                  GenerateArray => "generate_array"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

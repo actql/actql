@@ -614,11 +614,21 @@ export const dateLiteralOriginal = {name: 'date-literal', format: 'sql',
 export const timestampLiteralOriginal = {name: 'timestamp-literal', format: 'sql',
   text: "SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS x", expected: [{x: '2026-01-02T03:04:05.000Z'}],
   columns: [{name: 'x', contract: {type: 'timestamp', nullable: false}}], sourceReadCount: 0};
+export const generateArrayOriginalCases = [
+  {name: 'generate-array-signed64', format: 'sql', text: 'SELECT GENERATE_ARRAY(1, 3) AS x',
+    results: {main: {rows: [{x: ['1', '2', '3']}], columns: [{name: 'x',
+      contract: {type: 'array', nullable: false, max_items: 3, items: {type: 'int64', nullable: false}}}]}},
+    sourceReadCount: 0},
+  {name: 'generate-array-unnest', format: 'sql', text: 'FROM UNNEST(GENERATE_ARRAY(1, 3)) AS x',
+    results: {main: {rows: [{x: '1'}, {x: '2'}, {x: '3'}], unordered: true,
+      columns: [{name: 'x', contract: {type: 'int64', nullable: false}}]}}, sourceReadCount: 0},
+];
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
   dateLiteralOriginal,
   timestampLiteralOriginal,
+  ...generateArrayOriginalCases,
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
@@ -770,6 +780,20 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
 
+export function assertPublicQueryRows(actual, expected, unordered) {
+  // An unordered SQL Relation is compared as a multiset. Sorting this test
+  // copy preserves duplicates and leaves the product output intact.
+  const canonicalRow = value => Array.isArray(value)
+    ? '[' + value.map(canonicalRow).join(',') + ']'
+    : value !== null && typeof value === 'object'
+      ? '{' + Object.keys(value).sort().map(key =>
+        JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+      : JSON.stringify(value);
+  if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
+    expected.map(canonicalRow).sort());
+  else assert.deepEqual(actual, expected);
+}
+
 // Public text without an explicit RESULT exports main. Explicit text names
 // belong to authored fixture metadata; structured Programs retain their own
 // declared exports. None of these names comes from a product reply.
@@ -829,23 +853,10 @@ export async function exercisePublicQueryInput(connect, options,
             JSON.stringify((await observe()).sourceReadCommands));
       }
       const expectedResults = publicQueryResultOracles(item, primaryResultName);
-      const compare = (actual, expected, unordered) => {
-        // An unordered SQL Relation is compared as a multiset. Sorting this
-        // test copy preserves duplicates and never changes the product output.
-        const canonicalRow = value => Array.isArray(value)
-          ? '[' + value.map(canonicalRow).join(',') + ']'
-          : value !== null && typeof value === 'object'
-            ? '{' + Object.keys(value).sort().map(key =>
-              JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
-            : JSON.stringify(value);
-        if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
-          expected.map(canonicalRow).sort());
-        else assert.deepEqual(actual, expected);
-      };
       const observedResults = Object.create(null);
       for (const [resultName, result] of Object.entries(expectedResults)) {
         const rows = await execution.result(resultName).all();
-        compare(rows, result.rows, result.unordered);
+        assertPublicQueryRows(rows, result.rows, result.unordered);
         observedResults[resultName] = {rows};
         if (result.columns !== undefined) {
           const columns = (await execution.result(resultName).describe()).columns;
@@ -856,7 +867,7 @@ export async function exercisePublicQueryInput(connect, options,
       }
       const attached = await client.attach(execution.ref);
       for (const [resultName, result] of Object.entries(expectedResults)) {
-        compare(await attached.result(resultName).all(), result.rows, result.unordered);
+        assertPublicQueryRows(await attached.result(resultName).all(), result.rows, result.unordered);
       }
       const resent = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(resent.ref, execution.ref);

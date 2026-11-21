@@ -166,6 +166,13 @@ six subsecond digits using the [SQL literal profile](../spec/query-text.md).
 The explicit `CAST(... AS TIMESTAMP)` path continues to require canonical UTC
 input as described above.
 
+`GENERATE_ARRAY(1, 3)` returns an array of INT64 values. The same expression
+can be used in `FROM UNNEST(GENERATE_ARRAY(1, 3)) AS x`. The default step is 1.
+With a signed step, the result includes every reached endpoint, preserves
+descending order for negative steps, and is empty for the wrong direction.
+NULL input yields a NULL array and zero step is refused. Array output is
+subject to the selected resource limits.
+
 Ordinary collection aggregates require their own `ORDER BY`; an enclosing
 query's order is not a substitute. `STRING_AGG(s, ',' ORDER BY n)` is the
 supported spelling. `ARRAY_AGG` uses ActQL's existing NULL exclusion with or
@@ -226,7 +233,8 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
 | `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
-| `GENERATE_ARRAY`, `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
+| `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
+| `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
 | `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `ANY_VALUE`, `JSON_VALUE`, `FORMAT`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `FARM_FINGERPRINT`, `CURRENT_DATE`, `LOGICAL_AND`, `LOGICAL_OR` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
