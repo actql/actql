@@ -980,6 +980,113 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
       )
       is Err(ForeignOriginal),
     )
+    // A cold consumer starts a separate existing Request. Use the exact
+    // issued originals above and an independently constructed scalar extent.
+    let definition_wire = @publication.publication_contract_json(definition)
+    let extent = wire => @scalar.admit_utf8_length(wire, 65536).unwrap()
+    let base_extent = 142 +
+      extent(definition_wire) +
+      extent(selected.compiled_plan) +
+      extent(selected.plan) +
+      extent(selected.facts)
+    let context_extent = extent(selected.context)
+    let template_extent = extent(selected.invocation_template)
+    for
+      (context, template, expected) in [
+        (Some(selected.context), Some(selected.invocation_template), 0),
+        (Some(changed_context), Some(other_template_wire), 1),
+        (Some(selected.context + " "), Some(selected.invocation_template), 2),
+        (None, None, 3),
+      ] {
+      let reader_input = [4]
+      let current = Ref(true)
+      let reader = begin_request_preparation(
+        request_parent_fixture(reader_input, current=() => current.val),
+        reader_input,
+        client_local_resource_policy(),
+      ).unwrap()
+      let original_capacity = reader.capacity
+      begin_request_explanation_context_read(reader, reader_input).unwrap()
+      let (stored, context_bytes, template_bytes) = if expected == 3 {
+        (base_extent, 0, 0)
+      } else {
+        (
+          base_extent + context_extent + template_extent + 64,
+          context_extent,
+          template_extent,
+        )
+      }
+      if expected != 3 {
+        assert_true(
+          reserve_request_explanation_context_read(
+            reader, reader_input, stored, context_bytes, 0, 65536, 8192, 64,
+          )
+          is Err(Policy),
+        )
+      }
+      reserve_request_explanation_context_read(
+        reader, reader_input, stored, context_bytes, template_bytes, 65536, 8192,
+        64,
+      ).unwrap()
+      let read_selected = candidate => {
+        read_request_explanation_context(
+          reader,
+          candidate,
+          definition_wire,
+          Some(selected.compiled_plan),
+          Some(selected.plan),
+          Some(selected.facts),
+          context,
+          template,
+          identity.program_definition_cid,
+          same_parameters,
+          "scope",
+          definition_cid,
+          stored,
+          65536,
+          8192,
+          64,
+        )
+      }
+      assert_true(
+        read_selected(reader_input.copy()) is Err(Preparation(ForeignOriginal)),
+      )
+      let value = read_selected(reader_input)
+      match expected {
+        0 => {
+          let delivery = @publication.parse_interactive_run_control_shape(
+            "static_explanation_view",
+            value.unwrap().unwrap(),
+            65536,
+            8192,
+            64,
+          ).unwrap()
+          for
+            (key, wire) in [
+              ("context", selected.context),
+              ("facts", selected.facts),
+              ("plan", selected.plan),
+            ] {
+            assert_eq(
+              @identity.stringify_value(
+                @identity.object_field(delivery, key).unwrap(),
+                65536,
+                8192,
+                64,
+              ),
+              wire,
+            )
+          }
+        }
+        1 => assert_true(value is Err(Projection(ForeignOriginal)))
+        2 => assert_true(value is Err(ReadLimit))
+        _ => assert_true(value is Ok(None))
+      }
+      assert_true(read_selected(reader_input) is Err(Preparation(WrongPhase)))
+      assert_true(physical_equal(reader.capacity, original_capacity))
+      abort_request_preparation_after_cleanup(reader).unwrap()
+      assert_eq(@resources.ledger_usage(reader.ledger).live_reservations, 0)
+    }
     assert_true(
       read(equal_wire, same_parameters, None, None, admit_binding) is Ok(None),
     )

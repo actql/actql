@@ -207,6 +207,8 @@ pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_pub
 
 pub fn[I] begin_request_effect_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
+pub fn[I] begin_request_explanation_context_read(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] begin_request_explanation_read(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] begin_request_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -1293,6 +1295,8 @@ pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relati
 
 pub fn read_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedTaskBoundaryPhase) -> Result[ClientLogicalObservationRecord, ClientLogicalObservationIssue]
 
+pub fn[I] read_request_explanation_context(ClientRequestPreparation[I], I, String, String?, String?, String?, String?, String?, String, String, String, String, Int, Int, Int, Int) -> Result[String?, ClientRequestExplanationReadIssue]
+
 pub fn[I] read_request_explanation_view(ClientRequestPreparation[I], I, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 
 pub fn rebind_installed_effect_result_retention(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientEffectUnitPreparationIssue]
@@ -1456,6 +1460,8 @@ pub fn[I] reserve_request_effect_capture_recovery(ClientRequestPreparation[I], I
 pub fn[I] reserve_request_effect_original_material(ClientRequestPreparation[I], I, @run_publication_host.PreparedClientEffectComputation, Int, (Int) -> String) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] reserve_request_explanation_context_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_explanation_read(ClientRequestPreparation[I], I, Int, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 

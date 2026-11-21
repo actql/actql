@@ -190,6 +190,11 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
     static_plan_validation_profile("static_explanation_view", true),
   ),
   (
+    "bound_invocation_template",
+    true,
+    static_plan_validation_profile("bound_invocation_template", true),
+  ),
+  (
     "prepared_invocation",
     true,
     static_plan_validation_profile("prepared_invocation", true),
