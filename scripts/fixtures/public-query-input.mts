@@ -1,4 +1,55 @@
 import assert from 'node:assert/strict';
+import type {Client, ClientError, DynamicRow, Execution, NodeConnectionOptions, RunReference} from '@actql/node';
+import type {WireSubmissionAttempt, WireSubmissionOutcome} from '@actql/client-wire';
+
+type SourceOptions = Omit<Parameters<Client['startSource']>[1], 'submissionRef' | 'requestId' | 'unresolvedHistory'>;
+type SubmissionRef = ReturnType<Client['newSubmission']>;
+type ReadyLookup = Extract<Awaited<ReturnType<Client['lookupSubmission']>>, {kind: 'ready'}>;
+type NotAccepted = Extract<WireSubmissionOutcome, {kind: 'not_accepted'}>;
+type Conflict = Extract<WireSubmissionAttempt, {kind: 'conflict'}> & {outcome?: unknown};
+type FixtureColumn = {name: string; contract: Readonly<Record<string, unknown>>};
+type SourceRows = readonly Readonly<Record<string, unknown>>[];
+type FixtureInput = SourceOptions & {name: string; text: string};
+type FixtureSource = {sourceRows?: SourceRows; sourceReadSessionCount?: number};
+type ResultOracle = {rows: readonly unknown[] | undefined; columns?: readonly FixtureColumn[]; unordered?: boolean};
+export type PublicQuerySuccess = FixtureInput & FixtureSource & {
+  expected?: readonly unknown[];
+  columns?: readonly FixtureColumn[];
+  results?: Readonly<Record<string, ResultOracle>>;
+  resultName?: string;
+  sourceReadCount?: number;
+};
+type FixtureRefusal = FixtureInput & {expectedCode?: string};
+type FixtureFailure = FixtureInput & FixtureSource & {resultNames: readonly string[]};
+type Counters = {acceptedRuns: number; sourceIo: number; sourceReads?: number; sourceReadSessions?: number};
+type ObservedResult = {
+  rows: DynamicRow[];
+  columns?: Awaited<ReturnType<ReturnType<Execution['result']>['describe']>>['columns'];
+};
+type Observations = Counters & {sourceReadCommands?: unknown};
+type OracleInput = Pick<PublicQuerySuccess, 'results' | 'resultName' | 'format' | 'text' | 'expected' | 'columns'>;
+type PublicQueryFixtureOptions = {
+  requestPrefix: string;
+  observe: () => Observations | Promise<Observations>;
+  successes?: readonly PublicQuerySuccess[];
+  primaryResultName?: string;
+  refusals?: readonly FixtureRefusal[];
+  executionFailures?: readonly FixtureFailure[];
+  prepareCase?: (rows?: SourceRows) => unknown;
+  persistSubmission?: (record: {name: string; submissionRef: SubmissionRef}) => unknown;
+  completedCase?: (record: {
+    name: string; ref: RunReference; submissionRef: SubmissionRef; execution: Execution;
+    expected: PublicQuerySuccess['expected']; columns: PublicQuerySuccess['columns'];
+    beforeSubmit: Counters; beforeRead: Counters; afterReplay: Counters;
+    observedResults: Record<string, ObservedResult>;
+  }) => unknown;
+  completedRefusal?: (record: {
+    name: string; submissionRef: SubmissionRef; outcome: NotAccepted | undefined;
+    beforeSubmit: Counters; afterRefusal: Counters;
+  }) => unknown;
+};
+type ConflictError = ClientError & {submissionRef: SubmissionRef; outcome: Conflict};
+type RefusalError = ClientError & {outcome: NotAccepted};
 
 // Install these rows through the ordinary source profile. The Host must
 // publish the explicit relation alias "records" in that same generation.
@@ -8,7 +59,7 @@ export const sourceRows = [
   {id: 2, amount: 20}, {id: 3, amount: 30},
 ];
 const declarations = {minimum: {type: 'number'}};
-const relationNumber = (name, nullable = false) => ({name,
+const relationNumber = (name: string, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 // Hand-authored tap expectations: each Result retains the Relation at its
 // own point, including duplicates, NULLs and declared column order.
@@ -18,7 +69,7 @@ const relationNumber = (name, nullable = false) => ({name,
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
 // The ordered WITH repro has two roots, append, one hidden sort slot and LIMIT.
 // The packed harness reuses main's independently authored JSON control.
-export const relationDataSuccesses = [
+export const relationDataSuccesses: PublicQuerySuccess[] = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
     text: 'WITH n AS (SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1) FROM n |> SELECT id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
@@ -47,14 +98,14 @@ export const relationDataSuccesses = [
     text: 'WITH n AS (WITH seed AS (SELECT 2 AS id) SELECT id FROM seed UNION ALL SELECT id - 1 FROM seed) FROM n |> ORDER BY id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
 ];
-export const relationDataRefusals = [
+export const relationDataRefusals: FixtureRefusal[] = [
   {name: 'data-forward-reference', format: 'aql-text', text: 'WITH n AS (FROM later |> SELECT id), later AS (SELECT 1 AS id) FROM n |> SELECT id'},
   {name: 'data-duplicate', format: 'aql-text', text: 'WITH n AS (SELECT 1 AS id), `N` AS (SELECT 2 AS id) FROM n |> SELECT id'},
   {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
   {name: 'data-anonymous-set-by-name', format: 'aql-text', expectedCode: 'ClientProgramImplementationLimit', text: 'WITH n AS (SELECT 1 AS id UNION ALL BY NAME SELECT 2) FROM n |> SELECT id'},
   {name: 'data-anonymous-set-private-field', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text: 'WITH n AS (SELECT 1 AS id UNION ALL SELECT 2) FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
 ];
-export const pipeResultSuccesses = [
+export const pipeResultSuccesses: PublicQuerySuccess[] = [
   {name: 'result-exact-string-prefix', format: 'sql',
     text: "SELECT r'\\n' 'e\\u0301' AS value |> RESULT original |> SET value = '\\r\\néx' |> RESULT updated",
     results: {
@@ -150,7 +201,7 @@ export const pipeResultSuccesses = [
     results: {original: {rows: [{x: 2}], columns: [relationNumber('x')]},
       updated: {rows: [{x: 3}], columns: [relationNumber('x')]}}, sourceReadCount: 0},
 ];
-export const pipeResultRefusals = [
+export const pipeResultRefusals: FixtureRefusal[] = [
   {name: 'result-octal-out-of-range', format: 'sql',
     text: "SELECT '\\400' AS value |> RESULT original"},
   {name: 'result-duplicate', format: 'aql-text', text: 'FROM records |> RESULT saved |> RESULT saved'},
@@ -163,13 +214,13 @@ export const pipeResultRefusals = [
 ];
 // The retained prefix is only a candidate until the ordinary Run owner
 // commits publication. A downstream expression failure must not expose it.
-export const pipeResultExecutionFailures = [
+export const pipeResultExecutionFailures: FixtureFailure[] = [
   {name: 'result-before-division-failure', format: 'aql-text',
     text: 'FROM records |> RESULT original |> SET id = id / (id - id) |> RESULT invalid',
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
-export const queryCompositionSuccesses = [
-  ...['sql', 'aql-text'].map(format => ({
+export const queryCompositionSuccesses: PublicQuerySuccess[] = [
+  ...(['sql', 'aql-text'] as const).map<PublicQuerySuccess>(format => ({
     name: `cte-join-right-shared-capture-${format}`, format,
     text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id',
     sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}],
@@ -275,8 +326,8 @@ export const queryCompositionSuccesses = [
 ];
 // Independently authored unaliased table-query controls. Source aliases remain
 // optional syntax; current columns, row scopes and explicit result order do not.
-const optionalNumber = (name,nullable=false) => ({name,contract:{type:'number',nullable}});
-const optionalCase = (name,text,expected,columns,extra={}) => ({name:'derived-optional-'+name,
+const optionalNumber = (name: string,nullable=false) => ({name,contract:{type:'number',nullable}});
+const optionalCase = (name: string, text: string, expected: readonly unknown[], columns: readonly FixtureColumn[], extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess  => ({name:'derived-optional-'+name,
  format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
 const optionalNullProgram={"version":"actql/0.1","id":"fixture.optional_derived_alias","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true}},"rows":[{"id":1},{"id":null},{"id":2},{"id":1}]},"as":"rows"},{"from":"rows","filter":{"not":{"is_null":{"field":"id"}}}},{"sort":[{"field":"id","dir":"desc","nulls":"first"}]},{"take":3},{"select":["id"],"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
 const optionalRangeHead="FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10";
@@ -326,7 +377,7 @@ const derivedScalarControl={version:'actql/0.1',id:'fixture.derived_scalar_alias
  {select:['value'],as:'out'},
  ],results:{rows:{from:'out',fields:['value']}}}],
  results:{answer:{from:{stage:'main',result:'rows'}}}};
-const derivedValueCase=(name,text,expected,columns,extra={})=>({
+const derivedValueCase = (name: string, text: string, expected: readonly unknown[], columns: readonly FixtureColumn[], extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess =>({
  name:'derived-value-'+name,format:'sql',text,expected,columns,
  parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
  sourceReadCount:0,sourceReadSessionCount:0,...extra});
@@ -376,7 +427,7 @@ export const joinValueControl={version:'actql/0.1',id:'fixture.join_value_receiv
  {from:'joined',sort:[{field:'value',dir:'asc',nulls:'first'}]},
  {select:['value'],as:'out'},
  ],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
-const joinValueCase=(name,text,expected=derivedScalarRows,columns=derivedValueColumns,extra={})=>({
+const joinValueCase = (name: string, text: string, expected: readonly unknown[] = derivedScalarRows, columns: readonly FixtureColumn[] = derivedValueColumns, extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess =>({
  name:'join-value-'+name,format:'sql',text,expected,columns,
  parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
  sourceReadCount:0,sourceReadSessionCount:0,...extra});
@@ -412,7 +463,7 @@ const wholeRowControl={version:'actql/0.1',id:'fixture.whole_row_range',params:d
  {select:['row',{value:'element'},'position']},
  {sort:[{field:'position',dir:'asc',nulls:'first'}],as:'out'},
  ],results:{rows:{from:'out',fields:['row','value','position']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
-const wholeRowCase=(name,text,expected=wholeRowRows,columns=wholeRowColumns,extra={})=>({name:'whole-row-'+name,format:'sql',text,expected,columns,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const wholeRowCase = (name: string, text: string, expected: readonly unknown[] = wholeRowRows, columns: readonly FixtureColumn[] = wholeRowColumns, extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess =>({name:'whole-row-'+name,format:'sql',text,expected,columns,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},sourceReadCount:0,sourceReadSessionCount:0,...extra});
 queryCompositionSuccesses.push(
  wholeRowCase('json-control',JSON.stringify(wholeRowControl),wholeRowRows,wholeRowColumns,{format:'json',parameterDeclarations:undefined}),
  wholeRowCase('offset-receiver',wholeRowSource),
@@ -428,7 +479,7 @@ queryCompositionSuccesses.push(
 // Fixed NameScope::AddNameTarget: an input range shadows a current column.
 // CopyNameScopeWithOverridingNames gives ORDER aliases a separate nearer scope.
 const shadowHead='FROM ('+wholeRowHead+') chosen |> AS element';
-const shadowCase=(name,text,expected,columns,extra={})=>({...wholeRowCase(name,text,expected,columns),name:'range-shadow-'+name,format:'aql-text',...extra});
+const shadowCase = (name: string, text: string, expected: readonly unknown[], columns: readonly FixtureColumn[], extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess =>({...wholeRowCase(name,text,expected,columns),name:'range-shadow-'+name,format:'aql-text',...extra});
 const shadowPayloadDeclaration={payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}};
 const shadowPayloadText='FROM (SELECT 90 AS score,@payload AS payload) |> AS payload |> SELECT (payload).score AS value';
 const shadowScoreControl={version:'actql/0.1',id:'fixture.range_shadow_score',stages:[{id:'main',inputs:{},steps:[{values:{schema:{score:{type:'number',nullable:false},payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}},rows:[{score:90,payload:{score:10}}]},as:'objects'},{from:'objects',select:[{value:'score'}],as:'out'}],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
@@ -448,7 +499,7 @@ queryCompositionSuccesses.push(
 const joinedLeft='(SELECT 20 AS amount,2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64),1 UNION ALL SELECT 20,2)';
 const joinedRight='(SELECT 2 AS id,20 AS marker UNION ALL SELECT 4,40)';
 const joinedLeftFields={amount:{type:'number',nullable:true},id:{type:'number',nullable:false}};
-const joinedObject=(name,fields)=>({name,contract:{type:'object',nullable:false,fields,additional_properties:false}});
+const joinedObject=(name: string, fields: Record<string, unknown>): FixtureColumn =>({name,contract:{type:'object',nullable:false,fields,additional_properties:false}});
 const joinedLeftColumn=joinedObject('left_row',joinedLeftFields);
 const joinedRightColumn=joinedObject('right_row',{id:{type:'number',nullable:false}});
 const joinedCrossRows=[
@@ -464,7 +515,7 @@ export const joinedRowControl={version:'actql/0.1',id:'fixture.joined_rows',stag
  {sort:[{field:'left_id',dir:'asc',nulls:'first'}]},
  {select:['left_row','right_row'],as:'out'},
  ],results:{rows:{from:'out',fields:['left_row','right_row']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
-const joinedCase=(name,text,expected=joinedCrossRows,columns=[joinedLeftColumn,joinedRightColumn],extra={})=>({name:'joined-row-'+name,format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const joinedCase = (name: string, text: string, expected: readonly unknown[] = joinedCrossRows, columns: readonly FixtureColumn[] = [joinedLeftColumn,joinedRightColumn], extra: Partial<PublicQuerySuccess> = {}): PublicQuerySuccess =>({name:'joined-row-'+name,format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
 const joinedCrossSource='SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 ORDER BY l.id';
 const joinedNullableRight=joinedObject('right_row',{id:{type:'number',nullable:true},marker:{type:'number',nullable:true}});
 const joinedNonNullRight=joinedObject('right_row',{id:{type:'number',nullable:false},marker:{type:'number',nullable:false}});
@@ -508,7 +559,7 @@ queryCompositionSuccesses.push(
  ],[joinedLeftColumn,joinedObject('right_row',joinedLeftFields)],{sourceReadCount:undefined,sourceReadSessionCount:1}),
 );
 
-export const queryCompositionRefusals = [
+export const queryCompositionRefusals: FixtureRefusal[] = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
   {name: 'literal-set-later-alias-hidden', format: 'sql',
@@ -555,7 +606,7 @@ queryCompositionRefusals.push(...[
  ['set-old-range','SELECT before.id FROM (SELECT 1 AS id UNION ALL SELECT 2)'],
  ['private-producer','SELECT aql_query_source_0.id FROM (SELECT 1 AS id)'],
  ['ambiguous-column','SELECT id FROM (SELECT 1 AS id) CROSS JOIN (SELECT 2 AS id) MAX_OUTPUT_ROWS 10'],
-].map(([name,text])=>({name:'derived-optional-refusal-'+name,format:'sql',text,
+].map<FixtureRefusal>(([name,text])=>({name:'derived-optional-refusal-'+name,format:'sql',text,
  expectedCode:'ClientProgramInvalidInput'})));
 
 queryCompositionRefusals.push(...[
@@ -563,29 +614,29 @@ queryCompositionRefusals.push(...[
  ['scalar-star','SELECT chosen.* FROM (FROM UNNEST(@items) element) chosen'],
  ['unregistered-scalar-property','SELECT chosen.score AS value FROM (FROM UNNEST(@items) element) chosen'],
  ['duplicate-derived-alias','SELECT chosen.value FROM (FROM UNNEST(@items) element) chosen CROSS JOIN (SELECT 1 AS value) chosen MAX_OUTPUT_ROWS 10'],
-].map(([name,text])=>({name:'derived-value-refusal-'+name,format:'sql',text,
+].map<FixtureRefusal>(([name,text])=>({name:'derived-value-refusal-'+name,format:'sql',text,
  parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
-queryCompositionRefusals.push(...[
+queryCompositionRefusals.push(...([
  ['displaced','aql-text','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT chosen AS row'],
  ['removed','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT element |> WHERE element > 0 |> SELECT chosen AS row'],
  ['missing-member','sql','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
  ['distinct-hidden','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
-].map(([name,format,text])=>({name:'whole-row-refusal-'+name,format,text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+] as const).map<FixtureRefusal>(([name,format,text])=>({name:'whole-row-refusal-'+name,format,text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 queryCompositionRefusals.push(...[
  ['drop-removes-range',shadowHead+' |> DROP element |> SELECT element AS row'],
  ['row-is-not-number',shadowHead+' |> SELECT element + 1 AS value'],
-].map(([name,text])=>({name:'range-shadow-refusal-'+name,format:'aql-text',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+].map<FixtureRefusal>(([name,text])=>({name:'range-shadow-refusal-'+name,format:'aql-text',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 queryCompositionRefusals.push(...[
  ['missing-row-member','SELECT (l).missing AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
  ['row-is-not-number','SELECT l+1 AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
  ['displaced-range','FROM '+joinedLeft+' l |> CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 |> AS current |> SELECT l AS row'],
  ['duplicate-range','SELECT l AS row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) l MAX_OUTPUT_ROWS 10'],
-].map(([name,text])=>({name:'joined-row-refusal-'+name,format:name==='displaced-range'?'aql-text':'sql',text,expectedCode:'ClientProgramInvalidInput'})));
+].map<FixtureRefusal>(([name,text])=>({name:'joined-row-refusal-'+name,format:name==='displaced-range'?'aql-text':'sql',text,expectedCode:'ClientProgramInvalidInput'})));
 
-export const querySuccesses = [
+export const querySuccesses: PublicQuerySuccess[] = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',
     parameterDeclarations: declarations, parameters: {minimum: 20},
@@ -607,15 +658,15 @@ export const querySuccesses = [
 // Hand-authored source-free expectations. No compiler or output snapshot
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
-const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+const numberColumn = (name: string): FixtureColumn => ({name, contract: {type: 'number', nullable: false}});
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
-export const sourceFreeSuccesses = [
-  ...octalQuotes.flatMap(([name, quote]) => [
+export const sourceFreeSuccesses: PublicQuerySuccess[] = [
+  ...octalQuotes.flatMap<PublicQuerySuccess>(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
       expected: [{low: '\u0000', high: '\u00ff'}],
-      columns: [['low', 1], ['high', 2]].map(([name, bytes]) => ({name,
+      columns: ([['low', 1], ['high', 2]] as const).map(([name, bytes]) => ({name,
         contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
       sourceReadCount: 0},
     {name: `raw-octal-${name}`, format: 'sql',
@@ -628,26 +679,26 @@ export const sourceFreeSuccesses = [
   {name: 'raw-string-chunks', format: 'sql',
     text: `SELECT r'\\n' AS slash_n, R"\\u0041" AS unicode_text, r'a\\'b' AS quoted`,
     expected: [{slash_n: '\\n', unicode_text: '\\u0041', quoted: "a\\'b"}],
-    columns: [['slash_n', 2], ['unicode_text', 6], ['quoted', 4]].map(([name, bytes]) => ({name,
+    columns: ([['slash_n', 2], ['unicode_text', 6], ['quoted', 4]] as const).map(([name, bytes]) => ({name,
       contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
     sourceReadCount: 0},
   {name: 'triple-string-newlines', format: 'aql-text',
     text: `SELECT '''a\r\nb''' AS physical, """\\r""" AS escaped, '''e\u0301''' AS decomposed`,
     expected: [{physical: 'a\nb', escaped: '\r', decomposed: 'e\u0301'}],
-    columns: [['physical', 3], ['escaped', 1], ['decomposed', 3]].map(([name, bytes]) => ({name,
+    columns: ([['physical', 3], ['escaped', 1], ['decomposed', 3]] as const).map(([name, bytes]) => ({name,
       contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
     sourceReadCount: 0},
   {name: 'mixed-separated-string-chunks', format: 'sql',
     text: `SELECT r'\\n' /* only this chunk is raw */ '\\n' "é" '''e\u0301''' AS joined, '' "" '''''' AS empty`,
     expected: [{joined: '\\n\née\u0301', empty: ''}],
-    columns: [['joined', 8], ['empty', 0]].map(([name, bytes]) => ({name,
+    columns: ([['joined', 8], ['empty', 0]] as const).map(([name, bytes]) => ({name,
       contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
     sourceReadCount: 0},
   {name: 'double-quoted-exact-values', format: 'sql',
     text: 'SELECT "\\r" AS cr, "\\n" AS lf, "\\r\\n" AS crlf, "é" AS composed, "e\\u0301" AS decomposed, "\\\\n" AS slash_n',
     expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
-    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
-      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+    columns: ([['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]] as const).map(([name, bytes]) => ({name,
         contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
     sourceReadCount: 0},
   {name: 'quoted-scalar-escapes', format: 'sql',
@@ -661,8 +712,8 @@ export const sourceFreeSuccesses = [
     // below are authored independently, including a literal backslash plus n.
     text: "SELECT '\\r' AS cr, '\\n' AS lf, '\\r\\n' AS crlf, 'é' AS composed, 'e\u0301' AS decomposed, '\\\\n' AS slash_n",
     expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
-    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
-      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+    columns: ([['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]] as const).map(([name, bytes]) => ({name,
         contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
     sourceReadCount: 0},
   {name: 'literal-values', format: 'sql',
@@ -694,8 +745,8 @@ export const sourceFreeSuccesses = [
     text: 'WITH seed AS (SELECT 2 AS x |> WHERE x > 0 |> SELECT x) SELECT x FROM seed ORDER BY x',
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
 ];
-export const sourceFreeRefusals = [
-  ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
+export const sourceFreeRefusals: FixtureRefusal[] = [
+  ...octalQuotes.flatMap<PublicQuerySuccess>(([name, quote]) => ['400', '777'].map<FixtureRefusal>(digits => ({
     name: `octal-range-${name}-${digits}`, format: 'sql',
     // A valid published source is present. Lexical refusal must still occur
     // before Run admission or physical acquisition of that source.
@@ -706,7 +757,7 @@ export const sourceFreeRefusals = [
     'SELECT "memory"."main"."table"', 'SELECT r"odd\\" AS s',
     'SELECT """unfinished"" AS s', 'SELECT b"bytes" AS s',
     'SELECT "a""b" AS s', 'SELECT "a" b"b" AS s',
-    'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map((text, index) => ({
+    'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map<FixtureRefusal>((text, index) => ({
     name: `quoted-input-refusal-${index}`, format: 'sql', text})),
   // The selected source-free profile cannot expand star without a relation.
   // The existing check owner reports an implementation limit, not bad input.
@@ -719,8 +770,8 @@ export const sourceFreeRefusals = [
   {name: 'source-free-undeclared', format: 'sql', text: 'SELECT @p AS x'},
   {name: 'source-free-missing-value', format: 'sql', text: 'SELECT @minimum AS x', parameterDeclarations: declarations},
 ];
-export const queryRefusals = [
-  ...['aql-text', 'sql'].flatMap(format => [
+export const queryRefusals: FixtureRefusal[] = [
+  ...(['aql-text', 'sql'] as const).flatMap<FixtureRefusal>(format => [
     {name: `retired-envelope-${format}`, format,
       text: "-- prefix\nAQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }"},
     {name: `retired-program-${format}`, format, text: "PROGRAM 'old' {}"},
@@ -740,7 +791,7 @@ export const queryRefusals = [
 ];
 // This Host installs no ModelTask. Valid INFER syntax cannot grant a missing
 // installation; scope/name failures are separate pre-admission refusals.
-export const inferRefusals = [
+export const inferRefusals: FixtureRefusal[] = [
   {name: 'infer-missing-model-task', format: 'aql-text',
     text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
       + 'INPUT (n = amount) KEEP (id) AS assessment'},
@@ -765,7 +816,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // Public text without an explicit RESULT exports main. Explicit text names
 // belong to authored fixture metadata; structured Programs retain their own
 // declared exports. None of these names comes from a product reply.
-export function publicQueryResultOracles(item, primaryResultName = 'main') {
+export function publicQueryResultOracles(item: OracleInput, primaryResultName = 'main'): Readonly<Record<string, ResultOracle>> {
   if (item.results !== undefined) return item.results;
   let resultName = item.resultName;
   if (resultName === undefined && ['json', 'aql-json'].includes(item.format)) {
@@ -784,9 +835,9 @@ export function publicQueryResultOracles(item, primaryResultName = 'main') {
 // owner supplies cumulative observations of real Run admission and source
 // I/O, not a replacement provider or a Client-side alias map. This function
 // does not lower source, manufacture schema, or call a test compiler bridge.
-export async function exercisePublicQueryInput(connect, options,
+export async function exercisePublicQueryInput(connect: (options: NodeConnectionOptions) => Promise<Client>, options: NodeConnectionOptions,
   {requestPrefix, observe, successes = querySuccesses, primaryResultName = 'main',
-    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}: PublicQueryFixtureOptions) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -811,30 +862,30 @@ export async function exercisePublicQueryInput(connect, options,
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
       if (sourceReadCount !== undefined) {
-        assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
+        assert.equal(beforeRead.sourceReads! - beforeSubmit.sourceReads!, sourceReadCount,
           'physical source row scan count: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
       if (sourceReadSessionCount !== undefined) {
-        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+        assert.equal(beforeRead.sourceReadSessions! - beforeSubmit.sourceReadSessions!,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
       const expectedResults = publicQueryResultOracles(item, primaryResultName);
-      const compare = (actual, expected, unordered) => {
+      const compare = (actual: readonly unknown[], expected: ResultOracle['rows'], unordered: boolean | undefined) => {
         // An unordered SQL Relation is compared as a multiset. Sorting this
         // test copy preserves duplicates and never changes the product output.
-        const canonicalRow = value => Array.isArray(value)
+        const canonicalRow = (value: unknown): string | undefined => Array.isArray(value)
           ? '[' + value.map(canonicalRow).join(',') + ']'
           : value !== null && typeof value === 'object'
             ? '{' + Object.keys(value).sort().map(key =>
-              JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+              JSON.stringify(key) + ':' + canonicalRow((value as Record<string, unknown>)[key])).join(',') + '}'
             : JSON.stringify(value);
         if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
-          expected.map(canonicalRow).sort());
+          expected!.map(canonicalRow).sort());
         else assert.deepEqual(actual, expected);
       };
-      const observedResults = Object.create(null);
+      const observedResults: Record<string, ObservedResult> = Object.create(null);
       for (const [resultName, result] of Object.entries(expectedResults)) {
         const rows = await execution.result(resultName).all();
         compare(rows, result.rows, result.unordered);
@@ -855,7 +906,7 @@ export async function exercisePublicQueryInput(connect, options,
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready');
       assert.deepEqual(lookup.submissionRef, submissionRef);
-      assert.deepEqual(lookup.admission.ref, execution.ref);
+      assert.deepEqual((lookup as ReadyLookup).admission.ref, execution.ref);
       const afterReplay = await counters();
       assert.deepEqual(afterReplay, beforeRead,
         'reading, attaching and resending must not accept or acquire again');
@@ -869,7 +920,7 @@ export async function exercisePublicQueryInput(connect, options,
         const attemptId = requestId + '-changed-intent';
         const expectedAttemptRef = {operation: 'submit', attemptId};
         await assert.rejects(client.startSource(text, {...input, submissionRef,
-          parameters: {minimum: 21}, attemptId}), error => {
+          parameters: {minimum: 21}, attemptId}), (error: ConflictError) => {
           assert.equal(error.code, 'SubmissionConflict');
           assert.equal(error.cause, undefined);
           assert.deepEqual(error.submissionRef, submissionRef);
@@ -903,7 +954,7 @@ export async function exercisePublicQueryInput(connect, options,
       const beforeRead = await counters();
       assert.equal(beforeRead.acceptedRuns - beforeSubmit.acceptedRuns, 1);
       if (sourceReadSessionCount !== undefined) {
-        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+        assert.equal(beforeRead.sourceReadSessions! - beforeSubmit.sourceReadSessions!,
           sourceReadSessionCount);
       }
       for (const resultName of resultNames) {
@@ -918,7 +969,7 @@ export async function exercisePublicQueryInput(connect, options,
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready');
       assert.deepEqual(lookup.submissionRef, submissionRef);
-      assert.deepEqual(lookup.admission.ref, execution.ref);
+      assert.deepEqual((lookup as ReadyLookup).admission.ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'failed Result reads, attach and resubmit must not recompute or acquire');
       console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
@@ -929,8 +980,8 @@ export async function exercisePublicQueryInput(connect, options,
       const requestId = requestPrefix + '-reject-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
       const before = await counters();
-      let outcome;
-      await assert.rejects(client.startSource(text, {...input, submissionRef}), error => {
+      let outcome: NotAccepted | undefined;
+      await assert.rejects(client.startSource(text, {...input, submissionRef}), (error: RefusalError) => {
         assert.equal(error.code, 'SubmissionNotAccepted', refusalContext);
         outcome = error.outcome;
         assert.equal(outcome.kind, 'not_accepted');
@@ -961,7 +1012,7 @@ queryCompositionRefusals.push(...[
  ['old-receiver','SELECT old_r FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
  ['scalar-star','SELECT r.* FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
  ['duplicate-range','SELECT r AS value FROM (SELECT 7 AS id) r CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
-].map(([name,text])=>({name:'join-value-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramInvalidInput'})));
+].map<FixtureRefusal>(([name,text])=>({name:'join-value-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramInvalidInput'})));
 
 // Bare ordinary range names are row objects, never same-named scalar columns
 // in ON. The independent scalar-key JSON control remains executable.
@@ -971,7 +1022,7 @@ export const joinOnColumnControl = {version:'actql/0.1',id:'fixture.join_on_colu
   {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:1}]},as:'right'},
   {from:'left',join:{with:'right',kind:'inner',on:[{left:'l',right:'id'}],max_output_rows:10,select:{id:'left.id'}},as:'out'},
  ],results:{rows:{from:'out',fields:['id']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
-const joinOnCase=(name,text,id=2,format='sql')=>({name:'join-on-range-'+name,
+const joinOnCase = (name: string, text: string, id = 2, format: SourceOptions['format'] = 'sql'): PublicQuerySuccess =>({name:'join-on-range-'+name,
  format,text,expected:[{id}],columns:[relationNumber('id')],sourceReadCount:0,sourceReadSessionCount:0});
 queryCompositionSuccesses.push(
  joinOnCase('json-column-control',JSON.stringify(joinOnColumnControl),2,'json'),
@@ -979,12 +1030,12 @@ queryCompositionSuccesses.push(
  joinOnCase('qualified-right','SELECT l.id FROM (SELECT 1 AS id) l JOIN (SELECT 1 AS r,2 AS id) r ON l.id=r.r MAX_OUTPUT_ROWS 10',1),
  joinOnCase('using-column','FROM (SELECT 1 AS l,2 AS id) l |> JOIN (SELECT 1 AS l) r USING(l) MAX_OUTPUT_ROWS 10 |> SELECT l.id',2,'aql-text'),
 );
-queryCompositionRefusals.push(...[
+queryCompositionRefusals.push(...([
  ['left','sql','SELECT l.id FROM (SELECT 1 AS l,2 AS id) l JOIN (SELECT 1 AS id) r ON l=r.id MAX_OUTPUT_ROWS 10'],
  ['right-shared','sql','SELECT l AS row FROM (SELECT 1 AS id) l JOIN (SELECT 1 AS r,2 AS id) r ON l.id=r MAX_OUTPUT_ROWS 10'],
  ['quoted-cte','aql-text','WITH a AS (SELECT 1 AS l,2 AS id),b AS (SELECT 1 AS id) FROM a AS `L` |> JOIN b AS r ON `L`=r.id MAX_OUTPUT_ROWS 10 |> SELECT `L`.id'],
  ['acquired','sql','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON records=r.id MAX_OUTPUT_ROWS 10'],
-].map(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramImplementationLimit'})));
+] as const).map<FixtureRefusal>(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramImplementationLimit'})));
 
 // Grouping parentheses preserve the same common equality key mapping.
 // NULL key rows do not match; duplicate keys retain all matching pairs.
@@ -999,7 +1050,7 @@ export const parenthesizedJoinControl = {version:'actql/0.1',id:'fixture.parenth
 // Untyped NULL set inference is a separate retained frontend gap.
 const parenthesizedLeft='SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) UNION ALL SELECT 1 UNION ALL SELECT 2';
 const parenthesizedRight='SELECT 2 AS key,20 AS tag UNION ALL SELECT CAST(NULL AS FLOAT64),99 UNION ALL SELECT 2,21 UNION ALL SELECT 3,30';
-const parenthesizedJoinCase=(name,text,format='sql')=>({name:'join-parenthesized-'+name,format,text,
+const parenthesizedJoinCase = (name: string, text: string, format: SourceOptions['format'] = 'sql'): PublicQuerySuccess =>({name:'join-parenthesized-'+name,format,text,
  expected:[{id:2,tag:20},{id:2,tag:20},{id:2,tag:21},{id:2,tag:21}],
  columns:[relationNumber('id',true),relationNumber('tag')],sourceReadCount:0,sourceReadSessionCount:0});
 queryCompositionSuccesses.push(
@@ -1020,4 +1071,4 @@ queryCompositionRefusals.push(...[
  ['ordinary-row','SELECT l.id FROM (SELECT 1 AS l,2 AS id) l JOIN (SELECT 1 AS id) r ON (l)=((r.id)) MAX_OUTPUT_ROWS 10'],
  ['arithmetic','SELECT l.id FROM (SELECT 1 AS id) l JOIN (SELECT 2 AS id) r ON (l.id+1)=(r.id) MAX_OUTPUT_ROWS 10'],
  ['acquired-row','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON ((records))=(r.id) MAX_OUTPUT_ROWS 10'],
-].map(([name,text])=>({name:'join-parenthesized-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramImplementationLimit'})));
+].map<FixtureRefusal>(([name,text])=>({name:'join-parenthesized-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramImplementationLimit'})));

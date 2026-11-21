@@ -1,7 +1,7 @@
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
 import {observeRetainedGraphDispatch} from './retained-graph-observer.mjs';
-// @ts-expect-error TS7016: The authored oracle module has not migrated yet.
 import {publicQueryResultOracles} from './public-query-input.mjs';
+import type {PublicQuerySuccess} from './public-query-input.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
@@ -32,22 +32,10 @@ type StringRecord = Record<Transport, RetainedString> & {
   hostCapacityPolicy: HostCapacityPolicy;
   sourceProfilePaths?: Partial<Record<Transport, string>>;
 };
-type ResultOracle = {rows: unknown[]; columns?: unknown; unordered?: boolean};
-type RetainedSource = Omit<StartOptions, 'submissionRef'> & {
-  name: string;
-  text: string;
-  expected?: unknown;
-  columns?: unknown;
-  results?: Record<string, ResultOracle>;
-  resultName?: string;
-  sourceRows?: unknown;
-  sourceReadCount?: number;
-  sourceReadSessionCount?: number;
-};
 type RetainedCohort = {
   mode: Transport;
   directory: string;
-  samples: {source: RetainedSource; ref: RunReference; submissionRef: NonNullable<StartOptions['submissionRef']>}[];
+  samples: {source: PublicQuerySuccess; ref: RunReference; submissionRef: NonNullable<StartOptions['submissionRef']>}[];
   expectedSampleNames?: string[];
   authorization?: Authorization;
   sourceProfilePath?: string;
@@ -133,11 +121,11 @@ async function readRetainedCohort(cohort: RetainedCohort, options: NodeConnectio
     for (const {source, ref, submissionRef} of cohort.samples) {
       const execution = await client.attach(ref);
       assert.equal((await execution.status()).status, 'succeeded');
-      const results = publicQueryResultOracles(source) as Record<string, ResultOracle>;
+      const results = publicQueryResultOracles(source);
       for (const [name, oracle] of Object.entries(results)) {
         const actual = await execution.result(name).all();
         if (oracle.unordered) {
-          assert.deepEqual(actual.map(canonicalRow).sort(), oracle.rows.map(canonicalRow).sort());
+          assert.deepEqual(actual.map(canonicalRow).sort(), oracle.rows!.map(canonicalRow).sort());
         } else assert.deepEqual(actual, oracle.rows);
         if (oracle.columns !== undefined) {
           assert.deepEqual((await execution.result(name).describe()).columns, oracle.columns);

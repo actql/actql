@@ -1011,3 +1011,5 @@ target/
 /scripts/fixtures/string-values-restart.d.mts
 /scripts/fixtures/retained-graph-observer.mjs
 /scripts/fixtures/retained-graph-observer.d.mts
+/scripts/fixtures/public-query-input.mjs
+/scripts/fixtures/public-query-input.d.mts
