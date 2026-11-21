@@ -25,6 +25,9 @@ type PrepareOutputs = Parameters<ReturnType<typeof localStrategyContribution>['p
 type Materialized = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['run']>>, {diagnostic: object}>;
 type CarrierCompletion = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['runPrepared']>>, {carrierMaterial: object}>;
 type Assert<Condition extends true> = Condition;
+type RejectAsyncRegistration<Port> = (() => Promise<object>) extends Port ? false : true;
+type _LocalRegistrationIsSynchronous = Assert<RejectAsyncRegistration<LocalBindings['strategyModule_local_Registration']>>;
+type _ReferenceRegistrationIsSynchronous = Assert<RejectAsyncRegistration<ReferenceBindings['strategyModule_reference_compute_Registration']>>;
 type CompletionPermit = NonNullable<Parameters<ReturnType<typeof localStrategyContribution>['run']>[2]>;
 type _CompletionPermitAcceptsUndefined = Assert<{assertAvailable(): undefined} extends CompletionPermit ? true : false>;
 type _CompletionPermitRejectsPromise = Assert<{assertAvailable(): Promise<undefined>} extends CompletionPermit ? false : true>;

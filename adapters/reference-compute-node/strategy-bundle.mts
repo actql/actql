@@ -11,9 +11,10 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
 import type {ManagedFailureOperations} from '../host-common/managed-failure.mjs';
 import type {SynchronousResultCheck, SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
+type Registration = Extract<SynchronousRuntimeData, object>;
 type ReferenceBindings = Parameters<typeof beginManagedFailureProgress>[0] & Readonly<{
-  strategyModule_reference_compute_Registration(setup: unknown): unknown;
-  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyModule_reference_compute_Registration(setup: unknown): Registration;
+  strategyHostRegistrationSelectionKey(registration: Registration): string;
   strategyHostNextTask(setup: unknown): number;
   strategyHostManagedProducers(setup: unknown): readonly number[];
   strategyHostManagedRequiresLogicalIdentity(setup: unknown): unknown;

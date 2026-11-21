@@ -81,10 +81,11 @@ type PreparedTask = Readonly<{
   resolveSiteInputs?(inputs: readonly unknown[], signal?: AbortSignal): Promise<SiteResolution>;
   siteCompletionReady?(): boolean;
 }>;
+type Registration = Extract<SynchronousRuntimeData, object>;
 type LocalBindings = RetainedRead[0] & Parameters<typeof checkedLocalManagedAdvance>[0] &
   Parameters<typeof beginManagedFailureProgress>[0] & Readonly<{
-  strategyModule_local_Registration(setup: unknown): unknown;
-  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyModule_local_Registration(setup: unknown): Registration;
+  strategyHostRegistrationSelectionKey(registration: Registration): string;
   strategyHostNextTask(setup: unknown): number;
   strategyHostTask?(task: unknown): number;
   strategyHostManagedProducers(setup: unknown): readonly number[];
