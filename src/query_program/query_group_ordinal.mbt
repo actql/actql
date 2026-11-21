@@ -4,6 +4,7 @@
 priv enum GroupKeyReference {
   Expression(@query.Expression)
   StarColumn((String, String))
+  ObjectColumn(ExpandedObjectColumn)
 }
 
 ///|
@@ -13,6 +14,10 @@ fn resolved_group_key(
   input_visible : Array[(String, String)],
   sql : Bool,
   ranges? : Array[(@query.NamePart, Array[(String, String)])] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  expansions? : Array[ExpandedStarColumn]? = None,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
+  max_work? : Int = 2147483646,
 ) -> GroupKeyReference raise Abort {
   let mut root = @query.expression_node(key, @query.expression_root(key)).unwrap()
   while true {
@@ -31,7 +36,14 @@ fn resolved_group_key(
       for projection in projections {
         let columns = match projection.star {
           Some("*") =>
-            expanded_star_columns(projection, input_visible, ranges~).length()
+            expanded_star_columns(
+              projection,
+              input_visible,
+              ranges~,
+              column_profiles~,
+              expansions~,
+              max_work~,
+            ).length()
           Some(_) => raise Abort(UnsupportedProjection)
           None => 1
         }
@@ -56,6 +68,9 @@ fn resolved_group_key(
               projection,
               input_visible,
               ranges~,
+              column_profiles~,
+              expansions~,
+              max_work~,
             )
             if ordinal <= columns.length() {
               return StarColumn(columns[ordinal - 1])
@@ -75,6 +90,18 @@ fn resolved_group_key(
               }
               // This is the selected expression over the input snapshot,
               // not a new alias lookup or a second expression evaluation.
+              if object_expansions is Some(values) {
+                if values.length() > max_work {
+                  raise Abort(
+                    Expression({ issue: @expression.WorkLimit, origin: None, }),
+                  )
+                }
+                for original in values {
+                  if physical_equal(original.projection, projection) {
+                    return ObjectColumn(original)
+                  }
+                }
+              }
               return Expression(expression)
             }
             ordinal -= 1

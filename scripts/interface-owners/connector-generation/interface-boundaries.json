@@ -316,7 +316,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -358,7 +358,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -416,7 +416,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -474,7 +474,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -524,7 +524,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -578,7 +578,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -632,7 +632,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -678,7 +678,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -736,7 +736,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -935,7 +935,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -957,7 +957,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -979,7 +979,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1001,7 +1001,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1023,7 +1023,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1045,7 +1045,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1067,7 +1067,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1089,7 +1089,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1111,7 +1111,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1196,7 +1196,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1218,7 +1218,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1240,7 +1240,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1262,7 +1262,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1284,7 +1284,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1306,7 +1306,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1328,7 +1328,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1350,7 +1350,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1372,7 +1372,7 @@
                 "anchor": "# "
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundle-contract.mjs",
                 "anchor": "// Installed Host bindings."
               },
               {
@@ -1696,6 +1696,1474 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "scripts/connector.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1050ebf0631f28c41b372a363438217ef1096c9fcd5aa221f2e5e6bb41c2059d",
+      "exports": [
+        "connectorCommand",
+        "connectorConformancePlan"
+      ],
+      "operations": [
+        {
+          "name": "connectorCommand",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectorConformancePlan",
+          "parameters": [
+            "root",
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "connectorCommand",
+            "connectorConformancePlan"
+          ],
+          "exports": [
+            "connectorCommand",
+            "connectorConformancePlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "Scaffold, build and install"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/connector.mjs",
+                "anchor": "const usage ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "authoringBinPath"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/local-node/package.json",
+                "anchor": "\"actql-connector\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/connector.mjs",
+                "anchor": "await runLocalCheck"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/connector.mjs",
+                "anchor": "process.exitCode = 1"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "const cancel ="
+              }
+            ],
+            "resources": [
+              {
+                "path": "scripts/connector.mjs",
+                "anchor": "heavyResources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/connector.mjs",
+                "anchor": "export function connectorCommand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-authoring.cli.test.mjs",
+                "anchor": "the packed author toolkit runs outside the checkout"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/connector-authoring-toolkit.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "57cba3b498caa31ec4a5f207580ee5db53fa4d0e66a16fb0cbff0bc0285e8435",
+      "exports": [
+        "authoringBinPath",
+        "authoringToolkitPath",
+        "isInstalledAuthoringToolkit",
+        "observeInstalledAuthoringToolkit"
+      ],
+      "operations": [
+        {
+          "name": "isInstalledAuthoringToolkit",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit",
+          "parameters": [
+            "root",
+            "manifest"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit/expected/expected",
+          "parameters": [
+            "file"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit/expected/expected#2",
+          "parameters": [
+            "file"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit/host/host",
+          "parameters": [
+            "pkg"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit/observeInstalledAuthoringToolkit",
+          "parameters": [
+            "file"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAuthoringToolkit/sort/sort/sort",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "isInstalledAuthoringToolkit",
+            "observeInstalledAuthoringToolkit",
+            "observeInstalledAuthoringToolkit/expected/expected",
+            "observeInstalledAuthoringToolkit/expected/expected#2",
+            "observeInstalledAuthoringToolkit/host/host",
+            "observeInstalledAuthoringToolkit/observeInstalledAuthoringToolkit",
+            "observeInstalledAuthoringToolkit/sort/sort/sort"
+          ],
+          "exports": [
+            "authoringBinPath",
+            "authoringToolkitPath",
+            "isInstalledAuthoringToolkit",
+            "observeInstalledAuthoringToolkit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "Use the authoritative selected tarball inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "observeInstalledAuthoringToolkit"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "sha256: host.sha256"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "@actql/local-node"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/fixtures/external-rest/normal-case.test.mjs",
+                "anchor": "assert.deepEqual(observedSource, originalSource)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "toolkit payload mismatch"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The inventory is synchronous or read-only; its calling conformance process owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Release payload symlink:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/build-connector-authoring.mjs",
+                "anchor": "Include actual import edges"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-authoring.cli.test.mjs",
+                "anchor": "the packed author toolkit runs outside the checkout"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/connector-authoring.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e7e63e54582ea061c848d810ec44aeb4a97659d25d67c485c21765ad66b0d74f",
+      "exports": [
+        "initRestConnector",
+        "projectRestConnector",
+        "restConnectorPackageMetadata",
+        "writeRestConnector"
+      ],
+      "operations": [
+        {
+          "name": "freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "initRestConnector",
+          "parameters": [
+            "directory",
+            "id"
+          ],
+          "async": false
+        },
+        {
+          "name": "name/name",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectRestConnector",
+          "parameters": [
+            "definition",
+            "hostPackageVersion",
+            "authorRoot"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectRestConnector/authoredViewsWire/authoredViewsWire",
+          "parameters": [
+            "resource",
+            "resource_kind",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectRestConnector/projectRestConnector",
+          "parameters": [
+            "resource",
+            "resource_kind",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectRestConnector/sources/sources",
+          "parameters": [
+            "resource",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectRestConnector/sources/sources/sources",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "propertyPath/propertyPath/propertyPath",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "relative/relative/relative",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "restConnectorPackageMetadata",
+          "parameters": [
+            "id",
+            "hostPackageVersion"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape/shape",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape/shape#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "writeRestConnector",
+          "parameters": [
+            "definitionPath",
+            "outputRoot",
+            "check",
+            "installedToolkit"
+          ],
+          "async": false
+        },
+        {
+          "name": "writeRestConnector/writeRestConnector",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "connector-semantics",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "freeze/freeze",
+            "initRestConnector",
+            "name/name",
+            "projectRestConnector",
+            "projectRestConnector/authoredViewsWire/authoredViewsWire",
+            "projectRestConnector/projectRestConnector",
+            "projectRestConnector/sources/sources",
+            "projectRestConnector/sources/sources/sources",
+            "propertyPath/propertyPath/propertyPath",
+            "relative/relative/relative",
+            "restConnectorPackageMetadata",
+            "shape/shape/shape",
+            "shape/shape/shape#2",
+            "writeRestConnector",
+            "writeRestConnector/writeRestConnector"
+          ],
+          "exports": [
+            "initRestConnector",
+            "projectRestConnector",
+            "restConnectorPackageMetadata",
+            "writeRestConnector"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "Build-time author DATA projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "function projectRestConnector"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "installedHostVersion"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "@actql/local-node/connector-authoring"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "Validate every selected destination before the first write"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "StaleRestConnectorProjection"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The scaffold and projection are synchronous commands. No runtime worker or run is created."
+            },
+            "resources": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "definition.sources).length > 64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/contributing/connector-authoring.md",
+                "anchor": "names one relative"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-authoring.cli.test.mjs",
+                "anchor": "the packed author toolkit runs outside the checkout"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/connector-conformance-input.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8f0efcdc52a612b292438a51082b1ca53df2e20ce7661edc3ef19663033e66ba",
+      "exports": [
+        "readRestConformanceInput"
+      ],
+      "operations": [
+        {
+          "name": "readRestConformanceInput",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRestConformanceInput/readRestConformanceInput",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRestConformanceInput/readRestConformanceInput#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "readRestConformanceInput",
+            "readRestConformanceInput/readRestConformanceInput",
+            "readRestConformanceInput/readRestConformanceInput#2"
+          ],
+          "exports": [
+            "readRestConformanceInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "The CLI and the installed runner select the same finite input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "const fields ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "gitIdentity(selected.sourceSha)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "accountConfigurationPath"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "The command synchronously reads one explicit descriptor before its child is prepared."
+            },
+            "failure": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "Invalid actql-standard-rest-normal/0.1 descriptor"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Descriptor validation has no resumable operation."
+            },
+            "resources": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "Object.keys(selected).length === fields.length"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/connector-conformance-input.mjs",
+                "anchor": "if (selected?.mode === 'author')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-authoring.cli.test.mjs",
+                "anchor": "author conformance refuses implicit runtime"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/connector-host-bundle-contract.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "94c240a5adcbb0efe5b9ed5f5b11d97660629e286a3e26858866bbeccefbf738",
+      "exports": [
+        "checkHostBundle",
+        "checkHostProfiles",
+        "moduleSpecifier",
+        "renderHostInstallations"
+      ],
+      "operations": [
+        {
+          "name": "checkHostBundle",
+          "parameters": [
+            "root",
+            "name",
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/assetSources/assetSources",
+          "parameters": [
+            "asset"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/assetSources/assetSources/assetSources",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkHostBundle",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkHostBundle#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkHostBundle#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkHostBundle#4",
+          "parameters": [
+            "asset"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkSection/checkSection",
+          "parameters": [
+            "section",
+            "label"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkSection/checkSection/checkSection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkSection/checkSection/checkSection#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/checkSection/checkSection/modulePath/modulePath",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/invalid/invalid",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostBundle/ownedAsset/ownedAsset",
+          "parameters": [
+            "asset"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostProfiles",
+          "parameters": [
+            "installations"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostProfiles/effectVersions/effectVersions",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostProfiles/effectVersions/effectVersions#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostProfiles/versions/versions",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkHostProfiles/versions/versions#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "moduleSpecifier",
+          "parameters": [
+            "output",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "moduleSpecifier/encoded/encoded",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedFile",
+          "parameters": [
+            "root",
+            "path",
+            "invalid"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations",
+          "parameters": [
+            "installations",
+            "output",
+            "root",
+            "implementationModules",
+            "resolveModule",
+            "resolveImplementationFile"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/implementation/implementation",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/implementation/implementation/implementation",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/literal/literal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/renderHostInstallations",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/section/section",
+          "parameters": [
+            "entry",
+            "section",
+            "label"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderHostInstallations/section/section/exports/exports",
+          "parameters": [
+            "key",
+            "symbol"
+          ],
+          "async": false
+        },
+        {
+          "name": "safeRelativePath/safeRelativePath",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "safeRelativePath/safeRelativePath/safeRelativePath",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameKeys/sameKeys",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        }
+      ],
+      "role": "generated-binding",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkHostBundle",
+            "checkHostBundle/assetSources/assetSources",
+            "checkHostBundle/assetSources/assetSources/assetSources",
+            "checkHostBundle/checkHostBundle",
+            "checkHostBundle/checkHostBundle#2",
+            "checkHostBundle/checkHostBundle#3",
+            "checkHostBundle/checkHostBundle#4",
+            "checkHostBundle/checkSection/checkSection",
+            "checkHostBundle/checkSection/checkSection/checkSection",
+            "checkHostBundle/checkSection/checkSection/checkSection#2",
+            "checkHostBundle/checkSection/checkSection/modulePath/modulePath",
+            "checkHostBundle/invalid/invalid",
+            "checkHostBundle/ownedAsset/ownedAsset",
+            "checkHostProfiles",
+            "checkHostProfiles/effectVersions/effectVersions",
+            "checkHostProfiles/effectVersions/effectVersions#2",
+            "checkHostProfiles/versions/versions",
+            "checkHostProfiles/versions/versions#2",
+            "moduleSpecifier",
+            "moduleSpecifier/encoded/encoded",
+            "ownedFile",
+            "renderHostInstallations",
+            "renderHostInstallations/implementation/implementation",
+            "renderHostInstallations/implementation/implementation/implementation",
+            "renderHostInstallations/literal/literal",
+            "renderHostInstallations/renderHostInstallations",
+            "renderHostInstallations/section/section",
+            "renderHostInstallations/section/section/exports/exports",
+            "safeRelativePath/safeRelativePath",
+            "safeRelativePath/safeRelativePath/safeRelativePath",
+            "sameKeys/sameKeys"
+          ],
+          "exports": [
+            "checkHostBundle",
+            "checkHostProfiles",
+            "moduleSpecifier",
+            "renderHostInstallations"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "// Installed Host bindings."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "function renderHostInstallations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "implementationModules(entry, ownerRoot)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "Connector-owned declarations"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Validation and table generation are synchronous. Generated callbacks are lazy module loaders."
+            },
+            "failure": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "Invalid Host bundle manifest"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The binder emits module source without acquiring any physical runtime resource."
+            },
+            "resources": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "files.length > 128"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/connector-host-bundle-contract.mjs",
+                "anchor": "resolveImplementationFile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-node-bundles.test.mjs",
+                "anchor": "connector host manifests generate"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/local-checks-guard.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "7d238667ad8b76cc84acd5df69c0acc8ee4020aabfbf53e075dac79eaa956bc8",
+      "exports": [
+        "acquireLocalLocks",
+        "availableVerificationMemory",
+        "checkBudget",
+        "durationSeconds",
+        "heavyResourceAdmission",
+        "heavyResourceRequest",
+        "lockDirectory",
+        "lockOwnerStatus",
+        "maximumHeavyJobs",
+        "runLocalCheck"
+      ],
+      "operations": [
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/acquireHeavyReservation",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/acquireHeavyReservation#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/admission/admission",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release/init:release/init:release",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/occupied/occupied",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireHeavyReservation/acquireHeavyReservation/slot/slot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireLocalLocks",
+          "parameters": [
+            "root",
+            "heavy",
+            "heavyResources",
+            "directory",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireLocalLocks/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "availableVerificationMemory",
+          "parameters": [
+            "platform",
+            "text",
+            "total"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkBudget",
+          "parameters": [
+            "explicit",
+            "minutes"
+          ],
+          "async": false
+        },
+        {
+          "name": "digest/digest",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "durationSeconds",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceAdmission",
+          "parameters": [
+            "request",
+            "members",
+            "available"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceAdmission/heavyResourceAdmission",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceAdmission/heavyResourceAdmission#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceRequest",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceRequest/heavyResourceRequest",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "heavyResourceRequest/heavyResourceRequest#2",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "lockDirectory",
+          "parameters": [
+            "home"
+          ],
+          "async": false
+        },
+        {
+          "name": "lockDirectory/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "lockDirectory/check/check/check",
+          "parameters": [
+            "path",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "lockOwnerStatus",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "poolMembers/known/known",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "poolMembers/poolMembers",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck",
+          "parameters": [
+            "config",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck/runLocalCheck",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck/runLocalCheck/cancel/cancel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck/runLocalCheck/interrupt/interrupt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck/runLocalCheck/runLocalCheck",
+          "parameters": [
+            "message"
+          ],
+          "async": false
+        },
+        {
+          "name": "runLocalCheck/runLocalCheck/runLocalCheck#2",
+          "parameters": [
+            "code",
+            "stopped"
+          ],
+          "async": false
+        },
+        {
+          "name": "uid/uid",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acquireHeavyReservation/acquireHeavyReservation",
+            "acquireHeavyReservation/acquireHeavyReservation/acquireHeavyReservation",
+            "acquireHeavyReservation/acquireHeavyReservation/acquireHeavyReservation#2",
+            "acquireHeavyReservation/acquireHeavyReservation/admission/admission",
+            "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release",
+            "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release/init:release",
+            "acquireHeavyReservation/acquireHeavyReservation/init:release/init:release/init:release/init:release",
+            "acquireHeavyReservation/acquireHeavyReservation/occupied/occupied",
+            "acquireHeavyReservation/acquireHeavyReservation/slot/slot",
+            "acquireLocalLocks",
+            "acquireLocalLocks/release/release",
+            "availableVerificationMemory",
+            "checkBudget",
+            "digest/digest",
+            "durationSeconds",
+            "heavyResourceAdmission",
+            "heavyResourceAdmission/heavyResourceAdmission",
+            "heavyResourceAdmission/heavyResourceAdmission#2",
+            "heavyResourceRequest",
+            "heavyResourceRequest/heavyResourceRequest",
+            "heavyResourceRequest/heavyResourceRequest#2",
+            "lockDirectory",
+            "lockDirectory/check/check",
+            "lockDirectory/check/check/check",
+            "lockOwnerStatus",
+            "poolMembers/known/known",
+            "poolMembers/poolMembers",
+            "runLocalCheck",
+            "runLocalCheck/runLocalCheck",
+            "runLocalCheck/runLocalCheck/cancel/cancel",
+            "runLocalCheck/runLocalCheck/interrupt/interrupt",
+            "runLocalCheck/runLocalCheck/runLocalCheck",
+            "runLocalCheck/runLocalCheck/runLocalCheck#2",
+            "uid/uid"
+          ],
+          "exports": [
+            "acquireLocalLocks",
+            "availableVerificationMemory",
+            "checkBudget",
+            "durationSeconds",
+            "heavyResourceAdmission",
+            "heavyResourceRequest",
+            "lockDirectory",
+            "lockOwnerStatus",
+            "maximumHeavyJobs",
+            "runLocalCheck"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "Cooperative local execution only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "function runLocalCheck"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "const owner = {token:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "supervisor owns the new process group"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "withPoolAdmission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "Lock ownership or metadata is ambiguous"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "signal?.addEventListener"
+              }
+            ],
+            "resources": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "heavyResourceAdmission"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "export function heavyResourceRequest"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/local-checks-guard.test.mjs",
+                "anchor": "local check guard"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/package-inventory.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "9f0a5749a1634a0f2e542f662ccce9c94aed3bd91642fe5f6a5944340a449a61",
+      "exports": [
+        "inventory"
+      ],
+      "operations": [
+        {
+          "name": "inventory",
+          "parameters": [
+            "directory",
+            "prefix",
+            "ignoreInstalledDependencies"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "inventory"
+          ],
+          "exports": [
+            "inventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Read exact package-owned files"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "function inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "createHash('sha256')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "package's own frozen payload"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/connector-authoring-toolkit.mjs",
+                "anchor": "await inventory(root)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Release payload symlink:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Reads are owned by the invoking package verifier and leave no retained protocol state."
+            },
+            "resources": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "ignoreInstalledDependencies"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/package-release.mjs",
+                "anchor": "payload(after), payload(before)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/connector-authoring.cli.test.mjs",
+                "anchor": "the packed author toolkit runs outside the checkout"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/release-version.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "94a90e77dcb1b668686a7c6b270b1075dc266293d3a6118a3a0281b496514d3b",
+      "exports": [
+        "compareReleaseVersions",
+        "releaseVersion"
+      ],
+      "operations": [
+        {
+          "name": "compareReleaseVersions",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseVersion",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "connector-generation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compareReleaseVersions",
+            "releaseVersion"
+          ],
+          "exports": [
+            "compareReleaseVersions",
+            "releaseVersion"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/release-version.mjs",
+                "anchor": "function releaseVersion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/release-version.mjs",
+                "anchor": "function compareReleaseVersions"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-authoring.mjs",
+                "anchor": "releaseVersion(manifest.version)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/versioning.md",
+                "anchor": "Package"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Version validation and comparison are pure and synchronous."
+            },
+            "failure": [
+              {
+                "path": "scripts/release-version.mjs",
+                "anchor": "Use X.Y.Z"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure version parsing has no child execution or cleanup."
+            },
+            "resources": {
+              "notApplicable": "The parser receives one release version string and reserves no host resources."
+            },
+            "extension": [
+              {
+                "path": "docs/design/versioning.md",
+                "anchor": "versions"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/release-version-schema.test.mjs",
+                "anchor": "release version"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

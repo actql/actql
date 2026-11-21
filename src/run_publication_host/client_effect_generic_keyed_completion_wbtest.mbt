@@ -635,6 +635,17 @@ fn run_original_source_completion(
       ),
     )
     assert_true(nodes < bytes)
+    // Use the original copied projection as an independent oracle for the
+    // indexed walk's exact edge budget. The expected CID order is unchanged.
+    let mut exact_references = 0
+    for body in bodies {
+      exact_references += @publication.captured_effect_dependency_body_references(
+          body, 65536,
+        )
+        .unwrap()
+        .length()
+    }
+    assert_true(exact_references > 0)
     let quotes : Array[(Int, Int)] = []
     let collected = client_keyed_lookup_native_dependency_bodies(
       lookup,
@@ -642,7 +653,7 @@ fn run_original_source_completion(
       {
         max_entries: 4096,
         max_total_bytes: 16777216,
-        max_references: 65536,
+        max_references: exact_references,
         max_depth: 100,
       },
       100000,
@@ -659,6 +670,22 @@ fn run_original_source_completion(
       bodies.map(@publication.captured_effect_dependency_body_cid),
     )
     let before_refusal = @resources.ledger_usage(ledger)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references - 1,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+      )
+      is Err(Dependency(ReferenceLimit)),
+    )
     assert_true(
       client_keyed_lookup_native_dependency_bodies(
         lookup,

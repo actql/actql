@@ -9,7 +9,10 @@ fn inferred_group_keys(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
-) -> Array[@query.Expression] raise Abort {
+  column_profiles? : Array[ResultColumn]? = None,
+  expansions? : Array[ExpandedStarColumn]? = None,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
+) -> Array[GroupKeyReference] raise Abort {
   let mut remaining = max_work
   let spend = fn(count : Int) -> Unit raise Abort {
     if count < 0 || count > remaining {
@@ -36,21 +39,34 @@ fn inferred_group_keys(
       internal.append(names)
     }
   }
-  let expressions : Array[@query.Expression] = []
+  let expressions : Array[GroupKeyReference] = []
   let paths : Array[Array[(String, Array[@query.NamePart])]] = []
   let simple : Array[(Int, (String, Array[@query.NamePart]))] = []
   for projection in projections {
     spend(1)
-    let expanded = if projection.star == Some("*") {
-      let columns = expanded_star_columns(projection, visible, ranges~)
+    let star_columns = if projection.star == Some("*") {
+      let columns = expanded_star_columns(
+        projection,
+        visible,
+        ranges~,
+        column_profiles~,
+        expansions~,
+        max_work=remaining,
+      )
       spend(columns.length())
-      columns.map(column => {
-        @query.star_column_projection(query, projection, column.0)
-      })
+      Some(columns)
     } else {
-      [projection]
+      None
     }
-    for item in expanded {
+    let expanded = match star_columns {
+      Some(columns) =>
+        columns.map(column => {
+          @query.star_column_projection(query, projection, column.0)
+        })
+      None => [projection]
+    }
+    for item_index, item in expanded {
+      let star_column = star_columns.bind(columns => columns.get(item_index))
       spend(1)
       if item.aggregate is Some(_) || item.analytic is Some(_) {
         continue
@@ -58,21 +74,29 @@ fn inferred_group_keys(
       guard item.expression is Some(expression) else {
         raise Abort(UnsupportedGrouping)
       }
+      if object_expansions is Some(values) {
+        spend(values.length())
+        let mut original : ExpandedObjectColumn? = None
+        for value in values {
+          if physical_equal(value.projection, item) {
+            original = Some(value)
+            break
+          }
+        }
+        if original is Some(original) {
+          expressions.push(ObjectColumn(original))
+          paths.push([])
+          continue
+        }
+      }
       spend(@query.expression_node_count(expression))
       let authored_paths = join_reference_paths(expression)
       for _ in authored_paths {
         spend(internal.length())
       }
-      let root = @query.expression_node(
-        expression,
-        @query.expression_root(expression),
-      ).unwrap()
-      // Star expansion creates a checked input-column reference with an empty
-      // source span. It is not an embedded window/aggregate atom even when
-      // its schema name equals a parser-generated private reference.
-      let schema_column = root.kind is Reference(_) &&
-        root.start == 0 &&
-        root.end == 0
+      // Only this actual expanded occurrence has a direct input slot. An
+      // arbitrary empty source span or DATA spelling cannot establish it.
+      let schema_column = star_column is Some(_)
       if !schema_column &&
         authored_paths.any(path => {
           path.length() == 1 && internal.any(name => same_name(path[0], name))
@@ -101,14 +125,20 @@ fn inferred_group_keys(
           }),
         )
       }
-      let pending = [@query.expression_root(expression)]
+      let pending = if star_column is Some(column) {
+        normalized.push((column.1, []))
+        []
+      } else {
+        [@query.expression_root(expression)]
+      }
       while pending.pop() is Some(node) {
         spend(@query.expression_node_count(expression))
         if group_reference_parts(expression, node) is Some((path, members)) {
           normalize(path, members, node)
           continue
         }
-        match @query.expression_node(expression, node).unwrap().kind {
+        let kind = @query.expression_node(expression, node).unwrap().kind
+        match kind {
           Parenthesized(child)
           | Unary(_, child)
           | Cast(child, _)
@@ -123,18 +153,27 @@ fn inferred_group_keys(
             }
           Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) =>
             pending.append(args)
-          SearchedCase(branches, otherwise) => {
+          SearchedCase(branches, otherwise)
+          | SimpleCase(_, branches, otherwise) => {
             pending.push(otherwise)
             for (condition, value) in branches {
               pending.push(value)
               pending.push(condition)
+            }
+            if kind is SimpleCase(operand, _, _) {
+              pending.push(operand)
             }
           }
           _ => ()
         }
       }
       let position = expressions.length()
-      expressions.push(expression)
+      expressions.push(
+        match star_column {
+          Some(column) => StarColumn(column)
+          None => Expression(expression)
+        },
+      )
       paths.push(normalized)
       if group_reference_parts(expression, @query.expression_root(expression))
         is Some(_) {
@@ -181,6 +220,12 @@ fn inferred_group_keys(
     }
   }
   for position in 0..<expressions.length() {
+    // A privately retained Object field has a checked receiver, not a public
+    // property path. Keep that exact value as a key; never resolve its DATA key.
+    if expressions[position] is ObjectColumn(_) {
+      chosen.push(position)
+      continue
+    }
     spend(simple.length() + 1)
     if simple.any(item => item.0 == position) {
       continue

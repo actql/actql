@@ -298,7 +298,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
 
 test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-19-session-local-whole-source-selector-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);

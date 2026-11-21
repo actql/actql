@@ -3348,7 +3348,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8466652332438ba77fdeb0ec440e885d653176c11b48af8cbf6b31163b751ae2",
+      "sha256": "3680d9985709d3045264972b71e1716ca3cf4e6e933697600ce5a8906496f0c2",
       "exports": [
         "ClientError",
         "RequestHeld",

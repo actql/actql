@@ -197,21 +197,80 @@ test "positional ORDER cannot resolve duplicate aliases or generated output name
 }
 
 ///|
-test "ORDER and LIMIT do not grant anonymous public or named-set outputs" {
-  for
-    source in [
-      "SELECT -x FROM t ORDER BY x LIMIT 1", "SELECT 0 AS a UNION ALL BY NAME (SELECT -x FROM t ORDER BY x LIMIT 1) ORDER BY a",
-    ] {
-    let actual = compile_query_script(
-      @query.parse_query_script(source, syntax_limits()).unwrap(),
+test "ORDER and LIMIT preserve anonymous display and refuse named-set outputs" {
+  let source = "SELECT -x FROM t ORDER BY x LIMIT 1"
+  let result = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(anonymous_result_fields(result), ["f0_"])
+  let by_name = "SELECT 0 AS a UNION ALL BY NAME (" + source + ") ORDER BY a"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(by_name, syntax_limits()).unwrap(),
       join_order_context(),
       construction_limits(),
     )
-    match actual {
-      Err(UnsupportedProjection) => ()
-      Err(UnsupportedSet) => fail(source + ": UnsupportedSet")
-      Ok(program) => fail(source + ": accepted " + semantic(program))
-      Err(_) => fail(source + ": another refusal")
-    }
+    is Err(UnsupportedProjection),
+    msg=by_name,
+  )
+}
+
+///|
+test "positional operand retains anonymous slots through trailing analytic order" {
+  let source = "SELECT 0 AS a, 0 AS b |> UNION ALL (FROM records |> SELECT id AS kept, -amount |> ORDER BY ROW_NUMBER() OVER (ORDER BY kept))"
+  let limits = construction_limits()
+  let values = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":1,"amount":20},{"id":2,"amount":10}]},"as":"records"}
+      ),
+      limits.source.source,
+    ).unwrap(),
+    limits.source.tree,
+  ).unwrap()
+  let context = {
+    ..fixture_context(),
+    inputs: [
+      {
+        relation: [{ value: "records", quoted: false, }],
+        name: "records",
+        source: GeneratedValues(values),
+        visible_fields: ["id", "amount"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  let program = match
+    compile_query_script(
+      @query.parse_query_script(source, syntax_limits()).unwrap(),
+      context,
+      limits,
+    ) {
+    Ok(program) => program
+    Err(UnsupportedProjection) =>
+      fail("the positional SELECT lost its private slots")
+    Err(UnsupportedAnalytic) => fail("the trailing ORDER window was refused")
+    Err(UnsupportedOrdering) => fail("the trailing ORDER BY was refused")
+    Err(UnknownColumn) => fail("the trailing ORDER lost its authored input")
+    Err(Expression(_)) => fail("the trailing ORDER expression was refused")
+    Err(Construction(issue)) => fail(@debug.to_string(issue))
+    Err(_) => fail("unexpected positional lowering refusal")
+  }
+  assert_eq(anonymous_result_fields(program), ["a", "b"])
+  let wire = semantic(program)
+  assert_true(wire.contains("\"negate\":"))
+  assert_true(wire.contains("\"fn\":\"row_number\""))
+  match
+    @check.check_parsed(
+      program,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the analytic order fixture has closed Values")
   }
 }

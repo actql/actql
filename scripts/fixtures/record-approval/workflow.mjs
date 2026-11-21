@@ -118,10 +118,13 @@ async function saveRunObservation(save, name, run, state) {
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
 export async function runRecordUpdateApprovalPhase({phase, client,
-  definition, createDefinition, load, save, approve, observeClose, replyLossExpectation}) {
+  definition, createDefinition, load, save, approve, reject, observeClose, replyLossExpectation,
+  decision = 'approved'}) {
   let failed = false, primary;
   try {
-    assert(['capture', 'approve', 'recover'].includes(phase));
+    assert(['approved', 'rejected'].includes(decision));
+    const rejecting = decision === 'rejected';
+    assert(['capture', rejecting ? 'reject' : 'approve', 'recover'].includes(phase));
     // A connected consumer can still reject its authored case. Keep that
     // synchronous construction inside the same failure/close lifetime.
     if (createDefinition !== undefined) {
@@ -130,7 +133,9 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       definition = createDefinition();
     }
     const loss = recordApprovalReplyLossExpectation(replyLossExpectation);
+    assert(!rejecting || loss === undefined, 'A rejected case cannot enter the apply-then-lose-reply fixture');
     const value = retainCase(definition), originalBinding = {...binding(value),
+      ...(rejecting ? {decision} : {}),
       ...(loss === undefined ? {} : {replyLossExpectation: loss})};
     if (phase === 'capture') {
       const program = value.effect;
@@ -157,25 +162,38 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       assert.deepEqual(captured.binding, originalBinding, 'Reopen the same Program, parameters and independent oracle');
       const run = await client.attach(captured.ref);
       assert.deepEqual(run.ref, captured.ref);
-      if (phase === 'approve') {
+      if (phase === 'approve' || phase === 'reject') {
         const state = await run.status();
-        await saveRunObservation(save, 'approve-status', run, state);
+        await saveRunObservation(save, phase + '-status', run, state);
         assert.equal(state.run_id, captured.runId);
         assert.equal(state.status, 'waiting_checkpoint');
         assert.equal(state.checkpoint.id, captured.checkpointId);
+        if (rejecting) assert.equal(state.checkpoint.checkpoint_cid, captured.summary.checkpointCid);
         const review = await client.reviewCheckpoint(captured.summary);
         assert.equal(Buffer.from(review.bytes).toString('base64'), captured.reviewBase64);
         checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')),
           captured.summary, run.ref, value.review);
-        assert.equal(typeof approve, 'function', 'Approval must be explicitly configured');
-        const answer = await approve(client, captured);
+        const resolveCheckpoint = rejecting ? reject : approve;
+        assert.equal(typeof resolveCheckpoint, 'function', 'The selected resolution must be explicitly configured');
+        const answer = await resolveCheckpoint(client, captured);
         if (loss !== undefined) await save('approval-answer', {ref: run.ref,
           statuses: answer.results.map(item => item.status)});
         assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+        if (rejecting) {
+          assert.equal(answer.signed.length, 1);
+          const resolution = JSON.parse(answer.signed[0].resolutionWire);
+          assert.equal(resolution.decision, decision);
+          assert.equal(resolution.checkpoint_id, captured.checkpointId);
+          assert.equal(resolution.checkpoint_cid, captured.summary.checkpointCid);
+          assert.equal(resolution.run_id, captured.runId);
+          assert.equal(resolution.run_definition_cid, captured.ref.runDefinitionCid);
+        }
         const terminal = await run.wait();
-        await saveRunObservation(save, 'approve-wait', run, terminal);
+        await saveRunObservation(save, phase + '-wait', run, terminal);
         assert.equal(terminal.run_id, captured.runId);
-        assert.equal(terminal.status, loss?.approveStatus ?? 'succeeded');
+        assert.equal(terminal.status, rejecting ? 'cancelled' : loss?.approveStatus ?? 'succeeded');
+        if (rejecting) await save('rejected', {binding: originalBinding,
+          ref: run.ref, runId: captured.runId, status: terminal.status});
         if (loss !== undefined) await save('reply-loss', {binding: originalBinding,
           ref: run.ref, runId: captured.runId, status: terminal.status});
         if (terminal.status === 'succeeded') {
@@ -188,6 +206,14 @@ export async function runRecordUpdateApprovalPhase({phase, client,
           // independently checks the provider target and complete control row.
           if (loss === undefined) await readOriginal(client, value, 'after', save);
         }
+      } else if (rejecting) {
+        const rejected = await load('rejected');
+        assert.deepEqual(rejected, {binding: originalBinding, ref: run.ref,
+          runId: captured.runId, status: 'cancelled'});
+        const state = await run.status();
+        await saveRunObservation(save, 'reject-lookup', run, state);
+        assert.equal(state.run_id, captured.runId);
+        assert.equal(state.status, 'cancelled');
       } else if (loss !== undefined) {
         const observed = await load('reply-loss');
         assert.deepEqual(observed.binding, originalBinding);
