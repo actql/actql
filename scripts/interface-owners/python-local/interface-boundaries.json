@@ -4584,7 +4584,7 @@
           ]
         }
       ],
-      "sha256": "fb98a78c574d7821ad75102f31babe6cbfc3cf1eb74f83a4ef178b91f8feb365",
+      "sha256": "aff0960395de58c0f7add0a442ea7fa1d08a31866869f13943d6da91cec714d5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -5056,6 +5056,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",
+                "anchor": "def test_public_saved_lookup_is_same_snapshot_read_without_payload_grant_or_write("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",

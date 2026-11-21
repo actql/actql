@@ -28,16 +28,19 @@ class SavedDeliveryLookupTests(unittest.TestCase):
         children = {}
         observed = []
         state = {'produce': 0, 'close': 0}
-        wire = b'{"kind":"missing"}'
+        wire = b'{"kind":"not_found"}'
         def call(family, name, *args):
             if family == 'publication_commit_export':
                 observed.append((name, args))
                 if name == 'reserve':
+                    return -4  # Available capacity does not cover the general 1 MiB output.
+                if name == 'reserve_bounded':
                     self.assertIsNotNone(core._journal_callbacks(
                         host._installation.binding._current.ticket).reader)
                     handle = 10000 + args[1]
                     children[handle] = args[1]
                     self.assertEqual(args[0], host._saved_result_reads[-1]._source.handle)
+                    self.assertEqual(args[2], 8192)
                     return handle
                 if name == 'produce_sdk_delivery_lookup':
                     frame = core._journal_callbacks(host._installation.binding._current.ticket).reader
@@ -62,12 +65,12 @@ class SavedDeliveryLookupTests(unittest.TestCase):
             async def lookup():
                 response = await host._open_operation('delivery-attempt', {
                     'ref': reference, 'resultName': 'answer', 'attemptId': 'same-attempt'})
-                self.assertEqual(json.loads(await response.aread()), {'kind': 'missing'})
+                self.assertEqual(json.loads(await response.aread()), {'kind': 'not_found'})
                 await response.aclose()
             with (patch.object(LocalFileRoot, 'open_saved_payload', side_effect=AssertionError('payload')),
                   patch.object(OriginalSDKDeliveryStore, '__init__', side_effect=AssertionError('grant'))):
                 asyncio.run(lookup())
-            self.assertEqual(sum(name == 'reserve' for name, _ in calls), 1)
+            self.assertEqual([name for name, _ in calls if name.startswith('reserve')], ['reserve_bounded'])
             self.assertEqual(sum(name == 'produce_sdk_delivery_lookup' for name, _ in calls), 1)
             self.assertFalse(host._run_loans)
             self.assertFalse(host._prepared_inputs)
@@ -89,7 +92,7 @@ class SavedDeliveryLookupTests(unittest.TestCase):
             self.assertFalse(held._source_closed)
             state['close'] = 0
             self.assertTrue(host.close())
-            self.assertEqual(sum(name == 'reserve' for name, _ in calls), 1)
+            self.assertEqual([name for name, _ in calls if name.startswith('reserve')], ['reserve_bounded'])
             self.assertEqual(sum(name == 'produce_sdk_delivery_lookup' for name, _ in calls), 1)
 
 
