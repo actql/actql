@@ -1563,3 +1563,5 @@ target/
 /adapters/store-local/prepared-custody-queue.test.d.mts
 /adapters/store-local/publication-semantic-writes.mjs
 /adapters/store-local/publication-semantic-writes.d.mts
+/adapters/store-local/publication-index-startup.mjs
+/adapters/store-local/publication-index-startup.d.mts

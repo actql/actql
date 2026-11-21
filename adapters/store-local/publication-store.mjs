@@ -34,6 +34,7 @@ import {Buffer as OriginalBuffer} from 'node:buffer';
 import {createPublicationObjectWrites} from './publication-object-writes.mjs';
 import {createPreparedObjectOwnership} from './prepared-object-ownership.mjs';
 import {createPublicationSemanticWrites} from './publication-semantic-writes.mjs';
+import {createPublicationIndexStartup} from './publication-index-startup.mjs';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingReaders,
   createPhysicalHoldingRecordReader}
@@ -767,170 +768,20 @@ async function openOriginalLocalPublicationStore(
         readSemanticBytes, readLatestDeliveryRecordContract: (...args) => readLatestDeliveryRecordContract(...args),
       });
 
-  const initializeDeliveryIndex = async () => {
-    let coverage, indexExists = false;
-    try {
-      const bytes = await readBounded(deliveryCoveragePath,128);
-      coverage = JSON.parse(bytes.toString('utf8'));
-      if (!exactKeys(coverage,['version','phase']) || coverage.version !== 1 ||
-          !['building','ready'].includes(coverage.phase)) fail('DeliveryAttemptIndexUnavailable');
-    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    try {
-      const state = await lstat(deliveryIndexPath);
-      if (!state.isFile() || state.isSymbolicLink()) fail('DeliveryAttemptIndexUnavailable');
-      indexExists = true;
-    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    if (coverage?.phase === 'ready' && !indexExists || coverage === undefined && indexExists) {
-      fail('DeliveryAttemptIndexUnavailable');
-    }
-    const publishCoverage = async phase => {
-      const staging = resolve(stagingDirectory,`object-${randomUUID()}`);
-      await writePhysicalHoldingRecord(staging,Buffer.from(JSON.stringify({version:1,phase}),'utf8'));
-      await rename(staging,deliveryCoveragePath);
-      await syncDirectory(root);
-    };
-    // An explicit one-time legacy migration has a durable building intent.
-    // Ready coverage is never recreated from a missing adopted database.
-    if (coverage === undefined) {
-      await publishCoverage('building');
-      coverage = {version:1,phase:'building'};
-    }
-    deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{
-      create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
-      maxWireBytes: configuration.maxObjectBytes,
-      initializeEmpty: createdStore,
-    });
-    const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
-    const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();
-    if(migratePhysical&&recoverPhysical)fail('DeliveryAttemptIndexUnavailable');
-    if (migratePhysical || recoverPhysical) {
-      const originals = [];
-      let bytes = 0;
-      // Only first adoption or an actually unsealed prior owned lifetime
-      // permits this bounded physical census. Clean opening uses its index;
-      // missing adopted metadata never requests reconstruction.
-      for (const name of await readOpeningDirectory(objectsDirectory)) {
-        if (!/^[0-9a-f]{64}$/u.test(name)) fail('InvalidPublicationStoreObject');
-        const state = await lstat(resolve(objectsDirectory, name));
-        if (!state.isFile() || !quantity(state.size) || state.size > configuration.maxObjectBytes ||
-            bytes + state.size > configuration.capacityBytes) fail('InvalidPublicationStoreObject');
-        if (originals.length === configuration.maxObjects) fail('PublicationStoreObjectLimit');
-        bytes += state.size;
-        originals.push(physicalOriginal(`sha256:${name}`, state.size, state));
-      }
-      if(migratePhysical)deliveryIndex.migratePhysicalObjects(originals);
-      else{
-        await syncDirectory(objectsDirectory);
-        deliveryIndex.recoverPhysicalObjects(originals);
-      }
-    }
-    accountPhysicalUsage(deliveryIndex.physicalObjectUsage());
-    if (deliveryIndex.needsMigration()) {
-      if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
-      const rows = [], grants = new Map(), uses = new Map();
-      // Building coverage is not an empty native lookup. This explicit
-      // migration reads the original legacy files before publishing rows;
-      // ordinary lookups still require complete native coverage.
-      const readLegacySemantic = cid => readSemanticOriginal(cid,false);
-      for (const name of await readdir(deliveriesDirectory)) {
-        if (name.startsWith('.staging-')) {
-          await removeOpeningTree(resolve(deliveriesDirectory,name),bootstrap);
-          continue;
-        }
-        if (!/^[0-9a-f]{64}$/u.test(name) ||
-            !(await lstat(resolve(deliveriesDirectory,name))).isDirectory()) fail('InvalidDeliveryAttemptStore');
-        if (rows.length >= configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-        const attemptContract = await readFileDeliveryAttemptContract(`sha256:${name}`);
-        const attempt = parseContract(attemptContract);
-        let original = grants.get(attempt.result_read_grant_cid);
-        if (original === undefined) {
-          original = await readContract(attempt.result_read_grant_cid,'result_read_grant',readLegacySemantic);
-          grants.set(attempt.result_read_grant_cid,original);
-        }
-        const grant = original.value;
-        if (grant.run_definition_cid !== attempt.run_definition_cid ||
-            grant.result_manifest_cid !== attempt.result_manifest_cid ||
-            !grant.results.some(result => result.result_name === attempt.result_name &&
-              result.result_artifact_cid === attempt.result_artifact_cid)) fail('DeliveryGrantMismatch');
-        const count = (uses.get(original.contract.identity) ?? 0) + 1;
-        if (count > grant.max_uses) fail('DeliveryGrantUseLimit');
-        uses.set(original.contract.identity,count);
-        rows.push(deliveryIndexRow(attempt,grant,attemptContract,original.contract));
-      }
-      await syncDirectory(deliveriesDirectory);
-      deliveryIndex.migrate(rows);
-    }
-    accountNativePublication(deliveryIndex.publicationUsage());
-    if (storedBytes > configuration.capacityBytes || objectCount > configuration.maxObjects) {
-      fail('PublicationStoreCapacity');
-    }
-    if (coverage.phase !== 'ready') await publishCoverage('ready');
-    if (deliveryIndex.needsPublicationRecoveryMigration()) {
-      // Only the unadopted private format permits this bounded one-time
-      // history classification. Later opens consume native pending rows.
-      const rows = [];
-      const names = await readOpeningDirectory(metadataInventoriesDirectory);
-      if (names.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-      for (const name of names) {
-        if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-            !(await lstat(resolve(metadataInventoriesDirectory,name))).isFile()) {
-          fail('InvalidPublicationMetadataInventoryStore');
-        }
-        const inventory = await readMetadataInventory(`sha256:${name.slice(0,-5)}`);
-        const key = {namespaceId:inventory.namespace_id,
-          authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid};
-        if ((await confirmCommittedIndex(key))?.public_index_entry_cid !== inventory.public_index_entry_cid) {
-          rows.push(publicationRecoveryOriginal(inventory));
-        }
-      }
-      await syncDirectory(metadataInventoriesDirectory);
-      deliveryIndex.migratePublicationRecovery(rows);
-    }
-    // Only a newly adopted private format reads historical retirement markers.
-    // Batch progress is idempotent after a lost migration COMMIT; the actual
-    // files remain until complete native coverage acknowledges their fences.
-    const names = openingMetadataDeletionNames;
-    if (deliveryIndex.needsMetadataDeletionFenceMigration()) {
-      let rows=[];
-      for (const name of names) {
-        if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
-        const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
-        if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
-        rows.push({metadata_key:keyHash,run_cid:marker.run_definition_cid,
-          retired:marker.version==='actql-local-publication-metadata-retired/0.1'?1:0});
-        if(rows.length===Math.max(1,configuration.maxObjects)) {
-          deliveryIndex.migrateMetadataDeletionFences(rows);rows=[];
-        }
-      }
-      deliveryIndex.migrateMetadataDeletionFences(rows,true);
-    }
-    metadataFencesReady=true;
-    let removed=false;
-    for(const name of names) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
-      const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
-      if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
-      const fence=deliveryIndex.metadataDeletionFence(keyHash);
-      if(fence!==undefined&&fence.run_cid!==marker.run_definition_cid)fail('InvalidPublicationMetadataDeletionStore');
-      if(marker.version==='actql-local-publication-metadata-retired/0.1') {
-        if(fence?.retired!==1)fail('InvalidPublicationMetadataDeletionStore');
-        await unlink(metadataDeletionPath(keyHash));removed=true;
-      } else {
-        // A crash after the full marker ACK but before its indexed transfer
-        // still hides this Run before any pending delivery can be restored.
-        metadataDeletionIntents.add(marker.run_definition_cid);
-      }
-    }
-    if(removed)await syncDirectory(metadataDeletionsDirectory);
-    names.length=0;
-    // Later opens see only pending physical cleanup files, never retired
-    // history. Delivery restoration consumes the exact indexed Run fence.
-    const pending = deliveryIndex.pending();
-    if (pending.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-    for (const row of pending) {
-      if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
-    }
-  };
+  const initializeDeliveryIndex = createPublicationIndexStartup(
+    configuration, {root, deliveryCoveragePath, deliveryIndexPath, stagingDirectory, objectsDirectory, deliveriesDirectory,
+      metadataInventoriesDirectory, metadataDeletionsDirectory}, createdStore, {
+      get deliveryIndex() {return deliveryIndex;},
+      set deliveryIndex(index) {deliveryIndex = index;},
+      set metadataFencesReady(ready) {metadataFencesReady = ready;},
+    }, writeState, metadataDeletionIntents, openingMetadataDeletionNames, {
+      openDeliveryAttemptIndex, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
+      syncDirectory, physicalOriginal, accountPhysicalUsage, accountNativePublication,
+      confirmCommittedIndex: (...args) => confirmCommittedIndex(...args), metadataDeletionPath,
+      readFileDeliveryAttemptContract, deliveryIndexRow, restoreDeliveryClaim, parseContract, readSemanticOriginal, readContract,
+      readMetadataInventory, publicationRecoveryOriginal, readMetadataDeletion, runMetadataDeletionStarted,
+    },
+  );
 
   const {consumeManifestReadGrant} = createManifestReadGrantStore(
     configuration, manifestReadsDirectory, activePhysicalRecordWriters,

@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6adf3377ad4ad1a98525ecf2a7c1661155b8b332db3dad5dac3aafbec6897310",
+      "sha256": "b04c480619a75440650307f96210a7509acb734fb6c979a716a9c8a7f569c266",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6265,6 +6265,13 @@
           "name": "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
+          "parameters": [
+            "usage"
           ],
           "async": false
         },
@@ -6595,16 +6602,28 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
+          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#2",
           "parameters": [
-            "result"
+            "index"
           ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic",
+          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#3",
           "parameters": [
-            "cid"
+            "ready"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#4",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -7572,7 +7591,12 @@
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
+            "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#2",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#3",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#4"
           ],
           "exports": [
             "PublicationStoreError",
@@ -7839,8 +7863,8 @@
                 "anchor": "generation = original.generation;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "const recoverPhysical=indexState.deliveryIndex!.physicalObjectRecoveryRequired();"
               },
               {
                 "path": "adapters/store-local/native-metadata-mutation-owner.mts",
@@ -8515,8 +8539,8 @@
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "accountNativePublication(deliveryIndex.publicationUsage());"
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "accountNativePublication(indexState.deliveryIndex!.publicationUsage());"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -10027,287 +10051,6 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Indexed delivery claims and coverage"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "### Indexed physical object usage"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Its attempt and grant readers explicitly acquire their original legacy files;"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/delivery-attempt-store.mts",
-                "anchor": "const deliveryLogicalKey = (query: DeliveryQuery) => JSON.stringify(["
-              },
-              {
-                "path": "adapters/store-local/publication-semantic-reader.mts",
-                "anchor": "const nativeDeliveryContract = (cid: string, name?: string, retained?: Contract) =>"
-              },
-              {
-                "path": "adapters/store-local/delivery-record-store.mts",
-                "anchor": "const appendDeliveryCompletion = async (attempt: Contract, receipt: Contract, contract: Contract) => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const accountPhysicalUsage = usage => {"
-              },
-              {
-                "path": "adapters/store-local/delivery-attempt-store.mts",
-                "anchor": "const readFileDeliveryAttemptContract = async (attemptCid: string, retained?: Contract) => {"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/delivery-attempt-store.mts",
-                "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "fail('PublicationObjectAccountingMismatch');"
-              },
-              {
-                "path": "adapters/store-local/delivery-attempt-store.mts",
-                "anchor": "if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The original native wrapper and captured close/isOpen remain owned until real"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "same bounded admission, semantic digest/hard-link and original reader-close"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "indexed grant-use counter together."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "refuses ambiguous keys or excess uses, and commits complete coverage once."
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "delivery index preserves an actual committed claim after its reply is lost"
-              },
-              {
-                "path": "adapters/store-local/delivery-record-store.mts",
-                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt!,contract,entry});"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "they do not query the incomplete native index or interpret it as absence. The"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "pending delivery directory FD keeps Store ownership until original close"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Recovery never dispatches payload,"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Bounded input/row counts are not capacity or permission."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The bounded legacy migration reads each original attempt and referenced grant,"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "ready or missing adopted state cannot enter this building-only reader path."
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "delivery START uses native metadata durability before any row exposure"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "legacy delivery building refuses a missing original grant without adopting empty coverage"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "fresh Store coverage uses the same actual prepared owner creation"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Bounded deletion diagnostics"
-              },
-              {
-                "path": "docs/design/prepared-publication-custody.md",
-                "anchor": "## Publication retry diagnostic prefixes"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
             "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners"
@@ -10759,6 +10502,436 @@
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
+      "module": "adapters/store-local/publication-index-startup.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f710181b2dcbb4887f0affccf7ed3a4e8d17809228b09f5b0f31ba3eb28549ec",
+      "exports": [
+        "createPublicationIndexStartup"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationIndexStartup",
+          "parameters": [
+            "configuration",
+            "root",
+            "deliveryCoveragePath",
+            "deliveryIndexPath",
+            "stagingDirectory",
+            "objectsDirectory",
+            "deliveriesDirectory",
+            "metadataInventoriesDirectory",
+            "metadataDeletionsDirectory",
+            "createdStore",
+            "indexState",
+            "writeState",
+            "metadataDeletionIntents",
+            "openingMetadataDeletionNames",
+            "openDeliveryAttemptIndex",
+            "bootstrap",
+            "readOpeningDirectory",
+            "writePhysicalHoldingRecord",
+            "syncDirectory",
+            "physicalOriginal",
+            "accountPhysicalUsage",
+            "accountNativePublication",
+            "confirmCommittedIndex",
+            "metadataDeletionPath",
+            "readFileDeliveryAttemptContract",
+            "deliveryIndexRow",
+            "restoreDeliveryClaim",
+            "parseContract",
+            "readSemanticOriginal",
+            "readContract",
+            "readMetadataInventory",
+            "publicationRecoveryOriginal",
+            "readMetadataDeletion",
+            "runMetadataDeletionStarted"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationIndexStartup",
+            "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex"
+          ],
+          "exports": [
+            "createPublicationIndexStartup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "Only first adoption or an actually unsealed prior owned lifetime"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "const initializeDeliveryIndex = async () => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "coverage.phase === 'building', maxEntries: configuration.maxObjects,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "indexState.deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "await syncDirectory(root);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "if(migratePhysical&&recoverPhysical)fail('DeliveryAttemptIndexUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "indexState.metadataFencesReady=true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "accountPhysicalUsage(indexState.deliveryIndex!.physicalObjectUsage());"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "if (indexState.deliveryIndex!.needsPublicationRecoveryMigration()) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "index opening cleanup retains native and failed metadata FD independently"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "legacy delivery coverage migrates once and missing adopted database refuses"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
+            "createPublicationIndexStartup/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Indexed delivery claims and coverage"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Its attempt and grant readers explicitly acquire their original legacy files;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const deliveryLogicalKey = (query: DeliveryQuery) => JSON.stringify(["
+              },
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "const nativeDeliveryContract = (cid: string, name?: string, retained?: Contract) =>"
+              },
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const appendDeliveryCompletion = async (attempt: Contract, receipt: Contract, contract: Contract) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const accountPhysicalUsage = usage => {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const readFileDeliveryAttemptContract = async (attemptCid: string, retained?: Contract) => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicationObjectAccountingMismatch');"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The original native wrapper and captured close/isOpen remain owned until real"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "same bounded admission, semantic digest/hard-link and original reader-close"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "indexed grant-use counter together."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "refuses ambiguous keys or excess uses, and commits complete coverage once."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "delivery index preserves an actual committed claim after its reply is lost"
+              },
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt!,contract,entry});"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "they do not query the incomplete native index or interpret it as absence. The"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "pending delivery directory FD keeps Store ownership until original close"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Recovery never dispatches payload,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Bounded input/row counts are not capacity or permission."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The bounded legacy migration reads each original attempt and referenced grant,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ready or missing adopted state cannot enter this building-only reader path."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "legacy delivery building refuses a missing original grant without adopting empty coverage"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store coverage uses the same actual prepared owner creation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/store-local/publication-semantic-writes.mjs",
       "responsibilityFacet": "primary",
       "sha256": "b65b0b567e406d9b1c230eabc70c7342b9d38b9c64cfbb172c74f3392881d439",
@@ -11042,8 +11215,8 @@
                 "anchor": "const accountPhysicalUsage = usage => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
+                "path": "adapters/store-local/publication-index-startup.mts",
+                "anchor": "const recoverPhysical=indexState.deliveryIndex!.physicalObjectRecoveryRequired();"
               },
               {
                 "path": "adapters/store-local/publication-semantic-writes.mts",
