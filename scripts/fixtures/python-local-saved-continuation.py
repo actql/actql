@@ -92,6 +92,8 @@ async def observe_read(host, result, stop_phase=None):
                 beat = {'phase': phase, 'offset': 0 if physical is None else physical.offset,
                         'fuel_remaining': store.get_fuel(), 'scan_calls': queries.scans,
                         'point_calls': queries.points, 'cancel_scan_calls': queries.cancel_scans}
+                if physical is not None and physical.eof:
+                    beat['physical_sha256'] = physical.hash.hexdigest()
                 if not beats or beats[-1] != beat:
                     if beats:
                         assert beat['fuel_remaining'] <= beats[-1]['fuel_remaining']
@@ -130,7 +132,7 @@ async def prepare_original(state_dir, report_wait_failure=None):
     assert not state_dir.exists()
     values = ['x' * 16512]
     expected = [{'s': value} for value in values]
-    wire = b''.join(json.dumps(row, separators=(',', ':')).encode() + b'\n' for row in expected)
+    delivered_wire = b''.join(json.dumps(row, separators=(',', ':')).encode() + b'\n' for row in expected)
     query = "SELECT '" + values[0] + "' AS s"
     async with await AsyncClient.open(state_dir=state_dir) as creator:
         submission = creator.new_submission()
@@ -145,11 +147,13 @@ async def prepare_original(state_dir, report_wait_failure=None):
                     pass  # Optional evidence cannot replace the original failure.
             raise
         reference = plain(execution.ref)
-    return reference, expected, wire
+    return reference, expected, delivered_wire
 
 
 async def exercise(state_dir):
-    reference, expected, wire = await prepare_original(state_dir)
+    reference, expected, delivered_wire = await prepare_original(state_dir)
+    physical_wire = json.dumps(expected, separators=(',', ':')).encode()
+    physical_digest = sha256(physical_wire).hexdigest()
     async with await AsyncClient.open(state_dir=state_dir) as client:
         original = await client.attach(reference)
         assert plain(original.ref) == reference
@@ -163,13 +167,15 @@ async def exercise(state_dir):
             _, _, controls[phase], _, attempt = await observe_read(host, result, phase)
             attempts.add(attempt)
             assert plain(await original.status()) == state
-        digest = sha256(wire).hexdigest()
+        delivered_digest = sha256(delivered_wire).hexdigest()
         successful = []
         for _ in range(2):
             observed, receipt, beats, core_turns, attempt = await observe_read(host, result)
             attempts.add(attempt)
             assert observed == expected
-            assert [beat['offset'] for beat in beats if beat['phase'] == 'hash'] == [16384, len(wire)]
+            hash_beats = [beat for beat in beats if beat['phase'] == 'hash']
+            assert [beat['offset'] for beat in hash_beats] == [16384, len(physical_wire)]
+            assert hash_beats[-1]['physical_sha256'] == physical_digest
             assert core_turns >= 2
             assert beats[-1]['scan_calls'] > beats[0]['scan_calls']
             assert beats[-1]['point_calls'] > beats[0]['point_calls']
@@ -177,13 +183,15 @@ async def exercise(state_dir):
             proof = receipt['hostReleaseReceipt']
             assert receipt['kind'] == 'found' and receipt['record']['state'] == 'succeeded'
             assert proof['run_definition_cid'] == reference['runDefinitionCid']
-            assert proof['delivered_byte_count'] == len(wire) and proof['delivered_sha256'] == digest
+            assert proof['delivered_byte_count'] == len(delivered_wire)
+            assert proof['delivered_sha256'] == delivered_digest
             assert plain(await original.status()) == state
             successful.append({'turns': beats, 'core_turns': core_turns})
         assert len(attempts) == 4
     print(json.dumps({'core_cancellation': controls['core'], 'hash_cancellation': controls['hash'],
-                      'successful_reads': successful, 'rows': len(expected), 'bytes': len(wire),
-                      'sha256': digest, 'first_close': True}))
+                      'successful_reads': successful, 'rows': len(expected), 'bytes': len(delivered_wire),
+                      'sha256': delivered_digest, 'physical_bytes': len(physical_wire),
+                      'physical_sha256': physical_digest, 'first_close': True}))
 
 
 if __name__ == '__main__':
