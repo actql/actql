@@ -971,3 +971,9 @@ target/
 /scripts/test-packed-workspace-connection.d.mts
 /scripts/fixtures/workspace-dsn-acceptance.mjs
 /scripts/fixtures/workspace-dsn-acceptance.d.mts
+/adapters/site-node/https-test-certificates.mjs
+/adapters/site-node/https-test-certificates.d.mts
+/adapters/site-node/https-test-certificates.test.mjs
+/adapters/site-node/https-test-certificates.test.d.mts
+/scripts/test-packed-graph.mjs
+/scripts/test-packed-graph.d.mts

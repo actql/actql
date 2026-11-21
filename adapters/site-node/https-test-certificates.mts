@@ -5,11 +5,11 @@ import {X509Certificate} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
-function openssl(root, ...arguments_) {
+function openssl(root: string, ...arguments_: string[]) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
 }
 
-function issueCertificate(root, name, subject, extensionFile) {
+function issueCertificate(root: string, name: string, subject: string, extensionFile?: string) {
   openssl(root, 'genrsa', '-out', `${name}.key`, '2048');
   openssl(root, 'req', '-new', '-key', `${name}.key`, '-out', `${name}.csr`, '-subj', subject);
   openssl(root, 'x509', '-req', '-in', `${name}.csr`, '-CA', 'ca.crt',
@@ -17,7 +17,7 @@ function issueCertificate(root, name, subject, extensionFile) {
     ...(extensionFile === undefined ? [] : ['-extfile', extensionFile]));
 }
 
-export async function certificates(root) {
+export async function certificates(root: string) {
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out', 'ca.crt',
     '-subj', '/CN=ActQL Remote Test CA', '-days', '1');
@@ -25,7 +25,7 @@ export async function certificates(root) {
   issueCertificate(root, 'site', '/CN=localhost', 'site.ext');
   issueCertificate(root, 'coordinator', '/CN=coordinator-a');
   issueCertificate(root, 'foreign', '/CN=foreign-coordinator');
-  const read = name => readFile(join(root, name));
+  const read = (name: string) => readFile(join(root, name));
   const coordinatorCertificate = await read('coordinator.crt');
   return Object.freeze({
     ca: await read('ca.crt'),

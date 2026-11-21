@@ -12,7 +12,8 @@ test('TLS test certificates prepare outside a checkout without a compiled runtim
   // A standalone copy has no checkout, dependencies or _build path to import.
   const helper = join(root, 'certificates.mjs');
   await copyFile(new URL('./https-test-certificates.mjs', import.meta.url), helper);
-  const {certificates} = await import(pathToFileURL(helper));
+  const {certificates} = await import(pathToFileURL(helper) as unknown as string) as
+    typeof import('./https-test-certificates.mjs');
   const material = await certificates(root);
   const ca = new X509Certificate(material.ca);
   const site = new X509Certificate(material.siteCertificate);
@@ -32,7 +33,7 @@ test('TLS test certificates prepare outside a checkout without a compiled runtim
   assert.notEqual(coordinator.fingerprint256, foreign.fingerprint256);
   for (const [certificate, key] of [
     [site, material.siteKey], [coordinator, material.coordinatorKey], [foreign, material.foreignKey],
-  ]) {
+  ] as const) {
     assert.equal(certificate.checkPrivateKey(createPrivateKey(key)), true);
   }
 });

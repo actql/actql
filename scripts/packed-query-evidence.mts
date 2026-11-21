@@ -166,6 +166,8 @@ export function createCommandEvidence({scratch, revision, cwd = process.cwd(),
   function capture<T extends Classification>(command: string, args: readonly string[], options: SpawnOptions | undefined,
     classify: (result: SpawnSyncReturns<string>) => T): CapturedCommand<T>;
   function capture(command: string, args: readonly string[], options?: SpawnOptions): CapturedCommand<undefined>;
+  function capture<T extends Classification>(command: string, args: readonly string[], options: SpawnOptions | undefined,
+    classify: ((result: SpawnSyncReturns<string>) => T) | undefined): CapturedCommand<T | undefined>;
   function capture(command: string, args: readonly string[], options: SpawnOptions = {},
     classify?: (result: SpawnSyncReturns<string>) => Classification): CapturedCommand<Classification | undefined> {
     const {cwd: workingDirectory = cwd, env: childEnv = env, ...spawnOptions} = options;

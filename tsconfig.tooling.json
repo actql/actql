@@ -33,6 +33,7 @@
     "packages/provider-http/**/*.mts",
     "adapters/host-common/**/*.mts",
     "adapters/host-node/**/*.mts",
+    "adapters/site-node/**/*.mts",
     "adapters/workers/**/*.mts",
     "adapters/connectors/duckdb/node/**/*.mts",
     "packages/client-wire/**/*.mts",

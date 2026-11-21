@@ -38,7 +38,7 @@ const commandEvidence = createCommandEvidence({
   prefix:'packed-graph-',
 });
 let sequence = 0;
-async function run(command, args, cwd = root, env = environment, verifyTests = false) {
+async function run(command: string, args: readonly string[], cwd = root, env: NodeJS.ProcessEnv = environment, verifyTests = false) {
   try {
     const {result,writeFailure} = commandEvidence.capture(command,args,
       {cwd,env,timeout:600_000,maxBuffer:1024 ** 2},
@@ -103,7 +103,7 @@ const output = await run(process.execPath,nodeTestArguments([
   remainingFailuresOnly ? 'graph-public-failure.test.mjs' : 'graph-public-host.test.mjs']),root,
   {...environment,ACTQL_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')},true);
-const digests = {};
+const digests: Record<string, string> = {};
 for (const name of CLIENT_PACKAGES) {
   const file = `actql-${name}-0.0.0-development.tgz`;
   digests[file] = 'sha256:' + createHash('sha256').update(await readFile(join(root,file))).digest('hex');
