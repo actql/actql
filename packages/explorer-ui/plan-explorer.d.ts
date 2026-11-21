@@ -6,5 +6,5 @@ import type {ReactElement} from 'react';
 import type {PlanReadModel} from './read-model.js';
 export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow';
   workspace?: {stepId?: string; select(id: string): void;
-    label(id: string): {title?: string; state: string}}};
+    label(id: string): {kind?: string; title?: string; state: string}}};
 export function PlanExplorer(props: PlanExplorerProps): ReactElement;

@@ -1117,7 +1117,7 @@
     {
       "module": "packages/explorer-ui/flow-layout-engine.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f55c95a2ce9f4f01d82a318a83346f024a6993c683fb2b698b433c031e04395b",
+      "sha256": "d14e231561012f666108f7d487794b17abf8fe280884229aea3ba8d829db9a03",
       "exports": [
         "elkGraph",
         "flowLayoutDeadlineMs",
@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e7cc5d3dbed063543a164ce8d7ff81c672662d82ea4fd02f0bf19eb338ea43c1",
+      "sha256": "c4927d19e527b627212dc7b26e4ea62d0f0abd9244d4963785e8d9d2427536ac",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1875,7 +1875,7 @@
           "parameters": [
             "id: string"
           ],
-          "result": "{title?: string; state: string}"
+          "result": "{kind?: string; title?: string; state: string}"
         },
         {
           "name": "PlanExplorer",
@@ -2026,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "7445b124f6094cc437103f80689274c365d3d84805e16e1efa40979517bd6fd8",
+      "sha256": "4dd2e17aff10a2527f7a641900514dbfc9ab87dc76d473fc4bef1d14590e9ef0",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -2066,10 +2066,7 @@
         },
         {
           "name": "BoundPlanExplorer/<call>/<call>#4",
-          "parameters": [
-            "node",
-            "index"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -2078,7 +2075,25 @@
           "result": null
         },
         {
+          "name": "BoundPlanExplorer/<call>/<call>#6",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "BoundPlanExplorer/<call>#10",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#11",
           "parameters": [
             "_",
             "node"
@@ -2086,14 +2101,14 @@
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#11",
+          "name": "BoundPlanExplorer/<call>#12",
           "parameters": [
             "node"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#12",
+          "name": "BoundPlanExplorer/<call>#13",
           "parameters": [
             "port"
           ],
@@ -2116,9 +2131,7 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#5",
-          "parameters": [
-            "node"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -2131,13 +2144,15 @@
         {
           "name": "BoundPlanExplorer/<call>#7",
           "parameters": [
-            "entry"
+            "node"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#8",
-          "parameters": [],
+          "parameters": [
+            "entry"
+          ],
           "result": null
         },
         {
@@ -2146,11 +2161,55 @@
           "result": null
         },
         {
+          "name": "initialViewportNodes",
+          "parameters": [
+            "placed: LogicalNode[]",
+            "focus: LogicalNode | undefined",
+            "canvasWidth: number"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
           "name": "label",
           "parameters": [
             "id: string"
           ],
-          "result": "{title?: string; state: string}"
+          "result": "NodePresentation"
         },
         {
           "name": "LogicalCard",
@@ -2161,6 +2220,13 @@
         },
         {
           "name": "LogicalCard/<call>",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "LogicalCard/<call>#2",
           "parameters": [
             "port",
             "index"
@@ -2233,7 +2299,17 @@
             "LogicalCard/<call>",
             "OriginalEdge",
             "PlanExplorer",
-            "select"
+            "select",
+            "BoundPlanExplorer/<call>/<call>#6",
+            "BoundPlanExplorer/<call>/<call>#7",
+            "BoundPlanExplorer/<call>#13",
+            "initialViewportNodes",
+            "initialViewportNodes/<call>",
+            "initialViewportNodes/<call>#2",
+            "initialViewportNodes/<call>#3",
+            "initialViewportNodes/<call>#4",
+            "initialViewportNodes/<call>#5",
+            "LogicalCard/<call>#2"
           ],
           "exports": [
             "CancellationPanel",
@@ -4416,7 +4492,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "8dcaf7cd7af2e02ef2b0819fe52ed1bfa3c8051d7f9585764d733ccebad6de81",
+      "sha256": "0f6929cdf44ae24f2f092b12f09288ac5fdcb3f3c006ebda23dbfc64cda9cb26",
       "exports": [],
       "operations": [
         {
@@ -4487,15 +4563,15 @@
         {
           "name": "App/<call>#10",
           "parameters": [
-            "line",
-            "index"
+            "event"
           ],
           "result": null
         },
         {
           "name": "App/<call>#11",
           "parameters": [
-            "event"
+            "line",
+            "index"
           ],
           "result": null
         },
@@ -4515,7 +4591,9 @@
         },
         {
           "name": "App/<call>#14",
-          "parameters": [],
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -4525,9 +4603,7 @@
         },
         {
           "name": "App/<call>#16",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -4554,6 +4630,13 @@
         {
           "name": "App/<call>#2",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#20",
+          "parameters": [
+            "event"
+          ],
           "result": null
         },
         {
@@ -4588,9 +4671,7 @@
         },
         {
           "name": "App/<call>#9",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -4614,13 +4695,6 @@
           "name": "App/label",
           "parameters": [
             "id"
-          ],
-          "result": null
-        },
-        {
-          "name": "App/label/<call>",
-          "parameters": [
-            "step"
           ],
           "result": null
         },
@@ -4767,6 +4841,52 @@
           "result": null
         },
         {
+          "name": "declaredTargetLabel",
+          "parameters": [
+            "target: string",
+            "locale: ExplanationStoryModel['locale']"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels",
+          "parameters": [
+            "story: ExplanationStoryModel | undefined",
+            "context: StoryContext"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#2",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#3",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/add",
+          "parameters": [
+            "index: Map<string, T[]>",
+            "stepId: string",
+            "value: T"
+          ],
+          "result": null
+        },
+        {
           "name": "headlineLabels",
           "parameters": [
             "labels: string[]",
@@ -4890,7 +5010,7 @@
         {
           "name": "StoryHeading/<call>#5",
           "parameters": [
-            "{declaration}"
+            "{declaration, write_fields}"
           ],
           "result": null
         },
@@ -5125,7 +5245,6 @@
             "App/importCancellation",
             "App/invalidate",
             "App/label",
-            "App/label/<call>",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
             "App/lookupCancellation",
@@ -5147,7 +5266,14 @@
             "WorkspaceDialog/<call>",
             "WorkspaceDialog/<call>#2",
             "WorkspaceDialog/<call>#3",
-            "WorkspaceDialog/close"
+            "WorkspaceDialog/close",
+            "App/<call>#20",
+            "declaredTargetLabel",
+            "graphStepLabels",
+            "graphStepLabels/<call>",
+            "graphStepLabels/<call>#2",
+            "graphStepLabels/<call>#3",
+            "graphStepLabels/add"
           ],
           "exports": [],
           "attributes": {

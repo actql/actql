@@ -10,6 +10,7 @@
   color: var(--actql-foreground); background: var(--actql-background);
   font: 14px/1.5 system-ui, sans-serif; border: 1px solid var(--actql-border); border-radius: 12px; }
 .actql-explorer-header { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding: 24px; }
+.actql-explorer[data-workspace=true] .actql-explorer-header { padding: 12px 16px; gap: 8px; }
 .actql-explorer h2 { font-size: 20px; margin: 0; }
 .actql-explorer p { margin: 8px 0; }
 .actql-explorer-kind { font-size: 11px; font-weight: 600; letter-spacing: .08em; }
@@ -31,7 +32,9 @@
 .actql-explorer .react-flow__controls-button + button { border-top: 1px solid var(--actql-border); }
 .actql-explorer-flow-metadata { padding: 12px 24px; border-top: 1px solid var(--actql-border); overflow-wrap: anywhere; }
 .actql-explorer-flow-metadata > summary { cursor: pointer; font-weight: 600; }
-.actql-explorer-node { box-sizing: border-box; padding: 16px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }
+.actql-explorer-node { box-sizing: border-box; padding: 12px 14px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }
+.actql-explorer-node .actql-explorer-kind { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.actql-explorer-node p { margin: 5px 0 0; }
 .actql-explorer-node strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node[data-selected=true] { outline: 2px solid #3468bd; }
 .actql-explorer-table { width: 100%; border-collapse: collapse; }

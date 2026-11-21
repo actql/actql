@@ -3,7 +3,7 @@ import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';
 // Presentation dimensions and a Worker deadline, never execution/Host budgets.
 export const flowLayoutDeadlineMs = 5000;
 export const flowNodeWidth = 260;
-export const flowNodeHeight = ports => 108 + ports * 18;
+export const flowNodeHeight = ports => 90 + Math.min(ports, 4) * 6;
 export function flowPortOffsets(ports) {
   const totals = {input: 0, output: 0}, seen = {input: 0, output: 0};
   for (const {role} of ports) totals[role]++;
@@ -78,7 +78,8 @@ export function elkGraph(input) {
     return {id: `edge:${edge.id}`, sources: [`port:${edge.source}`], targets: [`port:${edge.target}`]};
   });
   return {id: 'layout:root', layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'DOWN',
-    'elk.spacing.nodeNode': '32', 'elk.layered.spacing.nodeNodeBetweenLayers': '48'}, children, edges};
+    'elk.spacing.nodeNode': '26', 'elk.layered.spacing.nodeNodeBetweenLayers': '34',
+    'elk.layered.layering.strategy': 'LONGEST_PATH_SOURCE'}, children, edges};
 }
 
 /** Accept placement only. ELK cannot replace edges, nodes, handles or labels. */

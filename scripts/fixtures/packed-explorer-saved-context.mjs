@@ -145,15 +145,54 @@ try {
         for (const proof of ['Opportunity', 'files', 'contents', 'deal-review.v1', 'updates', 'StageName', 'NextStep']) {
           assert(summary.includes(proof), proof);
         }
+        assert.match(summary, /StageName and NextStep on Opportunity in salesforce/u);
         assert.doesNotMatch(summary, /connector:\/\/|\baql_|Predicate form not projected/u);
         await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
+        await page.getByRole('button', {name: /Graph/}).click();
+        const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+        const cards = graph.locator('.react-flow__node');
+        const rendered = ids => cards.evaluateAll((nodes, selected) => {
+          const panel = nodes[0]?.closest('.actql-explorer-flow')?.getBoundingClientRect();
+          if (!panel) return [];
+          return nodes.filter(node=>{
+            const box = node.getBoundingClientRect();
+            return selected.includes(node.getAttribute('data-id')) && box.width >= 230 &&
+              box.left >= panel.left && box.right <= panel.right &&
+              box.top >= panel.top && box.bottom <= Math.min(panel.bottom, window.innerHeight);
+          }).map(node=>node.getAttribute('data-id'));
+        }, ids);
+        await graph.locator('.react-flow__node:has([data-selected="true"])').waitFor();
+        await page.waitForFunction(() => {
+          const viewport = document.querySelector('.react-flow__viewport');
+          return viewport && new DOMMatrixReadOnly(getComputedStyle(viewport).transform).a >= 0.89;
+        });
+        const {nodes, edges} = beforeRun.plan;
+        assert.deepEqual((await cards.evaluateAll(items=>items.map(item=>item.getAttribute('data-id')))).sort(),
+          nodes.map(node=>node.id).sort());
+        assert.deepEqual((await graph.locator('.react-flow__edge').evaluateAll(items=>
+          items.map(item=>item.getAttribute('data-testid')))).sort(), edges.map(edge=>`rf__edge-${edge.id}`).sort());
+        const visible = new Set(await rendered(nodes.map(node=>node.id)));
+        const visibleInputNames = beforeRun.context.flatMap(({origin})=>origin.kind === 'source' &&
+          origin.consuming_ports.some(port=>visible.has(port.step_id)) ? [origin.source_view.resource] : []);
+        assert(visibleInputNames.length >= 2, `Visible checked inputs: ${visibleInputNames.join(', ')}`);
+        const visibleJoins = nodes.filter(node=>node.operator === 'join' && visible.has(node.id));
+        assert(visibleJoins.length > 0, 'A checked Join should be readable in the opening Graph');
+        assert(edges.some(edge=>visible.has(edge.sourceStepId) &&
+          visibleJoins.some(join=>join.id === edge.targetStepId)), 'A real input edge reaches the visible Join');
+        for (const name of visibleInputNames) assert((await cards.allTextContents()).some(text=>text.includes(name)));
+        const graphText = (await cards.allTextContents()).join('\n');
+        assert.match(graphText, /Join · /u);
+        assert.doesNotMatch(graphText, /\baql_|connector:\/\//u);
+        await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
+        await page.getByRole('button', {name: 'Steps', exact: true}).click();
         await page.setViewportSize({width: 390, height: 844});
         assert.equal(await heading.innerText(), summary);
         assert((await heading.boundingBox()).height < 230);
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation']);
-        receipt = {browserRequests: requests, checkedSources: 3};
+        receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
+          originalGraphNodes: nodes.length, originalGraphEdges: edges.length};
       } else {
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));

@@ -37,23 +37,37 @@ function headlineLabels(labels: string[], locale: ExplanationStoryModel['locale'
   return new Intl.ListFormat(locale).format(visible);
 }
 
+function declaredTargetLabel(target: string, locale: ExplanationStoryModel['locale']) {
+  // Show a short unambiguous connector/resource pair from the checked
+  // declaration. Leave more general target identifiers in the details.
+  const pair = /^connector:\/\/([\w.-]{1,48})\/([\w.-]{1,48})$/u.exec(target);
+  if (!pair) return '';
+  const [, connection, resource] = pair;
+  return locale === 'ja' ? `"${connection}" の "${resource}"` : `"${resource}" in "${connection}"`;
+}
+
 function StoryHeading({story, context}: {story: ExplanationStoryModel; context: StoryContext}) {
   const sources = context.flatMap(({origin})=>origin.kind === 'source' ? [origin.source_view.resource] : []);
   const models = context.flatMap(({origin})=>origin.kind === 'model_task' ? [origin.task_id.replace(/^model-task:/u, '')] : []);
   const outputs = context.flatMap(({origin})=>origin.kind === 'result' ? [origin.name] : []);
   const effects = context.flatMap(({origin})=>origin.kind === 'effect_set' ? [...origin.members] : []);
-  const writes = effects.filter(({declaration})=>declaration.contract.kind === 'mapping');
+  const writes = effects.flatMap(({declaration, write_fields})=>declaration.contract.kind === 'mapping'
+    ? [{kind: declaration.effect_kind, target: declaration.contract.declared_target, fields: write_fields}] : []);
   const commands = effects.length - writes.length;
-  const fields = writes.length === 1 && writes[0].declaration.effect_kind === 'update' &&
-    writes[0].write_fields.state === 'declared' ? [...writes[0].write_fields.fields] : [];
+  const write = writes.length === 1 ? writes[0] : undefined;
+  const fields = write?.kind === 'update' && write.fields.state === 'declared' ? [...write.fields.fields] : [];
   const {locale} = story, ja = locale === 'ja';
+  const target = write && declaredTargetLabel(write.target, locale);
   const sourceSummary = sources.length && (ja ? `${headlineLabels(sources, locale)}を読む` : `Read ${headlineLabels(sources, locale)}`);
   const modelSummary = models.length && (ja ? `${headlineLabels(models, locale)}を各入力行に適用` :
     `Apply ${headlineLabels(models, locale)} to each input row`);
   const resultSummary = outputs.length && (ja ? `${headlineLabels(outputs, locale)}を返す` : `Return ${headlineLabels(outputs, locale)}`);
-  const writeSummary = writes.length && (fields.length ? ja ?
-    `${headlineLabels(fields, locale)}の更新を宣言` : `Declare an update to ${headlineLabels(fields, locale)}` :
-    ja ? `${writes.length} 件の書き込みを宣言` : `Declare ${writes.length} ${writes.length === 1 ? 'write' : 'writes'}`);
+  const fieldList = fields.length && headlineLabels(fields, locale);
+  const writeSummary = writes.length && (fieldList ? ja ?
+    `${target ? target + ' の ' : ''}${fieldList}の更新を宣言` :
+    `Declare an update to ${fieldList}${target ? ' on ' + target : ''}` :
+    ja ? `${target ? target + ' への ' : ''}${writes.length} 件の書き込みを宣言` :
+    `Declare ${writes.length} ${writes.length === 1 ? 'write' : 'writes'}${target ? ' to ' + target : ''}`);
   const commandSummary = commands && (ja ? `${commands} 件のコマンドを宣言` :
     `Declare ${commands} ${commands === 1 ? 'command' : 'commands'}`);
   const summary = [sourceSummary, modelSummary, resultSummary, writeSummary, commandSummary]
@@ -71,6 +85,53 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
 }
 
 type StepState = 'Planned' | 'Unknown' | 'Observed';
+
+function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext) {
+  const sources = new Map<string, {resource: string; connector: string}[]>();
+  const tasks = new Map<string, string[]>();
+  const results = new Map<string, string[]>();
+  const add = <T,>(index: Map<string, T[]>, stepId: string, value: T) => {
+    const entries = index.get(stepId);
+    if (entries) entries.push(value);
+    else index.set(stepId, [value]);
+  };
+  for (const {origin} of context) {
+    if (origin.kind === 'source') {
+      for (const id of new Set(origin.consuming_ports.map(port=>port.step_id))) add(sources, id, origin.source_view);
+    } else if (origin.kind === 'model_task' && origin.producer.state === 'projected') {
+      add(tasks, origin.producer.step_id, origin.task_id.replace(/^model-task:/u, ''));
+    } else if (origin.kind === 'result' && origin.producer.state === 'projected') {
+      add(results, origin.producer.step_id, origin.name);
+    }
+  }
+  const labels = new Map<string, {kind?: string; title: string}>();
+  const ja = story?.locale === 'ja';
+  for (const step of story?.occurrences ?? []) {
+    const inputs = sources.get(step.stepId), models = tasks.get(step.stepId), outputs = results.get(step.stepId);
+    const {meaning} = step.explanation;
+    if (meaning.kind === 'join') {
+      const key = meaning.keys[0];
+      const name = ja ? '結合' : 'Join';
+      labels.set(step.stepId, {kind: ja ? 'データ結合' : 'Combine', title: key ?
+        `${name} · ${key.left} = ${key.right}` : name});
+    } else if (models?.length) {
+      labels.set(step.stepId, {kind: 'Model', title: `${ja ? 'モデル' : 'Ask'} ${models.join(', ')}`});
+    } else if (inputs?.length) {
+      // A linked declaration names the input port; it does not make this
+      // logical occurrence an actual Source attempt or another Graph node.
+      const connections = new Set(inputs.map(input=>input.connector));
+      labels.set(step.stepId, {kind: connections.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
+        title: `${ja ? '入力' : 'Input'} · ${inputs.map(input=>input.resource).join(', ')}`});
+    } else if (outputs?.length) {
+      labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
+    } else if (meaning.kind === 'projection' && meaning.operation === 'select') {
+      labels.set(step.stepId, {title: ja ? 'フィールドを選択' : 'Select fields'});
+    } else if (step.operator === 'filter') {
+      labels.set(step.stepId, {title: ja ? '行を絞り込む' : 'Filter rows'});
+    }
+  }
+  return labels;
+}
 
 function stepTitle(step: Step) {
   if (step.names.length) return step.title;
@@ -449,6 +510,7 @@ function App() {
   const context = selectedRef
     ? explanation?.state === 'projected' && 'context' in explanation ? explanation.context : []
     : staticExplanation?.context ?? [];
+  const graphLabels = useMemo(()=>graph ? graphStepLabels(story, context) : undefined, [graph, story, context]);
   const map = selectedRef ? originalPresentation?.plan ?? originalPlan?.plan : plan;
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
   const edited = analyzedDraft !== undefined &&
@@ -560,7 +622,7 @@ function App() {
         {graph && map && <PlanExplorer model={map} initialView="flow" scopeKey={scopeKey}
           workspace={{stepId: selection, select: setSelection,
             label: id=>({state: stepState(id, !!selectedRef, boundary),
-              title: story?.occurrences.find(step=>step.stepId === id)?.names.join(', ') || undefined})}}/>}
+              ...graphLabels?.get(id)})}}/>}
         {story && <StorySteps key={scopeKey} story={story} context={context} boundary={boundary}
           saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph}/>}
         {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}

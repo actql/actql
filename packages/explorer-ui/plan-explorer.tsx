@@ -1,7 +1,7 @@
 export {CheckpointPanel} from './checkpoint-panel.js';
 export {CancellationPanel} from './cancellation-panel.js';
 export {RunInspector} from './run-inspector.js';
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {ReactFlow, Controls, Handle, Position, BaseEdge, getBezierPath, type EdgeProps, type NodeProps, type Node, type Edge} from '@xyflow/react';
 import {Button} from '@base-ui/react/button';
 import {Workflow, List, CircleHelp} from 'lucide-react';
@@ -11,14 +11,17 @@ import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight, flowPortO
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
-type LogicalNode = Node<{original: Logical; presentation?: {title?: string; state: string}}, 'logical'>;
+type NodePresentation = {kind?: string; title?: string; state: string};
+type LogicalNode = Node<{original: Logical; presentation?: NodePresentation}, 'logical'>;
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;
-  const title = data.presentation?.title ?? (original.names.join(', ') || original.operator || 'Input / output');
+  const operation = original.operator?.replaceAll('_', ' ') ?? 'Input / output';
+  const title = data.presentation?.title ?? (data.presentation ? operation.replace(/^./u, char=>char.toUpperCase()) :
+    original.names.join(', ') || operation);
   const offsets = flowPortOffsets(original.ports);
   return <div className="actql-explorer-node" data-selected={selected}
     style={{width: flowNodeWidth, height: flowNodeHeight(original.ports.length)}}>
-    <div className="actql-explorer-kind">{original.operator}</div>
+    <div className="actql-explorer-kind">{data.presentation?.kind ?? operation}</div>
     <strong title={title}>{title}</strong>
     <p>{data.presentation?.state ?? original.kind}</p>
     {original.ports.map((port, index) => <Handle key={port.port_id} id={port.port_id}
@@ -39,7 +42,21 @@ function OriginalEdge({id, sourceX, sourceY, targetX, targetY, sourcePosition, t
 const edgeTypes = {default: OriginalEdge};
 export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow';
   workspace?: {stepId?: string; select(id: string): void;
-    label(id: string): {title?: string; state: string}}};
+    label(id: string): NodePresentation}};
+
+function initialViewportNodes(placed: LogicalNode[], focus: LogicalNode | undefined, canvasWidth: number) {
+  if (!focus) return [];
+  const top = Math.min(...placed.map(node=>node.position.y));
+  // Fit the opening rows around the selected original. Keep a readable
+  // minimum scale even when the whole graph is much larger than the canvas.
+  if (focus.position.y - top >= 300 || canvasWidth < flowNodeWidth * 2) return [focus];
+  const opening = placed.filter(node=>node.position.y - top < 300);
+  const width = Math.max(...opening.map(node=>node.position.x)) -
+    Math.min(...opening.map(node=>node.position.x)) + flowNodeWidth;
+  if (width * 0.9 <= canvasWidth * 0.87) return opening;
+  const reach = (canvasWidth * 0.87 / 0.9 - flowNodeWidth) / 2;
+  return opening.filter(node=>Math.abs(node.position.x - focus.position.x) <= reach);
+}
 
 // Scope changes remount selection and the renderer. This component accepts an
 // already admitted original model and has no Client, transport or control API.
@@ -51,6 +68,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
   const flow = useMemo(() => flowPresentation(model) as {nodes: LogicalNode[]; edges: Edge[]}, [model]);
   const [selected, select] = useState<string | undefined>();
   const [mode, show] = useState<'flow' | 'list'>(initialView ?? 'list');
+  const canvas = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(0);
   // This bounded presentation key excludes labels/observations. Repeated reads
   // of the same topology do not restart ELK or reset the user's viewport.
   const layoutKey = useMemo(() => JSON.stringify(layoutInput(flow)), [flow]);
@@ -69,6 +88,14 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     // the same coordinates; current labels still come from the original model.
   }, [mode, layoutKey]);
   const currentLayout = layout?.key === layoutKey ? layout : undefined;
+  useEffect(() => {
+    const panel = canvas.current;
+    if (!panel || mode !== 'flow') return;
+    setCanvasWidth(panel.clientWidth);
+    const resize = new ResizeObserver(()=>setCanvasWidth(panel.clientWidth));
+    resize.observe(panel);
+    return ()=>resize.disconnect();
+  }, [mode, currentLayout]);
   const selection = workspace?.stepId ?? selected;
   const selectOriginal = workspace ? workspace.select : select;
   const placed = useMemo(() => currentLayout?.state === 'ready' ? flow.nodes.map((node, index) => ({
@@ -79,6 +106,7 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
   })) : [], [currentLayout, flow, selection, workspace]);
   const original = model.nodes.find(node => node.id === selection);
   const focus = placed.find(node=>node.id === selection) ?? placed[0];
+  const fitNodes = workspace ? initialViewportNodes(placed, focus, canvasWidth) : focus ? [focus] : [];
   const originalMetadata = <>
     <dl className="actql-explorer-identities"><dt>Compiled Plan</dt><dd>{model.compiledPlanCid}</dd>
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
@@ -120,15 +148,15 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
       </nav>
     </header>
     {mode === 'list' && originalMetadata}
-    {mode === 'flow' ? currentLayout?.state === 'ready' ? <div className="actql-explorer-flow">
-      <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-        fitViewOptions={focus ? {nodes: [{id: focus.id}], minZoom: 0.9, maxZoom: 1, padding: 0.12} : undefined}
+    {mode === 'flow' ? currentLayout?.state === 'ready' ? <div ref={canvas} className="actql-explorer-flow">
+      {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+        fitViewOptions={{nodes: fitNodes, minZoom: 0.9, maxZoom: 1, padding: 0.12}}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
         connectOnClick={false} deleteKeyCode={null} zoomOnDoubleClick={false}
         onNodeClick={(_, node) => selectOriginal(node.id)}
         minZoom={0.2} maxZoom={2} aria-label="Original logical ports">
         <Controls position="top-right" showInteractive={false} aria-label="Graph zoom"/>
-      </ReactFlow>
+      </ReactFlow>}
     </div> : <p role="status" className="actql-explorer-unavailable">
       {currentLayout?.state === 'unavailable'
         ? 'Flow layout unavailable. Use List to inspect the original occurrences.'
