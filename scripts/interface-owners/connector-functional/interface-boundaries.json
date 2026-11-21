@@ -19768,6 +19768,7 @@
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
         "installedEffectSavedControlResponseLimit",
+        "prepareInstalledDeclaredUpdatePlanRecipe",
         "prepareInstalledEffectCaptureChild",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
@@ -19904,6 +19905,33 @@
           "name": "installedEffectSavedControlResponseLimit/installedEffectSavedControlResponseLimit",
           "parameters": [
             "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "write",
+            "credentialSite",
+            "limits",
+            "resourceTextUnits",
+            "connectorRegistration"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -20571,7 +20599,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1ce2fdcb74135c19ab2a071580b196048f778670cd3fcf7946bbba840d246319",
+      "sha256": "55f903872abc8342dc00cc678e0d60497048f4cee1e46b7a913cd08c76904100",
       "contracts": [
         {
           "operations": [
@@ -20628,7 +20656,10 @@
             "prepareInstalledEffectRequestChild",
             "prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
-            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe"
+            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
           ],
           "exports": [
             "captureDeclaredUpdateTargetCapacity",
@@ -20637,7 +20668,8 @@
             "prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectRequestChild",
-            "prepareInstalledStandardCreatePlanRecipe"
+            "prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe"
           ],
           "attributes": {
             "responsibility": [
@@ -20818,6 +20850,10 @@
               {
                 "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
                 "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
               }
             ]
           }
