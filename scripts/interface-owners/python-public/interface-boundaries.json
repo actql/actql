@@ -9576,8 +9576,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -9616,7 +9616,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],

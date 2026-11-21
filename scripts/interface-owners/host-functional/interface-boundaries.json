@@ -28382,43 +28382,7 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
-          "parameters": [
-            "submissionRef",
-            "intent",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "unresolvedHistory",
-            "actorId",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent",
-          "parameters": [
-            "submissionRef",
-            "outcome",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "expectedRevision",
-            "connection",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
           "parameters": [],
           "async": false
         },
@@ -28427,20 +28391,6 @@
           "parameters": [
             "projection"
           ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
-          "parameters": [
-            "authorityScopeCid",
-            "currentAuthorization",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
-          "parameters": [],
           "async": false
         },
         {
@@ -28508,17 +28458,6 @@
             "ref",
             "requestControl",
             "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
-          "parameters": [
-            "submissionRef",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "control",
-            "expected"
           ],
           "async": false
         },
@@ -28759,26 +28698,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent",
-          "parameters": [
-            "submissionRef",
-            "intent",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "phase",
-            "outcome",
-            "unresolvedHistory",
-            "actorId",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
           "parameters": [
             "identity",
@@ -28853,62 +28772,8 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
-          "parameters": [
-            "name",
-            "intent",
-            "namespaceId",
-            "actorId",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "submissionRef",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
-          "parameters": [
-            "submissionRef",
-            "authorityScopeCid",
-            "currentAuthorization",
-            "expectedRevision",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
-          "parameters": [
-            "epoch",
-            "nonce",
-            "fields",
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:supportsOriginalExplanation/init:supportsOriginalExplanation",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
-          "parameters": [
-            "epoch",
-            "fields",
-            "control"
-          ],
           "async": false
         },
         {
@@ -28963,21 +28828,14 @@
             "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
-            "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
-            "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
             "openClientRequestJournal/journal/init:close/init:close",
-            "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent",
-            "openClientRequestJournal/journal/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
             "openClientRequestJournal/journal/init:installObservationProjection/init:installObservationProjection",
-            "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
-            "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
             "openClientRequestJournal/journal/init:lookup/init:lookup",
             "openClientRequestJournal/journal/init:lookupDefinition/init:lookupDefinition",
             "openClientRequestJournal/journal/init:lookupIdentity/init:lookupIdentity",
             "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
             "openClientRequestJournal/journal/init:lookupReconciliationState/init:lookupReconciliationState",
             "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
-            "openClientRequestJournal/journal/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
             "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
             "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
             "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
@@ -29001,17 +28859,11 @@
             "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
-            "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent",
-            "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
             "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
-            "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
-            "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
-            "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
-            "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
@@ -29539,8 +29391,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -29625,8 +29477,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -29848,9 +29700,7 @@
         {
           "operations": [
             "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
-            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt",
-            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
-            "openClientRequestJournal/journal/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result"
+            "openClientRequestJournal/journal/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt/init:resolveNamedSubmissionAttempt"
           ],
           "exports": [],
           "attributes": {
@@ -29890,8 +29740,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -29930,7 +29780,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -30864,8 +30714,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -30950,8 +30800,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -31785,7 +31635,6 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../host-common/observation.mjs",
         "../host-common/run-state-observation.mjs",
@@ -31802,7 +31651,6 @@
         "./client-source-operation.mjs",
         "./host-journal-facility-fields.cjs",
         "./local-account-config.mjs",
-        "node:crypto",
         "node:fs",
         "node:path"
       ],
@@ -31947,20 +31795,17 @@
             "restartSelect",
             "restartUsage",
             "restartIssued",
+            "nameSelect",
+            "nameCustody",
             "originals",
+            "transaction",
+            "ensureOpen",
             "rejectSubmission",
+            "submissionTransaction",
+            "rejectSubmissionEpoch",
             "inspectionBytes",
-            "maxRecords"
-          ],
-          "async": false
-        },
-        {
-          "name": "createJournalSubmissionRows/checkRestartLocked/checkRestartLocked",
-          "parameters": [
-            "requestId",
-            "restartWire",
-            "fields",
-            "control"
+            "maxRecords",
+            "submissionEpochTtlMs"
           ],
           "async": false
         },
@@ -31975,18 +31820,137 @@
           "async": false
         },
         {
-          "name": "createJournalSubmissionRows/recordIntentLocked/recordIntentLocked",
+          "name": "createJournalSubmissionRows/methods/init:checkSubmittedIntent/init:checkSubmittedIntent",
           "parameters": [
             "submissionRef",
-            "original",
+            "intent",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "unresolvedHistory",
+            "actorId",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:completeSubmittedIntent/init:completeSubmittedIntent",
+          "parameters": [
+            "submissionRef",
+            "outcome",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "expectedRevision",
+            "connection",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+          "parameters": [
+            "authorityScopeCid",
+            "currentAuthorization",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
+          "parameters": [
+            "submissionRef",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "control",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:recordSubmittedIntent/init:recordSubmittedIntent",
+          "parameters": [
+            "submissionRef",
+            "intent",
             "authorityScopeCid",
             "currentAuthorization",
             "phase",
             "outcome",
-            "restartWire",
-            "requestId",
-            "control",
-            "originalCustody"
+            "unresolvedHistory",
+            "actorId",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
+          "parameters": [
+            "name",
+            "intent",
+            "namespaceId",
+            "actorId",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "submissionRef",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:retireSubmittedIntent/init:retireSubmittedIntent",
+          "parameters": [
+            "submissionRef",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "expectedRevision",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:submissionIdentity/init:submissionIdentity",
+          "parameters": [
+            "epoch",
+            "nonce",
+            "fields",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/methods/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
+          "parameters": [
+            "epoch",
+            "fields",
+            "control"
           ],
           "async": false
         },
@@ -31994,16 +31958,6 @@
           "name": "createJournalSubmissionRows/refuseEpoch/refuseEpoch",
           "parameters": [
             "validity"
-          ],
-          "async": false
-        },
-        {
-          "name": "createJournalSubmissionRows/restartDecision/restartDecision",
-          "parameters": [
-            "submissionRef",
-            "intentCid",
-            "unresolvedHistory",
-            "actorId"
           ],
           "async": false
         },
@@ -32074,14 +32028,24 @@
             "createJournalSubmissionOriginals/verifyEpochLocked/verifyEpochLocked",
             "createJournalSubmissionRows",
             "createJournalSubmissionRows/checkSubmissionBinding/checkSubmissionBinding",
-            "createJournalSubmissionRows/recordIntentLocked/recordIntentLocked",
             "createJournalSubmissionRows/refuseEpoch/refuseEpoch",
-            "createJournalSubmissionRows/restartDecision/restartDecision",
             "createJournalSubmissionRows/retainedIntent/retainedIntent",
             "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal",
             "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
             "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
-            "createJournalSubmissionRows/checkRestartLocked/checkRestartLocked"
+            "createJournalSubmissionRows/methods/init:checkSubmittedIntent/init:checkSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:checkSubmittedIntent/init:checkSubmittedIntent/result/result",
+            "createJournalSubmissionRows/methods/init:completeSubmittedIntent/init:completeSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:completeSubmittedIntent/init:completeSubmittedIntent/init:completeSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+            "createJournalSubmissionRows/methods/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
+            "createJournalSubmissionRows/methods/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:recordSubmittedIntent/init:recordSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
+            "createJournalSubmissionRows/methods/init:retireSubmittedIntent/init:retireSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
+            "createJournalSubmissionRows/methods/init:submissionIdentity/init:submissionIdentity",
+            "createJournalSubmissionRows/methods/init:verifySubmissionEpoch/init:verifySubmissionEpoch"
           ],
           "exports": [
             "createJournalSubmissionOriginals",
@@ -32194,6 +32158,119 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "retained row identity is checked even when its wire is already admitted in this operation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createJournalSubmissionRows/methods/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName",
+            "createJournalSubmissionRows/methods/init:resolveOrBindSubmittedName/init:resolveOrBindSubmittedName/result/result"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
               }
             ]
           }
@@ -32514,7 +32591,7 @@
                 "anchor": "### Indexed submission retention usage"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -34060,8 +34137,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -34150,8 +34227,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -34434,8 +34511,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -34474,7 +34551,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -35455,8 +35532,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -35541,8 +35618,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -36263,8 +36340,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -36349,8 +36426,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -36613,8 +36690,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -36653,7 +36730,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -38638,8 +38715,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "import {createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -38724,8 +38801,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const fields = {"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "const fields = {authorityScopeCid, currentAuthorization};"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -42523,8 +42600,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               },
               {
                 "path": "adapters/host-node/client-request-journal-submission-originals.mts",
@@ -42579,7 +42656,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               },
               {
