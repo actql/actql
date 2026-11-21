@@ -3163,8 +3163,13 @@ export function openClientRequestJournal(directory, {
         const existingEvidence = retainedEvidence(existing, updateOriginalControl, capturedAdmissionEvidence);
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
           runAdmissionEvidence: existingEvidence}, admittedEvidence?.sourceInventory);
+        // A competing Effect issuer can finish its optional capture before
+        // another transaction wins this exact Request. Keep the winner and
+        // return the loser's loan without comparing or backfilling its facets.
+        const compareOriginal = originalExplanation?.contextWire === undefined ||
+          existing.run_definition_cid === runDefinitionCid;
         const proposedPlan = admittedEvidence?.logicalPlanOriginal;
-        if (proposedPlan !== undefined) {
+        if (compareOriginal && proposedPlan !== undefined) {
           const originalPlan = existingEvidence?.logicalPlanOriginal;
           if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
           if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
@@ -3172,7 +3177,7 @@ export function openClientRequestJournal(directory, {
             fail('ClientRequestPlanEvidenceMismatch');
           }
         }
-        if (originalExplanation !== undefined) {
+        if (compareOriginal && originalExplanation !== undefined) {
           const original = readExplanationOriginal({namespaceId,
             authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
           if (original === undefined) fail('ClientRequestExplanationEvidenceMissing');
@@ -3670,6 +3675,9 @@ export function openClientRequestJournal(directory, {
         primarySchemaSqlSupport.includes(explanationOriginalTable) &&
         primarySchemaSqlSupport.includes(explanationContextOriginalTable);
     },
+    originalExplanationContextLimit() {
+      return journal.supportsOriginalExplanationContext() ? maxRunDefinitionWireBytes : undefined;
+    },
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       ensureOpen();
@@ -3784,7 +3792,8 @@ export function openClientRequestJournal(directory, {
         runDefinitionWire: definition.wire,
         resultNames, runAdmissionEvidence, revision, lookupExpiresAt, submission}, requestControl, explanationOriginal);
       // acceptRecord returned only after this SAME transaction's native
-      // COMMIT ACK. Unknown/rollback throws never reach this release. Drop the
+      // COMMIT ACK (or its acknowledged selection of the existing winner).
+      // Unknown/rollback throws never reach this release. Drop the
       // transient Facts wrapper before the compiler owner cuts its last alias
       // and returns the same funded loan; it may still report cleanup failure.
       explanationOriginal = undefined;

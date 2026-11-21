@@ -2241,7 +2241,8 @@
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
           ],
           "exports": [
             "contentCaptureControl",
@@ -2982,7 +2983,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4106,7 +4107,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6628,7 +6629,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8841,7 +8842,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9681,7 +9682,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -12662,6 +12663,16 @@
             "definition",
             "limits",
             "explanation"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+          "parameters": [
+            "explanation",
+            "definition",
+            "prepared",
+            "evidence"
           ],
           "async": false
         },
@@ -19489,7 +19500,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
+      "sha256": "ab052067eb3b9e969f3a3ec131d2c34b0a21a84136aa319391e76e57d47d006c"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48102,19 +48113,23 @@
     },
     {
       "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
-      "sha256": "4bfdfd39b1d44864db66eb879fe0b9585566720a9f4568209c8ad184da15dccd",
+      "sha256": "c00eb5739658b679c707135a4272b226089211b2bb369b6ffc560cdb5bc72a29",
       "operations": [
         {
           "name": "[I]capture_request_effect_run_explanation",
-          "declaration": "[ I ] capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ClientRequestEffectRunExplanation [ I ] , ClientRequestStaticContextIssue , ]"
+          "declaration": "[ I ] capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , journal_bytes ? : Int"
         },
         {
           "name": "[I]discard_original_effect_run_explanation",
-          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ Unit , ClientRequestStaticContextIssue ]"
+          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , decline ? : Bool"
         },
         {
           "name": "[I]original_effect_run_explanation_facets",
           "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestEffectRunExplanationFacets , ClientRequestStaticContextIssue , ]"
+        },
+        {
+          "name": "[I]try_capture_request_effect_run_explanation",
+          "declaration": "[ I ] try_capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , journal_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ClientRequestEffectRunExplanation [ I ] ? , ClientRequestStaticContextIssue , ]"
         }
       ],
       "exports": [],
@@ -48127,7 +48142,8 @@
             "<module>",
             "[I]capture_request_effect_run_explanation",
             "[I]discard_original_effect_run_explanation",
-            "[I]original_effect_run_explanation_facets"
+            "[I]original_effect_run_explanation_facets",
+            "[I]try_capture_request_effect_run_explanation"
           ],
           "exports": [],
           "attributes": {
@@ -67896,7 +67912,10 @@
             "client_program_read_request_checked_static_effect_explanation",
             "client_program_static_effect_explanation_context_wire",
             "client_program_static_effect_explanation_facts_wire",
-            "client_program_static_effect_explanation_plan_wire"
+            "client_program_static_effect_explanation_plan_wire",
+            "client_program_discard_effect_run_explanation",
+            "client_program_effect_run_explanation_wires",
+            "client_program_try_capture_effect_run_explanation"
           ],
           "exports": [],
           "attributes": {
@@ -68110,6 +68129,10 @@
           "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_discard_effect_run_explanation",
+          "declaration": "client_program_discard_effect_run_explanation ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , decline : Bool , ) - > Result [ Unit , @ client_local_host . ClientRequestStaticContextIssue ]"
+        },
+        {
           "name": "client_program_effect_preparation_input_read",
           "declaration": "client_program_effect_preparation_input_read ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > @ publication_host . PreparedClientEffectComputation ?"
         },
@@ -68124,6 +68147,10 @@
         {
           "name": "client_program_effect_preparation_input_sibling",
           "declaration": "client_program_effect_preparation_input_sibling ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_effect_run_explanation_wires",
+          "declaration": "client_program_effect_run_explanation_wires ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , ) - > Result [ Array [ String ] , @ client_local_host . ClientRequestStaticContextIssue ]"
         },
         {
           "name": "client_program_finish_program_json_preparation",
@@ -68630,6 +68657,10 @@
           "declaration": "client_program_static_effect_explanation_plan_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
         },
         {
+          "name": "client_program_try_capture_effect_run_explanation",
+          "declaration": "client_program_try_capture_effect_run_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , bytes : Int , nodes : Int , depth : Int , work : Int , ) - > Result [ @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] ? , @ client_local_host . ClientRequestStaticContextIssue , ]"
+        },
+        {
           "name": "prepare_request_model_graph_with_file_declarations",
           "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
@@ -68646,7 +68677,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "164d47ba74666a950d40947cdf839a8bef300d58116345105dde353a6425cc71"
+      "sha256": "a2bc864b0808ecd9997a844edcd2f56d8c874074d04bef0d78f5e0da0edfd6ee"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

@@ -8607,7 +8607,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -10258,7 +10258,9 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation"
           ],
           "exports": [],
           "attributes": {
@@ -12089,7 +12091,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -12496,7 +12498,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "prepareDefinition, assertRequestedStopAvailable,"
+                "anchor": "prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -15437,7 +15439,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -18008,7 +18010,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
@@ -20135,7 +20137,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -21415,7 +21417,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -22695,7 +22697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -23975,7 +23977,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -25607,6 +25609,15 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
           "parameters": [
             "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+          "parameters": [
+            "facts",
+            "readEvidence",
+            "hasIntent"
           ],
           "async": false
         },
@@ -27543,6 +27554,17 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [
+            "runtime",
+            "facts",
+            "readEvidence",
+            "journal",
+            "hasIntent"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
           "parameters": [
             "runtime",
@@ -29258,7 +29280,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8ae8179b97788e6c89b667aa00cf25545ad7baba4505e34ce035ef8521baad89"
+      "sha256": "58bfd29aee1c3cd744bb4fd2240ee1861c7fcf6939b4c71b61b72d2e930e0bde"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

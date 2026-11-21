@@ -746,7 +746,34 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
     @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
     before,
   )
+  assert_true(
+    try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, 65536, 8192, 64, 10000,
+    )
+    is Ok(None),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
   @resources.settle_capacity(parent.ledger, unavailable).unwrap()
+  let journal_scope = try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, 65536, 8192, 64, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(journal_scope, definition) is Ok(_),
+  )
+  discard_original_effect_run_explanation(
+    journal_scope,
+    definition,
+    decline=true,
+  ).unwrap()
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
   let original = capture(input, definition).unwrap()
   assert_true(
     original_effect_run_explanation_facets(original, sibling)

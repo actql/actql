@@ -12,6 +12,7 @@ import schemaSupport from './host-journal-schema-support.cjs';
 import {controls, request, requestControl, options, evidence, planOriginal} from './fixtures/original-plan-journal.mjs';
 import {explanationFacts} from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 const contextWire = JSON.stringify(effectfulStaticExplanationFixture().context);
 // The storage control is explicit here. The Common capture test establishes
 // the semantic Template/Run/Check Environment relation independently.
@@ -421,6 +422,48 @@ test('old Facts-only Runs never backfill Context and selected unsupported storag
   assert.equal(unsupported.acknowledgements(), 0);
   unsupported.accept(unsupported.ticket());
   assert.equal(unsupported.explanation().factsWire, JSON.stringify(explanationFacts));
+});
+
+test('competing Effect Context keeps the exact durable winner and returns only its own loan', t => {
+  for (const retainedContext of [undefined, contextWire]) {
+    const f = fixture(t);
+    f.accept(f.ticket(undefined, retainedContext));
+    const body = JSON.parse(options.runDefinition.wire);
+    delete body.run_definition_cid;
+    body.run_id = 'competing-context-run';
+    const identity = 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
+    const runDefinition = Object.freeze({name: 'run_definition', identity,
+      wire: canonicalText({...body, run_definition_cid: identity})});
+    assert.notEqual(runDefinition.identity, f.ref.runDefinitionCid);
+    const ticket = f.ticket(undefined, '{}');
+    const plan = f.planTicket();
+    const control = {...f.control,
+      admit(kind, wire) {
+        assert.equal(kind, 'run_definition');
+        if (wire === options.runDefinition.wire) return options.runDefinition;
+        assert.equal(wire, runDefinition.wire);
+        return runDefinition;
+      },
+      originalRunPlanAdmissionEvidence(selected, definition, program, original) {
+        assert.equal(selected, plan);
+        assert.equal(definition, runDefinition);
+        return f.control.originalRunPlanAdmissionEvidence(selected, options.runDefinition, program, original);
+      },
+      originalRunExplanationAdmissionAcknowledged(selected, definition, program, original) {
+        assert.equal(selected, ticket);
+        assert.equal(definition, runDefinition);
+        f.control.originalRunExplanationAdmissionAcknowledged(selected, options.runDefinition, program, original);
+      },
+    };
+    const accepted = f.journal.acceptDefinition(request, {...options, runDefinition,
+      originalPlan: plan, originalExplanation: ticket}, requestControl, control);
+    assert.equal(accepted.inserted, false);
+    assert.deepEqual(accepted.ref, f.ref);
+    assert.equal(f.acknowledgements(), 2);
+    const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+    assert.equal(f.journal.readRunExplanationContextOriginal(f.ref, extent).contextWire, retainedContext);
+    assert.equal(f.journal.probeRunExplanationContextOriginal({...f.ref, runDefinitionCid: identity}), undefined);
+  }
 });
 
 test('failed Context insertion rolls back the first Run, Plan and Facts before acknowledgement', t => {

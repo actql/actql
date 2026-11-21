@@ -940,6 +940,8 @@ pub fn client_program_direct_values_result_root_row_contract_cid(@run_publicatio
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
 
+pub fn client_program_discard_effect_run_explanation(@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal], @run_publication.PublicationContract, Bool) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue]
+
 pub fn client_program_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[@client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionIssue]
 
 pub fn client_program_duckdb_capture_capacity_accepts(@client_local_host.ClientDuckDBCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
@@ -1339,6 +1341,8 @@ pub fn client_program_effect_review_construction_capacity(String, Int, Int, Int,
 pub fn client_program_effect_review_original_construction_capacity(@run_publication.EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
+
+pub fn client_program_effect_run_explanation_wires(@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal], @run_publication.PublicationContract) -> Result[Array[String], @client_local_host.ClientRequestStaticContextIssue]
 
 pub fn client_program_effect_run_materials_allowed(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientEffectAllowedRun
 
@@ -4817,6 +4821,8 @@ pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanG
 pub fn client_program_task_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
 
 pub fn client_program_terminal_infer_step(@run_publication_host.PreparedClientProgram) -> Int?
+
+pub fn client_program_try_capture_effect_run_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientRequestStaticContextIssue]
 
 pub fn client_program_update_model_content_bytes(@model_execution.ModelContentByteCheck, Bytes) -> Result[Int, @model_execution.ModelContentIssue]
 

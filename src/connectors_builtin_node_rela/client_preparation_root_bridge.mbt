@@ -2953,6 +2953,67 @@ pub fn client_program_static_effect_explanation_context_wire(
 }
 
 ///|
+#export_name("clientProgramTryCaptureEffectRunExplanation")
+pub fn client_program_try_capture_effect_run_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  work : Int,
+) -> Result[
+  @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ]?,
+  @client_local_host.ClientRequestStaticContextIssue,
+] {
+  @client_local_host.try_capture_request_effect_run_explanation(
+    parent, input, allowed, definition, bytes, nodes, depth, work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectRunExplanationWires")
+pub fn client_program_effect_run_explanation_wires(
+  original : @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  definition : @publication.PublicationContract,
+) -> Result[Array[String], @client_local_host.ClientRequestStaticContextIssue] {
+  @client_local_host.original_effect_run_explanation_facets(
+    original, definition,
+  ).map(value => {
+    [
+      value.compiled_plan,
+      value.plan,
+      value.facts,
+      value.context,
+      value.invocation_template,
+    ]
+  })
+}
+
+///|
+#export_name("clientProgramDiscardEffectRunExplanation")
+pub fn client_program_discard_effect_run_explanation(
+  original : @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  definition : @publication.PublicationContract,
+  decline : Bool,
+) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue] {
+  @client_local_host.discard_original_effect_run_explanation(
+    original,
+    definition,
+    decline~,
+  )
+}
+
+///|
 #export_name("clientProgramRequestOriginalStaticPlanWire")
 pub fn client_program_request_original_static_plan_wire(
   original : @client_local_host.ClientRequestOriginalExplanation[

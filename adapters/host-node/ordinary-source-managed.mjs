@@ -16,6 +16,7 @@ import {localContractLimits} from './local-values-plan.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
+import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 
 // Existing Source/Compute responsibility, using real ordinary Node allocation
 // and FileHandles rather than a startup-wide provenance proof. Actual Account
@@ -409,7 +410,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       factsWire: undefined, offered: false, acknowledged: false, returning: false, databaseClosed: false, dispatchReady: false, journal,
       methods: Object.freeze({adopt, returnPreparation, returnCapture})});
   }
-  function disposeOriginalExplanation(state) {
+  function disposeOriginalExplanation(state, decline = false) {
     const original = state?.originalExplanation;
     if (original === undefined) return true;
     if (original.returning) return false;
@@ -420,12 +421,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       original.databaseClosed = true;
     }
     original.factsWire = undefined;
+    if (original.definition !== undefined) {
+      original.contextWire = original.invocationTemplateWire = original.plan = undefined;
+    }
     original.journal = undefined;
     const moon = state.context.runtime;
     original.returning = true;
     try {
       if (original.scope !== undefined) {
-        checked(Reflect.apply(original.methods.returnCapture, moon, [original.scope]));
+        checked(original.definition === undefined
+          ? Reflect.apply(original.methods.returnCapture, moon, [original.scope])
+          : original.methods.returnCapture(original.scope, original.definition, decline));
         original.scope = undefined;
       }
       if (original.preparation !== undefined) {
@@ -1577,6 +1583,73 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectRunMaterials',
         [allowed, definition, identity ?? null]);
+    },
+    captureEffectRunExplanation(prepared, request, facts, readEvidence, journal, hasIntent) {
+      current();
+      assertOriginalClientRequestJournal(journal);
+      const budget = journal.originalExplanationContextLimit();
+      if (budget === undefined) return undefined;
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      const methods = state?.effectBorrowMethods;
+      if (state === undefined || state.prepared !== prepared || facts.prepared !== prepared ||
+          state.compilationKind !== 'effectful' || state.holder === undefined ||
+          methods === undefined || state.preparing || state.adopting || state.originalExplanation !== undefined ||
+          methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      const capture = moon.clientProgramTryCaptureEffectRunExplanation;
+      const read = moon.clientProgramEffectRunExplanationWires;
+      const discard = moon.clientProgramDiscardEffectRunExplanation;
+      if (typeof capture !== 'function' || typeof read !== 'function' ||
+          typeof discard !== 'function') return undefined;
+      const selected = constructRequestDomain(state, () => {
+        const {maxNodes, maxDepth} = localContractLimits;
+        const scope = checked(capture(state.parent, producer.receipt, facts.allowed, facts.definition,
+          Math.min(budget, 65536), maxNodes, maxDepth, 10000));
+        if (scope === undefined) return undefined;
+        // Own the cleanup token before any canonical-wire getter or current check.
+        const original = state.originalExplanation = Object.seal({scope, definition: facts.definition,
+          plan: undefined, factsWire: undefined, contextWire: undefined, invocationTemplateWire: undefined,
+          offered: false, acknowledged: false, returning: false, databaseClosed: false, journal,
+          methods: Object.freeze({returnCapture: discard})});
+        const wires = checked(read(scope, facts.definition));
+        if (!Array.isArray(wires) || wires.length !== 5 ||
+            wires.some(wire => typeof wire !== 'string' || wire.length === 0)) fail('InvalidClientRunExplanationOriginal');
+        const [compiledPlanWire, planViewWire, factsWire, contextWire, invocationTemplateWire] = wires;
+        current();
+        if (producerForRequest(request) !== producer || producer.preparation !== state ||
+            state.prepared !== prepared || state.originalExplanation !== original ||
+            methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        original.plan = Object.freeze({compiledPlanWire, planViewWire});
+        const evidence = readEvidence();
+        // Measure the exact JSON without emitting a new copy. The submitted
+        // intent has a fixed 71-byte CID, counted here before the Journal adds it.
+        const candidate = Object.freeze({...evidence, logicalPlanOriginal: original.plan,
+          ...(hasIntent ? {submittedIntentCid: facts.runDefinition.identity} : {})});
+        const fits = sourceAliasDataGeometry(candidate).jsonBytes <= BigInt(budget) &&
+          Buffer.byteLength(factsWire) + Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
+        current();
+        if (producerForRequest(request) !== producer || producer.preparation !== state ||
+            state.originalExplanation !== original ||
+            methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        if (!fits) return undefined;
+        original.factsWire = factsWire;
+        original.contextWire = contextWire;
+        original.invocationTemplateWire = invocationTemplateWire;
+        const ticket = runtimeCore(state.context.runtime).publicationControl.captureOriginalEffectRunPlan(
+          original, facts.runDefinition, facts.prepared, evidence);
+        return Object.freeze({ticket, evidence});
+      });
+      if (selected === undefined && state.originalExplanation !== undefined) {
+        // The sizing frame and its wires have unwound before this return can
+        // restore the original working charge.
+        constructRequestDomain(state, () => {
+          if (!disposeOriginalExplanation(state, true)) fail('InstalledExplanationAdmissionCleanupPending');
+        });
+        current();
+        if (producerForRequest(request) !== producer || producer.preparation !== state) fail('ForeignInstalledSourceProducer');
+      }
+      return selected;
     },
     admitEffectMaterials(prepared, request, wire, runDefinitionCid, compilation, identity, features) {
       current();

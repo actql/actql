@@ -4780,6 +4780,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       },
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      captureDefinitionExplanation: function captureDefinitionExplanation(facts, readEvidence, hasIntent) {
+        return preparation.captureEffectRunExplanation(moon, facts, readEvidence, journal, hasIntent);
+      },
       prepareDefinition: facts => {
         preparation.admitEffectResultPublicationRun(facts.prepared);
         const selected = selectedInstalledEffect(facts);
@@ -7570,6 +7573,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
+    },
+    captureEffectRunExplanation(runtime, facts, readEvidence, journal, hasIntent) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
+      if (typeof manager.captureEffectRunExplanation !== 'function') return undefined;
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent :
+        assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.captureEffectRunExplanation(facts.prepared,
+        originalSourceManagedHostRequest(originals, facts.prepared), facts, readEvidence, journal, hasIntent);
     },
     prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
       const manager = sourceManaged ?? computeManaged;

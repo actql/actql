@@ -21864,7 +21864,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f839d793d6d091eec9f8b666c5c63468132b5a6714b9516af0bf62e65d446a2d",
+      "sha256": "54fe6dc63d30fff8ccf22b6acfe0264b038c5a8445f115385f1a88557d6ba15d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21883,6 +21883,7 @@
             "prepareExecution",
             "execute",
             "prepareDefinition",
+            "captureDefinitionExplanation",
             "assertRequestedStopAvailable",
             "requestIdentityFor",
             "inferPlanFor",
@@ -21926,6 +21927,11 @@
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/evidence/evidence",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition",
@@ -22075,7 +22081,8 @@
             "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation/init:restoreComputation",
             "installNodeClientEffectRun/init:start/init:start",
             "installNodeClientEffectRun/init:start/init:start/init:start",
-            "installNodeClientEffectRun/installNodeClientEffectRun"
+            "installNodeClientEffectRun/installNodeClientEffectRun",
+            "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/evidence/evidence"
           ],
           "exports": [
             "installNodeClientEffectRun",
@@ -22476,6 +22483,10 @@
               {
                 "path": "adapters/host-node/client-effect-query-time.test.mjs",
                 "anchor": "test('keyed initial tuple does not bypass fresh current authorization'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('Effect first admission forwards one original Explanation ticket"
               }
             ]
           }
@@ -28409,7 +28420,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7f386ccfe1659630041354c27a8a82fb0e6261416ece130ae46210946942448",
+      "sha256": "259f0e11faf3402afcd93e35594aedb0095e27f19112077867fc9f0a1578d0ef",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29393,6 +29404,11 @@
             "ref",
             "originalFrame"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit",
+          "parameters": [],
           "async": false
         },
         {
@@ -33712,7 +33728,8 @@
           "operations": [
             "openClientRequestJournal/journal/init:probeRunExplanationContextOriginal/init:probeRunExplanationContextOriginal",
             "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
-            "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext"
+            "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
+            "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit"
           ],
           "exports": [],
           "attributes": {
@@ -113686,7 +113703,11 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected"
           ],
           "exports": [],
           "attributes": {
@@ -114496,6 +114517,35 @@
           "parameters": [
             "prepared",
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [
+            "prepared",
+            "request",
+            "facts",
+            "readEvidence",
+            "journal",
+            "hasIntent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected",
+          "parameters": [
+            "wire"
           ],
           "async": false
         },
@@ -115544,6 +115594,7 @@
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
+        "./source-alias-construction.mjs",
         "./source-profile-json.mjs",
         "@actql/client-wire",
         "node:fs/promises",
@@ -115551,7 +115602,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4afabf6f444cb952ace1f3478dba1fafb950e3c0531f13a0c8898a1357f93f8a"
+      "sha256": "ce0cb0b710f1dd2c3ff5275c129499701c170a489dab7e960d7b82418c52ae45"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

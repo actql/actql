@@ -269,7 +269,7 @@ pub fn capture_installed_logical_observation_record(ClientLogicalObservationReco
 
 pub fn capture_installed_managed_run_explanation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientOriginalExplanationCapture, ClientOriginalExplanationCaptureIssue]
 
-pub fn[I] capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[ClientRequestEffectRunExplanation[I], ClientRequestStaticContextIssue]
+pub fn[I] capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int, journal_bytes? : Int) -> Result[ClientRequestEffectRunExplanation[I], ClientRequestStaticContextIssue]
 
 pub fn[I] capture_request_original_explanation(ClientRequestOriginalExplanation[I], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientOriginalExplanationCapture, ClientOriginalExplanationCaptureIssue]
 
@@ -515,7 +515,7 @@ pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) ->
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
 
-pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract) -> Result[Unit, ClientRequestStaticContextIssue]
+pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, decline? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
 
 pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -1662,6 +1662,8 @@ pub fn[I, P] take_program_compilation_preparation(ClientProgramCheckPreparation[
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
+
+pub fn[I] try_capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[ClientRequestEffectRunExplanation[I]?, ClientRequestStaticContextIssue]
 
 pub fn[T, E] with_program_commit_validation_view_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue], (ClientProgramValidation, @run_publication.PublicationCommitPreparation) -> Result[T, E]) -> Result[Result[T, E]?, ClientProgramValidationIssue]
 
