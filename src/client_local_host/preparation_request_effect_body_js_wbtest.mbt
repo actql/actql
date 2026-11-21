@@ -542,6 +542,856 @@ test "static Effect Request Plan refuses foreign or noncurrent originals before 
 }
 
 ///|
+test "static Effect Context measures and emits on the original working Request" {
+  let current = Ref(true)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    current.val
+  })
+  let manifests = request_program_module_manifests()
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let (original, _) = @publication_host.capture_client_static_effect_explanation_original(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let build = (candidate, bytes) => {
+    construct_request_static_effect_context(
+      parent, candidate, original, compiled, bytes, 8192, 64, 10000,
+    )
+  }
+  let capacity = parent.effect_capacity.unwrap()
+  let extents = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let usage = @resources.ledger_usage(parent.ledger)
+  let entry = static_context_measurement_bytes +
+    client_static_plan_quote_construction_bytes()
+  let free = @resources.ledger_limits(parent.ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  assert_true(free >= entry)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    free - entry + 1L,
+    0L,
+  ).unwrap()
+  assert_true(build(input, 65536) is Err(Preparation(Capacity(_))))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    extents,
+  )
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  assert_true(build(input.copy(), 65536) is Err(Preparation(ForeignOriginal)))
+  let wire = match build(input, 65536) {
+    Ok(value) => value
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  assert_true(wire.contains("actql-explanation-context/0.1"))
+  assert_true(wire.contains("\"write_fields\":{\"fields\":[\"Name\"]"))
+  assert_true(wire.contains("\"name\":\"rows\""))
+  assert_true(!wire.contains("run_ref"))
+  let completed = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  assert_true(completed.0 > extents.0 + entry)
+  assert_true(completed.1 > extents.1 + entry)
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  current.val = false
+  assert_true(build(input, 65536) is Err(Preparation(Capacity(_))))
+  current.val = true
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "static Effect Explanation pairs Facts and Context with one Plan and final current fence" {
+  let calls = Ref(0)
+  let refuse_at : Ref[Int?] = Ref(None)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    calls.val += 1
+    refuse_at.val != Some(calls.val)
+  })
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let read_pair = () => {
+    construct_request_static_effect_explanation(
+      parent, input, original, compiled, 65536, 8192, 64, 10000,
+    )
+  }
+  let before = calls.val
+  let (facts, context) = match read_pair() {
+    Ok(value) => value
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  let checks = calls.val - before
+  assert_true(checks > 1)
+  let parse = (name, wire) => {
+    @publication.parse_interactive_run_control_shape(
+      name, wire, 65536, 8192, 64,
+    ).unwrap()
+  }
+  let plan = parse("effectful_static_plan_view", plan)
+  let base_view = @identity.object_field(
+    @identity.object_field(plan, "computation").unwrap(),
+    "plan_view",
+  ).unwrap()
+  let plan_map = @identity.object_field(base_view, "logical_map").unwrap()
+  let facts = parse("explanation_facts", facts)
+  let context_binding = @identity.object_field(
+    parse("explanation_context", context),
+    "binding",
+  ).unwrap()
+  guard @identity.object_field(plan_map, "self_cid")
+    is Some(@identity.String(map_cid)) &&
+    @identity.object_field(base_view, "compiled_plan_cid")
+    is Some(@identity.String(plan_cid)) else {
+    fail("original static Plan binding is required")
+  }
+  for facet in [facts, context_binding] {
+    assert_true(
+      @identity.object_field(facet, "compiled_plan_cid")
+      is Some(@identity.String(value)) &&
+      value == plan_cid,
+    )
+    assert_true(
+      @identity.object_field(facet, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+  }
+  // Observe the same synchronous sequence and revoke just its last current
+  // check. Both admitted outputs are then withheld from the caller together.
+  refuse_at.val = Some(calls.val + checks)
+  assert_true(read_pair() is Err(Preparation(Capacity(_))))
+  assert_eq(Some(calls.val), refuse_at.val)
+  assert_true(parent.phase == EffectCompiled)
+  refuse_at.val = None
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "first Effect Run Explanation borrows its issued compilation and holds all facets on the Request" {
+  let live = Ref(true)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    live.val
+  })
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let issued = (context : String) => {
+    @publication_host.issue_client_effect_allowed_run(
+      compiled,
+      "sha256:" + context.repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2026-11-25T00:00:00.000Z",
+    ).unwrap()
+  }
+  let issue_definition = (allowed, id) => {
+    @publication_host.issue_client_effect_run_definition(
+      allowed, "scope", id, "2026-11-24T00:00:00.000Z", "2026-11-25T00:00:00.000Z",
+    ).unwrap()
+  }
+  let allowed = issued("a")
+  let definition = issue_definition(allowed, "first-effect-explanation")
+  let foreign = issue_definition(issued("c"), "foreign-effect-explanation")
+  let sibling = issue_definition(allowed, "sibling-effect-explanation")
+  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let capture = (candidate, run) => {
+    capture_request_effect_run_explanation(
+      parent, candidate, allowed, run, 65536, 8192, 64, 10000,
+    )
+  }
+  assert_true(
+    capture(input.copy(), definition) is Err(Preparation(ForeignOriginal)),
+  )
+  assert_true(capture(input, foreign) is Err(Preparation(ForeignOriginal)))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let usage = @resources.ledger_usage(parent.ledger)
+  let free = @resources.ledger_limits(parent.ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  let unavailable = @resources.reserve_capacity(parent.ledger, free - 1L, 0L).unwrap()
+  assert_true(capture(input, definition) is Err(Preparation(Capacity(_))))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  assert_true(
+    try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, 65536, 8192, 64, 10000,
+    )
+    is Ok(None),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  @resources.settle_capacity(parent.ledger, unavailable).unwrap()
+  let journal_scope = try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, 65536, 8192, 64, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(journal_scope, definition) is Ok(_),
+  )
+  discard_original_effect_run_explanation(
+    journal_scope,
+    definition,
+    decline=true,
+  ).unwrap()
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let original = capture(input, definition).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, sibling)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  let equal_wire = @publication.admit_publication_contract(
+    "run_definition",
+    @publication.publication_contract_json(definition),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, equal_wire)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  {
+    let selected = original_effect_run_explanation_facets(original, definition).unwrap()
+    assert_eq(
+      selected.plan,
+      @publication_host.client_effect_static_computation_plan_view(
+        prepared, compiled, 65536, 8192, 64,
+      ).unwrap(),
+    )
+    let original_plan = @publication_host.client_effect_compilation_compiled_plan(
+      compiled,
+    )
+    assert_eq(
+      selected.compiled_plan,
+      @publication.publication_contract_json(original_plan),
+    )
+    let template = @publication_host.client_effect_compilation_template(
+      compiled,
+    )
+    assert_eq(
+      selected.invocation_template,
+      @publication.run_evidence_value_json(template),
+    )
+    guard @json.parse(selected.invocation_template) is Object(template_fields) &&
+      @json.parse(@publication.publication_contract_json(definition))
+      is Object(definition_fields) else {
+      fail("the original Template and Run Definition must be objects")
+    }
+    assert_true(
+      definition_fields.get("invocation_template_cid") is Some(String(value)) &&
+      value == @publication.run_evidence_value_identity(template),
+    )
+    assert_true(
+      template_fields.get("check_environment_cid") is Some(String(value)) &&
+      value ==
+      @publication_host.prepared_client_effect_computation_environment_cid(
+        prepared,
+      ),
+    )
+    let plan_cid = @publication.publication_contract_identity(original_plan)
+    let facts = @publication.parse_interactive_run_control_shape(
+      "explanation_facts",
+      selected.facts,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let context = @publication.parse_interactive_run_control_shape(
+      "explanation_context",
+      selected.context,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let binding = @identity.object_field(context, "binding").unwrap()
+    assert_true(
+      @identity.object_field(binding, "check_environment_cid")
+      is Some(@identity.String(value)) &&
+      value ==
+      @publication_host.prepared_client_effect_computation_environment_cid(
+        prepared,
+      ),
+    )
+    for facet in [facts, binding] {
+      assert_true(
+        @identity.object_field(facet, "compiled_plan_cid")
+        is Some(@identity.String(value)) &&
+        value == plan_cid,
+      )
+    }
+    guard @identity.object_field(facts, "logical_map_cid")
+      is Some(@identity.String(map_cid)) else {
+      fail("original map identity is required")
+    }
+    assert_true(
+      @identity.object_field(binding, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+    assert_true(
+      selected.context.contains("\"write_fields\":{\"fields\":[\"Name\"]"),
+    )
+    let identity = @publication_host.prepared_client_effect_identity(prepared)
+    let definition_cid = @publication.publication_contract_identity(definition)
+    let read = (run, parameters, context, template, before_binding) => {
+      @publication_host.retained_client_run_explanation_context(
+        run,
+        Some(original_plan),
+        identity.program_definition_cid,
+        parameters,
+        Some(selected.plan),
+        Some(selected.facts),
+        context,
+        template,
+        "scope",
+        definition_cid,
+        65536,
+        65536,
+        8192,
+        64,
+        before_binding,
+      )
+    }
+    let same_parameters = identity.parameter_values_cid
+    let admit_binding = (_, _) => true
+    let retained = read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      .unwrap()
+      .unwrap()
+    assert_eq(
+      @identity.stringify_value(retained.context, 65536, 8192, 64),
+      selected.context,
+    )
+    assert_eq(
+      @identity.stringify_value(retained.facts, 65536, 8192, 64),
+      selected.facts,
+    )
+    assert_eq(
+      @identity.stringify_value(retained.plan, 65536, 8192, 64),
+      selected.plan,
+    )
+    let other_cid = "sha256:" + "e".repeat(64)
+    let environment = @publication_host.prepared_client_effect_computation_environment_cid(
+      prepared,
+    )
+    let changed_context = selected.context.replace(
+      old=environment,
+      new=other_cid,
+    )
+    assert_true(changed_context != selected.context)
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(changed_context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    template_fields.remove("bound_invocation_template_cid")
+    template_fields["check_environment_cid"] = other_cid.to_json()
+    let other_template = @publication.seal_run_evidence_value(
+      "bound_invocation_template",
+      Json::object(template_fields).stringify(),
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let other_template_wire = @publication.run_evidence_value_json(
+      other_template,
+    )
+    assert_eq(
+      other_template_wire.length(),
+      selected.invocation_template.length(),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(changed_context),
+        Some(other_template_wire),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        sibling,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        other_cid,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    // A cold consumer starts a separate existing Request. Use the exact
+    // issued originals above and an independently constructed scalar extent.
+    let definition_wire = @publication.publication_contract_json(definition)
+    let extent = wire => @scalar.admit_utf8_length(wire, 65536).unwrap()
+    let base_extent = 142 +
+      extent(definition_wire) +
+      extent(selected.compiled_plan) +
+      extent(selected.plan) +
+      extent(selected.facts)
+    let context_extent = extent(selected.context)
+    let template_extent = extent(selected.invocation_template)
+    for
+      (context, template, expected) in [
+        (Some(selected.context), Some(selected.invocation_template), 0),
+        (Some(changed_context), Some(other_template_wire), 1),
+        (Some(selected.context + " "), Some(selected.invocation_template), 2),
+        (None, None, 3),
+      ] {
+      let reader_input = [4]
+      let current = Ref(true)
+      let reader = begin_request_preparation(
+        request_parent_fixture(reader_input, current=() => current.val),
+        reader_input,
+        client_local_resource_policy(),
+      ).unwrap()
+      let original_capacity = reader.capacity
+      begin_request_explanation_context_read(reader, reader_input).unwrap()
+      let (stored, context_bytes, template_bytes) = if expected == 3 {
+        (base_extent, 0, 0)
+      } else {
+        (
+          base_extent + context_extent + template_extent + 64,
+          context_extent,
+          template_extent,
+        )
+      }
+      if expected != 3 {
+        assert_true(
+          reserve_request_explanation_context_read(
+            reader, reader_input, stored, context_bytes, 0, 65536, 8192, 64,
+          )
+          is Err(Policy),
+        )
+      }
+      reserve_request_explanation_context_read(
+        reader, reader_input, stored, context_bytes, template_bytes, 65536, 8192,
+        64,
+      ).unwrap()
+      let read_selected = candidate => {
+        read_request_explanation_context(
+          reader,
+          candidate,
+          definition_wire,
+          Some(selected.compiled_plan),
+          Some(selected.plan),
+          Some(selected.facts),
+          context,
+          template,
+          identity.program_definition_cid,
+          same_parameters,
+          "scope",
+          "sha256:" + "a".repeat(64),
+          definition_cid,
+          stored,
+          65536,
+          8192,
+          64,
+        )
+      }
+      assert_true(
+        read_selected(reader_input.copy()) is Err(Preparation(ForeignOriginal)),
+      )
+      let value = read_selected(reader_input)
+      match expected {
+        0 => {
+          let delivery = @publication.parse_interactive_run_control_shape(
+            "run_explanation_context_view",
+            value.unwrap(),
+            65536,
+            8192,
+            64,
+          ).unwrap()
+          let explanation = @identity.object_field(delivery, "explanation").unwrap()
+          let view = @identity.object_field(explanation, "view").unwrap()
+          for
+            (key, wire) in [
+              ("context", selected.context),
+              ("facts", selected.facts),
+              ("plan", selected.plan),
+            ] {
+            assert_eq(
+              @identity.stringify_value(
+                @identity.object_field(view, key).unwrap(),
+                65536,
+                8192,
+                64,
+              ),
+              wire,
+            )
+          }
+        }
+        1 => assert_true(value is Err(Projection(ForeignOriginal)))
+        2 => assert_true(value is Err(ReadLimit))
+        _ => {
+          let delivery = @publication.parse_interactive_run_control_shape(
+            "run_explanation_context_view",
+            value.unwrap(),
+            65536,
+            8192,
+            64,
+          ).unwrap()
+          let envelope = @identity.object_field(delivery, "explanation").unwrap()
+          assert_true(
+            @identity.object_field(envelope, "reason")
+            is Some(@identity.String(reason)) &&
+            reason == "not_retained",
+          )
+        }
+      }
+      assert_true(read_selected(reader_input) is Err(Preparation(WrongPhase)))
+      assert_true(physical_equal(reader.capacity, original_capacity))
+      abort_request_preparation_after_cleanup(reader).unwrap()
+      assert_eq(@resources.ledger_usage(reader.ledger).live_reservations, 0)
+    }
+    assert_true(
+      read(equal_wire, same_parameters, None, None, admit_binding) is Ok(None),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        None,
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        (_, _) => false,
+      )
+      is Err(ConstructionUnavailable),
+    )
+  }
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(after.0 > before.0)
+  assert_true(after.1 > before.1)
+  assert_true(parent.phase == EffectPlanReserved)
+  live.val = false
+  assert_true(
+    original_effect_run_explanation_facets(original, definition)
+    is Err(Preparation(Capacity(_))),
+  )
+  live.val = true
+  discard_original_effect_run_explanation(original, definition).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, definition)
+    is Err(Preparation(WrongPhase)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    after,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "static Effect Explanation charges the complete envelope at the per-facet clamp" {
+  let bytes = 65536
+  let nodes = 64
+  let depth = 16
+  let wire_bytes = 3 * bytes + 70
+  let decoded_nodes = 3L * nodes.to_int64() + 9L
+  let extent_nodes = 4L * decoded_nodes + 4L * depth.to_int64() + 64L
+  let expected = result_read_data_cost(
+    extent_nodes,
+    6L * wire_bytes.to_int64(),
+    2L * wire_bytes.to_int64(),
+  )
+  let limits = (bytes, nodes, depth)
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes + 1),
+    expected,
+  )
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes),
+    expected,
+  )
+  assert_eq(
+    static_effect_explanation_delivery_construction(limits, wire_bytes - 1),
+    result_read_data_cost(
+      extent_nodes,
+      6L * (wire_bytes - 1).to_int64(),
+      2L * (wire_bytes - 1).to_int64(),
+    ),
+  )
+}
+
+///|
+test "prepared static Effect reader issues one Plan with both structural facets" {
+  let (parent, input, _) = request_effect_compile_fixture()
+  let (legacy, legacy_input, _) = request_effect_compile_fixture()
+  let checks = parent._observed_semantic_check_calls
+  let compiles = parent._observed_program_compile_calls
+  let manifests = request_program_module_manifests()
+  let value = match
+    request_prepared_static_effect_explanation(
+      parent, input, manifests, 65536, 8192, 64, 10000,
+    ) {
+    Err(issue) => fail(@debug.to_string(issue))
+    Ok(result) => result
+  }
+  assert_eq(
+    value.plan,
+    request_prepared_static_plan_view(
+      legacy, legacy_input, manifests, 65536, 8192, 64,
+    ).unwrap(),
+  )
+  let parse = (name, wire) => {
+    @publication.parse_interactive_run_control_shape(
+      name, wire, 65536, 8192, 64,
+    ).unwrap()
+  }
+  let plan = parse("effectful_static_plan_view", value.plan)
+  let component = @identity.object_field(plan, "computation").unwrap()
+  let view = @identity.object_field(component, "plan_view").unwrap()
+  let map = @identity.object_field(view, "logical_map").unwrap()
+  let facts = parse("explanation_facts", value.facts)
+  let context = parse("explanation_context", value.context)
+  let binding = @identity.object_field(context, "binding").unwrap()
+  guard @identity.object_field(view, "compiled_plan_cid")
+    is Some(@identity.String(plan_cid)) &&
+    @identity.object_field(map, "self_cid") is Some(@identity.String(map_cid)) else {
+    fail("the original Plan and map identities must be present")
+  }
+  for facet in [facts, binding] {
+    assert_true(
+      @identity.object_field(facet, "compiled_plan_cid")
+      is Some(@identity.String(value)) &&
+      value == plan_cid,
+    )
+    assert_true(
+      @identity.object_field(facet, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+  }
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(parent.effect_plan is None)
+  assert_true(parent.submitted_intent is None)
+  assert_eq(parent._observed_semantic_check_calls, checks)
+  assert_eq(parent._observed_program_compile_calls, compiles)
+  abort_request_preparation_after_cleanup(legacy).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "prepared static Effect Explanation envelopes enforce the aggregate byte limit" {
+  let manifests = request_program_module_manifests()
+  let (probe, probe_input, _) = request_effect_compile_fixture()
+  let expected = match
+    request_prepared_static_effect_explanation_wire(
+      probe, probe_input, manifests, 65536, 8192, 64, 10000,
+    ) {
+    Ok(wire) => wire
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  let exact = @utf8.encode(expected).length()
+  let decoded = @publication.parse_interactive_run_control_shape(
+    "static_explanation_view", expected, exact, 8192, 64,
+  ).unwrap()
+  assert_true(
+    @identity.object_field(decoded, "version")
+    is Some(@identity.String("actql-static-explanation/0.1")),
+  )
+  for (limit, exact_limit) in [(exact, true), (exact - 1, false)] {
+    let (parent, input, _) = request_effect_compile_fixture()
+    let wire = request_prepared_static_effect_explanation_wire(
+      parent, input, manifests, limit, 8192, 64, 10000,
+    )
+    if exact_limit {
+      match wire {
+        Ok(value) => assert_eq(value, expected)
+        Err(issue) => fail(@debug.to_string(issue))
+      }
+    } else {
+      assert_true(wire is Err(Encoding(@encode.OutputLimit)))
+    }
+    assert_true(parent.phase == EffectCompiled)
+    assert_true(parent.submitted_intent is None)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  abort_request_preparation_after_cleanup(probe).unwrap()
+  assert_eq(@resources.ledger_usage(probe.ledger).live_reservations, 0)
+}
+
+///|
+test "prepared static Effect Explanation renders the admitted original within its Request" {
+  let manifests = request_program_module_manifests()
+  for
+    (language, result, heading) in [
+      (
+        @publication_host.English,
+        "Declare Result \"rows\"",
+        "Logical dependencies",
+      ),
+      (
+        @publication_host.Japanese,
+        "結果を宣言 \"rows\"",
+        "論理的な依存関係",
+      ),
+    ] {
+    let (parent, input, _) = request_effect_compile_fixture()
+    let output = match
+      request_prepared_static_effect_explanation_narrative(
+        parent, input, manifests, 65536, 8192, 64, 10000, language,
+      ) {
+      Ok(wire) => wire
+      Err(issue) => fail(@debug.to_string(issue))
+    }
+    assert_true(output.contains(result), msg=output)
+    assert_true(output.contains(heading), msg=output)
+    assert_true(output.contains("\"connector://crm/account\""))
+    assert_true(parent.phase == EffectCompiled)
+    assert_true(parent.submitted_intent is None)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "prepared static Effect Explanation reuses its borrowed singleton or composed Model plans" {
+  for plural in [false, true] {
+    let (parent, input, holder) = request_effect_model_material_fixture(plural~)
+    let prepared = @resources.preparation_body_borrow_value(holder).unwrap()
+    let occurrences = @publication_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap()
+    let model_count = if plural { 2 } else { 1 }
+    assert_eq(occurrences.length(), model_count)
+    let infers = occurrences.map(occurrence => {
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        65536,
+        8192,
+        64,
+      ).unwrap()
+    })
+    let value = match
+      request_prepared_static_effect_explanation(
+        parent,
+        input,
+        request_program_module_manifests(),
+        65536,
+        8192,
+        64,
+        10000,
+        infers~,
+      ) {
+      Ok(output) => output
+      Err(issue) => fail(@debug.to_string(issue))
+    }
+    let context = @publication.parse_interactive_run_control_shape(
+      "explanation_context",
+      value.context,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    guard @identity.object_field(context, "items")
+      is Some(@identity.Array(items)) else {
+      fail("Context must contain its original item inventory")
+    }
+    let mut found = 0
+    for index in 0..<@identity.array_count(items) {
+      let item = @identity.array_at(items, index).unwrap()
+      if @identity.object_field(item, "kind")
+        is Some(@identity.String("model_task")) {
+        assert_true(
+          @identity.object_field(item, "task_id")
+          is Some(@identity.String("model-task:risk-score.v1")),
+        )
+        found += 1
+      }
+    }
+    assert_eq(found, model_count)
+    assert_true(parent.phase == EffectPlanReserved)
+    assert_true(parent.effect_plan is None)
+    assert_true(parent.submitted_intent is None)
+    assert_true(
+      physical_equal(
+        @resources.preparation_body_borrow_value(holder).unwrap(),
+        prepared,
+      ),
+    )
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "static Effect Plan retains its same borrowed original without constructing a body" {
   let (parent, input, prepared) = request_effect_compile_fixture()
   let checks = parent._observed_semantic_check_calls

@@ -138,12 +138,13 @@ fn explanation_original_ports(
 ///|
 fn write_client_explanation_facts(
   w : @encode.Writer,
-  original : ClientStructuralExplanationOriginal,
+  prepared : PreparedClientProgram,
+  plan : @publication.PublicationContract,
+  map : @canonical.CanonicalValue,
   max_nodes : Int,
   complete : Bool,
 ) -> Result[Unit, ClientExplanationFactsIssue] {
-  let identity = prepared_client_identity(original.prepared)
-  let map = original.map
+  let identity = prepared_client_identity(prepared)
   try {
     @encode.begin_object(w)
     explanation_text(
@@ -186,12 +187,7 @@ fn write_client_explanation_facts(
         },
       )
       let fact = match
-        issue_client_operation_explanation(
-          original.prepared,
-          original.compiled.plan,
-          stage,
-          index,
-        ) {
+        issue_client_operation_explanation(prepared, plan, stage, index) {
         Ok(fact) => fact
         Err(issue) => return Err(Meaning(Original(issue)))
       }
@@ -241,18 +237,43 @@ pub fn measure_client_structural_explanation_facts(
   if !explanation_original_matches(original, compiled, prepared) {
     return Err(ForeignOriginal)
   }
+  measure_client_explanation_facts_from_map(
+    prepared,
+    original.compiled.plan,
+    original.map,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn measure_client_explanation_facts_from_map(
+  prepared : PreparedClientProgram,
+  plan : @publication.PublicationContract,
+  map : @canonical.CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
   }
   try {
     let body = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
-    match write_client_explanation_facts(body, original, max_nodes, false) {
+    match
+      write_client_explanation_facts(
+        body, prepared, plan, map, max_nodes, false,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
     let body_geometry = @encode.finish_measurement_usage(body)
     let complete = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
-    match write_client_explanation_facts(complete, original, max_nodes, true) {
+    match
+      write_client_explanation_facts(
+        complete, prepared, plan, map, max_nodes, true,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -278,12 +299,32 @@ pub fn seal_client_structural_explanation_facts(
   if !explanation_original_matches(original, compiled, prepared) {
     return Err(ForeignOriginal)
   }
+  seal_client_explanation_facts_from_map(
+    prepared,
+    original.compiled.plan,
+    original.map,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn seal_client_explanation_facts_from_map(
+  prepared : PreparedClientProgram,
+  plan : @publication.PublicationContract,
+  map : @canonical.CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientExplanationFactsIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
   }
   let body = try {
     let w = @encode.writer(max_bytes, max_nodes, max_depth)
-    match write_client_explanation_facts(w, original, max_nodes, false) {
+    match
+      write_client_explanation_facts(w, prepared, plan, map, max_nodes, false) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }

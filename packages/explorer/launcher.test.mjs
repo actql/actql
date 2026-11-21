@@ -13,7 +13,14 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 test('the installed loader admits actual frozen SPA bytes inside the existing asset bound', async () => {
   const assets = await loadExplorerAssets();
   // HTML, application JS/CSS and the separately emitted same-origin ELK Worker.
-  assert.equal(assets.size, 4);
+  assert.equal(assets.size, 6);
+  const fonts = [...assets].filter(([path]) => path.endsWith('.woff2'));
+  assert.equal(fonts.length, 2);
+  for (const [path, asset] of fonts) {
+    assert.match(path, /^\/assets\/geist(?:-mono)?-latin-[a-zA-Z0-9_-]+\.woff2$/u);
+    assert.equal(asset.contentType, 'font/woff2');
+    assert.equal(asset.body.subarray(0, 4).toString(), 'wOF2');
+  }
   assert([...assets.keys()].some(path => /^\/assets\/flow-layout-worker-[a-zA-Z0-9_-]+\.js$/u.test(path)));
   assert.match(assets.get('/index.html').body.toString(), /ActQL Explorer/u);
   const scripts = [...assets.get('/index.html').body.toString()

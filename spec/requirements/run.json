@@ -1422,6 +1422,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/explanation-context-original-binding",
+      "statement_sha256": "3f645ff7b675d90692f89fe0ce4175defd7fff7187d03813e916d0ce82c0b388",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/explanation-context-structural-scope",
+      "statement_sha256": "1475cfb2d67cebfee5c403c7f566b53d1b941fb74d19b227af5d3ce201398d8b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/explanation-context-current-and-egress",
+      "statement_sha256": "eb1935713f4c72a8f281d5e42a466d160700b0c81f0a63f65028c34d7e39e8d6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/explanation-context-saved-custody",
+      "statement_sha256": "af47cb1004b4792ad467089ebb9d9de1c08b8158e2add6b7345e149be3a0d961",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/interactive-original-intent",
       "statement_sha256": "2bab4ea380a8f31f0cb33b6dfb34343c81d5e32c6eba6340c5021d12d11491d6",
       "status": "pending",

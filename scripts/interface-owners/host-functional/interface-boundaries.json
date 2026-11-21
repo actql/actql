@@ -21864,7 +21864,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f839d793d6d091eec9f8b666c5c63468132b5a6714b9516af0bf62e65d446a2d",
+      "sha256": "e0caf62faa56f04c47f17b9a527d706106cbdd1905a1285e2951a1c6a9632d1a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21883,6 +21883,7 @@
             "prepareExecution",
             "execute",
             "prepareDefinition",
+            "captureDefinitionExplanation",
             "assertRequestedStopAvailable",
             "requestIdentityFor",
             "inferPlanFor",
@@ -21926,6 +21927,13 @@
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/evidence/evidence",
+          "parameters": [
+            "maxOptionalBytes"
+          ],
+          "async": false
         },
         {
           "name": "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/init:issueDefinition",
@@ -22075,7 +22083,8 @@
             "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation/init:restoreComputation",
             "installNodeClientEffectRun/init:start/init:start",
             "installNodeClientEffectRun/init:start/init:start/init:start",
-            "installNodeClientEffectRun/installNodeClientEffectRun"
+            "installNodeClientEffectRun/installNodeClientEffectRun",
+            "installNodeClientEffectRun/init:accept/init:accept/accepted/init:issueDefinition/init:issueDefinition/evidence/evidence"
           ],
           "exports": [
             "installNodeClientEffectRun",
@@ -22476,6 +22485,10 @@
               {
                 "path": "adapters/host-node/client-effect-query-time.test.mjs",
                 "anchor": "test('keyed initial tuple does not bypass fresh current authorization'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('Effect first admission forwards one original Explanation ticket"
               }
             ]
           }
@@ -23050,7 +23063,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9eb34e5a65ec6a7c2eaec2f889aa974affb7557ba186ec1aec6dd5a80fa21bb6",
+      "sha256": "9509731abff99e15916713c27f98d501fafe9e4eb0afa581fea1722c89a079af",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23092,9 +23105,11 @@
             "peekResource",
             "check",
             "plan",
+            "staticEffectExplanation",
             "inspectRun",
             "runPlan",
             "runExplanation",
+            "runExplanationContext",
             "maxRequestBytes",
             "observe",
             "loopbackHttp",
@@ -24889,7 +24904,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               }
             ]
           }
@@ -24911,13 +24926,54 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ac6bfabc78f377a2b113f6dca562e48f5de95c2fcd2edc52596f35a348073b35",
+      "sha256": "1fe463ae84872e6c67baba2c358eec969eaf01135c9376fa1b08819525cad664",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
+        "installClientStaticEffectExplanation",
         "installClientStaticPlan"
       ],
       "operations": [
+        {
+          "name": "assertSynchronousStaticCurrent/assertSynchronousStaticCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation",
+          "parameters": [
+            "authorize",
+            "authorizeEgress",
+            "withOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
+          "parameters": [
+            "wires",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "installClientStaticPlan",
           "parameters": [
@@ -25265,6 +25321,109 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertSynchronousStaticCurrent/assertSynchronousStaticCurrent",
+            "installClientStaticEffectExplanation",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress"
+          ],
+          "exports": [
+            "installClientStaticEffectExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticEffectExplanation({authorize, authorizeEgress, withOriginal}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "return async function readStaticEffectExplanation(request, consume) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "function originalStaticExplanation({plan, facts, context}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "retains that reservation until this visitor finishes, and supplies a"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "if (!completed) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "function assertSynchronousStaticCurrent(assertCurrent) {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "// Keep the current Account observation in the same turn as the sink."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "let remaining = maxWireBytes - explanationReplyOverhead;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "// A private Host continuation for the structural projection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation applies aggregate limits and retains the original during delivery', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses denied egress before preparation or wire access', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses foreign Context and preserves final original current loss', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses an owner return before the visitor completes', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses asynchronous current at both disclosure boundaries', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation requires a synchronous Account decision before projection', async () => {"
               }
             ]
           }
@@ -28264,7 +28423,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9aca91e7c8ea5d054804dc7cbe6888094648c39723010396aeef96c210d49b23",
+      "sha256": "089a10c19f68c03e3c2872e18bb3e1fb7ea064e48077a2d16a585995812c8279",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29251,6 +29410,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
           "parameters": [
             "identity",
@@ -29349,6 +29513,20 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:probeRunExplanationContextOriginal/init:probeRunExplanationContextOriginal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:probeRunExplanationOriginal/init:probeRunExplanationOriginal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
           "parameters": [
             "frame",
@@ -29375,6 +29553,22 @@
         {
           "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRunExplanationOriginal/init:readRunExplanationOriginal",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
           "async": false
         },
         {
@@ -29629,6 +29823,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
           "parameters": [
             "epoch",
@@ -29650,24 +29849,9 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection",
-          "parameters": [
-            "ref",
-            "extent"
           ],
           "async": false
         },
@@ -30584,7 +30768,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
+                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > evidenceLimit) {"
               }
             ],
             "extension": [
@@ -32279,7 +32463,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
+                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > evidenceLimit) {"
               }
             ],
             "extension": [
@@ -33041,7 +33225,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/probeExplanationRead/probeExplanationRead"
+            "openClientRequestJournal/journal/init:probeRunExplanationOriginal/init:probeRunExplanationOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -33209,7 +33393,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/readExplanationSelection/readExplanationSelection"
+            "openClientRequestJournal/journal/init:readRunExplanationOriginal/init:readRunExplanationOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -33542,6 +33726,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:probeRunExplanationContextOriginal/init:probeRunExplanationContextOriginal",
+            "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
+            "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
+            "openClientRequestJournal/journal/init:originalExplanationContextLimit/init:originalExplanationContextLimit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const explanationContextOriginalTable ="
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "supportsOriginalExplanationContext()"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "probeRunExplanationContextOriginal(ref)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "readRunExplanationContextOriginal(ref, extent)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "c.run_definition_cid = r.run_definition_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "This runs inside the SAME semantic acceptance transaction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context and Template join the same committed Plan and Facts"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('failed Context insertion rolls back"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These synchronous Journal selections own no independently cancellable operation. The caller owns cancellation and disclosure."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes > maxRunDefinitionWireBytes"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context and Template enforce a paired aggregate extent"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('old Facts-only Runs never backfill Context"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context and Template join the same committed Plan and Facts"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context and Template enforce a paired aggregate extent"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -33563,6 +33835,7 @@
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
         "./ordinary-source-binding.mjs",
+        "./source-alias-construction.mjs",
         "node:crypto",
         "node:fs",
         "node:fs/promises",
@@ -46628,7 +46901,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "0dedcfa0037d5833e85116241d8f16d0cbf657af88de095b748b0cb77f8d1440",
+      "sha256": "a1ee0fb1f276e494aeab09c96f5e773e35ba43fed1eddda25746fa95ec3f7927",
       "exports": [
         "commonjs:sql"
       ],
@@ -48068,7 +48341,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "10ad2ba0b7000648c342ff806274c1b6fa98d7454b3236d4155421d7d1488881",
+      "sha256": "104caebc258c9f1cf9490a8bb51289c3c9346bf4a41a9351b588fa0b2c7dcc9f",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -48108,9 +48381,11 @@
             "peekResource",
             "check",
             "plan",
+            "staticEffectExplanation",
             "inspectRun",
             "runPlan",
             "runExplanation",
+            "runExplanationContext",
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
@@ -49344,7 +49619,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               }
             ]
           }
@@ -68501,7 +68776,7 @@
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb7f6b2b9b928db50c7bf03425304efc7ab384a90b964e97e168902f1442dad2",
+      "sha256": "d315e680d04487ac05cd8f0101a8f52e96afe5beb6c2d794deb55a376499dd15",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -68512,7 +68787,8 @@
           "name": "originalModelRunWire",
           "parameters": [
             "compiled",
-            "runDefinition"
+            "runDefinition",
+            "maxBytes"
           ],
           "async": false
         },
@@ -68537,7 +68813,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68551,7 +68827,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -68593,7 +68869,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68681,7 +68957,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68695,7 +68971,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -68737,7 +69013,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-model-originals.mjs",
-                "anchor": "export function originalModelRunWire(compiled, runDefinition) {"
+                "anchor": "export function originalModelRunWire(compiled, runDefinition, maxBytes) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -68819,7 +69095,8 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/sdk/host-port.mjs"
+        "../../packages/sdk/host-port.mjs",
+        "./source-alias-construction.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -113433,7 +113710,11 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected",
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected"
           ],
           "exports": [],
           "attributes": {
@@ -113780,6 +114061,78 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"static Model Plan consumes only the same original graph and retains its input through refusal\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/missingExplanationPort",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/projectOriginalStaticExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation/assertOriginal/assertOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "visit, modelInstallation, fileReadDeclarations) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const response = await visit(wires, assertOriginal);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "state.parent !== parent || state.staticExplanationDelivery !== visit) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "state.staticExplanationDelivery = visit;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ClientOperationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn static_effect_explanation_delivery_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "return constructRequestDomain(state, function projectOriginalStaticExplanation() {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('static Effect Explanation manager holds its original Request through asynchronous delivery', async () => {"
               }
             ]
           }
@@ -114175,6 +114528,35 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [
+            "prepared",
+            "request",
+            "facts",
+            "readEvidence",
+            "journal",
+            "hasIntent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal",
           "parameters": [
             "prepared",
@@ -114241,9 +114623,18 @@
             "journal",
             "staticPlan",
             "staticModelInstallation",
-            "staticFileReadDeclarations"
+            "staticFileReadDeclarations",
+            "staticExplanation",
+            "maxWork"
           ],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
@@ -114322,10 +114713,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/missingExplanationPort",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/projectOriginalStaticExplanation",
+          "parameters": [],
           "async": false
         },
         {
@@ -115147,6 +115550,26 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal",
+            "limits",
+            "maxWork",
+            "visit",
+            "modelInstallation",
+            "fileReadDeclarations"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryProjectSourceManagedInstallation",
           "parameters": [
             "originals",
@@ -115178,6 +115601,7 @@
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
+        "./source-alias-construction.mjs",
         "./source-profile-json.mjs",
         "@actql/client-wire",
         "node:fs/promises",
@@ -115185,7 +115609,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2c1e08fb2c954632c283b5569598ff8c3f2a23122640923fac19f262ee2de1d7"
+      "sha256": "2b00e1e52d108e49f53fa7d75fc43ff1c24ec3fe907fbf59cb811014a74fdc5b"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -119206,7 +119630,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bd258368cf5d092102ae7faa8be438d56d18064b2fcc23b2242c91b029a966a0",
+      "sha256": "8f15c69367eaf0f8da73ee41a1ea9396312aba044654148a1af803b47c758a92",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -119232,7 +119656,8 @@
             "facts",
             "operation",
             "resource",
-            "interactive"
+            "interactive",
+            "reobserve"
           ],
           "async": false
         },
@@ -119253,10 +119678,25 @@
           "async": false
         },
         {
+          "name": "createLocalReadAuthorizations/init:runCurrent/init:runCurrent",
+          "parameters": [
+            "facts",
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "createLocalReadAuthorizations/init:runImmediate/init:runImmediate",
           "parameters": [
             "facts",
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:staticPlanImmediate/init:staticPlanImmediate",
+          "parameters": [
+            "actual"
           ],
           "async": false
         },
@@ -119355,7 +119795,8 @@
             "createLocalReadAuthorizations",
             "createLocalReadAuthorizations/authorize/authorize",
             "createLocalReadAuthorizations/init:result/init:result",
-            "createLocalReadAuthorizations/init:run/init:run"
+            "createLocalReadAuthorizations/init:run/init:run",
+            "createLocalReadAuthorizations/init:runCurrent/init:runCurrent"
           ],
           "exports": [
             "createLocalReadAuthorizations"
@@ -119443,6 +119884,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "actual observation delivery Deny stops Result output without refunding the original claim"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation.test.mjs",
+                "anchor": "test('Saved Context guards scalar read"
               }
             ]
           }
@@ -119579,6 +120024,82 @@
               {
                 "path": "adapters/host-node/logical-task-observation.test.mjs",
                 "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:staticPlanImmediate/init:staticPlanImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "staticPlanImmediate({principalId: actual}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "      const decision = authorizeEgress(request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function hasStaticExplanationPort(name) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
               }
             ]
           }
@@ -132304,7 +132825,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "08072b45c64c3e0115f3672338a98d208078c981bd0b97ddfc4866387e07db6b",
+      "sha256": "50eca4bfbe9bdd0f5134efe280ecf4e1b1261260fd0414514a04be8f0951a151",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -134258,7 +134779,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "4f9d07e047ca25f7218e08ef8652cccfe662c7b32dd1dbc30c0507ca12efbb70",
+      "sha256": "c7cb75ec12055871f140dc9c6cf58f446108ef5af1c293b6259dea4ab564b78a",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -134304,6 +134825,13 @@
         },
         {
           "name": "createLocalResultReadWorkspace/init:beginExplanation/init:beginExplanation",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:beginExplanationContext/init:beginExplanationContext",
           "parameters": [
             "request"
           ],
@@ -134393,7 +134921,7 @@
           "name": "createLocalResultReadWorkspace/init:prepareExplanation/init:prepareExplanation",
           "parameters": [
             "request",
-            "storedBytes"
+            "extent"
           ],
           "async": false
         },
@@ -135122,7 +135650,8 @@
         },
         {
           "operations": [
-            "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation"
+            "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation",
+            "createLocalResultReadWorkspace/init:beginExplanationContext/init:beginExplanationContext"
           ],
           "exports": [],
           "attributes": {
@@ -135248,6 +135777,10 @@
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
                 "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
           }
@@ -136399,7 +136932,7 @@
     {
       "module": "adapters/host-node/client-run-explanation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "857206ef30b2a1401e2f951dcae197e977ff0fdf4a0382d8dc3e230a913656df",
+      "sha256": "a1cf294cf8b38d8c9f6f3e5b7c08103a2d6ff7a7c9c7c3733e3977d29a4792b5",
       "role": "physical-io",
       "owner": "Existing admitted Run read and request Journal owners",
       "exports": [
@@ -136413,8 +136946,15 @@
             "authorizeEgress",
             "probeOriginal",
             "lookupOriginal",
-            "readWorkspace"
+            "readWorkspace",
+            "context",
+            "authorizeCurrent"
           ],
+          "async": false
+        },
+        {
+          "name": "installClientRunExplanation/assertCurrentAccess/assertCurrentAccess",
+          "parameters": [],
           "async": false
         },
         {
@@ -136445,7 +136985,8 @@
             "<module>",
             "installClientRunExplanation",
             "installClientRunExplanation/installClientRunExplanation",
-            "installClientRunExplanation/installClientRunExplanation#2"
+            "installClientRunExplanation/installClientRunExplanation#2",
+            "installClientRunExplanation/assertCurrentAccess/assertCurrentAccess"
           ],
           "exports": [
             "installClientRunExplanation"
@@ -136508,7 +137049,11 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation.test.mjs",
+                "anchor": "test('Saved Context guards scalar read"
               }
             ]
           }
