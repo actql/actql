@@ -16,6 +16,9 @@ type SetupOptions = Readonly<{
 type ReadOptions = Readonly<Record<string, unknown> & {
   resource?: unknown; operation?: unknown; columns: readonly unknown[]; requestWire?: unknown;
   originalAuthorization?: unknown; signal?: AbortSignal;
+  verifyRead(): unknown;
+  authorizationFor(index: number): unknown;
+  chargePage(body: ArrayBufferView): unknown;
 }>;
 type ReadResult = Readonly<{pages: number; rowCount: number}>;
 type Reader = Readonly<{
@@ -32,9 +35,9 @@ type Reader = Readonly<{
 type Preparation = Readonly<{retire(): boolean}>;
 type Factory = Readonly<{
   capacity: unknown;
-  prepare(options: ReadOptions, retainPreparation?: (preparation: Preparation) => unknown,
-    reserveResponseCapacity?: (capacity: unknown) => unknown, responseBorrow?: unknown,
-    reserveTransferCapacity?: (bytes: bigint) => unknown): Reader;
+  prepare(options: ReadOptions, retainPreparation?: (preparation: Preparation) => undefined,
+    reserveResponseCapacity?: (capacity: unknown) => undefined, responseBorrow?: unknown,
+    reserveTransferCapacity?: (bytes: bigint) => undefined): Reader;
   retire(): boolean;
 }>;
 type Credential = Readonly<{control: unknown}>;
