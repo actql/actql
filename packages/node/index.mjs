@@ -113,12 +113,34 @@ export async function connect(options, stringOptions) {
 // Existing connect() retains its environment/home-directory defaults.
 export async function open(options) {
   if (options === undefined) options = {};
-  if (options === null || typeof options !== 'object' || Array.isArray(options) ||
-      Reflect.ownKeys(options).some(key => !['stateDir', 'installation',
-        'durability', 'consentRefs', 'profile'].includes(key))) {
+  if (options === null || typeof options !== 'object' || Array.isArray(options)) {
     throw new ClientError('InvalidOpenOptions');
   }
-  options = captureOptions(options);
+  const fields = ['stateDir', 'installation', 'durability', 'consentRefs', 'profile'];
+  const keys = Reflect.ownKeys(options);
+  if (keys.some(key => !fields.includes(key))) {
+    throw new ClientError('InvalidOpenOptions');
+  }
+  for (const key of fields) {
+    if (!keys.includes(key) && key in options) {
+      throw new ClientError('InvalidOpenOptions');
+    }
+  }
+
+  // Capture the closed set of own descriptors before invoking any getter.
+  // An accessor can mutate the input without changing the other originals.
+  const descriptors = [];
+  for (const key of keys) {
+    const field = Object.getOwnPropertyDescriptor(options, key);
+    if (field === undefined) throw new ClientError('InvalidOpenOptions');
+    descriptors.push([key, field]);
+  }
+  const captured = Object.create(null);
+  for (const [key, field] of descriptors) {
+    if (Object.hasOwn(field, 'value')) captured[key] = field.value;
+    else captured[key] = field.get === undefined ? undefined : Reflect.apply(field.get, options, []);
+  }
+  options = captured;
   if (
       options.stateDir !== undefined &&
         (typeof options.stateDir !== 'string' || !options.stateDir) ||
