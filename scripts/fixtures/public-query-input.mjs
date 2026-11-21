@@ -781,6 +781,12 @@ export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', forma
   text: "SELECT FARM_FINGERPRINT('a') AS result",
   expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
     contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
+export const sha256Original = {name: 'sha256-original', format: 'sql',
+  text: "SELECT SHA256('a') AS x, SHA256(NULL) AS missing, SHA256(SHA256('a')) AS twice",
+  expected: [{x: 'ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=', missing: null,
+    twice: 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='}],
+  columns: ['x', 'missing', 'twice'].map(name => ({name,
+    contract: {type: 'bytes', nullable: name === 'missing'}})), sourceReadCount: 0};
 export const regexpContainsOriginal = {name: 'regexp-contains-original', format: 'sql',
   text: "SELECT REGEXP_CONTAINS('abc', 'a') AS result",
   expected: [{result: true}], columns: [{name: 'result',
@@ -1032,6 +1038,7 @@ export const sourceFreeSuccesses = [
   arrayToStringOriginal,
   formatStringsOriginal,
   farmFingerprintOriginal,
+  sha256Original,
   toJsonStringOriginal,
   ...jsonValueOriginals,
   regexpContainsOriginal,

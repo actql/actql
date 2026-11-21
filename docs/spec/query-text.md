@@ -434,6 +434,10 @@ only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
 
+`SHA256(value)` selects the Common `sha256` expression with one original
+String or BYTES operand. It returns a 32-byte BYTES digest with the
+operand's nullability. String input uses its unchanged UTF-8 bytes.
+
 `FARM_FINGERPRINT(value)` selects `farm_fingerprint` for one original
 String operand. The result is INT64 with the operand's nullability.
 The checked Common operation consumes the original UTF-8 bytes.

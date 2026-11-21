@@ -115,6 +115,25 @@ export function signed64Body(protocol) {
   };
 }
 
+export function byteValuesBody(protocol) {
+  const grammar={type:'object',required:['type','nullable'],additionalProperties:false,
+    properties:{type:{const:'bytes'},nullable:{type:'boolean'}}};
+  for(const name of ['author_value_contract','canonical_value_contract']){
+    const branches=protocol.schemas[name].$defs.value_contract.oneOf
+      .filter(value=>value.properties?.type?.const==='bytes');
+    assert.deepEqual(branches,[grammar],'closed distinct BYTES grammar: '+name);
+  }
+  return {
+    grammar,
+    wire:{type:'string',
+      pattern:'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])'},
+    domain:'exact_octets_including_empty_nullable_governed_separately',
+    identity:'same_octets_and_distinct_typed_bytes_domain',
+    admission:'standard_alphabet_final_padding_zero_unused_bits_encoded_extent_within_existing_value_budget',
+    assignment:'same_leaf_and_existing_nullability_recursive_structure_no_implicit_conversion',
+  };
+}
+
 export function valueBodyContract(protocol) {
   const kinds=protocol.schemas.contract_envelope.properties.kind.enum;
   assert.deepEqual([...kinds].sort(),[...valueKinds,...otherKinds].sort(),'Every envelope kind needs an explicit body-grammar classification');
@@ -125,7 +144,8 @@ export function valueBodyContract(protocol) {
     scope:'type_declarations_only_not_value_admission_reference_authority_or_behavioral_contract_validation',
     command_input_presence:commandInputPresenceBody(protocol),
     text_enumeration:textEnumerationBody(protocol),
-    signed64:signed64Body(protocol)};
+    signed64:signed64Body(protocol),
+    bytes:byteValuesBody(protocol)};
 }
 
 export function generateValueKinds(protocol) {

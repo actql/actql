@@ -157,6 +157,7 @@ fn material_cell_text(
   let text = match checked.value {
     @admitted.Null => "NULL"
     @admitted.Signed64(value) => value.to_string()
+    @admitted.Binary(value) => @admitted.bytes_wire_text(value)
     _ =>
       match @admitted.canonical_scalar_text(checked, max_bytes) {
         Some(value) => value

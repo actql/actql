@@ -184,6 +184,11 @@ types. It preserves order and duplicates and returns NULL for a NULL array
 operand. The function uses the existing array value bounds.
 [GoogleSQL ARRAY_CONCAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_concat)
 
+`SHA256(value)` hashes String UTF-8 or the original BYTES and returns a
+32-byte BYTES value. NULL returns NULL. JSON results carry the digest in
+padded Base64 with a `bytes` column contract.
+[GoogleSQL SHA256](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#sha256)
+
 `FARM_FINGERPRINT(value)` accepts String and returns the stable signed
 INT64 fingerprint of its UTF-8 bytes. NULL returns NULL.
 [GoogleSQL FARM_FINGERPRINT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#farm_fingerprint)
@@ -349,7 +354,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | User-defined functions, `CREATE FUNCTION`, lambdas, inline JavaScript or Python | ActQL has no escape hatches; see [Language design](../concepts/language-design.md#no-escape-hatches). |
 | Procedural SQL (`BEGIN`, `LOOP`, `IF … THEN`, variables, cursors) | A Program is finite and declarative. |
 | `SELECT … INTO`, `MERGE`, DDL other than `CREATE [OR REPLACE] TABLE … AS` | Changes to external systems are Effects with their declared forms (`UPSERT` replaces `MERGE`). |
-| `BYTES` literals and functions, collations, `SAFE_CAST`, `::` casts, `DATE` as a cast target | Not in the selected profile. |
+| `BYTES` literals and other BYTES function overloads, collations, `SAFE_CAST`, `::` casts, `DATE` as a cast target | Not in the selected profile. |
 | Computed `LIMIT`/`OFFSET`, `LIMIT 0` | Only integer literals or parameters. |
 | Non-equality join keys, joins on computed keys | Keys are columns compared for equality. |
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |

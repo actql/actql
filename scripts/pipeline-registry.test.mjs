@@ -61,7 +61,7 @@ test('selected registration resolves the complete execution contract and checked
   const entry = resolveValues(registry);
   assert.deepEqual(entry.inputs,[]);
   assert.equal(entry.output,'relation');
-  assert.equal(entry.execution_contract.cid,'sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae');
+  assert.equal(entry.execution_contract.cid,'sha256:acdc65097f478d6b14126eb2d2e1bdd8df5893de923b3f9db7412b73b4a318fe');
 });
 
 test('analytic resolves as a unary relation operation', () => {

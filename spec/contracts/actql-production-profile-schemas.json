@@ -12,7 +12,7 @@
     "content_evidence": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695",
     "text_time_expression": "sha256:8e83c5ec9efaad835157dd477af858cbba98d1ca5384bc3edd3bb124b65bf275",
     "text_time_evaluation_envelope": "sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f",
-    "text_time_evaluation_barrier": "sha256:92aac088c34ebeb3c7c44fef96bdf630f7aa37b66788d9563903b6ea2d7c8bec",
+    "text_time_evaluation_barrier": "sha256:7c0aed91ba949611b025d9539bd6b6aa4b78cfefbee90c0b28a204ad2046ee05",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -3773,6 +3773,22 @@
               "properties": {
                 "type": {
                   "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -7702,5 +7718,5 @@
       }
     }
   },
-  "registry_cid": "sha256:89c5918a962a4087f8a514b5c64e3b64903a94597f47c905b877d5812867d02c"
+  "registry_cid": "sha256:e59dd838c68cef326b7fd4f958130825e82e78692b32615d18f56e07048a5428"
 }

@@ -323,6 +323,7 @@ fn emit_frames(
                   UnixSeconds => "unix_seconds"
                   ByteLength => "byte_length"
                   FarmFingerprint => "farm_fingerprint"
+                  Sha256 => "sha256"
                   Unicode => "unicode"
                   Chr => "chr"
                   Reverse => "reverse"
@@ -591,6 +592,8 @@ fn emit_frames(
           @value.Decimal(d) => @encode.string_value(output, decimal_wire(d))
           @value.Signed64(value) =>
             @encode.string_value(output, value.to_string())
+          @value.Binary(value) =>
+            @encode.string_value(output, @value.bytes_wire_text(value))
           @value.Array(items) => {
             @encode.begin_array(output)
             pending.push(Values(items, 0))
