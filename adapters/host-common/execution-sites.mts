@@ -74,7 +74,7 @@ type SiteControl = Readonly<{
   revoke(site: SiteHandle): undefined;
   status(site: SiteHandle): readonly bigint[];
   selectCandidate(durations: readonly bigint[], keys: readonly string[]): number;
-  planCandidate(facts: SitePlanningFacts): unknown;
+  planCandidate(facts: SitePlanningFacts): readonly [number, bigint] | undefined;
   managedCandidateFallback(retainedInputCount: number, exclusionCodes: readonly number[]): number;
   beginFailedOperation(cleanupRequired: boolean, alreadySettled: boolean): FailureProgress;
   recordFailedOperationStop(progress: FailureProgress): boolean;
