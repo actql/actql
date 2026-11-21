@@ -17,6 +17,7 @@ import {captureRestReadOriginals, restReadOriginalControlUnits, restReadTranspor
   from './rest-read-original.mjs';
 import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
 import type {InstalledRowSource, RestSourceInstallationDefinition} from '../../packages/local-node/connector-installation.js';
+import type {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 import type {DeclaredRestPublication} from './rest-source-metadata.mjs';
 import type {RestSourceProjection} from './rest-source-page.mjs';
 import type {RestReadOriginal} from './rest-read-original.mjs';
@@ -41,7 +42,7 @@ type TargetMaterial = Readonly<{targets: readonly ReturnType<PhysicalTarget>[];
   requests: readonly (RestSourceRead | RestReadOriginal)[]}>;
 type ReadOriginals = ReturnType<typeof captureRestReadOriginals>;
 type SiteClosure = NonNullable<Parameters<typeof retainInstalledHostInitializationFailure>[1]['sourceProfile']>;
-type ProviderReader = Readonly<{capacity: unknown}>;
+type ProviderReader = ReturnType<typeof createInstalledCredentialSourceReader>;
 type Services = {
   (method: 'sourceReaderImplementationProfile', options: Readonly<Record<string, unknown>>): HostPolicy;
   (method: 'sourceReaderImplementation', options: Readonly<Record<string, unknown>>):
