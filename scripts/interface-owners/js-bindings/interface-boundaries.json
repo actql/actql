@@ -109945,7 +109945,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -109955,7 +109955,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -109965,7 +109965,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -109975,7 +109975,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -109989,7 +109989,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110003,7 +110003,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110017,7 +110017,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110031,7 +110031,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110045,7 +110045,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110055,7 +110055,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "localStrategyContribution"
               },
               {
@@ -110099,7 +110099,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110109,7 +110109,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110119,7 +110119,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110129,7 +110129,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110139,7 +110139,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110149,7 +110149,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110159,7 +110159,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110169,7 +110169,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110179,7 +110179,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110189,7 +110189,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -110211,7 +110211,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110221,7 +110221,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110231,7 +110231,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110241,7 +110241,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110251,7 +110251,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110261,7 +110261,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110275,7 +110275,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110285,7 +110285,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110295,7 +110295,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110305,7 +110305,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedExecution"
               },
               {
@@ -110329,7 +110329,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110339,7 +110339,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110349,7 +110349,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110359,7 +110359,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110369,7 +110369,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110379,7 +110379,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110389,7 +110389,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110399,7 +110399,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110409,7 +110409,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110419,7 +110419,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "runManagedFinalization"
               },
               {
@@ -110439,7 +110439,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110449,7 +110449,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110459,7 +110459,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110469,7 +110469,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110479,7 +110479,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110489,7 +110489,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110499,7 +110499,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110509,7 +110509,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110519,7 +110519,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110529,7 +110529,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "stopBoundedExecution"
               },
               {
@@ -110549,7 +110549,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110559,7 +110559,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110569,7 +110569,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110579,7 +110579,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110589,7 +110589,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110599,7 +110599,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110609,7 +110609,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110619,7 +110619,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110629,7 +110629,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110639,7 +110639,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "validateManagedAdvance"
               },
               {
@@ -110661,7 +110661,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110671,7 +110671,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110681,7 +110681,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110691,7 +110691,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110701,7 +110701,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110711,7 +110711,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110721,7 +110721,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110731,7 +110731,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110741,7 +110741,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110751,7 +110751,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -110773,7 +110773,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110783,7 +110783,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110793,7 +110793,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110803,7 +110803,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110813,7 +110813,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110823,7 +110823,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110833,7 +110833,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110843,7 +110843,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110853,7 +110853,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {
@@ -110863,7 +110863,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "// Local connector's Node driver. The kernel and reservation authority stay in"
               },
               {

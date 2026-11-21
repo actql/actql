@@ -328,7 +328,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -370,7 +370,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -428,7 +428,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -486,7 +486,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -536,7 +536,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -590,7 +590,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -644,7 +644,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -690,7 +690,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -748,7 +748,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               },
               {
@@ -947,7 +947,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -969,7 +969,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -991,7 +991,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1013,7 +1013,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1035,7 +1035,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1057,7 +1057,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1079,7 +1079,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1101,7 +1101,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1123,7 +1123,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1208,7 +1208,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1230,7 +1230,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1252,7 +1252,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1274,7 +1274,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1296,7 +1296,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1318,7 +1318,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1340,7 +1340,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1362,7 +1362,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],
@@ -1384,7 +1384,7 @@
                 "anchor": "export async function installSelectedContributions"
               },
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "The kernel and reservation authority stay in"
               }
             ],

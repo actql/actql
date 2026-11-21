@@ -1197,3 +1197,5 @@ target/
 /adapters/local-node/managed-output-custody.d.mts
 /adapters/local-node/finalization-diagnostic.test.mjs
 /adapters/local-node/finalization-diagnostic.test.d.mts
+/adapters/local-node/strategy-bundle.mjs
+/adapters/local-node/strategy-bundle.d.mts

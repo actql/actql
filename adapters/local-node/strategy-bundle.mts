@@ -14,13 +14,109 @@ import {planManagedInputRows, registerManagedMemoryInput,
 import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
+import type {ManagedFailureOperations} from '../host-common/managed-failure.mjs';
+import type {SynchronousResultCheck, SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-const yieldToHost = () => new Promise(resolve =>
+type RetainedRead = Parameters<typeof readLocalRetainedInput>;
+type RetainedOutputPort = Parameters<typeof prepareLocalRetainedOutput>[0];
+type CarrierPorts = Parameters<typeof prepareLocalCarrierSnapshot>[0];
+type RelationPorts = Parameters<typeof prepareLocalRelationSnapshot>[0];
+type FaultInjection = ReturnType<typeof localComputeFaultInjection>;
+type PauseHandler = ReturnType<typeof localExecutionPauseHandler>;
+type ManagedRowPlan = ReturnType<typeof planManagedInputRows>;
+type EmitRow = Parameters<typeof withManagedOutputRows>[1];
+type CleanupObservation = Readonly<{cleanupPending?: unknown; cleanupHandle?: unknown}>;
+type CheckpointPause = Readonly<{action: 'waiting_checkpoint'; checkpoint: object}>;
+type Advance = Readonly<{
+  complete: boolean;
+  progress: bigint;
+  work: bigint;
+  waiting?: boolean;
+  settlement?: number | null;
+}>;
+type Execution = ManagedFailureOperations & Readonly<{
+  advance?(quantum: number): SynchronousRuntimeData;
+  request_cancel?(): boolean;
+  execution_stopped?(): boolean;
+}>;
+type RowTransfer = Readonly<{
+  input: unknown;
+  append(row: string): SynchronousRuntimeData;
+  finish(): SynchronousRuntimeData;
+}>;
+type ManagedExecution = Execution & Partial<CarrierPorts & RelationPorts> & Readonly<{
+  inputs: readonly RowTransfer[];
+  retained_inputs?: readonly RetainedRead[1][];
+  storage_bytes: bigint;
+  prepare_finalization?(payload: number, storageBytes: bigint, available: () => boolean): SynchronousRuntimeData;
+  advance_finalization?(quantum: number): SynchronousRuntimeData;
+  complete(payload: number, storageBytes: bigint, available: () => boolean): SynchronousRuntimeData;
+  complete_carrier(): SynchronousRuntimeData;
+  material(): object | null | undefined;
+  carrier_material?(): object | null | undefined;
+}>;
+type MaterializingExecution = Execution & Readonly<{
+  inputs: readonly RetainedRead[1][];
+  output?: RetainedOutputPort | null;
+  complete(): SynchronousRuntimeData;
+  guard_usage(): readonly number[];
+  publication_output?(): unknown;
+}>;
+type ManagedInput = Readonly<{
+  task: number;
+  material?: object;
+  siteMaterial?: object;
+  completed?: unknown;
+  carrierMaterial?: object | null;
+  suppliedRelation?: boolean;
+  capturedRelation?: boolean;
+}>;
+type SiteResolution = Readonly<{materials: readonly object[]; records: readonly unknown[]}>;
+type PreparedTask = Readonly<{
+  task: number;
+  configuration: object;
+  dispatchInputs?: readonly ManagedInput[];
+  inputs: readonly ManagedInput[];
+  rowPlan?: ManagedRowPlan;
+  resolveSiteInputs?(inputs: readonly unknown[], signal?: AbortSignal): Promise<SiteResolution>;
+  siteCompletionReady?(): boolean;
+}>;
+type LocalBindings = RetainedRead[0] & Parameters<typeof checkedLocalManagedAdvance>[0] &
+  Parameters<typeof beginManagedFailureProgress>[0] & Readonly<{
+  strategyModule_local_Registration(setup: unknown): unknown;
+  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyHostNextTask(setup: unknown): number;
+  strategyHostTask?(task: unknown): number;
+  strategyHostManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedInputCount(setup: unknown): number;
+  strategyHostReleasableManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedInputMatchesMaterial(input: unknown, material: object): boolean;
+  strategyModule_local_NextCarrierPath?(setup: unknown): boolean;
+  strategyModule_local_HasPreparedRelationInput?(setup: unknown, index: number): boolean;
+  strategyModule_local_PredecessorIsCarrier?(setup: unknown, producer: number): boolean;
+  strategyModule_local_RelationOutput?(completed: unknown): unknown;
+  strategyModule_local_CarrierOutput?(completed: unknown, material: object): unknown;
+  strategyModule_local_CapturedRelationInput?(): unknown;
+  strategyModule_local_SuppliedRelationInput?(): unknown;
+  strategyModule_local_ManagedDispatch(setup: unknown, completed: unknown[], fileBytes: bigint): unknown;
+  strategyModule_local_ManagedCarrierDispatch?(setup: unknown, completed: unknown[], fileBytes: bigint): unknown;
+  strategyModule_local_ManagedUsesProvider?(configuration: object): boolean;
+  strategyModule_local_ManagedCapacity(configuration: object): unknown;
+  strategyModule_local_ManagedDuration(configuration: object): bigint | null | undefined;
+  strategyModule_local_ManagedStart(configuration: object): unknown;
+  strategyModule_local_ManagedStartRetained?(configuration: object): unknown;
+  strategyModule_local_Dispatch(setup: unknown, task: unknown): unknown;
+}>;
+type LocalOutput = ReturnType<typeof prepareLocalRetainedOutput>;
+type Snapshot = ReturnType<typeof prepareLocalCarrierSnapshot>;
+type SnapshotDiagnostic = Awaited<ReturnType<Snapshot['roundtrip']>>;
+
+const yieldToHost = () => new Promise<void>(resolve =>
   typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));
 const managedWorkQuantum = 256;
 const managedFinalizationQuantum = 32;
 
-const validateManagedAdvance = (observation, quantum, errorName, allowPause = false) => {
+const validateManagedAdvance = (observation: Advance, quantum: number, errorName: string, allowPause = false) => {
   const waiting = observation?.waiting === true;
   const settlement = observation?.settlement;
   const settling = settlement !== undefined && settlement !== null;
@@ -39,13 +135,13 @@ const validateManagedAdvance = (observation, quantum, errorName, allowPause = fa
   return observation;
 };
 
-const managedSiteCapacity = value => Array.isArray(value)
+const managedSiteCapacity = (value: unknown) => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
     ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
-const stopBoundedExecution = (operations, checked) => {
+const stopBoundedExecution = (operations: Execution, checked: SynchronousResultCheck) => {
   if (typeof operations.request_cancel !== 'function') return;
   // This is a best-effort logical stop. An observation failure must not
   // replace the original execution error; the ordinary managed-failure owner
@@ -65,7 +161,9 @@ const stopBoundedExecution = (operations, checked) => {
 // Local computation is bounded on every path: there is no synchronous
 // whole-task execute fallback.
 const runManagedExecution = async (
-  operations, checked, signal, faultInjection, task, handlePause, checkpointPause, moon,
+  operations: Execution, checked: SynchronousResultCheck, signal: AbortSignal | undefined,
+  faultInjection: FaultInjection, task: number | undefined, handlePause: PauseHandler,
+  checkpointPause: (decision: CheckpointPause) => void, moon: LocalBindings,
 ) => {
   if (typeof operations.advance !== 'function') {
     throw new Error('MissingBoundedLocalExecution');
@@ -76,7 +174,7 @@ const runManagedExecution = async (
       signal.throwIfAborted();
     }
     const observation = validateManagedAdvance(
-      checkedLocalManagedAdvance(moon, operations.advance(managedWorkQuantum), checked, task),
+      checkedLocalManagedAdvance(moon, operations.advance(managedWorkQuantum), checked, task) as Advance,
       managedWorkQuantum,
       'InvalidLocalManagedAdvance',
       true,
@@ -99,18 +197,18 @@ const runManagedExecution = async (
       }
       const onAbort = () => stopBoundedExecution(operations, checked);
       signal?.addEventListener('abort', onAbort, {once: true});
-      let decision;
+      let decision: Readonly<{action?: unknown; checkpoint?: unknown}> | null | undefined;
       try {
         // No timer or further advance runs while the physical Store or the
         // existing authority owner handles this explicit pause.
         decision = await handlePause(Object.freeze({task,
           status: observation.waiting === true ? 'waiting' : 'settling',
           ...(observation.settlement == null ? {} : {slot: observation.settlement}),
-          signal}));
+          signal})) as typeof decision;
       } finally { signal?.removeEventListener('abort', onAbort); }
       signal?.throwIfAborted();
       if (decision?.action === 'waiting_checkpoint' && decision.checkpoint != null) {
-        checkpointPause(decision);
+        checkpointPause(decision as CheckpointPause);
         // Unwind representation uses before handing physical cleanup to the
         // caller. This private control signal is never a Run failure.
         throw decision;
@@ -125,10 +223,11 @@ const runManagedExecution = async (
 };
 
 const runManagedFinalization = async (
-  operations, checked, signal, payload, storageBytes, available, moon, task,
+  operations: ManagedExecution, checked: SynchronousResultCheck, signal: AbortSignal | undefined,
+  payload: number, storageBytes: bigint, available: () => boolean, moon: LocalBindings, task: number,
 ) => {
   signal?.throwIfAborted();
-  checkedLocalManagedAdvance(moon, operations.prepare_finalization(
+  checkedLocalManagedAdvance(moon, operations.prepare_finalization!(
     payload,
     storageBytes,
     available,
@@ -139,7 +238,7 @@ const runManagedFinalization = async (
       signal.throwIfAborted();
     }
     const observation = validateManagedAdvance(
-      checkedLocalManagedAdvance(moon, operations.advance_finalization(managedFinalizationQuantum), checked, task),
+      checkedLocalManagedAdvance(moon, operations.advance_finalization!(managedFinalizationQuantum), checked, task) as Advance,
       managedFinalizationQuantum,
       'InvalidLocalManagedFinalizationAdvance',
     );
@@ -149,7 +248,8 @@ const runManagedFinalization = async (
   signal?.throwIfAborted();
 };
 
-export function localStrategyContribution(moon, setup, checked, configuration) {
+export function localStrategyContribution(moon: LocalBindings, setup: unknown,
+  checked: SynchronousResultCheck, configuration?: object) {
   const createLease = localRetainedStore(configuration);
   const createSnapshotLease = localSnapshotStore(configuration);
   const faultInjection = localComputeFaultInjection(configuration);
@@ -160,7 +260,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
-    async beforeNext(physicalSource) {
+    async beforeNext(physicalSource?: unknown) {
       if (beforePrepare === undefined) return;
       const task = moon.strategyHostNextTask(setup);
       if (task >= 0 && beforePrepare !== undefined) {
@@ -171,7 +271,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         if (moon.strategyHostNextTask(setup) !== task) throw new Error('LocalTaskChangedDuringPreparation');
       }
     },
-    async prepareNext(outputs) {
+    async prepareNext(outputs: ReadonlyMap<number, ManagedInput>) {
       // An installed row Store selects retained-file Relations. A typed
       // Carrier path still keeps its exact managed generations and snapshots;
       // a temporary snapshot must not replace the selected row-file lifetime.
@@ -185,7 +285,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           producers.length !== inputCount) {
         return undefined;
       }
-      const inputs = producers.map((producer, index) => {
+      const inputs = producers.map((producer: number, index): ManagedInput | undefined => {
         if (producer === -1) return Object.freeze({
           task: producer,
           suppliedRelation: true,
@@ -213,53 +313,53 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return undefined;
       }
       const relationInputs = inputs.filter(input =>
-        input.carrierMaterial == null &&
-        input.capturedRelation !== true &&
-        input.suppliedRelation !== true);
+        input!.carrierMaterial == null &&
+        input!.capturedRelation !== true &&
+        input!.suppliedRelation !== true);
       const rowPlan = planManagedInputRows(relationInputs.map(input =>
-        input.siteMaterial ?? input.material));
+        (input!.siteMaterial ?? input!.material)!));
       if (rowPlan === undefined) return undefined;
       const carrierAware =
         typeof moon.strategyModule_local_RelationOutput === 'function' &&
         typeof moon.strategyModule_local_CarrierOutput === 'function' &&
         typeof moon.strategyModule_local_ManagedCarrierDispatch === 'function';
-      if (inputs.some(input => input.capturedRelation === true) &&
+      if (inputs.some(input => input!.capturedRelation === true) &&
           typeof moon.strategyModule_local_CapturedRelationInput !==
             'function') {
         return undefined;
       }
-      if (inputs.some(input => input.suppliedRelation === true) &&
+      if (inputs.some(input => input!.suppliedRelation === true) &&
           typeof moon.strategyModule_local_SuppliedRelationInput !==
             'function') {
         return undefined;
       }
-      if (!carrierAware && inputs.some(input => input.carrierMaterial != null)) {
+      if (!carrierAware && inputs.some(input => input!.carrierMaterial != null)) {
         return undefined;
       }
       const managedOutputs = carrierAware
-        ? inputs.map(input => input.capturedRelation === true
-          ? moon.strategyModule_local_CapturedRelationInput()
-          : input.suppliedRelation === true
-          ? moon.strategyModule_local_SuppliedRelationInput()
-          : input.carrierMaterial == null
-          ? moon.strategyModule_local_RelationOutput(input.completed)
-          : moon.strategyModule_local_CarrierOutput(
-            input.completed,
-            input.carrierMaterial,
+        ? inputs.map(input => input!.capturedRelation === true
+          ? moon.strategyModule_local_CapturedRelationInput!()
+          : input!.suppliedRelation === true
+          ? moon.strategyModule_local_SuppliedRelationInput!()
+          : input!.carrierMaterial == null
+          ? moon.strategyModule_local_RelationOutput!(input!.completed)
+          : moon.strategyModule_local_CarrierOutput!(
+            input!.completed,
+            input!.carrierMaterial,
           ))
-        : inputs.map(input => input.completed);
+        : inputs.map(input => input!.completed);
       const managedConfiguration = checked(
         (carrierAware
-          ? moon.strategyModule_local_ManagedCarrierDispatch
+          ? moon.strategyModule_local_ManagedCarrierDispatch!
           : moon.strategyModule_local_ManagedDispatch)(
           setup,
           managedOutputs,
           0n,
         ),
-      );
+      ) as object | null | undefined;
       if (managedConfiguration == null) return undefined;
       if (((createLease != null && !carrierPath) ||
-           inputs.some(input => input.capturedRelation === true)) &&
+           inputs.some(input => input!.capturedRelation === true)) &&
           (typeof moon.strategyModule_local_ManagedUsesProvider !==
             'function' ||
            moon.strategyModule_local_ManagedUsesProvider(
@@ -278,16 +378,16 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           moon.strategyModule_local_ManagedDuration(managedConfiguration) ??
           null,
         acceptsSiteTransfer: inputs.every(
-          input => input.carrierMaterial == null,
+          input => input!.carrierMaterial == null,
         ),
         siteCapacity: Object.freeze({
-          retainedBytes: siteCapacity[0],
-          executionBytes: siteCapacity[1],
+          retainedBytes: siteCapacity[0] as bigint,
+          executionBytes: siteCapacity[1] as bigint,
         }),
-        inputs: Object.freeze(inputs.filter(input =>
-          input.capturedRelation !== true &&
-          input.suppliedRelation !== true)),
-        dispatchInputs: Object.freeze(inputs),
+        inputs: Object.freeze(inputs.filter((input): input is ManagedInput =>
+          input!.capturedRelation !== true &&
+          input!.suppliedRelation !== true)),
+        dispatchInputs: Object.freeze(inputs as ManagedInput[]),
         outputs,
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
@@ -295,7 +395,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         rowPlan,
       });
     },
-    async runPrepared(prepared, signal) {
+    async runPrepared(prepared: PreparedTask, signal?: AbortSignal) {
       signal?.throwIfAborted();
       const dispatchInputs = prepared.dispatchInputs ?? prepared.inputs;
       const plannedMaterials = dispatchInputs.map(input =>
@@ -305,7 +405,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           ? input.siteMaterial ?? input.material
           : undefined).filter(material => material !== undefined);
       const preparedRowPlan = prepared.rowPlan ??
-        planManagedInputRows(plannedMaterials);
+        planManagedInputRows(plannedMaterials as object[]);
       if (preparedRowPlan === undefined) {
         throw new Error('UnsupportedManagedRowRepresentation');
       }
@@ -314,15 +414,15 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           typeof moon.strategyModule_local_ManagedStartRetained === 'function'
           ? moon.strategyModule_local_ManagedStartRetained
           : moon.strategyModule_local_ManagedStart)(prepared.configuration),
-      );
+      ) as ManagedExecution;
       const failureProgress = beginManagedFailureProgress(
         moon,
         createSnapshotLease == null || typeof operations.prepare_carrier_snapshot !== 'function',
         false,
       );
       let available = true;
-      let snapshot, snapshotDiagnostic, relationSnapshotDiagnostic;
-      let checkpointPause;
+      let snapshot: Snapshot | undefined, snapshotDiagnostic: SnapshotDiagnostic, relationSnapshotDiagnostic: SnapshotDiagnostic;
+      let checkpointPause: CheckpointPause | undefined;
       try {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
@@ -344,7 +444,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               ? transfers[relation++].input
               : undefined);
           })(), signal).then(value => {
-            const materials = [];
+            const materials: object[] = [];
             for (let index = 0; index < siteInputs.length; index++) {
               if (siteInputs[index].carrierMaterial == null) {
                 materials.push(value.materials[index]);
@@ -357,7 +457,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           })
           : Object.freeze({
             materials: Object.freeze(relationInputs.map(input =>
-              input.siteMaterial ?? input.material)),
+              (input.siteMaterial ?? input.material)!)),
             records: Object.freeze([]),
           });
         const resolvedRowPlan = resolved.materials.length ===
@@ -377,7 +477,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           signal?.throwIfAborted();
           await readLocalRetainedInput(moon, input, checked, signal);
         }
-        let completed;
+        let completed: SynchronousRuntimeData | undefined;
         await withManagedInputRows(
           relationInputs.map((input, index) => ({
             material: resolved.materials[index],
@@ -387,7 +487,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           (input, index) =>
             moon.strategyHostManagedInputMatchesMaterial(
               input,
-              relationInputs[index].material,
+              relationInputs[index].material!,
             ),
           (index, row) => checked(transfers[index].append(row)),
           async () => {
@@ -409,7 +509,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               // Keep the physical handle before the first allocation can run;
               // failures hand it to the existing common failure progression.
               snapshot = prepareLocalCarrierSnapshot(
-                operations, createSnapshotLease, checked, signal,
+                operations as CarrierPorts, createSnapshotLease, checked, signal,
               );
               snapshotDiagnostic = await snapshot.roundtrip();
             }
@@ -422,7 +522,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               // consumers/publication borrow that restored generation, not the
               // original memory or an unused temporary file.
               snapshot = prepareLocalRelationSnapshot(
-                operations, createSnapshotLease,
+                operations as RelationPorts, createSnapshotLease,
                 result => checkedLocalManagedAdvance(moon, result, checked, prepared.task),
                 signal, moon,
               );
@@ -482,7 +582,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         // The same live material and any retained provider cleanup remain
         // owned; the next task cannot depend on a whole-Run cleanup pass.
         await refreshCompletedLocalManagedScratch(operations, () => available);
-        const outputRows = operations.output_rows();
+        const outputRows = operations.output_rows!();
         const storageBytes = BigInt(operations.storage_bytes);
         // Safe Transfer advertisement for the row-wire fallback. It covers a
         // conservative UTF-8 expansion, destination UTF-16 strings, row/index
@@ -494,15 +594,15 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           executionBytes: 1024n * 1024n,
         });
         const memory = registerManagedMemoryInput(
-          material,
-          input => moon.strategyHostManagedInputMatchesMaterial(input, material),
+          material!,
+          input => moon.strategyHostManagedInputMatchesMaterial(input, material!),
           () => available,
           Object.freeze({
             async read(_file, emit, readSignal) {
-              const rows = operations.output_rows();
+              const rows = operations.output_rows!();
               for (let row = 0; row < rows; row++) {
                 readSignal?.throwIfAborted();
-                await emit(checked(operations.output_row(row)));
+                await emit(checked(operations.output_row!(row)) as string);
               }
             },
           }),
@@ -520,14 +620,14 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           refreshCompletedScratch: () => refreshCompletedLocalManagedScratch(
             operations, () => available,
           ),
-          withRows: (emit, readSignal, commit) => withManagedOutputRows(
-            material, emit, readSignal, commit,
+          withRows: <Value,>(emit: EmitRow, readSignal: AbortSignal | undefined, commit: () => Value) => withManagedOutputRows(
+            material!, emit, readSignal, commit,
           ),
           // The standard completion observer can inspect this exact retained
           // generation while the existing physical use pin is held. This is
           // not a Named Result, a new material or an independent read owner.
-          readRetained: (emit, readSignal) => withManagedOutputRows(
-            material, emit, readSignal, () => undefined,
+          readRetained: (emit: EmitRow, readSignal?: AbortSignal) => withManagedOutputRows(
+            material!, emit, readSignal, () => undefined,
           ),
           close: () => closeCompletedLocalManagedOutputAsync(operations, checked, failureProgress, memory),
           diagnostic: Object.freeze({
@@ -550,24 +650,24 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         );
         await continueLocalManagedFailureCleanup(stopped, operations);
         if (checkpointPause !== undefined) return Object.freeze({
-          status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
-          cleanupPending: stopped?.cleanupPending === true,
-          cleanupHandle: stopped?.cleanupHandle,
+          status: 'waiting_checkpoint', checkpoint: (checkpointPause as CheckpointPause).checkpoint,
+          cleanupPending: (stopped as CleanupObservation | null | undefined)?.cleanupPending === true,
+          cleanupHandle: (stopped as CleanupObservation | null | undefined)?.cleanupHandle,
         });
         throw stopped;
       }
     },
-    async run(task, signal, completionPermit) {
+    async run(task: unknown, signal?: AbortSignal, completionPermit?: Readonly<{assertAvailable?(): void}>) {
       signal?.throwIfAborted();
-      const operations = checked(moon.strategyModule_local_Dispatch(setup, task));
+      const operations = checked(moon.strategyModule_local_Dispatch(setup, task)) as MaterializingExecution;
       const failureProgress = beginManagedFailureProgress(
         moon,
         false,
         false,
       );
       let importedRows = 0, importedBytes = 0n;
-      let output;
-      let checkpointPause;
+      let output: LocalOutput | undefined;
+      let checkpointPause: CheckpointPause | undefined;
       try {
         if (operations.output != null) output = prepareLocalRetainedOutput(
           operations.output, createLease, checked, signal, faultInjection,
@@ -619,7 +719,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               // Retrying cleanup cannot re-enter Compute or re-import inputs.
               const failure = settleFailedManagedOperations(operations, checked, error,
                 failureProgress, output == null ? [] : [{
-                  close: () => output.close(), cleanupHandle: output.cleanupHandle,
+                  close: () => output!.close(), cleanupHandle: output.cleanupHandle,
                 }]);
               if (failure === error && output != null) {
                 // The common owner has already confirmed cleanup. Still hand
@@ -627,7 +727,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
                 // acknowledgement cannot strand an otherwise released holding.
                 // A borrowed Error can be frozen or have read-only fields.
                 // Keep the original failure without annotating that object.
-                const reported = new Error('LocalOutputCleanupFailed', {cause: error});
+                const reported = new Error('LocalOutputCleanupFailed', {cause: error}) as Error & {primaryFailure: unknown; cleanupPending: boolean; cleanupHandle: LocalOutput['cleanupHandle']};
                 reported.primaryFailure = error;
                 reported.cleanupPending = true;
                 reported.cleanupHandle = output.cleanupHandle;
@@ -645,15 +745,15 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           error,
           failureProgress,
           output == null ? [] : [{
-            close: () => output.close(),
+            close: () => output!.close(),
             cleanupHandle: output.cleanupHandle,
           }],
         );
         await continueLocalManagedFailureCleanup(stopped, operations);
         if (checkpointPause !== undefined) return Object.freeze({
-          status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
-          cleanupPending: stopped?.cleanupPending === true,
-          cleanupHandle: stopped?.cleanupHandle,
+          status: 'waiting_checkpoint', checkpoint: (checkpointPause as CheckpointPause).checkpoint,
+          cleanupPending: (stopped as CleanupObservation | null | undefined)?.cleanupPending === true,
+          cleanupHandle: (stopped as CleanupObservation | null | undefined)?.cleanupHandle,
         });
         throw stopped;
       }

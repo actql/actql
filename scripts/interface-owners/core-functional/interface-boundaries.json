@@ -28330,8 +28330,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28344,8 +28344,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28354,7 +28354,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -28364,7 +28364,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "import {readLocalRetainedInput} from './retained-input.mjs';"
               },
               {
@@ -28378,8 +28378,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28392,8 +28392,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const validateManagedAdvance = (observation, quantum, errorName, allowPause = false) => {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "const validateManagedAdvance = (observation: Advance, quantum: number, errorName: string, allowPause = false) => {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28410,7 +28410,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "from './managed-output-custody.mjs';"
               },
               {
@@ -28424,7 +28424,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "const managedWorkQuantum = 256;"
               },
               {
@@ -28438,8 +28438,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28494,8 +28494,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28508,8 +28508,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28518,7 +28518,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -28528,7 +28528,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "import {readLocalRetainedInput} from './retained-input.mjs';"
               },
               {
@@ -28538,8 +28538,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28548,8 +28548,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const validateManagedAdvance = (observation, quantum, errorName, allowPause = false) => {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "const validateManagedAdvance = (observation: Advance, quantum: number, errorName: string, allowPause = false) => {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28558,7 +28558,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "from './managed-output-custody.mjs';"
               },
               {
@@ -28568,7 +28568,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
+                "path": "adapters/local-node/strategy-bundle.mts",
                 "anchor": "const managedWorkQuantum = 256;"
               },
               {
@@ -28578,8 +28578,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
+                "path": "adapters/local-node/strategy-bundle.mts",
+                "anchor": "export function localStrategyContribution(moon: LocalBindings, setup: unknown,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
