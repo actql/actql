@@ -1605,7 +1605,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const selected = constructRequestDomain(state, () => {
         const {maxNodes, maxDepth} = localContractLimits;
         const scope = checked(capture(state.parent, producer.receipt, facts.allowed, facts.definition,
-          Math.min(budget, 65536), maxNodes, maxDepth, 10000));
+          budget, maxNodes, maxDepth, 10000));
         if (scope === undefined) return undefined;
         // Own the cleanup token before any canonical-wire getter or current check.
         const original = state.originalExplanation = Object.seal({scope, definition: facts.definition,
@@ -1621,12 +1621,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             state.prepared !== prepared || state.originalExplanation !== original ||
             methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
         original.plan = Object.freeze({compiledPlanWire, planViewWire});
-        const evidence = readEvidence();
+        const evidence = readEvidence(budget);
         // Measure the exact JSON without emitting a new copy. The submitted
         // intent has a fixed 71-byte CID, counted here before the Journal adds it.
         const candidate = Object.freeze({...evidence, logicalPlanOriginal: original.plan,
           ...(hasIntent ? {submittedIntentCid: facts.runDefinition.identity} : {})});
-        const fits = sourceAliasDataGeometry(candidate).jsonBytes <= BigInt(budget) &&
+        const fits = evidence !== undefined && sourceAliasDataGeometry(candidate).jsonBytes <= BigInt(budget) &&
           Buffer.byteLength(factsWire) + Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
         current();
         if (producerForRequest(request) !== producer || producer.preparation !== state ||

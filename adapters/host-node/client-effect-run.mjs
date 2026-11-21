@@ -328,18 +328,21 @@ export function installNodeClientEffectRun({moon,
           const definitionFacts = Object.freeze({prepared,
             compilation: compiled(), allowed, definition, identity, runDefinition,
             modelCompiled, resultPolicyOriginal, queryTimePreparation});
-          const evidence = () => Object.freeze({
-            prepared: moon.strategyRunEvidenceJson(
-              moon.clientProgramAllowedEffectRunPrepared(allowed)),
-            authorization: moon.strategyRunEvidenceJson(
-              moon.clientProgramAllowedEffectRunAuthorization(allowed)),
-            ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
-            ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
-            ...(resultPolicyOriginal === undefined ? {} : {resultPolicyOriginal}),
-            ...(modelCompiled === undefined ? {} : {
-              modelOriginalRunWire: originalModelRunWire(modelCompiled, runDefinition),
-            }),
-          });
+          const evidence = maxOptionalBytes => {
+            const modelOriginal = modelCompiled === undefined ? undefined :
+              originalModelRunWire(modelCompiled, runDefinition, maxOptionalBytes);
+            if (modelCompiled !== undefined && modelOriginal === undefined) return undefined;
+            return Object.freeze({
+              prepared: moon.strategyRunEvidenceJson(
+                moon.clientProgramAllowedEffectRunPrepared(allowed)),
+              authorization: moon.strategyRunEvidenceJson(
+                moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+              ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
+              ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
+              ...(resultPolicyOriginal === undefined ? {} : {resultPolicyOriginal}),
+              ...(modelOriginal === undefined ? {} : {modelOriginalRunWire: modelOriginal}),
+            });
+          };
           const selectedExplanation = captureDefinitionExplanation?.(definitionFacts, evidence,
             submission?.intentCid !== undefined);
           const originalPreparation = prepareDefinition?.(definitionFacts);

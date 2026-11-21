@@ -31,6 +31,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-values-capacity.mjs';
+import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 import {sourceOperationTable, inspectClientSourceOperationStorage,
   clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
@@ -1842,6 +1843,7 @@ export function openClientRequestJournal(directory, {
       submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
+  const maxOriginalExplanationWireBytes = Math.min(65536, maxRunDefinitionWireBytes);
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
   if (primaryCurrent !== undefined && typeof primaryCurrent !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
@@ -3112,8 +3114,13 @@ export function openClientRequestJournal(directory, {
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
     }
+    const hasContext = originalExplanation?.contextWire !== undefined;
+    const evidenceLimit = hasContext ? maxOriginalExplanationWireBytes : maxRunDefinitionWireBytes;
+    if (hasContext && sourceAliasDataGeometry(Object.freeze(runAdmissionEvidence)).jsonBytes > BigInt(evidenceLimit)) {
+      fail('InvalidClientRunAdmissionEvidence');
+    }
     const capturedAdmissionEvidence = evidenceJson(runAdmissionEvidence,
-      maxRunDefinitionWireBytes, updateOriginalControl);
+      evidenceLimit, updateOriginalControl);
     const admissionEvidence = capturedAdmissionEvidence?.wire ?? null;
     const admittedEvidence = capturedAdmissionEvidence?.value;
     assertKeyedInventoryRequest(admittedEvidence?.sourceInventory, fields);
@@ -3233,9 +3240,13 @@ export function openClientRequestJournal(directory, {
           fail('ClientRequestSubmittedIntentMismatch');
         }
         if (!cid(original.intentCid)) fail('InvalidClientRunAdmissionEvidence');
+        if (hasContext && admittedEvidence.submittedIntentCid === undefined &&
+            Buffer.byteLength(admissionEvidence) + ',"submittedIntentCid":""'.length + original.intentCid.length > evidenceLimit) {
+          fail('InvalidClientRunAdmissionEvidence');
+        }
         originalAdmissionEvidence = JSON.stringify({...admittedEvidence,
           submittedIntentCid: original.intentCid});
-        if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {
+        if (Buffer.byteLength(originalAdmissionEvidence) > evidenceLimit) {
           fail('InvalidClientRunAdmissionEvidence');
         }
       } else if (admittedEvidence?.submittedIntentCid !== undefined) {
@@ -3676,7 +3687,7 @@ export function openClientRequestJournal(directory, {
         primarySchemaSqlSupport.includes(explanationContextOriginalTable);
     },
     originalExplanationContextLimit() {
-      return journal.supportsOriginalExplanationContext() ? maxRunDefinitionWireBytes : undefined;
+      return journal.supportsOriginalExplanationContext() ? maxOriginalExplanationWireBytes : undefined;
     },
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
@@ -3738,7 +3749,9 @@ export function openClientRequestJournal(directory, {
             captured.invocationTemplateWire = template.value;
             bytes += Buffer.byteLength(captured.contextWire) + Buffer.byteLength(captured.invocationTemplateWire);
           }
-          if (bytes > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
+          if (bytes > (companion === undefined ? maxRunDefinitionWireBytes : maxOriginalExplanationWireBytes)) {
+            fail('InvalidClientRunAdmissionEvidence');
+          }
           if (companion !== undefined) {
             // Preserve the first committed bytes for the authorized cold
             // validator. Prefix the fixed 71-byte original Run CID so a

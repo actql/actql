@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const ok = value => ({$tag:1,_0:value});
 const cid = 'sha256:'+'a'.repeat(64);
@@ -119,6 +120,17 @@ test('Effect first admission forwards one original Explanation ticket before Pla
     assert.equal(f.state.issued.length, 1);
     assert.equal(f.state.claims, 0);
   }
+});
+
+test('optional Effect admission premeasures its existing Model evidence before encoding it', () => {
+  const compiled = {template: {wire: '\"日本語\"'}, preparedEvidence: {wire: '\\'},
+    authorization: {wire: '"allow"'}, compiledPlan: {wire: '{}'}};
+  const definition = {wire: '{}'};
+  const original = originalModelRunWire(compiled, definition);
+  const bytes = Buffer.byteLength(original);
+  assert.equal(originalModelRunWire(compiled, definition, bytes), original);
+  assert.equal(originalModelRunWire(compiled, definition, bytes - 1), undefined);
+  assert.equal(originalModelRunWire(compiled, definition), original);
 });
 
 test('ordinary Effect admission and winning issuer consume one original Request identity', async () => {

@@ -9,6 +9,7 @@ import {join} from 'node:path';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import schemaSupport from './host-journal-schema-support.cjs';
+import recipeModule from './host-journal-service-recipe.cjs';
 import {controls, request, requestControl, options, evidence, planOriginal} from './fixtures/original-plan-journal.mjs';
 import {explanationFacts} from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
@@ -422,6 +423,67 @@ test('old Facts-only Runs never backfill Context and selected unsupported storag
   assert.equal(unsupported.acknowledgements(), 0);
   unsupported.accept(unsupported.ticket());
   assert.equal(unsupported.explanation().factsWire, JSON.stringify(explanationFacts));
+});
+
+test('selected wider Journal caps optional Context facets and evidence at the same 64 KiB extent', t => {
+  const policy = recipeModule.declareHostJournalServiceRecipe({}).journal;
+  assert.equal(policy.maxRunDefinitionWireBytes, 64 * 1024 * 1024);
+  const limit = 65536;
+  for (const extra of [0, 1]) {
+    const f = fixture(t, policy);
+    assert.equal(f.journal.originalExplanationContextLimit(), limit);
+    const facts = JSON.stringify(explanationFacts);
+    const sized = 'x'.repeat(limit - Buffer.byteLength(facts) - Buffer.byteLength(invocationTemplateWire) + extra);
+    const ticket = f.ticket(facts, sized);
+    if (extra === 0) {
+      assert.equal(f.accept(ticket).inserted, true);
+      f.reopen();
+      const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+      assert.equal(extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes, limit);
+      assert.equal(f.acknowledgements(), 1);
+    } else {
+      assert.throws(() => f.accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});
+      assert.equal(f.lookup(), undefined);
+      assert.equal(f.acknowledgements(), 0);
+    }
+  }
+  for (const extra of [0, 1]) {
+    const f = fixture(t, policy), ticket = f.ticket(undefined, contextWire), originalPlan = f.planTicket();
+    const prefix = {...evidence, effectOriginalRunWire: ''};
+    const available = limit - Buffer.byteLength(JSON.stringify({...prefix, logicalPlanOriginal: planOriginal}));
+    const base = Object.freeze({...prefix, effectOriginalRunWire: 'x'.repeat(available + extra)});
+    assert.equal(Buffer.byteLength(JSON.stringify({...base, logicalPlanOriginal: planOriginal})), limit + extra);
+    const control = {...f.control,
+      originalRunPlanAdmissionEvidence(selected, run, program, admitted) {
+        assert.equal(admitted, base);
+        return f.control.originalRunPlanAdmissionEvidence(selected, run, program, evidence);
+      },
+      originalRunExplanationAdmissionEvidence(selected, run, program, admitted) {
+        assert.equal(admitted, base);
+        return f.control.originalRunExplanationAdmissionEvidence(selected, run, program, evidence);
+      },
+    };
+    const accept = contextTicket => f.journal.acceptDefinition(request, {...options,
+      runAdmissionEvidence: base, originalPlan, originalExplanation: contextTicket}, requestControl, control);
+    if (extra === 0) {
+      assert.equal(accept(ticket).inserted, true);
+      assert.equal(f.acknowledgements(), 1);
+    } else {
+      const stringify = JSON.stringify;
+      JSON.stringify = (value, ...args) => {
+        assert(!Object.hasOwn(value ?? {}, 'logicalPlanOriginal'), 'oversized optional evidence must not be serialized');
+        return stringify(value, ...args);
+      };
+      try {assert.throws(() => accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});}
+      finally {JSON.stringify = stringify;}
+      assert.equal(f.lookup(), undefined);
+      assert.equal(f.acknowledgements(), 0);
+      assert.equal(accept(undefined).inserted, true, 'the ordinary Journal policy still admits this size');
+      const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+      assert.equal(extent.evidenceBytes, limit + extra);
+      assert.equal(extent.contextBytes, 0);
+    }
+  }
 });
 
 test('competing Effect Context keeps the exact durable winner and returns only its own loan', t => {
