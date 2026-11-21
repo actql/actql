@@ -198,6 +198,143 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
 }
 
 ///|
+// Join the accepted request to the current submit authority before allowing
+// the caller to claim or observe its original physical start.
+fn[T] NativeLocalJournalCapture::with_local_effect_start_authority(
+  self : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+  principal : String,
+  connection : String,
+  owner_current : () -> Bool,
+  source : (String, String)?,
+  operation : (
+    NativeClientRunJournal,
+    NativeClientJournalOperationAccess,
+    () -> Bool,
+  ) -> Result[T, NativeLocalAdoptionIssue],
+) -> Result[T, NativeLocalAdoptionIssue] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let current = () => {
+      owner_current() &&
+      self.operation_scope(host, material, principal, connection) is Ok(scope) &&
+      scope == @host.client_request_authority_scope_cid(request) &&
+      self.operation_account(host, material, {
+        principal,
+        connection,
+        resource: "run",
+        operation: "submit",
+      })
+      is Ok(@authorization.Allow(_)) &&
+      (match source {
+        None => true
+        Some((connection, resource)) =>
+          self.operation_account(host, material, {
+            principal,
+            connection,
+            resource,
+            operation: "read",
+          })
+          is Ok(@authorization.Allow(_))
+      })
+    }
+    operation(host.journal, operations, current)
+  })
+}
+
+///|
+/// Claim the original accepted Effect start. Retain its proof while the
+/// captured Read still owns the original Journal operation.
+pub fn NativeLocalJournalCapture::claim_effect_start_in_original_read(
+  self : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+  principal : String,
+  connection : String,
+  owner_current : () -> Bool,
+  retain : (NativeClientWorkFirstStart) -> Unit,
+) -> Result[Result[Unit, NativeClientSourceWorkIssue], NativeLocalAdoptionIssue] {
+  self.with_local_effect_start_authority(
+    request,
+    principal,
+    connection,
+    owner_current,
+    None,
+    (journal, operations, current) => {
+      let original = claim_native_client_retained_work_first_start_with_operations(
+        journal,
+        request,
+        current,
+        operations=Some(operations),
+      )
+      Ok(original.map(retain))
+    },
+  )
+}
+
+///|
+/// Reobserve the first-start proof before using already captured inputs.
+pub fn NativeLocalJournalCapture::require_effect_start_in_original_read(
+  self : NativeLocalJournalCapture,
+  first : NativeClientWorkFirstStart,
+  request : @host.ClientRequestIdentity,
+  principal : String,
+  connection : String,
+  owner_current : () -> Bool,
+) -> Result[Result[Unit, NativeClientSourceWorkIssue], NativeLocalAdoptionIssue] {
+  self.with_local_effect_start_authority(
+    request,
+    principal,
+    connection,
+    owner_current,
+    None,
+    (journal, operations, current) => {
+      Ok(
+        first.require_current(
+          journal,
+          request,
+          current,
+          reads=Some(operations.reads),
+        ),
+      )
+    },
+  )
+}
+
+///|
+/// Recheck the exact claim and Source grant before a physical step.
+pub fn NativeLocalJournalCapture::require_effect_source_in_original_read(
+  self : NativeLocalJournalCapture,
+  first : NativeClientWorkFirstStart,
+  request : @host.ClientRequestIdentity,
+  principal : String,
+  control_connection : String,
+  source_connection : String,
+  resource : String,
+  owner_current : () -> Bool,
+) -> Result[Result[Unit, NativeClientSourceWorkIssue], NativeLocalAdoptionIssue] {
+  self.with_local_effect_start_authority(
+    request,
+    principal,
+    control_connection,
+    owner_current,
+    Some((source_connection, resource)),
+    (journal, operations, current) => {
+      Ok(
+        first.require_current(
+          journal,
+          request,
+          current,
+          reads=Some(operations.reads),
+        ),
+      )
+    },
+  )
+}
+
+///|
 /// The same adopted configuration/caller scope under the original Read. This
 /// observes identity only; it issues no Submission, execution supply or grant.
 pub fn NativeLocalJournalCapture::authority_scope_cid_in_original_read(

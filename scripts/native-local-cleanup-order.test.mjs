@@ -409,10 +409,11 @@ test('Native target retains its physical first cause before failed accounting', 
   assert(begin > 0 && end > begin);
   const step = source.slice(begin, end);
   const proposal = readFileSync(new URL('../src/cmd/native_client/local_effect_mock_proposals.mbt', import.meta.url), 'utf8');
-  const helper = proposal.split('///|').find(block => block.includes('fn[T] Result::native_effect_proposal('));
+  const helper = proposal.split('///|').find(block => block.includes('fn[T] Result::native_effect_proposal_with_cause('));
+  const proposalReporter = source.match(/^  let report_proposal = .+$/mu)?.[0];
   const preparation = readFileSync(new URL('../src/cmd/native_client/local_command_preparation.mbt', import.meta.url), 'utf8');
   const primary = preparation.split('///|').find(block => block.includes('fn LocalCommandPreparationOriginal::retain_primary('));
-  assert(helper && primary);
+  assert(helper && proposalReporter && primary);
   writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
 priv enum LocalNativeMockEffectProposalIssue { Managed(@local_values.ClientInstalledManagedRunIssue) } derive(Eq, Debug)
 priv enum LocalCommandPreparationIssue { CommandBusinessEffectProposals(LocalNativeMockEffectProposalIssue); CommandBusinessSource(@row_file.NativeRelationFileIssue) } derive(Eq, Debug)
@@ -424,7 +425,11 @@ ${actual}
 ${primary}
 ${helper}
 fn Preparation::step(self : Self, held : LocalNativeMockEffectTarget) -> Bool raise ClientStop {
+  let report = issue => self.original.retain_primary(issue)
+${proposalReporter}
+  let mut complete = false
 ${step}
+  complete
 }
 test "physical failure survives a distinct accounting refusal" {
   for (physical_failure, accounting_failure) in [(true, true), (false, true), (true, false)] {

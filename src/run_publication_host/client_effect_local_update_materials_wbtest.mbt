@@ -1,6 +1,7 @@
 ///|
 fn original_local_update_materials_fixture(
   common? : Bool = false,
+  source_completion? : Bool = false,
 ) -> (
   PreparedClientEffectComputation,
   ClientEffectAllowedRun,
@@ -9,7 +10,9 @@ fn original_local_update_materials_fixture(
   ClientEffectIssuedNormalizationMaterials,
 ) {
   let (document, environment, limits) = local_update_normalization_fixture()
-  let prepared = if common {
+  let prepared = if source_completion {
+    local_update_source_normalization_fixture(false)
+  } else if common {
     common_update_normalization_fixture()
   } else {
     prepare_client_effect_computation(
@@ -21,8 +24,11 @@ fn original_local_update_materials_fixture(
       limits,
     ).unwrap()
   }
-  let proof = if common {
-    issue_prepared_client_effect_selected_normalization(prepared).unwrap()
+  let proof = if common || source_completion {
+    issue_prepared_client_effect_selected_normalization(
+      prepared,
+      allow_source_completion=source_completion,
+    ).unwrap()
   } else {
     issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
   }
@@ -381,6 +387,59 @@ test "common update material restore retains its original first compilation prof
   let replaced = normalization_materials_replace(
     wire,
     @publication.run_evidence_value_json(legacy.original.journal),
+  )
+  assert_true(
+    normalization_materials_untrusted_admission(
+      replaced,
+      run,
+      expected_request=Some(request),
+    )
+    is Err(Normalization(SubstitutedJournal)),
+  )
+}
+
+///|
+test "Source update material restore retains the original selection and refuses a canonically sealed substitute" {
+  let (_, _, definition, request, issued) = original_local_update_materials_fixture(
+    source_completion=true,
+  )
+  let run = @publication.publication_contract_identity(definition)
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  let expected = @publication.run_evidence_value_json(issued.original.journal)
+  for original in [Some(issued), None] {
+    let restored = normalization_materials_admit(
+      wire,
+      run,
+      original~,
+      expected_request=Some(request),
+    )
+    assert_true(restored.prepared.normalization is None)
+    assert_true(
+      restored.compilation.normalization_profile
+      is Some(SourceCompletedUpdate(_)),
+    )
+    assert_eq(restored.request, Some(request))
+    let journal = restore_client_effect_run_normalization(restored).unwrap()
+    assert_eq(@publication.run_evidence_value_json(journal), expected)
+    assert_true(
+      physical_equal(
+        journal,
+        restore_client_effect_run_normalization(restored).unwrap(),
+      ),
+    )
+  }
+  let foreign = @publication.seal_run_evidence_value(
+    "normalization_journal",
+    (
+      #|{"entries":[{"authored":"null","canonical":"different-view","path":"$.stages[0].inputs[\"table\"].view","rule":"actql.source.sole-view-completion"}],"rule_catalog_cid":"sha256:2ec2fd95b3aa1bfcddaf87bcf2a383321fb0d17b39917b65da6f3cde10a6dae8","version":"actql-normalization-journal/0.1"}
+    ),
+    1024,
+    32,
+    8,
+  ).unwrap()
+  let replaced = normalization_materials_replace(
+    wire,
+    @publication.run_evidence_value_json(foreign),
   )
   assert_true(
     normalization_materials_untrusted_admission(

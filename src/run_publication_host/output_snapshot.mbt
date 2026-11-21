@@ -24,7 +24,8 @@ pub fn PublicationOutputExport::start_captured_snapshot(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationOutputSnapshotPreparation, PublicationOutputExportIssue] {
-  guard self.receipt is Some(receipt) &&
+  guard self.retained_effect_result_available() &&
+    self.receipt is Some(receipt) &&
     self.definition is Some(_) &&
     self.artifact is Some(_) else {
     return Err(InvalidState)
@@ -63,7 +64,8 @@ pub fn PublicationOutputSnapshotPreparation::advance(
     self.cancel()
     return Err(InvalidState)
   }
-  if !@execution.completed_relation_export_receipt_live(receipt) {
+  if !parent.retained_effect_result_available() ||
+    !@execution.completed_relation_export_receipt_live(receipt) {
     self.cancel()
     return Err(InvalidState)
   }
@@ -132,6 +134,7 @@ pub fn PublicationOutputSnapshotPreparation::finish(
 ) -> Result[@publication.CapturedResultSnapshot, PublicationOutputExportIssue] {
   guard !self.closed &&
     self.parent is Some(parent) &&
+    parent.retained_effect_result_available() &&
     parent.receipt is Some(receipt) &&
     @execution.completed_relation_export_receipt_live(receipt) else {
     self.cancel()

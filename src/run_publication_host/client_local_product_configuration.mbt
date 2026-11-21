@@ -122,6 +122,10 @@ fn product_assemble_common(
   observed_at : String,
   assets : ClientLocalProductAssets,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
 ) -> Result[ProductCommonAssembly, ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) {
     return Err(InvalidLocation)
@@ -216,19 +220,32 @@ fn product_assemble_common(
   let connection = mock
     .map(subjects => subjects.control_connection)
     .unwrap_or("local")
-  let account = match mock {
-    Some(subjects) => {
+  let account = match (mock, mock_preparation) {
+    (Some(subjects), preparation) => {
       // The installing Host selected this disjoint control original under its
       // SAME Read before assembly. A Project cannot replace Host identity.
       if subjects.account_id != principal || subjects.principal != principal {
         return Err(UnsupportedAsset)
       }
-      match @authorization.local_mock_account_configuration(subjects) {
+      let selected = match preparation {
+        Some((targets, prepare)) => {
+          guard @authorization.local_mock_account_configuration_prepared(
+              subjects, targets, prepare,
+            )
+            is Some(result) else {
+            return Err(ConfigurationLimit)
+          }
+          result
+        }
+        None => @authorization.local_mock_account_configuration(subjects)
+      }
+      match selected {
         Ok(original) => original
         Err(_) => return Err(UnsupportedAsset)
       }
     }
-    None => {
+    (None, Some(_)) => return Err(UnsupportedAsset)
+    (None, None) => {
       let account = product_require(
         product_wire(
           product_object([
@@ -397,6 +414,10 @@ fn product_assemble_originals(
   assets : ClientLocalProductAssets,
   finite_run_profile? : Bool = false,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) ||
     !product_absolute_location(sqlite_library) ||
@@ -405,7 +426,13 @@ fn product_assemble_originals(
     return Err(InvalidLocation)
   }
   let common = product_require(
-    product_assemble_common(configuration_root, observed_at, assets, mock~),
+    product_assemble_common(
+      configuration_root,
+      observed_at,
+      assets,
+      mock~,
+      mock_preparation~,
+    ),
   )
   let profile = if finite_run_profile {
     match
@@ -702,6 +729,10 @@ pub fn client_local_product_finite_originals(
   observed_at : String,
   assets : ClientLocalProductAssets,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   product_assemble_originals(
     configuration_root,
@@ -711,6 +742,7 @@ pub fn client_local_product_finite_originals(
     assets,
     finite_run_profile=true,
     mock~,
+    mock_preparation~,
   ) catch {
     ProductConfigurationFailure(issue) => Err(issue)
   }
