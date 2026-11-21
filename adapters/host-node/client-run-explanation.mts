@@ -3,10 +3,40 @@
 // compile, acquire, execute or repair absent Facts.
 import {validClientBody, validWireRunExplanationViewShape,
   withinResultDescriptionLimits} from '../../packages/client-wire/index.mjs';
-const failure = code => Object.assign(new Error(code), {code});
+import type {WireClientBodyByOperation, WireRunExplanationView, WireRunRef} from
+  '../../packages/client-wire/index.js';
 
-export function installClientRunExplanation({authorize, authorizeEgress,
-  probeOriginal, lookupOriginal, readWorkspace}) {
+type ExplanationRequest = WireClientBodyByOperation['run-explanation'] & Readonly<{
+  principalId: string;
+  signal?: AbortSignal;
+}>;
+type ExplanationOriginal = Readonly<{
+  definitionWire: string;
+  admissionEvidenceWire: string | undefined;
+  programDefinitionCid: string;
+  parameterValuesCid: string;
+  factsWire: string | undefined;
+}>;
+type ExplanationInstallation<Operation, Extent extends Readonly<{storedBytes: number}>> = Readonly<{
+  authorize(request: ExplanationRequest, operation: Operation): boolean | PromiseLike<boolean>;
+  authorizeEgress(request: ExplanationRequest, operation: Operation): boolean | PromiseLike<boolean>;
+  probeOriginal(ref: WireRunRef): Extent | undefined;
+  lookupOriginal(ref: WireRunRef, extent: Extent): ExplanationOriginal | undefined;
+  readWorkspace: Readonly<{
+    beginExplanation(request: ExplanationRequest): Operation;
+    explanationRequest(request: ExplanationRequest): ExplanationRequest;
+    prepareExplanation(request: ExplanationRequest, storedBytes: number): undefined;
+    renderExplanation(request: ExplanationRequest, original: ExplanationOriginal): string;
+    close(request: ExplanationRequest, primary: unknown): undefined;
+  }>;
+}>;
+type Consume<Value> = (view: WireRunExplanationView) => Value | PromiseLike<Value>;
+
+const failure = (code: string) => Object.assign(new Error(code), {code});
+
+export function installClientRunExplanation<Operation, Extent extends Readonly<{storedBytes: number}>>({
+  authorize, authorizeEgress, probeOriginal, lookupOriginal, readWorkspace
+}: ExplanationInstallation<Operation, Extent>) {
   const begin = readWorkspace?.beginExplanation, selectedRequest = readWorkspace?.explanationRequest,
     prepare = readWorkspace?.prepareExplanation, render = readWorkspace?.renderExplanation,
     close = readWorkspace?.close;
@@ -14,7 +44,7 @@ export function installClientRunExplanation({authorize, authorizeEgress,
     begin, selectedRequest, prepare, render, close].every(value => typeof value === 'function')) {
     throw new TypeError('InvalidClientRunExplanationInstallation');
   }
-  const authorized = async (request, selected, operation) => {
+  const authorized = async (request: ExplanationRequest, selected: ExplanationRequest, operation: Operation) => {
     if (Reflect.apply(selectedRequest, readWorkspace, [request]) !== selected) throw failure('RunExplanationReadUnavailable');
     selected.signal?.throwIfAborted();
     // Account metadata egress precedes even a Journal extent probe. This same
@@ -26,7 +56,7 @@ export function installClientRunExplanation({authorize, authorizeEgress,
   };
   // Keep all new semantic/wire/view aliases in this inner frame. It unwinds
   // completely before the outer owner may return/refund the read admission.
-  async function readOwned(request, operation, consume) {
+  async function readOwned<Value>(request: ExplanationRequest, operation: Operation, consume: Consume<Value>) {
     const selected = Reflect.apply(selectedRequest, readWorkspace, [request]);
     const {connection, ref, maxWireBytes, maxNodes, maxDepth} = selected;
     if (!Object.isFrozen(connection) ||
@@ -46,7 +76,7 @@ export function installClientRunExplanation({authorize, authorizeEgress,
     if (wire.length > maxWireBytes || Buffer.byteLength(wire) > maxWireBytes) {
       throw failure('RunExplanationReadLimit');
     }
-    let view;
+    let view: unknown;
     try {view = JSON.parse(wire);}
     catch {throw failure('RunExplanationEncodingRejected');}
     if (!withinResultDescriptionLimits(view, selected)) throw failure('RunExplanationReadLimit');
@@ -72,10 +102,10 @@ export function installClientRunExplanation({authorize, authorizeEgress,
     // serialized or offered as an application callback/public operation field.
     return await consume(view);
   }
-  return async (request, consume) => {
+  return async <Value,>(request: ExplanationRequest, consume: Consume<Value>) => {
     if (typeof consume !== 'function') throw new TypeError('InvalidRunExplanationConsumer');
     request.signal?.throwIfAborted();
-    let operation, opened = false, primary;
+    let operation: Operation | undefined, opened = false, primary: unknown;
     try {
       operation = Reflect.apply(begin, readWorkspace, [request]);
       opened = true;

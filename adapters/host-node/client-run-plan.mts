@@ -2,15 +2,35 @@
 // current; the stored map never creates an inspection or control permission.
 import {validClientBody, snapshotClientRequest, validWireRunPlanViewShape} from
   '../../packages/client-wire/index.mjs';
-const failure = code => Object.assign(new Error(code), {code});
-export function installClientRunPlan({authorize, lookupOriginal, control}) {
+import type {WireClientBodyByOperation, WireRunRef} from '../../packages/client-wire/index.js';
+
+type PlanRequest = WireClientBodyByOperation['run-plan'] & Readonly<{
+  principalId: string;
+  signal?: AbortSignal;
+}>;
+type PlanOriginal = Readonly<{compiledPlanWire: string; planViewWire: string}>;
+type PlanInstallation<Definition> = Readonly<{
+  authorize(request: PlanRequest): boolean | PromiseLike<boolean>;
+  lookupOriginal(ref: WireRunRef): Readonly<{
+    runDefinition: Definition;
+    programDefinitionCid: string;
+    runAdmissionEvidence?: Readonly<{logicalPlanOriginal?: PlanOriginal}>;
+  }> | undefined;
+  control: Readonly<{
+    readStoredRunPlanOriginal(original: PlanOriginal, definition: Definition,
+      programDefinitionCid: string, limits: PlanRequest): string;
+  }>;
+}>;
+
+const failure = (code: string) => Object.assign(new Error(code), {code});
+export function installClientRunPlan<Definition>({authorize, lookupOriginal, control}: PlanInstallation<Definition>) {
   if (typeof authorize !== 'function' || typeof lookupOriginal !== 'function' ||
       typeof control?.readStoredRunPlanOriginal !== 'function') {
     throw new TypeError('InvalidClientRunPlanInstallation');
   }
-  return async request => {
+  return async (request: PlanRequest) => {
     const {signal, ...data} = request;
-    const selected = Object.freeze({...snapshotClientRequest(data),
+    const selected = Object.freeze({...snapshotClientRequest(data) as typeof data,
       ...(signal === undefined ? {} : {signal})});
     const {connection, ref, maxWireBytes, maxNodes, maxDepth} = selected;
     if (!validClientBody('run-plan', {connection, ref, maxWireBytes, maxNodes, maxDepth})) {
@@ -26,7 +46,7 @@ export function installClientRunPlan({authorize, lookupOriginal, control}) {
       original.programDefinitionCid, selected);
     if (wire !== saved.planViewWire) throw failure('InvalidClientHostRunPlanView');
     const view = {version: 'actql-run-plan-view/0.1', run_ref: {...ref},
-      plan_view: JSON.parse(wire)};
+      plan_view: JSON.parse(wire) as unknown};
     if (!validWireRunPlanViewShape(view) ||
         Buffer.byteLength(JSON.stringify(view)) > maxWireBytes) {
       throw failure('InvalidClientHostRunPlanView');

@@ -1423,3 +1423,9 @@ target/
 /adapters/host-node/client-request-lookup.test.d.mts
 /adapters/host-node/client-run-attach.test.mjs
 /adapters/host-node/client-run-attach.test.d.mts
+/adapters/host-node/client-run-explanation.mjs
+/adapters/host-node/client-run-explanation.d.mts
+/adapters/host-node/client-run-inspect.mjs
+/adapters/host-node/client-run-inspect.d.mts
+/adapters/host-node/client-run-plan.mjs
+/adapters/host-node/client-run-plan.d.mts

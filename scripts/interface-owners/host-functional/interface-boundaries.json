@@ -30568,7 +30568,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "const wire = control.readStoredRunPlanOriginal(saved, original.runDefinition,"
               }
             ],
@@ -37894,8 +37894,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -37908,8 +37908,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -37922,7 +37922,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
               },
               {
@@ -37936,7 +37936,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
               },
               {
@@ -37950,8 +37950,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -37964,7 +37964,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "throw new TypeError('InvalidClientRunInspectInstallation');"
               },
               {
@@ -37978,7 +37978,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "const {signal, ...data} = request;"
               },
               {
@@ -37992,7 +37992,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "if (!validRunRef(selected.ref) || !Number.isSafeInteger(selected.maxWireBytes) ||"
               },
               {
@@ -38006,8 +38006,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38038,8 +38038,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38052,8 +38052,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -38066,7 +38066,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
               },
               {
@@ -38080,7 +38080,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "// Reuse authorized current-only Owner observations and retained original Run"
               },
               {
@@ -38094,8 +38094,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38108,7 +38108,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "throw new TypeError('InvalidClientRunInspectInstallation');"
               },
               {
@@ -38122,7 +38122,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "const {signal, ...data} = request;"
               },
               {
@@ -38136,7 +38136,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
+                "path": "adapters/host-node/client-run-inspect.mts",
                 "anchor": "if (!validRunRef(selected.ref) || !Number.isSafeInteger(selected.maxWireBytes) ||"
               },
               {
@@ -38150,8 +38150,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-inspect.mjs",
-                "anchor": "export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-inspect.mts",
+                "anchor": "export function installClientRunInspect<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38221,8 +38221,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38235,8 +38235,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -38249,7 +38249,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "// Read the original compiler evidence of an admitted Run. Authorization is"
               },
               {
@@ -38263,8 +38263,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38277,8 +38277,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38291,8 +38291,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "const failure = code => Object.assign(new Error(code), {code});"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const failure = (code: string) => Object.assign(new Error(code), {code});"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -38305,7 +38305,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "const {signal, ...data} = request;"
               },
               {
@@ -38319,7 +38319,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "const {connection, ref, maxWireBytes, maxNodes, maxDepth} = selected;"
               },
               {
@@ -38333,8 +38333,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38365,8 +38365,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38379,8 +38379,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -38393,7 +38393,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "// Read the original compiler evidence of an admitted Run. Authorization is"
               },
               {
@@ -38407,8 +38407,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38421,8 +38421,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -38435,8 +38435,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "const failure = code => Object.assign(new Error(code), {code});"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "const failure = (code: string) => Object.assign(new Error(code), {code});"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -38449,7 +38449,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "const {signal, ...data} = request;"
               },
               {
@@ -38463,7 +38463,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
+                "path": "adapters/host-node/client-run-plan.mts",
                 "anchor": "const {connection, ref, maxWireBytes, maxNodes, maxDepth} = selected;"
               },
               {
@@ -38477,8 +38477,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "export function installClientRunPlan({authorize, lookupOriginal, control}) {"
+                "path": "adapters/host-node/client-run-plan.mts",
+                "anchor": "export function installClientRunPlan<"
               },
               {
                 "path": "docs/design/interactive-run-control.md",

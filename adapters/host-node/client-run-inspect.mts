@@ -2,7 +2,40 @@
 // evidence. No preparation, acquisition, dispatch or control mutation is used.
 import {validRunRef, snapshotClientRequest, validWireRunViewShape} from '../../packages/client-wire/index.mjs';
 
-export function installClientRunInspect({authorize, observeOwners, lookupOriginal, control}) {
+import type {WireClientBodyByOperation, WireOwnerCursor, WireOwnerRef, WireRunRef} from
+  '../../packages/client-wire/index.js';
+
+type InspectRequest = WireClientBodyByOperation['inspect-run'] & Readonly<{
+  principalId: string;
+  signal?: AbortSignal;
+}>;
+type Observations<RunState> = Readonly<{
+  owners: readonly Readonly<{
+    kind: string;
+    owner: string;
+    snapshot?: Readonly<{value: RunState}>;
+  }>[];
+  revisionVector: readonly Readonly<{owner: WireOwnerRef; snapshotCid?: string}>[];
+}>;
+type InspectInstallation<Definition, Prepared, Authorization, RunState> = Readonly<{
+  authorize(request: InspectRequest): boolean | PromiseLike<boolean>;
+  observeOwners(request: InspectRequest & Readonly<{cursors: readonly WireOwnerCursor[]; maxEntries: number}>):
+    Observations<RunState> | PromiseLike<Observations<RunState>>;
+  lookupOriginal(ref: WireRunRef): Readonly<{
+    runDefinition: Definition;
+    runAdmissionEvidence?: Readonly<{prepared?: string; authorization?: string}>;
+  }> | undefined;
+  control: Readonly<{
+    admitRunEvidence(kind: 'prepared_invocation', wire: string, limits: InspectRequest): Prepared;
+    admitRunEvidence(kind: 'run_authorization', wire: string, limits: InspectRequest): Authorization;
+    readCurrentClientRunView(definition: Definition, prepared: Prepared, authorization: Authorization,
+      ref: WireRunRef, state: RunState, snapshotCid: string, limits: InspectRequest): string;
+  }>;
+}>;
+
+export function installClientRunInspect<Definition, Prepared, Authorization, RunState>(
+  {authorize, observeOwners, lookupOriginal, control}:
+    InspectInstallation<Definition, Prepared, Authorization, RunState>) {
   if (typeof authorize !== 'function' || typeof observeOwners !== 'function' ||
       typeof lookupOriginal !== 'function' || typeof control?.readCurrentClientRunView !== 'function' ||
       typeof control?.admitRunEvidence !== 'function') {
@@ -12,9 +45,9 @@ export function installClientRunInspect({authorize, observeOwners, lookupOrigina
     {code: 'RunObservationAccessDenied'});
   const unavailable = () => Object.assign(new Error('ClientOperationUnavailable'),
     {code: 'ClientOperationUnavailable'});
-  return async request => {
+  return async (request: InspectRequest) => {
     const {signal, ...data} = request;
-    const selected = {...snapshotClientRequest(data), ...(signal === undefined ? {} : {signal})};
+    const selected = {...snapshotClientRequest(data) as typeof data, ...(signal === undefined ? {} : {signal})};
     if (!validRunRef(selected.ref) || !Number.isSafeInteger(selected.maxWireBytes) ||
         selected.maxWireBytes < 1024 || selected.maxWireBytes > 65536 ||
         !Number.isSafeInteger(selected.maxNodes) || selected.maxNodes < 1 || selected.maxNodes > 10000 ||
@@ -44,7 +77,7 @@ export function installClientRunInspect({authorize, observeOwners, lookupOrigina
     if (typeof wire !== 'string' || Buffer.byteLength(wire, 'utf8') > selected.maxWireBytes) {
       throw new TypeError('InvalidClientHostRunView');
     }
-    const view = JSON.parse(wire);
+    const view: unknown = JSON.parse(wire);
     if (!validWireRunViewShape(view)) throw new TypeError('InvalidClientHostRunView');
     if (await authorize(selected) !== true) throw denied();
     signal?.throwIfAborted();
