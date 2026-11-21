@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {bindDeclaredUpdateTargetRead, invocationBindingsMatch, invokeDeclaredRowUpdate, invokeScopedCredentialOperation,
-  ownInvocationAuthorization, ownInvocationContext} from
+import {invocationBindingsMatch, invokeDeclaredRowUpdate, invokeScopedCredentialOperation,
+  ownInvocationAuthorization, ownInvocationContext, withDeclaredUpdateTargetReads} from
   './owned-invocation-context.mjs';
 
 test('declared UPDATE target reads retain the original row grant and refuse a repeated occurrence', async () => {
@@ -14,7 +14,7 @@ test('declared UPDATE target reads retain the original row grant and refuse a re
     return response.before;
   };
   let read;
-  read = bindDeclaredUpdateTargetRead({rowCount: 2, operation: 'original-read',
+  await assert.rejects(withDeclaredUpdateTargetReads({rowCount: 2, operation: 'original-read',
     slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 16},
     assertCurrent() {selected.push('current');},
     authorizationForRow(index) {selected.push(index); return authority;},
@@ -22,7 +22,6 @@ test('declared UPDATE target reads retain the original row grant and refuse a re
       assert.strictEqual(original, authority);
       assert.strictEqual(input.grant, authority.grant);
       assert.strictEqual(input.useId, authority.useId);
-      assert.strictEqual(input.currentBeforeSend, fence);
       assert.strictEqual(project, projector);
       assert.equal(input.maxRequestBytes, 2);
       assert.equal(input.maxResponseBytes, 16);
@@ -34,12 +33,78 @@ test('declared UPDATE target reads retain the original row grant and refuse a re
       await assert.rejects(read(1, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
       await input.currentBeforeSend();
       return project(facts);
-    }});
+    }}, async supplied => {
+    read = supplied;
+    await assert.rejects(read(1, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+    assert.equal(await read(0, request, projector, fence), 'original');
+    await assert.rejects(read(0, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+    await assert.rejects(read(1, {...request, body: 'éa'}, projector, fence), {code: 'InvalidOwnedInvocationContext'});
+  }), {code: 'InvalidOwnedInvocationContext'});
   await assert.rejects(read(1, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
-  assert.equal(await read(0, request, projector, fence), 'original');
-  await assert.rejects(read(0, request, projector, fence), {code: 'InvalidOwnedInvocationContext'});
-  await assert.rejects(read(1, {...request, body: 'éa'}, projector, fence), {code: 'InvalidOwnedInvocationContext'});
   assert.deepEqual(selected, ['current', 0, 'current', 'send-current', 'current', 'current']);
+});
+
+test('declared UPDATE target reads stay within the original observation lifetime', async () => {
+  const failRead = {code: 'InvalidOwnedInvocationContext'};
+  const request = {method: 'GET', path: '/record', headers: []};
+  const grant = Object.freeze({grant: {}, useId: 'target'});
+  const after = () => {};
+  const project = value => value;
+  let savedRead, calls = 0;
+  const plan = {rowCount: 1, slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 12},
+    operation: 'original-read', authorizationForRow: () => grant,
+    async readChild(original, input, row, slot, projector) {
+      assert.equal(original, grant);
+      await input.currentBeforeSend();
+      calls++;
+      return projector('before');
+    }};
+  assert.equal(await withDeclaredUpdateTargetReads(plan, async read => {
+    savedRead = read;
+    return read(0, request, project, after);
+  }), 'before');
+  await assert.rejects(savedRead(0, request, project, after), failRead);
+  await assert.rejects(withDeclaredUpdateTargetReads(plan, () => 'fabricated before'), failRead);
+
+  const grantGate = Promise.withResolvers();
+  const released = Promise.withResolvers();
+  let settled = false;
+  const detached = withDeclaredUpdateTargetReads({...plan, authorizationForRow: async () => {
+    await grantGate.promise;
+    return grant;
+  }}, read => {
+    savedRead = read;
+    released.resolve();
+    // A returned observation cannot pass while its original read is pending.
+    void read(0, request, project, after);
+    return 'detached';
+  });
+  void detached.then(() => {settled = true;}, () => {settled = true;});
+  await released.promise;
+  await Promise.resolve();
+  assert.equal(settled, false);
+  grantGate.resolve();
+  await assert.rejects(detached, failRead);
+  await assert.rejects(savedRead(0, request, project, after), failRead);
+  assert.equal(calls, 1);
+});
+
+test('declared UPDATE target reads preserve a swallowed original child failure', async () => {
+  const refused = new Error('original read failed');
+  const request = {method: 'GET', path: '/record'};
+  const project = () => assert.fail('Failed original read reached the projector');
+  const beforeSend = () => {};
+  let reads = 0;
+  await assert.rejects(withDeclaredUpdateTargetReads({
+    rowCount: 2, operation: 'original-read', slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 12},
+    authorizationForRow: () => Object.freeze({grant: {}, useId: 'target'}),
+    async readChild() {reads++; throw refused;},
+  }, async read => {
+    await assert.rejects(read(0, request, project, beforeSend), error => error === refused);
+    await assert.rejects(read(1, request, project, beforeSend), {code: 'InvalidOwnedInvocationContext'});
+    return 'fabricated replacement';
+  }), error => error === refused);
+  assert.equal(reads, 1);
 });
 
 test('owned invocation context snapshots scalar bindings and limits', () => {

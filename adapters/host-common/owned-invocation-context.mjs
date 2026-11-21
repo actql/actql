@@ -167,41 +167,65 @@ export function rowUpdateTransportObservation(response) {
 // It neither selects a target nor grants an operation.
 export const declaredRowUpdateKinds = Object.freeze(['update']);
 
-// Bind one existing target-read phase for built-in providers. The provider's
-// checked request data and response projector stay in the original physical
-// child. The Host obtains the grant for the selected row.
-export function bindDeclaredUpdateTargetRead({readChild, authorizationForRow, operation,
-  slot, rowCount, assertCurrent, signal}) {
+// Keep the original target-read grants and their physical children within
+// this observation. An omitted, failed or detached read cannot supply Preview.
+export async function withDeclaredUpdateTargetReads({readChild, authorizationForRow, operation,
+  slot, rowCount, assertCurrent, signal}, observe) {
   if (typeof readChild !== 'function' || typeof authorizationForRow !== 'function' ||
       typeof operation !== 'string' || !operation || slot?.slot !== 'target' ||
-      !Number.isSafeInteger(rowCount) || rowCount < 0) fail();
-  let next = 0, active = false;
-  return async (rowIndex, request, project, currentBeforeSend) => {
-    if (active || rowIndex !== next || rowIndex >= rowCount || typeof project !== 'function' ||
-        typeof currentBeforeSend !== 'function') fail();
+      !Number.isSafeInteger(rowCount) || rowCount < 0 || typeof observe !== 'function') fail();
+  let next = 0, open = true, active = false, failed = false;
+  let drain, firstFailure;
+  const requireOpen = () => {if (!open) fail();};
+  const refuse = async () => fail();
+  const read = (rowIndex, request, project, currentBeforeSend) => {
+    if (!open || active || failed || rowIndex !== next || rowIndex >= rowCount ||
+        typeof project !== 'function' || typeof currentBeforeSend !== 'function') return refuse();
     active = true;
-    next++;
-    try {
-      assertCurrent?.();
-      signal?.throwIfAborted();
-      const http = ownHttpRequest(request);
-      if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
-          Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();
-      const authorization = await authorizationForRow(rowIndex);
-      assertCurrent?.();
-      signal?.throwIfAborted();
-      if (authorization === null || typeof authorization !== 'object' ||
-          nodeTypes.isProxy(authorization) || typeof authorization.useId !== 'string' ||
-          !authorization.useId) fail();
-      const value = await readChild(authorization, {grant: authorization.grant, useId: authorization.useId,
-        operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
-          headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
-        maxRequestBytes: slot.maxRequestBytes, maxResponseBytes: slot.maxResponseBytes,
-        returnRejectedResponse: true, signal, currentBeforeSend}, rowIndex, 'target', project);
-      assertCurrent?.();
-      return value;
-    } finally { active = false; }
+    const pending = (async () => {
+      try {
+        assertCurrent?.();
+        signal?.throwIfAborted();
+        const http = ownHttpRequest(request);
+        if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
+            Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();
+        const authorization = await authorizationForRow(rowIndex);
+        requireOpen();
+        assertCurrent?.();
+        signal?.throwIfAborted();
+        if (authorization === null || typeof authorization !== 'object' ||
+            nodeTypes.isProxy(authorization) || typeof authorization.useId !== 'string' ||
+            !authorization.useId) fail();
+        const value = await readChild(authorization, {grant: authorization.grant, useId: authorization.useId,
+          operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
+            headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
+          maxRequestBytes: slot.maxRequestBytes, maxResponseBytes: slot.maxResponseBytes,
+          returnRejectedResponse: true, signal, currentBeforeSend: () => {
+            requireOpen();
+            return currentBeforeSend();
+          }}, rowIndex, 'target', project);
+        assertCurrent?.();
+        next++;
+        return value;
+      } catch (cause) {
+        failed = true;
+        firstFailure = cause;
+        throw cause;
+      } finally { active = false; }
+    })();
+    // Joined again on exit even if a provider did not await the child.
+    drain = pending.then(() => undefined, () => undefined);
+    return pending;
   };
+  try {
+    const value = await observe(read);
+    if (failed) throw firstFailure;
+    if (active || next !== rowCount) fail();
+    return value;
+  } finally {
+    open = false;
+    await drain;
+  }
 }
 
 const updateTransportFields = Object.freeze(['method', 'path', 'query', 'headers', 'body', 'responseHeaders']);

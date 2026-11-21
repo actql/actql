@@ -1485,9 +1485,8 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "099999d2aedfbf6d79d77f1f6950451b298918b2619d6de5e6f1636f4b7b31e4",
+      "sha256": "9b4475f2fba5bf27d0a26f5477d08e94f35f97fb544945e40e7a7255501cf9d1",
       "exports": [
-        "bindDeclaredUpdateTargetRead",
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
         "invocationScopeFields",
@@ -1496,32 +1495,10 @@
         "ownInvocationAuthorization",
         "ownInvocationContext",
         "ownInvocationLimits",
-        "rowUpdateTransportObservation"
+        "rowUpdateTransportObservation",
+        "withDeclaredUpdateTargetReads"
       ],
       "operations": [
-        {
-          "name": "bindDeclaredUpdateTargetRead",
-          "parameters": [
-            "readChild",
-            "authorizationForRow",
-            "operation",
-            "slot",
-            "rowCount",
-            "assertCurrent",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "bindDeclaredUpdateTargetRead/bindDeclaredUpdateTargetRead",
-          "parameters": [
-            "rowIndex",
-            "request",
-            "project",
-            "currentBeforeSend"
-          ],
-          "async": true
-        },
         {
           "name": "captureDeclaredUpdateTransport/captureDeclaredUpdateTransport",
           "parameters": [
@@ -1629,6 +1606,50 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads",
+          "parameters": [
+            "readChild",
+            "authorizationForRow",
+            "operation",
+            "slot",
+            "rowCount",
+            "assertCurrent",
+            "signal",
+            "observe"
+          ],
+          "async": true
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads/read/read",
+          "parameters": [
+            "rowIndex",
+            "request",
+            "project",
+            "currentBeforeSend"
+          ],
+          "async": false
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads/read/read/pending/pending",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads/read/read/pending/pending/value/value",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads/read/read/read",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withDeclaredUpdateTargetReads/read/read/read#2",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "public-wire-codec",
@@ -1636,8 +1657,6 @@
       "contracts": [
         {
           "operations": [
-            "bindDeclaredUpdateTargetRead",
-            "bindDeclaredUpdateTargetRead/bindDeclaredUpdateTargetRead",
             "captureDeclaredUpdateTransport/captureDeclaredUpdateTransport",
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
@@ -1651,10 +1670,15 @@
             "ownInvocationLimits/ownInvocationLimits",
             "rowUpdateTransportObservation",
             "stringData/stringData",
-            "transportPair"
+            "transportPair",
+            "withDeclaredUpdateTargetReads",
+            "withDeclaredUpdateTargetReads/read/read",
+            "withDeclaredUpdateTargetReads/read/read/pending/pending",
+            "withDeclaredUpdateTargetReads/read/read/pending/pending/value/value",
+            "withDeclaredUpdateTargetReads/read/read/read",
+            "withDeclaredUpdateTargetReads/read/read/read#2"
           ],
           "exports": [
-            "bindDeclaredUpdateTargetRead",
             "declaredRowUpdateKinds",
             "invocationBindingsMatch",
             "invocationScopeFields",
@@ -1663,7 +1687,8 @@
             "ownInvocationAuthorization",
             "ownInvocationContext",
             "ownInvocationLimits",
-            "rowUpdateTransportObservation"
+            "rowUpdateTransportObservation",
+            "withDeclaredUpdateTargetReads"
           ],
           "attributes": {
             "responsibility": [
@@ -1836,6 +1861,14 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.test.mjs",
                 "anchor": "test('invalid async UPDATE encoding settles inside its original invocation without a physical send'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target reads stay within the original observation lifetime'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target reads preserve a swallowed original child failure'"
               }
             ]
           }

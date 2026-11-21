@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "ef37f2f4f1aa0acddfb1505cf9c15dac4f8d99cad6d14c059d4150ef01ebb0fa",
+      "sha256": "14c1d9a5ec9cb72aecf421aff7d50ec2e7dcb4c54651300cef2fe332de347ee1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5265,6 +5265,13 @@
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
+          "parameters": [
+            "readTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observeRows#2",
           "parameters": [
             "row",
             "index"
@@ -6493,6 +6500,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
