@@ -1537,3 +1537,7 @@ target/
 /adapters/store-local/publication-index-reader.d.mts
 /adapters/store-local/publication-result-metadata.mjs
 /adapters/store-local/publication-result-metadata.d.mts
+/adapters/store-local/publication-contract-store.mjs
+/adapters/store-local/publication-contract-store.d.mts
+/adapters/store-local/publication-contract-node-bound.test.mjs
+/adapters/store-local/publication-contract-node-bound.test.d.mts

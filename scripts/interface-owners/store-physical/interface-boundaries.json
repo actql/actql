@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dbd31716fe8a3e41a1bcfcca565f4e6eb168206f63b274a2b36896619709b123",
+      "sha256": "91f4dc684930105bc8e59a81174cb3b0e6f516515b061e804c51f998820a95e0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6236,6 +6236,13 @@
           "async": false
         },
         {
+          "name": "nativePublicationContract/nativePublicationContract",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "openLocalPublicationStore",
           "parameters": [
             "supplied",
@@ -6248,16 +6255,15 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/active/active",
-          "parameters": [],
+          "name": "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
+          "parameters": [
+            "usage"
+          ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/admitContract/admitContract",
-          "parameters": [
-            "name",
-            "wire"
-          ],
+          "name": "openOriginalLocalPublicationStore/active/active",
+          "parameters": [],
           "async": false
         },
         {
@@ -6271,23 +6277,6 @@
           "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
           "parameters": [
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
-          "parameters": [
-            "name",
-            "wire",
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
-          "parameters": [
-            "_",
-            "index"
           ],
           "async": false
         },
@@ -7401,9 +7390,9 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/parseContract/parseContract",
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
           "parameters": [
-            "contract"
+            "args"
           ],
           "async": false
         },
@@ -7450,34 +7439,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/putBytes/putBytes",
           "parameters": [
             "value",
@@ -7503,73 +7464,19 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
-          "parameters": [
-            "supplied"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
-          "parameters": [
-            "name",
-            "suppliedWire"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
-          "parameters": [
-            "supplied"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/putSemantic/putSemantic",
           "parameters": [
             "wire",
             "semanticCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
+          "parameters": [
+            "supplied",
+            "retainedOriginals",
+            "recoveryInventory"
           ],
           "async": true
         },
@@ -7837,6 +7744,13 @@
             "keyHash"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
+          "parameters": [
+            "maxBytes"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
@@ -8334,8 +8248,9 @@
           "operations": [
             "<module>",
             "nativeContractRead/nativeContractRead",
+            "nativePublicationContract/nativePublicationContract",
+            "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
-            "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
@@ -8454,26 +8369,14 @@
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
             "openOriginalLocalPublicationStore/putBytes/putBytes",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
-            "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
-            "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
@@ -8495,6 +8398,7 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
@@ -8529,14 +8433,11 @@
             "exactUtf8WireMatches/exactUtf8WireMatches",
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
-            "openOriginalLocalPublicationStore/admitContract/admitContract",
-            "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
             "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
-            "openOriginalLocalPublicationStore/parseContract/parseContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
             "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
             "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
@@ -8749,8 +8650,8 @@
                 "anchor": "return Object.freeze(verifiedBindings);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const admitPublicationContracts = (supplied, originals) => {"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const admitPublicationContracts = (supplied: unknown, originals: boolean) => {"
               },
               {
                 "path": "adapters/store-local/prepared-publication-schema-owner.mts",
@@ -8761,8 +8662,8 @@
                 "anchor": "admitOriginal(original, limits) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putNativePublicationContracts = async (admitted, progress) => {"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const putNativePublicationContracts = async (admitted: readonly Admitted<Contract>[], progress?: unknown) => {"
               },
               {
                 "path": "adapters/store-local/physical-holding-record-reader.mts",
@@ -8825,8 +8726,8 @@
                 "anchor": "export async function observeAuthorizedRunState(service: RunStateService, request: RunStateRequest)"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putAdmittedPublicationContract = async (contract, value) => {"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const putAdmittedPublicationContract = async (contract: Contract, value: unknown) => {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -8883,7 +8784,7 @@
                 "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "const contract = admitOriginalContract(input.name, input.wire, input.original);"
               },
               {
@@ -8959,7 +8860,7 @@
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "const semanticCid = contract.identity;"
               },
               {
@@ -9001,7 +8902,7 @@
                 "anchor": "provide their original physical and schema identities to inventory construction"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "original: originals ? input : undefined});"
               },
               {
@@ -9077,7 +8978,7 @@
                 "anchor": "These immutable metadata facts live within this observation; a new operation"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "// Only this Store's private incoming-contract admission supplies these"
               },
               {
@@ -9119,7 +9020,7 @@
                 "anchor": "await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "const stored = await putSemanticBatch(admitted.filter(({contract}) =>"
               },
               {
@@ -9131,8 +9032,8 @@
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress,selection);"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const usage = currentDeliveryIndex()!.putPublicationContracts(originalEntries,allowance,progress,selection);"
               },
               {
                 "path": "adapters/store-local/physical-holding-record-writer.mts",
@@ -9241,7 +9142,7 @@
                 "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');"
               },
               {
@@ -9253,8 +9154,8 @@
                 "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error);"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error) as PublicationCommitFailure;"
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
@@ -9309,7 +9210,7 @@
                 "anchor": "same immutable seal, forbid new work and retry only that original transition."
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "failure.outcome = 'unknown';"
               },
               {
@@ -9477,7 +9378,7 @@
                 "anchor": "The selected buffers overlap for that operation and remain subject to the"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "const count = supplied.length;"
               },
               {
@@ -9553,7 +9454,7 @@
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-contract-store.mts",
                 "anchor": "...await putSemantic(contract.wire, semanticCid),"
               },
               {
@@ -9587,8 +9488,8 @@
                 "anchor": "authorization cache. A distinct operation acquires its own originals. Native"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putPublicationContract = async (name, suppliedWire) => {"
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const putPublicationContract = async (name: unknown, suppliedWire: unknown) => {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12126,6 +12027,293 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-contract-store.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "35b8c022eacc6fd4a60e4ef74bb72b255301a2c36a3708dfd670c261efe4880f",
+      "exports": [
+        "createPublicationContractStore"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationContractStore",
+          "parameters": [
+            "configuration",
+            "contractControl",
+            "contractLimits",
+            "activePhysicalRecordWriters",
+            "active",
+            "currentDeliveryIndex",
+            "nativePublicationContract",
+            "contractPath",
+            "readSemanticOriginal",
+            "exactUtf8WireMatches",
+            "reserveObjectCapacity",
+            "accountNativePublication",
+            "putSemantic",
+            "putSemanticBatch"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/admitContract/admitContract",
+          "parameters": [
+            "name",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/admitOriginalContract/admitOriginalContract",
+          "parameters": [
+            "name",
+            "wire",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/admitPublicationContracts/admitPublicationContracts",
+          "parameters": [
+            "supplied",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/parseContract/parseContract",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContract/putAdmittedPublicationContract",
+          "parameters": [
+            "contract",
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+          "parameters": [
+            "admitted",
+            "originals",
+            "progress"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts",
+          "parameters": [
+            "admitted",
+            "progress"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
+          "parameters": [
+            "supplied"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractStore/putPublicationContract/putPublicationContract",
+          "parameters": [
+            "name",
+            "suppliedWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationContractStore/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "supplied"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationContractStore",
+            "createPublicationContractStore/admitContract/admitContract",
+            "createPublicationContractStore/admitOriginalContract/admitOriginalContract",
+            "createPublicationContractStore/admitPublicationContracts/admitPublicationContracts",
+            "createPublicationContractStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
+            "createPublicationContractStore/parseContract/parseContract",
+            "createPublicationContractStore/putAdmittedPublicationContract/putAdmittedPublicationContract",
+            "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+            "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
+            "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+            "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
+            "createPublicationContractStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
+            "createPublicationContractStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
+            "createPublicationContractStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
+            "createPublicationContractStore/putPublicationContract/putPublicationContract",
+            "createPublicationContractStore/putPublicationContracts/putPublicationContracts"
+          ],
+          "exports": [
+            "createPublicationContractStore"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "// Only this Store's private incoming-contract admission supplies these"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "const admitPublicationContracts = (supplied: unknown, originals: boolean) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "contract !== original || !Object.isFrozen(contract) ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "progressCreated = usage.progressCreated;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "failure.outcome = 'unknown';"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "reservations.push(reserveObjectCapacity(entry.byte_count));"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-contract-store.mts",
+                "anchor": "A legacy file member does not turn an already native sibling into a"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-contract-node-bound.test.mts",
+                "anchor": "wire-derived support crosses former10000 without replacing explicit narrower policy"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native publication preflight selects its exact supplied body keys in bounded blocks"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-result-metadata.mjs",
