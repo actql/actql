@@ -57,6 +57,7 @@ fn Parser::call(
     "current_timestamp" | "current_date" => (0, 0)
     "byte_length"
     | "octet_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"

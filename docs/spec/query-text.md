@@ -425,6 +425,10 @@ only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
 
+`FARM_FINGERPRINT(value)` selects `farm_fingerprint` for one original
+String operand. The result is INT64 with the operand's nullability.
+The checked Common operation consumes the original UTF-8 bytes.
+
 `FORMAT(template[, argument ...])` selects the checked Common
 `format_strings` expression for String inputs. The value of the original
 template can come from a row or Parameter. In this signature `%s` selects

@@ -343,6 +343,10 @@ fn infer(
     )
   }
   match tag {
+    "farm_fingerprint" => {
+      let nullable = arguments(t, nodes, node, "string")
+      primitive(t, Signed64Type, nullable, source)
+    }
     "make_date" => {
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)

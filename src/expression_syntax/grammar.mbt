@@ -56,6 +56,7 @@ fn expression_role(
     | "is_unknown"
     | "len"
     | "byte_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"

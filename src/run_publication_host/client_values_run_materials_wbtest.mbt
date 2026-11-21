@@ -208,11 +208,11 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
   // rebuilds the Run, moves it. The Program definition CID has the same
   // shape and is not it.
   assert_eq(
-    issued_cid, "sha256:8914ee5fc2db00c251a9c50aca60dccf2e0bfe27e7b3c76e0be315e235cd37bd",
+    issued_cid, "sha256:1d49d192904f80b380813f756740ed5241108a22ef613238814568c967bcbfd2",
   )
   assert_eq(
     prepared_client_identity(issuer_prepared).program_definition_cid,
-    "sha256:9ca97bc9caa450b75a24bd98218ceee1c1f7d028c932974bb9877740a3de6294",
+    "sha256:e80af7287671d88119ef607b4052766113e208b4afd48234fba2769f878c6695",
   )
   // The Site rebuilds the same Run; the materials never supply the Plan.
   let rebuilt = admit(run_materials_json(fields), issued_cid).unwrap()

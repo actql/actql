@@ -129,6 +129,7 @@ priv enum Evaluation {
   TextFunction(TextFunctionState)
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   FormatText(TextFunctionState, FormatStrings)
+  Fingerprint(FarmFingerprint)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
   ArrayConcat(ArrayConcatState)
@@ -1597,6 +1598,13 @@ fn advance_expression_frame_impl(
               frame.state = TextFunction(state)
               continue
             }
+            if op == @lower.FarmFingerprint && value is Text(text) {
+              match start_farm_fingerprint(expr, text, workspace) {
+                Ok(state) => frame.state = Fingerprint(state)
+                Err(issue) => return Err(issue)
+              }
+              continue
+            }
             match unary(op, value) {
               Ok(v) => {
                 if release(frame.current_root) is Some(e) {
@@ -2256,6 +2264,24 @@ fn advance_expression_frame_impl(
               Ok(_) => ()
               Err(issue) => return Err(issue)
             }
+        }
+      }
+      Fingerprint(state) => {
+        frame.active = state.expression
+        match advance_farm_fingerprint(state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            if release(frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: frame.active,
+              })
+            }
+            frame.current_root = None
+            release_slots(workspace, FARM_FINGERPRINT_SLOTS)
+            frame.state = Return(value)
+          }
         }
       }
       FormatText(state, format) => {

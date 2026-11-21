@@ -77,6 +77,12 @@ pub fn unary(
     | TryDecimal
     | TryTimestamp
     | Quantize(_) => Err(InvalidOperand)
+    FarmFingerprint =>
+      if value is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     Length =>
       match value {
         Null => Ok(Null)

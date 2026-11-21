@@ -55,6 +55,7 @@ pub(all) enum UnaryOperator {
   IsUnknown
   Length
   ByteLength
+  FarmFingerprint
   Unicode
   Chr
   Reverse
@@ -435,6 +436,7 @@ fn expression_tag(
     | "concat_strict"
     | "len"
     | "byte_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"
@@ -608,7 +610,12 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
+    "len"
+    | "byte_length"
+    | "farm_fingerprint"
+    | "unicode"
+    | "chr"
+    | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -1312,6 +1319,7 @@ fn lower_typed_expression_measured(
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
         "byte_length" => Unary(ByteLength, args[0])
+        "farm_fingerprint" => Unary(FarmFingerprint, args[0])
         "unicode" => Unary(Unicode, args[0])
         "chr" => Unary(Chr, args[0])
         "reverse" => Unary(Reverse, args[0])

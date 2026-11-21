@@ -187,6 +187,7 @@ fn flatten(
       | "is_unknown"
       | "len"
       | "byte_length"
+      | "farm_fingerprint"
       | "unicode"
       | "chr"
       | "reverse"

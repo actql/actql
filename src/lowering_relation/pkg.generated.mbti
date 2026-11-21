@@ -2092,6 +2092,7 @@ pub(all) enum UnaryOperator {
   IsUnknown
   Length
   ByteLength
+  FarmFingerprint
   Unicode
   Chr
   Reverse

@@ -316,6 +316,7 @@ fn emit_frames(
                   IsUnknown => "is_unknown"
                   Length => "len"
                   ByteLength => "byte_length"
+                  FarmFingerprint => "farm_fingerprint"
                   Unicode => "unicode"
                   Chr => "chr"
                   Reverse => "reverse"

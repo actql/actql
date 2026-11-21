@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "47dabc7418a5b753ffbe50b6b9d84d176e1d2a338fd1fc9781fa18deb8a56608",
+  "grammar_sha256": "53265aba6c51acb8547f52ba0b4282ee0c0e4ce00a7b5be382f90985c11584ab",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6328,6 +6328,18 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "farm_fingerprint"
+              ],
+              "properties": {
+                "farm_fingerprint": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -13309,6 +13321,22 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "farm_fingerprint"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -25655,6 +25683,18 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "farm_fingerprint"
+              ],
+              "properties": {
+                "farm_fingerprint": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -31720,6 +31760,22 @@
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "farm_fingerprint"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
                 }
               }
             }
@@ -40038,6 +40094,18 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "farm_fingerprint"
+              ],
+              "properties": {
+                "farm_fingerprint": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -46105,6 +46173,22 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "farm_fingerprint"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
             }
           ]
         },
@@ -47380,6 +47464,12 @@
       "identity": "The closed source is {format_strings:[template,...operands]} and the closed machine form uses the same ordered body and operation name.",
       "value": "After original ordered operand evaluation, a NULL template returns NULL. A non-NULL template accepts %s with optional static width and scalar precision, and %% for literal percent. The - flag selects right padding, other non-applicable flags are ignored. Malformed, unsupported or mismatched templates fail. A valid template with a NULL argument returns NULL.",
       "evaluation": "Preserve original scalars, lazy demand, demanded child failure, value and workspace limits, and cancellation. Meter progress and admit the complete result under the same owner before materializing text."
+    },
+    "farm_fingerprint": {
+      "signature": "One String operand. Result INT64 with the same nullability as the operand.",
+      "identity": "The closed source is {farm_fingerprint:value}; the closed machine form is {op:farm_fingerprint,body:value_node}. Retain the original checked operand.",
+      "value": "NULL returns NULL. Otherwise apply Google FarmHash Fingerprint64 to the original UTF-8 bytes without normalization and reinterpret the unsigned 64-bit word as a signed INT64.",
+      "evaluation": "The existing evaluator retains the original operand and admits a fixed-size continuation before construction. Meter original scalar progress without copying the complete input, preserving demand, scoped work, limits and cancellation."
     }
   },
   "regex_ast_contract": {

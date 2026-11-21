@@ -2556,6 +2556,17 @@ retain the original operands and admit the complete result before constructing
 the immutable String. Preserve original scalar content, child failure, lazy
 demand and cancellation.
 
+### FarmHash fingerprints
+
+<!-- requirement-block: scalar-expressions.farm-fingerprint -->
+The Common `farm_fingerprint` expression MUST evaluate one original String
+operand. NULL returns NULL. For a non-NULL String, apply the stable Google
+FarmHash Fingerprint64 function to the original UTF-8 bytes and interpret
+the result bits as a signed INT64. No normalization or host-dependent
+hashing participates. Use the existing expression frame to reserve fixed
+working storage, meter scalar progress and hold the original operand
+through evaluation. Preserve enclosing demand, failure and cancellation.
+
 ### String templates
 
 <!-- requirement-block: scalar-expressions.format-strings -->
@@ -11716,7 +11727,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:633f12106e3743379324e4e3953f06819acf008f2b1f19415343557434069008
+../../spec/contracts/actql-aoa.json# sha256:aca0dc9ba515a6d50144abaf301928fbac51f6556d7511bbb319425d7d0de745
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11725,13 +11736,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:2034a5b3555b3c5e7a3fddb91e8d50c7fc6cc2d23f56f0b06daa11051d78bdfe
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:cde7abe55eb7cd91af826cbac21a2ff0a7cd212b826b831dbf1054340ac8b01e
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:5f2073bef8332f43950761fe9bf54be6cb876865605dc4cee790fe35312d02be
+../../spec/contracts/actql-expressions.json# sha256:4bfe7646786d4097a7e41cc25a62ab0e8a2fb6a45505b9451bac4a0f713fd648
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:bc2ee6e235e228ee440e536cb5bc8dd7fbcf025f1416408b7cb277960f1c3e3c
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:88dbfec4b3a323513face694c4a76a1a340c2da2a02e865e1a69363e8863c9c2
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:0462630575cb09fbc7d5d6a286feca82d84ac00075eb2eb79f5b4792ba431f32
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:335717ee4d81f2f7ff74b6e81df92fbad68681b22a340f084c05476402b0a522
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:8843006f58c63a0b0be441ed6be91a30750cf00af7168c60e492d21203ce90d1
+../../spec/contracts/actql-expressions.json#/laws sha256:a66a434327a2a4c6d71bc929a5688b05b4fb4865267c98e7a4b787ad954248e9
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b807247dd1bed6848d9bad50390f80d2d175e55a6acb2446a5fb5b850961f845
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:a96eea6b2aaec377d5e1e441c7fd9bcd93793fef72efd0e7e940192786e584ae
 ```
 
 <!-- stage-contract-pins:start -->

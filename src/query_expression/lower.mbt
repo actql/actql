@@ -241,6 +241,7 @@ fn scalar_call(
     "VECTOR_L2_DISTANCE" => ("VECTOR_L2_DISTANCE", "vector_score", 2, 2)
     "VECTOR_CONCAT" => ("VECTOR_CONCAT", "vector_concat", 2, 2147483647)
     "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
+    "FARM_FINGERPRINT" => ("FARM_FINGERPRINT", "farm_fingerprint", 1, 1)
     "UNICODE" => ("UNICODE", "unicode", 1, 1)
     "CHR" => ("CHR", "chr", 1, 1)
     "REVERSE" => ("REVERSE", "reverse", 1, 1)

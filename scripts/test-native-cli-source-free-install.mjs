@@ -20,7 +20,7 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 import {assertPublicQueryRows, dateLiteralOriginal, timestampLiteralOriginal,
-  generateArrayOriginalCases} from './fixtures/public-query-input.mjs';
+  generateArrayOriginalCases, farmFingerprintOriginal} from './fixtures/public-query-input.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -117,6 +117,8 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: timestampLiteralOriginal.name, sql: timestampLiteralOriginal.text, rows: timestampLiteralOriginal.expected},
   ...generateArrayOriginalCases.map(({name, text, results}) => ({name, sql: text,
     rows: results.main.rows, unordered: results.main.unordered})),
+  {name: farmFingerprintOriginal.name, sql: farmFingerprintOriginal.text,
+    rows: farmFingerprintOriginal.expected},
 ]);
 
 export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {

@@ -678,6 +678,10 @@ const arrayToStringOriginal = {name: 'array-to-string', format: 'sql',
   expected: [{joined: 'a', skipped: '|x', replaced: 'n||n|x'}],
   columns: ['joined', 'skipped', 'replaced'].map(name => ({name,
     contract: {type: 'string', nullable: false}})), sourceReadCount: 0};
+export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', format: 'sql',
+  text: "SELECT FARM_FINGERPRINT('a') AS result",
+  expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
+    contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
 const formatStringsOriginal = {name: 'format-strings-original', format: 'sql',
   text: "SELECT FORMAT('%s', 'a') AS result",
   expected: [{result: 'a'}], columns: [{name: 'result',
@@ -857,6 +861,7 @@ export const sourceFreeSuccesses = [
   arrayConcatOriginal,
   arrayToStringOriginal,
   formatStringsOriginal,
+  farmFingerprintOriginal,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
