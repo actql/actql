@@ -623,12 +623,20 @@ export const generateArrayOriginalCases = [
     results: {main: {rows: [{x: '1'}, {x: '2'}, {x: '3'}], unordered: true,
       columns: [{name: 'x', contract: {type: 'int64', nullable: false}}]}}, sourceReadCount: 0},
 ];
+export const timestampDiffOriginal = {name: 'timestamp-diff', format: 'sql',
+  text: "WITH t AS (SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS a, "
+    + "TIMESTAMP '2026-01-02 00:00:00+00' AS b) "
+    + "SELECT TIMESTAMP_DIFF(a, b, HOUR) AS hours, TIMESTAMP_DIFF(b, a, HOUR) AS reverse_hours FROM t",
+  expected: [{hours: '3', reverse_hours: '-3'}],
+  columns: ['hours', 'reverse_hours'].map(name => ({name,
+    contract: {type: 'int64', nullable: false}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
   dateLiteralOriginal,
   timestampLiteralOriginal,
   ...generateArrayOriginalCases,
+  timestampDiffOriginal,
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,

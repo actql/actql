@@ -147,6 +147,7 @@ fn expression_role(
     | "timestamp_add"
     | "timestamp_sub"
     | "date_diff"
+    | "timestamp_diff"
     | "array"
     | "split"
     | "generate_array"
@@ -209,6 +210,7 @@ fn arity(
     | "replace"
     | "date_add"
     | "date_diff"
+    | "timestamp_diff"
     | "timestamp_add"
     | "timestamp_sub" => size == 3
     _ => size == 2

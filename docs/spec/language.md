@@ -2504,6 +2504,20 @@ The decoded DATE_ADD/DATE_DIFF unit remains a `{literal: ms|s|m|h|d}`.
 This structured short-unit contract is distinct from the SQL fixed-interval
 spelling below; it does not reinterpret DATE_ADD Number operands.
 
+### Exact Timestamp differences
+
+<!-- requirement-block: scalar-expressions.exact-timestamp-diff -->
+`{timestamp_diff: [end, start, {literal: unit}]}` and the corresponding
+`{op: timestamp_diff, body: [...]}` node MUST consume two original Timestamp
+operands followed by a static unit from `us|ms|s|m|h|d`. After ordinary eager
+child evaluation, return NULL if either Timestamp is NULL. Otherwise
+subtract the original instants and truncate the quotient toward zero in the
+specified fixed unit, returning an exact signed64 value. A day is exactly
+24 hours. No Number conversion, timezone or calendar-boundary adjustment
+is applied. Retain enclosing lazy demand, child failure, cancellation and
+workspace under the existing temporal expression owner. The earlier
+`date_diff` Number result and its selected units remain unchanged.
+
 ### Exact fixed SQL intervals
 
 <!-- requirement-block: scalar-expressions.fixed-interval-source -->

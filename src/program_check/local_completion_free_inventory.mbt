@@ -563,6 +563,7 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "cosh"
     | "date_add"
     | "date_diff"
+    | "timestamp_diff"
     | "date_trunc"
     | "decimal_divide"
     | "divide"

@@ -777,6 +777,7 @@ fn advance_expression_frame_impl(
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
             if op == @lower.DateDifference ||
+              op == @lower.TimestampDifference ||
               op == @lower.DateAddition ||
               op == @lower.TimestampAddition ||
               op == @lower.TimestampSubtraction {
@@ -786,10 +787,7 @@ fn advance_expression_frame_impl(
               frame.stack.push(
                 TemporalArguments({
                   expression: expr,
-                  addition: op != @lower.DateDifference,
-                  interval: op == @lower.TimestampAddition ||
-                  op == @lower.TimestampSubtraction,
-                  subtract: op == @lower.TimestampSubtraction,
+                  operation: op,
                   children,
                   values: [],
                   roots: [],
@@ -899,6 +897,7 @@ fn advance_expression_frame_impl(
               | Greatest
               | Least
               | DateDifference
+              | TimestampDifference
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction
@@ -1125,32 +1124,38 @@ fn advance_expression_frame_impl(
                   expression: args.expression,
                 })
               }
-              if args.addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
+              let addition = args.operation
+                is (DateAddition | TimestampAddition | TimestampSubtraction)
+              if addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
                 return Err({
                   kind: WorkspaceLimit,
                   expression: args.expression,
                 })
               }
-              if args.addition && !spend_control(budget, 64) {
+              if addition && !spend_control(budget, 64) {
                 return Err({ kind: ControlLimit, expression: args.expression, })
               }
-              let computed = if args.interval {
-                temporal_interval(
-                  args.expression,
-                  unit,
-                  args.values[0],
-                  args.values[1],
-                  args.subtract,
-                )
-              } else if args.addition {
-                temporal_addition(
-                  args.expression,
-                  unit,
-                  args.values[0],
-                  args.values[1],
-                )
-              } else {
-                temporal_difference(unit, args.values[0], args.values[1])
+              let computed = match args.operation {
+                TimestampAddition | TimestampSubtraction =>
+                  temporal_interval(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                    args.operation is TimestampSubtraction,
+                  )
+                DateAddition =>
+                  temporal_addition(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                  )
+                DateDifference =>
+                  temporal_difference(unit, args.values[0], args.values[1])
+                TimestampDifference =>
+                  timestamp_difference(unit, args.values[0], args.values[1])
+                _ => Err(InvalidOperand)
               }
               let result = match computed {
                 Ok(result) => result
@@ -1160,7 +1165,7 @@ fn advance_expression_frame_impl(
                     expression: args.expression,
                   })
               }
-              if args.addition {
+              if addition {
                 release_slots(workspace, DATE_ADDITION_SLOTS)
               }
               for root in args.roots {
@@ -1862,6 +1867,7 @@ fn advance_expression_frame_impl(
               | RPad
               | Between
               | DateDifference
+              | TimestampDifference
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction =>

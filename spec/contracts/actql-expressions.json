@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "54064b1bbd4f91693b3ddcba004fbf71afec6423bfbcd4a6c68e2a48a08f8251",
+  "grammar_sha256": "37edc68f319a629bf79e2a6fbaa9e5aae5d525e43a74ca920051da03ec67e85b",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2903,6 +2903,23 @@
               ],
               "properties": {
                 "date_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "timestamp_diff"
+              ],
+              "properties": {
+                "timestamp_diff": {
                   "type": "array",
                   "minItems": 3,
                   "items": {
@@ -9336,6 +9353,27 @@
               "properties": {
                 "op": {
                   "const": "date_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_diff"
                 },
                 "body": {
                   "type": "array",
@@ -21717,6 +21755,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "timestamp_diff"
+              ],
+              "properties": {
+                "timestamp_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "try_decimal"
               ],
               "properties": {
@@ -27223,6 +27278,27 @@
               "properties": {
                 "op": {
                   "const": "date_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "timestamp_diff"
                 },
                 "body": {
                   "type": "array",
@@ -35576,6 +35652,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "timestamp_diff"
+              ],
+              "properties": {
+                "timestamp_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "try_decimal"
               ],
               "properties": {
@@ -41102,6 +41195,27 @@
               ],
               "properties": {
                 "op": {
+                  "const": "timestamp_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "try_decimal"
                 },
                 "body": {
@@ -45684,6 +45798,13 @@
       "demand": "Preserve original left-to-right eager child evaluation, strict NULL, surrounding lazy demand, root leases, logical value/work accounting, bounded workspace and cancellation. No first-class unbounded Interval value or general int64 arithmetic overload.",
       "compatibility": "Existing date_add Number-bit duration law, short structured units, all former value/clock shapes and operational clock purposes are unchanged.",
       "proof_status": "implementation-required-original-context-and-supported-backend-consumers"
+    },
+    "timestamp_diff": {
+      "signature": "Two Timestamp operands and one static literal unit us|ms|s|m|h|d. The result is exact signed64 and is nullable when either timestamp operand is nullable.",
+      "source": "SQL TIMESTAMP_DIFF(end, start, unit) maps the original keyword to a literal fixed unit in the ordered source and machine bodies. Preserve both original operand positions.",
+      "value": "Subtract the original instants at full available precision. Return the complete units of that duration toward zero, including negative durations. A day is 24 hours. The four-digit calendar bounds every selected result within signed64.",
+      "demand": "Evaluate both original operands in order before strict NULL propagation. Preserve child failures, lazy demand, resource and cancellation boundaries under the existing temporal runtime.",
+      "compatibility": "DATE_DIFF keeps its independent Number result, existing units and Date support. No implicit String or Date conversion belongs to this Timestamp signature."
     },
     "timestamp_sub": {
       "signature": "Timestamp and exact signed64 amount with a fixed literal unit ns|us|ms|s|m|h|d; result is Timestamp with strict operand nullability.",

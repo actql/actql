@@ -694,6 +694,7 @@ pub fn boolean_pair(
     | RPad
     | Between
     | DateDifference
+    | TimestampDifference
     | DateAddition
     | TimestampAddition
     | TimestampSubtraction

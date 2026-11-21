@@ -282,6 +282,7 @@ fn scalar_call(
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
+    "TIMESTAMP_DIFF" => ("TIMESTAMP_DIFF", "timestamp_diff", 3, 3)
     "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
     "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)

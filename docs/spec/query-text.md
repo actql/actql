@@ -361,6 +361,12 @@ calendar-month or timezone interpretation. It preserves strict NULL, original
 child failure and enclosing lazy demand. This does not change DATE_ADD's
 existing Number-bit duration meaning or introduce a standalone Interval value.
 
+`TIMESTAMP_DIFF(end, start, unit)` accepts an unquoted unit keyword:
+`MICROSECOND`, `MILLISECOND`, `SECOND`, `MINUTE`, `HOUR` or `DAY`.
+It lowers both original operands, in order, and the selected literal unit
+to the Common `timestamp_diff` operation. Neither argument is implicitly
+converted from Date or String.
+
 `DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
 truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
 parentheses may preserve that literal but a Parameter, expression, alternate

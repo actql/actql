@@ -186,6 +186,11 @@ fn finish(
           invalid(cursor, origin, InvalidArguments)
         }
       }
+      if tag == "timestamp_diff" &&
+        !(literal(args[2])
+        is Some({ value: @map.String("us" | "ms" | "s" | "m" | "h" | "d"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
         let index = if tag == "date_trunc" { 0 } else { 2 }
         if !(literal(args[index])

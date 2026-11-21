@@ -23838,6 +23838,23 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "timestamp_diff"
+                      ],
+                      "properties": {
+                        "timestamp_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "try_decimal"
                       ],
                       "properties": {
@@ -29892,6 +29909,23 @@
                       ],
                       "properties": {
                         "date_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_diff"
+                      ],
+                      "properties": {
+                        "timestamp_diff": {
                           "type": "array",
                           "minItems": 3,
                           "items": {
@@ -56042,6 +56076,23 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "timestamp_diff"
+                          ],
+                          "properties": {
+                            "timestamp_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "try_decimal"
                           ],
                           "properties": {
@@ -62096,6 +62147,23 @@
                           ],
                           "properties": {
                             "date_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_diff"
+                          ],
+                          "properties": {
+                            "timestamp_diff": {
                               "type": "array",
                               "minItems": 3,
                               "items": {

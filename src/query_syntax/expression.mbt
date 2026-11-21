@@ -314,6 +314,20 @@ fn upper_ascii(value : String) -> String {
 }
 
 ///|
+fn fixed_interval_unit(name : String) -> String? {
+  match upper_ascii(name) {
+    "NANOSECOND" => Some("ns")
+    "MICROSECOND" => Some("us")
+    "MILLISECOND" => Some("ms")
+    "SECOND" => Some("s")
+    "MINUTE" => Some("m")
+    "HOUR" => Some("h")
+    "DAY" => Some("d")
+    _ => None
+  }
+}
+
+///|
 fn ExpressionParser::peek(self : ExpressionParser) -> Token {
   self.source.tokens[self.offset]
 }
@@ -1129,31 +1143,46 @@ fn ExpressionParser::expression(
       }
       IntervalUnit(start) => {
         let token = self.advance()
-        let unit = match token.value {
-          Word(name) =>
-            match upper_ascii(name) {
-              "NANOSECOND" => "ns"
-              "MICROSECOND" => "us"
-              "MILLISECOND" => "ms"
-              "SECOND" => "s"
-              "MINUTE" => "m"
-              "HOUR" => "h"
-              "DAY" => "d"
-              _ =>
-                raise ExpressionAbort(
-                  "Unsupported fixed interval unit",
-                  token.start,
-                )
-            }
-          _ =>
-            raise ExpressionAbort("Expected fixed interval unit", token.start)
+        guard token.value is Word(name) else {
+          raise ExpressionAbort("Expected fixed interval unit", token.start)
+        }
+        guard fixed_interval_unit(name) is Some(unit) else {
+          raise ExpressionAbort("Unsupported fixed interval unit", token.start)
         }
         result = self.add(Interval(result, unit), start, token.end)
       }
       Argument(path, args, start, depth) => {
         args.push(result)
         let token = self.advance()
-        if token.value == Symbol(44) {
+        if token.value == Symbol(44) &&
+          args.length() == 2 &&
+          path is [{ value: name, .. }] &&
+          name.length() == 14 &&
+          upper_ascii(name) == "TIMESTAMP_DIFF" {
+          // The unit is a syntax operand, with the span of the original word.
+          if depth >= self.limits.max_depth {
+            raise ExpressionAbort("Expression depth limit", self.peek().start)
+          }
+          self.spend()
+          let part = self.advance()
+          guard part.value is Word(name) else {
+            raise ExpressionAbort("Expected TIMESTAMP_DIFF unit", part.start)
+          }
+          guard name.length() <= 11 &&
+            fixed_interval_unit(name) is Some(unit) &&
+            unit != "ns" else {
+            raise ExpressionAbort("Invalid TIMESTAMP_DIFF unit", part.start)
+          }
+          let close = self.advance()
+          if close.value != Symbol(41) {
+            raise ExpressionAbort(
+              "Expected TIMESTAMP_DIFF closing parenthesis",
+              close.start,
+            )
+          }
+          args.push(self.add(StringLiteral(unit), part.start, part.end))
+          result = self.add(Call(path, args), start, close.end)
+        } else if token.value == Symbol(44) {
           frames.push(Argument(path, args, start, depth))
           frames.push(Enter(1, depth + 1))
         } else if token.value == Symbol(41) {
