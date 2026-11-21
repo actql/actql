@@ -200,6 +200,11 @@ row-independent default of the same checked value domain when the requested
 row is absent. The referenced value may itself be NULL.
 [GoogleSQL navigation functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/navigation_functions#lag)
 
+`NTILE(buckets) OVER (... ORDER BY ...)` returns a one-based INT64 bucket;
+the positive bucket count is a safe-integer literal or bound parameter.
+`PERCENT_RANK() OVER (... ORDER BY ...)` uses authored order peers and returns
+zero for a singleton partition. [GoogleSQL numbering functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/numbering_functions#ntile)
+
 `CURRENT_DATE()` and bare `CURRENT_DATE` return the non-null UTC Date of the
 original query invocation. Repeated occurrences and Saved reads use that same
 original. Time-zone arguments are outside this selected signature.
@@ -281,7 +286,6 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
-| `NTILE`, `PERCENT_RANK` | Outside the selected ranking signatures. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `ARRAY_LENGTH` | This GoogleSQL function spelling is not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |

@@ -798,6 +798,13 @@ expression, and it is used only when the requested row is absent. A referenced
 NULL remains NULL. The same authored window and position checks apply.
 [GoogleSQL navigation functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/navigation_functions#lag)
 
+`NTILE(buckets)` takes a positive safe-integer literal or bound parameter.
+It assigns INT64 buckets from the completed position order, giving the first
+buckets any extra rows. `PERCENT_RANK()` uses the authored peers and partition
+size, returning Number zero in a singleton partition. Both use the
+existing analytic `ORDER BY` checks and take no frame.
+[GoogleSQL numbering functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/numbering_functions#ntile)
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),

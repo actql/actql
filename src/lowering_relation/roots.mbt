@@ -391,7 +391,11 @@ fn prepare_root_range(
                     }
                   }
                 }
-                PreparedRowNumber | PreparedRank | PreparedDenseRank => ()
+                PreparedRowNumber
+                | PreparedRank
+                | PreparedDenseRank
+                | PreparedPercentRank
+                | PreparedNtile(_) => ()
               }
             }
             continue

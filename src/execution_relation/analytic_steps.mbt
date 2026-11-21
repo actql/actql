@@ -992,7 +992,11 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
               }
             }
           }
-          PreparedRowNumber | PreparedRank | PreparedDenseRank => -1
+          PreparedRowNumber
+          | PreparedRank
+          | PreparedDenseRank
+          | PreparedPercentRank
+          | PreparedNtile(_) => -1
           PreparedFrameAggregate(_) => -1
         }
         s.references[call_index][source] = reference
@@ -1011,7 +1015,11 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
                 Some((first, end)) => Int64::from_int(end - first)
               }
             }
-            PreparedRowNumber | PreparedRank | PreparedDenseRank => 0L
+            PreparedRowNumber
+            | PreparedRank
+            | PreparedDenseRank
+            | PreparedPercentRank
+            | PreparedNtile(_) => 0L
           }
           if memberships > value.frame_memberships - s.frame_memberships {
             return Err(AnalyticEnvelope(FrameMemberships))
@@ -1508,7 +1516,11 @@ fn[T : RelationRows] analytic_advance_arguments(
       analytic_next_call(s, 18)
       Ok(None)
     }
-    PreparedRowNumber | PreparedRank | PreparedDenseRank => {
+    PreparedRowNumber
+    | PreparedRank
+    | PreparedDenseRank
+    | PreparedPercentRank
+    | PreparedNtile(_) => {
       analytic_next_call(s, 18)
       Ok(None)
     }
@@ -1723,6 +1735,33 @@ fn[T : RelationRows] analytic_advance_output(
           )
         PreparedRank => Number(s.ranks[source].to_double())
         PreparedDenseRank => Number(s.dense_ranks[source].to_double())
+        PreparedPercentRank => {
+          let range = s.ranges[s.partition_by_row[source]]
+          let length = range.end - range.start
+          Number(
+            if length == 1 {
+              0.0
+            } else {
+              (s.ranks[source] - 1).to_double() / (length - 1).to_double()
+            },
+          )
+        }
+        PreparedNtile(buckets) => {
+          let range = s.ranges[s.partition_by_row[source]]
+          let length = (range.end - range.start).to_int64()
+          let offset = (s.position_by_row[source] - range.start).to_int64()
+          let base = length / buckets
+          let remainder = length % buckets
+          // The first remainder buckets each take one extra row. This
+          // prefix is bounded by length even when buckets exceeds length.
+          let prefix = (base + 1L) * remainder
+          let bucket = if offset < prefix {
+            offset / (base + 1L)
+          } else {
+            remainder + (offset - prefix) / base
+          }
+          capture(@admitted.signed64_value(bucket + 1L))
+        }
         PreparedLag(_, _)
         | PreparedLead(_, _)
         | PreparedFirstValue(_)

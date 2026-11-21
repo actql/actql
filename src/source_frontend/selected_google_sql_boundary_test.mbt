@@ -32,7 +32,7 @@ test "window defaults are not silently invented outside the explicit ROWS profil
   for
     expression in [
       "SUM(id) OVER ()", "COUNT(*) OVER (ORDER BY id)", "FIRST_VALUE(id) OVER (ORDER BY id)",
-      "LAST_VALUE(id) OVER (ORDER BY id)", "NTILE(2) OVER (ORDER BY id)", "PERCENT_RANK() OVER (ORDER BY id)",
+      "LAST_VALUE(id) OVER (ORDER BY id)",
     ] {
     assert_true(
       lower(

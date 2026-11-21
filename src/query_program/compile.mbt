@@ -1893,6 +1893,8 @@ fn lower_analytic_call(
         "ROW_NUMBER" => "row_number"
         "RANK" => "rank"
         "DENSE_RANK" => "dense_rank"
+        "PERCENT_RANK" => "percent_rank"
+        "NTILE" => "ntile"
         "LAG" => "lag"
         "LEAD" => "lead"
         "FIRST_VALUE" => "first_value"
@@ -1900,7 +1902,22 @@ fn lower_analytic_call(
         _ => raise Abort(UnsupportedAnalytic)
       }
       let entries = [("fn", construction.text(wire_name))]
-      if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
+      if name == "NTILE" {
+        guard arguments.length() == 1 else { raise Abort(UnsupportedAnalytic) }
+        entries.push(
+          (
+            "buckets",
+            lower_analytic_count(
+              construction,
+              expression,
+              arguments[0],
+              max_work,
+            ),
+          ),
+        )
+      } else if ["ROW_NUMBER", "RANK", "DENSE_RANK", "PERCENT_RANK"].contains(
+          name,
+        ) {
         if !arguments.is_empty() {
           raise Abort(
             Expression({
@@ -1939,7 +1956,7 @@ fn lower_analytic_call(
           entries.push(
             (
               "offset",
-              lower_analytic_offset(
+              lower_analytic_count(
                 construction,
                 expression,
                 arguments[1],

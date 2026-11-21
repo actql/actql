@@ -20,7 +20,9 @@ pub fn bounded_analytic_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
     match @lower.analytic_call_function(call) {
       @lower.PreparedRowNumber
       | @lower.PreparedRank
-      | @lower.PreparedDenseRank => ()
+      | @lower.PreparedDenseRank
+      | @lower.PreparedPercentRank
+      | @lower.PreparedNtile(_) => ()
       @lower.PreparedLag(expression, _)
       | @lower.PreparedLead(expression, _)
       | @lower.PreparedFirstValue(expression)

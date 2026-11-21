@@ -10,15 +10,19 @@ test('analytic calls reuse the frame aggregate matrix without local ordering',()
   assert.equal(analyticSchema.properties.partition_by.uniqueItems,undefined);
   assert.equal(analyticSchema.properties.order_by.minItems,1);
   const calls=analyticSchema.properties.functions.additionalProperties.oneOf;
-  assert.deepEqual(calls.slice(3),aggregateSchema(true).oneOf);
+  assert.deepEqual(calls.slice(4),aggregateSchema(true).oneOf);
   for(const c of calls) assert.equal(c.properties.order_by,undefined);
-  for(const c of calls.slice(0,3)) {
+  for(const c of calls.slice(0,4)) {
     assert.equal(c.properties.filter,undefined);
     assert.equal(c.properties.distinct,undefined);
   }
-  assert.deepEqual(calls[1].properties.default, {$ref:'#/$defs/value_expression'});
+  assert.deepEqual(calls[2].properties.default, {$ref:'#/$defs/value_expression'});
   assert.equal(calls[0].properties.default, undefined);
-  assert.equal(calls[2].properties.default, undefined);
+  assert.equal(calls[3].properties.default, undefined);
+  assert.deepEqual(calls[1].required, ['fn','buckets']);
+  assert.deepEqual(calls[1].properties.buckets.oneOf[0],
+    {type:'integer', minimum:1, maximum:9007199254740991});
+  assert.ok(analyticSchema.allOf[0].if.properties.functions.additionalProperties.oneOf.includes(calls[1]));
   assert.deepEqual(analyticSchema.allOf[0].then,{not:{required:['frame']}});
   assert.deepEqual(analyticSchema.allOf[0].else,{required:['frame']});
 });

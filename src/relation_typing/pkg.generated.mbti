@@ -325,6 +325,8 @@ pub enum AnalyticFunction {
   RowNumber
   Rank
   DenseRank
+  PercentRank
+  Ntile(CountValue)
   Lag(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
   Lead(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
   FirstValue(argument~ : Int)

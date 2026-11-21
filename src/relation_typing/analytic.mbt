@@ -19,6 +19,8 @@ pub enum AnalyticFunction {
   RowNumber
   Rank
   DenseRank
+  PercentRank
+  Ntile(CountValue)
   Lag(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
   Lead(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
   FirstValue(argument~ : Int)
@@ -250,7 +252,7 @@ fn check_analytic(
     let fn_source = decoded(@decode.required(call, "fn"), s)
     let fn_name = decoded(@decode.text(fn_source), fn_source)
     let (function, result) = match fn_name {
-      "row_number" | "rank" | "dense_rank" => {
+      "row_number" | "rank" | "dense_rank" | "percent_rank" => {
         ignore(decoded(@decode.closed_object(s, ["fn"]), s))
         let fn_value = match fn_name {
           "row_number" => {
@@ -258,9 +260,22 @@ fn check_analytic(
             AnalyticFunction::RowNumber
           }
           "rank" => AnalyticFunction::Rank
-          _ => AnalyticFunction::DenseRank
+          "dense_rank" => AnalyticFunction::DenseRank
+          _ => AnalyticFunction::PercentRank
         }
         (fn_value, @contract.primitive(NumberType, nullable=false))
+      }
+      "ntile" => {
+        ignore(decoded(@decode.closed_object(s, ["fn", "buckets"]), s))
+        let buckets = row_count(
+          b,
+          decoded(@decode.required(call, "buckets"), s),
+          1L,
+          parameter_types,
+          pending,
+        )
+        needs_position = true
+        (Ntile(buckets), @contract.primitive(Signed64Type, nullable=false))
       }
       "lag" | "lead" | "first_value" | "last_value" => {
         let navigation = fn_name == "lag" || fn_name == "lead"

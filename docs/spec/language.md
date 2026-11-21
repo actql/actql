@@ -5886,12 +5886,15 @@ The body contains required `partition_by`, `order_by`, `functions`, and optional
 `order_by` is a nonempty authored OrderKey list. `functions` is a nonempty map
 of fresh output names to closed calls. Partition NULLs group together. Results
 retain original input-row order, fields, multiplicity and candidate keys;
-window ordering determines calculations, not a new publication order. Ranking
-functions return non-null safe-integer numbers; navigation/value functions
-retain their argument domain and bounds with nullable output. Frame aggregates
+window ordering determines calculations, not a new publication order.
+`row_number`, `rank` and `dense_rank` return non-null safe-integer numbers.
+`percent_rank` returns a non-null Number and `ntile` returns a non-null INT64.
+Navigation/value functions retain their argument domain and bounds with nullable
+output. Frame aggregates
 have their ordinary result contracts and empty-input behavior.
 
-Calls are `{fn: row_number|rank|dense_rank}`, `{fn: lag|lead, expr, offset?, default?}`,
+Calls are `{fn: row_number|rank|dense_rank|percent_rank}`,
+`{fn: ntile, buckets}`, `{fn: lag|lead, expr, offset?, default?}`,
 `{fn: first_value|last_value, expr}`, or a [group aggregate](#group) call without
 an aggregate-local `order_by`. Offsets are nonnegative safe integers, default 1;
 out-of-partition navigation uses the call's checked `default` expression when
@@ -5922,6 +5925,12 @@ lag, lead or ranking. A bounded partition may use unbounded frame boundaries.
 Checking MUST separate authored peer order from physical position completion.
 `rank` is one plus the number of preceding rows with different authored order
 values; `dense_rank` is one plus the preceding distinct peer-group count.
+`percent_rank` is (`rank` - 1) divided by (partition row count - 1), or zero
+for a single-row partition. It uses the same authored peers as `rank`.
+`ntile` consumes a positive safe-integer bucket count, literal or bound
+parameter, and assigns one-based buckets in completed position order. Bucket
+sizes differ by at most one, with the larger buckets first. If there are more
+buckets than rows, only the first buckets receive rows.
 `row_number` starts at 1 in completed order. Missing candidate-key fields or a
 retained total witness complete position order without splitting peer groups.
 Reference keys are eligible for internal completion, not authored value order.
@@ -11319,7 +11328,8 @@ AggregateFunction := count | count_if | any_value | sum | avg | min | max | arra
   var_pop | var_samp | stddev_pop | stddev_samp
 AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
   functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
-AnalyticCall := {fn: row_number | rank | dense_rank}
+AnalyticCall := {fn: row_number | rank | dense_rank | percent_rank}
+  | {fn: ntile, buckets: PositiveIntegerValue}
   | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue, default?: Expression}
   | {fn: first_value | last_value, expr: Expression} | AggregateCall excluding any_value
 RowsFrame := {start: FrameBoundary, end: FrameBoundary}

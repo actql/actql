@@ -56,6 +56,8 @@ fn analytic_execution_supported_with_profile(
       PreparedRowNumber
       | PreparedRank
       | PreparedDenseRank
+      | PreparedPercentRank
+      | PreparedNtile(_)
       | PreparedLag(_, _)
       | PreparedLead(_, _)
       | PreparedFirstValue(_)

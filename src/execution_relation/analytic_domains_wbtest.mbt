@@ -565,3 +565,37 @@ test "navigation default preserves NULL in an existing row and ignores undemande
     )
   }
 }
+
+///|
+test "NTILE uses complete positions and PERCENT_RANK keeps authored peers" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let owner = analytic_domain_owner(
+    number,
+    number,
+    number,
+    (
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"bucket":{"fn":"ntile","buckets":3},"large":{"fn":"ntile","buckets":9007199254740991},"percent":{"fn":"percent_rank"}}}
+    ),
+  )
+  let table = run_analytic_domain(owner, [
+    analytic_domain_row(5, Number(1), Number(3), Number(50)),
+    analytic_domain_row(2, Number(1), Number(1), Number(20)),
+    analytic_domain_row(3, Number(1), Number(2), Number(30)),
+    analytic_domain_row(6, Number(2), Number(1), Number(60)),
+    analytic_domain_row(1, Number(1), Number(1), Number(10)),
+    analytic_domain_row(4, Number(1), Number(2), Number(40)),
+  ])
+  for
+    (name, expected) in [
+      ("bucket", ["\"3\"", "\"1\"", "\"2\"", "\"1\"", "\"1\"", "\"2\""]),
+      ("large", ["\"5\"", "\"2\"", "\"3\"", "\"1\"", "\"1\"", "\"4\""]),
+      ("percent", ["1", "0", "0.5", "0", "0", "0.5"]),
+    ] {
+    let column = analytic_domain_column(table, name)
+    assert_eq(
+      table.rows.map(row => object_result_wire(row[column])),
+      expected,
+      msg=name,
+    )
+  }
+}

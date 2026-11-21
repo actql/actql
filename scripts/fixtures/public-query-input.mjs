@@ -714,6 +714,20 @@ const navigationDefaultOriginal = {name: 'navigation-default-original', format: 
   results: {answer: {rows: [{x: 0}, {x: 10}, {x: 20}], unordered: true,
     columns: [{name: 'x', contract: {type: 'number', nullable: true}}]}},
   sourceReadCount: 0};
+const numberingInputs = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
+  + "20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) ";
+const numberingSuccesses = [
+  {name: 'ntile-original', format: 'sql',
+    text: numberingInputs + 'SELECT NTILE(2) OVER (ORDER BY n) AS result FROM t',
+    results: {answer: {rows: [{result: '1'}, {result: '1'}, {result: '2'}], unordered: true,
+      columns: [{name: 'result', contract: {type: 'int64', nullable: false}}]}},
+    sourceReadCount: 0},
+  {name: 'percent-rank-original', format: 'sql',
+    text: numberingInputs + 'SELECT PERCENT_RANK() OVER (ORDER BY n) AS result FROM t',
+    results: {answer: {rows: [{result: 0}, {result: 0.5}, {result: 1}], unordered: true,
+      columns: [numberColumn('result')]}},
+    sourceReadCount: 0},
+];
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -813,6 +827,7 @@ export const sourceFreeSuccesses = [
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
+  ...numberingSuccesses,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

@@ -1751,6 +1751,8 @@ pub enum PreparedAnalyticFunction {
   PreparedRowNumber
   PreparedRank
   PreparedDenseRank
+  PreparedPercentRank
+  PreparedNtile(Int64)
   PreparedLag(Expression, Int64)
   PreparedLead(Expression, Int64)
   PreparedFirstValue(Expression)

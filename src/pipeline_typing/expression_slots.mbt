@@ -209,8 +209,11 @@ fn slot_relation(
               )
             }
           }
-          @relation.RowNumber | @relation.Rank | @relation.DenseRank =>
-            slot_tick(c)
+          @relation.RowNumber
+          | @relation.Rank
+          | @relation.DenseRank
+          | @relation.PercentRank
+          | @relation.Ntile(_) => slot_tick(c)
         }
       }
     }

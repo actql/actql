@@ -18,6 +18,8 @@ pub enum PreparedAnalyticFunction {
   PreparedRowNumber
   PreparedRank
   PreparedDenseRank
+  PreparedPercentRank
+  PreparedNtile(Int64)
   PreparedLag(Expression, Int64)
   PreparedLead(Expression, Int64)
   PreparedFirstValue(Expression)
@@ -191,7 +193,7 @@ pub fn prepare_analytic(
   for i in 0..<call_count {
     let call = @relation.analytic_call_at(analytic, i).unwrap()
     match call.function {
-      @relation.Rank | @relation.DenseRank => ()
+      @relation.Rank | @relation.DenseRank | @relation.PercentRank => ()
       _ => requires_position = true
     }
   }
@@ -266,6 +268,12 @@ pub fn prepare_analytic(
       @relation.RowNumber => PreparedRowNumber
       @relation.Rank => PreparedRank
       @relation.DenseRank => PreparedDenseRank
+      @relation.PercentRank => PreparedPercentRank
+      @relation.Ntile(buckets) =>
+        match resolve_count(buckets, 1L) {
+          Ok(value) => PreparedNtile(value)
+          Err(issue) => return Err(issue)
+        }
       @relation.Lag(argument~, offset~, ..) => {
         let expression = match lower(argument) {
           Ok(value) => value
@@ -368,7 +376,11 @@ pub fn prepare_analytic(
           },
           aggregate.filter,
         )
-      PreparedRowNumber | PreparedRank | PreparedDenseRank => (None, None)
+      PreparedRowNumber
+      | PreparedRank
+      | PreparedDenseRank
+      | PreparedPercentRank
+      | PreparedNtile(_) => (None, None)
     }
     let fallback = match call.function {
       @relation.Lag(fallback=Some(index), ..)
@@ -692,6 +704,16 @@ fn emit_analytic_params(
       PreparedDenseRank => {
         @encode.key(out, "fn")
         @encode.string_value(out, "dense_rank")
+      }
+      PreparedPercentRank => {
+        @encode.key(out, "fn")
+        @encode.string_value(out, "percent_rank")
+      }
+      PreparedNtile(buckets) => {
+        @encode.key(out, "buckets")
+        @encode.number_value(out, buckets.to_double())
+        @encode.key(out, "fn")
+        @encode.string_value(out, "ntile")
       }
       PreparedLag(_, offset) | PreparedLead(_, offset) => {
         if call.fallback is Some((_, source)) {
