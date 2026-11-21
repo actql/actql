@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b0d65bf2d27b202a54a254707561dc6b2f615519de8afebc4a8a1107d8e8f07",
+      "sha256": "37d5aad1bd72a2fa04ed4816e4b4bb34c5dd84cd58d895c12ece8d5ae13c17c0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6271,21 +6271,6 @@
           "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
           "parameters": [
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal",
-          "parameters": [
-            "native",
-            "expectedKey"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
-          "parameters": [
-            "field"
           ],
           "async": false
         },
@@ -6764,20 +6749,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
-          "parameters": [
-            "key",
-            "readDemand",
-            "slot"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
           "parameters": [
             "suppliedWire"
@@ -6810,14 +6781,6 @@
           "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
-          "parameters": [
-            "key",
-            "readDemand"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
@@ -7151,20 +7114,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
-          "parameters": [
-            "key"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
-          "parameters": [
-            "key"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
           "parameters": [
             "index",
@@ -7328,14 +7277,6 @@
             "right"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/lookupCommittedIndex/lookupCommittedIndex",
-          "parameters": [
-            "key",
-            "authorize"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
@@ -7736,14 +7677,6 @@
             "item"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
-          "parameters": [
-            "key",
-            "readDemand"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
@@ -8311,9 +8244,7 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
-            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
-            "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal"
+            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension"
           ],
           "exports": [],
           "attributes": {
@@ -8337,8 +8268,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readCommittedIndexRaw = async (key, original, readDemand) => {"
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "const readCommittedIndexRaw = async ("
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -8351,7 +8282,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "if (original !== undefined && bytes.equals(original.bytes)) return original;"
               },
               {
@@ -8393,7 +8324,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "fail('PublicIndexDurabilityMismatch');"
               },
               {
@@ -8522,10 +8453,7 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
-            "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
-            "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
@@ -8566,7 +8494,6 @@
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
             "openOriginalLocalPublicationStore/init:status/init:status",
-            "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
@@ -8586,7 +8513,6 @@
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/lookupCommittedIndex/lookupCommittedIndex",
             "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
@@ -8618,7 +8544,6 @@
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
-            "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
@@ -8683,7 +8608,6 @@
             "openOriginalLocalPublicationStore/admitContract/admitContract",
             "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
-            "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
             "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
             "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
@@ -9106,7 +9030,7 @@
                 "anchor": "Reflect.apply(stage, index, [original]);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
@@ -9290,8 +9214,8 @@
                 "anchor": "const recoverPhysicalHoldingDeletions = async () => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const confirmSelectedCommittedIndex = async (key, readDemand) => {"
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "const confirmSelectedCommittedIndex = async (key: WireRunRef, readDemand?: IndexReadDemand<Contract>) => {"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -9342,7 +9266,7 @@
                 "anchor": "as an ACK. Concurrent finalization shares one attempt. An unresolved original"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
@@ -9700,7 +9624,7 @@
                 "anchor": "continues to block native reads and Store retirement; close may drain this same"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
@@ -12277,6 +12201,187 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-index-reader.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4bbb8242de4fb416bf0b3cb455415c683699a05e67c45f0f57484c32fee93283",
+      "exports": [
+        "createPublicationIndexReader"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationIndexReader",
+          "parameters": [
+            "configuration",
+            "indexesDirectory",
+            "durablyConfirmedIndexes",
+            "selectedPublicationReads",
+            "active",
+            "currentDeliveryIndex",
+            "admitContract",
+            "parseContract",
+            "readSemanticBytes",
+            "exactUtf8WireMatches",
+            "readMetadataDeletion",
+            "requireCommittedMetadataInventory",
+            "syncDirectory",
+            "writeNativeIndexOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexReader/admitNativeIndexOriginal/admitNativeIndexOriginal",
+          "parameters": [
+            "native",
+            "expectedKey"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexReader/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexReader/confirmCommittedIndex/confirmCommittedIndex",
+          "parameters": [
+            "key",
+            "readDemand",
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexReader/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexReader/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
+          "parameters": [
+            "key",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexReader/inspectCommittedIndex/inspectCommittedIndex",
+          "parameters": [
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexReader/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
+          "parameters": [
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexReader/lookupCommittedIndex/lookupCommittedIndex",
+          "parameters": [
+            "key",
+            "authorize"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexReader/readCommittedPublication/readCommittedPublication",
+          "parameters": [
+            "key",
+            "readDemand"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationIndexReader",
+            "createPublicationIndexReader/admitNativeIndexOriginal/admitNativeIndexOriginal",
+            "createPublicationIndexReader/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
+            "createPublicationIndexReader/confirmCommittedIndex/confirmCommittedIndex",
+            "createPublicationIndexReader/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
+            "createPublicationIndexReader/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
+            "createPublicationIndexReader/inspectCommittedIndex/inspectCommittedIndex",
+            "createPublicationIndexReader/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
+            "createPublicationIndexReader/lookupCommittedIndex/lookupCommittedIndex",
+            "createPublicationIndexReader/readCommittedPublication/readCommittedPublication"
+          ],
+          "exports": [
+            "createPublicationIndexReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "const readCommittedIndexRaw = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "if (original !== undefined && bytes.equals(original.bytes)) return original;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "selectedPublicationReads.set(selected, selected.entry);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "await syncDirectory(indexesDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "fail('PublicIndexDurabilityMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "if (await readMetadataDeletion(keyHash, readDemand) !== undefined) return undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-index-reader.mts",
+                "anchor": "readDemand?.retain(1, original.contract, 1);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "cold index confirmation reuses unchanged admission and checks post-ACK mutation"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-trusted-clock.mjs",

@@ -1533,3 +1533,5 @@ target/
 /adapters/store-local/publication-trusted-clock.d.mts
 /adapters/store-local/clock-read-bound.test.mjs
 /adapters/store-local/clock-read-bound.test.d.mts
+/adapters/store-local/publication-index-reader.mjs
+/adapters/store-local/publication-index-reader.d.mts

@@ -12732,7 +12732,7 @@
                 "anchor": "const original = lookup.call(journal"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
@@ -12792,7 +12792,7 @@
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
@@ -12882,7 +12882,7 @@
                 "anchor": "ensureOpen();"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
@@ -13032,7 +13032,7 @@
                 "anchor": "const original = lookup.call(journal"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
@@ -13092,7 +13092,7 @@
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
@@ -13182,7 +13182,7 @@
                 "anchor": "ensureOpen();"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-reader.mts",
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
