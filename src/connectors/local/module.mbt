@@ -445,6 +445,15 @@ fn local_module_borrowed_text_singleton_group(
 }
 
 ///|
+fn local_default_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+  if @lower.inner_join_kind(@lower.join_kernel_profile(kernel)) == @join.Semi {
+    @execution.bounded_join_borrows_input(kernel)
+  } else {
+    selected_join_borrows_carried_values(kernel)
+  }
+}
+
+///|
 fn local_module_default_output_start_capacity(
   installed : LocalComputeModule,
   slot : Int,
@@ -504,8 +513,7 @@ fn local_module_default_output_start_capacity(
   }
   let borrowed_join = count == 1 &&
     (match @execution.generated_sequence_step_at(sequence, 0) {
-      Some(@lower.JoinStep(kernel)) =>
-        selected_join_borrows_carried_values(kernel)
+      Some(@lower.JoinStep(kernel)) => local_default_join_borrows_input(kernel)
       _ => false
     })
   if count == 1 &&
@@ -629,7 +637,7 @@ fn local_module_default_output_start_capacity(
   for index in 0..<count {
     if @execution.generated_sequence_step_at(sequence, index)
       is Some(@lower.JoinStep(kernel)) {
-      if !selected_join_borrows_carried_values(kernel) {
+      if !local_default_join_borrows_input(kernel) {
         append_chain = false
       }
     }
@@ -723,7 +731,7 @@ fn local_module_default_output_start_capacity(
         // The same bounded JOIN child funds every complete output row before
         // commit, including inside a reclaimed Relation chain. Admit only
         // required scalar input/output cells here. Text requires the same
-        // INNER JOIN borrowed-cell/charged-comparison proof; other DATA keeps
+        // borrowed-cell proof under the checked Join kind; other DATA keeps
         // its full prepaid lifecycle. This changes no comparison or row bound.
         if count > 1 {
           let prepared = @lower.bound_preparation(

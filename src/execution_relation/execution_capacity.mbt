@@ -230,18 +230,17 @@ pub fn bounded_number_group_borrows_input(
 }
 
 ///|
-// The bounded INNER JOIN compares only its checked immediate key columns.
-// Other required columns are carried as original immutable cells: neither
-// binary input scan nor projected output constructs their value forest.
-// Text keys use the existing charged UTF-16 comparison cursor. Flat LEFT JOIN
-// with Number/Bool keys carries the same cells or the admitted null singleton;
-// it constructs no input forest. Full recursive/presence/other outer recipes stay.
-fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+/// The bounded equality Join reads original required cells. INNER also uses
+/// the charged Text key cursor. Flat LEFT and SEMI with Number/Boolean keys
+/// keep carried Text borrowed; SEMI emits only original left cells after a
+/// match. The caller still funds comparison workspace and output construction.
+pub fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  let flat_left = @lower.inner_join_kind(profile) == @join.Left
-  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
+  let kind = @lower.inner_join_kind(profile)
+  let immediate_keys_only = kind == @join.Left || kind == @join.Semi
+  guard (kind == @join.Inner || immediate_keys_only) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -251,7 +250,7 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
     Some(true) else {
     return false
   }
-  if flat_left {
+  if immediate_keys_only {
     let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
     for field in 0..<@schema.field_count(output) {
       match @schema.field_at(output, field).unwrap().contract.shape {
@@ -268,7 +267,7 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
       @schema.all_fields_required(schema) else {
       return false
     }
-    if flat_left {
+    if immediate_keys_only {
       for field in 0..<@schema.field_count(schema) {
         match @schema.field_at(schema, field).unwrap().contract.shape {
           @contract.Number | @contract.Boolean | @contract.Text(_) => ()
@@ -284,7 +283,10 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
-        @contract.Text(_) => if flat_left || contract.nullable { return false }
+        @contract.Text(_) =>
+          if immediate_keys_only || contract.nullable {
+            return false
+          }
         _ => return false
       }
     }

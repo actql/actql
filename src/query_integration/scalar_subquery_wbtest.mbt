@@ -384,3 +384,45 @@ test "shared literal UNION CTE control reads its three original rows" {
   assert_eq(rows, ["{\"n\":1}", "{\"n\":2}", "{\"n\":3}"])
   assert_true(execution.close())
 }
+
+///|
+test "original WHERE EXISTS forms execute and close within the unchanged resource policy" {
+  let original = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+  for
+    text in [
+      "SELECT n FROM t WHERE EXISTS (SELECT n FROM t)", "SELECT a.n FROM t AS a WHERE EXISTS (SELECT b.n FROM t AS b WHERE b.n = a.n)",
+    ] {
+    let setup = source_free_subquery_retained_fixture(original + text)
+    let execution = match
+      @client_local_host.execute_source_free_local_tasks_guarded(
+        setup,
+        16,
+        10000,
+        () => true,
+      ) {
+      Ok(value) => value
+      Err(failure) => {
+        assert_false(
+          @client_local_host.local_values_execution_failure_cleanup_pending(
+            failure,
+          ),
+        )
+        let issue = @client_local_host.local_values_execution_failure_issue(
+          failure,
+        )
+        let reason = match issue {
+          Driver(original) =>
+            @local_driver.local_managed_failure_cause(original).unwrap_or(
+              "unclassified Local failure",
+            )
+          _ => "original Local execution failed"
+        }
+        fail(text + ": " + reason)
+      }
+    }
+    let rows = execution.rows().unwrap()
+    rows.sort()
+    assert_eq(rows, ["{\"n\":1}", "{\"n\":2}", "{\"n\":3}"], msg=text)
+    assert_true(execution.close(), msg=text)
+  }
+}
