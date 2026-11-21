@@ -22,6 +22,8 @@ pub fn after_relation_generator(Query, NamePart) -> Query?
 
 pub fn anonymous_namespace_geometry(Query) -> (Int, Int, Int, Int, Int)
 
+pub fn anonymous_namespace_may_use_publication(Query) -> Bool
+
 pub fn anonymous_output_context_required(Query) -> Bool
 
 pub fn anonymous_output_star_growth(Query) -> Int

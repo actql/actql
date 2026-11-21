@@ -822,6 +822,7 @@ fn QueryParser::resolve_producer(
   relation : Array[NamePart],
 ) -> Array[NamePart] raise QueryAbort {
   if relation.length() != 1 {
+    self.source.published_namespace_possible = true
     return relation
   }
   let mut scope = self.binding_scopes.length() - 1
@@ -838,6 +839,7 @@ fn QueryParser::resolve_producer(
     }
     scope -= 1
   }
+  self.source.published_namespace_possible = true
   relation
 }
 
@@ -1318,8 +1320,22 @@ fn QueryParser::retire_positional_output_demands(
   self : QueryParser,
   operand : Query,
 ) -> Unit raise QueryAbort {
-  if self.source.anonymous_output_demands == 0 || !operand.sets.is_empty() {
+  if self.source.anonymous_output_demands == 0 {
     return
+  }
+  if !operand.sets.is_empty() {
+    // A tail can observe the inner set's names. A purely positional inner
+    // set without a tail takes its public names from this left term, but
+    // the enclosing positional match immediately replaces those names.
+    if !operand.final_operations.is_empty() {
+      return
+    }
+    for part in operand.sets {
+      self.spend(1)
+      if part.by_name {
+        return
+      }
+    }
   }
   let mut index = operand.operations.length() - 1
   let mut range : NamePart? = None
@@ -2430,6 +2446,7 @@ fn QueryParser::initial_from(
     initial_implicit_alias,
     initial_file_listing,
   ) = if allow_graph_marker && self.has("GRAPH") {
+    self.source.published_namespace_possible = true
     self.keyword("GRAPH")
     let start = self.peek().start
     let relation = self.resolve_producer(self.path())
@@ -3774,6 +3791,7 @@ fn QueryParser::symbol(
 fn QueryParser::infer_clause(
   self : QueryParser,
 ) -> InferClause raise QueryAbort {
+  self.source.published_namespace_possible = true
   let origin = token_origin(self.source, self.index)
   self.keyword("INFER")
   let contract = self.name()
@@ -4366,6 +4384,20 @@ pub fn expression_implicit_name(expression : Expression) -> NamePart? {
 // One parser-owned fact shared by the nested queries of this document.
 pub fn anonymous_output_context_required(query : Query) -> Bool {
   query.source.anonymous_output_demands > 0
+}
+
+///|
+/// Whether an admitted publication can supply namespace field shapes to the
+/// original query. Every unresolved producer and separate Source selector
+/// retains the complete publication bound. This is construction DATA only.
+pub fn anonymous_namespace_may_use_publication(query : Query) -> Bool {
+  query.source.published_namespace_possible ||
+  query.effect is Some(_) ||
+  query.table_effect is Some(_) ||
+  query.store_effect is Some(_) ||
+  query.insert_effect is Some(_) ||
+  query.short_command_effect is Some(_) ||
+  !query.commands.is_empty()
 }
 
 ///|

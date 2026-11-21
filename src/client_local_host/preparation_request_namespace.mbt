@@ -226,12 +226,18 @@ fn request_query_namespace_data_bytes(
     return Some(controls)
   }
   let environment = @checked.source_catalog_owner(catalog)
-  let fields = match
-    @source_publication.prepared_published_query_input_field_geometry(
-      publication, environment,
-    ) {
-    Ok(fields) => fields
-    Err(_) => return None
+  let fields = if @query_syntax.anonymous_namespace_may_use_publication(parsed) {
+    match
+      @source_publication.prepared_published_query_input_field_geometry(
+        publication, environment,
+      ) {
+      Ok(fields) => fields
+      Err(_) => return None
+    }
+  } else {
+    // All source paths resolved in their lexical scope or are locally
+    // produced. Catalog admission and the base Context/copy costs remain.
+    (0L, 0L)
   }
   let carriers = @environment.source_request_carriers(
     @checked.source_catalog_contracts(catalog),

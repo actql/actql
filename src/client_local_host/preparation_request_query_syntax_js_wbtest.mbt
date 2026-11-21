@@ -1,11 +1,11 @@
 ///|
 test "parser context need scalars are funded before constructing the same Tokens" {
-  // 15 original input units at 332 bytes/unit, plus exactly eight stored words.
+  // 15 original input units at 332 bytes/unit, plus exactly nine stored words.
   // Existing coheld explicit lexical-limit controls remain a separate152 bytes.
-  assert_eq(request_query_syntax_data_bytes("SELECT 1 AS id"), Some(5044L))
+  assert_eq(request_query_syntax_data_bytes("SELECT 1 AS id"), Some(5052L))
   assert_eq(
     request_query_syntax_data_bytes("SELECT 1 AS id", lexical_work=Some(64)),
-    Some(5196L),
+    Some(5204L),
   )
 }
 

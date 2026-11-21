@@ -35,9 +35,9 @@ fn request_query_syntax_data_bytes(
   guard @execution.preparation_representation_cost({
       record_headers: 4L * units,
       reference_slots: 12L * units,
-      // Eight retained scalars on the SAME Tokens owner: the original need
+      // Nine retained scalars on the SAME Tokens owner: the original need
       // facts plus namespace constructor counts, widths, growth and references.
-      scalar_words: 20L * units + 8L,
+      scalar_words: 20L * units + 9L,
       owned_utf16_units: 4L * units,
       owned_wire_bytes: 4L * units,
     })

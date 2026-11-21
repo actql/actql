@@ -104,6 +104,19 @@ admitted the simultaneous original, replacement and failed-child overlap.
 A failed grow or compilation retains the original failure and cleanup owner;
 a view, quote or returned label is never a release acknowledgement.
 
+Lexically resolved producers and local Values cannot import a published
+field shape. For a document using only those inputs, the namespace quote
+uses the original syntax geometry without unrelated published fields.
+Unresolved relation paths, installed selectors, carrier operations and
+Effects keep the complete publication bound. The ordinary Catalog,
+Context and request-copy charges still apply in both cases.
+
+An inner positional set without a local tail can keep the leading
+terminal projection in its existing positional slots when the enclosing
+operand is also matched by position. The outer left operand supplies
+the result names. The parser charges its existing Work for the set-part
+walk. Named alignment and local set tails keep their namespace demand.
+
 A shared type-join DAG can visit the same terminal repeatedly. DFS scratch and
 surviving metadata are separate quantities. For one output field, the merge
 accumulator retains each distinct incoming original view link at most once:

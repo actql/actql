@@ -83,6 +83,8 @@ struct Tokens {
   mut namespace_field_factor : Int
   mut namespace_added_fields : Int
   mut namespace_references : Int
+  // Set only at parser-owned source/peer selection, never from a caller hint.
+  mut published_namespace_possible : Bool
 }
 
 ///|
@@ -185,6 +187,7 @@ fn scan_tokens(
       namespace_field_factor: 1,
       namespace_added_fields: 0,
       namespace_references: 0,
+      published_namespace_possible: false,
     })
   } catch {
     LexicalAbort(issue, at) =>

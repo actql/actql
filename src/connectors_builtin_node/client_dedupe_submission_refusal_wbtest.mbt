@@ -227,3 +227,137 @@ test "Request original scoped positional analytic prepares with ordinary limits"
   }
   assert_true(result is Ok("effect_free"), msg=reason)
 }
+
+///|
+extern "js" fn request_original_corresponding_fixture(
+  loader : RequestDiagnosticTestLoader,
+  name : String,
+) -> NativeJsonValue =
+  #|(loader,name)=>{const {setCorrespondingRefusals,setCorrespondingSuccesses}=loader('../../../../../scripts/fixtures/set-corresponding-source-input.mjs');const fixture=setCorrespondingRefusals.find(item=>item.name===name)??setCorrespondingSuccesses.find(item=>item.name===name);if(!fixture||(fixture.sourceRows?.length??0)!==0)throw new Error('ChangedOriginalCorrespondingFixture');return {kind:'aql',input:{format:fixture.format,text:fixture.text},parameters:null};}
+
+///|
+extern "js" fn request_corresponding_publication_fixture(
+  loader : RequestDiagnosticTestLoader,
+  field : String,
+) -> String =
+  #|(loader, field) => {
+  #|  const {readFileSync} = loader('node:fs');
+  #|  const {createHash} = loader('node:crypto');
+  #|  const {canonicalJson} = loader('../../../../../adapters/host-node/local-account-config.mjs');
+  #|  const {configurePublicQueryEvidenceContracts} = loader('../../../../../scripts/fixtures/public-query-cases.mjs');
+  #|  const read = path => JSON.parse(readFileSync(loader.resolve('../../../../../' + path), 'utf8'));
+  #|  const environment = read('adapters/host-node/fixtures/query-amount-environment.json');
+  #|  environment.host_policy_profile = read('spec/local-check-environment.json').host_policy_profile;
+  #|  configurePublicQueryEvidenceContracts(environment);
+  #|  delete environment.evidence_bundle_cid;
+  #|  const cid = 'sha256:' + createHash('sha256').update(canonicalJson(environment)).digest('hex');
+  #|  environment.evidence_bundle_cid = cid;
+  #|  const view = environment.source_views[0];
+  #|  if (field === 'environment') return canonicalJson(environment);
+  #|  if (field === 'cid') return cid;
+  #|  return canonicalJson({environmentCid: cid, aliases: [{name: 'records',
+  #|    sourceRef: 'connector://crm/main/r#v', sourceViewContractCid: view.contract_cid,
+  #|    schemaContractCid: view.output.schema.cid}]});
+  #|}
+
+///|
+extern "js" fn request_corresponding_refusal_keeps_cause(
+  loader : RequestDiagnosticTestLoader,
+  result : Result[String, @client_local_host.ClientRequestTerminalIssue],
+  project : (Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?,
+) -> Bool =
+  #|(loader, result, project) => {
+  #|  const {checkedRequestProgramPreparation} = loader('../../../../../adapters/host-node/client-program-preparation.mjs');
+  #|  const {runtimeField} = loader('../../../../../adapters/host-common/compiler-binding.generated.mjs');
+  #|  try { checkedRequestProgramPreparation({clientProgramRequestPreparationIssueCode: project}, result); }
+  #|  catch (error) {
+  #|    return error.code === 'ClientProgramImplementationLimit' && error.cause === runtimeField(result, 0);
+  #|  }
+  #|  return false;
+  #|}
+
+///|
+fn check_request_original_corresponding_fixture(
+  name : String,
+  refusal : Bool,
+) -> Unit raise {
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  let environment = @publication_host.admit_client_check_environment(
+    request_corresponding_publication_fixture(loader, "environment"),
+    request_corresponding_publication_fixture(loader, "cid"),
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    request_corresponding_publication_fixture(loader, "publication"),
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let captured = request_original_corresponding_fixture(loader, name)
+  client_program_prepare_request_submitted_intent(parent, receipt, captured).unwrap()
+  |> ignore
+  client_program_finish_request_submitted_intent(parent, receipt).unwrap()
+  let result = match
+    client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_dedupe_original_fixture_source(captured),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(_) =>
+      client_program_finish_request_computation(
+        parent, receipt, environment, publication,
+      )
+    Err(issue) => Err(issue)
+  }
+  client_program_abort_request_preparation(parent).unwrap()
+  let reason = match result {
+    Err(QueryLowering(Request(issue))) =>
+      "query_lowering_request/" + issue.to_repr().to_string()
+    Err(QueryLowering(Publication(_))) => "query_lowering_publication"
+    Err(Preparation(issue)) => @debug.to_string(issue)
+    Err(QuerySyntax(Request(issue))) =>
+      "query_syntax_request/" + issue.to_repr().to_string()
+    Err(_) => "other preparation refusal"
+    Ok(kind) => kind
+  }
+  if refusal {
+    assert_true(
+      result
+      is Err(
+        QueryLowering(
+          Publication(Frontend(QueryLowering(UnsupportedProjection)))
+        )
+      ),
+      msg=reason,
+    )
+    assert_eq(
+      client_program_request_preparation_issue_code(result),
+      Some("source_implementation_limit"),
+    )
+    assert_true(
+      request_corresponding_refusal_keeps_cause(
+        loader, result, client_program_request_preparation_issue_code,
+      ),
+    )
+  } else {
+    assert_true(result is Ok("effect_free"), msg=reason)
+  }
+}
+
+///|
+test "Request original parenthesized BY NAME refusal retains its typed cause" {
+  check_request_original_corresponding_fixture(
+    "set-corresponding-refuse-parenthesized-by-name", true,
+  )
+}
+
+///|
+test "Request original parenthesized nested set prepares with ordinary limits" {
+  check_request_original_corresponding_fixture(
+    "set-corresponding-positional-parenthesized-nested-set", false,
+  )
+}
