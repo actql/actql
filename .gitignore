@@ -1147,3 +1147,5 @@ target/
 /adapters/store-local/row-frames.test.d.mts
 /adapters/local-node/retained-input.mjs
 /adapters/local-node/retained-input.d.mts
+/adapters/store-local/import.mjs
+/adapters/store-local/import.d.mts

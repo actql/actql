@@ -1747,7 +1747,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/import.mjs",
+                "path": "adapters/store-local/import.mts",
                 "anchor": "importRetainedRows"
               },
               {
