@@ -28330,11 +28330,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/initializationCleanup/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:accept/init:accept",
           "parameters": [
             "identity",
@@ -29504,8 +29499,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -29575,7 +29570,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -30220,8 +30215,7 @@
         },
         {
           "operations": [
-            "observeOriginalClientRequestJournalCustody",
-            "openClientRequestJournal/initializationCleanup/init:close/init:close"
+            "observeOriginalClientRequestJournalCustody"
           ],
           "exports": [
             "assertOriginalClientRequestJournalFacilityCurrent",
@@ -30264,7 +30258,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -30314,7 +30308,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
@@ -30488,7 +30482,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -30834,8 +30828,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -30905,7 +30899,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -31987,8 +31981,7 @@
         "./local-values-capacity.mjs",
         "node:crypto",
         "node:fs",
-        "node:path",
-        "node:sqlite"
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -32091,7 +32084,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -32141,7 +32134,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
@@ -33219,8 +33212,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -33290,7 +33283,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -33912,7 +33905,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -33962,7 +33955,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
@@ -34098,7 +34091,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -34201,7 +34194,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -34606,8 +34599,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -34677,7 +34670,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -35410,8 +35403,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -35481,7 +35474,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -36162,7 +36155,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -36212,7 +36205,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
@@ -36315,7 +36308,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               }
             ],
@@ -36346,7 +36339,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const initializationCleanup = {close() {"
+                "anchor": "const initializationCleanup = createJournalPrimaryConnection(path, primaryCurrent);"
               }
             ],
             "resources": [
@@ -36355,7 +36348,7 @@
                 "anchor": "boundJournalDatabaseExtent(database, maxDatabaseBytes"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "boundedPrimarySql(connection, primarySqlLimits"
               }
             ],
@@ -37686,8 +37679,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const transaction = createSqliteTransaction(database, 'ClientRequestJournal');"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37757,7 +37750,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -38339,6 +38332,7 @@
         "boundedJournalWalFrames",
         "boundedPrimarySql",
         "createJournalObservationConnection",
+        "createJournalPrimaryConnection",
         "fail",
         "guardJournalCurrentness",
         "journalDatabaseGeometry",
@@ -38555,6 +38549,38 @@
           "async": false
         },
         {
+          "name": "createJournalPrimaryConnection",
+          "parameters": [
+            "path",
+            "primaryCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalPrimaryConnection/createJournalPrimaryConnection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalPrimaryConnection/createJournalPrimaryConnection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalPrimaryConnection/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalPrimaryConnection/init:open/init:open",
+          "parameters": [
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "walFrames"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -38662,7 +38688,12 @@
             "snapshotPrimaryExecutionLimits",
             "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
             "snapshotPrimarySqlLimits",
-            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
+            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
+            "createJournalPrimaryConnection",
+            "createJournalPrimaryConnection/createJournalPrimaryConnection",
+            "createJournalPrimaryConnection/createJournalPrimaryConnection#2",
+            "createJournalPrimaryConnection/init:close/init:close",
+            "createJournalPrimaryConnection/init:open/init:open"
           ],
           "exports": [
             "applyOriginal",
@@ -38675,7 +38706,8 @@
             "operationKeys",
             "selectJournalTemporaryStorage",
             "snapshotPrimaryExecutionLimits",
-            "snapshotPrimarySqlLimits"
+            "snapshotPrimarySqlLimits",
+            "createJournalPrimaryConnection"
           ],
           "attributes": {
             "responsibility": [
@@ -38696,6 +38728,10 @@
               {
                 "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "export function createJournalPrimaryConnection(path: string, primaryCurrent?: Current) {"
               }
             ],
             "identity": [
@@ -38714,7 +38750,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
@@ -38764,7 +38800,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
@@ -38824,6 +38860,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-open-custody.test.mts",
+                "anchor": "post-open failure keeps the same captured close and never reopens on cleanup"
               }
             ]
           }
@@ -39020,7 +39060,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-request-journal-original-custody.test.mjs",
+                "path": "adapters/host-node/client-request-journal-original-custody.test.mts",
                 "anchor": "test('the separate optional observation connection is not certified by primary close"
               },
               {

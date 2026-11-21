@@ -4,8 +4,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
-  from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
 async function fixture() {
   const scratch = await createOwnedScratch({
@@ -44,8 +44,8 @@ test('original Journal custody distinguishes its actual native close from copies
 test('logical close and a throwing original native close do not acknowledge physical custody', async () => {
   const {scratch, directory} = await fixture();
   const close = DatabaseSync.prototype.close;
-  let database, calls = 0, permit = false, journal;
-  DatabaseSync.prototype.close = function () {
+  let database: DatabaseSync | undefined, calls = 0, permit = false, journal: Readonly<{close(): void}> | undefined;
+  DatabaseSync.prototype.close = function (this: DatabaseSync) {
     database ??= this;
     assert.equal(this, database);
     calls++;
@@ -54,21 +54,21 @@ test('logical close and a throwing original native close do not acknowledge phys
   };
   try {
     journal = openClientRequestJournal(directory);
-    assert.throws(() => journal.close(), /OriginalNativeClosePending/);
-    assert.equal(database.isOpen, true);
+    assert.throws(() => journal!.close(), /OriginalNativeClosePending/);
+    assert.equal(database!.isOpen, true);
     assert.deepEqual(observeOriginalClientRequestJournalCustody(journal), {
       journalClosed: true, databaseClosed: false, observationAttempted: false,
       observationDatabaseClosed: true,
     });
     // Restoration does not replace the captured successful original callback.
     DatabaseSync.prototype.close = () => undefined;
-    assert.throws(() => journal.close(), /OriginalNativeClosePending/);
+    assert.throws(() => journal!.close(), /OriginalNativeClosePending/);
     assert.equal(calls, 2);
     permit = true;
-    journal.close();
-    assert.equal(database.isOpen, false);
+    journal!.close();
+    assert.equal(database!.isOpen, false);
     assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, true);
-    journal.close();
+    journal!.close();
     assert.equal(calls, 3);
   } finally {
     DatabaseSync.prototype.close = close;

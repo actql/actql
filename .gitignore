@@ -1461,3 +1461,7 @@ target/
 /adapters/host-node/host-journal-schema-support.test.d.mts
 /adapters/host-node/host-journal-native-image-loader.test.mjs
 /adapters/host-node/host-journal-native-image-loader.test.d.mts
+/adapters/host-node/client-request-journal-open-custody.test.mjs
+/adapters/host-node/client-request-journal-open-custody.test.d.mts
+/adapters/host-node/client-request-journal-original-custody.test.mjs
+/adapters/host-node/client-request-journal-original-custody.test.d.mts

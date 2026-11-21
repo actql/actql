@@ -463,6 +463,68 @@ export function selectJournalTemporaryStorage(database: JournalSqlConnection, ex
   if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');
 }
 
+// One physical primary connection. The Journal installs cleanup before the
+// fallible native open, then reuses the admitted database and transaction.
+export function createJournalPrimaryConnection(path: string, primaryCurrent?: Current) {
+  // Native option lookup includes inherited properties. The selected facility
+  // must not acquire arbitrary callbacks or configurations from that prototype.
+  // This closed internal packet is not an operational admission.
+  const connection = new DatabaseSync(path, primaryCurrent === undefined ? {
+    // Retain the actual wrapper before native open can acquire a connection
+    // and then fail. Cleanup must not depend on an unreachable constructor
+    // result or on eventual garbage collection of that native connection.
+    open: false,
+    readOnly: false,
+    enableForeignKeyConstraints: true,
+  } : {__proto__: null, open: false, readOnly: false, enableForeignKeyConstraints: true} as DatabaseSyncOptions);
+  let database: JournalSqlConnection & Readonly<{isTransaction: unknown}> = connection;
+  let selectedSql: ReturnType<typeof boundedPrimarySql> | undefined;
+  let originalDatabaseClose: DatabaseSync['close'] | undefined;
+  let originalDatabaseIsOpen: (() => unknown) | undefined;
+  const captureDatabaseCleanup = () => {
+    originalDatabaseClose ??= connection.close;
+    originalDatabaseIsOpen ??= Object.getOwnPropertyDescriptor(
+      connection, 'isOpen')?.get;
+    if (typeof originalDatabaseClose !== 'function' ||
+        typeof originalDatabaseIsOpen !== 'function') {
+      throw new TypeError('ClientRequestJournalConnectionCleanupUnavailable');
+    }
+  };
+  return {
+    close() {
+      captureDatabaseCleanup();
+      const opened = applyOriginal(originalDatabaseIsOpen!, connection, []);
+      if (typeof opened !== 'boolean') {
+        throw new TypeError('ClientRequestJournalConnectionCleanupPending');
+      }
+      if (opened && (applyOriginal(originalDatabaseClose!, connection, []) !== undefined ||
+          applyOriginal(originalDatabaseIsOpen!, connection, []) !== false)) {
+        throw new TypeError('ClientRequestJournalConnectionCleanupPending');
+      }
+      selectedSql?.retireClosedNativeAliases();
+    },
+    open(primarySqlLimits: SqlLimits | undefined, primaryExecutionLimits: ExecutionLimits | undefined,
+      walFrames: WalFrames | undefined) {
+      captureDatabaseCleanup();
+      if (primarySqlLimits !== undefined) {
+        selectedSql = boundedPrimarySql(connection, primarySqlLimits, primaryExecutionLimits, primaryCurrent, walFrames);
+        database = selectedSql.database;
+      }
+      const transaction = createSqliteTransaction(database, 'ClientRequestJournal');
+      primaryCurrent?.();
+      const originalOpen = connection.open;
+      if (typeof originalOpen !== 'function' ||
+          applyOriginal(originalOpen, connection, []) !== undefined ||
+          applyOriginal(originalDatabaseIsOpen!, connection, []) !== true) {
+        throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
+      }
+      return transaction;
+    },
+    get database() { return database; },
+    get selectedSql() { return selectedSql; },
+  };
+}
+
 // One secondary connection for this exact Request Journal. Its historical
 // attempt and captured native cleanup survive a failed open or close.
 export function createJournalObservationConnection(path: string, ensureOpen: () => undefined,

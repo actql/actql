@@ -1,14 +1,13 @@
 import {retainedBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
-import {DatabaseSync} from 'node:sqlite';
 import './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
-import {createSqliteTransaction, throwSqliteInitializationFailure} from
+import {throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {assertHostJournalDirectoryInspector} from './host-journal-directory.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
@@ -25,7 +24,7 @@ import {clientSourceOperationStorage, snapshotClientSourceOperationLimits} from 
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 import {fail, applyOriginal, operationDescriptors, operationKeys, snapshotPrimarySqlLimits,
   snapshotPrimaryExecutionLimits, guardJournalCurrentness, boundedJournalWalFrames,
-  boundedPrimarySql, journalDatabaseGeometry, boundJournalDatabaseExtent,
+  createJournalPrimaryConnection, journalDatabaseGeometry, boundJournalDatabaseExtent,
   selectJournalTemporaryStorage, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, evidenceJson, freezeAdmissionEvidence, instant, logicalPlanOriginalShape, retainedEvidence,
@@ -170,58 +169,12 @@ export function openClientRequestJournal(directory, {
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
   primaryCurrent?.();
-  // Native option lookup includes inherited properties. The selected facility
-  // must not acquire arbitrary callbacks or configurations from that prototype.
-  // This closed internal packet is not an operational admission.
-  const connection = new DatabaseSync(path, primaryCurrent === undefined ? {
-    // Retain the actual wrapper before native open can acquire a connection
-    // and then fail. Cleanup must not depend on an unreachable constructor
-    // result or on eventual garbage collection of that native connection.
-    open: false,
-    readOnly: false,
-    enableForeignKeyConstraints: true,
-  } : {__proto__: null, open: false, readOnly: false, enableForeignKeyConstraints: true});
-  let database = connection;
-  let selectedSql;
-  let originalDatabaseClose, originalDatabaseIsOpen;
-  const captureDatabaseCleanup = () => {
-    originalDatabaseClose ??= connection.close;
-    originalDatabaseIsOpen ??= Object.getOwnPropertyDescriptor(
-      connection, 'isOpen')?.get;
-    if (typeof originalDatabaseClose !== 'function' ||
-        typeof originalDatabaseIsOpen !== 'function') {
-      throw new TypeError('ClientRequestJournalConnectionCleanupUnavailable');
-    }
-  };
-  const initializationCleanup = {close() {
-    captureDatabaseCleanup();
-    const opened = applyOriginal(originalDatabaseIsOpen, connection, []);
-    if (typeof opened !== 'boolean') {
-      throw new TypeError('ClientRequestJournalConnectionCleanupPending');
-    }
-    if (opened && (applyOriginal(originalDatabaseClose, connection, []) !== undefined ||
-        applyOriginal(originalDatabaseIsOpen, connection, []) !== false)) {
-      throw new TypeError('ClientRequestJournalConnectionCleanupPending');
-    }
-    selectedSql?.retireClosedNativeAliases();
-  }};
-  let transaction;
+  const initializationCleanup = createJournalPrimaryConnection(path, primaryCurrent);
   let closed = false;
   let databaseClosed = false;
   try {
-    captureDatabaseCleanup();
-    if (primarySqlLimits !== undefined) {
-      selectedSql = boundedPrimarySql(connection, primarySqlLimits, primaryExecutionLimits, primaryCurrent, walFrames);
-      database = selectedSql.database;
-    }
-    transaction = createSqliteTransaction(database, 'ClientRequestJournal');
-    primaryCurrent?.();
-    const originalOpen = connection.open;
-    if (typeof originalOpen !== 'function' ||
-        applyOriginal(originalOpen, connection, []) !== undefined ||
-        applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
-      throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
-    }
+    const transaction = initializationCleanup.open(primarySqlLimits, primaryExecutionLimits, walFrames);
+    const {database, selectedSql} = initializationCleanup;
     let temporarySelected = false;
     let retainedGeometry;
     if (ownedOriginal !== undefined && current) {
