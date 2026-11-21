@@ -149,6 +149,13 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
           stop("LocalOriginalEffectHostUnavailable")
         }
       }
+      match state.issue_mock_effect_direct_sources(run, bound) {
+        Ok(_) => ()
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessSourceIdentity(issue))
+          stop("LocalOriginalEffectSourceEvidenceUnavailable")
+        }
+      }
     })
   }
 }

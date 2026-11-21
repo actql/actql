@@ -14,10 +14,7 @@ priv struct LocalNativeMockEffectPlan {
   mut lookup : @run_host.ClientKeyedLookupInput?
   mut model_read : LocalNativeMockModelRead?
   mut model_output : @execution.CompletedOutput?
-  mut _retained_model_observation : (
-    @publication.RunEvidenceValue,
-    @publication.PublicationContract,
-  )?
+  mut direct_sources : LocalNativeMockEffectDirectSources?
   mut _retained_local_model_observation : @publication.CapturedEffectDependencyBody?
   mut _retained_local_model_dependencies : Array[(String, String, String)]?
   mut model_use : @infer.OutputUse?
@@ -66,7 +63,7 @@ fn retain_native_mock_effect_plan(
     lookup: None,
     model_read: None,
     model_output: None,
-    _retained_model_observation: None,
+    direct_sources: None,
     _retained_local_model_observation: None,
     _retained_local_model_dependencies: None,
     model_use: None,

@@ -361,6 +361,17 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessSourceIdentity(cause) =>
       match cause {
+        Coverage => "SourceIdentityCoverage"
+        Installed(ForeignOriginal) => "SourceIdentityForeignOriginal"
+        Installed(Retired) => "SourceIdentityRetiredRun"
+        Installed(_) => "SourceIdentityInstalledRun"
+        Ledger(RetentionLimit) => "SourceIdentityRetentionLimit"
+        Ledger(ExecutionLimit) => "SourceIdentityExecutionLimit"
+        Ledger(_) => "SourceIdentityLedger"
+        Invocation(WrongPhase) => "SourceIdentityInvocationPhase"
+        Invocation(PublicationInvocation(_)) =>
+          "SourceIdentityInvocationEvidence"
+        Invocation(_) => "SourceIdentityInvocation"
         Capture(issue) =>
           match issue {
             Unavailable => "SourceIdentityUnavailable"

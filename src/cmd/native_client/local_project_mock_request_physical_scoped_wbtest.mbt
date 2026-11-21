@@ -2017,7 +2017,7 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
 }
 
 ///|
-test "Native shared-file Effect captures and joins both whole inputs without a Model" {
+test "Native shared-file Effect joins and binds both original Source observations without a Model" {
   let project = native_project_mock_model_fixture(
     "shared-file-empty-models",
     operation="run",
@@ -2132,6 +2132,7 @@ test "Native shared-file Effect captures and joins both whole inputs without a M
     facility.parent,
     original.request,
   ).native_file_route_value("adopt same Model-free Plan")
+  state.source_started_at = Some("2026-10-10T00:00:01.000Z")
   for index, rows in [3, 2] {
     let capture = state
       .prepare_mock_effect_source_capture(
@@ -2152,6 +2153,7 @@ test "Native shared-file Effect captures and joins both whole inputs without a M
     ).unwrap()
     assert_eq(@query.captured_source_row_count(source), Some(rows))
   }
+  state.source_completed_at = Some("2026-10-10T00:00:02.000Z")
   let bound = @run_host.bind_client_effect_compiled_run(
     prepared,
     original.allowed,
@@ -2160,6 +2162,39 @@ test "Native shared-file Effect captures and joins both whole inputs without a M
   state
   .open_mock_effect_source_host(run, bound)
   .native_file_route_value("bind both original captures to the same Host")
+  match state.issue_mock_effect_direct_sources(run, bound) {
+    Ok(_) => ()
+    Err(Coverage) => fail("incomplete original Source coverage or extent")
+    Err(Ledger(_)) => fail("original Source evidence reservation refused")
+    Err(Installed(_)) => fail("original Source evidence Plan unavailable")
+    Err(Capture(_)) => fail("original Source identity scan refused")
+    Err(Logical(_)) => fail("original Source logical binding refused")
+    Err(Observation(_)) => fail("original Source observation refused")
+    Err(Invocation(PublicationInvocation(RunEvidenceReferenceMismatch(field)))) =>
+      fail("original Source invocation reference mismatch: " + field)
+    Err(Invocation(_)) => fail("original Source invocation refused")
+    Err(Read(_)) => fail("unexpected Model Read in direct Source evidence")
+  }
+  {
+    let held = state.direct_sources.unwrap()
+    let publication = held._retained_publication.unwrap()
+    let observed = @run_host.client_effect_direct_sources_publication_observation(
+      publication,
+    )
+    let expected = held.observations.map(evidence => {
+      Json::string(@publication.run_evidence_value_identity(evidence))
+    })
+    assert_eq(expected.length(), 2)
+    assert_true(expected[0] != expected[1])
+    guard @json.parse(@publication.run_evidence_value_json(observed))
+      is Object(body) else {
+      fail("missing original Source observation")
+    }
+    assert_eq(body.get("source_evidence_cids"), Some(Json::array(expected)))
+    assert_true(
+      state.issue_mock_effect_direct_sources(run, bound) is Err(Coverage),
+    )
+  }
   let executed = @local_values.execute_retained_effect_local_tasks_guarded(
     state.effect_host.unwrap(),
     state.effect_capture.unwrap(),
@@ -2189,6 +2224,7 @@ test "Native shared-file Effect captures and joins both whole inputs without a M
   )
   state.effect_host = None
   state.effect_capture = None
+  assert_true(state.stop_mock_effect_direct_source_scan())
   for capture in state.sources {
     assert_true(capture.close().unwrap())
   }
@@ -2204,6 +2240,9 @@ test "Native shared-file Effect captures and joins both whole inputs without a M
   state.input_originals.clear()
   state.input_originals.shrink_to_fit()
   @local_values.quiesce_installed_managed_run(run).unwrap()
+  state
+  .retire_mock_effect_direct_sources()
+  .native_file_route_value("settle original Source evidence backing")
   // Release the logical holder in the original frame first. Its final ACK
   // becomes available only after the same native execution closes.
   match @local_values.retire_installed_managed_run(run) {

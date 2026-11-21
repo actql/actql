@@ -388,14 +388,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_observation(
           stop("LocalOriginalModelObservationUnavailable")
         }
         Ok(value) => {
-          if value {
-            state._retained_model_observation = Some(
-              work
-              .observation_original()
-              .unwrap_or_else(() => {
-                stop("LocalOriginalModelObservationUnavailable")
-              }),
-            )
+          if value && work.observation_original() is None {
+            stop("LocalOriginalModelObservationUnavailable")
           }
           value
         }
@@ -413,10 +407,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_observation(
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
-    state._retained_model_observation is Some(_) &&
     state.effect_capture is Some(_) &&
     state._retained_local_model_observation is None &&
-    business.model_work.length() == 1 else {
+    business.model_work.length() == 1 &&
+    business.model_work[0].observation_original() is Some(_) else {
     stop("LocalOriginalModelLocalObservationUnavailable")
   }
   let work = business.model_work[0]

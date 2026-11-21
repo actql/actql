@@ -4,6 +4,10 @@ priv enum LocalNativeMockSourceIdentityIssue {
   Capture(@query.CapturedSourceIssue)
   Logical(@run_host.ClientCapturedSourceLogicalIssue)
   Observation(@row_host.RowHostIssue)
+  Installed(@local_values.ClientInstalledManagedRunIssue)
+  Ledger(@initial_resources.LedgerIssue)
+  Invocation(@local_values.ClientClosedValuesPreparationIssue)
+  Coverage
 }
 
 ///|
