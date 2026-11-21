@@ -1485,7 +1485,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "168d9e9002bff4c210806b637c36b9e9c2cd90847e9a31f1f3874443c98d100f",
+      "sha256": "cad7185002f99182c1243dd3549f7a39c288ff6a4baab81116384ba486642e73",
       "exports": [
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
@@ -1526,7 +1526,9 @@
           "name": "invokeDeclaredRowUpdate",
           "parameters": [
             "declaration",
-            "invocation"
+            "invocation",
+            "operation",
+            "writeSlot"
           ],
           "async": true
         },

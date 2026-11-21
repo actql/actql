@@ -1222,7 +1222,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   // A declared UPDATE still uses its existing funded credential children,
   // including per-row observations. Do not select the unfunded legacy port.
   const updateRecipe = declaredUpdate ? suppliedRecipes?.update ?? suppliedRecipe : undefined;
-  if (declaredUpdate && (updateRecipe?.credentialOperations === undefined || updateRecipe.physicalWrite !== undefined)) {
+  const updateWriteSlot = selectInstalledEffectCredentialOperation(updateRecipe, 'write');
+  if (declaredUpdate && (updateWriteSlot === undefined || updateRecipe.physicalWrite !== undefined)) {
     fail('InvalidInstalledEffectPlanRecipe');
   }
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
@@ -1330,7 +1331,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     // not invoke current or repeat Mapping/Environment admission.
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
-  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile, declaredUpdate,
+  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile, updateWriteSlot,
     configuredMaxRows, configuredMaxMembers,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
@@ -2266,7 +2267,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                 expected[field] !== claim[field])) {
             fail('InvalidInstalledRowEffectDispatch');
           }
-          const {owned, site, beforeSendCheck, declaredUpdate} = ownerOf(member);
+          const {owned, site, beforeSendCheck, updateWriteSlot} = ownerOf(member);
           const managedPlanRecipe = recipeOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
@@ -2307,7 +2308,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                   invoke: ({authorization, credential, callResource}) => {
                     const invocation = {member, request: entry.request, current: now[memberIndex],
                       authorization, credential, callResource, signal, ...resourceFields(member)};
-                    return declaredUpdate ? invokeDeclaredRowUpdate(owned, invocation) : owned.send(invocation);
+                    return updateWriteSlot === undefined ? owned.send(invocation)
+                      : invokeDeclaredRowUpdate(owned, invocation,
+                        managedPlanRecipe.rowOperations[updateWriteSlot.operationIndex].operation, updateWriteSlot);
                   }});
                 if (beforeSendCheck === undefined) return send();
                 return (async () => {

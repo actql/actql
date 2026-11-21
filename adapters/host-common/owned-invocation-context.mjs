@@ -112,7 +112,11 @@ function invokeCredentialRequest({
   maxRequestBytes,
   maxResponseBytes,
   responseCustody,
-}, {authorization, credential, callResource, signal}) {
+}, {authorization, credential, callResource, signal}, installedOperation, installedLimits) {
+  if (installedLimits !== undefined) {
+    operation = installedOperation;
+    ({maxRequestBytes, maxResponseBytes} = installedLimits);
+  }
   if (typeof callResource !== 'function' ||
       typeof operation !== 'string' || operation.length === 0 ||
       typeof method !== 'string' || typeof path !== 'string' ||
@@ -164,13 +168,16 @@ export const declaredRowUpdateKinds = Object.freeze(['update']);
 // The existing Row Effect dispatch supplies the original scoped invocation.
 // Author transport code receives identity DATA and the original cancellation
 // signal. It has no physical send callback or credential.
-export async function invokeDeclaredRowUpdate(declaration, invocation) {
+export async function invokeDeclaredRowUpdate(declaration, invocation, operation, writeSlot) {
+  if (writeSlot?.phase !== 'write') fail();
   const {member, request, current, authorization, credential, signal} = invocation;
   const scope = invocationScopeFields(authorization?.scope, credential?.control);
   const transport = declaration.prepareUpdateWrite(member, request, current,
     scope?.resourceOrigin, scope?.connectorRegistration, signal);
   signal?.throwIfAborted();
-  if (transport.bodyBytes !== undefined || transport.bodyMediaType !== undefined ||
+  if (transport.operation !== undefined ||
+      transport.maxRequestBytes !== undefined || transport.maxResponseBytes !== undefined ||
+      transport.bodyBytes !== undefined || transport.bodyMediaType !== undefined ||
       transport.responseCustody !== undefined) fail();
-  return rowUpdateTransportObservation(await invokeCredentialRequest(transport, invocation));
+  return rowUpdateTransportObservation(await invokeCredentialRequest(transport, invocation, operation, writeSlot));
 }

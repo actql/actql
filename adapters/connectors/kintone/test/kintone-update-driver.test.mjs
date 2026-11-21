@@ -61,7 +61,8 @@ function fixture(changes = {}) {
     credential: {binding: {}}, authorization: {grant: {}, useId: 'one-write',
       scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
     async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
-    ...changes});
+    ...changes}, 'kintone:records:update', {phase: 'write',
+    maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes});
   const recover = (entry, requestCid) => ({maxRows: config.maxRows, durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     recorded: {members: [{claims: [{canonicalRequestCid: requestCid}]}]}, members: [member],
     body: {effects: [{changes: [{after: {value: structuredClone(value)}, target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});

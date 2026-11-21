@@ -134,14 +134,14 @@ test('declared row UPDATE uses the original Host authority and refuses codec-own
       invocations.push(call);
       return {useCid: 'original-reply', statusCode: 200, body};
     }};
-  const transport = {operation: 'update-record', method: 'PUT', path: '/records', body: '{}',
-    maxRequestBytes: 2, maxResponseBytes: 32};
+  const transport = {method: 'PUT', path: '/records', body: '{}'};
+  const writeSlot = Object.freeze({phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32});
   const update = {prepareUpdateWrite(...data) {
     assert.deepEqual(data, [member, request, current, origin, registration, signal]);
     return {...transport, authorization: {}, credential: {},
       callResource() {assert.fail('Codec tried to replace the Host transport');}};
   }};
-  const {observation} = await invokeDeclaredRowUpdate(update, invocation);
+  const {observation} = await invokeDeclaredRowUpdate(update, invocation, 'update-record', writeSlot);
   assert.equal(observation.body, body);
   assert.equal(observation.useCid, 'original-reply');
   assert.equal(invocations.length, 1);
@@ -150,9 +150,18 @@ test('declared row UPDATE uses the original Host authority and refuses codec-own
   assert.equal(invocations[0].signal, signal);
   assert.equal(invocations[0].useId, 'original-use');
   assert.deepEqual(invocations[0].operations.get('update-record'), {method: 'PUT', path: '/records', body: '{}'});
-  for (const replacement of [{operation: 'foreign'}, {responseCustody: {}}, {bodyBytes: new Uint8Array()}]) {
+  assert.equal(invocations[0].maxRequestBytes, 2);
+  assert.equal(invocations[0].maxResponseBytes, 32);
+  for (const replacement of [{operation: 'foreign'}, {maxRequestBytes: 3}, {maxResponseBytes: 64},
+    {responseCustody: {}}, {bodyBytes: new Uint8Array()}]) {
     await assert.rejects(invokeDeclaredRowUpdate({prepareUpdateWrite: () => ({...transport, ...replacement})},
-      invocation), {code: 'InvalidOwnedInvocationContext'});
+      invocation, 'update-record', writeSlot), {code: 'InvalidOwnedInvocationContext'});
   }
+  await assert.rejects(invokeDeclaredRowUpdate(update, invocation, 'foreign', writeSlot),
+    {code: 'InvalidOwnedInvocationContext'});
+  await assert.rejects(invokeDeclaredRowUpdate({
+    prepareUpdateWrite() {assert.fail('A read slot reached the write codec');},
+  }, invocation, 'update-record', {...writeSlot, phase: 'capture-target'}),
+  {code: 'InvalidOwnedInvocationContext'});
   assert.equal(invocations.length, 1);
 });

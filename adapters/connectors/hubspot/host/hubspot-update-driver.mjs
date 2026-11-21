@@ -223,10 +223,9 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       const body = native.hubspotRecordBatchBody(requests.nativeRequest(request));
       if (Buffer.byteLength(body) > responsePolicy.maxRequestBytes) fail('HubSpotUpdateRequestLimit');
       signal?.throwIfAborted();
-      return {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, method: 'POST',
+      return {method: 'POST',
         path: '/crm/v3/objects/' + segment(requests.objectType(request)) + '/batch/update',
-        query: [], headers: [['accept', 'application/json']], body, responseHeaders: [],
-        maxRequestBytes: responsePolicy.maxRequestBytes, maxResponseBytes: responsePolicy.maxResponseBytes};
+        query: [], headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
     project({request, observation}) {
       const result = projectHubSpotRecordWriteObservation({moon: native,

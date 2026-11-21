@@ -240,8 +240,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       if (resourceOrigin !== origin || registration !== 'kintone') fail('ForeignKintoneUpdateOrigin');
       const body = requests.requestBody(request);
       signal?.throwIfAborted();
-      return {operation: KINTONE_RECORD_UPDATE_OPERATION, method: 'PUT', path: prefix + 'records.json', query: [],
-        headers: [['accept', 'application/json']], body, responseHeaders: [], maxRequestBytes, maxResponseBytes};
+      return {method: 'PUT', path: prefix + 'records.json', query: [],
+        headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
     project({request, observation}) {return requests.projectResponse(request, observation);},
   });

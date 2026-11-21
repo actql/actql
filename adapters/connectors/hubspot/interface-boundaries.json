@@ -2129,7 +2129,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "dd06efb38215d4f0a0994a5ec15896fca649c8dd8eb52a52bc04b7c00e8261bd",
+      "sha256": "bba4dd1ddc8e0d7880960a24466950c920ec99f88f7786cb82944460d204ea71",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",

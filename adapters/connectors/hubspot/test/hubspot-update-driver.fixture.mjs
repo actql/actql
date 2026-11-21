@@ -85,7 +85,8 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
       state.writes.push(input);
       if (state.writeError) throw state.writeError;
       return state.response;
-    }, ...changed});
+    }, ...changed}, 'hubspot:objects:batch-update', {phase: 'write',
+    maxRequestBytes: writeLimits.maxRequestBytes, maxResponseBytes: writeLimits.maxResponseBytes});
   const recover = entry => ({durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     members: [member], body: {effects: [{changes: [{after: {value}, target_row_identity: id}]}]},
     recorded: {members: [{claims: [{canonicalRequestCid: entry.expectedRequestCid}]}]}, requestTags: [[tag]]});
