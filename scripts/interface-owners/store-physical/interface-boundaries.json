@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3dd10c7a9f25de4b3a2a6105bebb86741e3be40b70b67957209b55b1ebe56b83",
+      "sha256": "5892dade73e89ac21e6e9b408884a72c12b17b64ae7e5a6d08bdb8fadef4d301",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6274,71 +6274,7 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
-          "parameters": [
-            "selected"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
-          "parameters": [
-            "entry"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
           "parameters": [],
           "async": false
         },
@@ -6569,105 +6505,10 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials",
-          "parameters": [
-            "cids"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
           "parameters": [
             "cid"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
-          "parameters": [
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
-          "parameters": [
-            "frame"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal",
-          "parameters": [
-            "expectedCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
-          "parameters": [],
           "async": false
         },
         {
@@ -6892,23 +6733,29 @@
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
           "parameters": [
-            "operation"
+            "args"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#11",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#12",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#13",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
@@ -6920,34 +6767,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#15",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
           "parameters": [
             "args"
           ],
@@ -6979,25 +6798,29 @@
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
           "parameters": [
-            "bytes"
+            "args"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
           "parameters": [
-            "objects"
+            "args"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
@@ -7367,6 +7190,52 @@
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#4",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#6",
+          "parameters": [
+            "objects"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeState/writeState#8",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -7680,9 +7549,6 @@
             "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
@@ -7712,19 +7578,6 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#3",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
@@ -7748,9 +7601,9 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
+            "openOriginalLocalPublicationStore/writeState/writeState",
+            "openOriginalLocalPublicationStore/writeState/writeState#2",
+            "openOriginalLocalPublicationStore/writeState/writeState#3",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
@@ -7802,22 +7655,26 @@
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
             "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
+            "openOriginalLocalPublicationStore/writeState/writeState#4",
+            "openOriginalLocalPublicationStore/writeState/writeState#5",
+            "openOriginalLocalPublicationStore/writeState/writeState#6",
             "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
+            "openOriginalLocalPublicationStore/writeState/writeState#8",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#11",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#12",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#13",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#14",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#15",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
-            "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls"
+            "openOriginalLocalPublicationStore/writeState/writeState#7",
+            "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9"
           ],
           "exports": [
             "PublicationStoreError",
@@ -10842,28 +10699,15 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
-            "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
-            "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners",
-            "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
-            "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials"
+            "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10881,7 +10725,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10899,7 +10743,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10917,7 +10761,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10935,7 +10779,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10953,7 +10797,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10971,7 +10815,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -10989,7 +10833,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -11007,7 +10851,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-object-ownership.mts",
                 "anchor": "const retirePreparedHolderCustody = async"
               },
               {
@@ -11304,6 +11148,497 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/prepared-object-ownership.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2dc075859b2625ceb2daa45ad8dcfb5f023ab5a43aa4744e20a470de0c26c67d",
+      "exports": [
+        "createPreparedObjectOwnership"
+      ],
+      "operations": [
+        {
+          "name": "createPreparedObjectOwnership",
+          "parameters": [
+            "preparedObjects",
+            "preparedObjectOwners",
+            "withPreparedCustody",
+            "writeState",
+            "createObjectWriter",
+            "objectPath",
+            "confirmPhysicalRemovals",
+            "rememberPhysicalRemoval",
+            "verifyObject",
+            "removeCustodyRecord",
+            "reclaimCustody",
+            "materialHasLiveReference",
+            "confirmCommittedIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/adoptPreparedObjects/adoptPreparedObjects",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit",
+          "parameters": [
+            "cids",
+            "key",
+            "indexCid",
+            "selected",
+            "ownRetention"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/confirmPreparedMaterials/confirmPreparedMaterials",
+          "parameters": [
+            "cids"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter",
+          "parameters": [
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
+          "parameters": [
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal",
+          "parameters": [
+            "expectedCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPreparedObjectOwnership",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/status/status",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#3",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state"
+          ],
+          "exports": [
+            "createPreparedObjectOwnership"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const beginPreparedCommit = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "preparedObjectOwners.register(prepared, {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "group.commitOwners.add(owner);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "writeState.materialRetentionBusy = retirement.catch(() => {});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "await settlePins('uncommitted');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "await removal.unlinkOriginal();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "ownRetention !== undefined && await ownRetention(cid)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.test.mts",
+                "anchor": "failed later commit acquisition returns earlier original pins"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "original allocation recovery survives zero holders with a pending public commit pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPreparedObjectOwnership/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
+            "createPreparedObjectOwnership/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
+            "createPreparedObjectOwnership/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
+            "createPreparedObjectOwnership/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
+            "createPreparedObjectOwnership/adoptPreparedObjects/adoptPreparedObjects",
+            "createPreparedObjectOwnership/confirmPreparedMaterials/confirmPreparedMaterials"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.test.mts",
+                "anchor": "unknown private transfer retains exact immutable selection until original holder settles"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-object-writes.mjs",

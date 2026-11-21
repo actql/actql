@@ -128691,7 +128691,7 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/prepared-custody-queue.mts",
-                "anchor": "const operation = previous.then(transition);"
+                "anchor": "const operation = previous.then(transition) as Promise<Awaited<Value>>;"
               }
             ],
             "failure": [
@@ -128714,7 +128714,7 @@
             },
             "verification": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.test.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.test.mts",
                 "anchor": "failed later commit acquisition returns earlier original pins"
               },
               {
@@ -128757,7 +128757,7 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/prepared-custody-queue.mts",
-                "anchor": "const operation = previous.then(transition);"
+                "anchor": "const operation = previous.then(transition) as Promise<Awaited<Value>>;"
               }
             ],
             "failure": [
@@ -128780,7 +128780,7 @@
             },
             "verification": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.test.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.test.mts",
                 "anchor": "failed later commit acquisition returns earlier original pins"
               },
               {

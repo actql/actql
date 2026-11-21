@@ -1557,3 +1557,7 @@ target/
 /adapters/store-local/publication-result-reader.d.mts
 /adapters/store-local/publication-object-writes.mjs
 /adapters/store-local/publication-object-writes.d.mts
+/adapters/store-local/prepared-object-ownership.mjs
+/adapters/store-local/prepared-object-ownership.d.mts
+/adapters/store-local/prepared-custody-queue.test.mjs
+/adapters/store-local/prepared-custody-queue.test.d.mts

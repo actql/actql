@@ -5,7 +5,7 @@ export function createPreparedCustodyQueue() {
   const tails = new Map<string, Promise<void>>();
   return <Value,>(cid: string, transition: () => Value) => {
     const previous = tails.get(cid) ?? Promise.resolve();
-    const operation = previous.then(transition);
+    const operation = previous.then(transition) as Promise<Awaited<Value>>;
     const tail = operation.then(() => {}, () => {});
     tails.set(cid, tail);
     tail.then(() => { if (tails.get(cid) === tail) tails.delete(cid); });
