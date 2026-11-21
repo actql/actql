@@ -122125,37 +122125,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "export function createPreparedCustodyQueue()"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
-                "anchor": "return (cid, transition) => {"
+                "path": "adapters/store-local/prepared-custody-queue.mts",
+                "anchor": "return <Value,>(cid: string, transition: () => Value) => {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const previous = tails.get(cid) ?? Promise.resolve();"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "if (tails.get(cid) === tail) tails.delete(cid);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const operation = previous.then(transition);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const tail = operation.then(() => {}, () => {});"
               }
             ],
@@ -122164,8 +122164,8 @@
             },
             "resources": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
-                "anchor": "const tails = new Map();"
+                "path": "adapters/store-local/prepared-custody-queue.mts",
+                "anchor": "const tails = new Map<string, Promise<void>>();"
               }
             ],
             "extension": {
@@ -122191,37 +122191,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "export function createPreparedCustodyQueue()"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
-                "anchor": "return (cid, transition) => {"
+                "path": "adapters/store-local/prepared-custody-queue.mts",
+                "anchor": "return <Value,>(cid: string, transition: () => Value) => {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const previous = tails.get(cid) ?? Promise.resolve();"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "if (tails.get(cid) === tail) tails.delete(cid);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const operation = previous.then(transition);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "path": "adapters/store-local/prepared-custody-queue.mts",
                 "anchor": "const tail = operation.then(() => {}, () => {});"
               }
             ],
@@ -122230,8 +122230,8 @@
             },
             "resources": [
               {
-                "path": "adapters/store-local/prepared-custody-queue.mjs",
-                "anchor": "const tails = new Map();"
+                "path": "adapters/store-local/prepared-custody-queue.mts",
+                "anchor": "const tails = new Map<string, Promise<void>>();"
               }
             ],
             "extension": {
@@ -122358,49 +122358,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "export function createPreparedHolderRegistry(invalid)"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "export function createPreparedHolderRegistry<Original extends PreparedOriginal>(invalid: () => never)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "originals.set(handle, Object.freeze(original));"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "const original = originals.get(handle);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "const transfers = new Map(), holderTransfers = new WeakMap();"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "const transfers = new Map<string, readonly Readonly<Original>[]>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "finishTransfer,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "if (original === undefined || allowed.get(original.cid) !== original.bytes) invalid();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "forgetHolder(holder) {"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "forgetHolder(holder: Original['holder']) {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "if (remaining.length === 0) transfers.delete(key);"
               }
             ],
@@ -122409,7 +122409,7 @@
             },
             "verification": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.test.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.test.mts",
                 "anchor": "unknown private transfer retains exact immutable selection"
               },
               {
@@ -122427,49 +122427,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "export function createPreparedHolderRegistry(invalid)"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "export function createPreparedHolderRegistry<Original extends PreparedOriginal>(invalid: () => never)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "originals.set(handle, Object.freeze(original));"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "const original = originals.get(handle);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "const transfers = new Map(), holderTransfers = new WeakMap();"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "const transfers = new Map<string, readonly Readonly<Original>[]>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "finishTransfer,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "if (original === undefined || allowed.get(original.cid) !== original.bytes) invalid();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
-                "anchor": "forgetHolder(holder) {"
+                "path": "adapters/store-local/prepared-holder-owner.mts",
+                "anchor": "forgetHolder(holder: Original['holder']) {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.mts",
                 "anchor": "if (remaining.length === 0) transfers.delete(key);"
               }
             ],
@@ -122478,7 +122478,7 @@
             },
             "verification": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.test.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.test.mts",
                 "anchor": "unknown private transfer retains exact immutable selection"
               },
               {

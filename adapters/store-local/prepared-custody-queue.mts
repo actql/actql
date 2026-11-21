@@ -2,8 +2,8 @@
 // Payload writes and external custody remain with their original owners. A
 // settled older operation cannot erase the queue of a later queued owner.
 export function createPreparedCustodyQueue() {
-  const tails = new Map();
-  return (cid, transition) => {
+  const tails = new Map<string, Promise<void>>();
+  return <Value,>(cid: string, transition: () => Value) => {
     const previous = tails.get(cid) ?? Promise.resolve();
     const operation = previous.then(transition);
     const tail = operation.then(() => {}, () => {});

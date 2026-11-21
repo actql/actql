@@ -1157,3 +1157,9 @@ target/
 /adapters/store-local/managed-manifest.test.d.mts
 /adapters/local-node/retained-input.test.mjs
 /adapters/local-node/retained-input.test.d.mts
+/adapters/store-local/prepared-holder-owner.mjs
+/adapters/store-local/prepared-holder-owner.d.mts
+/adapters/store-local/prepared-holder-owner.test.mjs
+/adapters/store-local/prepared-holder-owner.test.d.mts
+/adapters/store-local/prepared-custody-queue.mjs
+/adapters/store-local/prepared-custody-queue.d.mts

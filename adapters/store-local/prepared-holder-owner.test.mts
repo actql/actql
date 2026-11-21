@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
-const registry=()=>createPreparedHolderRegistry(()=>{throw new Error('InvalidPreparedOwner');});
+type Original = {cid: string; bytes: number; holder: {active: boolean}; generation?: number};
+const registry=()=>createPreparedHolderRegistry<Original>(()=>{throw new Error('InvalidPreparedOwner');});
 for (const count of [1,2,3,8]) test(`nominal selection preserves ${count} independent same-CID holders`,()=>{
   const owners=registry(), handles=Array.from({length:count},()=>Object.freeze({}));
-  const originals=handles.map((handle,i)=>{const original={cid:'content',bytes:7,holder:{active:true},generation:i};owners.register(handle,original);return owners.original(handle);});
+  const originals=handles.map((handle,i)=>{const original={cid:'content',bytes:7,holder:{active:true},generation:i};owners.register(handle,original);return owners.original(handle)!;});
   const selected=owners.select([...handles,...handles].reverse(),new Map([['content',7]]));
   assert.equal(selected.length,count);assert(Object.isFrozen(selected));
   assert.deepEqual(new Set(selected),new Set(originals));
@@ -22,9 +23,9 @@ test('unknown private transfer retains exact immutable selection until original 
  const input=[a],selected=owners.select(input,new Map([['same',1]]));input[0]=b;
  owners.retainTransfer('original',selected);
  assert.deepEqual(owners.pendingTransfer('original'),[owners.original(a)]);
- owners.retainTransfer('other',[owners.original(b)]);
+ owners.retainTransfer('other',[owners.original(b)!]);
  owners.finishTransfer('original');
- assert.deepEqual(owners.pendingTransfer('other'),[owners.original(b)]);
- owners.original(b).holder.active=false;owners.forgetHolder(owners.original(b).holder);
+ assert.deepEqual(owners.pendingTransfer('other'),[owners.original(b)!]);
+ owners.original(b)!.holder.active=false;owners.forgetHolder(owners.original(b)!.holder);
  assert.equal(owners.pendingTransfer('other'),undefined);
 });

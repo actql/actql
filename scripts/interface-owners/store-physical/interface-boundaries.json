@@ -13644,7 +13644,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/prepared-holder-owner.test.mjs",
+                "path": "adapters/store-local/prepared-holder-owner.test.mts",
                 "anchor": "unknown private transfer retains exact immutable selection until original holder settles"
               },
               {

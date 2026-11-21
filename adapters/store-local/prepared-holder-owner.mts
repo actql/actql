@@ -1,42 +1,45 @@
 // Content groups locate bytes; only a registered handle selects a holder.
 // Selection is immutable and carries no new physical or durable authority.
-export function createPreparedHolderRegistry(invalid) {
-  const originals = new WeakMap();
-  const transfers = new Map(), holderTransfers = new WeakMap();
-  const finishTransfer = key => {
+type PreparedOriginal = Readonly<{cid: string; bytes: number; holder: {active: boolean}}>;
+
+export function createPreparedHolderRegistry<Original extends PreparedOriginal>(invalid: () => never) {
+  const originals = new WeakMap<object, Readonly<Original>>();
+  const transfers = new Map<string, readonly Readonly<Original>[]>(),
+    holderTransfers = new WeakMap<Original['holder'], Set<string>>();
+  const finishTransfer = (key: string) => {
     for (const original of transfers.get(key) ?? []) holderTransfers.get(original.holder)?.delete(key);
     transfers.delete(key);
   };
   return Object.freeze({
-    register(handle, original) {
+    register(handle: object, original: Original) {
       if (originals.has(handle)) invalid();
       originals.set(handle, Object.freeze(original));
     },
-    original(handle) { return originals.get(handle); },
-    retainTransfer(key, selected) {
+    original(handle: object) { return originals.get(handle); },
+    retainTransfer(key: string, selected: readonly Readonly<Original>[]) {
       const combined = Object.freeze([...new Set([...(transfers.get(key) ?? []), ...selected])]
         .filter(original => original.holder.active));
       if (combined.length === 0) return;
       transfers.set(key, combined);
       for (const original of combined) {
         let keys = holderTransfers.get(original.holder);
-        if (keys === undefined) holderTransfers.set(original.holder, keys = new Set());
+        if (keys === undefined) holderTransfers.set(original.holder, keys = new Set<string>());
         keys.add(key);
       }
     },
-    pendingTransfer(key) { return transfers.get(key); },
+    pendingTransfer(key: string) { return transfers.get(key); },
     finishTransfer,
-    forgetHolder(holder) {
+    forgetHolder(holder: Original['holder']) {
       for (const key of holderTransfers.get(holder) ?? []) {
-        const remaining = transfers.get(key).filter(original => original.holder !== holder);
+        const remaining = transfers.get(key)!.filter(original => original.holder !== holder);
         if (remaining.length === 0) transfers.delete(key);
         else transfers.set(key, Object.freeze(remaining));
       }
       holderTransfers.delete(holder);
     },
-    select(handles, allowed) {
+    select(handles: readonly object[], allowed: ReadonlyMap<string, number>) {
       if (!Array.isArray(handles)) invalid();
-      const selected = [], seen = new Set();
+      const selected: Readonly<Original>[] = [], seen = new Set<object>();
       for (const handle of handles) {
         const original = originals.get(handle);
         if (original === undefined || allowed.get(original.cid) !== original.bytes) invalid();
