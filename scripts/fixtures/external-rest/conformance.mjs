@@ -57,7 +57,7 @@ async function withFirstClose(client, {outputRoot, stateRoots}, operation) {
   return value;
 }
 
-export async function captureStandardRestRead(client, {publicSdk, program, parameters = null,
+export async function captureStandardRestRead(client, {publicSdk, program, parameters = null, programInput = false,
   assertRows, outputRoot, stateRoots}) {
   // Capture the getter from the SAME installed public namespace selected by
   // the consumer, once before any await. Never import a source SDK WeakMap.
@@ -68,7 +68,8 @@ export async function captureStandardRestRead(client, {publicSdk, program, param
     const bindings = parameters === null ? {} : {parameters};
     // Start admits the bound Program and its protected sources. A static
     // Check cannot attest to resolution of those sources.
-    const pending = client.startSource(JSON.stringify(program), {format: 'json', ...bindings});
+    const pending = programInput ? client.start(program, bindings)
+      : client.startSource(JSON.stringify(program), {format: 'json', ...bindings});
     // Observe this SAME original pending before even the synchronous getter
     // can throw. This observation neither retries nor classifies acceptance.
     const settled = Promise.resolve(pending).then(value => ({value}),
@@ -83,7 +84,11 @@ export async function captureStandardRestRead(client, {publicSdk, program, param
     await save(outputRoot, 'original-submission-input.json',
       input === undefined ? {available: false} : {available: true, input});
     const outcome = await settled;
-    if (outcome.failed) throw outcome.cause;
+    if (outcome.failed) {
+      const originalCheck = publicSdk.getSubmissionCheckObservation?.(outcome.cause);
+      if (originalCheck !== undefined) await save(outputRoot, 'original-submission-check.json', originalCheck);
+      throw outcome.cause;
+    }
     assert.notEqual(input, undefined, 'OriginalStandardRestSubmissionInputUnavailable');
     const execution = outcome.value;
     const reference = structuredClone(execution.ref);

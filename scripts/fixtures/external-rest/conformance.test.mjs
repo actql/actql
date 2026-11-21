@@ -89,16 +89,16 @@ test('author conformance submits the original Program and bindings once', async 
     status: async () => ({status: 'succeeded'}), result: () => ({all: async () => [{depth: 9}]}),
   });
   const client = {
-    startSource(text, options) {
-      assert.deepEqual(JSON.parse(text), program);
-      assert.deepEqual(options, {format: 'json', parameters});
+    start(original, options) {
+      assert.equal(original, program);
+      assert.deepEqual(options, {parameters});
       events.push('start');
       return pending;
     },
     async close() {events.push('close');},
   };
   await captureStandardRestRead(client, {publicSdk: {getSubmissionInput: () => ({})}, program,
-    parameters, assertRows: rows => assert.deepEqual(rows, [{depth: 9}]),
+    parameters, programInput: true, assertRows: rows => assert.deepEqual(rows, [{depth: 9}]),
     outputRoot: f.outputRoot, stateRoots: [f.state]});
   assert.deepEqual(events, ['start', 'close']);
 });
