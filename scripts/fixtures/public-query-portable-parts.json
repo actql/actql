@@ -1,6 +1,6 @@
 {
-  "fullInventorySha256": "3dfb4d7f856a1520368adf57dbcd008b8311d27d2195ed30bb176d1a5893bcb0",
-  "totalCases": 4240,
+  "fullInventorySha256": "d30b8a134b6fc0d9d81a8944b17fa787c2446e6191f3d8555ea2af306a757129",
+  "totalCases": 4296,
   "parts": {
     "portable-1": {
       "totalCases": 1521,
@@ -21,7 +21,7 @@
     },
     "portable-3": {
       "totalCases": 1388,
-      "inventorySha256": "665f0ea1d9674872c21caf9b53f920d2f1d0a01a54599a9406721805c387745a",
+      "inventorySha256": "ebe8bdc117612099eb122ecb267dd6ff2c0e3ce58a2606f78d8a3d9eb666c5f0",
       "receiptPrefixes": [
         "carrier-continuation",
         "temporal-join",

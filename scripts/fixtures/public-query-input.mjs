@@ -847,7 +847,7 @@ const navigationDefaultOriginal = {name: 'navigation-default-original', format: 
   text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
     + "20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
     + 'SELECT LAG(v, 1, 0) OVER (ORDER BY n) AS x FROM t',
-  results: {answer: {rows: [{x: 0}, {x: 10}, {x: 20}], unordered: true,
+  results: {main: {rows: [{x: 0}, {x: 10}, {x: 20}], unordered: true,
     columns: [{name: 'x', contract: {type: 'number', nullable: true}}]}},
   sourceReadCount: 0};
 const numberingInputs = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
@@ -855,12 +855,12 @@ const numberingInputs = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL S
 const numberingSuccesses = [
   {name: 'ntile-original', format: 'sql',
     text: numberingInputs + 'SELECT NTILE(2) OVER (ORDER BY n) AS result FROM t',
-    results: {answer: {rows: [{result: '1'}, {result: '1'}, {result: '2'}], unordered: true,
+    results: {main: {rows: [{result: '1'}, {result: '1'}, {result: '2'}], unordered: true,
       columns: [{name: 'result', contract: {type: 'int64', nullable: false}}]}},
     sourceReadCount: 0},
   {name: 'percent-rank-original', format: 'sql',
     text: numberingInputs + 'SELECT PERCENT_RANK() OVER (ORDER BY n) AS result FROM t',
-    results: {answer: {rows: [{result: 0}, {result: 0.5}, {result: 1}], unordered: true,
+    results: {main: {rows: [{result: 0}, {result: 0.5}, {result: 1}], unordered: true,
       columns: [numberColumn('result')]}},
     sourceReadCount: 0},
 ];
@@ -869,7 +869,7 @@ const navigationFrameSuccesses = [
   {name: 'last-value-default-original', op: 'LAST_VALUE', values: [10, 20, 30]},
 ].map(({name, op, values}) => ({name, format: 'sql',
   text: numberingInputs + `SELECT ${op}(v) OVER (ORDER BY n) AS result FROM t`,
-  results: {answer: {rows: values.map(result => ({result})), unordered: true,
+  results: {main: {rows: values.map(result => ({result})), unordered: true,
     columns: [{name: 'result', contract: {type: 'number', nullable: true}}]}},
   sourceReadCount: 0}));
 const aggregateDefaultWindows = [
@@ -888,7 +888,7 @@ const aggregateDefaultFrameSuccesses = [
   aggregateDefaultWindows.map(([mode, window], index) => ({
     name: `default-frame-${name}-${mode}-original`, format: 'sql',
     text: numberingInputs + `SELECT ${call} OVER (${window}) AS x FROM t`,
-    results: {answer: {rows: rows[index].map(x => ({x})), unordered: true,
+    results: {main: {rows: rows[index].map(x => ({x})), unordered: true,
       columns: [{name: 'x', contract: {type: 'number', nullable}}]}},
     sourceReadCount: 0,
   })));
