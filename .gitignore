@@ -1527,3 +1527,5 @@ target/
 /adapters/store-local/publication-object-consumer.d.mts
 /adapters/store-local/prepared-publication-schema-owner.mjs
 /adapters/store-local/prepared-publication-schema-owner.d.mts
+/adapters/store-local/publication-semantic-reader.mjs
+/adapters/store-local/publication-semantic-reader.d.mts

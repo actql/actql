@@ -11,7 +11,7 @@ type ReaderCleanup = Readonly<{
   status(): ReadCleanupStatus;
   retry(): Promise<ReadCleanupStatus>;
 }>;
-type SemanticReader = {
+export type SemanticReader = {
   cleanup: ReaderCleanup | undefined;
   failure?: unknown;
 };

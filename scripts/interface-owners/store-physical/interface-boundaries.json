@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "06a052ca07049e30024319c739f71be28f4ee3ab8016a76fe05bdc20ac6de66e",
+      "sha256": "91d70ef6b00c4fa7f448bc46ee56d3ece11ffeda239766f1962f41524e92af88",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6225,6 +6225,13 @@
           "parameters": [
             "bytes",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeContractRead/nativeContractRead",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -6279,6 +6286,15 @@
           "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
           "parameters": [
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
+          "parameters": [
+            "name",
+            "wire",
+            "original"
           ],
           "async": false
         },
@@ -7791,23 +7807,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readContract/readContract",
-          "parameters": [
-            "cid",
-            "contractName",
-            "readOriginal"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
-          "parameters": [
-            "cid",
-            "contractName"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
           "parameters": [
             "name"
@@ -7887,53 +7886,6 @@
             "cid",
             "includeNative"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
-          "parameters": [
-            "cid",
-            "includeNative",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
-          "parameters": [
-            "cid",
-            "includeNative",
-            "retainGeneration",
-            "retained",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -8604,6 +8556,7 @@
         {
           "operations": [
             "<module>",
+            "nativeContractRead/nativeContractRead",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
@@ -8757,7 +8710,6 @@
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
@@ -8766,13 +8718,6 @@
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
@@ -8825,6 +8770,7 @@
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
             "openOriginalLocalPublicationStore/admitContract/admitContract",
+            "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
             "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
@@ -8832,7 +8778,6 @@
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
             "openOriginalLocalPublicationStore/parseContract/parseContract",
-            "openOriginalLocalPublicationStore/readContract/readContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
@@ -9158,7 +9103,7 @@
                 "anchor": "# Physical holding metadata publication"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-semantic-reader.mts",
                 "anchor": "return Object.freeze({bytes, physicalCid});"
               },
               {
@@ -9528,7 +9473,7 @@
                 "anchor": "# Physical holding metadata publication"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-semantic-reader.mts",
                 "anchor": "const primary = readFailed ? readFailure : closeFailure;"
               },
               {
@@ -9646,7 +9591,7 @@
                 "anchor": "# Physical holding metadata publication"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-semantic-reader.mts",
                 "anchor": "activeSemanticReaders.delete(reader);"
               },
               {
@@ -11793,8 +11738,8 @@
                 "anchor": "const deliveryLogicalKey = query => JSON.stringify(["
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const nativeDeliveryContract = (cid, name, retained) =>"
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "const nativeDeliveryContract = (cid: string, name?: string, retained?: Contract) =>"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -12579,6 +12524,191 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-semantic-reader.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "5eeccee94aada9e7164d1fbf5ae642cff5a3f7fa2efeb28317d0ed6d362c4879",
+      "exports": [
+        "createPublicationSemanticReader"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationSemanticReader",
+          "parameters": [
+            "configuration",
+            "activeSemanticReaders",
+            "physicalContentReadWindowBytes",
+            "contractPath",
+            "objectPath",
+            "active",
+            "currentDeliveryIndex",
+            "admitContract",
+            "admitOriginalContract",
+            "nativeContractRead",
+            "parseContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationSemanticReader/nativeDeliveryContract/nativeDeliveryContract",
+          "parameters": [
+            "cid",
+            "name",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationSemanticReader/readContract/readContract",
+          "parameters": [
+            "cid",
+            "contractName",
+            "readOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationSemanticReader/readJsonObject/readJsonObject",
+          "parameters": [
+            "cid",
+            "contractName"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticBytes/readSemanticBytes",
+          "parameters": [
+            "cid",
+            "includeNative",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes",
+          "parameters": [
+            "cid",
+            "includeNative",
+            "retainGeneration",
+            "retained",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationSemanticReader",
+            "createPublicationSemanticReader/nativeDeliveryContract/nativeDeliveryContract",
+            "createPublicationSemanticReader/readContract/readContract",
+            "createPublicationSemanticReader/readJsonObject/readJsonObject",
+            "createPublicationSemanticReader/readSemanticBytes/readSemanticBytes",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
+            "createPublicationSemanticReader/readSemanticOriginal/readSemanticBytes/status/status"
+          ],
+          "exports": [
+            "createPublicationSemanticReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "const nativeRecord = includeNative === 'publication'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "physical.dev !== after.dev || physical.ino !== after.ino ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "activeSemanticReaders.add(reader);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "if (await handle.close() === false)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "const primary = readFailed ? readFailure : closeFailure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-semantic-reader.mts",
+                "anchor": "const bytes = Buffer.allocUnsafeSlow(before.size);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/semantic-reader-custody.test.mjs",
+                "anchor": "semantic FD close failure blocks Store release until the same close-only retry succeeds"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/prepared-publication-schema-owner.mjs",
