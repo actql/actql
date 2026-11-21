@@ -3747,15 +3747,15 @@
                 "anchor": "required dispatch preparation never skips a missing or legacy None borrow"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
               }
             ]
@@ -4583,7 +4583,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {

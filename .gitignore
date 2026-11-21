@@ -1189,3 +1189,5 @@ target/
 /adapters/host-node/client-dispatch-diagnostic.d.mts
 /adapters/local-node/managed-row-cause-diagnostic.test.mjs
 /adapters/local-node/managed-row-cause-diagnostic.test.d.mts
+/adapters/local-node/managed-advance-diagnostic.test.mjs
+/adapters/local-node/managed-advance-diagnostic.test.d.mts

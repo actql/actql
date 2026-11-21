@@ -28456,7 +28456,7 @@
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
               },
               {
@@ -28472,7 +28472,7 @@
                 "anchor": "snapshot reload reclassification refuses foreign prefixes regression and overflow"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure"
               },
               {
@@ -59722,7 +59722,7 @@
                 "anchor": "snapshot reload reclassification refuses foreign prefixes regression and overflow"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure"
               },
               {
@@ -99868,15 +99868,15 @@
                 "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
               },
               {
@@ -99949,7 +99949,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {
@@ -100112,7 +100112,7 @@
                 "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
               },
               {
@@ -100184,7 +100184,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {
@@ -100406,7 +100406,7 @@
                 "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
               },
               {
@@ -100478,7 +100478,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {
@@ -100787,7 +100787,7 @@
                 "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
               },
               {
@@ -100859,7 +100859,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {
@@ -101260,7 +101260,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
                 "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
               },
               {

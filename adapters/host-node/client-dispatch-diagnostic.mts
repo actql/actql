@@ -4,7 +4,7 @@
 import {originalDispatchFailureSnapshot} from '../host-common/dispatch-failure-observation.mjs';
 import {types as nodeTypes} from 'node:util';
 
-type DescribeCause = (cause: string) => unknown;
+type DescribeCause = (cause: string) => string | undefined;
 type Diagnostic = Readonly<Record<string, unknown>>;
 type Budget = Readonly<{requested: string; remaining: string; policy: string; requestedIsLowerBound: boolean}>;
 type WorkOrResource = Readonly<{budget?: Budget; workLimit?: number; controlWorkLimit?: number}> &
@@ -18,13 +18,12 @@ type LocalDiagnostic = Readonly<{phase: 'local_managed_advance'; task: number}> 
 type RunControl = Readonly<Record<string, unknown>>;
 type JournalFailureState = Readonly<{
   status?: unknown;
-  terminal_error?: Readonly<{code?: unknown}> | null;
+  terminal_error?: Readonly<{code?: unknown; message?: unknown}> | null;
 }>;
 type PreviousJournalState = JournalFailureState & Readonly<{
   run_id?: unknown;
   result_available?: unknown;
   next_action?: Readonly<{kind?: unknown}>;
-  terminal_error?: Readonly<{code?: unknown; message?: unknown}> | null;
   control: RunControl;
 }>;
 

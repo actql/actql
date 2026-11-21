@@ -5,7 +5,7 @@ import {runtimeIsError, runtimeIsBoxedSome, runtimeField, runtimeOptionalField, 
 import type {prepareLocalRetainedOutput} from './retained-output.mjs';
 
 type SynchronousResult = ReturnType<Parameters<typeof prepareLocalRetainedOutput>[2]>;
-type AdvanceProjector = (result: unknown) => unknown;
+type AdvanceProjector = (result: unknown) => SynchronousResult;
 type ManagedAdvanceBindings = Readonly<{
   strategyModule_local_ManagedAdvanceResourceDimension?: AdvanceProjector;
   strategyModule_local_ManagedAdvanceControlWorkLimit?: AdvanceProjector;
