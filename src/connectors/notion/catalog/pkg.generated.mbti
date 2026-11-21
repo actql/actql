@@ -207,6 +207,8 @@ pub fn prepare_notion_date_range_property_write(NotionDataSourceCatalog, Int, @v
 
 pub fn prepare_notion_property_write(NotionDataSourceCatalog, Int, @value_admission.CheckedValue, NotionPropertyWriteLimits) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue]
 
+pub fn prepare_notion_user_list_identity_progress(Int) -> Result[NotionUserListIdentityProgress, NotionUserListIssue]
+
 pub fn project_notion_data_source(NotionDatabaseCatalog, Int, Bytes, NotionDatabaseLimits) -> Result[NotionDataSourceCatalog, NotionDatabaseIssue]
 
 pub fn project_notion_database(Bytes, NotionDatabaseLimits) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue]
@@ -242,6 +244,8 @@ pub fn start_notion_property_item_request(OriginalNotionQueryRow, Int, NotionPro
 pub fn start_notion_read_row(NotionDataSourceReadContracts, OriginalNotionQueryPage, Int, NotionReadRowLimits) -> Result[NotionReadRow, NotionReadRowIssue]
 
 pub fn start_notion_read_row_property_item_request(NotionReadRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
+
+pub fn track_notion_user_list_page_identities(NotionUserListIdentityProgress, NotionUserListPage) -> Result[Unit, NotionUserListIssue]
 
 pub fn with_notion_source_system_contracts(NotionDataSourceReadContracts, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
 
@@ -502,6 +506,10 @@ pub(all) struct NotionReadSnapshotLimits {
 }
 
 pub struct NotionReadSourceSelection {
+  // private fields
+}
+
+pub struct NotionUserListIdentityProgress {
   // private fields
 }
 

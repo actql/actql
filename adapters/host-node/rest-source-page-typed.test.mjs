@@ -68,8 +68,11 @@ test('declarative Notion request keeps original version and caps requested rows 
   // Actual Catalog decoding/HTTP remains a separately required boundary.
   const unused = () => {assert.fail('No page projection in a request-only control');};
   const moon = {notionUserListColumnNames: () => ['id', 'name', 'type', 'email'],
-    notionProjectUserList: unused, notionUserListIds: unused, notionUserListRowsWire: unused,
-    notionUserListMetadata: unused};
+    notionProjectUserList: unused, notionUserListRowsWire: unused, notionUserListMetadata: unused,
+    notionUserListPrepareIdentityProgress(maxRows) {
+      assert.equal(maxRows, 1);return {$tag:1,_0:Object.freeze({})};
+    },
+    notionUserListTrackPageIdentities: unused};
   const limits = Object.fromEntries(['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth',
     'maxRows', 'maxPages', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes', 'maxValueNodes',
     'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'].map(name => [name, 100]));
@@ -499,4 +502,23 @@ test('REST actual Common cursor capacity uses the original domain representation
     assert.equal(runtimeField(originalBytes, 0), 3632n);
     assert.equal(runtimeField(cursorBytes, 0), 4366n);
     assert.equal(runtimeField(cursorBytes, 1) - runtimeField(originalBytes, 1), 774n);
+  });
+
+test('REST actual Common codec identity capacity retains the same request',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4];
+    const request = captureRestReadOriginals(moon).quote(
+      '{"method":"GET","path":"/v1/users"}', undefined,
+      {maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxDepth: 16, maxTargetBytes: 1024});
+    assert(runtimeUnboxedReferenceOption(request) != null);
+    const plain = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonCursorSourceReaderCapacityWithRequest(limits, 2, 3, request));
+    const identity = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonIdentityCursorSourceReaderCapacityWithRequest(limits, 2, 3, request));
+    assert(plain != null && identity != null);
+    const plainBytes = moon.clientProgramSerializationCapacityBytes(plain);
+    const identityBytes = moon.clientProgramSerializationCapacityBytes(identity);
+    assert.equal(runtimeField(identityBytes, 0) - runtimeField(plainBytes, 0), 1224n);
+    assert.equal(runtimeField(identityBytes, 1) - runtimeField(plainBytes, 1), 1336n);
   });

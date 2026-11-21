@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "7d117dbc54f6a0f2c881714ac5dbea1a5412fd32f648d077d04ee433b328d59d",
+      "sha256": "83178dadc15b2c7ad40ffe2de5dd42e508a41b885e76f48435b5ba8d0e1d761d",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -213,6 +213,10 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion cross-page IDs stay checked when selected output omits identity"
               }
             ]
           }
@@ -1444,7 +1448,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "d13ee04c6c2c06e4ea7d14e3569d792f6d212ff55a6fed50641d605857a36c47",
+      "sha256": "2a12b3e2fe0b0839345ba398cd27d58ee9e1abcc81613b2754d84475c8cd8fc1",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1727,6 +1731,10 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
               }
             ]
           }

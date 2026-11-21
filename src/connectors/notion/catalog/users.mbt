@@ -31,6 +31,14 @@ pub struct NotionUserListPage {
 }
 
 ///|
+/// Cross-page identity DATA of one provider reader. Its selected reader
+/// capacity accounts for the map and original bounded ID strings.
+pub struct NotionUserListIdentityProgress {
+  priv max_rows : Int
+  priv seen : Map[String, Bool]
+}
+
+///|
 pub fn notion_user_list_column_names() -> Array[String] {
   ["id", "name", "type", "email"]
 }
@@ -235,12 +243,46 @@ pub fn project_notion_user_list(
 
 ///|
 pub fn notion_user_list_ids(page : NotionUserListPage) -> Array[String] {
-  page.rows.map(row => {
-    match row[0].value {
-      @admitted.Text(id) => id
-      _ => abort("checked Notion user identity invariant")
+  page.rows.map(notion_user_id)
+}
+
+///|
+fn notion_user_id(row : Array[@admitted.CheckedValue]) -> String {
+  match row[0].value {
+    @admitted.Text(id) => id
+    _ => abort("checked Notion user identity invariant")
+  }
+}
+
+///|
+pub fn prepare_notion_user_list_identity_progress(
+  max_rows : Int,
+) -> Result[NotionUserListIdentityProgress, NotionUserListIssue] {
+  if max_rows < 1 {
+    return Err(InvalidLimits)
+  }
+  Ok({ max_rows, seen: Default::default(), })
+}
+
+///|
+/// The page decoder already checked uniqueness inside this page. Compare its
+/// exact typed IDs to the retained prefix before growing the original map.
+pub fn track_notion_user_list_page_identities(
+  progress : NotionUserListIdentityProgress,
+  page : NotionUserListPage,
+) -> Result[Unit, NotionUserListIssue] {
+  if page.rows.length() > progress.max_rows - progress.seen.length() {
+    return Err(BudgetExceeded)
+  }
+  for row in page.rows {
+    if progress.seen.contains(notion_user_id(row)) {
+      return Err(DuplicateUser)
     }
-  })
+  }
+  for row in page.rows {
+    progress.seen[notion_user_id(row)] = true
+  }
+  Ok(())
 }
 
 ///|

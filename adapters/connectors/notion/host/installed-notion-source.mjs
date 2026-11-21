@@ -24,7 +24,8 @@ const readLimitKeys=['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxD
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 const limitKeys=[...readLimitKeys,'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
 const providerNames=['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
-  'notionUserListRowsWire','notionUserListMetadata','notionUserListIds','notionProjectUserList'];
+  'notionUserListRowsWire','notionUserListMetadata','notionProjectUserList',
+  'notionUserListPrepareIdentityProgress','notionUserListTrackPageIdentities'];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);
@@ -136,7 +137,7 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     transportUnits,[request]),maxRequestBytes:limits.maxTargetBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
     limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
-    columnCount:provider.notionUserListColumnNames().length,cursorProgress:true,requestConstruction});
+    columnCount:provider.notionUserListColumnNames().length,cursorProgress:'codec-identities',requestConstruction});
   const connection=`notion:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:'actql-installed-notion-user-target/0.1',
     apiOrigin:siteProfile.apiOrigin,resource:selected,fields:Object.freeze([...fields])});

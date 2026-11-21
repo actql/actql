@@ -94,6 +94,32 @@ pub fn notion_user_list_ids(
 }
 
 ///|
+#export_name("notionUserListPrepareIdentityProgress")
+pub fn notion_user_list_prepare_identity_progress(
+  max_rows : Int,
+) -> Result[
+  @catalog.NotionUserListIdentityProgress,
+  @catalog.NotionUserListIssue,
+] {
+  @catalog.prepare_notion_user_list_identity_progress(max_rows)
+}
+
+///|
+#export_name("notionUserListTrackPageIdentities")
+pub fn notion_user_list_track_page_identities(
+  progress : @catalog.NotionUserListIdentityProgress,
+  page : @catalog.NotionUserListPage,
+) -> Result[Unit, String] {
+  @catalog.track_notion_user_list_page_identities(progress, page).map_err(issue => {
+    match issue {
+      DuplicateUser => "NotionUserListDuplicateUser"
+      BudgetExceeded => "NotionUserListRowLimit"
+      _ => "NotionUserListIdentityRuntimeMismatch"
+    }
+  })
+}
+
+///|
 #export_name("notionUserListRelationFactsWire")
 pub fn notion_user_list_relation_facts_wire() -> String {
   @catalog.notion_user_list_facts_wire()
