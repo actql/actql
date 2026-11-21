@@ -6,7 +6,7 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
-import {restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
+import {assertInstalledRowUpdateClaim, restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
@@ -162,9 +162,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         return Object.freeze(value.requests.map((wire, row) => {
           const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
           const facts = requests.requestFacts(rebuilt.request);
-          if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-              encode(facts.value) !== encode(changes[row].after?.value) ||
-              encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignKintoneUpdateRecovery');
+          assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, 'ForeignKintoneUpdateRecovery');
           return rebuilt.request;
         }));
       });

@@ -7348,15 +7348,28 @@
     },
     {
       "module": "adapters/host-common/installed-row-update-recovery.mjs",
-      "sha256": "758225eefcb3c18aa908e2194ef6a2e36870379d0fc6111eb1a2e92dcd25b334",
+      "sha256": "f172d26e606b7f8f3715a728ad206aacd2a22c05f435c4ea9a2600100e4d353e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Row Effect saved update member selection",
       "referenceQualification": "Source and retained-codec component references for exact original member selection",
       "exports": [
+        "assertInstalledRowUpdateClaim",
         "restoreInstalledRowUpdateMembers"
       ],
       "operations": [
+        {
+          "name": "assertInstalledRowUpdateClaim",
+          "parameters": [
+            "rebuilt",
+            "facts",
+            "claims",
+            "changes",
+            "row",
+            "foreignCode"
+          ],
+          "async": false
+        },
         {
           "name": "restoreInstalledRowUpdateMembers",
           "parameters": [
@@ -7384,18 +7397,22 @@
           "async": false
         }
       ],
-      "imports": [],
+      "imports": [
+        "../../packages/sdk/host-port.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "assertInstalledRowUpdateClaim",
             "restoreInstalledRowUpdateMembers",
             "restoreInstalledRowUpdateMembers/indexes/indexes",
             "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers"
           ],
           "exports": [
+            "assertInstalledRowUpdateClaim",
             "restoreInstalledRowUpdateMembers"
           ],
           "attributes": {
@@ -7415,6 +7432,10 @@
               {
                 "path": "adapters/host-common/installed-row-update-recovery.mjs",
                 "anchor": "byIndex.has(entry.memberIndex)) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "rebuilt.requestCid !== claims[row].canonicalRequestCid"
               }
             ],
             "ownership": [
@@ -7433,6 +7454,10 @@
               {
                 "path": "adapters/host-common/installed-row-update-recovery.mjs",
                 "anchor": "index <= indexes[offset - 1])) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "encode(facts.target) !== encode(changes[row].target_row_identity)"
               }
             ],
             "cancellation": [
@@ -7457,6 +7482,10 @@
               {
                 "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
                 "anchor": "test('update recovery retains original global indexes"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
+                "anchor": "test('HubSpot cold row driver refuses changed approved value target dispatch binding and claim rather than sending'"
               }
             ]
           }

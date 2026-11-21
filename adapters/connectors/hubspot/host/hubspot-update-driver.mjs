@@ -7,7 +7,7 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
-import {restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
+import {assertInstalledRowUpdateClaim, restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
 import {createHubSpotUpdateObservationAdapter} from './hubspot-update-observations.mjs';
 import {projectHubSpotRecordWriteObservation} from '../site/hubspot-record-write.mjs';
@@ -157,9 +157,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       return Object.freeze(value.requests.map((wire, row) => {
         const rebuilt = requests.restore({member, wire, requestTag: requestTags?.[index]?.[row]});
         const facts = requests.requestFacts(rebuilt.request);
-        if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-            encode(facts.value) !== encode(changes[row].after?.value) ||
-            encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignHubSpotUpdateRecovery');
+        assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, 'ForeignHubSpotUpdateRecovery');
         requests.prepareTargetRead(rebuilt.request, targetReadLimits);
         return rebuilt.request;
       }));

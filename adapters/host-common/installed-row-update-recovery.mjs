@@ -1,3 +1,7 @@
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+
+const encode = value => canonicalJson(value, {dataKeys: true});
+
 function fail(code) {
   throw Object.assign(new Error(code), {code});
 }
@@ -27,4 +31,11 @@ export function restoreInstalledRowUpdateMembers(context, maxMembers, invalidCod
     }
   }
   return Object.freeze({requests: Object.freeze(requests)});
+}
+
+// Check each reconstructed row against its original claim and approved Preview.
+export function assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, foreignCode) {
+  if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
+      encode(facts.value) !== encode(changes[row].after?.value) ||
+      encode(facts.target) !== encode(changes[row].target_row_identity)) fail(foreignCode);
 }
