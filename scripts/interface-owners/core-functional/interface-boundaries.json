@@ -7,6 +7,339 @@
   },
   "declarations": [
     {
+      "module": "adapters/host-common/remote-standard-source-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRemoteStandardSourceControl/createRemoteStandardSourceControl",
+            "createRemoteStandardSourceControl/createRemoteStandardSourceControl#2",
+            "createRemoteStandardSourceControl/init:register/init:register",
+            "remoteStandardSourceControl"
+          ],
+          "exports": [
+            "remoteStandardSourceControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "export function remoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "export function remoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "export function remoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "export function remoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/remote-standard-source-control.mts",
+                "anchor": "function createRemoteStandardSourceControl(moon: CommonStandardSourceBindings)"
+              },
+              {
+                "path": "src/connectors_builtin_node/bridge.generated.mbt",
+                "anchor": "#export_name(\"strategyRemoteStandardSourceFactoryRegister\")"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "remoteStandardSourceControl"
+      ],
+      "operations": [
+        {
+          "name": "createRemoteStandardSourceControl/createRemoteStandardSourceControl",
+          "parameters": [
+            "factory",
+            "dispatch",
+            "binding",
+            "claim",
+            "available",
+            "release"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteStandardSourceControl/createRemoteStandardSourceControl#2",
+          "parameters": [
+            "session",
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteStandardSourceControl/init:register/init:register",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteStandardSourceControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "236396748ba0f14df744026adb1862005e2fd5d9ef9e7d4284db7727bedcac79"
+    },
+    {
+      "module": "adapters/host-common/remote-credential-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRemoteCredentialControl/createRemoteCredentialControl",
+            "createRemoteCredentialControl/createRemoteCredentialControl#10",
+            "createRemoteCredentialControl/createRemoteCredentialControl#2",
+            "createRemoteCredentialControl/createRemoteCredentialControl#3",
+            "createRemoteCredentialControl/createRemoteCredentialControl#4",
+            "createRemoteCredentialControl/createRemoteCredentialControl#5",
+            "createRemoteCredentialControl/createRemoteCredentialControl#6",
+            "createRemoteCredentialControl/createRemoteCredentialControl#7",
+            "createRemoteCredentialControl/createRemoteCredentialControl#8",
+            "createRemoteCredentialControl/createRemoteCredentialControl#9",
+            "createRemoteCredentialControl/init:authorizeUse/init:authorizeUse",
+            "createRemoteCredentialControl/init:prepareUse/init:prepareUse",
+            "remoteCredentialControl"
+          ],
+          "exports": [
+            "remoteCredentialControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "export function remoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "export function remoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "export function remoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "export function remoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/remote-credential-control.mts",
+                "anchor": "function createRemoteCredentialControl(moon: CommonCredentialBindings)"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mts",
+                "anchor": "test('actual authentication bridge retains the original pair"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "remoteCredentialControl"
+      ],
+      "operations": [
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl",
+          "parameters": [
+            "grant"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#10",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#2",
+          "parameters": [
+            "grant"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#3",
+          "parameters": [
+            "body",
+            "claimedGrantCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#4",
+          "parameters": [
+            "grant"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#5",
+          "parameters": [
+            "grant",
+            "keyId",
+            "signature"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#6",
+          "parameters": [
+            "envelope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#8",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/createRemoteCredentialControl#9",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/init:authorizeUse/init:authorizeUse",
+          "parameters": [
+            "value",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteCredentialControl/init:prepareUse/init:prepareUse",
+          "parameters": [
+            "grant",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteCredentialControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "9ad97fe052d59f76b812b4368abce051bf0ae2a1c6e5abf9fb1419b85075668a"
+    },
+    {
       "module": "adapters/host-common/site-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -2639,19 +2972,6 @@
             "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
             "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
             "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
-            "remoteCredentialControl",
-            "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
-            "remoteCredentialControl/init:prepareUse/init:prepareUse",
-            "remoteCredentialControl/remoteCredentialControl",
-            "remoteCredentialControl/remoteCredentialControl#10",
-            "remoteCredentialControl/remoteCredentialControl#2",
-            "remoteCredentialControl/remoteCredentialControl#3",
-            "remoteCredentialControl/remoteCredentialControl#4",
-            "remoteCredentialControl/remoteCredentialControl#5",
-            "remoteCredentialControl/remoteCredentialControl#6",
-            "remoteCredentialControl/remoteCredentialControl#7",
-            "remoteCredentialControl/remoteCredentialControl#8",
-            "remoteCredentialControl/remoteCredentialControl#9",
             "remoteSiteControl",
             "remoteSiteControl/init:admit/init:admit",
             "remoteSiteControl/init:outputIntentProjection/init:outputIntentProjection",
@@ -2773,10 +3093,6 @@
             "remoteSiteControl/remoteSiteControl#97",
             "remoteSiteControl/remoteSiteControl#98",
             "remoteSiteControl/remoteSiteControl#99",
-            "remoteStandardSourceControl",
-            "remoteStandardSourceControl/init:register/init:register",
-            "remoteStandardSourceControl/remoteStandardSourceControl",
-            "remoteStandardSourceControl/remoteStandardSourceControl#2",
             "remoteTransferControl",
             "remoteTransferControl/remoteTransferControl",
             "remoteTransferControl/remoteTransferControl#10",
@@ -3266,7 +3582,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
@@ -3578,7 +3894,7 @@
                 "anchor": "test('requested first Effect pauses Account Allow"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
               },
               {
@@ -6959,7 +7275,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
@@ -7211,7 +7527,7 @@
                 "anchor": "test('requested first Effect pauses Account Allow"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
               },
               {
@@ -9116,7 +9432,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
@@ -9424,7 +9740,7 @@
                 "anchor": "test('requested first Effect pauses Account Allow"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
               },
               {
@@ -9956,7 +10272,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
               },
               {
@@ -10264,7 +10580,7 @@
                 "anchor": "test('requested first Effect pauses Account Allow"
               },
               {
-                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "path": "adapters/host-common/remote-credential-control.test.mts",
                 "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
               },
               {
@@ -18002,102 +18318,6 @@
           "async": false
         },
         {
-          "name": "remoteCredentialControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
-          "parameters": [
-            "value",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/init:prepareUse/init:prepareUse",
-          "parameters": [
-            "grant",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl",
-          "parameters": [
-            "grant"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#10",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#2",
-          "parameters": [
-            "grant"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#3",
-          "parameters": [
-            "body",
-            "claimedGrantCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#4",
-          "parameters": [
-            "grant"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#5",
-          "parameters": [
-            "grant",
-            "keyId",
-            "signature"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#6",
-          "parameters": [
-            "envelope"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#7",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#8",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteCredentialControl/remoteCredentialControl#9",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteSiteControl",
           "parameters": [
             "moon"
@@ -19068,40 +19288,6 @@
           "async": false
         },
         {
-          "name": "remoteStandardSourceControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteStandardSourceControl/init:register/init:register",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteStandardSourceControl/remoteStandardSourceControl",
-          "parameters": [
-            "factory",
-            "dispatch",
-            "binding",
-            "claim",
-            "available",
-            "release"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteStandardSourceControl/remoteStandardSourceControl#2",
-          "parameters": [
-            "session",
-            "claim"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteTransferControl",
           "parameters": [
             "moon"
@@ -19700,6 +19886,8 @@
         "./ledger-usage.mjs",
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
+        "./remote-credential-control.mjs",
+        "./remote-standard-source-control.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs",
         "./runtime-tuple.mjs",
@@ -19707,7 +19895,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "99d0fd1c3a1f2879d2f71d3966fdff955182104015c16faf4f4ba92958c593c8"
+      "sha256": "8879eeb77fb9c03c4dda7097dd2cce14450b8e31cd559cc35e4b53e9718912de"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

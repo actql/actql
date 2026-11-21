@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {remoteCredentialControl} from './remote-credential-control.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const control = runtimeCore(moon).remoteCredentialControl;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const control = (runtimeCore(moon) as {remoteCredentialControl: ReturnType<typeof remoteCredentialControl>})
+  .remoteCredentialControl;
 
 const grantRequest = () => Object.freeze({
   issuerAuthority: 'credential-authority-a',
@@ -85,13 +90,14 @@ test('Remote Credential use admits only the exact active scope', () => {
 // separate use scope, and issuer trust comes from the signed grant admission.
 for (const field of ['principal', 'namespaceId', 'environment', 'siteKey',
   'siteGeneration', 'runtimeBundleCid', 'connectorRegistration', 'connectorRevision',
-  'resourceOrigin', 'operation', 'runInvocationCid', 'taskAttempt', 'dispatchRequestCid']) {
+  'resourceOrigin', 'operation', 'runInvocationCid', 'taskAttempt', 'dispatchRequestCid'] as const) {
   test(`actual credential Owner refuses missing ${field} both before use and at final authorization`, () => {
     const original = grantRequest();
     const grant = control.prepare(original);
     const use = control.prepareUse(grant, {useId: `missing-${field}`,
       trustedNowMilliseconds: 1_999_999_999_999n, usedCount: 0, revoked: false, scope: original});
-    const missing = {...original}; delete missing[field];
+    // Remove only the selected slot to exercise Common's original refusal.
+    const missing = {...original}; delete (missing as Partial<typeof missing>)[field];
     assert.throws(() => control.prepareUse(grant, {useId: `foreign-${field}`,
       trustedNowMilliseconds: 1_999_999_999_999n, usedCount: 0, revoked: false, scope: missing}));
     assert.throws(() => control.authorizeUse(use, {
@@ -102,7 +108,7 @@ for (const field of ['principal', 'namespaceId', 'environment', 'siteKey',
 function authenticationOriginals() {
   const parentScope = grantRequest();
   const parentGrant = control.prepare(parentScope);
-  const use = (grant, scope) => control.prepareUse(grant, {
+  const use = (grant: unknown, scope: Parameters<typeof control.prepare>[0]) => control.prepareUse(grant, {
     useId: 'original-authentication-use', trustedNowMilliseconds: 1n,
     usedCount: 0, revoked: false, scope,
   });

@@ -3,6 +3,8 @@ import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, 
 import {checked} from './runtime-result.mjs';
 import {tuplePair} from './runtime-tuple.mjs';
 import {siteControl} from './site-control.mjs';
+import {remoteStandardSourceControl} from './remote-standard-source-control.mjs';
+import {remoteCredentialControl} from './remote-credential-control.mjs';
 import {effectApplicationControl} from './effect-application-control.mjs';
 import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
@@ -21,8 +23,6 @@ export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
 const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
-const remoteStandardSourceControls = new WeakMap();
-const remoteCredentialControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
 
@@ -1208,177 +1208,6 @@ function remoteTransferControl(moon) {
     },
   });
   remoteTransferControls.set(moon, control);
-  return control;
-}
-
-function remoteStandardSourceControl(moon) {
-  let control = remoteStandardSourceControls.get(moon);
-  if (control !== undefined) return control;
-  control = Object.freeze({
-    register(configuration) {
-      if (configuration === null || typeof configuration !== 'object') {
-        throw new TypeError('Invalid remote standard source configuration');
-      }
-      const binding = configuration.bindingLimits;
-      const source = configuration.sourceLimits;
-      const values = source?.values;
-      const wire = source?.wire;
-      return moon.strategyRemoteStandardSourceFactoryRegister(
-        configuration.schemaContractCid,
-        configuration.viewContractCid,
-        configuration.codecContractCid,
-        configuration.sequence,
-        configuration.program,
-        binding?.maxBindingBytes,
-        binding?.maxChunks,
-        binding?.maxManifestBytes,
-        binding?.maxReferencedBytes,
-        source?.maxRows,
-        source?.maxWireBytes,
-        source?.maxReadBytes,
-        source?.maxEntries,
-        source?.maxNameBytes,
-        values?.maxNodes,
-        values?.maxTextBytes,
-        values?.maxDepth,
-        values?.maxWork,
-        wire?.maxBytes,
-        wire?.maxNodes,
-        wire?.maxDepth,
-        wire?.maxTextBytes,
-      );
-    },
-    requestCid: moon.strategyRemoteStandardSourceFactoryRequestCid,
-    start: (factory, dispatch, binding, claim, available, release) =>
-      moon.strategyRemoteStandardSourceSessionStart(
-        factory,
-        dispatch,
-        binding,
-        claim.request,
-        claim.destinationReceipt,
-        available,
-        release,
-      ),
-    authorize: (session, claim) =>
-      moon.strategyRemoteStandardSourceSessionAuthorizes(
-        session,
-        claim.request,
-        claim.destinationReceipt,
-      ),
-    feed: moon.strategyRemoteStandardSourceSessionFeed,
-    finish: moon.strategyRemoteStandardSourceSessionFinish,
-    cancel: moon.strategyRemoteStandardSourceSessionCancel,
-    captured: moon.strategyRemoteStandardSourceCaptured,
-    release: moon.strategyRemoteStandardSourceRelease,
-    failureCode: moon.strategyRemoteStandardInputFailureCode,
-    failureCleanupPending:
-      moon.strategyRemoteStandardInputFailureCleanupPending,
-    retryFailureCleanup:
-      moon.strategyRemoteStandardInputFailureCleanupRetry,
-  });
-  remoteStandardSourceControls.set(moon, control);
-  return control;
-}
-
-function remoteCredentialControl(moon) {
-  let control = remoteCredentialControls.get(moon);
-  if (control !== undefined) return control;
-  const grantFields = grant => {
-    if (grant === null || typeof grant !== 'object') {
-      throw new TypeError('Invalid Remote Credential grant');
-    }
-    return [
-      grant.issuerAuthority,
-      grant.principal,
-      grant.namespaceId,
-      grant.environment,
-      grant.siteKey,
-      grant.siteGeneration,
-      grant.runtimeBundleCid,
-      grant.connectorRegistration,
-      grant.connectorRevision,
-      grant.resourceOrigin,
-      grant.operation,
-      grant.runInvocationCid,
-      grant.taskAttempt,
-      grant.dispatchRequestCid,
-      BigInt(grant.expiresUnixMilliseconds),
-      grant.maxUses,
-    ];
-  };
-  control = Object.freeze({
-    prepare: grant => checked(
-      moon.strategyRemoteCredentialGrantPrepare(...grantFields(grant)),
-    ),
-    identity: moon.strategyRemoteCredentialGrantIdentity,
-    json: grant => checked(moon.strategyRemoteCredentialGrantJson(grant)),
-    admitJson: (body, claimedGrantCid) => checked(
-      moon.strategyRemoteCredentialGrantAdmitJson(body, claimedGrantCid),
-    ),
-    projection: moon.strategyRemoteCredentialGrantProjection,
-    signaturePreimage: grant => checked(
-      moon.strategyRemoteCredentialSignaturePreimage(grant),
-    ),
-    prepareSignatureEnvelope: (grant, keyId, signature) => checked(
-      moon.strategyRemoteCredentialSignatureEnvelopePrepare(
-        grant,
-        keyId,
-        signature,
-      ),
-    ),
-    admitSignatureEnvelope: envelope => checked(
-      moon.strategyRemoteCredentialSignatureEnvelopeAdmit(
-        envelope.version,
-        envelope.keyId,
-        envelope.grantCid,
-        envelope.body,
-        envelope.signature,
-      ),
-    ),
-    signatureEnvelopeProjection:
-      moon.strategyRemoteCredentialSignatureEnvelopeProjection,
-    signatureEnvelopeGrant:
-      moon.strategyRemoteCredentialSignatureEnvelopeGrant,
-    prepareUse(grant, request) {
-      if (request === null || typeof request !== 'object') {
-        throw new TypeError('Invalid Remote Credential use');
-      }
-      const scope = grantFields(request.scope);
-      return checked(moon.strategyRemoteCredentialUsePrepare(
-        grant,
-        request.useId,
-        BigInt(request.trustedNowMilliseconds),
-        request.usedCount,
-        request.revoked,
-        ...scope.slice(1, 15),
-      ));
-    },
-    useIdentity: moon.strategyRemoteCredentialUseIdentity,
-    useJson: value => checked(moon.strategyRemoteCredentialUseJson(value)),
-    authorizeUse(value, request) {
-      if (request === null || typeof request !== 'object') {
-        throw new TypeError('Invalid Remote Credential authorization');
-      }
-      const scope = grantFields(request.scope);
-      checked(moon.strategyRemoteCredentialUseAuthorize(
-        value,
-        BigInt(request.trustedNowMilliseconds),
-        request.revoked,
-        ...scope.slice(1, 15),
-      ));
-    },
-    useProjection: moon.strategyRemoteCredentialUseProjection,
-    prepareAuthenticationRequest: (...args) => checked(
-      moon.strategyCredentialAuthenticationRequest(...args),
-    ),
-    bindAuthenticationUse: (...args) => checked(
-      moon.strategyCredentialAuthenticationUseBind(...args),
-    ),
-    checkAuthenticationOperation: (...args) => checked(
-      moon.strategyCredentialAuthenticationOperationCheck(...args),
-    ),
-  });
-  remoteCredentialControls.set(moon, control);
   return control;
 }
 

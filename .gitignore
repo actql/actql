@@ -1633,5 +1633,11 @@ target/
 /adapters/host-common/execution-site-installation-core.test.d.mts
 /adapters/host-common/strategy-actions-runtime.test.mjs
 /adapters/host-common/strategy-actions-runtime.test.d.mts
+/adapters/host-common/remote-credential-control.mjs
+/adapters/host-common/remote-credential-control.d.mts
+/adapters/host-common/remote-credential-control.test.mjs
+/adapters/host-common/remote-credential-control.test.d.mts
+/adapters/host-common/remote-standard-source-control.mjs
+/adapters/host-common/remote-standard-source-control.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
