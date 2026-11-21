@@ -552,6 +552,7 @@ pub fn prepare_installed_effect_combined_source_unit(
   ClientEffectUnitPreparationIssue,
 ] {
   guard !owner.effect_operation_opening &&
+    plan.direct_occurrences is Some(occurrences) &&
     owner.publication_definition is Some(definition) &&
     owner.publication_invocation is Some(invocation) &&
     physical_equal(
@@ -570,7 +571,13 @@ pub fn prepare_installed_effect_combined_source_unit(
   // At most five measured bodies per Source (request, retention, scope,
   // ordering and relation), plus the union and local computation. Pay for
   // the measuring frames and both census arrays before creating a writer.
-  let entries = plan.captures.length().to_int64() * 5L + 2L
+  // Direct occurrences cover both Whole and Query Sources. The compact
+  // Query capture array has no slots for Whole Sources.
+  let entries = @publication_host.client_direct_acquisition_occurrence_count(
+      occurrences,
+    ).to_int64() *
+    5L +
+    2L
   guard entries <= 2147483647L &&
     installed_effect_direct_publication_control(
       entries.to_int(),
@@ -615,6 +622,133 @@ pub fn prepare_installed_effect_combined_source_unit(
     return Err(Run(Retired))
   }
   combined.map_err(issue => Evidence(issue))
+}
+
+///|
+/// Bind the actual completed producer to the original combined Source Unit.
+/// The same Plan funds the Definition and three artifact bodies before issue.
+pub fn prepare_installed_effect_combined_source_result_artifact(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  publication : @publication_host.ClientEffectDirectSourcesPublication,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  combined : @publication_host.ClientEffectCombinedSourceUnit,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  ClientEffectUnitPreparationIssue,
+] {
+  guard !owner.effect_operation_opening &&
+    plan.direct_occurrences is Some(occurrences) &&
+    owner.publication_definition is Some(definition) &&
+    owner.publication_invocation is Some(invocation) &&
+    owner.source_free_captured is Some(captured) &&
+    @strategy.captured_effect_inputs_match_captured_run(inputs, captured) &&
+    physical_equal(
+      invocation,
+      @publication_host.client_effect_direct_sources_publication_invocation(
+        publication,
+      ),
+    ) &&
+    effect_unit_publication_body(owner, plan, request) is Ok(_) else {
+    return Err(Run(ForeignOriginal))
+  }
+  if !@strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) {
+    return Err(Artifact(ForeignExport))
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  // Four geometry bodies plus the actual Unit's borrowed relation CID vector.
+  let (_, _, parts) = @publication_host.client_effect_combined_source_unit_catalog_subject(
+    combined,
+  )
+  guard parts >= 2 &&
+    parts <=
+    @publication_host.client_direct_acquisition_occurrence_count(occurrences) else {
+    return Err(Run(ForeignOriginal))
+  }
+  guard parts <= 2147483643 &&
+    installed_effect_direct_publication_control(parts + 4, max_nodes, max_depth)
+    is Some(control) else {
+    return Err(Run(InsufficientCapacity))
+  }
+  let result = @strategy.captured_effect_local_result_export_result(exported)
+  let name = @execution.managed_result_occurrence_name(
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(result),
+    ),
+  )
+  let required = match
+    measure_installed_effect_direct_publication(owner, plan, request, control, () => {
+      let shapes = match
+        @publication_host.client_effect_source_unit_artifact_construction_geometry(
+          combined, name, receipt, admission, max_bytes, max_nodes, max_depth,
+        ) {
+        Err(issue) => return Err(Artifact(issue))
+        Ok(value) => value
+      }
+      match
+        effect_unit_publication_capacity(
+          shapes,
+          @publication.publication_contract_identity(definition),
+        ) {
+        Some(value) => Ok(value)
+        None => Err(Run(InsufficientCapacity))
+      }
+    }) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match
+    reserve_effect_unit_publication_capacity(owner, plan, request, required) {
+    Err(issue) => return Err(Run(issue))
+    Ok(_) => ()
+  }
+  let local_definition = match
+    @publication_host.issue_client_effect_local_result_definition(
+      plan.prepared,
+      @strategy.captured_effect_local_result_stage(result),
+      name,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Err(_) => return Err(Artifact(ForeignDefinition))
+    Ok(value) => value
+  }
+  let artifact = @publication_host.issue_combined_source_client_effect_local_result_artifact(
+    plan.prepared,
+    inputs,
+    exported,
+    combined,
+    local_definition,
+    receipt,
+    admission,
+    definition,
+    invocation,
+    @publication_host.client_effect_direct_sources_publication_observation(
+      publication,
+    ),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+  guard effect_unit_publication_body(owner, plan, request) is Ok(_) &&
+    owner.publication_invocation is Some(current) &&
+    physical_equal(current, invocation) else {
+    return Err(Run(Retired))
+  }
+  artifact.map_err(issue => Artifact(issue))
 }
 
 ///|

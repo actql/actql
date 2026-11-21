@@ -87498,7 +87498,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "1e14154cdefc0eb260117cd1e400335672c2ae9ca45e8d4d56cbe1a7fcc7ee63",
+      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
       "exports": [],
       "operations": [
         {
@@ -87554,6 +87554,10 @@
           "declaration": "pin_installed_effect_model_unit_results ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , ClientEffectUnitPreparationIssue , ]"
         },
         {
+          "name": "prepare_installed_effect_combined_source_result_artifact",
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
           "name": "prepare_installed_effect_combined_source_unit",
           "declaration": "prepare_installed_effect_combined_source_unit ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , ClientEffectUnitPreparationIssue , ]"
         },
@@ -87606,6 +87610,7 @@
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
             "pin_installed_effect_model_unit_results",
+            "prepare_installed_effect_combined_source_result_artifact",
             "prepare_installed_effect_combined_source_unit",
             "prepare_installed_effect_model_source_unit",
             "prepare_installed_effect_model_source_unit_artifact",

@@ -2204,20 +2204,17 @@ test "Native shared-file Effect joins and binds both original Source observation
   ).native_file_route_value("compute original file Effect Result")
   let rows = executed.rows().unwrap()
   assert_eq(rows.length(), 1)
-  assert_eq(
-    @json.parse(rows[0]),
-    (
-      {
-        "account_id": "a1",
-        "contact_id": "c1",
-        "account_before": "A-old",
-        "contact_before": "C-old",
-        "account_next": "A-new",
-        "contact_next": "C-new",
-        "second_account_id": "a2",
-        "second_account_next": "A2-new",
-      } : Json),
-  )
+  let expected_row : Json = {
+    "account_id": "a1",
+    "contact_id": "c1",
+    "account_before": "A-old",
+    "contact_before": "C-old",
+    "account_next": "A-new",
+    "contact_next": "C-new",
+    "second_account_id": "a2",
+    "second_account_next": "A2-new",
+  }
+  assert_eq(@json.parse(rows[0]), expected_row)
   {
     let held = state.direct_sources.unwrap()
     let policy = @run_host.prepared_client_effect_publication_data_policy_cid(
@@ -2268,6 +2265,141 @@ test "Native shared-file Effect joins and binds both original Source observation
     )
     assert_eq(slot, 0)
     assert_eq(count, 2)
+    let captured = state.effect_capture.unwrap()
+    let inputs = @local_values.pin_installed_effect_sources(
+      run,
+      prepared,
+      original.request,
+      plan,
+      captured,
+      64,
+    ).native_file_route_value("pin the completed original file Effect Result")
+    assert_eq(@strategy.captured_effect_local_result_count(inputs), 1)
+    let result = @strategy.captured_effect_local_result_at(inputs, 0).unwrap()
+    assert_eq(@strategy.captured_effect_local_result_stage(result), slot)
+    assert_eq(
+      @execution.managed_result_occurrence_name(
+        @strategy.captured_any_result_borrow_occurrence(
+          @strategy.captured_effect_local_result_borrow(result),
+        ),
+      ),
+      "rows",
+    )
+    let host = state.effect_host.unwrap()
+    let installed = @builtin.configured_local_module(
+      @builtin.configured_host_modules(host),
+    ).unwrap()
+    let bridge = @local_driver.local_publication_bridge_limits(
+      installed,
+      @strategy.captured_effect_run_dag(captured),
+    ).unwrap()
+    let limits = @local_values.installed_effect_managed_publication_limits(
+      run,
+      prepared,
+      original.request,
+      plan,
+      16384,
+    ).unwrap()
+    let managed = executed
+      .prepare_effect_result_export(
+        captured,
+        inputs,
+        0,
+        bridge.row,
+        bridge.entries,
+        bridge.name_bytes,
+        limits,
+      )
+      .native_file_route_value("export the exact completed local Result")
+    let exported = managed.captured_export().unwrap()
+    let preparation = @strategy.captured_effect_local_result_export_preparation(
+      exported,
+    )
+    while !@execution.advance_completed_result_relation_export(preparation, 31).unwrap().0 {
+      ()
+    }
+    let stream = @execution.finish_completed_result_relation_export_preparation(
+      preparation,
+    ).unwrap()
+    guard @execution.next_completed_output_export_canonical_row(
+        stream,
+        limits.payload_wire.max_nodes,
+        limits.payload_wire.max_depth,
+        limits.max_result_order_work,
+      ).unwrap()
+      is Some((0, original_wire, _)) else {
+      fail("missing completed original Result row")
+    }
+    assert_eq(@json.parse(original_wire[1:].to_owned()), expected_row)
+    assert_true(
+      @execution.next_completed_output_export_canonical_row(
+        stream,
+        limits.payload_wire.max_nodes,
+        limits.payload_wire.max_depth,
+        limits.max_result_order_work,
+      ).unwrap()
+      is None,
+    )
+    let (receipt, _) = @execution.finish_completed_relation_export(stream).unwrap()
+    assert_eq(
+      @execution.completed_relation_export_measurement(receipt).row_count,
+      1,
+    )
+    let publication = held._retained_publication.unwrap()
+    let artifact = match
+      @local_values.prepare_installed_effect_combined_source_result_artifact(
+        run,
+        plan,
+        original.request,
+        publication,
+        inputs,
+        exported,
+        unit,
+        receipt,
+        @run_host.client_effect_allowed_run_admission(original.allowed),
+        16384,
+        1024,
+        20,
+      ) {
+      Ok(value) => value
+      Err(Artifact(issue)) =>
+        fail("original Result Artifact: " + @debug.to_string(issue))
+      Err(Run(Preparation(issue))) =>
+        fail("original Result backing: " + @debug.to_string(issue))
+      Err(Run(Ledger(issue))) =>
+        fail("original Result Ledger: " + @debug.to_string(issue))
+      Err(Run(InsufficientCapacity)) =>
+        fail("original Result quote overflow or missing body geometry")
+      Err(Run(ForeignOriginal)) =>
+        fail("Result Artifact lost its original Run or Plan binding")
+      Err(Run(Retired)) => fail("Result Artifact Run retired during issuance")
+      Err(_) =>
+        fail("original Result Artifact preparation refused before issuance")
+    }
+    assert_true(
+      @run_host.client_effect_local_artifact_matches_inputs(artifact, inputs),
+    )
+    assert_true(
+      @run_host.client_effect_local_result_artifact_matches_public_result(
+        prepared, inputs, artifact, 0,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @run_host.client_effect_local_relation_export_receipt(artifact),
+        receipt,
+      ),
+    )
+    @execution.cancel_completed_relation_export_receipt(receipt)
+    @execution.cancel_completed_output_export(stream)
+    managed.close()
+    assert_true(managed.captured_export() is None)
+    assert_true(@strategy.release_captured_effect_inputs(inputs))
+    assert_false(
+      @strategy.captured_effect_local_result_export_matches_receipt(
+        inputs, exported, receipt,
+      ),
+    )
   }
   assert_true(executed.close())
   assert_true(
