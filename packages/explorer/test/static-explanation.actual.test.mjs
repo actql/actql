@@ -20,9 +20,17 @@ function browserForGateway(gateway) {
 // Present canonical authored DATA through the actual compiled Common renderer.
 // The Gateway fixture uses the public SDK shape without a business Host.
 test('Static Context renders deterministic EN and JA from one unchanged Plan', async () => {
-  const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+  const {renderStaticExplanationNarrative} = await import('../../run-host-core/explanation-narrative.mjs');
+  const {renderStaticExplanationNarrative: renderInstalled} =
+    await import('@actql/local-node/_internal/explanation-narrative');
   const original = effectfulStaticExplanationFixture();
   const wire = canonicalJson(original, {dataKeys: true});
+  for (const locale of ['en', 'ja']) {
+    assert.deepEqual(renderInstalled(wire, locale), renderStaticExplanationNarrative(wire, locale));
+  }
+  assert.throws(() => renderInstalled(wire, 'fr'), {code: 'InvalidStaticExplanationNarrative'});
+  assert.throws(() => renderInstalled(' '.repeat(65537), 'en'), {code: 'StaticExplanationNarrativeLimit'});
+  assert.throws(() => renderInstalled('{}', 'en'), {code: 'InvalidStaticExplanationNarrative'});
   const render = (view, locale) => {
     assert.equal(view, original);
     return renderStaticExplanationNarrative(wire, locale);

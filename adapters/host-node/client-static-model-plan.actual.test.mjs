@@ -129,7 +129,7 @@ test('installed static Explanation retains the original deal-review Source, Mode
 
     // The same public response reaches the Explorer renderer in both
     // languages without a second Plan read or reopening a producer.
-    const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+    const {renderStaticExplanationNarrative} = await import('@actql/local-node/_internal/explanation-narrative');
     const render = (view, locale) => {
       assert.equal(view, explanation);
       return renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);

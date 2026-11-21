@@ -27,7 +27,7 @@ const exact = (value, required, optional = []) => value !== null &&
   Object.keys(value).every(key => [...required, ...optional].includes(key));
 const fail = (code, status = 400) => {throw Object.assign(new Error(code), {code, status});};
 async function loadExplanationRenderer(ticket) {
-  const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+  const {renderStaticExplanationNarrative} = await import('@actql/local-node/_internal/explanation-narrative');
   ticket.assertCurrent();
   return (view, locale) => renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
 }

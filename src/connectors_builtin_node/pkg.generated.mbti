@@ -4958,6 +4958,8 @@ pub fn client_project_profile_select(@run_publication_host.ClientProjectConfigur
 
 pub fn client_project_profile_selected_name(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
+pub fn client_render_static_explanation_narrative(String, String) -> Result[String, Int]
+
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String

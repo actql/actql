@@ -2807,6 +2807,8 @@ pub fn release_recovered_client_effect_source_command_content(RecoveredClientEff
 
 pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, ClientExplanationLanguage, Int) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
 
+pub fn render_client_static_explanation_narrative_wire(String, String) -> Result[String, Int]
+
 pub fn[E] reobserve_client_saved_submission_original(ClientSavedSubmissionSnapshot, (String, String) -> Result[ClientJournalPhysicalRow?, E]) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]

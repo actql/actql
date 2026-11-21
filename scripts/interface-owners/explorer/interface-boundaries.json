@@ -7092,7 +7092,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bd1a5df3fc52e8c673ed8c193126c1df191013b48b26d4420f677a80afe69da7",
+      "sha256": "95aee68ed16fab23e451e4cf5be4ce1a99f8c99208b7c31a84930ac009c4df0f",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -7338,7 +7338,7 @@
         "@actql/client-wire",
         "@actql/explorer-ui/read-model",
         "@actql/explorer-ui/run-observation",
-        "@actql/run-host-core/explanation-narrative",
+        "@actql/local-node/_internal/explanation-narrative",
         "@actql/sdk/host-port",
         "@hono/node-server",
         "hono",
