@@ -125,6 +125,7 @@ pub(all) struct NativeRelationFileListingFields {
 
 type NativeRelationFileListingProvider
 pub fn NativeRelationFileListingProvider::capacity(Self) -> @execution_relation.ExecutionCapacity
+pub fn NativeRelationFileListingProvider::matches_original(Self, @client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider) -> Bool
 
 type NativeRelationFilePreparedProvider
 pub fn NativeRelationFilePreparedProvider::capacity(Self) -> @execution_relation.ExecutionCapacity

@@ -101,6 +101,25 @@ fn native_funded_static_plan_view(
   compiled : @host.ClientCompiledRun,
   reserve : (Int64, Int64, Int64) -> Result[Unit, NativeClientRunJournalIssue],
 ) -> Result[String, NativeClientRunJournalIssue] {
+  if !@host.client_compiled_run_matches(compiled, prepared) {
+    return Err(ForeignRun)
+  }
+  native_funded_static_compilation_plan_view(
+    prepared,
+    compiled.compilation,
+    reserve,
+  )
+}
+
+///|
+// The caller retains the actual compiler variant before entry. In particular,
+// an Effect's Tasks wrapper and reservation closure are backed BEFORE they
+// exist and remain included in every subsequent construction reservation.
+fn native_funded_static_compilation_plan_view(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientRunCompilation,
+  reserve : (Int64, Int64, Int64) -> Result[Unit, NativeClientRunJournalIssue],
+) -> Result[String, NativeClientRunJournalIssue] {
   // This reserves the quote/measurement machinery before even its first
   // geometry scan. Measurements below are DATA and never grant themselves.
   match native_prepare_static_plan_measurement(prepared, reserve) {
@@ -111,8 +130,8 @@ fn native_funded_static_plan_view(
   let mut carrier = None
   let mut refusal = None
   let geometry = match
-    @host.measure_client_compiled_run_static_plan_view(
-      compiled,
+    @host.measure_client_pure_compilation_static_plan_view(
+      compilation,
       prepared,
       bytes,
       nodes,
@@ -179,7 +198,7 @@ fn native_funded_static_plan_view(
   }
   // The same immutable owner issues under its actual selected policy; neither
   // observation of larger DATA nor metadata funding changes that policy.
-  @host.client_compiled_run_static_plan_view(
-    compiled, prepared, bytes, nodes, depth,
+  @host.client_pure_compilation_static_plan_view(
+    compilation, prepared, bytes, nodes, depth,
   ).map_err(_ => UnsupportedPreparation)
 }

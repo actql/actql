@@ -540,3 +540,41 @@ test "static Effect Request Plan refuses foreign or noncurrent originals before 
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static Effect Plan retains its same borrowed original without constructing a body" {
+  let (parent, input, prepared) = request_effect_compile_fixture()
+  let checks = parent._observed_semantic_check_calls
+  let compiles = parent._observed_program_compile_calls
+  let borrow = borrow_request_effect_plan_input(parent, input).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    request_prepared_static_plan_view(
+      parent,
+      input.copy(),
+      request_program_module_manifests(),
+      65536,
+      8192,
+      64,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  let wire = request_prepared_static_plan_view(
+    parent,
+    input,
+    request_program_module_manifests(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(wire.contains("actql-effectful-static-plan-view/0.1"))
+  assert_true(parent.phase == EffectPlanReserved)
+  assert_true(parent.effect_plan is None)
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(parent._observed_semantic_check_calls, checks)
+  assert_eq(parent._observed_program_compile_calls, compiles)
+  @resources.return_preparation_body_borrow(borrow).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

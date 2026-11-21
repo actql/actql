@@ -29,6 +29,29 @@ pub fn[I] admit_request_query_acquisition_contracts(
     Err(issue) => return Err(Installed(issue))
     Ok(value) => value
   }
+  admit_request_query_acquisition_contracts_for_original(
+    owner, input, prepared, direct, query, evidence,
+  )
+}
+
+///|
+fn[I] admit_request_query_acquisition_contracts_for_original(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  direct : @publication_host.ClientDirectAcquisitionOccurrences,
+  query : String,
+  evidence : String,
+) -> Result[
+  (
+    @planning.QueryEvidenceContracts,
+    @publication_host.ClientDirectAcquisitionOccurrences,
+  ),
+  ClientRequestProgramPlanIssue,
+] {
+  // Both checked callers already selected this inventory under the SAME
+  // working Request. Query still requires one exact occurrence for each
+  // capture task; the Quote below checks this mapping before construction.
   guard request_query_acquisition_constructor_bytes(
       prepared, direct, query, evidence,
     )

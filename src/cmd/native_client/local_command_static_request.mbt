@@ -54,6 +54,7 @@ fn LocalCheckContext::project_request(
   capture : @local_host.NativeLocalJournalCapture,
   input : LocalCheckInput,
   explain : Bool,
+  installed_contracts? : @local_values.ClientInstalledSequenceContracts? = None,
 ) -> String raise ClientStop {
   guard original.business is Some(business) &&
     business.request_input is Some(producer) &&
@@ -124,13 +125,91 @@ fn LocalCheckContext::project_request(
           local_stop_submitted_preparation(@local_host.Request(issue))
         Ok(_) => ()
       }
-      let view = @local_values.request_native_static_plan_view(
-        parent,
-        producer,
-        self.environment,
-        publication,
-        native_request_manifests,
-      ).unwrap_or_else(() => stop("LocalStaticCompilationUnavailable"))
+      let kind = match
+        @local_values.finish_request_checked_computation(
+          parent,
+          producer,
+          self.environment,
+          publication,
+        ) {
+        Err(issue) =>
+          local_stop_submitted_preparation(@local_host.Request(issue))
+        Ok(value) => value
+      }
+      let view = if kind == @local_values.Effect {
+        guard business.request_body is None else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let body = match
+          @local_host.borrow_native_client_request_plan_input(parent, producer) {
+          Err(issue) => local_stop_submitted_preparation(issue)
+          Ok(value) => value
+        }
+        // Retain before any Graph constructor. Existing command cleanup owns
+        // this same token on failure/current loss or an unacknowledged return.
+        business.request_body = Some(body)
+        guard body is @local_host.Effect(borrow) &&
+          @initial_resources.preparation_body_borrow_value(borrow)
+          is Some(prepared) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let occurrences = @run_host.prepared_client_effect_infer_occurrences(
+          prepared,
+        ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
+        let models = if occurrences.is_empty() {
+          []
+        } else {
+          guard original.project is Some(project) &&
+            project.mock_declarations is Some(mock) &&
+            installed_contracts is Some(contracts) else {
+            stop("LocalOriginalModelUnavailable")
+          }
+          match
+            mock.prepare_effect_models(
+              parent,
+              producer,
+              occurrences,
+              self.environment,
+              contracts,
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              original.retain_primary(CommandBusinessModelGraph(issue))
+              stop("LocalOriginalModelGraphUnavailable")
+            }
+          }
+        }
+        let view = match
+          @local_values.request_prepared_static_plan_view(
+            parent,
+            producer,
+            native_request_manifests,
+            65536,
+            8192,
+            64,
+            infers=models.map(value => value.graph),
+          ) {
+          Err(issue) =>
+            local_stop_submitted_preparation(@local_host.Request(issue))
+          Ok(value) => value
+        }
+        @local_host.return_native_client_submitted_request_body(body).unwrap_or_else(() => {
+            stop("LocalRequestBodyReturnPending")
+          },
+        )
+        |> ignore
+        business.request_body = None
+        view
+      } else {
+        match
+          @local_values.request_prepared_static_plan_view(
+            parent, producer, native_request_manifests, 65536, 8192, 64,
+          ) {
+          Err(issue) =>
+            local_stop_submitted_preparation(@local_host.Request(issue))
+          Ok(value) => value
+        }
+      }
       return local_explain_reply(
         view,
         producer.arguments.flags.get("json").unwrap_or(false),

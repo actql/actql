@@ -660,37 +660,60 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
   if native_acceptance_enabled() {
     native_acceptance_identity(9, row_ordinal, operation.dispatch_entry_cid)
   }
-  match
-    self.host.journal.record_effect_file_response(
-      dispatch,
-      original.preview,
-      member_index,
-      row_ordinal,
-      locator,
-      key,
-      operation,
-      ack,
-      outcome_wire,
-      () => self.authority_current(dispatch=Some(dispatch)),
-      max_response_bytes,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(HostAttestationJournal(issue))
+  let capture = match self.prepare_effect_journal_route() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  self.host.journal
-  .record_effect_row_receipt(
-    dispatch,
-    original.preview,
-    member_index,
-    row_ordinal,
-    locator,
-    key,
-    canonical_request_cid,
-    outcome_wire,
-    () => self.authority_current(dispatch=Some(dispatch)),
-    max_response_bytes,
-  )
-  .map_err(issue => HostAttestationJournal(issue))
+  match capture {
+    Some(capture) =>
+      match
+        capture.with_current_adoption_material_in_original_read((
+          host,
+          _material,
+          operations,
+        ) => {
+          if !physical_equal(host, self.host) {
+            return Err(CustodyLost)
+          }
+          self
+          .record_file_receipt_in_original_journal(
+            dispatch,
+            original,
+            member_index,
+            row_ordinal,
+            locator,
+            key,
+            operation,
+            ack,
+            canonical_request_cid,
+            outcome_wire,
+            max_response_bytes,
+            Some(operations),
+          )
+          .map_err(issue => Journal(issue))
+        }) {
+        Ok(value) => Ok(value)
+        Err(Journal(issue)) => Err(HostAttestationJournal(issue))
+        Err(issue) => Err(HostAttestationOriginal(issue))
+      }
+    None =>
+      self
+      .record_file_receipt_in_original_journal(
+        dispatch,
+        original,
+        member_index,
+        row_ordinal,
+        locator,
+        key,
+        operation,
+        ack,
+        canonical_request_cid,
+        outcome_wire,
+        max_response_bytes,
+        None,
+      )
+      .map_err(issue => HostAttestationJournal(issue))
+  }
 }
 
 ///|
@@ -852,4 +875,56 @@ pub fn NativeLocalSavedEffectReview::prepare_saved_effect_file_entry_in_original
   }
   self._retained_file_entry_control = Some(prepared)
   prepared
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::record_file_receipt_in_original_journal(
+  self : Self,
+  dispatch : NativeClientEffectDispatchClaim,
+  original : NativeLocalSavedEffectApprovalOriginal,
+  member_index : Int,
+  row_ordinal : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  operation : @publication.EffectFileOperation,
+  ack : @row_file.NativeRelationFileReplacementAck,
+  canonical_request_cid : String,
+  outcome_wire : String,
+  max_response_bytes : Int,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeClientRunJournalIssue,
+] {
+  match
+    self.host.journal.record_effect_file_response_with_operations(
+      dispatch,
+      original.preview,
+      member_index,
+      row_ordinal,
+      locator,
+      key,
+      operation,
+      ack,
+      outcome_wire,
+      () => self.authority_current(dispatch=Some(dispatch)),
+      max_response_bytes,
+      operations,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.host.journal.record_effect_row_receipt_with_operations(
+    dispatch,
+    original.preview,
+    member_index,
+    row_ordinal,
+    locator,
+    key,
+    canonical_request_cid,
+    outcome_wire,
+    () => self.authority_current(dispatch=Some(dispatch)),
+    max_response_bytes,
+    operations,
+  )
 }

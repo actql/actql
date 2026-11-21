@@ -460,17 +460,12 @@ fn[I] prepare_local_native_whole_file_request_module(
   input : I,
   prepared : @run_host.PreparedClientProgram,
   request : @run_host.ClientRequestIdentity,
+  source : @sourceviews.SourceAcquisition,
   declaration : @row_host.RowDeclaration,
   row : LocalProjectMockRowBinding,
   contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
 ) -> @local_values.ClientInstalledWholeSourceCapacity raise ClientStop {
-  let route = @local_values.select_installed_source_input(
-    prepared, request, 0, 0,
-  ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
-  guard route is @sourceviews.WholeInputRoute(source) else {
-    stop("LocalSourceExecutionProfileNotSupported")
-  }
   let page = row.limits.page
   let capacity = @local_values.prepare_installed_whole_source_capacity(
     prepared,
