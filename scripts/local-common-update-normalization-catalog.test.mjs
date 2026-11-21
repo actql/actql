@@ -37,3 +37,31 @@ test('common update closed schema preserves zero-completion and separate executi
   assert.equal(expected.applicability.mapping_conversions, 'none');
   assert.deepEqual(expected.applicability.selector_classes, ['id']);
 });
+
+test('mapped UPDATE Source catalogue keeps the original sole-view rule and nonempty journal identity', () => {
+  const read = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + name, import.meta.url), 'utf8'));
+  const stem = 'actql-local-common-update-source-normalization-';
+  const catalog = read(stem + 'catalog.json');
+  const schema = read(stem + 'catalog.schema.json');
+  const fixture = read(stem + 'fixture.json');
+  const sourceRule = read('actql-effect-free-local-source-normalization-catalog.json').rules[0];
+  assert.equal(sourceRule.id, 'actql.source.sole-view-completion');
+  assert.deepEqual(catalog.rules, [sourceRule]);
+  assert.equal(catalog.applicability.audit_work_limit, 10000);
+  assert.deepEqual(catalog.applicability.normalization_journal_limits, {max_depth: 8, max_nodes: 32, max_wire_bytes: 1024});
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.required.toSorted(), Object.keys(catalog).toSorted());
+  for (const [name, value] of Object.entries(catalog)) {
+    assert.deepEqual(schema.properties[name], {const: value});
+  }
+  assert.deepEqual(JSON.parse(fixture.catalog_preimage), catalog);
+  assert.equal(cid(fixture.catalog_preimage), fixture.catalog_cid);
+  const journal = JSON.parse(fixture.journal_preimage);
+  assert.deepEqual(journal, {entries: [{authored: 'null', canonical: 'v',
+    path: '$.stages[0].inputs["table"].view', rule: sourceRule.id}],
+    rule_catalog_cid: fixture.catalog_cid, version: 'actql-normalization-journal/0.1'});
+  assert.equal(cid(fixture.journal_preimage), fixture.journal_cid);
+  assert.deepEqual(JSON.parse(fixture.journal_wire), {...journal, journal_cid: fixture.journal_cid});
+  const issuer = readFileSync(new URL('../src/run_publication_host/client_effect_normalization.mbt', import.meta.url), 'utf8');
+  assert(issuer.includes('"' + fixture.catalog_cid + '"'));
+});

@@ -188,20 +188,31 @@ test "publication evidence defaults reserve fixed streams without changing node 
     256,
     32,
   ).unwrap()
-  let explicit = captured_validation_test_start(chain, captured, workspace=2048)
-  let mut refused = false
-  for _ in 0..<10000 {
-    match explicit.advance(1) {
-      Err(EvidenceInventoryMismatch("result_artifacts")) => {
-        refused = true
-        break
+  // The identical admitted evidence can reach either refusal with insufficient
+  // stream workspace. Neither diagnostic independently establishes a wire mismatch.
+  for
+    (workspace, expected) in [
+      (100, RunEvidenceChainIssue::EvidenceReferenceMismatch("result_manifest")),
+      (
+        2048,
+        RunEvidenceChainIssue::EvidenceInventoryMismatch("result_artifacts"),
+      ),
+    ] {
+    let explicit = captured_validation_test_start(chain, captured, workspace~)
+    let mut refused = false
+    for _ in 0..<10000 {
+      match explicit.advance(1) {
+        Err(issue) => {
+          assert_eq(issue, expected)
+          refused = true
+          break
+        }
+        Ok((true, _)) => abort("fixed stream buffers require explicit capacity")
+        Ok((false, _)) => ()
       }
-      Err(_) => abort("unrelated evidence refusal")
-      Ok((true, _)) => abort("fixed stream buffers require explicit capacity")
-      Ok((false, _)) => ()
     }
+    assert_true(refused)
   }
-  assert_true(refused)
 }
 
 ///|

@@ -14,6 +14,7 @@ pub fn PublicationOutputExport::snapshot_original_extent(
   let actual = match self.retained {
     Some(Cells(borrow)) => @strategy.captured_result_borrow_occurrence(borrow)
     Some(Any(borrow)) => @strategy.captured_any_result_borrow_occurrence(borrow)
+    Some(EffectResult(_, occurrence)) => occurrence
     None => return Err(InvalidState)
   }
   if !@execution.managed_result_occurrence_same(actual, occurrence) {

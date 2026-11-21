@@ -5,6 +5,7 @@ import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -65,9 +66,58 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
+  const pluralProjects = ['deal-review-plural', 'deal-review-overlapping-writes', 'deal-review-nested-writes'];
+  for (const name of ['deal-review', ...pluralProjects, 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
     const path = directory(name);
-    for (const [originalPath, original] of Object.entries(projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock'))) {
+    const files = {...projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock')};
+    if (pluralProjects.includes(name)) {
+      const catalog = JSON.parse(files['mock/catalog.json']);
+      const connectors = JSON.parse(files['connectors.json']);
+      const data = JSON.parse(files['mock/data.json']);
+      const {views: [view], writes: [writeTarget]} = catalog.connections.salesforce;
+      connectors.connections.outreach = {connector: 'salesforce'};
+      catalog.connections.outreach = {views: [], query_aliases: [], data: [], writes: []};
+      data.crossover = {
+        directory: {key: ['contact_key'], rows: [
+          {contact_key: 'C-1', status: 'Qualified', visits: 4, summary: null},
+        ]},
+        inbox: {key: ['lead_key'], rows: [
+          {lead_key: 'L-1', status: 'New', visits: 12, summary: 'Unread'},
+        ]},
+        controls: {key: ['audit_key'], rows: [
+          {audit_key: 'A-1', status: 'Keep', visits: 0, summary: null},
+        ]},
+      };
+      for (const [name, resource, key, collection, writable] of [
+        ['salesforce', 'Contacts', 'contact_key', 'directory', true],
+        ['outreach', 'Leads', 'lead_key', 'inbox', true],
+        ['outreach', 'Control', 'audit_key', 'controls', false],
+      ]) {
+        const connection = catalog.connections[name];
+        connection.views.push({...view, resource, schema: {
+          [key]: {type: 'string', nullable: false},
+          status: {type: 'string', nullable: false},
+          visits: {type: 'int64', nullable: false},
+          summary: {type: 'string', nullable: true},
+        }, facts: {relation_keys: {candidate_keys: [[key]]}}});
+        connection.query_aliases.push({name: name + '.' + resource.toLowerCase(), resource});
+        connection.data.push({resource, primary_identity: key,
+          items_path: ['crossover', collection, 'rows'], key_path: ['crossover', collection, 'key']});
+        if (writable) connection.writes.push({...writeTarget, resource, primary_identity: key,
+          writable_fields: ['status'], aliases: [name + '.' + resource]});
+      }
+      // Independent declarations exercise exact and prefix overlap across
+      // connections before either target opens the shared data file.
+      if (name !== 'deal-review-plural') {
+        const leads = catalog.connections.outreach.data.find(binding => binding.resource === 'Leads');
+        leads.items_path = name === 'deal-review-overlapping-writes'
+          ? ['crossover', 'directory', 'rows'] : ['crossover', 'directory', 'rows', 'nested'];
+      }
+      files['connectors.json'] = JSON.stringify(connectors) + '\n';
+      files['mock/catalog.json'] = JSON.stringify(catalog) + '\n';
+      files['mock/data.json'] = JSON.stringify(data) + '\n';
+    }
+    for (const [originalPath, original] of Object.entries(files)) {
       // Cold approval selects the original write implementation metadata only.
       // Missing Model registry/Task/answers and payload prove those are not replayed.
       if (name === 'deal-review-approval' && !['actql.config.json', 'connectors.json',
@@ -95,6 +145,24 @@ export function nativeProjectConfigurationFixture(namespace) {
       }
       mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
       write(path, relative, body);
+    }
+  }
+  const sharedProject = threeWriteMockProject(), sharedFile = sharedProject.files;
+  const modelFixture = projectTemplateFiles('deal-review-mock');
+  for (const name of ['shared-file-empty-models', 'shared-file-missing-answers']) {
+    const path = directory(name);
+    const missingAnswers = name === 'shared-file-missing-answers';
+    mkdirSync(join(path, 'mock'), {mode: 0o700});
+    for (const file of ['actql.config.json', 'connectors.json', 'mock/catalog.json']) {
+      write(path, file, sharedFile[file]);
+    }
+    write(path, 'model-tasks.json', missingAnswers ? modelFixture['model-tasks.json'] : sharedFile['model-tasks.json']);
+    if (missingAnswers) {
+      mkdirSync(join(path, 'model-tasks'), {mode: 0o700});
+      write(path, 'model-tasks/deal-review.v1.yaml', modelFixture['model-tasks/deal-review.v1.yaml']);
+    } else {
+      write(path, sharedProject.programFile, sharedFile[sharedProject.programFile]);
+      write(path, 'mock/data.json', sharedFile['mock/data.json']);
     }
   }
   // Independent oracle for the SAME public File-facts consumer. The missing

@@ -1098,11 +1098,14 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   }
   copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
     join(checkout, 'proofs/relation-pipeline/proof-parts.mjs'));
-  // Keep the public authored template import real in the copied wrapper
-  // checkout; no second handwritten Mock project fixture is maintained here.
-  mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
-  copyFileSync(new URL('../packages/native-cli/lib/project-template.mjs', import.meta.url),
-    join(checkout, 'packages/native-cli/lib/project-template.mjs'));
+  // Keep both authored Project inputs at their original relative paths in
+  // the isolated wrapper checkout.
+  for (const path of ['packages/native-cli/lib/project-template.mjs',
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs']) {
+    const target = join(checkout, path);
+    mkdirSync(dirname(target), {recursive: true});
+    copyFileSync(new URL('../' + path, import.meta.url), target);
+  }
   mkdirSync(join(checkout, 'spec/contracts'), {recursive: true});
   for (const name of ['actql-query-acquisition.json', 'actql-query-process-evidence.json']) {
     copyFileSync(new URL('../spec/contracts/' + name, import.meta.url),
@@ -1449,8 +1452,9 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
+    const sibling = lineage ? '"other":[{"id":"middle","value":3}],' : '';
     assert.equal(require('node:fs').readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'),
-      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\\n');
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],' + sibling + '"keep":"untouched"}\\n');
     if (process.env.ACTQL_FIXTURE_TARGET_ZERO === '1') console.log('Total tests: 0, passed: 0, failed: 0.');
     else console.log('Total tests: 1, passed: 1, failed: 0.');
     process.exit(0);

@@ -176,10 +176,16 @@ fn local_common_normalization_journal_body(
   max_nodes? : Int = 32,
   max_depth? : Int = 8,
   selected_wire_ceiling? : Int = 1024,
+  rule_catalog_cid? : String? = None,
 ) -> Result[String, ClientLocalNormalizationIssue] {
   try {
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    match emit_local_common_normalization_journal(inventory, writer) {
+    match
+      emit_local_common_normalization_journal(
+        inventory,
+        writer,
+        rule_catalog_cid~,
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -295,6 +301,7 @@ fn emit_local_common_normalization_journal(
   inventory : @checked.LocalCommonNormalizationInventory,
   writer : @encode.Writer,
   identity? : String? = None,
+  rule_catalog_cid? : String? = None,
 ) -> Result[Unit, ClientLocalNormalizationIssue] raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "entries")
@@ -321,7 +328,12 @@ fn emit_local_common_normalization_journal(
     @encode.string_value(writer, cid)
   }
   @encode.key(writer, "rule_catalog_cid")
-  @encode.string_value(writer, common_normalization_catalog_cid(inventory))
+  @encode.string_value(
+    writer,
+    rule_catalog_cid.unwrap_or_else(() => {
+      common_normalization_catalog_cid(inventory)
+    }),
+  )
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-normalization-journal/0.1")
   @encode.end_object(writer)
