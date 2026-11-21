@@ -658,7 +658,7 @@ export const groupingRollupOriginal = {name: 'grouping-rollup-original', format:
     {k: 'b', s: null, total: 30, n: 1},
     {k: null, s: null, total: 60, n: 3},
   ], columns: [
-    {name: 'k', contract: {type: 'string', nullable: true}},
+    {name: 'k', contract: {type: 'string', nullable: true, max_utf8_bytes: 1}},
     {name: 's', contract: {type: 'string', nullable: true}},
     {name: 'total', contract: {type: 'number', nullable: true}},
     {name: 'n', contract: {type: 'number', nullable: false}},

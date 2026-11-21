@@ -9,7 +9,7 @@
     },
     "portable-2": {
       "totalCases": 1387,
-      "inventorySha256": "0765b0a6ab7d4de4b8e9c79b083ef1540e87fd1b73559a34bf0e71d49c12c2a8",
+      "inventorySha256": "824d766ae6c12bf817d99406ef2a4e97d72cfeb86da22fdbca1f15e9a8d912a0",
       "receiptPrefixes": [
         "time-series-primary",
         "carrier-continuation",
