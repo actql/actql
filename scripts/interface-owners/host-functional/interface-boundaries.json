@@ -45617,23 +45617,23 @@
                 "anchor": "Selected Host root-format admission consumes a one-entry view"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function createHostJournalDirectoryInspector(native, limits, assertCurrent) {"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function createHostJournalDirectoryInspector(native: unknown, limits: unknown, assertCurrent: Current) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function inspectHostJournalDirectoryFirstEntry(inspector: unknown, directory: string): Buffer | null {"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "const maxEntries = own(limits, 'maxEntries'), maxNameBytes = own(limits, 'maxNameBytes');"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "const maxEntries = own(limits, 'maxEntries') as number, maxNameBytes = own(limits, 'maxNameBytes') as number;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);"
               },
               {
@@ -45643,41 +45643,41 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "const closeOriginal = () => {"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "pendingDuty = carrier;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "inspections++;"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "active = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "original = apply(open, native, [directory, maxEntries, maxNameBytes, maxWork]);"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "original = apply(open as Method, native, [directory, maxEntries, maxNameBytes, maxWork]);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "const carrier = Object.assign(new Error('HostJournalDirectoryCleanupPending'"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "if (firstOnly) { apply(push, entries, [bytes]); break; }"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "cleanupPending: true, cleanupHandle: freeze({status, retry: status})});"
               },
               {
@@ -45701,7 +45701,7 @@
                 "anchor": "Unicode format rule. The Root binds the original namespace operation and same"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "// Only a one-entry view is accepted; this operation issues no new allowance."
               }
             ],
@@ -45719,7 +45719,7 @@
                 "anchor": "selected first-entry close Unknown prevents marker creation and is observation-only"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.test.mjs",
+                "path": "adapters/host-node/host-journal-directory.test.mts",
                 "anchor": "confirmed closes do not refill the captured original inspection allowance"
               }
             ]
@@ -45737,23 +45737,23 @@
                 "anchor": "Selected Host root-format admission consumes a one-entry view"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function createHostJournalDirectoryInspector(native, limits, assertCurrent) {"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function createHostJournalDirectoryInspector(native: unknown, limits: unknown, assertCurrent: Current) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function inspectHostJournalDirectoryFirstEntry(inspector: unknown, directory: string): Buffer | null {"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "const maxEntries = own(limits, 'maxEntries'), maxNameBytes = own(limits, 'maxNameBytes');"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "const maxEntries = own(limits, 'maxEntries') as number, maxNameBytes = own(limits, 'maxNameBytes') as number;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);"
               },
               {
@@ -45763,41 +45763,41 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "const closeOriginal = () => {"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "pendingDuty = carrier;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "inspections++;"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "active = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "original = apply(open, native, [directory, maxEntries, maxNameBytes, maxWork]);"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "original = apply(open as Method, native, [directory, maxEntries, maxNameBytes, maxWork]);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "const carrier = Object.assign(new Error('HostJournalDirectoryCleanupPending'"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "if (firstOnly) { apply(push, entries, [bytes]); break; }"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "cleanupPending: true, cleanupHandle: freeze({status, retry: status})});"
               },
               {
@@ -45821,7 +45821,7 @@
                 "anchor": "Unicode format rule. The Root binds the original namespace operation and same"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
+                "path": "adapters/host-node/host-journal-directory.mts",
                 "anchor": "// Only a one-entry view is accepted; this operation issues no new allowance."
               }
             ],
@@ -45839,7 +45839,7 @@
                 "anchor": "selected first-entry close Unknown prevents marker creation and is observation-only"
               },
               {
-                "path": "adapters/host-node/host-journal-directory.test.mjs",
+                "path": "adapters/host-node/host-journal-directory.test.mts",
                 "anchor": "confirmed closes do not refill the captured original inspection allowance"
               }
             ]
@@ -45855,8 +45855,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function hostJournalDirectoryNative(inspector)"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function hostJournalDirectoryNative(inspector: unknown)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -45865,8 +45865,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-directory.mjs",
-                "anchor": "export function hostJournalDirectoryNative(inspector)"
+                "path": "adapters/host-node/host-journal-directory.mts",
+                "anchor": "export function hostJournalDirectoryNative(inspector: unknown)"
               }
             ],
             "identity": [

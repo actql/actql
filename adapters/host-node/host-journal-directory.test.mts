@@ -3,20 +3,25 @@ import test from 'node:test';
 import {createHostJournalDirectoryInspector, assertHostJournalDirectoryInspector,
   inspectHostJournalDirectory} from './host-journal-directory.mjs';
 
+type Limits = Readonly<{maxEntries: number; maxNameBytes: number; maxWork: number; maxInspections: number}>;
+type CleanupFailure = Error & Readonly<{code: string; cleanupHandle: Readonly<{
+  retry(): Readonly<{pending: boolean; outcome: unknown; errors: readonly unknown[]}>;
+}>}>;
+
 // Explicit native-port fixtures: these test the consumer's custody protocol,
 // not a Darwin syscall, an operational issuer or an installed Host.
 const limits = Object.freeze({maxEntries: 3, maxNameBytes: 32, maxWork: 100, maxInspections: 8});
-function fixture(names = ['b', 'a'], selected = limits) {
+function fixture(names: readonly (string | Buffer)[] = ['b', 'a'], selected: Limits = limits) {
   let reads = 0, opens = 0, closes = 0, currents = 0;
   const handle = Object.freeze({});
   const native = {
-    open(...args) { assert.equal(this, native); opens++;
+    open(...args: unknown[]) { assert.equal(this, native); opens++;
       assert.deepEqual(args, ['/original', selected.maxEntries, selected.maxNameBytes, selected.maxWork]);
       return handle; },
-    next(value) { assert.equal(value, handle); return reads < names.length ?
-      Buffer.from(names[reads++]) : null; },
-    current(value) { assert.equal(value, handle); currents++; },
-    close(value) { assert.equal(value, handle); closes++; return Object.freeze({outcome: 'closed'}); },
+    next(value: unknown) { assert.equal(value, handle); return reads < names.length ?
+      (Buffer.from as (name: string | Buffer) => Buffer)(names[reads++]) : null; },
+    current(value: unknown) { assert.equal(value, handle); currents++; },
+    close(value: unknown): unknown { assert.equal(value, handle); closes++; return Object.freeze({outcome: 'closed'}); },
   };
   return {native, handle, count: () => ({opens, reads, closes, currents})};
 }
@@ -54,12 +59,12 @@ test('consumed close uncertainty is retained without another close or replacemen
     return Object.freeze({outcome: 'unknown', errno: 5});
   };
   const inspect = createHostJournalDirectoryInspector(f.native, limits, () => {});
-  let failure;
+  let failure: CleanupFailure | undefined;
   assert.throws(() => inspect('/original'), error => {
-    failure = error; return error.code === 'HostJournalDirectoryCleanupPending';
+    failure = error as CleanupFailure; return (error as CleanupFailure).code === 'HostJournalDirectoryCleanupPending';
   });
   for (let index = 0; index < 3; index++) {
-    const observed = failure.cleanupHandle.retry();
+    const observed = failure!.cleanupHandle.retry();
     assert.equal(observed.pending, true);
     assert.deepEqual(observed.outcome, {outcome: 'unknown', errno: 5});
   }
@@ -74,9 +79,9 @@ test('throwing and invalid close outcomes remain uncertain and cannot be replace
     f.native.close = () => { attempts++; return outcome; };
     const inspect = createHostJournalDirectoryInspector(f.native, limits, () => {});
     assert.throws(() => inspect('/original'), error => {
-      assert.equal(error.cleanupHandle.retry().pending, true);
-      assert.equal(error.cleanupHandle.retry().pending, true);
-      return error.code === 'HostJournalDirectoryCleanupPending';
+      assert.equal((error as CleanupFailure).cleanupHandle.retry().pending, true);
+      assert.equal((error as CleanupFailure).cleanupHandle.retry().pending, true);
+      return (error as CleanupFailure).code === 'HostJournalDirectoryCleanupPending';
     });
     assert.equal(attempts, 1);
   }
@@ -85,8 +90,8 @@ test('throwing and invalid close outcomes remain uncertain and cannot be replace
   f.native.close = () => { attempts++; throw original; };
   const inspect = createHostJournalDirectoryInspector(f.native, limits, () => {});
   assert.throws(() => inspect('/original'), error => {
-    assert.equal(error.cleanupHandle.retry().errors[0], original);
-    return error.code === 'HostJournalDirectoryCleanupPending';
+    assert.equal((error as CleanupFailure).cleanupHandle.retry().errors[0], original);
+    return (error as CleanupFailure).code === 'HostJournalDirectoryCleanupPending';
   });
   assert.equal(attempts, 1);
 });
@@ -126,7 +131,7 @@ test('proxy or getter operation tables are rejected without executing traps', ()
 });
 
 test('reentry from the native close cannot acquire a sibling or retry the consumed original', () => {
-  const f = fixture(); let attempts = 0, inspect;
+  const f = fixture(); let attempts = 0, inspect: ReturnType<typeof createHostJournalDirectoryInspector>;
   f.native.close = () => {
     attempts++;
     assert.throws(() => inspect('/original'), {code: 'HostJournalDirectoryUnavailable'});

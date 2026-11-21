@@ -4,6 +4,12 @@
 import {Buffer} from 'node:buffer';
 import {TextDecoder, types} from 'node:util';
 
+type Method = (...args: unknown[]) => unknown;
+type Current = () => undefined;
+type Inspector = (directory: string) => readonly string[];
+type InspectorRecord = Readonly<{maxEntries: number; first: (directory: string) => Buffer | null;
+  native: unknown; assertCurrent: Current}>;
+
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, freeze = Object.freeze, integer = Number.isSafeInteger;
 const isProxy = types.isProxy, isBuffer = Buffer.isBuffer;
@@ -11,9 +17,9 @@ const decode = TextDecoder.prototype.decode;
 const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
 const sort = Array.prototype.sort, push = Array.prototype.push;
 const NativeSet = Set, setHas = Set.prototype.has, setAdd = Set.prototype.add;
-const inspectors = new WeakMap(), weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const own = (value, key) => {
+const inspectors = new WeakMap<Inspector, InspectorRecord>(), weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const own = (value: unknown, key: PropertyKey): unknown => {
   if (value === null || typeof value !== 'object' || isProxy(value)) {
     fail('HostJournalDirectoryUnavailable');
   }
@@ -22,17 +28,17 @@ const own = (value, key) => {
   return field.value;
 };
 
-export function createHostJournalDirectoryInspector(native, limits, assertCurrent) {
+export function createHostJournalDirectoryInspector(native: unknown, limits: unknown, assertCurrent: Current) {
   const open = own(native, 'open'), next = own(native, 'next');
   const current = own(native, 'current'), close = own(native, 'close');
-  const maxEntries = own(limits, 'maxEntries'), maxNameBytes = own(limits, 'maxNameBytes');
-  const maxWork = own(limits, 'maxWork'), maxInspections = own(limits, 'maxInspections');
+  const maxEntries = own(limits, 'maxEntries') as number, maxNameBytes = own(limits, 'maxNameBytes') as number;
+  const maxWork = own(limits, 'maxWork') as number, maxInspections = own(limits, 'maxInspections') as number;
   if ([open, next, current, close, assertCurrent].some(value => typeof value !== 'function') ||
       !integer(maxEntries) || maxEntries < 1 || !integer(maxNameBytes) || maxNameBytes < 1 ||
       !integer(maxWork) || maxWork < maxEntries ||
       !integer(maxInspections) || maxInspections < 1) fail('HostJournalDirectoryUnavailable');
-  let active = false, pendingDuty, inspections = 0;
-  const run = function inspect(directory, firstOnly) {
+  let active = false, pendingDuty: Error | undefined, inspections = 0;
+  const run = function inspect(directory: string, firstOnly: boolean): (Buffer | string)[] {
     if (active || pendingDuty !== undefined || typeof directory !== 'string' || directory.length === 0 ||
         directory.length > 4096 ||
         directory.includes('\0') || inspections === maxInspections) fail('HostJournalDirectoryUnavailable');
@@ -41,15 +47,15 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
     // finite native-wrapper/name-buffer construction history.
     inspections++;
     active = true;
-    let original, closeAttempted = false, closeOutcome, closeFailure;
-    let primary, failed = false, entries;
+    let original: unknown, closeAttempted = false, closeOutcome: unknown, closeFailure: unknown;
+    let primary: unknown, failed = false, entries: (Buffer | string)[] | undefined;
     const closeOriginal = () => {
       if (original === undefined || closeAttempted) return;
       // Latch BEFORE entering the same native original. A consumed descriptor
       // is never retried, including when the callback throws or reenters.
       closeAttempted = true;
       try {
-        const observed = apply(close, native, [original]);
+        const observed = apply(close as Method, native, [original]);
         const outcome = own(observed, 'outcome');
         if (outcome !== 'closed' && outcome !== 'unknown') {
           fail('HostJournalDirectoryCloseUnknown');
@@ -60,17 +66,17 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
     };
     try {
       assertCurrent();
-      original = apply(open, native, [directory, maxEntries, maxNameBytes, maxWork]);
+      original = apply(open as Method, native, [directory, maxEntries, maxNameBytes, maxWork]);
       if (original === null || typeof original !== 'object') fail('HostJournalDirectoryUnavailable');
       // Retain the acquired original before any post-acquisition fence.
       assertCurrent();
-      if (apply(current, native, [original]) !== undefined) fail('HostJournalDirectoryUnavailable');
+      if (apply(current as Method, native, [original]) !== undefined) fail('HostJournalDirectoryUnavailable');
       entries = [];
-      const seen = new NativeSet();
+      const seen = new NativeSet<string>();
       let work = 0;
       for (;;) {
         assertCurrent();
-        const bytes = apply(next, native, [original]);
+        const bytes = apply(next as Method, native, [original]);
         if (bytes === null) break;
         if (!isBuffer(bytes) || bytes.length === 0 || bytes.length > maxNameBytes ||
             entries.length === maxEntries || bytes.length >= maxWork - work) {
@@ -81,13 +87,13 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
         // name. Keep the bounded original bytes so a marker's precedence is
         // not narrowed by a UTF8 condition belonging to the full-name scan.
         if (firstOnly) { apply(push, entries, [bytes]); break; }
-        const name = apply(decode, decoder, [bytes]);
+        const name: string = apply(decode, decoder, [bytes]);
         if (name === '.' || name === '..' || name.includes('/') || name.includes('\0') ||
             apply(setHas, seen, [name])) fail('HostJournalDirectoryUnavailable');
         apply(setAdd, seen, [name]);
         apply(push, entries, [name]);
       }
-      if (apply(current, native, [original]) !== undefined) fail('HostJournalDirectoryUnavailable');
+      if (apply(current as Method, native, [original]) !== undefined) fail('HostJournalDirectoryUnavailable');
       assertCurrent();
       if (!firstOnly) apply(sort, entries, []);
     } catch (cause) { failed = true; primary = cause; }
@@ -108,11 +114,11 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
       throw carrier;
     }
     if (failed) throw primary;
-    return entries;
+    return entries!;
   };
-  const inspect = directory => run(directory, false);
-  const first = directory => {
-    const entries = run(directory, true);
+  const inspect: Inspector = directory => run(directory, false) as readonly string[];
+  const first = (directory: string) => {
+    const entries = run(directory, true) as readonly Buffer[];
     return entries.length === 0 ? null : entries[0];
   };
   apply(weakSet, inspectors, [inspect, freeze({maxEntries, first, native, assertCurrent})]);
@@ -122,12 +128,12 @@ export function createHostJournalDirectoryInspector(native, limits, assertCurren
 // Membership is only this private view's provenance, not an operational
 // admission. The actual Root must still supply the original native module,
 // same installation/currentness and complete co-phase backing before use.
-export function assertHostJournalDirectoryInspector(inspector, maxEntries) {
-  if (typeof inspector !== 'function' || !integer(maxEntries) || maxEntries < 1 ||
-      apply(weakGet, inspectors, [inspector])?.maxEntries !== maxEntries) fail('HostJournalDirectoryUnavailable');
+export function assertHostJournalDirectoryInspector(inspector: unknown, maxEntries: unknown): asserts inspector is Inspector {
+  if (typeof inspector !== 'function' || !integer(maxEntries) || (maxEntries as number) < 1 ||
+      (apply(weakGet, inspectors, [inspector]) as InspectorRecord | undefined)?.maxEntries !== maxEntries) fail('HostJournalDirectoryUnavailable');
 }
 
-export function inspectHostJournalDirectory(inspector, directory, maxEntries) {
+export function inspectHostJournalDirectory(inspector: unknown, directory: string, maxEntries: number): readonly string[] {
   assertHostJournalDirectoryInspector(inspector, maxEntries);
   return apply(inspector, undefined, [directory]);
 }
@@ -136,16 +142,16 @@ export function inspectHostJournalDirectory(inspector, directory, maxEntries) {
 // close duty as the full scan. A callable/receiver copy cannot select it.
 // Only a one-entry view is accepted; this operation issues no new allowance.
 // Nonempty returns the original bounded byte Buffer, not a decoded name.
-export function inspectHostJournalDirectoryFirstEntry(inspector, directory) {
+export function inspectHostJournalDirectoryFirstEntry(inspector: unknown, directory: string): Buffer | null {
   assertHostJournalDirectoryInspector(inspector, 1);
-  const original = apply(weakGet, inspectors, [inspector]);
-  return apply(original.first, undefined, [directory]);
+  const original: InspectorRecord | undefined = apply(weakGet, inspectors, [inspector]);
+  return apply(original!.first, undefined, [directory]);
 }
 
 // Borrow only the SAME selected native image and currentness fence already
 // retained by this original inspector; never select a normal-loader substitute.
-export function hostJournalDirectoryNative(inspector) {
-  const original = apply(weakGet, inspectors, [inspector]);
+export function hostJournalDirectoryNative(inspector: unknown) {
+  const original: InspectorRecord | undefined = apply(weakGet, inspectors, [inspector]);
   if (original === undefined) fail('HostJournalDirectoryUnavailable');
   original.assertCurrent();
   return Object.freeze({native: original.native, assertCurrent: original.assertCurrent});

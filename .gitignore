@@ -1329,3 +1329,7 @@ target/
 /adapters/host-common/publication-contract-control.fixture.d.mts
 /adapters/host-common/publication-contract-control.fixture.test.mjs
 /adapters/host-common/publication-contract-control.fixture.test.d.mts
+/adapters/host-node/host-journal-directory.mjs
+/adapters/host-node/host-journal-directory.d.mts
+/adapters/host-node/host-journal-directory.test.mjs
+/adapters/host-node/host-journal-directory.test.d.mts
