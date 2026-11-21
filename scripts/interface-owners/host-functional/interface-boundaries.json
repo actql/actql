@@ -8713,8 +8713,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -8727,8 +8727,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -8741,7 +8741,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "// binding must already have been issued by the MoonBit publication owner."
               },
               {
@@ -8755,7 +8755,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "// Physical custody of one encrypted private publication body. The semantic"
               },
               {
@@ -8769,8 +8769,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -8783,7 +8783,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -8797,8 +8797,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "const pendingCleanup = owner => Object.assign("
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "const pendingCleanup = (owner: HoldingOwner) => Object.assign("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -8811,8 +8811,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -8825,7 +8825,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "version: 'actql-local-physical-holding/0.1',"
               },
               {
@@ -8839,7 +8839,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/private-publication-holding.test.mjs",
+                "path": "adapters/host-common/private-publication-holding.test.mts",
                 "anchor": "test('private holding reconciles a lost durable commit acknowledgement',"
               },
               {
@@ -8865,8 +8865,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -8879,8 +8879,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -8893,7 +8893,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "// binding must already have been issued by the MoonBit publication owner."
               },
               {
@@ -8907,7 +8907,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "// Physical custody of one encrypted private publication body. The semantic"
               },
               {
@@ -8921,8 +8921,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -8935,7 +8935,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -8949,8 +8949,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "const pendingCleanup = owner => Object.assign("
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "const pendingCleanup = (owner: HoldingOwner) => Object.assign("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -8963,8 +8963,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
-                "anchor": "export function preparePrivatePublicationHolding(store, binding, rawBytes) {"
+                "path": "adapters/host-common/private-publication-holding.mts",
+                "anchor": "export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -8977,7 +8977,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/private-publication-holding.mjs",
+                "path": "adapters/host-common/private-publication-holding.mts",
                 "anchor": "version: 'actql-local-physical-holding/0.1',"
               },
               {
@@ -8991,7 +8991,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/private-publication-holding.test.mjs",
+                "path": "adapters/host-common/private-publication-holding.test.mts",
                 "anchor": "test('private holding reconciles a lost durable commit acknowledgement',"
               },
               {

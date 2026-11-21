@@ -6,13 +6,33 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove after migrating the publication contract fixture.
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
+// @ts-expect-error TS7016: remove after migrating the Local publication Store.
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
 
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];
+type HoldingOwner = ReturnType<typeof preparePrivatePublicationHolding>;
+type OriginalFailure = Error & {code: string};
+type CustodyFailure = OriginalFailure & Readonly<{
+  cleanupPending?: boolean;
+  cleanupHandle?: HoldingOwner;
+  reconciliationFailure?: unknown;
+}>;
+type FixtureStore = HoldingStore & Readonly<{
+  preparePrivateEvidence: NonNullable<HoldingStore['preparePrivateEvidence']>;
+  confirmPrivateEvidence: NonNullable<HoldingStore['confirmPrivateEvidence']>;
+  close(): Promise<boolean>;
+  inspectPhysicalHolding(cid: string): Promise<unknown>;
+  retirePhysicalHolding(cid: string): Promise<unknown>;
+  readPrivateEvidence(name: string, semanticCid: string, holdingCid: string): Promise<Buffer>;
+}>;
 
-async function fixture(t, lostReply, originalFailure) {
+const cid = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+
+async function fixture(t: TestContext, lostReply: boolean, originalFailure?: OriginalFailure) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-private-frozen-failure-'));
   const binding = Object.freeze({name: 'source_evidence',
     semanticCid: cid('frozen original semantic'), holdingCid: cid('frozen original holding'),
@@ -23,7 +43,7 @@ async function fixture(t, lostReply, originalFailure) {
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: cid('frozen original authority'), privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
-    maxContractNodes: 256, maxContractDepth: 32}, createPublicationContractControlFixture());
+    maxContractNodes: 256, maxContractDepth: 32}, createPublicationContractControlFixture()) as FixtureStore;
   let injected = true, afterCommit = false;
   const counts = {prepare: 0, commit: 0, confirm: 0};
   const owner = preparePrivatePublicationHolding({
@@ -64,11 +84,11 @@ for (const lostReply of [false, true]) {
   test(`private holding exports same cleanup custody for frozen ${lostReply ? 'lost reply and failed reconciliation' : 'pre-commit failure'}`, async t => {
     const f = await fixture(t, lostReply);
     await assert.rejects(f.owner.commit(), error => {
-      assert.equal(error.code, f.primary.code);
-      assert.equal(error.cause, f.primary);
-      assert.equal(error.cleanupPending, true);
-      assert.equal(error.cleanupHandle, f.owner);
-      if (lostReply) assert.equal(error.reconciliationFailure, f.secondary);
+      assert.equal((error as CustodyFailure).code, f.primary.code);
+      assert.equal((error as CustodyFailure).cause, f.primary);
+      assert.equal((error as CustodyFailure).cleanupPending, true);
+      assert.equal((error as CustodyFailure).cleanupHandle, f.owner);
+      if (lostReply) assert.equal((error as CustodyFailure).reconciliationFailure, f.secondary);
       return true;
     });
     assert.equal(f.owner.status().committed, false);
@@ -93,7 +113,7 @@ test('private holding preserves untouched frozen confirmation failure before acq
     async confirmPrivateEvidence() { throw primary; },
     async preparePrivateEvidence() { preparations++; },
     async commitPhysicalHolding() { commits++; },
-  }, {name: 'source_evidence', semanticCid: cid('unacquired semantic'),
+  } as unknown as HoldingStore, {name: 'source_evidence', semanticCid: cid('unacquired semantic'),
     holdingCid: cid('unacquired holding'), wire: 'null'});
   await assert.rejects(owner.commit(), error => error === primary);
   assert.equal(owner.status().preparedPending, false);
@@ -105,7 +125,7 @@ const originalFailure = () => Object.assign(new Error('OriginalPrivateCommitFail
   {code: 'OriginalPrivateCommitFailure'});
 const staleHandle = Object.freeze({original: 'unrelated diagnostic handle'});
 const staleReconciliation = Object.freeze(new Error('EarlierReconciliationFailure'));
-const existingValue = field => field === 'cleanupPending' ? false
+const existingValue = (field: string) => field === 'cleanupPending' ? false
   : field === 'cleanupHandle' ? staleHandle : staleReconciliation;
 const descriptorCases = diagnosticFields.map(field => ({
   name: `own read-only ${field}`,
@@ -156,16 +176,16 @@ for (const descriptorCase of descriptorCases) {
       const descriptors = Object.getOwnPropertyDescriptors(original.primary);
       const f = await fixture(t, lostReply, original.primary);
       await assert.rejects(f.owner.commit(), error => {
-        assert.equal(error.code, f.primary.code);
+        assert.equal((error as CustodyFailure).code, f.primary.code);
         if (original.wraps) {
           assert.notEqual(error, f.primary);
-          assert.equal(error.cause, f.primary);
+          assert.equal((error as CustodyFailure).cause, f.primary);
         } else {
           assert.equal(error, f.primary);
         }
-        assert.equal(error.cleanupPending, true);
-        assert.equal(error.cleanupHandle, f.owner);
-        if (lostReply) assert.equal(error.reconciliationFailure, f.secondary);
+        assert.equal((error as CustodyFailure).cleanupPending, true);
+        assert.equal((error as CustodyFailure).cleanupHandle, f.owner);
+        if (lostReply) assert.equal((error as CustodyFailure).reconciliationFailure, f.secondary);
         return true;
       });
       original.check();
@@ -198,7 +218,7 @@ for (const field of diagnosticFields) {
       async confirmPrivateEvidence() { throw primary; },
       async preparePrivateEvidence() { preparations++; },
       async commitPhysicalHolding() { commits++; },
-    }, {name: 'source_evidence', semanticCid: cid('unacquired semantic'),
+    } as unknown as HoldingStore, {name: 'source_evidence', semanticCid: cid('unacquired semantic'),
       holdingCid: cid('unacquired holding'), wire: 'null'});
     await assert.rejects(owner.commit(), error => error === primary);
     assert.equal(owner.status().preparedPending, false);

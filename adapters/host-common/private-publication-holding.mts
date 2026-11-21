@@ -1,9 +1,63 @@
 // Physical custody of one encrypted private publication body. The semantic
 // binding must already have been issued by the MoonBit publication owner.
-const fail = code => {
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type HoldingBinding = Readonly<{
+  name: string;
+  semanticCid: string;
+  holdingCid: string;
+  wire: string;
+  contentCid?: string;
+  byteCount?: number;
+}>;
+type RawBinding = Omit<HoldingBinding, 'name'>;
+type PhysicalHolding = Readonly<{
+  version: 'actql-local-physical-holding/0.1';
+  namespace: 'publication-private';
+  holding_cid: string;
+  manifest_cid: string;
+  objects: readonly Readonly<{cid: string; byte_count: number}>[];
+}>;
+type PreparedOwner = Readonly<{
+  status(): Readonly<{pending: boolean}>;
+  release(): Awaitable<unknown>;
+}>;
+type EncryptedObject = Readonly<{physicalCid: string; bytes: number; prepared: PreparedOwner}>;
+type RawConfirmation = Readonly<{record: PhysicalHolding}>;
+type HoldingStore = Readonly<{
+  preparePrivateEvidence?(name: string, wire: string, semanticCid: string): Awaitable<EncryptedObject>;
+  confirmPrivateEvidence?(binding: HoldingBinding): Awaitable<PhysicalHolding | undefined>;
+  prepareLookupRawEvidence?(binding: RawBinding, bytes: Uint8Array): Awaitable<readonly EncryptedObject[]>;
+  prepareModelRawEvidence?(binding: RawBinding, bytes: Uint8Array): Awaitable<readonly EncryptedObject[]>;
+  confirmLookupRawEvidence?(binding: RawBinding): Awaitable<RawConfirmation | undefined>;
+  confirmModelRawEvidence?(binding: RawBinding): Awaitable<RawConfirmation | undefined>;
+  commitPhysicalHolding(record: PhysicalHolding, prepared: readonly PreparedOwner[]): Awaitable<unknown>;
+}>;
+type HoldingStatus = Readonly<{
+  committed: boolean;
+  abandoned: boolean;
+  abandoning: boolean;
+  operationPending: boolean;
+  preparedPending: boolean;
+}>;
+type HoldingOwner = Readonly<{
+  binding: HoldingBinding;
+  status(): HoldingStatus;
+  retry(): Promise<PhysicalHolding>;
+  commit(): Promise<PhysicalHolding>;
+  abort(): Promise<boolean>;
+}>;
+type WritableFailure = {
+  message?: string;
+  code?: string;
+  cleanupPending?: boolean;
+  cleanupHandle?: PreparedOwner | HoldingOwner;
+  reconciliationFailure?: unknown;
+};
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
-const pendingCleanup = owner => Object.assign(
+const pendingCleanup = (owner: HoldingOwner) => Object.assign(
   new Error('PrivatePublicationHoldingCleanupPending'),
   {code: 'PrivatePublicationHoldingCleanupPending',
     cleanupPending: true, cleanupHandle: owner},
@@ -13,11 +67,11 @@ const pendingCleanup = owner => Object.assign(
 // not make existing own/inherited read-only properties or accessors writable.
 // Keep that original failure as the cause without invoking diagnostic setters
 // or replacing/recreating its custody owner.
-const writableFailure = error => {
+const writableFailure = (error: unknown): WritableFailure => {
   if (error !== null && typeof error === 'object' && Object.isExtensible(error)) {
     let writable = true;
     for (const field of ['cleanupPending', 'cleanupHandle', 'reconciliationFailure']) {
-      let receiver = error;
+      let receiver: object | null = error;
       while (receiver !== null) {
         const descriptor = Object.getOwnPropertyDescriptor(receiver, field);
         if (descriptor !== undefined) {
@@ -28,14 +82,14 @@ const writableFailure = error => {
       }
       if (!writable) break;
     }
-    if (writable) return error;
+    if (writable) return error as WritableFailure;
   }
-  const failure = new Error(error?.message, {cause: error});
-  if (typeof error?.code === 'string') failure.code = error.code;
+  const failure = new Error((error as WritableFailure | null | undefined)?.message, {cause: error}) as Error & WritableFailure;
+  if (typeof (error as WritableFailure | null | undefined)?.code === 'string') failure.code = (error as WritableFailure).code;
   return failure;
 };
 
-export function preparePrivatePublicationHolding(store, binding, rawBytes) {
+export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {
   const lookupRaw = binding?.name === 'lookup_raw_response';
   const raw = lookupRaw || binding?.name === 'model_raw_response';
   const prepareRaw = lookupRaw ? 'prepareLookupRawEvidence' : 'prepareModelRawEvidence';
@@ -62,14 +116,14 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
   // This is the original transport backing, not a reconstructed String.
   // Its retention is part of the Model caller's funded phase until retirement.
   let originalBytes = rawBytes;
-  let prepared;
-  let constructionCleanup;
-  let record;
+  let prepared: readonly PreparedOwner[] | undefined;
+  let constructionCleanup: PreparedOwner | undefined;
+  let record: PhysicalHolding | undefined;
   let committed = false;
   let abandoned = false;
   let abandoning = false;
-  let flight;
-  let abortFlight;
+  let flight: Promise<PhysicalHolding> | undefined;
+  let abortFlight: Promise<boolean> | undefined;
   const releaseUnused = async () => {
     if (constructionCleanup !== undefined) {
       await constructionCleanup.release();
@@ -88,15 +142,15 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
     holdingCid: owned.holdingCid, wire: owned.wire, contentCid: owned.contentCid,
     byteCount: owned.byteCount}) : undefined;
   const confirm = async () => raw
-    ? (await store[confirmRaw](rawBinding))?.record
-    : store.confirmPrivateEvidence(owned);
+    ? (await store[confirmRaw]!(rawBinding!))?.record
+    : store.confirmPrivateEvidence!(owned);
   const status = () => Object.freeze({
     committed, abandoned, abandoning,
     operationPending: flight !== undefined || abortFlight !== undefined,
     preparedPending: constructionCleanup !== undefined ||
       prepared?.some(handle => handle.status().pending === true) === true,
   });
-  const owner = {
+  const owner: HoldingOwner = {
     binding: owned,
     status,
     retry() { return owner.commit(); },
@@ -106,8 +160,8 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         {code: 'PrivatePublicationHoldingAbandoned'},
       ));
       if (flight !== undefined) return flight;
-      if (committed) return Promise.resolve(record);
-      let operation;
+      if (committed) return Promise.resolve(record!);
+      let operation: Promise<PhysicalHolding>;
       operation = (async () => {
         const existing = await confirm();
         if (existing !== undefined) {
@@ -124,16 +178,17 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           if (constructionCleanup !== undefined) {
             await releaseUnused();
           }
-          let encrypted;
+          let encrypted: readonly EncryptedObject[];
           try {
-            encrypted = raw ? await store[prepareRaw](
-              rawBinding, originalBytes,
-            ) : [await store.preparePrivateEvidence(
+            encrypted = raw ? await store[prepareRaw]!(
+              rawBinding!, originalBytes!,
+            ) : [await store.preparePrivateEvidence!(
               owned.name, owned.wire, owned.semanticCid,
             )];
           } catch (error) {
-            if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
-              constructionCleanup = error.cleanupHandle;
+            if ((error as WritableFailure | null | undefined)?.cleanupPending === true &&
+                (error as WritableFailure).cleanupHandle !== undefined) {
+              constructionCleanup = (error as WritableFailure).cleanupHandle as PreparedOwner;
             }
             throw error;
           }
@@ -149,13 +204,13 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           });
         }
         try {
-          await store.commitPhysicalHolding(record, prepared);
+          await store.commitPhysicalHolding(record!, prepared);
         } catch (error) {
-          let reconciled;
+          let reconciled: PhysicalHolding | undefined;
           try { reconciled = await confirm(); }
           catch (failure) {
             error = writableFailure(error);
-            error.reconciliationFailure = failure;
+            (error as WritableFailure).reconciliationFailure = failure;
           }
           if (reconciled === undefined) throw error;
         }
@@ -167,12 +222,12 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         prepared = undefined;
         originalBytes = undefined;
         return verified;
-      })().catch(error => {
+      })().catch((error: unknown) => {
         if ((record !== undefined && !committed) || constructionCleanup !== undefined ||
             prepared?.some(handle => handle.status().pending === true)) {
           error = writableFailure(error);
-          error.cleanupPending = true;
-          error.cleanupHandle = owner;
+          (error as WritableFailure).cleanupPending = true;
+          (error as WritableFailure).cleanupHandle = owner;
         }
         throw error;
       }).finally(() => {
@@ -184,7 +239,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
     abort() {
       if (abortFlight !== undefined) return abortFlight;
       abandoning = true;
-      let operation;
+      let operation: Promise<boolean>;
       operation = (async () => {
         if (flight !== undefined) {
           try { await flight; }

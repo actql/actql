@@ -1213,6 +1213,16 @@ target/
 /adapters/host-common/durable-result-payload.d.mts
 /adapters/host-common/durable-result-payload.test.mjs
 /adapters/host-common/durable-result-payload.test.d.mts
+/adapters/host-common/private-publication-holding.mjs
+/adapters/host-common/private-publication-holding.d.mts
+/adapters/host-common/private-publication-holding.test.mjs
+/adapters/host-common/private-publication-holding.test.d.mts
+/adapters/host-common/private-publication-holding-retirement.test.mjs
+/adapters/host-common/private-publication-holding-retirement.test.d.mts
+/adapters/host-common/private-publication-holding-pending.test.mjs
+/adapters/host-common/private-publication-holding-pending.test.d.mts
+/adapters/host-common/private-publication-holding-frozen-failure.test.mjs
+/adapters/host-common/private-publication-holding-frozen-failure.test.d.mts
 /adapters/host-common/strategy.mjs
 /adapters/host-common/strategy.d.mts
 /adapters/host-common/task-observation.mjs

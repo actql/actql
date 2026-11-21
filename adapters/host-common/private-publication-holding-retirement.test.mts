@@ -5,11 +5,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+type HoldingOwner = ReturnType<typeof preparePrivatePublicationHolding>;
+type HoldingRecord = Awaited<ReturnType<HoldingOwner['commit']>>;
+type FixtureOptions = Readonly<{releaseFailure?: unknown; beforeCommitFailure?: unknown; raw?: boolean}>;
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const binding = Object.freeze({name: 'effect_preview', semanticCid: cid('a'),
   holdingCid: cid('b'), wire: '{"original":null}'});
 
-function fixture({releaseFailure, beforeCommitFailure, raw = false} = {}) {
+function fixture({releaseFailure, beforeCommitFailure, raw = false}: FixtureOptions = {}) {
   let visible = false, retired = false;
   let failRelease = releaseFailure, failCommit = beforeCommitFailure;
   const counts = {prepare: 0, commit: 0, confirm: 0, release: 0, status: 0};
@@ -31,7 +35,7 @@ function fixture({releaseFailure, beforeCommitFailure, raw = false} = {}) {
       },
     }),
   }));
-  const confirm = async () => { counts.confirm++; return visible ? record : undefined; };
+  const confirm = async () => { counts.confirm++; return visible ? record as HoldingRecord : undefined; };
   const prepare = async () => objects[counts.prepare++];
   const store = {
     confirmPrivateEvidence: confirm,
@@ -79,7 +83,8 @@ test('private holding keeps rejected cleanup until same original commit is confi
   const primary = new Error('OriginalPreparedCloseFailure');
   const f = fixture({releaseFailure: primary});
   await assert.rejects(f.owner.commit(), error => error === primary &&
-    error.cleanupPending === true && error.cleanupHandle === f.owner);
+    (error as Error & {cleanupPending?: boolean}).cleanupPending === true &&
+    (error as Error & {cleanupHandle?: HoldingOwner}).cleanupHandle === f.owner);
   const pending = f.owner.status();
   assert.equal(pending.committed, false);
   assert.equal(pending.preparedPending, true);
