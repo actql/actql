@@ -258,6 +258,54 @@ fn LocalValuesExecution::publication_original_for_task(
 }
 
 ///|
+// One preflight cursor and its three copied limit records at a time. The
+// source row is borrowed from the existing producer transport.
+let publication_bridge_row_quote_controls : Int64 = {
+  let source = @source.json_source_preflight_control_extent()
+  @execution.preparation_representation_cost({
+    record_headers: source.record_headers + 6L,
+    reference_slots: source.reference_slots + 9L,
+    scalar_words: source.scalar_words + 18L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
+// Measure the complete emitted row, including its object wrapper and nested
+// values. The same Source cursor stops before grammar and retires before the
+// decoder. Keep the old quote when the original wire cannot be measured.
+fn publication_bridge_copy_row_limits(
+  limits : @local.LocalImportLimits,
+  row : String,
+  bytes : Int64,
+) -> @local.LocalImportLimits {
+  match
+    installed_effect_dependency_wire_geometry(
+      row,
+      limits.row.max_bytes,
+      limits.row.max_nodes,
+      limits.row.max_depth,
+      _ => true,
+    ) {
+    Some(geometry) if geometry.input_bytes.to_int64() == bytes &&
+      geometry.node_upper > 0 => {
+      // Even a sparse row uses the original schema's field slots.
+      let nodes = Int::max(geometry.node_upper, limits.wire.max_columns)
+      {
+        ..limits,
+        wire: {
+          ..limits.wire,
+          max_nodes: Int::min(limits.wire.max_nodes, nodes),
+        },
+        row: { ..limits.row, max_nodes: Int::min(limits.row.max_nodes, nodes), },
+      }
+    }
+    _ => limits
+  }
+}
+
+///|
 // Conversion keeps the selected operations and SAME managed completion
 // together across material/row callbacks. No second task lookup can replace
 // that generation. An optional Host funding boundary precedes row decoding.
@@ -302,6 +350,10 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         max_batch_bytes: row_limits.max_bytes,
       }
       guard @local.local_materializing_import_start_capacity(imports)
+        is Some(start) &&
+        @execution.checked_preparation_add_product(
+          start, publication_bridge_row_quote_controls, 1L,
+        )
         is Some(start) &&
         reserve(start) &&
         self.available.val else {
@@ -349,7 +401,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         guard @execution.managed_publication_bridge_import_usage(bridge)
           is Some(usage) &&
           @local.local_import_next_retention_extent(
-            imports,
+            publication_bridge_copy_row_limits(imports, row, bytes),
             index.to_int64(),
             usage.nodes.to_int64(),
             usage.text_bytes.to_int64(),

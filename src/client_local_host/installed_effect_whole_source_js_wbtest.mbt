@@ -907,10 +907,11 @@ fn retained_effect_whole_source_export_control(
       )
       assert_eq(calls.val, 1)
       assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
-      // The eight-byte original row adds one row slot, eight potential
-      // value nodes, eight wire nodes and two views of eight decoder nodes.
-      // The empty frame and decoder already reserve one byte each.
-      let row_growth = 64L * (1L + 8L + 8L + 2L * 8L) + 8L * (5L * 8L - 2L)
+      // The eight-byte original row adds one row slot and up to eight
+      // retained value nodes. Its object and numeric value need two wire
+      // nodes and two views of two decoder nodes. The empty frame and
+      // decoder already reserve one byte each.
+      let row_growth = 64L * (1L + 8L + 2L + 2L * 2L) + 8L * (5L * 8L - 2L)
       let offered : Array[Int64] = []
       assert_true(
         execution.prepare_captured_result_export(
@@ -1004,6 +1005,66 @@ test "managed Effect exports exact producer Results independently of the public 
 #cfg(target="js")
 test "managed Effect public Result keeps its captured pin after a refused bridge row" {
   retained_effect_whole_source_export_control(export_public=true)
+}
+
+///|
+#cfg(target="js")
+test "publication bridge quotes complete shallow and nested rows by observed shape" {
+  let limits : @local.LocalImportLimits = {
+    max_rows: 17,
+    values: {
+      max_nodes: 1000,
+      max_text_bytes: 10000,
+      max_depth: 12,
+      max_work: 10000,
+    },
+    wire: {
+      max_columns: 1,
+      max_order_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 12,
+    },
+    row: {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 12,
+      max_text_bytes: 10000,
+    },
+    max_batch_bytes: 10000,
+  }
+  let text = "é".repeat(300)
+  for
+    (wire, observed_nodes) in [
+      ("{\"\\u006b\":\"" + text + "\"}", 2),
+      ("{\"k\":[{\"n\":\"" + text + "\"}]}", 4),
+    ] {
+    let bytes = @scalar.admit_utf8_length64(wire, 10000L).unwrap()
+    assert_true(bytes > 600L)
+    let quoted = publication_bridge_copy_row_limits(limits, wire, bytes)
+    assert_eq(quoted.wire.max_nodes, observed_nodes)
+    assert_eq(quoted.row.max_nodes, observed_nodes)
+    assert_eq(quoted.row.max_bytes, limits.row.max_bytes)
+    assert_eq(quoted.row.max_depth, limits.row.max_depth)
+    let (rows, nodes, text_bytes, original) = @local.local_import_next_retention_extent(
+      limits, 1L, 4L, 10L, bytes,
+    ).unwrap()
+    let (measured_rows, measured_nodes, measured_text, measured) = @local.local_import_next_retention_extent(
+      quoted, 1L, 4L, 10L, bytes,
+    ).unwrap()
+    assert_eq(
+      (measured_rows, measured_nodes, measured_text),
+      (rows, nodes, text_bytes),
+    )
+    assert_eq(
+      original - measured,
+      3L * 64L * (bytes - observed_nodes.to_int64()),
+    )
+    // Geometry without matching length never reduces the original quote.
+    let fallback = publication_bridge_copy_row_limits(limits, wire, bytes + 1L)
+    assert_eq(fallback.row.max_nodes, limits.row.max_nodes)
+    assert_eq(fallback.wire.max_nodes, limits.wire.max_nodes)
+  }
 }
 
 ///|
