@@ -100,11 +100,11 @@ await test('ordinary installed Local Explorer shows checked update declarations 
           {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [], principal: {all: true},
             connection: {any_of: ['salesforce:00D000000000001EAA']},
             resource: {any_of: ['Test_Record__c']}, operation: {any_of: ['effect']}},
+          {entry_id: 'structural-run-read', outcome: 'allow', exclusions: [], principal: {all: true},
+            connection: {all: true}, resource: {any_of: ['run']}, operation: {any_of: ['read']}},
           {entry_id: 'target-read', outcome: 'allow', exclusions: [], principal: {all: true},
             connection: {any_of: ['salesforce:00D000000000001EAA']},
             resource: {any_of: ['Test_Record__c']}, operation: {any_of: ['read']}},
-          {entry_id: 'structural-run-read', outcome: 'allow', exclusions: [], principal: {all: true},
-            connection: {all: true}, resource: {any_of: ['run']}, operation: {any_of: ['read']}},
         ]})}));
     const resolveEffectSecret = async () => {secretCalls++; return secret;};
     phase = 'explicit Effect metadata publication';
