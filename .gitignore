@@ -1495,3 +1495,5 @@ target/
 /adapters/host-node/host-journal-consumer-custody.test.d.mts
 /adapters/host-node/host-journal-writer-exclusion.test.mjs
 /adapters/host-node/host-journal-writer-exclusion.test.d.mts
+/adapters/store-local/publication-store-io.mjs
+/adapters/store-local/publication-store-io.d.mts

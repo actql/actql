@@ -6,14 +6,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {openLocalPublicationStore} from './publication-store.mjs';
+import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
-const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {');
-const end = source.indexOf('\nasync function processIsAlive(', start);
-assert(start >= 0 && end > start);
-const body = source.slice(start, end);
+const body = Function.prototype.toString.call(readBoundedLocalMetadata);
 const prior = JSON.parse(await readFile(new URL('./bounded-close-original.fixture.json', import.meta.url), 'utf8'));
 assert.equal(createHash('sha256').update(prior.body).digest('hex'), prior.sha256);
 assert.equal(prior.sha256, '161e1f00daed2495caada9977ef5aae6ebca956ed187f307dfd5040e055c0a7b');
@@ -28,7 +24,7 @@ async function fixture(t, {source = body, readFailure, closeFailures = 2, openFa
   let failure;
   const closeFailure = Object.assign(new Error('OriginalMetadataFdClosePending'), {code: 'EIO'});
   const read = runInNewContext(`(${source})`, {
-    constants, lstat, Buffer, fail, AbortSignal,
+    constants, lstat, Buffer, fail, AbortSignal, originalApply: Reflect.apply,
     quantity: value => Number.isSafeInteger(value) && value >= 0,
     async open(selected) {
       opens++;

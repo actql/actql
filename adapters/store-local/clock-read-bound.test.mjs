@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
+import {readBounded} from './publication-store-io.mjs';
 
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
 const original = JSON.parse(await readFile(new URL('./clock-read-original.fixture.json',
@@ -15,8 +16,7 @@ function section(from, to) {
   assert(start >= 0 && end > start);
   return source.slice(start, end);
 }
-const bounded = section('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {',
-  '\nasync function processIsAlive(');
+const bounded = Function.prototype.toString.call(readBounded);
 const keys = section('const exactKeys =', '\nasync function syncDirectoryPath(');
 const current = section('  let lastClockObservation;', '\n  const observeTrustedClock =');
 const clock = `sha256:${'c'.repeat(64)}`;
@@ -26,7 +26,7 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 const invalid = error => error?.code === 'InvalidPublicationStoreObject';
 function load(body, overrides) {
   return runInNewContext(`(() => {${keys}\n${bounded}\n${body}\nreturn readClockObservation;})()`, {
-    constants, Buffer, fail, AbortSignal,
+    constants, Buffer, fail, AbortSignal, originalApply: Reflect.apply,
     quantity: value => Number.isSafeInteger(value) && value >= 0,
     configuration: {maxObjectBytes: 512},
     clockObservationPath: () => 'original-clock',
