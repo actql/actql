@@ -175,7 +175,7 @@ class OriginalSavedResultRead:
 
         The same Core source validates the current Account and stored chain.
         This intentionally opens no File Reader, re-reserves no payload and
-        creates no first delivery; response loss retains the same output loans.
+        creates no first delivery. The independent response owns its wire.
         """
         self._ensure_active()
         if self._preparing or self._source is not None:
@@ -205,10 +205,15 @@ class OriginalSavedResultRead:
             stream = streams[0]
             response = httpx.Response(200, headers={'content-type': 'application/json',
                 'content-encoding': 'identity'}, stream=stream)
-            stream._attached = True
-            return response
         finally:
             self._preparing = False
+        # The current reader has returned. Keep a refused close and its
+        # unattached response registered for the original Host cleanup.
+        with core._host_cleanup():
+            if not self.close():
+                raise RuntimeError('Original saved delivery lookup cleanup is pending')
+        stream._attached = True
+        return response
 
     def _prepare(self, reference: object, name: str, format: str,
                  attempt_id: str) -> httpx.Response:
@@ -413,13 +418,18 @@ class OriginalSavedResultRead:
             if not core.close_payload_record(self._record):
                 return False
             self._record = None
-        for source in (self._clock, self._request):
-            if source is not None:
-                if not core.close_input(source):
-                    return False
-                if source in host._inputs:
-                    host._inputs.remove(source)
-        self._clock = self._request = None
+        if (clock := self._clock) is not None:
+            if not core.close_input(clock):
+                return False
+            self._clock = None
+            if clock in host._inputs:
+                host._inputs.remove(clock)
+        if (request := self._request) is not None:
+            if not core.close_input(request):
+                return False
+            self._request = None
+            if request in host._inputs:
+                host._inputs.remove(request)
         if self._source is not None:
             if not self._source_closed:
                 if not core.close_submission_lookup(self._source):

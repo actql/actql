@@ -62,21 +62,70 @@ class SavedDeliveryLookupTests(unittest.TestCase):
     def test_public_saved_lookup_is_same_snapshot_read_without_payload_grant_or_write(self):
         with TemporaryDirectory() as directory:
             host, reference, calls, _, _ = self.host(directory)
+            core = host._core
+            initial_loans = dict(core._loans)
+            initial_projections = tuple(host._projections)
+
             async def lookup():
-                response = await host._open_operation('delivery-attempt', {
-                    'ref': reference, 'resultName': 'answer', 'attemptId': 'same-attempt'})
-                self.assertEqual(json.loads(await response.aread()), {'kind': 'not_found'})
-                await response.aclose()
+                for attempt in ('first-attempt', 'second-attempt'):
+                    response = await host._open_operation('delivery-attempt', {
+                        'ref': reference, 'resultName': 'answer', 'attemptId': attempt})
+                    try:
+                        self.assertFalse(host._saved_result_reads)
+                        self.assertEqual(tuple(host._projections), initial_projections)
+                        stream = response.stream
+                        self.assertIn(stream, host._response_streams)
+                        self.assertIs(core._loans[stream._loan.ticket], stream._loan)
+                        self.assertEqual(json.loads(await response.aread()), {'kind': 'not_found'})
+                    finally:
+                        await response.aclose()
+                    self.assertEqual(core._loans, initial_loans)
+
             with (patch.object(LocalFileRoot, 'open_saved_payload', side_effect=AssertionError('payload')),
                   patch.object(OriginalSDKDeliveryStore, '__init__', side_effect=AssertionError('grant'))):
                 asyncio.run(lookup())
-            self.assertEqual([name for name, _ in calls if name.startswith('reserve')], ['reserve_bounded'])
-            self.assertEqual(sum(name == 'produce_sdk_delivery_lookup' for name, _ in calls), 1)
+            self.assertEqual([name for name, _ in calls if name.startswith('reserve')],
+                             ['reserve_bounded', 'reserve_bounded'])
+            self.assertEqual(sum(name == 'produce_sdk_delivery_lookup' for name, _ in calls), 2)
             self.assertFalse(host._run_loans)
             self.assertFalse(host._prepared_inputs)
-            self.assertIsNone(host._saved_result_reads[0]._record)
-            self.assertIsNone(host._saved_result_reads[0]._reader)
             self.assertTrue(host.close())
+
+    def test_lookup_close_refusal_keeps_same_unattached_response_and_unreturned_loans(self):
+        with TemporaryDirectory() as directory:
+            host, reference, calls, _, _ = self.host(directory)
+            core = host._core
+            original_close = core.close_input
+            refused = []
+            allow_return = False
+
+            def close_input(value):
+                if not allow_return and value is host._saved_result_reads[-1]._request:
+                    refused.append(value)
+                    return False
+                return original_close(value)
+
+            with patch.object(core, 'close_input', side_effect=close_input):
+                with self.assertRaisesRegex(RuntimeError, 'saved delivery lookup cleanup'):
+                    asyncio.run(host._open_operation('delivery-attempt', {
+                        'ref': reference, 'resultName': 'answer', 'attemptId': 'same-attempt'}))
+                held, = host._saved_result_reads
+                stream, = host._response_streams
+                request, = refused
+                self.assertIs(held._request, request)
+                self.assertIsNone(held._clock)
+                self.assertFalse(stream._attached)
+                self.assertIs(core._loans[stream._loan.ticket], stream._loan)
+                source = held._source
+                self.assertIs(host._projections[-1], source)
+                self.assertFalse(host.close())
+                self.assertIs(host._saved_result_reads[0], held)
+                self.assertIs(held._source, source)
+                self.assertIs(core._loans[request.ticket], request)
+                self.assertEqual(refused, [request, request])
+                allow_return = True
+                self.assertTrue(host.close())
+            self.assertEqual(sum(name == 'produce_sdk_delivery_lookup' for name, _ in calls), 1)
 
     def test_failed_lookup_keeps_same_child_and_source_until_actual_return(self):
         with TemporaryDirectory() as directory:
