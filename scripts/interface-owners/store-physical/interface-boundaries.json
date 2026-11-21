@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "85d3c41597d5abffdb0eb964d1ca0fa7b199436e3644ce85dea0cbda46c38661",
+      "sha256": "6c69a503142a58fa4c61426ee19c269ceca086f74e2d3f83e22d7ab275d69ca8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6267,20 +6267,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
           "parameters": [
             "selected"
@@ -6327,19 +6313,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
-          "parameters": [
-            "original",
-            "streaming"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
           "parameters": [],
           "async": false
         },
@@ -6721,33 +6694,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
-          "parameters": [
-            "suppliedWire",
-            "suppliedGrantWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
           "parameters": [
             "maxBytes",
@@ -6899,8 +6845,10 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
-          "parameters": [],
+          "name": "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
+          "parameters": [
+            "cid"
+          ],
           "async": false
         },
         {
@@ -7063,26 +7011,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
           "parameters": [
             "attemptCid"
@@ -7095,13 +7023,6 @@
             "attemptCid"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
-          "parameters": [
-            "query"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
@@ -7226,6 +7147,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
           "parameters": [
             "holdingCid"
@@ -7290,13 +7218,6 @@
         {
           "name": "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
-          "parameters": [
-            "contract"
-          ],
           "async": false
         },
         {
@@ -7406,6 +7327,16 @@
             "item"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
+          "parameters": [
+            "attemptCid",
+            "original",
+            "retainedBirth",
+            "retainedBirthValue"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
@@ -7639,13 +7570,6 @@
           "parameters": [
             "keyHash",
             "resultDefinitionCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -8151,6 +8075,7 @@
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
+            "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
@@ -8173,7 +8098,6 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
             "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
@@ -8183,6 +8107,7 @@
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
@@ -8191,6 +8116,7 @@
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
@@ -10434,8 +10360,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putDeliveryContracts = async (grant, attempt, streaming) => {"
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const putDeliveryContracts = async (grant: Contract, attempt: Contract, streaming?: Contract) => {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10448,8 +10374,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const selected = currentDeliveryIndex()!.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10462,7 +10388,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-attempt-store.mts",
                 "anchor": "await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({"
               },
               {
@@ -10716,7 +10642,6 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry/closed/closed",
@@ -11006,24 +10931,10 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
-            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
             "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
-            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
-            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
-            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
-            "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic"
           ],
           "exports": [],
           "attributes": {
@@ -11051,8 +10962,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const deliveryLogicalKey = query => JSON.stringify(["
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const deliveryLogicalKey = (query: DeliveryQuery) => JSON.stringify(["
               },
               {
                 "path": "adapters/store-local/publication-semantic-reader.mts",
@@ -11067,8 +10978,8 @@
                 "anchor": "const accountPhysicalUsage = usage => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readFileDeliveryAttemptContract = async (attemptCid, retained) => {"
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const readFileDeliveryAttemptContract = async (attemptCid: string, retained?: Contract) => {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -11081,7 +10992,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-attempt-store.mts",
                 "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
               },
               {
@@ -11089,7 +11000,7 @@
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-attempt-store.mts",
                 "anchor": "if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');"
               },
               {
@@ -11841,6 +11752,305 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/delivery-attempt-store.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "3743730fed9ff63eda52c1248cf25fe3280839008f6a8af8c86e1a2f51251da4",
+      "exports": [
+        "createDeliveryAttemptStore"
+      ],
+      "operations": [
+        {
+          "name": "createDeliveryAttemptStore",
+          "parameters": [
+            "configuration",
+            "deliveriesDirectory",
+            "recordNamePattern",
+            "contractControl",
+            "readDeliveryOriginal",
+            "deliveryStartTransition",
+            "deliveryStarts",
+            "activePhysicalRecordWriters",
+            "active",
+            "currentDeliveryIndex",
+            "contractPath",
+            "deliveryAttemptPath",
+            "exactUtf8WireMatches",
+            "syncDirectory",
+            "runMetadataDeletionStarted",
+            "putSemanticBatch",
+            "admitContract",
+            "parseContract",
+            "nativeDeliveryContract",
+            "readContract",
+            "readSemanticBytes",
+            "readLatestDeliveryRecordContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim",
+          "parameters": [
+            "row",
+            "suppliedAttempt",
+            "suppliedGrant"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/beginDeliveryAttempt/beginDeliveryAttempt",
+          "parameters": [
+            "original",
+            "streaming"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/createDeliveryAttempt/createDeliveryAttempt",
+          "parameters": [
+            "suppliedWire",
+            "suppliedGrantWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/deliveryIndexRow/deliveryIndexRow",
+          "parameters": [
+            "attempt",
+            "grant",
+            "attemptContract",
+            "grantContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+          "parameters": [
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
+          "parameters": [
+            "query"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryAttemptStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
+          "parameters": [
+            "attemptCid",
+            "retained"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/readFileDeliveryAttemptContract/readFileDeliveryAttemptContract",
+          "parameters": [
+            "attemptCid",
+            "retained"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/restoreDeliveryClaim/restoreDeliveryClaim",
+          "parameters": [
+            "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/selectDeliveryAttempt/selectDeliveryAttempt",
+          "parameters": [
+            "query",
+            "suppliedAttempt",
+            "suppliedGrant",
+            "includeProgress"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryAttemptStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createDeliveryAttemptStore",
+            "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim",
+            "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
+            "createDeliveryAttemptStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
+            "createDeliveryAttemptStore/beginDeliveryAttempt/beginDeliveryAttempt",
+            "createDeliveryAttemptStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
+            "createDeliveryAttemptStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+            "createDeliveryAttemptStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
+            "createDeliveryAttemptStore/createDeliveryAttempt/createDeliveryAttempt",
+            "createDeliveryAttemptStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
+            "createDeliveryAttemptStore/deliveryIndexRow/deliveryIndexRow",
+            "createDeliveryAttemptStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+            "createDeliveryAttemptStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+            "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
+            "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
+            "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
+            "createDeliveryAttemptStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
+            "createDeliveryAttemptStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
+            "createDeliveryAttemptStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
+            "createDeliveryAttemptStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
+            "createDeliveryAttemptStore/readFileDeliveryAttemptContract/readFileDeliveryAttemptContract",
+            "createDeliveryAttemptStore/restoreDeliveryClaim/restoreDeliveryClaim",
+            "createDeliveryAttemptStore/selectDeliveryAttempt/selectDeliveryAttempt",
+            "createDeliveryAttemptStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
+          ],
+          "exports": [
+            "createDeliveryAttemptStore"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Indexed delivery claims and coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "const deliveryLogicalKey = (query: DeliveryQuery) => JSON.stringify(["
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "if (Object.keys(expected).some(name => expected[name as keyof ClaimRow]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "deliveryAdmissionBusy = operation.catch(() => {});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "if (await runMetadataDeletionStarted(row.run_cid)) fail('PublicationMetadataDeleted');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "currentDeliveryIndex()!.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/delivery-attempt-store.mts",
+                "anchor": "Legacy callers retain their original physical representation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "pending delivery claim restores only its same originals and retains quota"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "actual joint START uses one native claim COMMIT and restores only its selected original"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-progress.mjs",

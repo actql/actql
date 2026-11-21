@@ -47,6 +47,7 @@ import {createPublicationIndexReader} from './publication-index-reader.mjs';
 import {createPublicationResultMetadata} from './publication-result-metadata.mjs';
 import {createPublicationContractStore} from './publication-contract-store.mjs';
 import {createPublicationProgress} from './publication-progress.mjs';
+import {createDeliveryAttemptStore} from './delivery-attempt-store.mjs';
 import {createPublicationTrustedClock} from './publication-trusted-clock.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
@@ -573,7 +574,6 @@ async function openOriginalLocalPublicationStore(
   // Each public confirmation still acquires and checks its selected record.
   let lastConfirmedDeliveryRecord;
   let lastConfirmedManifestRead;
-  let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let materialRetentionBusy = Promise.resolve();
   let metadataRetentionBusy = Promise.resolve();
@@ -1382,12 +1382,6 @@ async function openOriginalLocalPublicationStore(
 
   // These immutable inputs were admitted by the existing delivery queue.
   // They share final-name durability, without an exported prepared interval.
-  const putDeliveryContracts = async (grant, attempt, streaming) => {
-    await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({
-      wire: contract.wire, semanticCid: contract.identity,
-    })));
-  };
-
   const {admitContract, parseContract, admitOriginalContract, putAdmittedPublicationContract, putPublicationContract,
     putNativePublicationContracts, admitPublicationContracts, putAdmittedPublicationContracts,
     putPublicationContracts, putOriginalPublicationContracts} =
@@ -1464,160 +1458,14 @@ async function openOriginalLocalPublicationStore(
       syncDirectory, nativePublicationContract, readContract,
     });
 
-  const readFileDeliveryAttemptContract = async (attemptCid, retained) => {
-    const bytes = await readBounded(
-      resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
-      configuration.maxObjectBytes,
-    );
-    try {
-      const contract = retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)
-        ? retained : admitContract('delivery_attempt', bytes.toString('utf8'));
-      if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');
-      return contract;
-    } catch (error) {
-      fail('InvalidDeliveryAttempt', error);
-    }
-  };
-
-  const readDeliveryAttemptContract = async (attemptCid, retained) =>
-    nativeDeliveryContract(attemptCid,'delivery_attempt',retained) ??
-      readFileDeliveryAttemptContract(attemptCid,retained);
-
-  const deliveryLogicalKey = query => JSON.stringify([
-    query.indexKey.namespaceId, query.indexKey.authorityScopeCid,
-    query.indexKey.runDefinitionCid, query.principalId, query.purpose,
-    query.resultName, query.attemptId,
-  ]);
-  const deliveryQuery = (attempt, grant) => ({
-    indexKey: {namespaceId: grant.namespace_id, authorityScopeCid: grant.authority_scope_cid,
-      runDefinitionCid: attempt.run_definition_cid},
-    principalId: grant.principal_id, purpose: grant.purpose,
-    resultName: attempt.result_name, attemptId: attempt.attempt_id,
-  });
-  const deliveryIndexRow = (attempt, grant, attemptContract, grantContract) => ({
-    logical_key: deliveryLogicalKey(deliveryQuery(attempt, grant)),
-    attempt_cid: attemptContract.identity, grant_cid: grantContract.identity,
-    run_cid: attempt.run_definition_cid,
-    attempt_wire: attemptContract.wire, grant_wire: grantContract.wire,
-  });
-  const installDeliveryAttempt = async (admitted, streaming) => {
-    const writer = {cleanup: undefined, failed: false};
-    activePhysicalRecordWriters.add(writer);
-    let retainedChild = false;
-    try {
-    const target = deliveryAttemptPath(admitted.identity);
-    const linkInitialRecord = async directory => {
-      if (streaming === undefined) return;
-      const path = resolve(directory, '0.json');
-      try {await link(contractPath(streaming.identity), path);}
-      catch (error) {
-        if (error?.code !== 'EEXIST') throw error;
-        if (!exactUtf8WireMatches(await readBounded(path, configuration.maxObjectBytes), streaming.wire)) {
-          fail('DeliveryRecordConflict');
-        }
-      }
-    };
-    try {
-      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
-      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
-      await linkInitialRecord(target);
-      await syncDirectory(target);
-      await syncDirectory(deliveriesDirectory);
-      return;
-    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    // A pending claim determines its one original staging alias. Recovery can
-    // revisit that alias without scanning unrelated directories on every open.
-    const staging = resolve(deliveriesDirectory, `.staging-${admitted.identity.slice(7)}`);
-    try { await mkdir(staging, {mode: 0o700}); }
-    catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      if (!(await lstat(staging)).isDirectory()) fail('InvalidDeliveryAttemptStore');
-    }
-    try {
-      try { await link(contractPath(admitted.identity), resolve(staging, 'attempt.json')); }
-      catch (error) {
-        if (error?.code !== 'EEXIST') throw error;
-        const bytes = await readBounded(resolve(staging,'attempt.json'),configuration.maxObjectBytes);
-        if (!exactUtf8WireMatches(bytes,admitted.wire)) fail('DeliveryAttemptConflict');
-      }
-      await linkInitialRecord(staging);
-      await syncDirectory(staging);
-      await rename(staging, target);
-      await syncDirectory(deliveriesDirectory);
-    } catch (primary) {
-      if (primary?.code !== 'EEXIST') throw primary;
-      await rm(staging, {recursive: true, force: false});
-      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
-      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
-      await linkInitialRecord(target);
-      await syncDirectory(target);
-      await syncDirectory(deliveriesDirectory);
-    }
-    } catch (primary) {
-      const child = primary?.cleanupHandle;
-      if (child !== undefined) {
-        const statusOriginal = child.status, retryOriginal = child.retry;
-        let pending = true, flight;
-        const status = () => Object.freeze({pending});
-        writer.failed = retainedChild = true;
-        writer.cleanup = Object.freeze({status,retry() {
-          if (flight !== undefined) return flight;
-          flight = Promise.resolve().then(async () => {
-            if (!pending) return status();
-            if (typeof statusOriginal !== 'function' || typeof retryOriginal !== 'function') {
-              fail('PublicationStoreCleanupPending');
-            }
-            await Reflect.apply(retryOriginal,child,[]);
-            const observation = await Reflect.apply(statusOriginal,child,[]);
-            const descriptor = observation !== null && typeof observation === 'object'
-              ? Object.getOwnPropertyDescriptor(observation,'pending') : undefined;
-            if (descriptor?.value !== false) fail('PublicationStoreCleanupPending');
-            pending = false;
-            activePhysicalRecordWriters.delete(writer);
-            return status();
-          }).finally(() => { flight = undefined; });
-          return flight;
-        }});
-      }
-      throw primary;
-    } finally {
-      if (!retainedChild) activePhysicalRecordWriters.delete(writer);
-    }
-  };
-  const admitDeliveryClaim = (row, suppliedAttempt, suppliedGrant) => {
-    const attemptContract = suppliedAttempt?.contract.identity === row.attempt_cid && suppliedAttempt.contract.wire === row.attempt_wire
-      ? suppliedAttempt.contract : admitContract('delivery_attempt', row.attempt_wire);
-    const grantContract = suppliedGrant?.contract.identity === row.grant_cid && suppliedGrant.contract.wire === row.grant_wire
-      ? suppliedGrant.contract : admitContract('result_read_grant', row.grant_wire);
-    const attempt = attemptContract === suppliedAttempt?.contract ? suppliedAttempt.value : parseContract(attemptContract);
-    const grant = grantContract === suppliedGrant?.contract ? suppliedGrant.value : parseContract(grantContract);
-    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
-    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
-        attempt.result_read_grant_cid !== grantContract.identity ||
-        attempt.run_definition_cid !== grant.run_definition_cid ||
-        attempt.result_manifest_cid !== grant.result_manifest_cid ||
-        !grant.results.some(result => result.result_name === attempt.result_name &&
-          result.result_artifact_cid === attempt.result_artifact_cid)) fail('InvalidDeliveryAttemptIndex');
-    let streaming, streamingRecord;
-    if (row.initial_wire != null) {
-      streaming = admitContract('delivery_record',row.initial_wire);
-      const record = streamingRecord = parseContract(streaming);
-      if (row.initial_cid != null && streaming.identity !== row.initial_cid ||
-          record.delivery_attempt_cid !== attemptContract.identity ||
-          record.sequence !== 0 || record.state !== 'streaming' ||
-          Reflect.apply(deliveryStartTransition,contractControl,[undefined,streaming]) !== true) {
-        fail('InvalidDeliveryAttemptIndex');
-      }
-    }
-    return {attemptContract,attempt,grantContract,grant,streaming,streamingRecord};
-  };
-  const restoreDeliveryClaim = async row => {
-    const {attemptContract,attempt,grantContract,grant,streaming} = admitDeliveryClaim(row);
-    await putDeliveryContracts(grantContract,attemptContract,streaming);
-    await installDeliveryAttempt(attemptContract,streaming);
-    if (row.ready === 0) deliveryIndex.finish(row.logical_key,attemptContract.identity);
-    return {attemptContract,attempt,grantContract,grant};
-  };
+  const {readFileDeliveryAttemptContract, readDeliveryAttemptContract, deliveryIndexRow, admitDeliveryClaim, restoreDeliveryClaim,
+    enqueueDeliveryAdmission, createDeliveryAttempt, beginDeliveryAttempt, lookupDeliveryAttempt, selectDeliveryAttempt} =
+    createDeliveryAttemptStore(configuration, deliveriesDirectory, recordNamePattern, contractControl, readDeliveryOriginal,
+      deliveryStartTransition, deliveryStarts, activePhysicalRecordWriters, {
+        active, currentDeliveryIndex, contractPath, deliveryAttemptPath, exactUtf8WireMatches, syncDirectory,
+        runMetadataDeletionStarted, putSemanticBatch, admitContract, parseContract, nativeDeliveryContract, readContract,
+        readSemanticBytes, readLatestDeliveryRecordContract: (...args) => readLatestDeliveryRecordContract(...args),
+      });
 
   const initializeDeliveryIndex = async () => {
     let coverage, indexExists = false;
@@ -1782,87 +1630,6 @@ async function openOriginalLocalPublicationStore(
     for (const row of pending) {
       if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
     }
-  };
-
-  const enqueueDeliveryAdmission = action => {
-    active();
-    const operation = deliveryAdmissionBusy.then(action);
-    deliveryAdmissionBusy = operation.catch(() => {});
-    return operation;
-  };
-  const createAdmittedDeliveryAttempt = async (admitted, grantContract, initial) => {
-    const attempt = parseContract(admitted);
-    const grant = parseContract(grantContract);
-    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
-      fail('PublicationMetadataDeleted');
-    }
-    if (attempt.result_read_grant_cid !== grantContract.identity ||
-        attempt.run_definition_cid !== grant.run_definition_cid ||
-        attempt.result_manifest_cid !== grant.result_manifest_cid ||
-        !grant.results.some(result => result.result_name === attempt.result_name &&
-          result.result_artifact_cid === attempt.result_artifact_cid)) {
-      fail('DeliveryGrantMismatch');
-    }
-    const {match: retained} = await selectDeliveryAttempt(
-      deliveryQuery(attempt,grant), {contract: admitted, value: attempt},
-      {contract: grantContract, value: grant}, false);
-    if (retained !== undefined) {
-      // Both originals were admitted. Compare every scalar field, restoring
-      // only the selected birth/identity, rather than hash the same body again.
-      const keys = Object.keys(attempt);
-      if (keys.length !== Object.keys(retained.attempt).length ||
-          keys.some(name => name !== 'requested_at' && name !== 'delivery_attempt_cid' &&
-            attempt[name] !== retained.attempt[name])) fail('DeliveryAttemptConflict');
-      return Object.freeze({attempt: retained.attempt, created: false});
-    }
-    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
-    const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
-    const progress = initial === undefined ? undefined :
-      {runCid:attempt.run_definition_cid,phase:'preparing'};
-    if (progress !== undefined) deliveryStarts.set(admitted.identity,progress);
-    try {
-      const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);
-      if (!selected.created) fail('DeliveryAttemptConflict');
-      // This SAME transaction owns uniqueness, use quota and the original
-      // initial state. Its native COMMIT is the durable metadata original;
-      // no duplicate contract file or alias ACK is required for joint START.
-      // Legacy callers retain their original physical representation.
-      if (initial === undefined) {
-        await putDeliveryContracts(grantContract,admitted);
-        await installDeliveryAttempt(admitted);
-        deliveryIndex.finish(row.logical_key,admitted.identity);
-      } else progress.phase = 'installed';
-    } catch (error) {
-      if (progress !== undefined) progress.phase = 'failed';
-      throw error;
-    }
-    return Object.freeze(initial === undefined ? {attempt, created: true} :
-      {original: initial.original, created: true});
-  };
-  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => enqueueDeliveryAdmission(() =>
-    createAdmittedDeliveryAttempt(admitContract('delivery_attempt', suppliedWire),
-      admitContract('result_read_grant', suppliedGrantWire)));
-  const beginDeliveryAttempt = (original, streaming) => {
-    active();
-    let facts;
-    try {
-      facts = Reflect.apply(readDeliveryOriginal, contractControl, [original]);
-      if (Reflect.apply(deliveryStartTransition, contractControl, [undefined, streaming]) !== true) {
-        fail('InvalidDeliveryStartEvidence');
-      }
-    } catch (cause) {fail('InvalidDeliveryStartEvidence', cause);}
-    for (const contract of [facts.grant, facts.attempt, streaming]) {
-      if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
-          !Object.isFrozen(contract) || typeof contract.wire !== 'string' ||
-          Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes) {
-        fail('InvalidDeliveryStartEvidence');
-      }
-    }
-    const record = parseContract(streaming);
-    if (streaming.name !== 'delivery_record' || record.delivery_attempt_cid !== facts.attempt.identity ||
-        record.sequence !== 0 || record.state !== 'streaming') fail('InvalidDeliveryStartEvidence');
-    return enqueueDeliveryAdmission(() => createAdmittedDeliveryAttempt(facts.attempt, facts.grant,
-      {original, streaming}));
   };
 
   const consumeManifestReadGrant = (suppliedWire, attemptId) => {
@@ -2045,91 +1812,6 @@ async function openOriginalLocalPublicationStore(
   const latestDeliveryRecord = async attemptCid => {
     const contract = await latestDeliveryRecordContract(attemptCid);
     return contract === undefined ? undefined : parseContract(contract);
-  };
-
-  const lookupDeliveryAttempt = async query => {
-    active();
-    if (!exactKeys(query, [
-      'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
-    ]) || !exactKeys(query.indexKey, [
-      'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
-    ]) || typeof query.indexKey.namespaceId !== 'string' ||
-        query.indexKey.namespaceId.length === 0 ||
-        !cidPattern.test(query.indexKey.authorityScopeCid) ||
-        !cidPattern.test(query.indexKey.runDefinitionCid) ||
-        typeof query.principalId !== 'string' || !query.principalId ||
-        typeof query.purpose !== 'string' || !query.purpose ||
-        typeof query.resultName !== 'string' || !query.resultName ||
-        typeof query.attemptId !== 'string' || !query.attemptId ||
-        query.attemptId.length > 256) {
-      fail('InvalidDeliveryAttemptLookup');
-    }
-    return (await selectDeliveryAttempt(query)).match;
-  };
-
-  // The native index is complete before this Store escapes. Each public
-  // selection reads only its exact target and referenced grant, never unrelated
-  // attempt history. The same admission queue owns transactional claim changes.
-  const selectDeliveryAttempt = async (query, suppliedAttempt, suppliedGrant,
-    includeProgress = true) => {
-    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
-    const key = deliveryLogicalKey(query);
-    const row = deliveryIndex.lookup(key);
-    if (row === undefined) return {match: undefined};
-    if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');
-    let recovered;
-    if (row.initial_cid != null) {
-      const progress = deliveryStarts.get(row.attempt_cid);
-      if (progress !== undefined && progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
-      recovered = admitDeliveryClaim(row,suppliedAttempt,suppliedGrant);
-    } else if (row.initial_wire != null) {
-      let progress = deliveryStarts.get(row.attempt_cid);
-      if (progress === undefined) {
-        // Recovery is target-specific, not an O(history) ordinary-open pass.
-        // Latch before any await/reentry and retain failure for this lifetime.
-        progress = {runCid:row.run_cid,phase:'preparing'};
-        deliveryStarts.set(row.attempt_cid,progress);
-        try {
-          if (await runMetadataDeletionStarted(row.run_cid)) fail('PublicationMetadataDeleted');
-          recovered = await restoreDeliveryClaim(row);
-          progress.phase = 'installed';
-        } catch (error) { progress.phase = 'failed'; throw error; }
-      } else if (progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
-    }
-    const attemptContract = recovered?.attemptContract ?? await readDeliveryAttemptContract(
-      row.attempt_cid, suppliedAttempt?.contract);
-    const attempt = recovered?.attempt ?? (attemptContract === suppliedAttempt?.contract
-      ? suppliedAttempt.value : parseContract(attemptContract));
-    let grantContract, grant;
-    if (recovered !== undefined) {
-      grantContract = recovered.grantContract;
-      grant = recovered.grant;
-    } else if (suppliedGrant?.contract.identity === row.grant_cid) {
-      const bytes = await readSemanticBytes(row.grant_cid);
-      grantContract = exactUtf8WireMatches(bytes,suppliedGrant.contract.wire)
-        ? suppliedGrant.contract : admitContract('result_read_grant',bytes.toString('utf8'));
-      grant = grantContract === suppliedGrant.contract ? suppliedGrant.value : parseContract(grantContract);
-    } else {
-      const original = await readContract(row.grant_cid,'result_read_grant');
-      grantContract = original.contract;
-      grant = original.value;
-    }
-    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
-    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
-        attempt.result_read_grant_cid !== row.grant_cid ||
-        grant.run_definition_cid !== attempt.run_definition_cid ||
-        grant.result_manifest_cid !== attempt.result_manifest_cid) {
-      fail('InvalidDeliveryAttemptIndex');
-    }
-    const recordContract = includeProgress ? await readLatestDeliveryRecordContract(
-      attemptContract.identity,undefined,row.initial_cid == null ? undefined : recovered.streaming,
-      row.initial_cid == null ? undefined : recovered.streamingRecord) : undefined;
-    const record = recordContract === undefined ? undefined : recordContract === recovered?.streaming
-      ? recovered.streamingRecord : parseContract(recordContract);
-    const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
-      ? undefined : (await readContract(record.result_delivery_receipt_cid,
-        'result_delivery_receipt')).value;
-    return {match: Object.freeze({attempt,record,hostReleaseReceipt})};
   };
 
   const confirmDeliveryRecord = async suppliedWire => {
