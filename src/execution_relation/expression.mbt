@@ -128,6 +128,8 @@ priv enum Evaluation {
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
   RegexMatching(RegexMatchFrame)
+  RegexExtracting(TextFunctionState, RegexMatchFrame, Int, Int64)
+  RegexCaptureText(TextFunctionState, RegexCaptureText)
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   FormatText(TextFunctionState, FormatStrings)
   SqlJsonText(TextFunctionState, SqlJsonCursor)
@@ -433,8 +435,12 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
     | ArrayTextJoin(state, _)
     | FormatText(state, _)
     | SqlJsonText(state, _)
-    | JsonValueText(state, _) => state.builder = None
-    RegexMatching(state) => if state.search is Some(search) { search.cancel() }
+    | JsonValueText(state, _)
+    | RegexCaptureText(state, _) => state.builder = None
+    RegexMatching(state) | RegexExtracting(_, state, _, _) =>
+      if state.search is Some(search) {
+        search.cancel()
+      }
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -886,6 +892,7 @@ fn advance_expression_frame_impl(
               op == @lower.FormatStrings ||
               op == @lower.ToJsonString ||
               op == @lower.JsonValue ||
+              op == @lower.RegexExtract ||
               op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
@@ -907,7 +914,9 @@ fn advance_expression_frame_impl(
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
-              } else if op == @lower.Replace || op == @lower.Translate {
+              } else if op == @lower.Replace ||
+                op == @lower.Translate ||
+                op == @lower.RegexExtract {
                 children.length() == 3
               } else if op == @lower.LeftString ||
                 op == @lower.RightString ||
@@ -929,6 +938,8 @@ fn advance_expression_frame_impl(
                     TextSqlJson
                   } else if op == @lower.JsonValue {
                     TextJsonValue
+                  } else if op == @lower.RegexExtract {
+                    TextRegexExtract
                   } else if op == @lower.Split {
                     TextSplit
                   } else if op == @lower.Repeat {
@@ -980,7 +991,8 @@ fn advance_expression_frame_impl(
               | ArrayToString
               | FormatStrings
               | ToJsonString
-              | JsonValue => Null
+              | JsonValue
+              | RegexExtract => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1344,7 +1356,12 @@ fn advance_expression_frame_impl(
                 Ok(state) => state
                 Err(issue) => return Err(issue)
               }
-              if state.kind == TextArrayJoin && !state.null_result {
+              if state.kind == TextRegexExtract {
+                match start_regex_extract(frame, state, args.values) {
+                  Ok(_) => ()
+                  Err(issue) => return Err(issue)
+                }
+              } else if state.kind == TextArrayJoin && !state.null_result {
                 guard args.values[0] is Captured(@admitted.Array(items)) &&
                   args.values[1] is Text(delimiter) else {
                   return Err({
@@ -2073,6 +2090,7 @@ fn advance_expression_frame_impl(
               | FormatStrings
               | ToJsonString
               | JsonValue
+              | RegexExtract
               | Substring
               | LeftString
               | RightString
@@ -2319,10 +2337,10 @@ fn advance_expression_frame_impl(
       }
       RegexMatching(state) => {
         frame.active = state.expression
-        match advance_regex_match(state) {
+        match advance_regex_search(state) {
           Err(issue) => return Err(issue)
-          Ok(None) => ()
-          Ok(Some(value)) => {
+          Ok(RegexSearching) => ()
+          Ok(RegexComplete(found)) => {
             if release(state.left_root) is Some(issue) {
               return Err({
                 kind: LogicalValue(issue),
@@ -2337,8 +2355,22 @@ fn advance_expression_frame_impl(
             }
             state.search = None
             release_slots(workspace, REGEX_MATCH_SLOTS + state.workspace.slots)
-            frame.state = Return(value)
+            frame.state = Return(Boolean(found is Some(_)))
           }
+        }
+      }
+      RegexExtracting(state, search, capture, max_bytes) => {
+        frame.active = state.expression
+        match advance_regex_extract(frame, state, search, capture, max_bytes) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      RegexCaptureText(state, selected) => {
+        frame.active = state.expression
+        match advance_regex_capture(frame, state, selected) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
         }
       }
       TextFunction(state) => {

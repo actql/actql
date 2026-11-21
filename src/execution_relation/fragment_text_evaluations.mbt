@@ -41,7 +41,7 @@ fn evaluation_position(
   guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
     [
       "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp", "format_timestamp",
-      "regex_match",
+      "regex_match", "regex_extract",
     ].contains(operation) &&
     @identity.object_field(source, operation) is Some(arguments) else {
     return None
@@ -151,13 +151,26 @@ fn emit_text_evaluation_envelope(
       ParseTimestamp => "parse_timestamp"
       FormatTimestamp(_) => "format_timestamp"
       RegexMatch => "regex_match"
+      RegexExtract => "regex_extract"
       _ => raise @encode.InvalidStructure
     },
   )
-  if @text_bounds.output_operation(bound) is RegexMatch {
-    guard @lower.text_bound_regex_pattern(original) is Some((pattern, _)) else {
-      raise @encode.InvalidStructure
+  let pattern = match @text_bounds.output_operation(bound) {
+    RegexMatch => {
+      guard @lower.text_bound_regex_pattern(original) is Some((pattern, _)) else {
+        raise @encode.InvalidStructure
+      }
+      Some(pattern)
     }
+    RegexExtract => {
+      guard @lower.text_bound_regex_extract(original) is Some((pattern, _, _)) else {
+        raise @encode.InvalidStructure
+      }
+      Some(pattern)
+    }
+    _ => None
+  }
+  if pattern is Some(pattern) {
     let (pattern_bytes, _, _) = @regex.usage(pattern)
     @encode.key(out, "pattern")
     @encode.begin_object(out)
@@ -219,7 +232,8 @@ fn prepare_fragment_evaluations(
         | CaseFold
         | ParseTimestamp
         | FormatTimestamp(_)
-        | RegexMatch)) {
+        | RegexMatch
+        | RegexExtract)) {
         return Err(GeneratedDecodeFailure)
       }
       let pointer = match

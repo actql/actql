@@ -1049,6 +1049,8 @@ pub fn text_bound_output(ExpressionTextBound) -> @text_time_bounds.Output
 
 pub fn text_bound_policy(ExpressionTextBound) -> @check_environment.TextTime
 
+pub fn text_bound_regex_extract(ExpressionTextBound) -> (@regex_pattern.Pattern, String?, Int)?
+
 pub fn text_bound_regex_pattern(ExpressionTextBound) -> (@regex_pattern.Pattern, String?)?
 
 pub fn text_bound_timestamp_pattern(ExpressionTextBound) -> @timestamp_pattern.Pattern?
@@ -1632,6 +1634,7 @@ pub(all) enum ManyOperator {
   FormatStrings
   ToJsonString
   JsonValue
+  RegexExtract
   Substring
   LeftString
   RightString

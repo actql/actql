@@ -72,6 +72,22 @@ fn start_regex_match(
     @text_bounds.output_operation(@lower.text_bound_output(bound)) is RegexMatch else {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }
+  start_checked_regex(
+    expression, input, pattern, flags, bound, left_root, right_root, workspace,
+  )
+}
+
+///|
+fn start_checked_regex(
+  expression : @lower.Expression,
+  input : String,
+  pattern : @regex.Pattern,
+  flags : String?,
+  bound : @lower.ExpressionTextBound,
+  left_root : ExpressionRootLease?,
+  right_root : ExpressionRootLease?,
+  workspace : RowWorkspace,
+) -> Result[RegexMatchFrame, EvalIssue] {
   if !reserve_slots(workspace, REGEX_MATCH_SLOTS) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
@@ -96,13 +112,21 @@ fn start_regex_match(
 }
 
 ///|
-fn advance_regex_match(state : RegexMatchFrame) -> Result[Value?, EvalIssue] {
+priv enum RegexProgress {
+  RegexSearching
+  RegexComplete(@regex.Match?)
+}
+
+///|
+fn advance_regex_search(
+  state : RegexMatchFrame,
+) -> Result[RegexProgress, EvalIssue] {
   let expression = state.expression
   let invalid = { kind: Scalar(InvalidOperand), expression, }
   if state.search is Some(search) {
     return match search.advance() {
-      SearchContinue => Ok(None)
-      SearchComplete(result) => Ok(Some(Boolean(result is Some(_))))
+      SearchContinue => Ok(RegexSearching)
+      SearchComplete(result) => Ok(RegexComplete(result))
       SearchFailed(SearchWorkspaceLimit) =>
         Err({ kind: WorkspaceLimit, expression, })
       SearchFailed(_) | SearchTerminal => Err(invalid)
@@ -120,7 +144,7 @@ fn advance_regex_match(state : RegexMatchFrame) -> Result[Value?, EvalIssue] {
     state.position = next
     state.points += 1L
     state.bytes += width.to_int64()
-    return Ok(None)
+    return Ok(RegexSearching)
   }
   // The physical reserve gates every backing increase. Entry limits only
   // prevent index overflow. Expression control work meters every transition.
@@ -139,7 +163,7 @@ fn advance_regex_match(state : RegexMatchFrame) -> Result[Value?, EvalIssue] {
     ) {
     Ok(search) => {
       state.search = Some(search)
-      Ok(None)
+      Ok(RegexSearching)
     }
     Err(SearchWorkspaceLimit) => Err({ kind: WorkspaceLimit, expression, })
     Err(_) => Err(invalid)

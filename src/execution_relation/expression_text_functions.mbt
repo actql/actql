@@ -27,6 +27,7 @@ priv enum TextFunctionKind {
   TextFormatStrings
   TextSqlJson
   TextJsonValue
+  TextRegexExtract
   TextSubstring
   TextLeft
   TextRight
@@ -179,6 +180,7 @@ fn start_text_function(
       Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
         ()
       Text(_) if kind != TextChr &&
+        (kind != TextRegexExtract || i < 2) &&
         (kind != TextArrayJoin || i != 0) &&
         (kind != TextFormatTimestamp || i != 0) &&
         (
@@ -192,7 +194,8 @@ fn start_text_function(
           i == 0 ||
           (is_pad_text_function(kind) && i == 2)
         ) => ()
-      Number(_) if (kind == TextUtf8Truncate && i == 1) ||
+      Number(_) if (kind == TextRegexExtract && i == 2) ||
+        (kind == TextUtf8Truncate && i == 1) ||
         kind == TextChr ||
         (kind == TextInstr && i >= 2) ||
         (kind == TextSubstring && i > 0) ||
@@ -341,6 +344,9 @@ fn start_text_function(
       2 + (if null_result { 0 } else { SQL_JSON_CURSOR_SLOTS })
     } else if kind == TextJsonValue {
       2 + (if null_result { 0 } else { JSON_VALUE_CURSOR_SLOTS })
+    } else if kind == TextRegexExtract {
+      // The retained text state and the fixed capture span/copy cursor.
+      3
     } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
@@ -428,6 +434,7 @@ fn start_text_function(
     kind != TextLike &&
     kind != TextInstr &&
     kind != TextJsonValue &&
+    kind != TextRegexExtract &&
     !null_result {
     match admit_text_expression_output(expression, scope) {
       Ok(root) => root
@@ -477,6 +484,8 @@ fn start_text_function(
       kind == TextSqlJson ||
       kind == TextJsonValue {
       values.length() * 3 + 1 + reserved
+    } else if kind == TextRegexExtract {
+      values.length() * 2 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||
       kind == TextLike {

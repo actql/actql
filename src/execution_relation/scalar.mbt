@@ -713,6 +713,7 @@ pub fn boolean_pair(
     | FormatStrings
     | ToJsonString
     | JsonValue
+    | RegexExtract
     | Substring
     | LeftString
     | RightString

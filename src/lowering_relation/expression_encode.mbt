@@ -13,6 +13,7 @@ priv enum ExpressionFrame {
   ClauseWhen(Expression)
   VectorScoreRest(VectorMetric, Expression)
   ObjectExpressions(Array[(String, Expression)], Int)
+  RegexExtractTail(String?, Expression, Expression)
   PropertyValue(Expression)
   DecimalDivisionRight(Expression, String, Int, Int)
   DecimalDivisionTail(String, Int)
@@ -399,6 +400,17 @@ fn emit_frames(
             fields.push(("value", args[0]))
             pending.push(ObjectExpressions(fields, 0))
           }
+          Many(RegexExtract, args) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_extract(bound) is Some((_, flags, _)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_extract"))
+            @encode.begin_object(output)
+            @encode.key(output, "capture")
+            pending.push(RegexExtractTail(flags, args[1], args[0]))
+            pending.push(Expr(args[2]))
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -421,6 +433,7 @@ fn emit_frames(
                   FormatStrings => "format_strings"
                   ToJsonString => "to_json_string"
                   JsonValue => "json_value"
+                  RegexExtract => raise @encode.InvalidStructure
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"
@@ -463,6 +476,15 @@ fn emit_frames(
         } else {
           @encode.end_array(output)
         }
+      RegexExtractTail(flags, pattern, value) => {
+        if flags is Some(flags) {
+          @encode.key(output, "flags")
+          @encode.string_value(output, flags)
+        }
+        pending.push(
+          ObjectExpressions([("pattern", pattern), ("value", value)], 0),
+        )
+      }
       PropertyValue(value) => {
         @encode.key(output, "value")
         pending.push(Expr(value))

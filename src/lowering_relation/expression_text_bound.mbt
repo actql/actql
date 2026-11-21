@@ -58,3 +58,22 @@ pub fn text_bound_regex_pattern(
     None
   }
 }
+
+///|
+/// The capture index is the Check-owned literal or bound Parameter result.
+pub fn text_bound_regex_extract(
+  value : ExpressionTextBound,
+) -> (@regex.Pattern, String?, Int)? {
+  if value.pattern is Some(@context.Regex(pattern)) &&
+    @context.regex_pattern_operation(pattern) is @context.Extract(capture) {
+    Some(
+      (
+        @context.regex_pattern_ast(pattern),
+        @context.regex_pattern_flags(pattern),
+        capture,
+      ),
+    )
+  } else {
+    None
+  }
+}
