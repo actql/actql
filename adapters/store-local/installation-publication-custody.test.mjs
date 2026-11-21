@@ -16,6 +16,7 @@ import {createPublicationContractControlFixture} from
 import {openLocalPublicationStore} from './publication-store.mjs';
 
 const execute = promisify(execFile);
+const sqliteExperimentalWarning = /^\(node:\d+\) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n\(Use `node --trace-warnings \.\.\.` to show where the warning was created\)\n/u;
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const coldProbe = fileURLToPath(new URL('./installation-publication-cold.fixture.mjs', import.meta.url));
 // This is deliberately not an invented installation-publication schema. The
@@ -54,7 +55,7 @@ async function fixture(t, hooks) {
       const result = await execute(process.execPath, [coldProbe,
         JSON.stringify({configuration, binding: {...binding, ...patch}, keyByte})],
       {timeout: 20000, maxBuffer: 1024 * 1024});
-      assert.equal(result.stderr, '');
+      assert.equal(result.stderr.replace(sqliteExperimentalWarning, ''), '');
       return JSON.parse(result.stdout);
     }};
 }
