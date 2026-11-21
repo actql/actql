@@ -462,7 +462,7 @@ pub fn client_effect_local_result_artifact_retained_bytes(
   let mut retained = @execution.preparation_representation_cost({
     record_headers: 4L + options,
     reference_slots: 16L + options,
-    scalar_words: 1L,
+    scalar_words: 3L + options,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

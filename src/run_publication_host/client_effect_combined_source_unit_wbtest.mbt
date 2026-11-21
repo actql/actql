@@ -805,6 +805,15 @@ fn combined_source_unit_completed_fixture(
         artifact, max_nodes, max_depth,
       ).unwrap()
       assert_true(retained > 2L * wire_units)
+      assert_true(artifact.scope is Some(_))
+      let without_scope = { ..artifact, scope: None, }
+      assert_eq(
+        retained -
+        client_effect_local_result_artifact_retained_bytes(
+          without_scope, max_nodes, max_depth,
+        ).unwrap(),
+        16L + 8L + 8L,
+      )
       assert_true(
         client_effect_local_result_artifact_retained_bytes(
           artifact,
