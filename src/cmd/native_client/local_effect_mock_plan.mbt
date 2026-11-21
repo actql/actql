@@ -587,42 +587,63 @@ fn native_mock_effect_import_construction(
   wire : @execution.RowWireLimits,
 ) -> (@execution.ExecutionCapacity, @execution.ExecutionCapacity) raise ClientStop {
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
-  guard @run_host.prepared_client_effect_infer_occurrence(prepared)
-    is Some(model) else {
-    return (empty, empty)
-  }
-  let unit = @run_host.client_infer_occurrence_coordinates(model).1
-  let program = @checked.effect_program_static_checked_computation(
-    @run_host.prepared_client_effect_computation_candidate(prepared),
+  let candidate = @run_host.prepared_client_effect_computation_candidate(
+    prepared,
   )
+  let program = @checked.effect_program_static_checked_computation(candidate)
+  let model = @run_host.prepared_client_effect_infer_occurrence(prepared)
+  let unit = match model {
+    Some(occurrence) =>
+      @run_host.client_infer_occurrence_coordinates(occurrence).1
+    None => {
+      let headers = @checked.effect_program_static_headers(candidate)
+      guard @syntax.effect_header_at(headers, 0) is Some(header) else {
+        return (empty, empty)
+      }
+      @syntax.effect_header_stage(header)
+    }
+  }
   let imports = @checked.unit_result_import_count(program, unit)
     .unwrap_or(0)
     .to_int64()
-  if imports == 0L {
+  if model is Some(_) && imports == 0L {
     return (empty, empty)
   }
   let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
     prepared, 1000000,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let units = @run_host.client_direct_acquisition_occurrence_count(direct).to_int64()
-  // SAME existing composed reader admission, not a new language ceiling.
-  if units < 1L || units > 2L {
+  if model is None && units == 0L {
+    return (empty, empty)
+  }
+  // The Model import route retains its existing composed reader admission.
+  if units < 1L || (model is Some(_) && units > 2L) {
     stop("LocalOriginalEffectCapacityUnavailable")
   }
   let mut results = 0L
   let stages = @checked.checked_stage_results(program)
-  for index in 0..<units.to_int() {
-    let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
-      direct, index,
-    ).unwrap()
-    let declarations = @stage_results.stage_at(stages, stage).unwrap_or_else(() => {
+  if model is None {
+    let declarations = @stage_results.stage_at(stages, unit).unwrap_or_else(() => {
       stop("LocalOriginalEffectCapacityUnavailable")
     })
-    results += @results.count(declarations).to_int64()
+    results = @results.count(declarations).to_int64()
+  } else {
+    for index in 0..<units.to_int() {
+      let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      ).unwrap()
+      let declarations = @stage_results.stage_at(stages, stage).unwrap_or_else(() => {
+        stop("LocalOriginalEffectCapacityUnavailable")
+      })
+      results += @results.count(declarations).to_int64()
+    }
   }
-  // The original Model Unit also declares its retained Model boundary Result.
-  // Effect members supply their own artifacts; reserve only missing originals.
-  let extra_results = native_mock_effect_extra_unit_results(prepared, unit).to_int64()
+  // The Model path additionally retains its independent boundary Result.
+  let extra_results = if model is Some(_) {
+    native_mock_effect_extra_unit_results(prepared, unit).to_int64()
+  } else {
+    0L
+  }
   results += extra_results
   // Per Result: Definition/Artifact/Derivation/Ordering. Per import: original
   // observation and derived Relation. Per producer: Invocation/full Manifest.
@@ -717,7 +738,12 @@ fn native_mock_effect_import_construction(
     1L,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   (
-    initial,
+    // Direct starts with the existing warm recipe and grows on actual bodies.
+    if model is Some(_) {
+      initial
+    } else {
+      empty
+    },
     @execution.execution_capacity(max_r, max_e).unwrap_or_else(() => {
       stop("LocalOriginalEffectCapacityUnavailable")
     }),

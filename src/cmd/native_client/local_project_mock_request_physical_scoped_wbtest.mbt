@@ -2216,7 +2216,6 @@ test "Native shared-file Effect joins and binds both original Source observation
   }
   assert_eq(@json.parse(rows[0]), expected_row)
   {
-    let held = state.direct_sources.unwrap()
     let policy = @run_host.prepared_client_effect_publication_data_policy_cid(
       prepared,
     ).unwrap()
@@ -2238,150 +2237,38 @@ test "Native shared-file Effect joins and binds both original Source observation
       1024,
       20,
     ).unwrap()
-    let unit = @local_values.prepare_installed_effect_combined_source_unit(
+    let primary : Ref[LocalNativeMockEffectProposalIssue?] = Ref(None)
+    state.suffix = Some(executed)
+    state.prepare_direct_mock_effect_proposals(
       run,
-      plan,
-      original.request,
-      held._retained_publication.unwrap(),
-      0,
       retained,
-      16384,
-      1024,
-      20,
-    ).native_file_route_value("fund both original Sources in the same Unit")
-    let invocation = @run_host.client_effect_combined_source_unit_invocation(
-      unit,
-    )
-    guard @json.parse(@run_host.client_effect_local_invocation_json(invocation))
-      is Object(body) else {
-      fail("missing original Unit invocation")
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      _ =>
+        fail(
+          "direct native Effect proposals: " +
+          primary.val
+          .map(issue => {
+            command_preparation_cleanup_cause(
+              CommandBusinessEffectProposals(issue),
+            )
+          })
+          .unwrap_or("no typed cause"),
+        )
     }
-    let expected = held.observations.map(evidence => {
-      Json::string(@publication.run_evidence_value_identity(evidence))
-    })
-    assert_eq(body.get("observation_cids"), Some(Json::array(expected)))
-    let (_, slot, count) = @run_host.client_effect_combined_source_unit_catalog_subject(
-      unit,
-    )
-    assert_eq(slot, 0)
-    assert_eq(count, 2)
-    let captured = state.effect_capture.unwrap()
-    let inputs = @local_values.pin_installed_effect_sources(
-      run,
-      prepared,
-      original.request,
-      plan,
-      captured,
-      64,
-    ).native_file_route_value("pin the completed original file Effect Result")
-    assert_eq(@strategy.captured_effect_local_result_count(inputs), 1)
-    let result = @strategy.captured_effect_local_result_at(inputs, 0).unwrap()
-    assert_eq(@strategy.captured_effect_local_result_stage(result), slot)
-    assert_eq(
-      @execution.managed_result_occurrence_name(
-        @strategy.captured_any_result_borrow_occurrence(
-          @strategy.captured_effect_local_result_borrow(result),
-        ),
-      ),
-      "rows",
-    )
-    let host = state.effect_host.unwrap()
-    let installed = @builtin.configured_local_module(
-      @builtin.configured_host_modules(host),
-    ).unwrap()
-    let bridge = @local_driver.local_publication_bridge_limits(
-      installed,
-      @strategy.captured_effect_run_dag(captured),
-    ).unwrap()
-    let limits = @local_values.installed_effect_managed_publication_limits(
-      run,
-      prepared,
-      original.request,
-      plan,
-      16384,
-    ).unwrap()
-    let managed = executed
-      .prepare_effect_result_export(
-        captured,
-        inputs,
-        0,
-        bridge.row,
-        bridge.entries,
-        bridge.name_bytes,
-        limits,
-      )
-      .native_file_route_value("export the exact completed local Result")
-    let exported = managed.captured_export().unwrap()
-    let preparation = @strategy.captured_effect_local_result_export_preparation(
-      exported,
-    )
-    while !@execution.advance_completed_result_relation_export(preparation, 31).unwrap().0 {
-      ()
-    }
-    let stream = @execution.finish_completed_result_relation_export_preparation(
-      preparation,
-    ).unwrap()
-    guard @execution.next_completed_output_export_canonical_row(
-        stream,
-        limits.payload_wire.max_nodes,
-        limits.payload_wire.max_depth,
-        limits.max_result_order_work,
-      ).unwrap()
-      is Some((0, original_wire, _)) else {
-      fail("missing completed original Result row")
-    }
-    assert_eq(@json.parse(original_wire[1:].to_owned()), expected_row)
-    assert_true(
-      @execution.next_completed_output_export_canonical_row(
-        stream,
-        limits.payload_wire.max_nodes,
-        limits.payload_wire.max_depth,
-        limits.max_result_order_work,
-      ).unwrap()
-      is None,
-    )
-    let (receipt, _) = @execution.finish_completed_relation_export(stream).unwrap()
-    assert_eq(
-      @execution.completed_relation_export_measurement(receipt).row_count,
-      1,
-    )
-    let publication = held._retained_publication.unwrap()
-    let artifact = match
-      @local_values.prepare_installed_effect_combined_source_result_artifact(
-        run,
-        plan,
-        original.request,
-        publication,
-        inputs,
-        exported,
-        unit,
-        receipt,
-        @run_host.client_effect_allowed_run_admission(original.allowed),
-        16384,
-        1024,
-        20,
-      ) {
-      Ok(value) => value
-      Err(Artifact(issue)) =>
-        fail("original Result Artifact: " + @debug.to_string(issue))
-      Err(Run(Preparation(issue))) =>
-        fail("original Result backing: " + @debug.to_string(issue))
-      Err(Run(Ledger(issue))) =>
-        fail("original Result Ledger: " + @debug.to_string(issue))
-      Err(Run(InsufficientCapacity)) =>
-        fail("original Result quote overflow or missing body geometry")
-      Err(Run(ForeignOriginal)) =>
-        fail("Result Artifact lost its original Run or Plan binding")
-      Err(Run(Retired)) => fail("Result Artifact Run retired during issuance")
-      Err(_) =>
-        fail("original Result Artifact preparation refused before issuance")
-    }
-    assert_true(
-      @run_host.client_effect_local_artifact_matches_inputs(artifact, inputs),
-    )
+    let proposals = state.proposals.unwrap()
+    assert_eq(proposals.members.length(), 3)
+    assert_eq(proposals.unit_results.length(), 1)
+    let unit = proposals.unit_results[0]
+    let artifact = unit.artifact.unwrap()
+    let receipt = unit.receipt.unwrap()
     assert_true(
       @run_host.client_effect_local_result_artifact_matches_public_result(
-        prepared, inputs, artifact, 0,
+        prepared,
+        proposals.inputs,
+        artifact,
+        0,
       ),
     )
     assert_true(
@@ -2390,16 +2277,43 @@ test "Native shared-file Effect joins and binds both original Source observation
         receipt,
       ),
     )
-    @execution.cancel_completed_relation_export_receipt(receipt)
-    @execution.cancel_completed_output_export(stream)
-    managed.close()
-    assert_true(managed.captured_export() is None)
-    assert_true(@strategy.release_captured_effect_inputs(inputs))
-    assert_false(
-      @strategy.captured_effect_local_result_export_matches_receipt(
-        inputs, exported, receipt,
+    let snapshot = @json.parse(unit._retained_wire.unwrap())
+    assert_eq(snapshot, Json::array([expected_row]))
+    for index, selector in ["a1", "c1", "a2"] {
+      let proposal = proposals.members[index]
+      assert_true(
+        physical_equal(proposal._retained_artifact.unwrap(), artifact),
+      )
+      assert_true(
+        @run_host.client_effect_dependency_capture_matches_artifact(
+          proposal._retained_dependency.unwrap(),
+          artifact,
+        ),
+      )
+      assert_eq(proposal.rows.length(), 1)
+      assert_eq(@json.parse(proposal.rows[0].0), Json::string(selector))
+      assert_eq(
+        @json.parse(proposal.rows[0].1),
+        (
+          {
+            "state": "present",
+            "value": {
+              "value": Json::string(["A-new", "C-new", "A2-new"][index]),
+            },
+          } : Json),
+      )
+    }
+    assert_true(
+      @run_host.client_effect_local_manifest_matches(
+        proposals._retained_local_manifest.unwrap(),
+        prepared,
+        proposals.invocation.unwrap(),
+        [artifact],
       ),
     )
+    assert_true(proposals.close())
+    state.proposals = None
+    state.suffix = None
   }
   assert_true(executed.close())
   assert_true(

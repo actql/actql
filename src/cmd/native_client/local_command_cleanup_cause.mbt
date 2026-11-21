@@ -300,6 +300,15 @@ fn command_preparation_cleanup_cause(
             MissingResult => "EffectProposalsDefinitionMissingResult"
             _ => "EffectProposalsDefinition"
           }
+        UnitPublication(original) =>
+          match original {
+            Run(InsufficientCapacity) => "EffectProposalsUnitCapacity"
+            Run(Preparation(_)) => "EffectProposalsUnitPreparation"
+            Evidence(_) => "EffectProposalsUnitEvidence"
+            Artifact(_) => "EffectProposalsUnitArtifact"
+            Manifest(_) => "EffectProposalsUnitManifest"
+            _ => "EffectProposalsUnitPublication"
+          }
         Artifact(original) =>
           match original {
             ForeignOwner => "EffectProposalsArtifactForeignOwner"

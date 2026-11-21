@@ -15,6 +15,24 @@ priv struct LocalNativeMockEffectUnitResult {
 }
 
 ///|
+fn native_mock_effect_unit_result(
+  index : Int,
+) -> LocalNativeMockEffectUnitResult {
+  {
+    index,
+    managed_export: None,
+    exported: None,
+    stream: None,
+    receipt: None,
+    snapshot: None,
+    _retained_wire: None,
+    _retained_definition: None,
+    artifact: None,
+    _retained_dependency: None,
+  }
+}
+
+///|
 fn LocalNativeMockEffectUnitResult::close(self : Self) -> Unit {
   self._retained_dependency = None
   self.artifact = None
@@ -109,18 +127,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     if native_mock_effect_result_consumed(state._retained_prepared, unit, name) {
       continue
     }
-    let entry : LocalNativeMockEffectUnitResult = {
-      index,
-      managed_export: None,
-      exported: None,
-      stream: None,
-      receipt: None,
-      snapshot: None,
-      _retained_wire: None,
-      _retained_definition: None,
-      artifact: None,
-      _retained_dependency: None,
-    }
+    let entry = native_mock_effect_unit_result(index)
     held.unit_results.push(entry)
     let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
         @strategy.captured_effect_local_result_borrow(result),

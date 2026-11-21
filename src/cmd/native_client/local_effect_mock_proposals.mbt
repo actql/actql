@@ -13,6 +13,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   Materials(@run_host.ClientEffectRunMaterialsIssue)
   Definition(@run_host.ClientEffectLocalResultDefinitionIssue)
   Artifact(@run_host.ClientEffectLocalResultArtifactIssue)
+  UnitPublication(@local_values.ClientEffectUnitPreparationIssue)
   Dependency(@run_host.ClientEffectDependencyCaptureIssue)
   Manifest(@run_host.ClientEffectLocalManifestIssue)
   PreviewSource(@run_host.ClientEffectSourceArtifactIssue)
@@ -42,10 +43,20 @@ fn[T] Result::native_effect_proposal(
   self : Result[T, LocalNativeMockEffectProposalIssue],
   original : LocalCommandPreparationOriginal,
 ) -> T raise ClientStop {
+  self.native_effect_proposal_with_cause(issue => {
+    original.retain_primary(CommandBusinessEffectProposals(issue))
+  })
+}
+
+///|
+fn[T] Result::native_effect_proposal_with_cause(
+  self : Result[T, LocalNativeMockEffectProposalIssue],
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> T raise ClientStop {
   match self {
     Ok(value) => value
     Err(issue) => {
-      original.retain_primary(CommandBusinessEffectProposals(issue))
+      report(issue)
       stop("LocalOriginalEffectProposalsUnavailable")
     }
   }
@@ -70,6 +81,7 @@ priv struct LocalNativeMockEffectProposals {
   mut invocation : @run_host.ClientEffectLocalInvocation?
   mut materials : @run_host.ClientEffectRunMaterials?
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
+  mut _retained_combined_source_unit : @run_host.ClientEffectCombinedSourceUnit?
   mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
   _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
@@ -99,6 +111,54 @@ priv struct LocalNativeMockEffectProposalMember {
 }
 
 ///|
+fn native_mock_effect_proposals(
+  inputs : @strategy.CapturedEffectInputs,
+  bridge_limits : @execution.ManagedPublicationBridgeLimits,
+) -> LocalNativeMockEffectProposals {
+  {
+    inputs,
+    bridge_limits,
+    construction: None,
+    publication_context: None,
+    members: [],
+    unit_results: [],
+    _retained_keyed_identity: None,
+    invocation: None,
+    materials: None,
+    acquired: None,
+    _retained_combined_source_unit: None,
+    _retained_local_manifest: None,
+    _retained_lookup_dependencies: [],
+    _retained_direct_evidence: [],
+    source_imports: [],
+    imports: None,
+    import_observations: [],
+  }
+}
+
+///|
+fn native_mock_effect_proposal_member(
+  plan : @strategy.CapturedEffectProposalPlan,
+) -> LocalNativeMockEffectProposalMember {
+  {
+    plan,
+    capture_operation: None,
+    _retained_invocation: None,
+    _retained_capture_issue: None,
+    managed_export: None,
+    exported: None,
+    stream: None,
+    receipt: None,
+    snapshot: None,
+    _retained_snapshot_wire: None,
+    _retained_dependency: None,
+    _retained_definition: None,
+    _retained_artifact: None,
+    rows: [],
+  }
+}
+
+///|
 fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
   self : LocalCommandBusinessPreparation,
   retention : @publication.PublicationContract,
@@ -109,9 +169,24 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     state.effect_capture is Some(captured) &&
     state.effect_host is Some(host) &&
     business.request_run is Some(run) &&
-    business.model_work.length() == 1 &&
-    state.model_use is Some(_) &&
     state.proposals is None else {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  if business.model_work.is_empty() {
+    self.original.with_business_request(self.capture, () => {
+      state.prepare_direct_mock_effect_proposals(
+        run,
+        retention,
+        max_capture_bytes,
+        issue => {
+          self.original.retain_primary(CommandBusinessEffectProposals(issue))
+        },
+      )
+    })
+    self.yield_mock_effect_proposal_workspace(state)
+    return
+  }
+  guard business.model_work.length() == 1 && state.model_use is Some(_) else {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
@@ -146,27 +221,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's16 borrowed references and its
+    // Closed initial Host frame: this record's borrowed references and its
     // six empty Array headers stay inside the existing fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
-    let held : LocalNativeMockEffectProposals = {
-      inputs,
-      bridge_limits,
-      construction: None,
-      publication_context: None,
-      members: [],
-      unit_results: [],
-      _retained_keyed_identity: None,
-      invocation: None,
-      materials: None,
-      acquired: None,
-      _retained_local_manifest: None,
-      _retained_lookup_dependencies: [],
-      _retained_direct_evidence: [],
-      source_imports: [],
-      imports: None,
-      import_observations: [],
-    }
+    let held = native_mock_effect_proposals(inputs, bridge_limits)
     state.proposals = Some(held)
     @local_values.retain_installed_effect_captured_input_inventory(
       run,
@@ -186,22 +244,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
         .native_effect_proposal(self.original)
-      let current : LocalNativeMockEffectProposalMember = {
-        plan,
-        capture_operation: None,
-        _retained_invocation: None,
-        _retained_capture_issue: None,
-        managed_export: None,
-        exported: None,
-        stream: None,
-        receipt: None,
-        snapshot: None,
-        _retained_snapshot_wire: None,
-        _retained_dependency: None,
-        _retained_definition: None,
-        _retained_artifact: None,
-        rows: [],
-      }
+      let current = native_mock_effect_proposal_member(plan)
       held.members.push(current)
       // Retain the original member capture before its fallible semantic
       // constructors. The existing capture recipe backs Artifact/Preview
@@ -567,6 +610,14 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       .native_effect_proposal(self.original),
     )
   })
+  self.yield_mock_effect_proposal_workspace(state)
+}
+
+///|
+fn LocalCommandBusinessPreparation::yield_mock_effect_proposal_workspace(
+  self : LocalCommandBusinessPreparation,
+  state : LocalNativeMockEffectPlan,
+) -> Unit raise ClientStop {
   // The entire proposal/Manifest constructor frame has returned. Its owned
   // originals remain on `held`; only that phase's private scratch can return
   // before the separate target reader. No physical child is acknowledged.
@@ -591,6 +642,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   // backing. Physical pins and every partial child still close below through
   // the original owners; clearing metadata is never a physical ACK.
   self.acquired = None
+  self._retained_combined_source_unit = None
   self.imports = None
   self.import_observations.clear()
   for source in self.source_imports {
@@ -598,6 +650,12 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   }
   self.source_imports.clear()
   self._retained_local_manifest = None
+  // Direct Effect members borrow their Result owners' retained evidence.
+  for entry in self.members {
+    entry._retained_artifact = None
+    entry._retained_dependency = None
+    entry._retained_snapshot_wire = None
+  }
   for result in self.unit_results {
     result.close()
   }
@@ -609,13 +667,10 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   self.invocation = None
   self._retained_direct_evidence.clear()
   for entry in self.members {
-    entry._retained_dependency = None
-    entry._retained_snapshot_wire = None
     if entry.snapshot is Some(snapshot) {
       snapshot.cancel()
       entry.snapshot = None
     }
-    entry._retained_artifact = None
     entry._retained_definition = None
     @strategy.cancel_captured_effect_proposal_plan(entry.plan)
     if entry.receipt is Some(receipt) {
