@@ -1283,6 +1283,12 @@ target/
 /adapters/host-node/installed-credential-source-reader.d.mts
 /adapters/host-node/installed-credential-source-reader-modes.test.mjs
 /adapters/host-node/installed-credential-source-reader-modes.test.d.mts
+/adapters/host-node/rest-source-request.mjs
+/adapters/host-node/rest-source-request.d.mts
+/adapters/host-node/rest-source-page.mjs
+/adapters/host-node/rest-source-page.d.mts
+/adapters/host-node/rest-read-original.mjs
+/adapters/host-node/rest-read-original.d.mts
 /adapters/host-node/local-account-config.mjs
 /adapters/host-node/local-account-config.d.mts
 /adapters/host-node/local-account-current.test.mjs

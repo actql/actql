@@ -130565,7 +130565,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// The standard REST API's pure page adaptation for the one managed Host reader."
               },
               {
@@ -130579,11 +130579,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}) {"
+                "path": "adapters/host-node/rest-source-page.mts",
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions) {"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "return Object.freeze({projectedPage: page.originalPage, rowCount: page.rowCount,"
               },
               {
@@ -130595,17 +130595,17 @@
                 "anchor": "### Typed standard REST pages"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "function captureTransformResult(value) {"
+                "path": "adapters/host-node/rest-source-page.mts",
+                "anchor": "function captureTransformResult(value: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "const resource = source.resource;"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "fail('RestSourceCursorProjectionMismatch');"
               },
               {
@@ -130619,7 +130619,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// Core parses original bytes; this module never parses JSON or owns I/O,"
               },
               {
@@ -130637,12 +130637,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// The SAME managed owner invokes and joins even an invalid async"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const value = applySynchronousProjection(transform, undefined,"
+                "path": "adapters/host-node/rest-source-page.mts",
+                "anchor": "const value = applySynchronousProjection!(transform, undefined,"
               },
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
@@ -130655,7 +130655,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');"
               },
               {
@@ -130671,13 +130671,13 @@
                 "anchor": "### Typed standard REST pages"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "if (value === null || typeof value !== 'object' || isProxy(value)) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// credentials, currentness, row charging, cancellation or physical cleanup."
               },
               {
@@ -130695,7 +130695,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows("
               },
               {
@@ -130711,13 +130711,13 @@
                 "anchor": "### Typed standard REST pages"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "Buffer.byteLength(rowsWire, 'utf8') > bound.maxPageBytes) {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// Only a changed wire needs another existing Core parse. Counts"
               },
               {
@@ -130781,7 +130781,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// The standard REST API's pure page adaptation for the one managed Host reader."
               },
               {
@@ -130791,11 +130791,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}) {"
+                "path": "adapters/host-node/rest-source-page.mts",
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}: PageOptions) {"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "return Object.freeze({projectedPage: page.originalPage, rowCount: page.rowCount,"
               },
               {
@@ -130805,11 +130805,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "const resource = source.resource;"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "fail('RestSourceCursorProjectionMismatch');"
               },
               {
@@ -130819,7 +130819,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// Core parses original bytes; this module never parses JSON or owns I/O,"
               },
               {
@@ -130833,12 +130833,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// The SAME managed owner invokes and joins even an invalid async"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const value = applySynchronousProjection(transform, undefined,"
+                "path": "adapters/host-node/rest-source-page.mts",
+                "anchor": "const value = applySynchronousProjection!(transform, undefined,"
               },
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
@@ -130847,7 +130847,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');"
               },
               {
@@ -130861,7 +130861,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// credentials, currentness, row charging, cancellation or physical cleanup."
               },
               {
@@ -130875,7 +130875,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows("
               },
               {
@@ -130889,7 +130889,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
+                "path": "adapters/host-node/rest-source-page.mts",
                 "anchor": "// Only a changed wire needs another existing Core parse. Counts"
               },
               {
@@ -136581,8 +136581,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/rest-source-request.mjs",
-                "anchor": "export function captureRestSourceRead(value, cursorParameter)"
+                "path": "adapters/host-node/rest-source-request.mts",
+                "anchor": "export function captureRestSourceRead(value: unknown, cursorParameter?: unknown)"
               }
             ],
             "identity": [
@@ -136605,8 +136605,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/rest-source-request.mjs",
-                "anchor": "const fail = () =>"
+                "path": "adapters/host-node/rest-source-request.mts",
+                "anchor": "const fail: () => never = () =>"
               }
             ],
             "cancellation": [
@@ -136617,8 +136617,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/rest-source-request.mjs",
-                "anchor": "export function restSourceRequestConstructionUnits(read, cursorParameter)"
+                "path": "adapters/host-node/rest-source-request.mts",
+                "anchor": "export function restSourceRequestConstructionUnits(read: RequestInventory, cursorParameter?: string)"
               }
             ],
             "extension": [
