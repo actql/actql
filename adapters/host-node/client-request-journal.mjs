@@ -6,8 +6,7 @@ import './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
-import {closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync,
-  realpathSync, writeFileSync} from 'node:fs';
+import {existsSync, lstatSync, mkdirSync, realpathSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
@@ -23,8 +22,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {sourceOperationTable, inspectClientSourceOperationStorage,
-  clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
+import {clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 import {fail, applyOriginal, operationDescriptors, operationKeys, snapshotPrimarySqlLimits,
   snapshotPrimaryExecutionLimits, guardJournalCurrentness, boundedJournalWalFrames,
@@ -36,11 +34,8 @@ import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSo
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
 import {keyedLookupOriginalTable, explanationOriginalTable, inspectExplanationOriginalStorage,
   journalDirectoryEntries, journalMarkerMatches, syncDirectory,
-  columns, selectColumns, journalMarker, localExecutionOwnerTable, inspectLocalExecutionOwnerStorage,
-  validLocalExecutionOwnerReceipt, cancellationMarkerName, cancellationMarker, submissionMarkerName, submissionMarker,
-  epochMarkerName, intentMarkerName, retirementMarkerName, restartMarkerName, nameMarkerName, usageMarkerName,
-  validJournalRowUsage, adoptSubmissionUsageStorage, nameMarker, nameTables, nameTriggers, restartMarker,
-  retirementMarker, intentMarker, epochMarker, maxEpochTtlMs, hexKey, validEpochAuthority,
+  columns, selectColumns, journalMarker, initializeJournalSchema,
+  validLocalExecutionOwnerReceipt, validJournalRowUsage, maxEpochTtlMs, hexKey, validEpochAuthority,
   readJournalFormatFeatures, inspectJournalNativeStorage, inspectJournalSnapshot} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
 export {validateSourceInventory};
@@ -230,9 +225,6 @@ export function openClientRequestJournal(directory, {
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
-  // A fresh initialization is unpublished until its final directory ACK.
-  // Existing-database format upgrades keep their original immediate ACKs.
-  const syncFormatDirectory = () => {if (existed) syncDirectory(root);};
   primaryCurrent?.();
   // Native option lookup includes inherited properties. The selected facility
   // must not acquire arbitrary callbacks or configurations from that prototype.
@@ -321,195 +313,8 @@ export function openClientRequestJournal(directory, {
       temporarySelected, retainedGeometry, selectedSql?.prepareWalCheckpoint);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
-    // Fresh schema is one unpublished FULL transaction. Reuse these same DDL
-    // statements for retained older formats; only those upgrades acknowledge
-    // their separate durable feature transitions as before.
-    const pendingFormatMarkers=[];
-    const writeFormatMarker=(name,bytes)=>{
-      const marker=openSync(join(root,name),'wx',0o600);
-      try {writeFileSync(marker,bytes);fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncFormatDirectory();
-    };
-    const publishFormatMarker=(name,bytes)=>{
-      if (existed) writeFormatMarker(name,bytes);
-      else pendingFormatMarkers.push([name,bytes]);
-    };
-    const initializeFeature=action=>existed ? transaction.run(action) : action();
-    const initializeSchema=()=>{
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS client_requests (
-        authority_scope_cid TEXT NOT NULL,
-        caller_request_id TEXT NOT NULL,
-        logical_request_scope_cid TEXT NOT NULL UNIQUE,
-        intent_fingerprint_cid TEXT NOT NULL,
-        program_definition_cid TEXT NOT NULL,
-        parameter_values_cid TEXT NOT NULL,
-        caller_input_intent_cid TEXT NOT NULL,
-        namespace_id TEXT NOT NULL,
-        run_definition_cid TEXT NOT NULL UNIQUE,
-        run_definition_wire TEXT,
-        run_admission_evidence_json TEXT,
-        revision INTEGER NOT NULL CHECK (revision >= 0),
-        state_revision INTEGER NOT NULL DEFAULT 0
-          CHECK (state_revision >= 0 AND state_revision <= 9007199254740991),
-        state_observation_key TEXT,
-        lookup_expires_at TEXT NOT NULL,
-        result_names_json TEXT,
-        dispatch_reserved INTEGER NOT NULL DEFAULT 0
-          CHECK (dispatch_reserved IN (0, 1)),
-        pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0
-          CHECK (pre_dispatch_failure_confirmed IN (0, 1)),
-        physical_start_reserved INTEGER NOT NULL DEFAULT 0
-          CHECK (physical_start_reserved IN (0, 1)),
-        cancellation_requested INTEGER NOT NULL DEFAULT 0
-          CHECK (cancellation_requested IN (0, 1)),
-        physical_close_confirmed INTEGER NOT NULL DEFAULT 0
-          CHECK (physical_close_confirmed IN (0, 1)),
-        observed_terminal_outcome TEXT
-          CHECK (observed_terminal_outcome IN ('failed', 'cancelled')),
-        reconciliation_state_wire TEXT,
-        PRIMARY KEY (authority_scope_cid, caller_request_id)
-      ) STRICT;
-    `);
-    if (!existed) publishFormatMarker('journal-format.json',journalMarker);
-    if (!existsSync(join(root, submissionMarkerName))) {
-      // Adopt only the retained original rows of an admitted prior format.
-      // This cannot certify missing pre-upgrade history or issue an epoch.
-      initializeFeature(() => database.exec(`
-        CREATE TABLE client_submission_custody (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
-        ) STRICT;
-        INSERT INTO client_submission_custody
-          SELECT 1, COUNT(*) FROM client_requests;
-      `));
-      publishFormatMarker(submissionMarkerName,submissionMarker);
-    }
-    if (!existsSync(join(root, epochMarkerName))) {
-      // One retained authentication key and monotonic expiry watermark suffice
-      // to validate bounded-lifetime tickets. No per-epoch history is evicted.
-      initializeFeature(() => {
-        database.exec(`CREATE TABLE client_submission_epoch_authority (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          authentication_key TEXT NOT NULL,
-          observed_at INTEGER NOT NULL CHECK (observed_at >= 0)
-        ) STRICT;`);
-        database.prepare('INSERT INTO client_submission_epoch_authority VALUES (1, ?, 0)')
-          .run(randomBytes(32).toString('hex'));
-      });
-      publishFormatMarker(epochMarkerName,epochMarker);
-    }
-    if (!existsSync(join(root, intentMarkerName))) {
-      initializeFeature(() => database.exec(`
-        CREATE TABLE client_submitted_intents (
-          submission_id TEXT PRIMARY KEY,
-          authority_scope_cid TEXT NOT NULL,
-          nonce TEXT NOT NULL,
-          epoch_wire TEXT NOT NULL,
-          intent_cid TEXT NOT NULL,
-          intent_wire TEXT NOT NULL,
-          accepted_at INTEGER NOT NULL,
-          phase TEXT NOT NULL CHECK (phase IN ('preparing', 'not_accepted', 'preparation_failed', 'ready', 'held')),
-          outcome_wire TEXT,
-          revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0)
-        ) STRICT;
-        CREATE TABLE client_submitted_intent_custody (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
-        ) STRICT;
-        INSERT INTO client_submitted_intent_custody VALUES (1, 0);
-      `));
-      publishFormatMarker(intentMarkerName,intentMarker);
-    }
-    if (!existsSync(join(root, retirementMarkerName))) {
-      // Adoption records zero formal retirements; it never resets issuance
-      // or repairs a missing original row in a previously admitted journal.
-      initializeFeature(() => database.exec(`
-        CREATE TABLE client_submitted_intent_retirement (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          retired_count INTEGER NOT NULL CHECK (retired_count >= 0)
-        ) STRICT;
-        INSERT INTO client_submitted_intent_retirement VALUES (1, 0);
-      `));
-      publishFormatMarker(retirementMarkerName,retirementMarker);
-    }
-    if (!existsSync(join(root, restartMarkerName))) {
-      initializeFeature(() => database.exec(`
-        CREATE TABLE client_submission_restarts (
-          fresh_submission_id TEXT PRIMARY KEY,
-          original_submission_id TEXT NOT NULL,
-          link_wire TEXT NOT NULL
-        ) STRICT;
-        CREATE TABLE client_submission_restart_custody (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
-        ) STRICT;
-        INSERT INTO client_submission_restart_custody VALUES (1, 0);
-      `));
-      publishFormatMarker(restartMarkerName,restartMarker);
-    }
-    if (!existsSync(join(root, cancellationMarkerName))) {
-      initializeFeature(() => database.exec(`
-        CREATE TABLE client_cancellation_operations (
-          namespace_id TEXT NOT NULL,
-          authority_scope_cid TEXT NOT NULL,
-          cancel_id TEXT NOT NULL,
-          run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),
-          expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),
-          intent_fingerprint_cid TEXT NOT NULL,
-          outcome_wire TEXT,
-          outcome_cid TEXT,
-          CHECK ((outcome_wire IS NULL) = (outcome_cid IS NULL)),
-          PRIMARY KEY (namespace_id, authority_scope_cid, cancel_id)
-        ) STRICT;
-        CREATE TABLE client_cancellation_custody (
-          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
-        ) STRICT;
-        INSERT INTO client_cancellation_custody VALUES (1, 0);
-      `));
-      publishFormatMarker(cancellationMarkerName,cancellationMarker);
-    }
-    if (!existsSync(join(root, nameMarkerName))) {
-      // Old nonces are not names. This empty additive index never adopts or
-      // searches their history. Once issued, a name is not evicted or reused.
-      initializeFeature(() => database.exec(`
-        ${nameTables.map(([, sql]) => `${sql};`).join('\n')}
-        INSERT INTO client_submission_name_custody VALUES (1, 0, 0);
-        ${nameTriggers.map(([, sql]) => `${sql};`).join('\n')}
-      `));
-      publishFormatMarker(nameMarkerName,nameMarker);
-    }
-    if (database.prepare('PRAGMA user_version').get().user_version < 3) {
-      adoptSubmissionUsageStorage(database,initializeFeature,existsSync(join(root,usageMarkerName)),!existed,inspectionBytes);
-    }
-    // This optional original-operation storage belongs to this same Journal.
-    // Legacy absence grants no new dispatch: live scope issuance additionally
-    // requires the existing confirmed first physical-start transaction.
-    inspectClientSourceOperationStorage(database);
-    if (sourceOperationLimits !== undefined && database.prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'").get() === undefined) {
-      initializeFeature(() => database.exec(sourceOperationTable));
-    }
-    const keyedSchema = database.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'client_keyed_lookup_originals'").get();
-    if (keyedSchema !== undefined && keyedSchema.sql !== keyedLookupOriginalTable) {
-      fail('UnknownClientRequestJournalFormat');
-    }
-    if (keyedSchema === undefined) initializeFeature(() => database.exec(keyedLookupOriginalTable));
-    inspectLocalExecutionOwnerStorage(database);
-    if (ownedOriginal !== undefined && database.prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'client_local_execution_owners'").get() === undefined) {
-      initializeFeature(() => database.exec(localExecutionOwnerTable));
-    }
-    };
-    if (existed) initializeSchema();
-    else {
-      transaction.run(initializeSchema);
-      // No format marker claims an uncommitted current schema. Each original
-      // file keeps its fsync; the existing final directory ACK precedes ready.
-      for (const [name,bytes] of pendingFormatMarkers) writeFormatMarker(name,bytes);
-    }
+    initializeJournalSchema(database, transaction, root, existed, inspectionBytes,
+      sourceOperationLimits, ownedOriginal);
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {
