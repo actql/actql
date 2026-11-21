@@ -32,6 +32,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  SimpleCase(Expression, Array[(Expression, Expression)], Expression)
   CurrentTimestamp
 }
 
@@ -203,6 +204,8 @@ pub fn expression_body(value : Expression) -> ExpressionBody {
     VectorConcat(children) => VectorConcat(children.copy())
     Many(op, children) => Many(op, children.copy())
     Case(clauses, otherwise) => Case(clauses.copy(), otherwise)
+    SimpleCase(operand, clauses, otherwise) =>
+      SimpleCase(operand, clauses.copy(), otherwise)
     other => other
   }
 }
@@ -215,7 +218,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Object(fields) => fields.length()
     VectorConcat(children) => children.length()
     Many(_, children) => children.length()
-    Case(clauses, _) => clauses.length()
+    Case(clauses, _) | SimpleCase(_, clauses, _) => clauses.length()
     Field(_, _)
     | Literal(_)
     | TypedNull
@@ -269,7 +272,7 @@ fn expression_borrowed_result_nodes(value : Expression, remaining : Int) -> Int 
             expression_borrowed_result_nodes(no, next)
           }
         }
-        Case(clauses, otherwise) => {
+        Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
           let mut next = next
           for (_, branch) in clauses {
             next = expression_borrowed_result_nodes(branch, next)
@@ -583,10 +586,15 @@ fn expression_children(
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
       let count = @decode.array_length(clauses).unwrap()
-      if count > max_nodes / 2 {
+      let operand = @decode.lookup(obj, "operand")
+      let extra = if operand is Some(_) { 1 } else { 0 }
+      if max_nodes < extra || count > (max_nodes - extra) / 2 {
         expression_fail(body, ExpressionBudgetExceeded)
       }
       let children = []
+      if operand is Some(operand) {
+        children.push(operand)
+      }
       for i = 0; i < count; i = i + 1 {
         let clause = @decode.open_object(
           @decode.element_at(clauses, i).unwrap(),
@@ -1373,8 +1381,11 @@ fn lower_typed_expression_measured(
         "rpad" => Many(RPad, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
-          let count = args.length() / 2
-          let otherwise = if args.length() % 2 == 1 {
+          let obj = @decode.open_object(body).unwrap()
+          let simple = @decode.lookup(obj, "operand") is Some(_)
+          let first = if simple { 1 } else { 0 }
+          let count = args.length() - first
+          let otherwise = if count % 2 == 1 {
             args[args.length() - 1]
           } else {
             guard implicit_else.get(@decode.tree_index(root, body).unwrap())
@@ -1398,10 +1409,14 @@ fn lower_typed_expression_measured(
             }
           }
           let clauses = []
-          for i = 0; i < count; i = i + 1 {
-            clauses.push((args[i * 2], args[i * 2 + 1]))
+          for i = first; i + 1 < args.length(); i = i + 2 {
+            clauses.push((args[i], args[i + 1]))
           }
-          Case(clauses, otherwise)
+          if simple {
+            SimpleCase(args[0], clauses, otherwise)
+          } else {
+            Case(clauses, otherwise)
+          }
         }
         other => expression_fail(cursor, ExpressionNotImplemented(other))
       }
@@ -1427,7 +1442,8 @@ fn lower_typed_expression_measured(
           Many(_, children) => children.any(child => child.uses_veca)
           Conditional(condition, yes, no) =>
             condition.uses_veca || yes.uses_veca || no.uses_veca
-          Case(clauses, otherwise) =>
+          Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) =>
+            (lowered is SimpleCase(operand, _, _) && operand.uses_veca) ||
             otherwise.uses_veca ||
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
           Field(_, _)

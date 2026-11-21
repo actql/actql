@@ -150,12 +150,17 @@ the reference language. Interpolation and multiple statements are rejected.
 The JSON/YAML machine-expression text dialect keeps its own quotation rules.
 
 Expressions use a shared parsed tree and lower directly to the existing
-structured Expression form. Operator precedence, searched CASE, closed scalar
+structured Expression form. Operator precedence, both CASE forms, closed scalar
 functions, casts and the `OVER` subset follow the adopted profile. New query
 `CONCAT` and `||` use strict STRING concatenation with NULL propagation;
 `ACTQL.CONCAT` names the legacy null-skipping function explicitly. Unsupported
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
+
+`CASE selector WHEN match THEN result [WHEN …] [ELSE fallback] END`
+lowers to the Common structured CASE with its original selector as `operand`.
+Searched `CASE WHEN condition THEN result … END` has no selector. The Common
+comparison and branch-demand laws apply before any result is evaluated.
 
 Integer tokens follow the selected [GoogleSQL lexical forms](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#integer_literals): decimal digits or `0x`/`0X` followed by one or more hexadecimal digits. Hexadecimal digits are case-insensitive; the token and AST retain the exact authored spelling and original source span. Unary `+` and `-` remain expression operators. The existing common `number` profile admits integer magnitudes through `9007199254740991` (`0x1fffffffffffff`) exactly, before conversion to finite binary64. Larger integer tokens are refused without rounding; this profile does not claim GoogleSQL's full INT64 value domain. Signed zero expression tokens normalize to canonical positive zero; canonical JSON Number and Parameter admission still reject negative zero. Hexadecimal fractions, binary exponents, digit separators and incomplete prefixes are not integer tokens in the selected profile.
 

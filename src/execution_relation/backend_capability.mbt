@@ -86,11 +86,12 @@ fn check_backend_capabilities(
         Array(children) | VectorConcat(children) => children.length()
         Conditional(_, _, _) => 3
         Many(_, children) => children.length()
-        Case(clauses, _) => {
-          if remaining == 0 || clauses.length() > (remaining - 1) / 2 {
+        Case(clauses, _) | SimpleCase(_, clauses, _) => {
+          let extra = if body is SimpleCase(_, _, _) { 2 } else { 1 }
+          if remaining < extra || clauses.length() > (remaining - extra) / 2 {
             return Err({ kind: PreparationLimit, root, expression, })
           }
-          clauses.length() * 2 + 1
+          clauses.length() * 2 + extra
         }
       }
       if edges > remaining {
@@ -197,12 +198,15 @@ fn check_backend_capabilities(
           pending.push(yes)
           pending.push(condition)
         }
-        Case(clauses, otherwise) => {
+        Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
           pending.push(otherwise)
           for j = clauses.length() - 1; j >= 0; j = j - 1 {
             let (condition, result) = clauses[j]
             pending.push(result)
             pending.push(condition)
+          }
+          if body is SimpleCase(operand, _, _) {
+            pending.push(operand)
           }
         }
       }

@@ -94,6 +94,8 @@ pub(all) enum DemandTestKind {
   IsTrue
   NotTrue
   IsNull
+  CaseMatch
+  CaseNoMatch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct DemandUsage {

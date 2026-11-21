@@ -266,6 +266,7 @@ pub(all) enum ExpressionKind {
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
+  SimpleCase(Int, Array[(Int, Int)], Int)
   Cast(Int, CastType)
   Interval(Int, String)
 } derive(Eq, @debug.Debug)

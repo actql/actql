@@ -92,9 +92,25 @@ priv enum Continuation {
     Int,
     @lower.Expression
   )
+  SimpleCaseOperand(
+    @lower.Expression,
+    Array[(@lower.Expression, @lower.Expression)],
+    @lower.Expression
+  )
+  SimpleCaseMatch(SimpleCaseState)
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
   TemporalArguments(TemporalArgumentsState)
+}
+
+///|
+priv struct SimpleCaseState {
+  expression : @lower.Expression
+  clauses : Array[(@lower.Expression, @lower.Expression)]
+  otherwise : @lower.Expression
+  selector : Value
+  selector_root : ExpressionRootLease?
+  mut index : Int
 }
 
 ///|
@@ -118,6 +134,7 @@ priv enum Evaluation {
     ExpressionRootLease?
   )
   CompareBinary(BinaryComparisonState)
+  CompareSimpleCase(SimpleCaseState, BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
   SplitFunction(SplitFunctionState)
@@ -530,6 +547,7 @@ fn advance_expression_frame_impl(
     // Splitting those scans must not add a charge for each resume or refund
     // work. The next semantic Return still pays its usual transition.
     if !(frame.state is CompareBinary(_) ||
+      frame.state is CompareSimpleCase(_, _) ||
       frame.state is CompareMembership(_, _) ||
       frame.state is CompareBetween(_, _, _) ||
       frame.state is PropertyName(_) ||
@@ -574,7 +592,8 @@ fn advance_expression_frame_impl(
           | VectorConcat(_)
           | Many(_, _)
           | Conditional(_, _, _)
-          | Case(_, _) => false
+          | Case(_, _)
+          | SimpleCase(_, _, _) => false
         }
         if !leaf && frame.stack.length() >= budget.max_frames {
           return Err({ kind: ControlLimit, expression: expr, })
@@ -893,6 +912,10 @@ fn advance_expression_frame_impl(
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
+          }
+          SimpleCase(operand, clauses, otherwise) => {
+            frame.stack.push(SimpleCaseOperand(expr, clauses, otherwise))
+            frame.state = Enter(operand)
           }
           Case(clauses, otherwise) =>
             if clauses.get(0) is Some((condition, _)) {
@@ -1898,6 +1921,49 @@ fn advance_expression_frame_impl(
               frame.state = Return(combined)
             }
           }
+          SimpleCaseOperand(expr, clauses, otherwise) => {
+            frame.stack.push(
+              SimpleCaseMatch({
+                expression: expr,
+                clauses,
+                otherwise,
+                selector: value,
+                selector_root: frame.current_root,
+                index: 0,
+              }),
+            )
+            frame.current_root = None
+            frame.state = Enter(clauses[0].0)
+          }
+          SimpleCaseMatch(state) => {
+            let expr = state.expression
+            if charge_value(state.selector, state.selector_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            // The original selector root stays live across every reached WHEN.
+            // The cursor uses the same two reserved slots as binary equality.
+            if !reserve_slots(workspace, 1) {
+              return Err({ kind: WorkspaceLimit, expression: expr, })
+            }
+            frame.state = CompareSimpleCase(state, {
+              expression: expr,
+              op: @lower.Equal,
+              left: state.selector,
+              right: value,
+              left_root: state.selector_root,
+              right_root: frame.current_root,
+              charge: { offset: 0, next: 0, remaining: 0, },
+              phase: 0,
+              offset: 0,
+            })
+            frame.current_root = None
+            if !drain {
+              return Ok(None)
+            }
+          }
           Case(expr, clauses, index, otherwise) => {
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
@@ -2386,6 +2452,40 @@ fn advance_expression_frame_impl(
         }
         release_slots(workspace, 2)
         frame.state = Return(result)
+      }
+      CompareSimpleCase(state, comparison) => {
+        let expr = state.expression
+        frame.active = expr
+        let selected = match advance_binary_comparison(comparison, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => {
+            if !drain {
+              return Ok(None)
+            }
+            continue
+          }
+          Ok(Some(Boolean(true))) => Some(state.clauses[state.index].1)
+          Ok(Some(Boolean(false) | Null)) => None
+          Ok(Some(_)) =>
+            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+        }
+        if release(comparison.right_root) is Some(issue) {
+          return Err({ kind: LogicalValue(issue), expression: expr, })
+        }
+        release_slots(workspace, 1)
+        if selected is None &&
+          state.clauses.get(state.index + 1) is Some((condition, _)) {
+          state.index += 1
+          frame.stack.push(SimpleCaseMatch(state))
+          frame.state = Enter(condition)
+        } else {
+          if release(state.selector_root) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
+          }
+          release_slots(workspace, state.clauses.length())
+          frame.stack.push(Forward(expr))
+          frame.state = Enter(selected.unwrap_or(state.otherwise))
+        }
       }
       CompareMembership(membership, comparison) => {
         frame.active = membership.expression

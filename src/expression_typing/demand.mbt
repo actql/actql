@@ -17,6 +17,10 @@ pub(all) enum DemandTestKind {
   IsTrue
   NotTrue
   IsNull
+  // The node is the original WHEN operand, paired with its enclosing
+  // simple CASE's already evaluated selector in the same frame.
+  CaseMatch
+  CaseNoMatch
 } derive(Eq, Debug)
 
 ///|
@@ -231,16 +235,21 @@ pub fn derive_demands(
         }
         "case" => {
           let mut prefix = outer
-          let pairs = (children.length() - 1) / 2
-          for clause in 0..<pairs {
-            let condition = children[clause * 2]
+          let body = @decode.open_object(node.body).unwrap()
+          let simple = @decode.lookup(body, "operand") is Some(_)
+          let first = if simple { 1 } else { 0 }
+          if simple {
+            heads[children[0]] = outer
+          }
+          let yes = if simple { CaseMatch } else { IsTrue }
+          let no = if simple { CaseNoMatch } else { NotTrue }
+          for i = first; i + 1 < children.length(); i = i + 2 {
+            let condition = children[i]
             heads[condition] = prefix
-            heads[children[clause * 2 + 1]] = Some(
-              demand_append(conditions, prefix, condition, IsTrue, b),
+            heads[children[i + 1]] = Some(
+              demand_append(conditions, prefix, condition, yes, b),
             )
-            prefix = Some(
-              demand_append(conditions, prefix, condition, NotTrue, b),
-            )
+            prefix = Some(demand_append(conditions, prefix, condition, no, b))
           }
           heads[children[children.length() - 1]] = prefix
         }
