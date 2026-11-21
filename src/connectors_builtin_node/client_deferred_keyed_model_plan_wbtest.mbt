@@ -394,6 +394,58 @@ test "Static Effect explanation Context keeps original Model, Result and write d
 }
 
 ///|
+test "Static Effect Context measurement matches the original writer at exact limits" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, plan) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let geometry = @publication_host.measure_client_static_effect_explanation_context(
+    original, owner, compiled, 65536, 8192, 64, 10000,
+  ).unwrap()
+  let (bytes, nodes, depth) = @encode.construction_geometry_usage(geometry)
+  let writer = @encode.writer(bytes, nodes, depth)
+  @publication_host.write_client_static_effect_explanation_context(
+    original, owner, compiled, writer, 10000,
+  ).unwrap()
+  let context = @encode.finish(writer)
+  assert_true(static_explanation_source_links_match(plan, context))
+  assert_true(static_explanation_context_matches(plan, context))
+  assert_true(
+    @publication.parse_interactive_run_control_shape(
+      "explanation_context", context, bytes, nodes, depth,
+    )
+    is Ok(_),
+  )
+  for
+    (b, n, d) in [
+      (bytes - 1, nodes, depth),
+      (bytes, nodes - 1, depth),
+      (bytes, nodes, depth - 1),
+    ] {
+    assert_true(
+      @publication_host.measure_client_static_effect_explanation_context(
+        original, owner, compiled, b, n, d, 10000,
+      )
+      is Err(Encoding(@encode.OutputLimit)),
+    )
+  }
+  assert_true(
+    @publication_host.measure_client_static_effect_explanation_context(
+      original, owner, compiled, bytes, nodes, depth, 1,
+    )
+    is Err(WorkLimit),
+  )
+  let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  assert_true(
+    @publication_host.measure_client_static_effect_explanation_context(
+      original, owner, foreign, bytes, nodes, depth, 10000,
+    )
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
 extern "js" fn static_explanation_facts_mismatch(
   plan_wire : String,
   facts_wire : String,

@@ -2225,6 +2225,8 @@ pub fn measure_client_pure_compilation_explanation_facts(ClientRunCompilation, P
 
 pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
+pub fn measure_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientStaticExplanationSourceIssue]
+
 pub fn measure_client_static_effect_explanation_facts(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
 pub fn measure_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]

@@ -176,6 +176,44 @@ fn write_static_explanation_consumers(
 }
 
 ///|
+/// Measure the same structural Context without producing an output string.
+/// Use the measured geometry for the Request's separate output/codec quote.
+/// The Request must already cover this measuring writer and traversal.
+pub fn measure_client_static_effect_explanation_context(
+  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[
+  @encode.EncodingConstructionGeometry,
+  ClientStaticExplanationSourceIssue,
+] {
+  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+    return Err(ForeignOriginal)
+  }
+  if max_work <= 0 {
+    return Err(WorkLimit)
+  }
+  try {
+    let writer = @encode.construction_measuring_writer(
+      max_bytes, max_nodes, max_depth,
+    )
+    match
+      write_client_static_effect_explanation_context(
+        original, prepared, compiled, writer, max_work,
+      ) {
+      Err(issue) => Err(issue)
+      Ok(_) => Ok(@encode.finish_construction_measurement(writer))
+    }
+  } catch {
+    issue => Err(Encoding(issue))
+  }
+}
+
+///|
 /// Write the structural Context from the same opaque static Plan original.
 /// The original Request read and egress admission must cover every item,
 /// full writer and simultaneous Plan, map and declaration custody.
