@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d55dd3ae34649c9f597a3d703762ea820b48c1acdfda3ece1987a75f05b389c",
+      "sha256": "61e281332bdf398f0079ab88ec3489cf73d8bf9ceac191292a053333daab71e9",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6248,20 +6248,6 @@
           "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
           "parameters": [
             "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
-          "parameters": [
-            "object"
           ],
           "async": false
         },
@@ -7853,20 +7839,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
           "parameters": [
             "part"
@@ -9385,8 +9357,6 @@
           "operations": [
             "<module>",
             "openOriginalLocalPublicationStore/active/active",
-            "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
-            "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
             "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
@@ -9597,8 +9567,6 @@
             "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
             "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
             "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
-            "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
-            "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
@@ -9977,8 +9945,8 @@
                 "anchor": "const putNativePublicationContracts = async (admitted, progress) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readPhysicalHoldingAt = async (path, holdingCid, readDemand) => {"
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "const readPhysicalHoldingAt = async (path: string, holdingCid: string, readDemand?: HoldingReadDemand) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10111,7 +10079,7 @@
                 "anchor": "Native entries retain their semantic identity, complete-body digest and byte"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
                 "anchor": "if (record.holding_cid !== holdingCid) {"
               },
               {
@@ -13467,6 +13435,7 @@
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
+        "./physical-holding-record-reader.mjs",
         "./physical-holding-record-writer.mjs",
         "./physical-retirement-owner.mjs",
         "./prepared-custody-queue.mjs",
@@ -13489,6 +13458,195 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/physical-holding-record-reader.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "069d29cbf2c42397896cc2372d5f60386e33f87345f1cf320d3f3e1f6e971501",
+      "exports": [
+        "closedMetadataObjectExtent",
+        "createPhysicalHoldingObjectVerifier",
+        "createPhysicalHoldingRecordReader"
+      ],
+      "operations": [
+        {
+          "name": "closedMetadataObjectExtent/closedMetadataObjectExtent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingObjectVerifier",
+          "parameters": [
+            "verifyObject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingObjectVerifier/createPhysicalHoldingObjectVerifier",
+          "parameters": [
+            "record"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader",
+          "parameters": [
+            "configuration",
+            "physicalHoldingNamespaces"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding/record/record",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordReader/readPhysicalHoldingAt/readPhysicalHoldingAt",
+          "parameters": [
+            "path",
+            "holdingCid",
+            "readDemand"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closedMetadataObjectExtent/closedMetadataObjectExtent",
+            "createPhysicalHoldingObjectVerifier",
+            "createPhysicalHoldingObjectVerifier/createPhysicalHoldingObjectVerifier",
+            "createPhysicalHoldingRecordReader",
+            "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding",
+            "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
+            "createPhysicalHoldingRecordReader/admitPhysicalHolding/admitPhysicalHolding/record/record",
+            "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding",
+            "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
+            "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
+            "createPhysicalHoldingRecordReader/readPhysicalHoldingAt/readPhysicalHoldingAt"
+          ],
+          "exports": [
+            "closedMetadataObjectExtent",
+            "createPhysicalHoldingObjectVerifier",
+            "createPhysicalHoldingRecordReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "export function createPhysicalHoldingRecordReader("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "if (record.holding_cid !== holdingCid) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "const physical = await verifyObject(object.cid);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "bytes = await readBounded(path, configuration.maxObjectBytes,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "fail('InvalidPublicationPhysicalHoldingStore', error);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store-io.mts",
+                "anchor": "if (readDemand !== undefined"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "readDemand.data(10, extent.nodes, extent.textUnits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "const admitPhysicalHolding = (value: unknown) => {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "anchor": "an already corrupt final holding remains refused without deletion or repair"
+              },
+              {
+                "path": "adapters/store-local/lookup-raw-evidence.test.mjs",
+                "anchor": "lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original physical holding selection, metadata admission and funded reads only."
     },
     {
       "module": "adapters/store-local/physical-holding-record-writer.mjs",

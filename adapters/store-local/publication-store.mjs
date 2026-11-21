@@ -33,6 +33,8 @@ import {resolve} from 'node:path';
 import {Buffer as OriginalBuffer} from 'node:buffer';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
+import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingRecordReader}
+  from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
@@ -652,74 +654,8 @@ async function openOriginalLocalPublicationStore(
     if (closed || closeRequested) fail('PublicationStoreClosed');
   };
 
-  const parsePhysicalHolding = bytes => {
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) {
-      fail('InvalidPublicationPhysicalHoldingStore', error);
-    }
-    if (!exactKeys(value, [
-      'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
-    ]) ||
-        value.version !== 'actql-local-physical-holding/0.1' ||
-        !physicalHoldingNamespaces.includes(value.namespace) ||
-        !cidPattern.test(value.holding_cid) ||
-        !cidPattern.test(value.manifest_cid) ||
-        !Array.isArray(value.objects) ||
-        value.objects.length > configuration.maxObjects ||
-        value.objects.some(object => !exactKeys(object, [
-          'cid', 'byte_count',
-        ]) || !cidPattern.test(object.cid) ||
-          !quantity(object.byte_count) ||
-          object.byte_count > configuration.maxObjectBytes)) {
-      fail('InvalidPublicationPhysicalHoldingStore');
-    }
-    const sizes = new Map();
-    for (const object of value.objects) {
-      const existing = sizes.get(object.cid);
-      if (existing !== undefined && existing !== object.byte_count) {
-        fail('InvalidPublicationPhysicalHoldingStore');
-      }
-      sizes.set(object.cid, object.byte_count);
-    }
-    return Object.freeze({
-      ...value,
-      objects: Object.freeze(value.objects.map(object =>
-        Object.freeze({...object}))),
-    });
-  };
-
-  const closedMetadataObjectExtent = value => {
-    let nodes = 1, textUnits = 0;
-    for (const key of Object.keys(value)) {
-      nodes++; textUnits += key.length;
-      if (typeof value[key] === 'string') textUnits += value[key].length;
-    }
-    return {nodes, textUnits};
-  };
-
-  const readPhysicalHoldingAt = async (path, holdingCid, readDemand) => {
-    let bytes;
-    try { bytes = await readBounded(path, configuration.maxObjectBytes, undefined, undefined, false, readDemand); }
-    catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
-      throw error;
-    }
-    const record = parsePhysicalHolding(bytes);
-    if (record.holding_cid !== holdingCid) {
-      fail('InvalidPublicationPhysicalHoldingStore');
-    }
-    if (readDemand !== undefined) {
-      const extent = closedMetadataObjectExtent(record);
-      for (const object of record.objects) {
-        const child = closedMetadataObjectExtent(object);
-        extent.nodes += child.nodes; extent.textUnits += child.textUnits;
-      }
-      readDemand.data(10, extent.nodes, extent.textUnits);
-      readDemand.finish();
-    }
-    return record;
-  };
+  const {parsePhysicalHolding, readPhysicalHoldingAt, admitPhysicalHolding} =
+    createPhysicalHoldingRecordReader(configuration, physicalHoldingNamespaces);
 
   const readPhysicalHolding = (holdingCid, readDemand) =>
     readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid, readDemand);
@@ -6583,47 +6519,7 @@ async function openOriginalLocalPublicationStore(
     return false;
   };
 
-  const admitPhysicalHolding = value => {
-    if (!exactKeys(value, [
-      'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
-    ]) || !Array.isArray(value.objects) ||
-        value.objects.some(object => !exactKeys(object, [
-          'cid', 'byte_count',
-        ]))) {
-      fail('InvalidPublicationPhysicalHoldingStore');
-    }
-    const record = {
-      version: value.version,
-      namespace: value.namespace,
-      holding_cid: value.holding_cid,
-      manifest_cid: value.manifest_cid,
-      objects: value.objects.map(object => ({
-        cid: object?.cid,
-        byte_count: object?.byte_count,
-      })),
-    };
-    const bytes = Buffer.from(JSON.stringify(record), 'utf8');
-    if (bytes.byteLength > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    return Object.freeze({
-      record: parsePhysicalHolding(bytes),
-      bytes,
-    });
-  };
-
-  const verifyPhysicalHoldingObjects = async record => {
-    const verified = new Map();
-    for (const object of record.objects) {
-      if (verified.has(object.cid)) continue;
-      const physical = await verifyObject(object.cid);
-      if (physical.bytes !== object.byte_count) {
-        fail('InvalidPublicationPhysicalHoldingStore');
-      }
-      verified.set(object.cid, physical);
-    }
-    return verified;
-  };
+  const verifyPhysicalHoldingObjects = createPhysicalHoldingObjectVerifier(verifyObject);
 
   const commitPhysicalHoldingInternal = async (
     value, prepared, borrowedHoldingCids,

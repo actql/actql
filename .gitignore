@@ -1511,3 +1511,5 @@ target/
 /adapters/store-local/publication-store-private-evidence.d.mts
 /adapters/store-local/physical-holding-record-writer.mjs
 /adapters/store-local/physical-holding-record-writer.d.mts
+/adapters/store-local/physical-holding-record-reader.mjs
+/adapters/store-local/physical-holding-record-reader.d.mts
