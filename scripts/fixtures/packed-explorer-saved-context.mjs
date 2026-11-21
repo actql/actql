@@ -265,7 +265,7 @@ try {
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         await page.getByLabel('Query options').click();
-        await page.getByLabel('Language', {exact: true}).selectOption('ja');
+        await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
         await page.getByLabel('Query options').click();
         await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
         await page.locator('.story-computation').filter({hasText: /3回の結合（name で結合する箇所を含む）/u}).waitFor();
