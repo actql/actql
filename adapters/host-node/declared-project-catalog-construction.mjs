@@ -391,12 +391,21 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
   }
   if (phase === 'source') {
     const pluralFootprint = writables.length > 1;
-    const operation = stringUnits(ownData(selected.writes[0], 'permission'));
-    const read = stringUnits(ownData(selected.writes[0], 'observe_permission'));
+    const operation = ownData(selected.writes[0], 'permission');
+    const read = ownData(selected.writes[0], 'observe_permission');
+    const routed = selected.writes.some(write => ownData(write, 'permission') !== operation ||
+      ownData(write, 'observe_permission') !== read);
     // The physical recipe owns capture/request names and its three target
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
-    const operationUnits = 2n * operation + 3n * read + 80n + (pluralFootprint ? operation + 10n : 0n);
+    const unitsFor = (operation, read) => 2n * operation + 3n * read + 80n +
+      (pluralFootprint ? operation + 10n : 0n);
+    let operationUnits = unitsFor(stringUnits(operation), stringUnits(read));
+    if (routed) {
+      operationUnits = 0n;
+      for (const write of selected.writes) operationUnits += unitsFor(
+        stringUnits(ownData(write, 'permission')), stringUnits(ownData(write, 'observe_permission')));
+    }
     // The selected physical recipe has 2 member + 5 row operations and 3
     // owned target-read slots. Plural selection adds one member extent/role.
     // Legacy normalization inspects 18 records/arrays with 46 properties;
@@ -428,8 +437,16 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
     // Common links. Plural selection additionally owns one typed footprint
     // capacity/extent/role and its argument/cohort controls, never a new owner.
     const codec = 16n, footprint = pluralFootprint ? 32n : 0n;
-    return stage({nodes: 768n + 2n * targets + codec + footprint, text: 2n * operationUnits, wire: 0n},
-      {nodes: recipeWorkspace + 2n * targets, text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
+    // Additional recipes keep their sealed capacity/operation/role records
+    // live beside the first. Use the existing physical recipe allowance per
+    // extra recipe. Normalization runs serially, so descriptors overlap one
+    // recipe at a time. The two Mapping tables and their entry records coexist.
+    const retainedRecipes = routed ? (targets - 1n) * (768n + footprint) + 2n + 8n * targets : 0n;
+    const tableWorkspace = routed ? 16n + 12n * targets : 0n;
+    return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes,
+      text: 2n * operationUnits, wire: 0n},
+      {nodes: recipeWorkspace + 2n * targets + tableWorkspace,
+        text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
       {targets, descriptorCalls, descriptorProperties});
   }
   if (phase !== 'aliases') invalidGeometry();

@@ -164,14 +164,22 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
           if (targets.some(target => target.mapping === undefined || target.mapping.body !== target.write.mappingWire ||
               target.physical.declaration !== original.declaration)) fail('InvalidInstalledMockEffect');
           const spec = targets[0].write;
-          if (targets.some(target => target.write.permission !== spec.permission ||
-              target.write.observe_permission !== spec.observe_permission)) fail('InstalledMockOperationProfileMismatch');
           const constructed = mockRowEffectDriver({bundle, original, targets,
             bindingCid: selectedBinding, principalId, authorization, current, call, resources, file});
-          return {...constructed, targets,
-            managedPlanRecipe: mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission)};
+          if (targets.every(target => target.write.permission === spec.permission &&
+              target.write.observe_permission === spec.observe_permission)) {
+            return {...constructed, targets,
+              managedPlanRecipe: mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission)};
+          }
+          const recipes = Object.create(null);
+          for (const {mapping, write} of targets) {
+            const targetReadOperation = write.observe_permission;
+            recipes[mapping.mappingCid] = Object.freeze({targetReadOperation,
+              recipe: mockFileEffectPlanRecipe(moon, bundle, write.permission, targetReadOperation)});
+          }
+          return {...constructed, targets, managedTargetPlanRecipes: Object.freeze(recipes)};
         });
-        const {driver, site, targets, managedPlanRecipe} = constructed;
+        const {driver, site, targets, managedPlanRecipe, managedTargetPlanRecipes} = constructed;
         // Every driver observes this SAME physical file. Reuse an existing
         // original observer for whole-project custody instead of allocating
         // another Run registry. This selects no grant or dispatch authority.
@@ -183,7 +191,8 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
             environmentWire: prepared.environment.wire, connectorId: catalogue.connectorId,
             connectorRegistration: catalogue.registration, connectorRevision: catalogue.revision,
             connection: catalogue.connection, site, authorization, runtimeBundleCid,
-            bindingCid: selectedBinding, ledgerRoot, driver, managedPlanRecipe, effectResources: resources,
+            bindingCid: selectedBinding, ledgerRoot, driver, managedPlanRecipe,
+            ...(managedTargetPlanRecipes === undefined ? {} : {managedTargetPlanRecipes}), effectResources: resources,
             limits: {maxRows: targetLimits.maxRows}});
           retain(effect);
           current();

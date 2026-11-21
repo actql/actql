@@ -83556,7 +83556,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "197030beb6a1583b17e48a2556a85b2b1da9dde8104e762f1bc85cb4563fdee8",
+      "sha256": "b26bd428d5479e0690dea0f05a625dfd2e41936849a24eb96d29e16dae1ff850",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -83636,6 +83636,20 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes#2",
+          "parameters": [
+            "read"
           ],
           "async": false
         },
@@ -83874,6 +83888,7 @@
             "managedPlanDefinition",
             "managedPlanRecipe",
             "managedPlanRecipes",
+            "managedTargetPlanRecipes",
             "managedPlanConstruction"
           ],
           "async": true
@@ -85039,6 +85054,13 @@
           "name": "createRowEffectStage/recipes/recipes",
           "parameters": [
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recipes/recipes/recipes",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -86311,7 +86333,9 @@
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields/fields",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
-            "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
+            "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+            "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes#2"
           ],
           "exports": [],
           "attributes": {
@@ -86406,6 +86430,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }
@@ -87233,6 +87261,7 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes",
+            "createRowEffectStage/recipes/recipes/recipes",
             "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
@@ -87788,6 +87817,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }

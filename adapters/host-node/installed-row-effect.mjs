@@ -521,6 +521,42 @@ function captureManagedPlanRecipes(recipes, driver, maxOperations) {
     [kind, captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations)])));
 }
 
+// An installed physical UPDATE may select different operation recipes for its
+// exact checked Mappings. The table is complete before the first installation
+// await and does not extend the driver's kinds or supply authorization.
+function captureManagedTargetPlanRecipes(recipes, driver, installed, maxOperations) {
+  if (recipes === undefined) return undefined;
+  if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
+      !Object.isFrozen(recipes) || driver.kinds.length !== 1 || driver.kinds[0] !== 'update' ||
+      driver.check !== undefined || driver.confirmResponse !== undefined) {
+    fail('InvalidInstalledEffectPlanRecipe');
+  }
+  const fields = Object.getOwnPropertyDescriptors(recipes), retained = Object.create(null);
+  if (Reflect.ownKeys(fields).length !== installed.length) fail('InvalidInstalledEffectPlanRecipe');
+  for (const mapping of installed) {
+    const value = Object.hasOwn(fields[mapping.mappingCid] ?? {}, 'value')
+      ? fields[mapping.mappingCid].value : undefined;
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+        !Object.isFrozen(value) || Object.hasOwn(retained, mapping.mappingCid)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    const entry = Object.getOwnPropertyDescriptors(value);
+    const operation = entry.targetReadOperation?.value;
+    if (Reflect.ownKeys(entry).length !== 2 || !text(operation) || !operation.isWellFormed() ||
+        !Object.hasOwn(entry.recipe ?? {}, 'value')) fail('InvalidInstalledEffectPlanRecipe');
+    const recipe = captureInstalledEffectPlanRecipe(entry.recipe.value, maxOperations);
+    const write = recipe?.rowOperations[recipe.physicalWrite?.operationIndex]?.operation;
+    if (!text(write) ||
+        !mapping.rules.some(rule => rule.effect_kind === 'update' && rule.permissions?.includes(write)) ||
+        recipe?.ownedReadOperations?.length !== 3 || recipe.ownedReadOperations.some(read =>
+          recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    retained[mapping.mappingCid] = Object.freeze({recipe, targetReadOperation: operation});
+  }
+  return Object.freeze(retained);
+}
+
 // A retained-request Command supplies the SAME constructor metadata and
 // native profile held by its actual driver. The existing standard composer
 // then owns capture/request/HTTP/recovery quantities; this introduces no
@@ -1193,7 +1229,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe, managedPlanRecipes, managedPlanConstruction}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe, managedPlanRecipes,
+  managedTargetPlanRecipes, managedPlanConstruction}) {
   if (sourceInitialization !== undefined) {
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
     if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
@@ -1209,6 +1246,9 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
   const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned, localContractLimits.maxNodes);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
+  if (managedTargetPlanRecipes !== undefined && (standard !== undefined || commands.length !== 0 ||
+      suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
+      managedPlanConstruction !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
     fail('InvalidInstalledEffectDriverConstruction');
   }
@@ -1250,6 +1290,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
         storeCommand: Object.freeze({...body.store_command})}),
       approval: body.minimum_approval});
   }));
+  const targetRecipes = captureManagedTargetPlanRecipes(managedTargetPlanRecipes,
+    owned, installed, localContractLimits.maxNodes);
   const installedCommands = Object.freeze(commands.map(command => {
     const body = JSON.parse(command.body);
     const {contract_cid: selfCid, ...preimage} = body;
@@ -1319,7 +1361,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
-    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, managedPlanRecipes: suppliedRecipes, beforeSendCheck, responseConfirmation,
+    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, managedPlanRecipes: suppliedRecipes,
+    managedTargetPlanRecipes: targetRecipes, beforeSendCheck, responseConfirmation,
     issueOriginalCollectionReference, sourceInitialization})], environmentWire);
   if (sourceInitialization !== undefined) {
     retainInstalledSourceConstruction(sourceInitialization, adapter, declaration, declared, environment);
@@ -1425,8 +1468,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       ? bound : Math.min(bound, owner.configuredMaxMembers), members);
     return Object.freeze({...limits, maxMembers, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
   };
-  const recipes = owners.flatMap(owner => owner.managedPlanRecipes === undefined
-    ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
+  const recipes = owners.flatMap(owner => owner.managedTargetPlanRecipes === undefined
+    ? owner.managedPlanRecipes === undefined ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes)
+    : Object.values(owner.managedTargetPlanRecipes).map(entry => entry.recipe));
   const controlEntryBytes = installedEffectSavedControlEntryLimit(recipes);
   const controlResponseBytes = installedEffectSavedControlResponseLimit(recipes);
   const controlRecipes = new Map(recipes.map(recipe => [recipe,
@@ -1454,8 +1498,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (owner === undefined || !owners.includes(owner)) fail('ForeignInstalledEffectOccurrence');
     return owner;
   };
+  const targetPlanOf = (member, owner) => {
+    if (owner.managedTargetPlanRecipes === undefined) return undefined;
+    const plan = owner.managedTargetPlanRecipes[member.mapping?.mappingCid];
+    if (member.kind !== 'update' || plan === undefined) fail('ForeignInstalledEffectOccurrence');
+    return plan;
+  };
   const recipeOf = member => {
-    const owner = ownerOf(member);
+    const owner = ownerOf(member), target = targetPlanOf(member, owner);
+    if (target !== undefined) return controlRecipes.get(target.recipe);
     const recipe = owner.managedPlanRecipes === undefined
       ? owner.managedPlanRecipe : owner.managedPlanRecipes[member.kind];
     return controlRecipes.get(recipe);
@@ -1926,7 +1977,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // this member. A held or denied read reads nothing.
   const decideTargetRead = async ({member, runInvocationCid,
     dispatchRequestCid, subjectCid, signal, targetReads, assertCurrent, controlConstruction}) => {
-    const {connection, authorization, owned, site} = ownerOf(member);
+    const owner = ownerOf(member), {connection, authorization, owned, site} = owner;
+    const operation = targetPlanOf(member, owner)?.targetReadOperation ?? owned.targetRead.operation;
     const tuple = {connection, resource: member.resource, operation: 'read'};
     assertCurrent?.();
     const decision = targetReads === undefined
@@ -1957,7 +2009,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       }}),
       authorizationForRow: async rowIndex => {
         assertCurrent?.();
-        const grantFacts = {operation: owned.targetRead.operation, decision: approval ?? decision,
+        const grantFacts = {operation, decision: approval ?? decision,
           resource: member.resource, runInvocationCid, dispatchRequestCid, maxUses: 1};
         const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
           : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [grantFacts]);
