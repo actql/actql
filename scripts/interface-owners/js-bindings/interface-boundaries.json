@@ -64408,7 +64408,7 @@
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               },
               {
-                "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
+                "path": "adapters/host-node/host-journal-selected-constructor.test.mts",
                 "anchor": "test('selected Journal uses the captured original factory and receiver exactly once',async()=>{"
               },
               {
@@ -64416,7 +64416,7 @@
                 "anchor": "test('actual Store adopts its same earlier ordinary ownership'"
               },
               {
-                "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
+                "path": "adapters/host-node/host-journal-selected-constructor.test.mts",
                 "anchor": "test('actual root-format choice awaits the selected original and preserves the unprepared path'"
               },
               {

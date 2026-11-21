@@ -1489,3 +1489,9 @@ target/
 /adapters/host-node/host-journal-directory-native.test.d.mts
 /adapters/host-node/host-journal-node-history.test.mjs
 /adapters/host-node/host-journal-node-history.test.d.mts
+/adapters/host-node/host-journal-selected-constructor.test.mjs
+/adapters/host-node/host-journal-selected-constructor.test.d.mts
+/adapters/host-node/host-journal-consumer-custody.test.mjs
+/adapters/host-node/host-journal-consumer-custody.test.d.mts
+/adapters/host-node/host-journal-writer-exclusion.test.mjs
+/adapters/host-node/host-journal-writer-exclusion.test.d.mts

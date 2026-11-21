@@ -3,22 +3,33 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import type {AnyNode, CallExpression, FunctionDeclaration, Identifier, Property, VariableDeclarator} from 'acorn';
+
+type CloseStatus = {pending: boolean};
+type JournalView = {assertCurrent(): void; close(): CloseStatus};
+type FixtureInput = {
+  view: JournalView;
+  source?: {close(): CloseStatus | Promise<CloseStatus>};
+  prepare?: () => JournalView;
+  retire?: () => void;
+  controlClose?: () => CloseStatus;
+};
 
 const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
-const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes=[];
-function collect(node){
+const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes: AnyNode[]=[];
+function collect(node: unknown){
   if(node===null||typeof node!=='object')return;
-  nodes.push(node);
+  nodes.push(node as AnyNode);
   for(const value of Object.values(node)){
     if(Array.isArray(value))value.forEach(collect);
     else if(value!==null&&typeof value==='object')collect(value);
   }
 }
 collect(ast);
-const methods=nodes.filter(node=>node.type==='Property'&&node.method&&
-  node.key.name==='prepareHostJournal');
-const controls=nodes.filter(node=>node.type==='VariableDeclarator'&&
-  node.id.name==='initialControl'&&node.init?.type==='CallExpression'&&
+const methods=nodes.filter((node): node is Property=>node.type==='Property'&&node.method&&
+  (node.key as Identifier).name==='prepareHostJournal');
+const controls=nodes.filter((node): node is VariableDeclarator & {init: CallExpression}=>node.type==='VariableDeclarator'&&
+  (node.id as Identifier).name==='initialControl'&&node.init?.type==='CallExpression'&&
   source.slice(node.start,node.end).includes('hostJournal'));
 assert.equal(methods.length,1);assert.equal(controls.length,1);
 const make=compileFunction(`
@@ -34,11 +45,18 @@ const make=compileFunction(`
   const preparation={${source.slice(methods[0].start,methods[0].end)}};
   return {preparation,initialControl,held:()=>record.hostJournal};`,
   ['input','prepareHostJournalInstallation','assertInitialControlHostPreparation',
-    'clientOperationError']);
+    'clientOperationError']) as
+  (input: {source: FixtureInput['source']; originals: object; retire: () => void; controlClose: () => CloseStatus},
+    prepare: (original: object) => JournalView, assertCurrent: (original: object) => void,
+    error: (code: string) => Error) => {
+      preparation: {prepareHostJournal(): Promise<JournalView>};
+      initialControl: {close(): Promise<CloseStatus>};
+      held(): JournalView | undefined;
+    };
 
 // Exact actual Host consumer/lifecycle statements, with explicit stopping
 // supplier/child ports. These tests issue no SQLite facility or resource grant.
-function fixture({view,source:child,prepare,retire=()=>{},controlClose=()=>({pending:false})}){
+function fixture({view,source:child,prepare,retire=()=>{},controlClose=()=>({pending:false})}: FixtureInput){
   const originals=Object.freeze({}),input={source:child,originals,retire,controlClose};
   let prepares=0;
   const f=make(input,held=>{assert.strictEqual(held,originals);prepares++;
@@ -48,9 +66,9 @@ function fixture({view,source:child,prepare,retire=()=>{},controlClose=()=>({pen
 }
 
 test('actual Host awaits the Journal facility after subject retention and before first root-format I/O',()=>{
-  const host=ast.body.map(node=>node.declaration??node).find(node=>
-    node.type==='FunctionDeclaration'&&node.id.name==='openInstalledHost');
-  const statements=host.body.body.find(node=>node.type==='TryStatement').block.body;
+  const host=ast.body.map(node=>(node as typeof node & {declaration?: AnyNode}).declaration??node).find((node): node is FunctionDeclaration=>
+    node.type==='FunctionDeclaration'&&node.id!.name==='openInstalledHost');
+  const statements=host!.body.body.find(node=>node.type==='TryStatement')!.block.body;
   const held=statements.findIndex(node=>source.slice(node.start,node.end)
     .includes('preparation?.retainHostJournalPreparation('));
   const prepared=statements.findIndex(node=>node.type==='IfStatement'&&
@@ -75,16 +93,16 @@ test('Host retains the same Journal facility before final current refusal and do
 });
 
 test('Host captures the original Journal close before preceding Source child awaits',async()=>{
-  const order=[];let release,replaced=0;
+  const order: string[]=[];let release: () => void,replaced=0;
   const view={assertCurrent(){assert.strictEqual(this,view);},close(){
     assert.strictEqual(this,view);order.push('journal');return {pending:false};}};
-  const child={async close(){order.push('source');await new Promise(resolve=>{release=resolve;});
+  const child={async close(){order.push('source');await new Promise<void>(resolve=>{release=resolve;});
     order.push('source-closed');return {pending:false};}};
   const f=fixture({view,source:child,retire:()=>order.push('retire'),
     controlClose:()=>{order.push('control');return {pending:false};}});
   await f.preparation.prepareHostJournal();
   const closing=f.initialControl.close();
-  view.close=()=>{replaced++;return {pending:false};};release();
+  view.close=()=>{replaced++;return {pending:false};};release!();
   assert.equal((await closing).pending,false);
   assert.equal(replaced,0);
   assert.deepEqual(order,['source','source-closed','journal','retire','control']);
@@ -106,7 +124,7 @@ test('unobserved Journal close getter failure retains the original until its own
   let gets=0,closes=0;
   const failure=new Error('OriginalCloseGetterRefused');
   const view={assertCurrent(){},get close(){if(++gets===1)throw failure;
-    return function(){assert.strictEqual(this,view);closes++;return {pending:false};};}};
+    return function(this: JournalView){assert.strictEqual(this,view);closes++;return {pending:false};};}};
   const f=fixture({view});
   await assert.rejects(f.preparation.prepareHostJournal(),error=>error===failure);
   assert.strictEqual(f.held(),view);

@@ -49373,7 +49373,7 @@
                 "anchor": "a sibling last lease cannot release another lease original pending Source producer"
               },
               {
-                "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
+                "path": "adapters/host-node/host-journal-writer-exclusion.test.mts",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
               },
               {
@@ -50204,7 +50204,7 @@
                 "anchor": "a sibling last lease cannot release another lease original pending Source producer"
               },
               {
-                "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
+                "path": "adapters/host-node/host-journal-writer-exclusion.test.mts",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
               }
             ]
@@ -73178,7 +73178,7 @@
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               },
               {
-                "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
+                "path": "adapters/host-node/host-journal-writer-exclusion.test.mts",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
               }
             ]
@@ -74209,7 +74209,7 @@
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               },
               {
-                "path": "adapters/host-node/host-journal-writer-exclusion.test.mjs",
+                "path": "adapters/host-node/host-journal-writer-exclusion.test.mts",
                 "anchor": "actual Store-opening failure drains its already acquired Journal independently of the dependent child"
               }
             ]
