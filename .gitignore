@@ -1001,3 +1001,9 @@ target/
 /scripts/fixtures/distinct-join-order-inventory.d.mts
 /scripts/fixtures/graph-argument-check.mjs
 /scripts/fixtures/graph-argument-check.d.mts
+/scripts/fixtures/packed-query-transports.mjs
+/scripts/fixtures/packed-query-transports.d.mts
+/scripts/fixtures/packed-query-restart-transports.mjs
+/scripts/fixtures/packed-query-restart-transports.d.mts
+/scripts/fixtures/packed-query-worker.mjs
+/scripts/fixtures/packed-query-worker.d.mts

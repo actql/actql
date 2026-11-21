@@ -7,9 +7,13 @@ import {createTransportOwner, requireCompleteInventory, transportModes}
   from './packed-query-transport-owner.mjs';
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
 
-const cohorts = decodeRetainedFixture(await readFile('retained-cohort-results.json', 'utf8'));
+type RetainedRoot = {mode: string; directory: string; [name: string]: ReturnType<typeof decodeRetainedFixture>};
+type RestartReport = {mode: string; stringComplete: boolean; completedRoots: string[]};
+type TransportFailure = {message?: string; evidenceError?: unknown};
+
+const cohorts = decodeRetainedFixture(await readFile('retained-cohort-results.json', 'utf8')) as RetainedRoot[];
 const owner = createTransportOwner({deadline: Number(process.env.ACTQL_TEST_QUERY_RESTART_DEADLINE), timeoutMs: 120_000});
-let primary;
+let primary: unknown;
 const roots = [];
 try {
   await owner.run(transportModes.map(mode => ({name: mode,
@@ -17,7 +21,7 @@ try {
     cwd: process.cwd(), environment: {ACTQL_TEST_QUERY_TRANSPORT: mode}})));
   for (const mode of transportModes) {
     const expected = cohorts.filter(cohort => cohort.mode === mode).map(cohort => cohort.directory);
-    const report = JSON.parse(await readFile(`transport-restart.${mode}.json`, 'utf8'));
+    const report = JSON.parse(await readFile(`transport-restart.${mode}.json`, 'utf8')) as RestartReport;
     assert.equal(report.mode, mode);
     assert.equal(report.stringComplete, process.env.ACTQL_TEST_RETAINED_COHORT_ONLY !== '1');
     assert.ok(expected.length > 0, 'restart must execute retained Result cohorts');
@@ -29,14 +33,14 @@ try {
 finally {
   owner.close();
   const report = {...owner.report(), roots, complete: primary === undefined,
-    primaryError: primary?.message ?? owner.report().primaryError};
+    primaryError: (primary as TransportFailure | null | undefined)?.message ?? owner.report().primaryError};
   try {
     await writeFile('transport-restart-processes.json', JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
   } catch (error) {
     if (primary === undefined) primary = error;
-    else primary.evidenceError = error;
+    else (primary as TransportFailure).evidenceError = error;
   }
   console.log('Packed query restart receipt: ' + JSON.stringify({...report,
-    complete: primary === undefined, primaryError: primary?.message ?? report.primaryError}));
+    complete: primary === undefined, primaryError: (primary as TransportFailure | null | undefined)?.message ?? report.primaryError}));
 }
 if (primary !== undefined) throw primary;
