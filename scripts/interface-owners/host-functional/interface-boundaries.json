@@ -10536,7 +10536,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "path": "adapters/host-node/local-result-read-workspace.mts",
                 "anchor": "const entry = original(request);"
               }
             ],
@@ -112611,7 +112611,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "path": "adapters/host-node/local-result-read-workspace.mts",
                 "anchor": "const entry = original(request);"
               }
             ],
@@ -140744,7 +140744,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "4f9d07e047ca25f7218e08ef8652cccfe662c7b32dd1dbc30c0507ca12efbb70",
+      "sha256": "94c14fe5c9b98f06f030a7a5c674cd160b3e811bef678b5af5471b1a16a3df73",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -140974,8 +140974,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "inputsOutputs": [
@@ -140984,8 +140984,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -140994,8 +140994,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141004,8 +141004,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "synchronization": [
@@ -141014,8 +141014,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141024,8 +141024,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141034,8 +141034,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141044,8 +141044,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141058,8 +141058,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [
@@ -141090,8 +141090,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141104,8 +141104,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -141114,8 +141114,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141124,8 +141124,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141138,8 +141138,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141148,8 +141148,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141158,8 +141158,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141168,8 +141168,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141186,8 +141186,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [
@@ -141222,8 +141222,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141236,8 +141236,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -141246,8 +141246,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141256,8 +141256,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141270,8 +141270,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141280,8 +141280,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141290,8 +141290,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141300,8 +141300,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141318,8 +141318,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [
@@ -141354,8 +141354,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141368,8 +141368,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -141378,8 +141378,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141388,8 +141388,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141402,8 +141402,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141412,8 +141412,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141422,8 +141422,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141432,8 +141432,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141450,8 +141450,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [
@@ -141486,8 +141486,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141500,8 +141500,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -141510,8 +141510,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141520,8 +141520,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141534,8 +141534,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141544,8 +141544,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141554,8 +141554,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141564,8 +141564,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141582,8 +141582,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [
@@ -141618,8 +141618,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141632,8 +141632,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "identity": [
@@ -141642,8 +141642,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "ownership": [
@@ -141652,8 +141652,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -141666,8 +141666,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "failure": [
@@ -141676,8 +141676,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "cancellation": [
@@ -141686,8 +141686,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "resources": [
@@ -141696,8 +141696,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -141714,8 +141714,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
-                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}: Configuration) {"
               }
             ],
             "verification": [

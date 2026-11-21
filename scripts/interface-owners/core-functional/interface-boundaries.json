@@ -12004,7 +12004,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "path": "adapters/host-node/local-result-read-workspace.mts",
                 "anchor": "const entry = original(request);"
               }
             ],
@@ -103287,7 +103287,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "path": "adapters/host-node/local-result-read-workspace.mts",
                 "anchor": "const entry = original(request);"
               }
             ],
