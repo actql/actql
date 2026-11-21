@@ -562,7 +562,7 @@ export interface RowEffectUpdateWrite<Request extends object, Current = unknown>
   observeTargets(options: Readonly<{member: RowEffectMember<'update'>;
     entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;
     readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,
-      request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>,
+      request: RowEffectUpdateRequest<'GET' | 'POST'>,
       project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):
       Promise<T>;
     signal?: AbortSignal}>): Awaitable<readonly RowEffectTargetObservation<'update'>[]>;

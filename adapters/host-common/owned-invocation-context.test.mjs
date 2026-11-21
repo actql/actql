@@ -147,6 +147,21 @@ test('declared UPDATE target reads await cleanup without replacing an earlier ob
   await assert.rejects(observation, error => error === original);
 });
 
+test('declared UPDATE target reads refuse non-read methods before selecting a grant', async () => {
+  const denied = {code: 'InvalidOwnedInvocationContext'};
+  const never = () => assert.fail('Rejected target request created a grant, child or response');
+  const plan = {
+    rowCount: 1, operation: 'original-read', slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 12},
+    authorizationForRow: never, readChild: never,
+  };
+  const requests = ['HEAD', 'DELETE', 'PUT', 'PATCH'].map(method => ({method, path: '/record'}));
+  requests.push({get method() {return never();}, path: '/record'});
+  for (const request of requests) {
+    await assert.rejects(withDeclaredUpdateTargetReads(plan,
+      read => read(0, request, never, never)), denied);
+  }
+});
+
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
   const journal = {};

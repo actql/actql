@@ -186,6 +186,9 @@ export async function withDeclaredUpdateTargetReads({readChild, authorizationFor
       try {
         assertCurrent?.();
         signal?.throwIfAborted();
+        const method = request !== null && typeof request === 'object' && !nodeTypes.isProxy(request)
+          ? Object.getOwnPropertyDescriptor(request, 'method')?.value : undefined;
+        if (method !== 'GET' && method !== 'POST') fail();
         const http = ownHttpRequest(request);
         if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
             Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();

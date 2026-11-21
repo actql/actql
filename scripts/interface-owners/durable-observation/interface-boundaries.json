@@ -1485,7 +1485,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b178047b0a2a569d0b48d93e2adbfc076367ce0c8cc7c254c758f0cb388f7ac9",
+      "sha256": "44bf83a14e8ffc5c89c3ac1fced2b8a1245646ab3d6286e8e8a517f02f199bb0",
       "exports": [
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
@@ -1877,6 +1877,10 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.test.mjs",
                 "anchor": "test('declared UPDATE target reads await cleanup without replacing an earlier observation failure'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target reads refuse non-read methods before selecting a grant'"
               }
             ]
           }

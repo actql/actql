@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "9f45c7fe2dba2b37652b2927a8dcde448ca9f9a61522990477b87dd0bd5b31ae",
+      "sha256": "45e9019bbe57e78f6197f520cf7c086b1c510c67a50e55382aeb753a7a65e2b9",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -603,7 +603,7 @@
         {
           "name": "RowEffectUpdateWrite/observeTargets",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
           ],
           "result": "Awaitable<readonly RowEffectTargetObservation<'update'>[]>"
         },
@@ -611,7 +611,7 @@
           "name": "RowEffectUpdateWrite/observeTargets/readTarget",
           "parameters": [
             "rowIndex: number",
-            "request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>",
+            "request: RowEffectUpdateRequest<'GET' | 'POST'>",
             "project: (originalResponse: CredentialResponse) => T",
             "assertCurrent: () => Awaitable<void>"
           ],

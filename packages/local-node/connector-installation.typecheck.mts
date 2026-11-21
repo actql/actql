@@ -172,6 +172,10 @@ const standardUpdateWrite: RowEffectUpdateWrite<DeclaredUpdateRequest> = {
     return {method: 'PUT', path: '/records', body: request.body};
   },
   async observeTargets({readTarget, entries}) {
+    const headRequest = {method: 'HEAD', path: '/records'} as const;
+    // @ts-expect-error The declared target slot supports GET and POST only.
+    void readTarget(0, headRequest, response => ({identity: 'record',
+      versionCid: response.useCid, before: {name: 'original'}}), () => {});
     const rows = [];
     for (const [index] of entries.entries()) {
       rows.push(await readTarget(index, {method: 'GET', path: '/records'},
