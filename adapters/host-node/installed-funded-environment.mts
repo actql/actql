@@ -170,7 +170,7 @@ export function composeInstalledSourceEnvironment(services: object, moon: Enviro
 // Admit this exact retained member wire on the same existing Source material.
 // Selector namespace construction needs each original Environment, not another
 // equal merge or an unfunded compatibility check. No wire/CID cache is added.
-export function readInstalledSourceEnvironment(services: object, moon: EnvironmentRuntime, wire: string) {
+export function readInstalledSourceEnvironment(services: object, moon: EnvironmentRuntime, wire: EnvironmentInput) {
   return composeEnvironment(services, moon, undefined, wire, undefined, undefined, true)!;
 }
 
