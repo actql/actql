@@ -943,7 +943,7 @@ function signature(value) {
 // Application signer output is either exact proof text or a bounded byte view.
 // The wire constructor below still accepts only canonical proof text.
 function encodeSignerSignature(value) {
-  if (!(value instanceof Uint8Array) || typedArrayTag.call(value) !== 'Uint8Array') return signature(value);
+  if (typedArrayTag.call(value) !== 'Uint8Array') return signature(value);
   if (typedArrayByteLength.call(value) !== signatureBytes) refuse('InvalidField', 'proof.signature');
   let binary = '';
   for (let index = 0; index < signatureBytes; index++) binary += String.fromCharCode(value[index]);

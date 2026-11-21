@@ -72,3 +72,18 @@ test('signer byte capacity and encoding use the original typed array storage', a
     signer(() => 'A'.repeat(86) + '=='), decidedAt);
   assert.deepEqual(fromBytes, fromText);
 });
+
+test('unsupported signer output refuses without consulting its prototype', async () => {
+  let prototypeReads = 0;
+  const unsupported = new Proxy(new Uint8Array(64), {
+    getPrototypeOf() {
+      prototypeReads++;
+      throw new Error('External signer output prototype');
+    },
+  });
+  const signer = {keyId: 'fixture-key', reviewerId: 'fixture-reviewer',
+    sign: () => unsupported};
+  await assert.rejects(signedAnswer(summary, 'rejected', signer, decidedAt),
+    {message: 'InvalidCheckpointSignature'});
+  assert.equal(prototypeReads, 0);
+});

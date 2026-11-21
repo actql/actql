@@ -15456,7 +15456,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "dd0eea5b61c0f7b8eb623efb7d8b294017b83445691ab81235e26b28d1ac7aae",
+      "sha256": "2ae87f2ac380352b36265a8d7476ebf622dc07ebcd37d986000a10fe8707e51c",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
