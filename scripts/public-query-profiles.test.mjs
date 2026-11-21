@@ -94,7 +94,7 @@ test('combined analytic corpora retain their independent installed ceilings', ()
   const property = groups.find(item => item.name === 'analytic-property');
   assert.deepEqual(order.capacity, capacity(1048576));
   assert.deepEqual(property.capacity, capacity(10000));
-  for (const [group, counts] of [[order, [10, 6, 1]], [property, [12, 7, 0]]]) {
+  for (const [group, counts] of [[order, [10, 6, 1]], [property, [13, 6, 0]]]) {
     assert.deepEqual(['successes', 'refusals', 'executionFailures']
       .map(kind => group.inputs[kind].length), counts);
     for (const kind of ['successes', 'refusals', 'executionFailures']) {
