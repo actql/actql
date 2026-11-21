@@ -6,8 +6,6 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {runRuntimeBundleOperation} from
   './runtime-bundle-operations.mjs';
-import type {RuntimeBundleOperationsStore} from './runtime-bundle-operations.mjs';
-// @ts-expect-error TS7016: remove when the physical Runtime Bundle Store is migrated.
 import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 
 type ConfigurationData = Readonly<{
@@ -92,7 +90,7 @@ export async function main(arguments_ = process.argv.slice(2)) {
   if (!text(configurationPath)) fail('MissingRemoteBundleConfiguration');
   const configuration = await readConfiguration(configurationPath);
   const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>}).remoteBundleControl;
-  const store: RuntimeBundleOperationsStore & {close(): void} = await openRuntimeBundleStore(
+  const store = await openRuntimeBundleStore(
     configuration.storeRoot,
     configuration.options,
   );

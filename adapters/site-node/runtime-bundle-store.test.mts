@@ -10,22 +10,29 @@ import {
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {signRemoteRuntimeBundle} from
   './remote-bundle-signature.mjs';
 import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 import './runtime-bundle-retention.test.mjs';
 
-const control = runtimeCore(moon).remoteBundleControl;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>})
+  .remoteBundleControl;
+type Store = Awaited<ReturnType<typeof openRuntimeBundleStore>>;
 const targetTriple = 'aarch64-apple-darwin';
-const componentCid = bytes =>
+const componentCid = (bytes: Buffer) =>
   `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-runtime-bundles-'));
-  const stores = [];
+  const stores: Store[] = [];
   const keys = generateKeyPairSync('ed25519');
   const bundleAuthorities = new Map([
     ['bundle-authority-a', new Map([['key-a', keys.publicKey]])],
@@ -34,7 +41,7 @@ async function fixture(t) {
     for (const store of stores.reverse()) store.close();
     await rm(root, {recursive: true, force: true});
   });
-  const open = async durability => {
+  const open = async (durability?: Parameters<typeof openRuntimeBundleStore>[2]) => {
     const store = await openRuntimeBundleStore(join(root, 'store'), {
       bundleAuthorities,
       targetTriple,
@@ -45,7 +52,7 @@ async function fixture(t) {
     stores.push(store);
     return store;
   };
-  const prepare = async (revision, bytes, suffix = revision) => {
+  const prepare = async (revision: string, bytes: Buffer, suffix = revision) => {
     const sourcePath = join(root, `component-${suffix}`);
     await writeFile(sourcePath, bytes, {mode: 0o600});
     const manifest = control.prepare({
@@ -87,19 +94,19 @@ test('bundle activation drains old code and survives restart', async t => {
 
   assert.deepEqual(
     control.recordProjection(
-      store.inspect(first.runtimeBundleCid, control).record,
+      store.inspect(first.runtimeBundleCid, control)!.record,
     ),
     ['3', '2', '1'],
   );
   assert.equal(
-    control.identity(store.active(control).manifest),
+    control.identity(store.active(control)!.manifest),
     second.runtimeBundleCid,
   );
 
   store.close();
   const reopened = await open();
   assert.equal(
-    control.identity(reopened.active(control).manifest),
+    control.identity(reopened.active(control)!.manifest),
     second.runtimeBundleCid,
   );
   assert.equal(reopened.release('dispatch-a', control), true);
@@ -173,7 +180,7 @@ test('bundle reclaim keeps responsibility until physical retry succeeds',
     const value = await prepare('1', Buffer.from('runtime-one'));
     let failArtifactRemoval = true;
     const durability = Object.freeze({
-      async remove(path) {
+      async remove(path: string) {
         if (failArtifactRemoval && path.includes('/artifacts/')) {
           failArtifactRemoval = false;
           throw Object.assign(new Error('injected removal failure'), {
@@ -182,7 +189,7 @@ test('bundle reclaim keeps responsibility until physical retry succeeds',
         }
         return unlink(path);
       },
-      async syncDirectory(path) {
+      async syncDirectory(path: string) {
         const {open} = await import('node:fs/promises');
         const descriptor = await open(path, 'r');
         try { await descriptor.sync(); }
@@ -195,7 +202,7 @@ test('bundle reclaim keeps responsibility until physical retry succeeds',
       store.reclaim(value.runtimeBundleCid, control),
       {code: 'EIO'},
     );
-    const pending = store.inspect(value.runtimeBundleCid, control);
+    const pending = store.inspect(value.runtimeBundleCid, control)!;
     assert.equal(pending.reclaimPending, true);
     assert.deepEqual(control.recordProjection(pending.record), ['0', '0', '0']);
 

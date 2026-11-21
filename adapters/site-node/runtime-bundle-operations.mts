@@ -1,27 +1,11 @@
 import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
+import type {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 
 type BundleControl = ReturnType<typeof remoteBundleControl>;
-type StoredBundle = Readonly<{
-  manifest: unknown;
-  record: unknown;
-  artifactPath: string;
-  reclaimPending: boolean;
-}>;
-type ReadBundle = (cid: string, control: BundleControl) => StoredBundle | undefined;
-type ReadBundleAsync = (cid: string, control: BundleControl) => Promise<StoredBundle | undefined>;
-
-export type RuntimeBundleOperationsStore = Readonly<{
-  install(componentPath: string, envelope: object, control: BundleControl): Promise<StoredBundle>;
-  list(control: BundleControl): readonly StoredBundle[];
-  active(control: BundleControl): StoredBundle | undefined;
-  recover(control: BundleControl): Promise<readonly StoredBundle[]>;
-  activate: ReadBundle;
-  rollback: ReadBundle;
-  drain: ReadBundle;
-  reclaim: ReadBundleAsync;
-  verify: ReadBundleAsync;
-  inspect: ReadBundle;
-}>;
+type OpenedStore = Awaited<ReturnType<typeof openRuntimeBundleStore>>;
+type Store = Pick<OpenedStore, 'install' | 'list' | 'active' | 'recover' |
+  'activate' | 'rollback' | 'drain' | 'reclaim' | 'verify' | 'inspect'>;
+type StoredBundle = NonNullable<ReturnType<Store['inspect']>>;
 
 type Operation = Readonly<{
   kind: string;
@@ -30,7 +14,7 @@ type Operation = Readonly<{
   runtimeBundleCid?: string;
 }>;
 type OperationOptions = Readonly<{
-  store: RuntimeBundleOperationsStore;
+  store: Store;
   control: BundleControl;
   operation: Operation;
 }>;

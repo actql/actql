@@ -1,5 +1,6 @@
 import {createHash, randomUUID} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
+import type {SQLInputValue, SQLOutputValue, StatementSync} from 'node:sqlite';
 import {constants} from 'node:fs';
 import {
   link,
@@ -16,16 +17,68 @@ import {admitSignedRemoteRuntimeBundle} from
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 
-const fail = (code, cause) => {
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
+
+type BundleControl = ReturnType<typeof remoteBundleControl>;
+type StoreControl = Pick<BundleControl,
+  'identity' | 'json' | 'admitJson' | 'projection' | 'componentsProjection' |
+  'admitSignatureEnvelope' | 'signatureEnvelopeProjection' | 'signatureEnvelopeManifest' |
+  'signaturePreimage' | 'open' | 'restore' | 'prepareActivation' | 'activationTransitionCount' |
+  'activationTransitionAt' | 'commitActivation' | 'prepareDrain' | 'prepareActiveDrain' |
+  'prepareRetain' | 'prepareActiveRetain' | 'prepareRelease' | 'prepareReclaim' |
+  'prepareInactiveReclaim' | 'transitionProjection' | 'transitionKey' | 'commitTransition' |
+  'recordProjection'>;
+type RetentionControl = StoreControl & Pick<BundleControl,
+  'catalogIncarnationValid' | 'holdBindingIdentity' | 'holdBindingJson' | 'holdBindingProjection' |
+  'observeHold' | 'prepareHoldFence' | 'prepareHoldRetain'>;
+type SignedEnvelope = Parameters<typeof admitSignedRemoteRuntimeBundle>[0];
+type BundleAuthorities = Parameters<typeof admitSignedRemoteRuntimeBundle>[1];
+type StoreOptions = Readonly<{
+  bundleAuthorities?: BundleAuthorities;
+  targetTriple?: string;
+  maxBundles?: number;
+  maxOwners?: number;
+  maxComponentBytes?: bigint;
+}>;
+type Durability = Readonly<{
+  remove(path: string): void | PromiseLike<void>;
+  syncDirectory(path: string): void | PromiseLike<void>;
+}>;
+
+// These views follow the selected columns and existing STRICT table schema.
+type SqlRow = Record<string, SQLOutputValue>;
+type SelectedRows<Row extends SqlRow> = {
+  get(...parameters: SQLInputValue[]): Row | undefined;
+  all(...parameters: SQLInputValue[]): Row[];
+} & StatementSync;
+type CountRow = Readonly<{count: number}>;
+type BundleRow = Readonly<{
+  runtime_bundle_cid: string;
+  manifest_json: string;
+  signature_version: string;
+  signature_key_id: string;
+  signature: string;
+  artifact_name: string;
+  component_cid: string;
+  component_bytes: string;
+  record_revision: number;
+  phase: number;
+  owners: number;
+  reclaim_pending: number;
+}>;
+type HoldRow = Readonly<{runtime_bundle_cid: string; kind: string}>;
+type MetadataRow = Readonly<{value: string}>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const count = value => Number.isSafeInteger(value) && value >= 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: number) => Number.isSafeInteger(value) && value >= 0;
 const retentionVersion = 'actql-runtime-bundle-retention/0.1';
 // Caller-selected dispatch IDs cannot address Coordinator-owned holds.
 const retentionHoldPrefix = 'set-retention:';
 
-async function syncDirectory(path) {
+async function syncDirectory(path: string) {
   const descriptor = await open(path, 'r');
   try { await descriptor.sync(); }
   finally { await descriptor.close(); }
@@ -36,7 +89,7 @@ const localDurability = Object.freeze({
   syncDirectory,
 });
 
-async function digestFile(path, expectedBytes, expectedCid) {
+async function digestFile(path: string, expectedBytes: bigint, expectedCid: string) {
   const descriptor = await open(
     path,
     constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
@@ -69,8 +122,8 @@ async function digestFile(path, expectedBytes, expectedCid) {
   }
 }
 
-async function copyComponent(sourcePath, stagingPath, expectedBytes,
-  expectedCid) {
+async function copyComponent(sourcePath: string, stagingPath: string, expectedBytes: bigint,
+  expectedCid: string) {
   const source = await open(
     sourcePath,
     constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
@@ -123,13 +176,13 @@ async function copyComponent(sourcePath, stagingPath, expectedBytes,
   }
 }
 
-export async function openRuntimeBundleStore(root, {
+export async function openRuntimeBundleStore(root: string, {
   bundleAuthorities,
   targetTriple,
   maxBundles = 1024,
   maxOwners = 100_000,
   maxComponentBytes = 1_073_741_824n,
-} = {}, durability = localDurability) {
+}: StoreOptions = {}, durability: Durability = localDurability) {
   if (!text(root) || !(bundleAuthorities instanceof Map) ||
       bundleAuthorities.size === 0 || !text(targetTriple) ||
       !count(maxBundles) || maxBundles === 0 ||
@@ -161,7 +214,7 @@ export async function openRuntimeBundleStore(root, {
     const newCatalog = database.prepare(`
       SELECT COUNT(*) AS count FROM sqlite_schema
       WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-    `).get().count === 0;
+    `).get()!.count === 0;
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -217,12 +270,12 @@ export async function openRuntimeBundleStore(root, {
   try {
   const select = database.prepare(
     'SELECT * FROM bundles WHERE runtime_bundle_cid = ?',
-  );
-  const selectAll = database.prepare('SELECT * FROM bundles ORDER BY rowid');
-  const total = database.prepare('SELECT COUNT(*) AS count FROM bundles');
+  ) as SelectedRows<BundleRow>;
+  const selectAll = database.prepare('SELECT * FROM bundles ORDER BY rowid') as SelectedRows<BundleRow>;
+  const total = database.prepare('SELECT COUNT(*) AS count FROM bundles') as SelectedRows<CountRow>;
   const activeRow = database.prepare(
     'SELECT value FROM metadata WHERE key = ?',
-  );
+  ) as SelectedRows<MetadataRow>;
   const setActive = database.prepare(
     'UPDATE metadata SET value = ? WHERE key = ?',
   );
@@ -240,7 +293,7 @@ export async function openRuntimeBundleStore(root, {
   `);
   const selectHold = database.prepare(
     'SELECT * FROM bundle_holds WHERE hold_id = ?',
-  );
+  ) as SelectedRows<HoldRow>;
   const insertHold = database.prepare(`
     INSERT INTO bundle_holds (hold_id, runtime_bundle_cid, kind)
     VALUES (?, ?, ?)
@@ -250,20 +303,20 @@ export async function openRuntimeBundleStore(root, {
   );
   const ownedHoldCount = database.prepare(`
     SELECT COUNT(*) AS count FROM bundle_holds WHERE hold_id LIKE ?
-  `);
+  `) as SelectedRows<CountRow>;
   const memberHoldCount = database.prepare(`
     SELECT COUNT(*) AS count FROM bundle_holds WHERE runtime_bundle_cid = ?
-  `);
+  `) as SelectedRows<CountRow>;
   const artifactUsers = database.prepare(`
     SELECT COUNT(*) AS count FROM bundles
     WHERE artifact_name = ? AND phase != 3 AND runtime_bundle_cid != ?
-  `);
+  `) as SelectedRows<CountRow>;
 
   const active = () => {
     if (closed) fail('RemoteBundleStoreClosed');
     transaction.assertUsable();
   };
-  const requireControl = control => {
+  const requireControl = (control: StoreControl) => {
     for (const name of [
       'identity', 'json', 'admitJson', 'projection', 'open', 'restore',
       'prepareActivation', 'activationTransitionCount',
@@ -273,20 +326,20 @@ export async function openRuntimeBundleStore(root, {
       'transitionProjection', 'transitionKey', 'commitTransition',
       'recordProjection', 'componentsProjection',
     ]) {
-      if (typeof control?.[name] !== 'function') {
+      if (typeof control?.[name as keyof StoreControl] !== 'function') {
         fail('MissingRemoteBundleControl');
       }
     }
     return control;
   };
-  const envelope = row => Object.freeze({
+  const envelope = (row: BundleRow) => Object.freeze({
     version: row.signature_version,
     keyId: row.signature_key_id,
     runtimeBundleCid: row.runtime_bundle_cid,
     body: row.manifest_json,
     signature: row.signature,
   });
-  const restore = (row, control) => {
+  const restore = (row: BundleRow, control: StoreControl) => {
     const manifest = admitSignedRemoteRuntimeBundle(
       envelope(row),
       bundleAuthorities,
@@ -306,8 +359,8 @@ export async function openRuntimeBundleStore(root, {
       reclaimPending: row.reclaim_pending === 1,
     });
   };
-  const persist = (transition, control) => {
-    const [before, after] = control.transitionProjection(transition);
+  const persist = (transition: unknown, control: StoreControl) => {
+    const [before, after] = control.transitionProjection(transition)!;
     const runtimeBundleCid = control.transitionKey(transition);
     const result = update.run(
       Number(after[0]),
@@ -321,24 +374,24 @@ export async function openRuntimeBundleStore(root, {
     if (result.changes !== 1) fail('RemoteBundleStateCollision');
     return after;
   };
-  const artifactName = componentCid => componentCid.replace(':', '-');
+  const artifactName = (componentCid: string) => componentCid.replace(':', '-');
   let retentionInitialized =
     activeRow.get('owned_retention_version') !== undefined ||
     activeRow.get('catalog_incarnation') !== undefined;
-  const requireRetentionControl = control => {
+  const requireRetentionControl = (control: RetentionControl) => {
     requireControl(control);
     for (const name of [
       'catalogIncarnationValid', 'holdBindingIdentity', 'holdBindingJson',
       'holdBindingProjection', 'observeHold', 'prepareHoldFence',
       'prepareHoldRetain',
     ]) {
-      if (typeof control[name] !== 'function') {
+      if (typeof control[name as keyof RetentionControl] !== 'function') {
         fail('MissingRemoteBundleRetentionControl');
       }
     }
     return control;
   };
-  const catalogIncarnation = control => {
+  const catalogIncarnation = (control: RetentionControl) => {
     const version = activeRow.get('owned_retention_version');
     const incarnation = activeRow.get('catalog_incarnation');
     if (version === undefined && incarnation === undefined) {
@@ -350,9 +403,9 @@ export async function openRuntimeBundleStore(root, {
         !control.catalogIncarnationValid(incarnation?.value ?? '')) {
       fail('RemoteBundleRetentionUnavailable');
     }
-    return incarnation.value;
+    return incarnation!.value;
   };
-  const memberIdentity = (binding, control) => {
+  const memberIdentity = (binding: unknown, control: RetentionControl) => {
     const body = control.holdBindingJson(binding);
     const projection = control.holdBindingProjection(binding);
     const bindingCid = control.holdBindingIdentity(binding);
@@ -364,20 +417,29 @@ export async function openRuntimeBundleStore(root, {
       runtimeBundleCid: projection[8],
     });
   };
-  const restoreMember = (row, control) => {
+  const restoreMember = (row: BundleRow, control: RetentionControl) => {
     const value = restore(row, control);
     const projection = control.projection(value.manifest);
     if (value.reclaimPending || projection[4] !== targetTriple ||
         row.artifact_name !== artifactName(projection[5]) ||
         row.component_cid !== projection[5] ||
         row.component_bytes !== projection[6] ||
-        Number(memberHoldCount.get(row.runtime_bundle_cid).count) !==
+        Number(memberHoldCount.get(row.runtime_bundle_cid)!.count) !==
           row.owners) {
       fail('RemoteBundleRetentionUnavailable');
     }
     return value;
   };
-  const memberSnapshot = (member, control) => {
+  type RestoredBundle = ReturnType<typeof restore>;
+  type Member = ReturnType<typeof memberIdentity>;
+  type MemberSnapshot = Readonly<{
+    status: string;
+    incarnation?: string;
+    value?: RestoredBundle;
+    revision?: number;
+    exactLiveHold?: boolean;
+  }>;
+  const memberSnapshot = (member: Member, control: RetentionControl): MemberSnapshot => {
     // Recheck after asynchronous artifact verification without changing the
     // originally admitted attempt, revision, or owner-derived identity.
     if (control.holdBindingJson(member.binding) !== member.body ||
@@ -410,20 +472,20 @@ export async function openRuntimeBundleStore(root, {
         Number(control.recordProjection(value.record)[0]),
       exactLiveHold: hold !== undefined});
   };
-  const memberReceipt = (member, snapshot) => Object.freeze({
+  const memberReceipt = (member: Member, snapshot: MemberSnapshot) => Object.freeze({
     status: snapshot.status,
     bindingCid: member.bindingCid,
     catalogIncarnation: snapshot.incarnation,
     runtimeBundleCid: member.runtimeBundleCid,
     revision: snapshot.revision,
   });
-  const verifyMember = async (snapshot, control) => {
+  const verifyMember = async (snapshot: MemberSnapshot, control: RetentionControl) => {
     if (snapshot.status !== 'retained' && snapshot.status !== 'unresolved') {
       return snapshot;
     }
     try {
-      const projection = control.projection(snapshot.value.manifest);
-      await digestFile(snapshot.value.artifactPath,
+      const projection = control.projection(snapshot.value!.manifest);
+      await digestFile(snapshot.value!.artifactPath,
         BigInt(projection[6]), projection[5]);
       return snapshot;
     } catch {
@@ -433,7 +495,7 @@ export async function openRuntimeBundleStore(root, {
 
   const store = {
     path: join(directory, 'bundles.sqlite3'),
-    initializeRetention(control) {
+    initializeRetention(control: RetentionControl) {
       active();
       requireRetentionControl(control);
       const incarnation = transaction.run(() => {
@@ -445,7 +507,7 @@ export async function openRuntimeBundleStore(root, {
         // This is a legacy opt-in, never a repair or replacement of custody.
         if (retentionInitialized || Number(ownedHoldCount.get(
           `${retentionHoldPrefix}%`,
-        ).count) !== 0) {
+        )!.count) !== 0) {
           fail('RemoteBundleRetentionUnavailable');
         }
         const value = randomUUID();
@@ -459,7 +521,7 @@ export async function openRuntimeBundleStore(root, {
       retentionInitialized = true;
       return incarnation;
     },
-    async retentionContext(runtimeBundleCid, control) {
+    async retentionContext(runtimeBundleCid: string, control: RetentionControl) {
       active();
       requireRetentionControl(control);
       const incarnation = catalogIncarnation(control);
@@ -487,7 +549,7 @@ export async function openRuntimeBundleStore(root, {
         });
       });
     },
-    async retainMember(binding, control) {
+    async retainMember(binding: unknown, control: RetentionControl) {
       active();
       requireRetentionControl(control);
       const member = memberIdentity(binding, control);
@@ -508,10 +570,10 @@ export async function openRuntimeBundleStore(root, {
         }
         const activeBundleCid = activeRow.get('active_bundle_cid')?.value;
         const transition = control.prepareHoldRetain({
-          catalogIncarnation: snapshot.incarnation,
+          catalogIncarnation: snapshot.incarnation!,
           activeBundleCid: activeBundleCid === ''
             ? undefined : activeBundleCid,
-          record: snapshot.value.record,
+          record: snapshot.value!.record,
           binding,
           maxOwners,
         });
@@ -521,7 +583,7 @@ export async function openRuntimeBundleStore(root, {
         return memberReceipt(member, memberSnapshot(member, control));
       });
     },
-    async inspectMemberHold(binding, control) {
+    async inspectMemberHold(binding: unknown, control: RetentionControl) {
       active();
       requireRetentionControl(control);
       const member = memberIdentity(binding, control);
@@ -535,7 +597,7 @@ export async function openRuntimeBundleStore(root, {
       return transaction.run(() =>
         memberReceipt(member, memberSnapshot(member, control)));
     },
-    releaseMember(binding, control) {
+    releaseMember(binding: unknown, control: RetentionControl) {
       active();
       requireRetentionControl(control);
       const member = memberIdentity(binding, control);
@@ -546,12 +608,12 @@ export async function openRuntimeBundleStore(root, {
           return memberReceipt(member, snapshot);
         }
         const transition = snapshot.status === 'retained'
-          ? control.prepareRelease(snapshot.value.record)
+          ? control.prepareRelease(snapshot.value!.record)
           : control.prepareHoldFence({
-            catalogIncarnation: snapshot.incarnation,
-            record: snapshot.value.record,
+            catalogIncarnation: snapshot.incarnation!,
+            record: snapshot.value!.record,
             binding,
-            exactLiveHold: snapshot.exactLiveHold,
+            exactLiveHold: snapshot.exactLiveHold!,
           });
         persist(transition, control);
         if (snapshot.exactLiveHold) deleteHold.run(member.holdId);
@@ -559,11 +621,11 @@ export async function openRuntimeBundleStore(root, {
         return memberReceipt(member, memberSnapshot(member, control));
       });
     },
-    async install(sourcePath, signed, control) {
+    async install(sourcePath: string, signed: unknown, control: StoreControl) {
       active();
       requireControl(control);
       const manifest = admitSignedRemoteRuntimeBundle(
-        signed,
+        signed as SignedEnvelope,
         bundleAuthorities,
         control,
       );
@@ -586,7 +648,7 @@ export async function openRuntimeBundleStore(root, {
         try {
           await digestFile(finalPath, componentBytes, componentCid);
         } catch (error) {
-          if (error.code !== 'ENOENT') throw error;
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
           await copyComponent(
             sourcePath,
             stagingPath,
@@ -598,55 +660,55 @@ export async function openRuntimeBundleStore(root, {
             await link(stagingPath, finalPath);
             await sync(artifacts);
           } catch (error) {
-            if (error.code !== 'EEXIST') throw error;
+            if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
             await digestFile(finalPath, componentBytes, componentCid);
           }
         }
         const installed = transaction.run(() => {
           const existing = select.get(runtimeBundleCid);
           if (existing !== undefined) {
-            if (existing.manifest_json !== signed.body ||
-                existing.signature_version !== signed.version ||
-                existing.signature_key_id !== signed.keyId ||
-                existing.signature !== signed.signature ||
+            if (existing.manifest_json !== (signed as SignedEnvelope).body ||
+                existing.signature_version !== (signed as SignedEnvelope).version ||
+                existing.signature_key_id !== (signed as SignedEnvelope).keyId ||
+                existing.signature !== (signed as SignedEnvelope).signature ||
                 existing.artifact_name !== name) {
               fail('RemoteBundleInstallCollision');
             }
             return restore(existing, control);
           }
-          if (Number(total.get().count) >= maxBundles) {
+          if (Number(total.get()!.count) >= maxBundles) {
             fail('RemoteBundleStoreCapacityExceeded');
           }
           const record = control.open(manifest);
           insert.run(
             runtimeBundleCid,
-            signed.body,
-            signed.version,
-            signed.keyId,
-            signed.signature,
+            (signed as SignedEnvelope).body,
+            (signed as SignedEnvelope).version,
+            (signed as SignedEnvelope).keyId,
+            (signed as SignedEnvelope).signature,
             name,
             componentCid,
             projection[6],
             ...control.recordProjection(record).map(Number),
           );
-          return restore(select.get(runtimeBundleCid), control);
+          return restore(select.get(runtimeBundleCid)!, control);
         });
         return installed;
       } finally {
         if (staged) {
           try { await remove(stagingPath); }
-          catch (error) { if (error.code !== 'ENOENT') throw error; }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
           await sync(staging);
         }
       }
     },
-    activate(runtimeBundleCid, control) {
+    activate(runtimeBundleCid: string, control: StoreControl) {
       active();
       requireControl(control);
       return transaction.run(() => {
         const targetRow = select.get(runtimeBundleCid);
         if (targetRow === undefined) fail('RemoteBundleMissing');
-        const currentCid = activeRow.get('active_bundle_cid').value;
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
         if (currentCid === runtimeBundleCid) return restore(targetRow, control);
         const target = restore(targetRow, control);
         let current;
@@ -665,13 +727,13 @@ export async function openRuntimeBundleStore(root, {
         }
         setActive.run(runtimeBundleCid, 'active_bundle_cid');
         control.commitActivation(activation, true);
-        return restore(select.get(runtimeBundleCid), control);
+        return restore(select.get(runtimeBundleCid)!, control);
       });
     },
-    rollback(runtimeBundleCid, control) {
+    rollback(runtimeBundleCid: string, control: StoreControl): RestoredBundle {
       return store.activate(runtimeBundleCid, control);
     },
-    drain(runtimeBundleCid, control) {
+    drain(runtimeBundleCid: string, control: StoreControl) {
       active();
       requireControl(control);
       return transaction.run(() => {
@@ -680,7 +742,7 @@ export async function openRuntimeBundleStore(root, {
         const value = restore(row, control);
         const state = control.recordProjection(value.record);
         if (state[1] === '2') return value;
-        const activeBundleCid = activeRow.get('active_bundle_cid').value;
+        const activeBundleCid = activeRow.get('active_bundle_cid')!.value;
         const transition = control.prepareActiveDrain(
           activeBundleCid === '' ? undefined : activeBundleCid,
           value.record,
@@ -688,10 +750,10 @@ export async function openRuntimeBundleStore(root, {
         persist(transition, control);
         setActive.run('', 'active_bundle_cid');
         control.commitTransition(transition, true);
-        return restore(select.get(runtimeBundleCid), control);
+        return restore(select.get(runtimeBundleCid)!, control);
       });
     },
-    retain(runtimeBundleCid, holdId, kind, control) {
+    retain(runtimeBundleCid: string, holdId: string, kind: string, control: StoreControl) {
       active();
       requireControl(control);
       if (!text(holdId) || !text(kind) ||
@@ -705,9 +767,9 @@ export async function openRuntimeBundleStore(root, {
               existing.kind !== kind) {
             fail('RemoteBundleHoldCollision');
           }
-          return restore(select.get(runtimeBundleCid), control);
+          return restore(select.get(runtimeBundleCid)!, control);
         }
-        const currentCid = activeRow.get('active_bundle_cid').value;
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
         const row = select.get(runtimeBundleCid);
         if (row === undefined) fail('RemoteBundleMissing');
         const value = restore(row, control);
@@ -719,10 +781,10 @@ export async function openRuntimeBundleStore(root, {
         persist(transition, control);
         insertHold.run(holdId, runtimeBundleCid, kind);
         control.commitTransition(transition, true);
-        return restore(select.get(runtimeBundleCid), control);
+        return restore(select.get(runtimeBundleCid)!, control);
       });
     },
-    release(holdId, control) {
+    release(holdId: string, control: StoreControl) {
       active();
       requireControl(control);
       if (!text(holdId) || holdId.startsWith(retentionHoldPrefix)) {
@@ -741,11 +803,11 @@ export async function openRuntimeBundleStore(root, {
         return true;
       });
     },
-    async reclaim(runtimeBundleCid, control) {
+    async reclaim(runtimeBundleCid: string, control: StoreControl) {
       active();
       requireControl(control);
       const prepared = transaction.run(() => {
-        const currentCid = activeRow.get('active_bundle_cid').value;
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
         const row = select.get(runtimeBundleCid);
         if (row === undefined) fail('RemoteBundleMissing');
         const value = restore(row, control);
@@ -768,10 +830,10 @@ export async function openRuntimeBundleStore(root, {
       const users = Number(artifactUsers.get(
         prepared.row.artifact_name,
         runtimeBundleCid,
-      ).count);
+      )!.count);
       if (users === 0) {
         try { await remove(join(artifacts, prepared.row.artifact_name)); }
-        catch (error) { if (error.code !== 'ENOENT') throw error; }
+        catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
         await sync(artifacts);
       }
       transaction.run(() => {
@@ -782,34 +844,34 @@ export async function openRuntimeBundleStore(root, {
         `).run(runtimeBundleCid);
       });
       control.commitTransition(prepared.transition, true);
-      return restore(select.get(runtimeBundleCid), control);
+      return restore(select.get(runtimeBundleCid)!, control);
     },
-    inspect(runtimeBundleCid, control) {
+    inspect(runtimeBundleCid: string, control: StoreControl) {
       active();
       requireControl(control);
       const row = select.get(runtimeBundleCid);
       return row === undefined ? undefined : restore(row, control);
     },
-    active(control) {
+    active(control: StoreControl) {
       active();
-      const runtimeBundleCid = activeRow.get('active_bundle_cid').value;
+      const runtimeBundleCid = activeRow.get('active_bundle_cid')!.value;
       return runtimeBundleCid === ''
         ? undefined
-        : restore(select.get(runtimeBundleCid), requireControl(control));
+        : restore(select.get(runtimeBundleCid)!, requireControl(control));
     },
-    list(control) {
+    list(control: StoreControl) {
       active();
       requireControl(control);
       return Object.freeze(selectAll.all().map(row => restore(row, control)));
     },
-    async verify(runtimeBundleCid, control) {
+    async verify(runtimeBundleCid: string, control: StoreControl): Promise<RestoredBundle> {
       const value = store.inspect(runtimeBundleCid, control);
       if (value === undefined) fail('RemoteBundleMissing');
       const projection = control.projection(value.manifest);
       await digestFile(value.artifactPath, BigInt(projection[6]), projection[5]);
       return value;
     },
-    async recover(control) {
+    async recover(control: StoreControl): Promise<readonly RestoredBundle[]> {
       active();
       requireControl(control);
       for (const name of await readdir(staging)) {

@@ -4,38 +4,46 @@ import {mkdtemp, readFile, rm, unlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import type {SQLInputValue} from 'node:sqlite';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {signRemoteRuntimeBundle} from './remote-bundle-signature.mjs';
 import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
 
-const control = runtimeCore(moon).remoteBundleControl;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const control = (runtimeCore(moon) as {remoteBundleControl: ReturnType<typeof remoteBundleControl>})
+  .remoteBundleControl;
+type Store = Awaited<ReturnType<typeof openRuntimeBundleStore>>;
 const targetTriple = 'aarch64-apple-darwin';
-const cid = character => `sha256:${character.repeat(64)}`;
-const ownedId = binding =>
+const cid = (character: string) => `sha256:${character.repeat(64)}`;
+const ownedId = (binding: unknown) =>
   `set-retention:${control.holdBindingIdentity(binding)}`;
 
-function database(path, action) {
+function database<Value>(path: string, action: (connection: DatabaseSync) => Value) {
   const connection = new DatabaseSync(path);
   try { return action(connection); }
   finally { connection.close(); }
 }
 
-const row = (store, sql, ...values) => database(store.path,
+const row = (store: Store, sql: string, ...values: SQLInputValue[]) => database(store.path,
   connection => connection.prepare(sql).get(...values));
-const change = (store, sql, ...values) => database(store.path,
+const change = (store: Store, sql: string, ...values: SQLInputValue[]) => database(store.path,
   connection => connection.prepare(sql).run(...values));
-const held = store => row(store,
-  'SELECT COUNT(*) AS count FROM bundle_holds').count;
-const state = (store, value) => control.recordProjection(
-  store.inspect(value.runtimeBundleCid, control).record,
+const held = (store: Store) => row(store,
+  'SELECT COUNT(*) AS count FROM bundle_holds')!.count;
+const state = (store: Store, value: Readonly<{runtimeBundleCid: string}>) => control.recordProjection(
+  store.inspect(value.runtimeBundleCid, control)!.record,
 );
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-bundle-retention-'));
-  const stores = [];
+  const stores: Store[] = [];
   const keys = generateKeyPairSync('ed25519');
   const bundleAuthorities = new Map([
     ['bundle-authority-a', new Map([['key-a', keys.publicKey]])],
@@ -44,7 +52,7 @@ async function fixture(t) {
     for (const store of stores.reverse()) store.close();
     await rm(root, {recursive: true, force: true});
   });
-  const open = async (name = 'store', options = {}) => {
+  const open = async (name = 'store', options: Parameters<typeof openRuntimeBundleStore>[1] = {}) => {
     const store = await openRuntimeBundleStore(join(root, name), {
       bundleAuthorities,
       targetTriple,
@@ -56,7 +64,7 @@ async function fixture(t) {
     stores.push(store);
     return store;
   };
-  const prepare = async (revision, bytes = Buffer.from(`runtime-${revision}`)) => {
+  const prepare = async (revision: string, bytes = Buffer.from(`runtime-${revision}`)) => {
     const sourcePath = join(root, `component-${revision}`);
     await writeFile(sourcePath, bytes, {mode: 0o600});
     const manifest = control.prepare({
@@ -79,14 +87,15 @@ async function fixture(t) {
       runtimeBundleCid: control.identity(manifest),
     });
   };
-  const install = async (store, value) => {
+  const install = async (store: Store, value: Awaited<ReturnType<typeof prepare>>) => {
     await store.install(value.sourcePath, value.signed, control);
     store.activate(value.runtimeBundleCid, control);
   };
   return Object.freeze({open, prepare, install});
 }
 
-async function member(store, value, overrides = {}) {
+async function member(store: Store, value: Readonly<{runtimeBundleCid: string}>,
+  overrides: Partial<Parameters<typeof control.prepareHoldBinding>[0]> = {}) {
   const context = await store.retentionContext(value.runtimeBundleCid, control);
   const options = {
     distribution: control.prepareDistribution([value.runtimeBundleCid]),
@@ -353,7 +362,7 @@ test('missing bytes block custody claims but permit exact held cleanup', async t
   await install(store, value);
   const {binding} = await member(store, value);
   await store.retainMember(binding, control);
-  await unlink(store.inspect(value.runtimeBundleCid, control).artifactPath);
+  await unlink(store.inspect(value.runtimeBundleCid, control)!.artifactPath);
   assert.equal((await store.retainMember(binding, control)).status, 'unavailable');
   assert.equal((await store.inspectMemberHold(binding, control)).status,
     'unavailable');

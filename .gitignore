@@ -1645,6 +1645,12 @@ target/
 /adapters/host-common/remote-bundle-control.test.d.mts
 /adapters/site-node/remote-bundle-signature.mjs
 /adapters/site-node/remote-bundle-signature.d.mts
+/adapters/site-node/runtime-bundle-store.test.mjs
+/adapters/site-node/runtime-bundle-store.test.d.mts
+/adapters/site-node/runtime-bundle-retention.test.mjs
+/adapters/site-node/runtime-bundle-retention.test.d.mts
+/adapters/site-node/runtime-bundle-store.mjs
+/adapters/site-node/runtime-bundle-store.d.mts
 /adapters/site-node/runtime-bundle-cli.mjs
 /adapters/site-node/runtime-bundle-cli.d.mts
 /adapters/site-node/runtime-bundle-operations.mjs
