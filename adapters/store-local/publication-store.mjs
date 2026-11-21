@@ -38,7 +38,8 @@ import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createP
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingLifecycle, createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
 import {createPublicationMetadataInventory, createUncommittedPublicationCleanup} from './publication-metadata-inventory.mjs';
-import {createPublicationMetadataDeletionMarkers} from './publication-metadata-deletion-markers.mjs';
+import {createPublicationMetadataDeletionMarkers, createPublicationMetadataRetirement}
+  from './publication-metadata-deletion-markers.mjs';
 import {createEffectCaptureCustodyRecords, createPublicationCustodyRecords} from './publication-custody-records.mjs';
 import {createPublicationObjectVerifier} from './publication-object-verifier.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
@@ -46,7 +47,6 @@ import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owne
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
 import {createResultRetirement} from './result-deletion-owner.mjs';
-import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
@@ -5414,215 +5414,17 @@ async function openOriginalLocalPublicationStore(
       objectPath, rememberPhysicalRemoval, syncPhysicalRemovals, releasePhysicalCapacity,
     });
 
-  const createMetadataDeletionCleanup = async (keyHash, marker) => {
-    const existing = pendingMetadataDeletions.get(keyHash);
-    if (existing !== undefined) {
-      return Object.freeze({marker, cleanup: existing, deleted: false});
-    }
-    let recoveryOriginal, recoveryCaptured = false, recoveryTransferred = false;
-    const cleanup = createMetadataDeletionOwner(marker, {
-      serialize(run) {
-        const operation = metadataRetentionBusy.then(async () => {
-          const completion=pendingMetadataFenceCompletions.get(keyHash);
-          if(completion!==undefined) {
-            deliveryIndex.finishMetadataDeletionFence(completion);
-            pendingMetadataFenceCompletions.delete(keyHash);
-          }
-          if (!recoveryTransferred) {
-            if(!recoveryCaptured) {
-              recoveryOriginal = deliveryIndex.pendingPublication(marker.public_index_entry_cid) ??
-                deliveryIndex.nativePublicationInventory(marker.public_index_entry_cid);
-              recoveryCaptured=true;
-            }
-            if (recoveryOriginal !== undefined) {
-              const inventory = publicationRecoveryValue(recoveryOriginal);
-              if (inventory.namespace_id !== marker.namespace_id ||
-                  inventory.authority_scope_cid !== marker.authority_scope_cid ||
-                  inventory.run_definition_cid !== marker.run_definition_cid ||
-                  inventory.physical_holding_cids.join('\0') !== marker.physical_holding_cids.join('\0') ||
-                  inventory.contract_objects.some(object => !marker.contract_objects.some(
-                    member => member.semantic_cid === object.semantic_cid))) {
-                fail('InvalidPublicationMetadataDeletionStore');
-              }
-              // The same durable marker now owns all cleanup. Settle its
-              // pending lookup row before physical work so an Unknown retry
-              // reaches this exact native mutation before any other DB read.
-            }
-            deliveryIndex.retireNativePublicationInventory(recoveryOriginal,
-              {metadata_key:keyHash,run_cid:marker.run_definition_cid});
-            metadataDeletionIntents.delete(marker.run_definition_cid);
-            recoveryTransferred = true;
-          }
-          return run();
-        });
-        metadataRetentionBusy = operation.catch(() => {});
-        return operation;
-      },
-      syncObjects: objects => syncPhysicalRemovals(objects),
-      releaseUnconfirmed(objects) {
-        return releasePhysicalCapacity(objects);
-      },
-      async retireResult(result) {
-        const retired = await createResultDeletionCleanup(
-          keyHash,
-          result.result_definition_cid,
-          Object.freeze({
-            version: 'actql-local-result-deletion/0.1',
-            public_index_entry_cid: marker.public_index_entry_cid,
-            result_definition_cid: result.result_definition_cid,
-            material_generation_cid: result.material_generation_cid,
-          }),
-          result.byte_count,
-        );
-        if (retired.cleanup.status().pending) await retired.cleanup.retry();
-        return !retired.cleanup.status().pending;
-      },
-      async retireHolding(holdingCid) {
-        if (await metadataHoldingHasOtherOwner(
-          holdingCid, marker.public_index_entry_cid,
-        )) return true;
-        const retired = await retirePhysicalHolding(holdingCid);
-        return !retired.cleanup.status().pending;
-      },
-      removeRunDirectories: () => removeRunMetadataDirectories(
-        marker.run_definition_cid, keyHash,
-      ),
-      async removeIndex() {
-        const indexPath = resolve(indexesDirectory, `${keyHash}.json`);
-        let indexBytes;
-        try {
-          indexBytes = await readBounded(
-            indexPath, configuration.maxObjectBytes,
-          );
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error;
-        }
-        if (indexBytes !== undefined) {
-          const index = admitContract(
-            'public_index_entry', indexBytes.toString('utf8'),
-          );
-          if (index.identity !== marker.public_index_entry_cid) {
-            fail('InvalidPublicationMetadataDeletionStore');
-          }
-          await unlink(indexPath);
-          await syncDirectory(indexesDirectory);
-        }
-        durablyConfirmedIndexes.delete(keyHash);
-      },
-      reclaimContract: (object, unconfirmedObjects) =>
-        reclaimMetadataContract(
-          marker.public_index_entry_cid, object, unconfirmedObjects,
-        ),
-      async removeResultDeletionDirectory() {
-        try {
-          await rm(resultDeletionDirectory(keyHash), {
-            recursive: true, force: false,
-          });
-          await syncDirectory(deletionsDirectory);
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error;
-        }
-      },
-      async removeInventory() {
-        try {
-          await unlink(metadataInventoryPath(marker.public_index_entry_cid));
-          await syncDirectory(metadataInventoriesDirectory);
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error;
-        }
-      },
-      compactMarker: () => compactMetadataDeletion(
-        keyHash, marker.run_definition_cid,
-      ),
-      settle() {
-        pendingMetadataDeletions.delete(keyHash);
-        pendingMetadataDeletionMarkers.delete(keyHash);
-      },
-    });
-    pendingMetadataDeletions.set(keyHash, cleanup);
-    pendingMetadataDeletionMarkers.set(keyHash, marker);
-    try { await cleanup.retry(); }
-    catch {}
-    return Object.freeze({
-      marker,
-      cleanup,
-      deleted: cleanup.status().pending === false,
-    });
-  };
-
-  const retireCommittedPublicationMetadata = async (key, requestedAt) => {
-    active();
-    if (!timestampPattern.test(requestedAt)) {
-      fail('InvalidPublicationMetadataDeletion');
-    }
-    const keyHash = indexKey(key);
-    const pending=pendingMetadataDeletions.get(keyHash);
-    if(pending!==undefined) return Object.freeze({marker:pendingMetadataDeletionMarkers.get(keyHash),
-      cleanup:pending,deleted:false});
-    let marker = await readMetadataDeletion(keyHash);
-    if (marker?.version ===
-        'actql-local-publication-metadata-retired/0.1') {
-      const cleanup = Object.freeze({
-        status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
-        retry: () => Promise.resolve(Object.freeze({
-          pending: false,
-          errors: Object.freeze([]),
-        })),
+  const {retireCommittedPublicationMetadata, recoverRetiredMetadata} =
+    createPublicationMetadataRetirement(configuration, indexesDirectory, deletionsDirectory, metadataInventoriesDirectory,
+      metadataDeletionsDirectory, timestampPattern, {
+        active, currentDeliveryIndex, pendingMetadataDeletions, pendingMetadataDeletionMarkers,
+        pendingMetadataFenceCompletions, metadataDeletionIntents, metadataRetentionCurrent, retainMetadataOperation,
+        publicationRecoveryValue, syncPhysicalRemovals, releasePhysicalCapacity, createResultDeletionCleanup,
+        metadataHoldingHasOtherOwner, retirePhysicalHolding, removeRunMetadataDirectories, admitContract, syncDirectory,
+        durablyConfirmedIndexes, reclaimMetadataContract, resultDeletionDirectory, metadataInventoryPath, compactMetadataDeletion,
+        readMetadataDeletion, inspectCommittedIndexRaw, readMetadataInventory, collectRunMetadataContracts, ensureMetadataDeletion,
+        metadataResultBindings, bindMetadataContractObjects,
       });
-      return Object.freeze({marker, cleanup, deleted: true});
-    }
-    if (marker === undefined) {
-      const entry = await inspectCommittedIndexRaw(key);
-      if (entry === undefined) fail('PublicationLookupDenied');
-      const inventory = await readMetadataInventory(
-        entry.public_index_entry_cid,
-      );
-      if (inventory === undefined ||
-          inventory.public_index_entry_cid !==
-            entry.public_index_entry_cid) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const contractCids = await collectRunMetadataContracts(
-        entry.run_definition_cid,
-        keyHash,
-        inventory.contract_objects.map(object => object.semantic_cid),
-      );
-      marker = await ensureMetadataDeletion(keyHash, Object.freeze({
-        version: 'actql-local-publication-metadata-deletion/0.1',
-        namespace_id: entry.namespace_id,
-        authority_scope_cid: entry.authority_scope_cid,
-        run_definition_cid: entry.run_definition_cid,
-        public_index_entry_cid: entry.public_index_entry_cid,
-        results: await metadataResultBindings(entry),
-        contract_objects: await bindMetadataContractObjects(contractCids),
-        physical_holding_cids: inventory.physical_holding_cids,
-        requested_at: requestedAt,
-      }));
-    }
-    if (marker.namespace_id !== key.namespaceId ||
-        marker.authority_scope_cid !== key.authorityScopeCid ||
-        marker.run_definition_cid !== key.runDefinitionCid) {
-      fail('InvalidPublicationMetadataDeletionStore');
-    }
-    return createMetadataDeletionCleanup(keyHash, marker);
-  };
-
-  const recoverRetiredMetadata = async () => {
-    active();
-    const recovered = [];
-    for (const name of await readdir(metadataDeletionsDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataDeletionStore');
-      }
-      const keyHash = name.slice(0, -5);
-      const marker = await readMetadataDeletion(keyHash);
-      if (marker.version !==
-          'actql-local-publication-metadata-retired/0.1') {
-        recovered.push(await createMetadataDeletionCleanup(keyHash, marker));
-      }
-    }
-    return Object.freeze(recovered);
-  };
 
   // Immutable holding bodies are admitted at their selected read. Pending
   // deletion recovery below still owns its exact records and original ACKs;

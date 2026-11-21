@@ -2,15 +2,15 @@
 // durably reclaimed metadata. The Store remains the sole capacity ledger.
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 
-type Marker<Result, Contract> = Readonly<{
-  results: readonly Result[]; physical_holding_cids: readonly string[]; contract_objects: readonly Contract[];
+type Marker<Result, Contract, HoldingCid> = Readonly<{
+  results: readonly Result[]; physical_holding_cids: readonly HoldingCid[]; contract_objects: readonly Contract[];
 }>;
-type Operations<Result, Contract, Removal> = Readonly<{
+type Operations<Result, Contract, Removal, HoldingCid> = Readonly<{
   serialize(run: () => Promise<void>): PromiseLike<void>;
   syncObjects(objects: Map<string, Removal>): unknown;
   releaseUnconfirmed(objects: Map<string, Removal>): unknown;
   retireResult(result: Result): boolean | PromiseLike<boolean>;
-  retireHolding(holdingCid: string): boolean | PromiseLike<boolean>;
+  retireHolding(holdingCid: HoldingCid): boolean | PromiseLike<boolean>;
   removeRunDirectories(): unknown;
   removeIndex(): unknown;
   reclaimContract(contract: Contract, unconfirmedObjects: Map<string, Removal>): unknown;
@@ -20,8 +20,9 @@ type Operations<Result, Contract, Removal> = Readonly<{
   settle(): undefined;
 }>;
 
-export function createMetadataDeletionOwner<Result, Contract, Removal>(
-  marker: Marker<Result, Contract>, operations: Operations<Result, Contract, Removal>) {
+export function createMetadataDeletionOwner<Result, Contract, Removal, HoldingCid = string>(
+  marker: Marker<Result, Contract, HoldingCid>, operations: Operations<Result, Contract, Removal, HoldingCid>,
+) {
   let pending = true;
   const errors: unknown[] = [];
   const unconfirmedObjects = new Map<string, Removal>();

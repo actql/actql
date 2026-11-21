@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2e6882a7bd271959607cd03c3353e5e1428fe7adcd3704ea5b13e44b378d58df",
+      "sha256": "626893d1e202892a9d7ef3578bb44d1acf0147eacb53f16aa8ce98bd4ce3f3ac",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6534,11 +6534,28 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
+          "parameters": [
+            "contractCids",
+            "readOriginal"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/bootstrap/bootstrap",
           "parameters": [
             "path"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
+          "parameters": [
+            "runDefinitionCid",
+            "keyHash",
+            "initial"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
@@ -6894,103 +6911,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
-          "parameters": [
-            "objects"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#3",
-          "parameters": [
-            "object",
-            "unconfirmedObjects"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:releaseUnconfirmed/init:releaseUnconfirmed",
-          "parameters": [
-            "objects"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeIndex/init:removeIndex",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeInventory/init:removeInventory",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeResultDeletionDirectory/init:removeResultDeletionDirectory",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireHolding/init:retireHolding",
-          "parameters": [
-            "holdingCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
-          "parameters": [
-            "result"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
-          "parameters": [
-            "run"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
           "parameters": [],
           "async": false
         },
@@ -7520,6 +7440,13 @@
             "publicIndexEntryCid"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
@@ -8118,11 +8045,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
           "parameters": [
             "objects"
@@ -8235,6 +8157,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
+          "parameters": [
+            "runDefinitionCid",
+            "keyHash"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
           "parameters": [
             "key",
@@ -8288,31 +8218,6 @@
           "name": "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
           "parameters": [
             "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
-          "parameters": [
-            "key",
-            "requestedAt"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
-          "parameters": [
-            "object"
           ],
           "async": false
         },
@@ -8879,22 +8784,6 @@
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#3",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#4",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:releaseUnconfirmed/init:releaseUnconfirmed",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeIndex/init:removeIndex",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeInventory/init:removeInventory",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeResultDeletionDirectory/init:removeResultDeletionDirectory",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireHolding/init:retireHolding",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
@@ -9015,7 +8904,6 @@
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
-            "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
@@ -9036,10 +8924,6 @@
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
@@ -9086,7 +8970,11 @@
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
-            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
+            "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
+            "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
+            "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings",
+            "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories"
           ],
           "exports": [
             "PublicationStoreError",
@@ -12794,7 +12682,6 @@
       "imports": [
         "../host-common/managed-failure.mjs",
         "./delivery-attempt-index.mjs",
-        "./metadata-deletion-owner.mjs",
         "./native-metadata-mutation-owner.mjs",
         "./object-writer-owner.mjs",
         "./physical-holding-record-reader.mjs",
@@ -13474,9 +13361,10 @@
     {
       "module": "adapters/store-local/publication-metadata-deletion-markers.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3350a3013047fbce17a73437e8afe4f8c764a88b1145948e0aa240f852d8dfb2",
+      "sha256": "3cb1f7f28a7b109d5f7d3e067ba757a59f63eb7a4fcc3d998e75ce072c21ab48",
       "exports": [
-        "createPublicationMetadataDeletionMarkers"
+        "createPublicationMetadataDeletionMarkers",
+        "createPublicationMetadataRetirement"
       ],
       "operations": [
         {
@@ -13581,6 +13469,174 @@
             "runDefinitionCid"
           ],
           "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement",
+          "parameters": [
+            "configuration",
+            "indexesDirectory",
+            "deletionsDirectory",
+            "metadataInventoriesDirectory",
+            "metadataDeletionsDirectory",
+            "timestampPattern",
+            "active",
+            "currentDeliveryIndex",
+            "pendingMetadataDeletions",
+            "pendingMetadataDeletionMarkers",
+            "pendingMetadataFenceCompletions",
+            "metadataDeletionIntents",
+            "metadataRetentionCurrent",
+            "retainMetadataOperation",
+            "publicationRecoveryValue",
+            "syncPhysicalRemovals",
+            "releasePhysicalCapacity",
+            "createResultDeletionCleanup",
+            "metadataHoldingHasOtherOwner",
+            "retirePhysicalHolding",
+            "removeRunMetadataDirectories",
+            "admitContract",
+            "syncDirectory",
+            "durablyConfirmedIndexes",
+            "reclaimMetadataContract",
+            "resultDeletionDirectory",
+            "metadataInventoryPath",
+            "compactMetadataDeletion",
+            "readMetadataDeletion",
+            "inspectCommittedIndexRaw",
+            "readMetadataInventory",
+            "collectRunMetadataContracts",
+            "ensureMetadataDeletion",
+            "metadataResultBindings",
+            "bindMetadataContractObjects"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
+          "parameters": [
+            "objects"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#3",
+          "parameters": [
+            "object",
+            "unconfirmedObjects"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:releaseUnconfirmed/init:releaseUnconfirmed",
+          "parameters": [
+            "objects"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeIndex/init:removeIndex",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeInventory/init:removeInventory",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeResultDeletionDirectory/init:removeResultDeletionDirectory",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireHolding/init:retireHolding",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
+          "parameters": [
+            "result"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/recoverRetiredMetadata/recoverRetiredMetadata",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
+          "parameters": [
+            "key",
+            "requestedAt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
+          "parameters": [
+            "object"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -13601,10 +13657,33 @@
             "createPublicationMetadataDeletionMarkers/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#6",
             "createPublicationMetadataDeletionMarkers/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#7",
             "createPublicationMetadataDeletionMarkers/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#8",
-            "createPublicationMetadataDeletionMarkers/runMetadataDeletionStarted/runMetadataDeletionStarted"
+            "createPublicationMetadataDeletionMarkers/runMetadataDeletionStarted/runMetadataDeletionStarted",
+            "createPublicationMetadataRetirement",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#3",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#4",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:releaseUnconfirmed/init:releaseUnconfirmed",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeIndex/init:removeIndex",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeInventory/init:removeInventory",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeResultDeletionDirectory/init:removeResultDeletionDirectory",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireHolding/init:retireHolding",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
+            "createPublicationMetadataRetirement/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
+            "createPublicationMetadataRetirement/recoverRetiredMetadata/recoverRetiredMetadata",
+            "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
+            "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
+            "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
+            "createPublicationMetadataRetirement/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids"
           ],
           "exports": [
-            "createPublicationMetadataDeletionMarkers"
+            "createPublicationMetadataDeletionMarkers",
+            "createPublicationMetadataRetirement"
           ],
           "attributes": {
             "responsibility": [
@@ -13617,6 +13696,10 @@
               {
                 "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
                 "anchor": "export function createPublicationMetadataDeletionMarkers("
+              },
+              {
+                "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
+                "anchor": "export function createPublicationMetadataRetirement<"
               }
             ],
             "identity": [
@@ -13629,12 +13712,20 @@
               {
                 "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
                 "anchor": "metadataDeletionIntents.add(value.run_definition_cid);"
+              },
+              {
+                "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
+                "anchor": "metadataDeletionIntents.delete(marker.run_definition_cid);"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
                 "anchor": "await syncDirectory(metadataDeletionsDirectory);"
+              },
+              {
+                "path": "adapters/store-local/publication-metadata-deletion-markers.mts",
+                "anchor": "metadataRetentionCurrent().then(async () => {"
               }
             ],
             "failure": [
@@ -13669,15 +13760,22 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery resumes a retiring original without recreating its removed inventory"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK"
               }
             ]
           }
         }
       ],
       "imports": [
+        "./metadata-deletion-owner.mjs",
         "./publication-metadata-inventory.mjs",
+        "./publication-store-inputs.mjs",
         "./publication-store-io.mjs",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
