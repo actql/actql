@@ -68413,7 +68413,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-host-policy.mts",
-                "anchor": "export function localResourceResultReadLimits(moon: ResourcePolicy, requestMemory: unknown)"
+                "anchor": "export function localResourceResultReadLimits(moon: ResultReadPolicy, requestMemory?: unknown)"
               }
             ],
             "identity": [

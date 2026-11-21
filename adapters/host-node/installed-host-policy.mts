@@ -4,12 +4,12 @@ import contract from '../../spec/contracts/actql-capacity-host-policy.json' with
 import environmentContract from '../../spec/contracts/actql-check-environment.json' with {type: 'json'};
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import type {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
+import type {HostCapacityPolicy, HostLookupExecutionPolicy} from '../../packages/local-node/host-policy.js';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-type CapacityField = Exclude<keyof typeof contract.schema.properties, 'version'>;
-type LookupField = Exclude<keyof typeof environmentContract.policy_components.lookup_execution.schema.properties, 'version'>;
-type CapacityPolicy = Readonly<{version: string} & Partial<Record<CapacityField, number>>>;
-type LookupPolicy = Readonly<{version: string} & Record<LookupField, number>>;
+type AdditionalCapacityField = Exclude<keyof typeof contract.schema.properties, keyof HostCapacityPolicy>;
+type CapacityPolicy = HostCapacityPolicy & Readonly<Partial<Record<AdditionalCapacityField, number>>>;
+type LookupPolicy = HostLookupExecutionPolicy;
 type RequestMemory = Readonly<{retainedBytes: number; executionBytes: number}>;
 type Rule = Readonly<{const?: unknown; minimum?: number; maximum?: number}>;
 type WirePolicy = Readonly<{
@@ -21,9 +21,11 @@ type ResourceOriginal = Extract<SynchronousRuntimeData, object>;
 type ResourceLookup = Readonly<{
   clientLocalPreparationResourceLimits(original: ResourceOriginal, retainedBytes?: bigint, executionBytes?: bigint): unknown;
 }>;
-type ResourcePolicy = ResourceLookup & Readonly<{
+type ResultReadPolicy = ResourceLookup & Readonly<{
   clientLocalResourcePolicyOriginal(): ResourceOriginal;
   clientLocalResourcePolicyRowCeiling(original: ResourceOriginal, retainedBytes?: bigint, executionBytes?: bigint): number;
+}>;
+type ResourcePolicy = ResultReadPolicy & Readonly<{
   clientLocalResourcePolicyModelRequestByteCeiling(original: ResourceOriginal): bigint;
 }>;
 
@@ -174,7 +176,7 @@ export function localResourceLookupExecutionPolicy(moon: ResourceLookup, origina
 // policy. Common derives its necessary row ceiling; this projection grants
 // no allocation or permission. Streaming keeps per-row/wire/batch backpressure,
 // not collection's cumulative retained-row/byte ceiling.
-export function localResourceResultReadLimits(moon: ResourcePolicy, requestMemory: unknown) {
+export function localResourceResultReadLimits(moon: ResultReadPolicy, requestMemory?: unknown) {
   const memory = snapshotRequestMemory(requestMemory);
   const original = moon.clientLocalResourcePolicyOriginal();
   const limits = moon.clientLocalPreparationResourceLimits(original,
