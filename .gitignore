@@ -1547,3 +1547,5 @@ target/
 /adapters/store-local/delivery-attempt-store.d.mts
 /adapters/store-local/delivery-record-store.mjs
 /adapters/store-local/delivery-record-store.d.mts
+/adapters/store-local/manifest-read-grant-store.mjs
+/adapters/store-local/manifest-read-grant-store.d.mts

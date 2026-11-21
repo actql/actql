@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6f0c4bf167fd745f5b0600ee49da278f258bf6384a0622eb2cd2836eb8d84ce8",
+      "sha256": "8a98d38b787ea5afc641538406f358f3a32ebdc14914b77256c1cac4d2a03dbe",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6607,44 +6607,6 @@
             "consume"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
-          "parameters": [
-            "suppliedWire",
-            "attemptId"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
@@ -7943,13 +7905,6 @@
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
@@ -11637,6 +11592,157 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/manifest-read-grant-store.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "a9dde2198a03159a82e630c7a3934f0b9d78effb7c2faa89e765ce5362608a8e",
+      "exports": [
+        "createManifestReadGrantStore"
+      ],
+      "operations": [
+        {
+          "name": "createManifestReadGrantStore",
+          "parameters": [
+            "configuration",
+            "manifestReadsDirectory",
+            "activePhysicalRecordWriters",
+            "active",
+            "cidHex",
+            "runMetadataDeletionStarted",
+            "syncDirectory",
+            "writePhysicalHoldingRecord",
+            "admitContract",
+            "parseContract",
+            "putAdmittedPublicationContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant",
+          "parameters": [
+            "suppliedWire",
+            "attemptId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createManifestReadGrantStore",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
+            "createManifestReadGrantStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status"
+          ],
+          "exports": [
+            "createManifestReadGrantStore"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Manifest read grants follow the same selected-operation boundary."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "const consumeManifestReadGrant = (suppliedWire: unknown, attemptId: unknown) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "manifestReadGrantCid: admitted.identity,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "manifestReadAdmissionBusy = operation.catch(() => {});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "fail('ManifestReadAttemptConflict');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "if (await runMetadataDeletionStarted(grant.run_definition_cid))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "if (uses >= grant.max_uses)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/manifest-read-grant-store.mts",
+                "anchor": "await writePhysicalHoldingRecord(target, bytes, false, directory);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Manifest selection requires its actual directory ACK after a lost use acknowledgement"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Manifest selection retains the original failed directory FD close before Store retirement"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/delivery-record-store.mjs",
