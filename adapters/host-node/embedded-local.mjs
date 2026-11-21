@@ -2623,7 +2623,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
   const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
-    staticPlanImmediate: authorizeStaticPlan} = createLocalReadAuthorizations({
+    runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -6431,6 +6431,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
       lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
+  const runExplanationContext = preparation !== undefined &&
+    ['clientProgramBeginRequestExplanationContextRead', 'clientProgramReserveRequestExplanationContextRead',
+      'clientProgramReadRequestExplanationContext', 'clientProgramRequestExplanationReadIssueCode']
+      .every(name => typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function')
+    ? installClientRunExplanation({authorize: hostConnection, context: true,
+      authorizeEgress: (_selected, operation) => authorizeLocalRun(operation, operation),
+      authorizeCurrent: (_selected, operation) => authorizeCurrentLocalRun(operation, operation),
+      probeOriginal: ref => journal.probeRunExplanationContextOriginal(ref),
+      lookupOriginal: (ref, extent) => journal.readRunExplanationContextOriginal(ref, extent),
+      readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
@@ -6455,7 +6465,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
     // Explanation's Account gate runs only after its own fixed read admission,
     // before even the scalar Journal probe. Other read entry rules stay intact.
-    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, attach,
+    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},

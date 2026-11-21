@@ -192,6 +192,13 @@
       "maxWireBytes",
       "maxNodes",
       "maxDepth"
+    ],
+    "run-explanation-context": [
+      "connection",
+      "ref",
+      "maxWireBytes",
+      "maxNodes",
+      "maxDepth"
     ]
   },
   "request_optional_fields": {

@@ -3192,6 +3192,72 @@ pub fn client_program_read_request_explanation(
 }
 
 ///|
+#export_name("clientProgramBeginRequestExplanationContextRead")
+pub fn client_program_begin_request_explanation_context_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.begin_request_explanation_context_read(parent, input).map_err(issue => {
+      @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramReserveRequestExplanationContextRead")
+pub fn client_program_reserve_request_explanation_context_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  stored_bytes : Int,
+  context_bytes : Int,
+  template_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.reserve_request_explanation_context_read(
+    parent, input, stored_bytes, context_bytes, template_bytes, max_bytes, max_nodes,
+    max_depth,
+  ).map_err(issue => {
+    @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+  })
+}
+
+///|
+#export_name("clientProgramReadRequestExplanationContext")
+pub fn client_program_read_request_explanation_context(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  definition_wire : String,
+  plan_wire : String?,
+  plan_view_wire : String?,
+  facts_wire : String?,
+  context_wire : String?,
+  template_wire : String?,
+  program_cid : String,
+  parameters_cid : String,
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  stored_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.read_request_explanation_context(
+    parent, input, definition_wire, plan_wire, plan_view_wire, facts_wire, context_wire,
+    template_wire, program_cid, parameters_cid, namespace_id, authority_scope_cid,
+    definition_cid, stored_bytes, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramRequestExplanationReadIssueCode")
 pub fn client_program_request_explanation_read_issue_code(
   issue : @client_local_host.ClientRequestExplanationReadIssue,

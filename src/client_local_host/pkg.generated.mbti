@@ -1295,7 +1295,7 @@ pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relati
 
 pub fn read_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedTaskBoundaryPhase) -> Result[ClientLogicalObservationRecord, ClientLogicalObservationIssue]
 
-pub fn[I] read_request_explanation_context(ClientRequestPreparation[I], I, String, String?, String?, String?, String?, String?, String, String, String, String, Int, Int, Int, Int) -> Result[String?, ClientRequestExplanationReadIssue]
+pub fn[I] read_request_explanation_context(ClientRequestPreparation[I], I, String, String?, String?, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 
 pub fn[I] read_request_explanation_view(ClientRequestPreparation[I], I, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 

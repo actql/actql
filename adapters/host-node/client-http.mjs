@@ -17,7 +17,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
-  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -248,7 +248,7 @@ export function createClientHttpHandler({
   negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation,
+  check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext,
   maxRequestBytes = 65536, observe, loopbackHttp = false,
   prepareRequest,
 }) {
@@ -452,14 +452,18 @@ export function createClientHttpHandler({
               Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunPlanView');
           sendJson(view);
         } finally { observer.release(); }
-      } else if (operation === 'run-explanation' || operation === 'static-explanation') {
+      } else if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
+            operation === 'static-explanation') {
         const staticRead = operation === 'static-explanation';
+        const contextRead = operation === 'run-explanation-context';
+        const reader = staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
         const observer = observationAttempt(response);
         try {
-          await invoke(staticRead ? staticEffectExplanation : runExplanation, observer.signal, undefined, async view => {
+          await invoke(reader, observer.signal, undefined, async view => {
             if (staticRead) {
               if (!validWireStaticExplanationViewShape(view)) invalid('InvalidClientHostStaticExplanationView');
-            } else if (!validWireRunExplanationViewShape(view) ||
+            } else if (!validateRun(view) ||
                 Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunExplanationView');
             const wire = JSON.stringify(view);
             if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) {

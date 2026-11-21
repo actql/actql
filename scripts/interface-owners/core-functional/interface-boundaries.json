@@ -66968,11 +66968,18 @@
               {
                 "path": "src/client_local_host/preparation_request_explanation_read_js_wbtest.mbt",
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"first Effect Run Explanation borrows"
               }
             ]
           },
           "operations": [
-            "client_program_read_request_explanation"
+            "client_program_read_request_explanation",
+            "client_program_begin_request_explanation_context_read",
+            "client_program_read_request_explanation_context",
+            "client_program_reserve_request_explanation_context_read"
           ],
           "exports": []
         },
@@ -68057,6 +68064,10 @@
           "declaration": "client_program_begin_logical_observation ( value : @ client_local_host . ClientLogicalObservation , phase : String , ) - > Result [ @ client_local_host . ClientLogicalObservationRecord , @ client_local_host . ClientLogicalObservationIssue , ]"
         },
         {
+          "name": "client_program_begin_request_explanation_context_read",
+          "declaration": "client_program_begin_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_begin_request_explanation_read",
           "declaration": "client_program_begin_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -68477,6 +68488,10 @@
           "declaration": "client_program_read_request_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
         {
+          "name": "client_program_read_request_explanation_context",
+          "declaration": "client_program_read_request_explanation_context ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , context_wire : String ? , template_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_read_request_policy_subject",
           "declaration": "client_program_read_request_policy_subject ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , index : Int , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
         },
@@ -68597,6 +68612,10 @@
           "declaration": "client_program_reserve_request_effect_original_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , prepared : @ publication_host . PreparedClientEffectComputation , count : Int , wire_at : ( Int ) - > String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_explanation_context_read",
+          "declaration": "client_program_reserve_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , context_bytes : Int , template_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_explanation_read",
           "declaration": "client_program_reserve_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -68677,7 +68696,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "a2bc864b0808ecd9997a844edcd2f56d8c874074d04bef0d78f5e0da0edfd6ee"
+      "sha256": "3f9627229b5f97ebdc18b829a22e3ed2a0cde95323caadd8325e7e5dc10ab1d0"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

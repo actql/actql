@@ -13,7 +13,7 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
   WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView,
-  WireStaticExplanationView} from
+  WireRunExplanationContextView, WireStaticExplanationView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -555,6 +555,9 @@ export interface Execution {
    * The signal cancels this read only, not the execution. */
   explain(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationView>;
+  /** Read the original Saved Plan, Facts, and Context where it was retained. */
+  explainContext(options?: {signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationContextView>;
   /** Read-only Owner-local projection; omitted pending facts remain unknown. */
   inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;

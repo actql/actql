@@ -126,12 +126,22 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
   };
   // A transport envelope around the original Plan and its two facets. Its
   // references share the Plan and Map binding; the reader checks that binding.
+  const explanationView = plan => object({version: {const: 'actql-static-explanation/0.1'},
+    plan, facts: ref('explanation_facts'), context: ref('explanation_context')});
   schemas.static_explanation_view = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: 'https://smooth.dev/schemas/actql-static-explanation-0.1.json',
-    ...object({version: {const: 'actql-static-explanation/0.1'},
-      plan: {oneOf: [ref('plan_view'), ref('effectful_static_plan_view')]},
-      facts: ref('explanation_facts'), context: ref('explanation_context')}),
+    ...explanationView({oneOf: [ref('plan_view'), ref('effectful_static_plan_view')]}),
+  };
+  schemas.run_explanation_context_view = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://smooth.dev/schemas/actql-run-explanation-context-view-0.1.json',
+    ...object({version: {const: 'actql-run-explanation-context-view/0.1'},
+      run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},
+      explanation: {oneOf: [
+        object({state: {const: 'projected'}, view: explanationView(ref('plan_view'))}),
+        object({state: {const: 'not_projected'}, reason: {const: 'not_retained'}}),
+      ]}}),
   };
   return schemas;
 }

@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "af5cdcad77e1b471fd5677c057da172d24f64509e83046eff29e077c15ee7ea7",
+      "sha256": "f221fd6d9f133688fd7d42229b79f5c40a2c29ecd0ff3cb1554218b8c6567f38",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "b2ee259b0edbb0774ad0a53f69dfd2e48fc3282b9b606db85021361c606b92fc",
+      "sha256": "86e8998fd21c0e33dbaf203a10b13086761ae37c5fb94c9e338fef9ba9acb6e2",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -1878,6 +1878,7 @@
         "validWirePlanViewShape",
         "validWireResolvedControlProfileShape",
         "validWireRunControlCapabilitiesShape",
+        "validWireRunExplanationContextViewShape",
         "validWireRunExplanationViewShape",
         "validWireRunPlanViewShape",
         "validWireRunSampleShape",
@@ -2184,6 +2185,13 @@
         },
         {
           "name": "validWireRunControlCapabilitiesShape/validWireRunControlCapabilitiesShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validWireRunExplanationContextViewShape/validWireRunExplanationContextViewShape",
           "parameters": [
             "value"
           ],
@@ -2540,7 +2548,8 @@
             "validWireSampleSelectorShape/validWireSampleSelectorShape",
             "validWireSampleSourceShape/validWireSampleSourceShape",
             "validWireSampleVectorsShape/validWireSampleVectorsShape",
-            "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape"
+            "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape",
+            "validWireRunExplanationContextViewShape/validWireRunExplanationContextViewShape"
           ],
           "exports": [
             "validWireControlAdmissionShape",
@@ -2588,7 +2597,8 @@
             "validWireSampleSelectorShape",
             "validWireSampleSourceShape",
             "validWireSampleVectorsShape",
-            "validWireStaticExplanationViewShape"
+            "validWireStaticExplanationViewShape",
+            "validWireRunExplanationContextViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -2705,6 +2715,10 @@
               {
                 "path": "scripts/effectful-static-plan-contract.test.mjs",
                 "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
           }

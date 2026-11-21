@@ -116,6 +116,7 @@ export type WireClientBodyByOperation = Readonly<{
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
   'run-plan': WireClientBodyByOperation['inspect-run'];
   'run-explanation': WireClientBodyByOperation['inspect-run'];
+  'run-explanation-context': WireClientBodyByOperation['inspect-run'];
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;

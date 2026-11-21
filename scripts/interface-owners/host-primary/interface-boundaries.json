@@ -19032,7 +19032,12 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5"
           ],
           "exports": [],
           "attributes": {
@@ -20306,6 +20311,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
           }
@@ -26754,6 +26763,44 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun",
           "parameters": [
             "prepared",
@@ -29280,7 +29327,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "58bfd29aee1c3cd744bb4fd2240ee1861c7fcf6939b4c71b61b72d2e930e0bde"
+      "sha256": "dfe2261e264d53368bbe538eb0a4beb92e147a65f888898f3dbe3d55d141f2b0"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

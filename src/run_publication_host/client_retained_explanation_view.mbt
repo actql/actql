@@ -106,6 +106,29 @@ pub fn retained_client_run_explanation_view(
 }
 
 ///|
+// Retained originals are canonical. An alternate encoding that would grow
+// during canonicalization cannot allocate beyond the retained wire's quote
+// before it is rejected. The requested response caps still apply.
+fn parse_retained_explanation_shape(
+  name : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@canonical.CanonicalValue, @publication.PublicationContractIssue] {
+  guard @scalar.admit_utf8_length(wire, max_bytes) is Ok(bytes) else {
+    return Err(InvalidWire)
+  }
+  @publication.parse_interactive_run_control_shape(
+    name,
+    wire,
+    bytes,
+    Int::min(max_nodes, bytes),
+    max_depth,
+  )
+}
+
+///|
 fn read_retained_explanation_original(
   definition : @publication.PublicationContract,
   plan : @publication.PublicationContract?,
@@ -132,7 +155,7 @@ fn read_retained_explanation_original(
     return Err(ForeignOriginal)
   }
   let view = match
-    @publication.parse_interactive_run_control_shape(
+    parse_retained_explanation_shape(
       "plan_view", view_wire, max_bytes, max_nodes, max_depth,
     ) {
     Err(issue) => return Err(Contract(issue))
@@ -164,7 +187,7 @@ fn read_retained_explanation_original(
     Ok(_) => ()
   }
   let facts = match
-    @publication.parse_interactive_run_control_shape(
+    parse_retained_explanation_shape(
       "explanation_facts", facts_wire, max_bytes, max_nodes, max_depth,
     ) {
     Err(issue) => return Err(Contract(issue))
@@ -237,7 +260,7 @@ pub fn retained_client_run_explanation_context(
     return Err(ForeignOriginal)
   }
   let context = match
-    @publication.parse_interactive_run_control_shape(
+    parse_retained_explanation_shape(
       "explanation_context", context_wire, max_bytes, max_nodes, max_depth,
     ) {
     Err(issue) => return Err(Contract(issue))

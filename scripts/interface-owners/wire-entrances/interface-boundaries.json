@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "9f271770e6b442d8e83c5ad5a4ff54b69d4cae30ca7ca3273b917b1a4dd04539",
+      "sha256": "1a4a3fc6b9793cb72962885f93d9b99e16e1dacd49929301cde304efd056c06a",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "609cd66a521c1ca8a2f9b0a25eed4138be00ddffdc5c0a7f32016ac5f1d7bb49",
+      "sha256": "93fa2257b415dd8dc8cedfe689dc41cb07b5baf9a045574fb4619879adc3fbf3",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -5515,7 +5515,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "669938f9a1cfb8f305889ef2fa4c904ef9c6705022d93a230cab4584627f0cba",
+      "sha256": "475190a9621949de84a509213a83bab17312a0a1c87c0870af61a350c1dc0759",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -11815,7 +11815,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1d5b25766cd9b4cf6062cfccd4a35c6f4e0666b5a58019ca3f05cb09ffe22d55",
+      "sha256": "e50d28f5ef6a087d4c470ce1d64af5f2964350ac222a4e6ad146d7391e689416",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -11851,6 +11851,7 @@
         "WirePlanView",
         "WireResolvedControlProfile",
         "WireRunControlCapabilities",
+        "WireRunExplanationContextView",
         "WireRunExplanationView",
         "WireRunPlanView",
         "WireRunSample",
@@ -11899,6 +11900,7 @@
         "validWirePlanViewShape",
         "validWireResolvedControlProfileShape",
         "validWireRunControlCapabilitiesShape",
+        "validWireRunExplanationContextViewShape",
         "validWireRunExplanationViewShape",
         "validWireRunPlanViewShape",
         "validWireRunSampleShape",
@@ -12144,6 +12146,13 @@
             "value: unknown"
           ],
           "result": "value is WireRunControlCapabilities"
+        },
+        {
+          "name": "validWireRunExplanationContextViewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRunExplanationContextView"
         },
         {
           "name": "validWireRunExplanationViewShape",
@@ -16788,10 +16797,13 @@
         },
         {
           "operations": [
-            "validWireRunExplanationViewShape"
+            "validWireRunExplanationViewShape",
+            "validWireRunExplanationContextViewShape"
           ],
           "exports": [
-            "validWireRunExplanationViewShape"
+            "validWireRunExplanationViewShape",
+            "WireRunExplanationContextView",
+            "validWireRunExplanationContextViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -16886,6 +16898,10 @@
               {
                 "path": "scripts/interactive-run-control-contract.test.mjs",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
           }

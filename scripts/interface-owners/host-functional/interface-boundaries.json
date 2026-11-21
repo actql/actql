@@ -23063,7 +23063,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "187d2362371a686a265da9545ae4b7555913b241abc4cce1f0731aaaebc8a655",
+      "sha256": "9509731abff99e15916713c27f98d501fafe9e4eb0afa581fea1722c89a079af",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23109,6 +23109,7 @@
             "inspectRun",
             "runPlan",
             "runExplanation",
+            "runExplanationContext",
             "maxRequestBytes",
             "observe",
             "loopbackHttp",
@@ -24903,7 +24904,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               }
             ]
           }
@@ -48340,7 +48341,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b47163bb37a2643e3b41d7d51cea37a07574afdeba5c881073ccbb263c4c9386",
+      "sha256": "104caebc258c9f1cf9490a8bb51289c3c9346bf4a41a9351b588fa0b2c7dcc9f",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -48384,6 +48385,7 @@
             "inspectRun",
             "runPlan",
             "runExplanation",
+            "runExplanationContext",
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
@@ -49617,7 +49619,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
               }
             ]
           }
@@ -119624,7 +119626,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "46740fddf79d84ceea03d5c421afd3d40bd9cd67e216ebe7b97b4db106017bd6",
+      "sha256": "8f15c69367eaf0f8da73ee41a1ea9396312aba044654148a1af803b47c758a92",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -119650,7 +119652,8 @@
             "facts",
             "operation",
             "resource",
-            "interactive"
+            "interactive",
+            "reobserve"
           ],
           "async": false
         },
@@ -119664,6 +119667,14 @@
         },
         {
           "name": "createLocalReadAuthorizations/init:run/init:run",
+          "parameters": [
+            "facts",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:runCurrent/init:runCurrent",
           "parameters": [
             "facts",
             "operation"
@@ -119780,7 +119791,8 @@
             "createLocalReadAuthorizations",
             "createLocalReadAuthorizations/authorize/authorize",
             "createLocalReadAuthorizations/init:result/init:result",
-            "createLocalReadAuthorizations/init:run/init:run"
+            "createLocalReadAuthorizations/init:run/init:run",
+            "createLocalReadAuthorizations/init:runCurrent/init:runCurrent"
           ],
           "exports": [
             "createLocalReadAuthorizations"
@@ -119868,6 +119880,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "actual observation delivery Deny stops Result output without refunding the original claim"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation.test.mjs",
+                "anchor": "test('Saved Context guards scalar read"
               }
             ]
           }
@@ -134759,7 +134775,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "4f9d07e047ca25f7218e08ef8652cccfe662c7b32dd1dbc30c0507ca12efbb70",
+      "sha256": "c7cb75ec12055871f140dc9c6cf58f446108ef5af1c293b6259dea4ab564b78a",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -134805,6 +134821,13 @@
         },
         {
           "name": "createLocalResultReadWorkspace/init:beginExplanation/init:beginExplanation",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:beginExplanationContext/init:beginExplanationContext",
           "parameters": [
             "request"
           ],
@@ -134894,7 +134917,7 @@
           "name": "createLocalResultReadWorkspace/init:prepareExplanation/init:prepareExplanation",
           "parameters": [
             "request",
-            "storedBytes"
+            "extent"
           ],
           "async": false
         },
@@ -135623,7 +135646,8 @@
         },
         {
           "operations": [
-            "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation"
+            "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation",
+            "createLocalResultReadWorkspace/init:beginExplanationContext/init:beginExplanationContext"
           ],
           "exports": [],
           "attributes": {
@@ -135749,6 +135773,10 @@
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
                 "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
           }
@@ -136900,7 +136928,7 @@
     {
       "module": "adapters/host-node/client-run-explanation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "857206ef30b2a1401e2f951dcae197e977ff0fdf4a0382d8dc3e230a913656df",
+      "sha256": "a1cf294cf8b38d8c9f6f3e5b7c08103a2d6ff7a7c9c7c3733e3977d29a4792b5",
       "role": "physical-io",
       "owner": "Existing admitted Run read and request Journal owners",
       "exports": [
@@ -136914,8 +136942,15 @@
             "authorizeEgress",
             "probeOriginal",
             "lookupOriginal",
-            "readWorkspace"
+            "readWorkspace",
+            "context",
+            "authorizeCurrent"
           ],
+          "async": false
+        },
+        {
+          "name": "installClientRunExplanation/assertCurrentAccess/assertCurrentAccess",
+          "parameters": [],
           "async": false
         },
         {
@@ -136946,7 +136981,8 @@
             "<module>",
             "installClientRunExplanation",
             "installClientRunExplanation/installClientRunExplanation",
-            "installClientRunExplanation/installClientRunExplanation#2"
+            "installClientRunExplanation/installClientRunExplanation#2",
+            "installClientRunExplanation/assertCurrentAccess/assertCurrentAccess"
           ],
           "exports": [
             "installClientRunExplanation"
@@ -137009,7 +137045,11 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation.test.mjs",
+                "anchor": "test('Saved Context guards scalar read"
               }
             ]
           }

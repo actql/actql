@@ -245,7 +245,7 @@ fn[I] reserve_original_explanation_read(
     return Err(Policy)
   }
   let view_schema = if companion is Some(_) {
-    "static_explanation_view"
+    "run_explanation_context_view"
   } else {
     "run_explanation_view"
   }
@@ -310,31 +310,10 @@ fn[I] reserve_original_explanation_read(
       owned_wire_bytes: 6L * max_bytes.to_int64(),
     })
     is Some(consumption) &&
-    explanation_read_codec_cost(
-      "run_definition", stored_bytes, stored_bytes, 64,
-    )
-    is Some(definition) &&
-    explanation_read_codec_cost("compiled_plan", stored_bytes, stored_bytes, 64)
-    is Some(plan) &&
-    explanation_read_codec_cost("plan_view", stored_bytes, stored_bytes, 64)
-    is Some(plan_view) &&
-    explanation_read_codec_cost("logical_map", stored_bytes, stored_bytes, 64)
-    is Some(map) &&
-    explanation_read_codec_cost(
-      "explanation_facts", max_bytes, max_nodes, max_depth,
-    )
-    is Some(facts) &&
     explanation_read_codec_cost(view_schema, max_bytes, max_nodes, max_depth)
     is Some(view) &&
-    @execution.checked_preparation_add_product(originals, definition, 1L)
+    @execution.checked_preparation_add_product(originals, consumption, 1L)
     is Some(cost) &&
-    @execution.checked_preparation_add_product(cost, consumption, 1L)
-    is Some(cost) &&
-    @execution.checked_preparation_add_product(cost, plan, 1L) is Some(cost) &&
-    @execution.checked_preparation_add_product(cost, plan_view, 1L)
-    is Some(cost) &&
-    @execution.checked_preparation_add_product(cost, map, 1L) is Some(cost) &&
-    @execution.checked_preparation_add_product(cost, facts, 1L) is Some(cost) &&
     @execution.checked_preparation_add_product(cost, view, 1L) is Some(cost) &&
     @execution.checked_preparation_add_product(cost, companion_cost, 1L)
     is Some(cost) else {
@@ -492,6 +471,101 @@ fn[I] reserve_explanation_binding(
 }
 
 ///|
+// Native readback and JS's evidence parser already have the full original
+// row backed. Size the separate Common codecs from the actual extracted
+// wires before parsing a contract. Irrelevant admission evidence never
+// becomes a second or third full-row bound for the Plan or its logical map.
+fn[I] admit_explanation_read_originals(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  definition_wire : String,
+  plan_wire : String?,
+  plan_view_wire : String?,
+  facts_wire : String?,
+  stored_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.PublicationContract, @publication.PublicationContract?),
+  ClientRequestExplanationReadIssue,
+] {
+  let def = match @scalar.admit_utf8_length(definition_wire, stored_bytes) {
+    Ok(value) => value
+    Err(_) => return Err(ReadLimit)
+  }
+  guard explanation_read_codec_cost("run_definition", def, def, 64)
+    is Some(definition_cost) else {
+    return Err(Preparation(Policy))
+  }
+  let mut cost = definition_cost
+  let mut plan_bytes = 0
+  if facts_wire is Some(facts) {
+    guard plan_wire is Some(plan) && plan_view_wire is Some(view) else {
+      return Err(Projection(ForeignOriginal))
+    }
+    guard @scalar.admit_utf8_length(plan, stored_bytes) is Ok(plan_size) &&
+      @scalar.admit_utf8_length(view, max_bytes) is Ok(view_size) &&
+      @scalar.admit_utf8_length(facts, max_bytes) is Ok(facts_size) else {
+      return Err(ReadLimit)
+    }
+    // Map nodes are contained in the original bounded Plan view. The map's
+    // independent canonical encode can use the full selected wire allowance.
+    let view_nodes = Int::min(view_size, max_nodes)
+    let facts_nodes = Int::min(facts_size, max_nodes)
+    guard explanation_read_codec_cost("compiled_plan", plan_size, plan_size, 64)
+      is Some(plan_cost) &&
+      explanation_read_codec_cost("plan_view", view_size, view_nodes, max_depth)
+      is Some(view_cost) &&
+      explanation_read_codec_cost(
+        "logical_map", max_bytes, view_nodes, max_depth,
+      )
+      is Some(map_cost) &&
+      explanation_read_codec_cost(
+        "explanation_facts", facts_size, facts_nodes, max_depth,
+      )
+      is Some(facts_cost) &&
+      @execution.checked_preparation_add_product(cost, plan_cost, 1L)
+      is Some(next) &&
+      @execution.checked_preparation_add_product(next, view_cost, 1L)
+      is Some(next) &&
+      @execution.checked_preparation_add_product(next, map_cost, 1L)
+      is Some(next) &&
+      @execution.checked_preparation_add_product(next, facts_cost, 1L)
+      is Some(next) else {
+      return Err(Preparation(Policy))
+    }
+    plan_bytes = plan_size
+    cost = next
+  }
+  match grow_explanation_binding(owner, input, cost) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  let definition = match
+    @publication.admit_publication_contract(
+      "run_definition", definition_wire, def, def, 64,
+    ) {
+    Err(issue) => return Err(Projection(Contract(issue)))
+    Ok(value) => value
+  }
+  let plan = match plan_wire {
+    Some(wire) if plan_bytes > 0 => {
+      let value = match
+        @publication.admit_publication_contract(
+          "compiled_plan", wire, plan_bytes, plan_bytes, 64,
+        ) {
+        Err(issue) => return Err(Projection(Contract(issue)))
+        Ok(value) => value
+      }
+      Some(value)
+    }
+    _ => None
+  }
+  Ok((definition, plan))
+}
+
+///|
 /// The installed structural reader's enforced same-Request constructor.
 /// Parent/current/reentry and every binding grow stay on its existing original
 /// capacity. Returned wire is held until this SAME read's output handoff; the
@@ -549,25 +623,13 @@ pub fn[I] read_request_explanation_view(
   if total > stored_bytes.to_int64() {
     return Err(ReadLimit)
   }
-  let definition = match
-    @publication.admit_publication_contract(
-      "run_definition", definition_wire, stored_bytes, stored_bytes, 64,
+  let (definition, plan) = match
+    admit_explanation_read_originals(
+      owner, input, definition_wire, plan_wire, plan_view_wire, facts_wire, stored_bytes,
+      max_bytes, max_nodes, max_depth,
     ) {
-    Err(issue) => return Err(Projection(Contract(issue)))
+    Err(issue) => return Err(issue)
     Ok(value) => value
-  }
-  let plan = match (facts_wire, plan_wire) {
-    (Some(_), Some(wire)) => {
-      let value = match
-        @publication.admit_publication_contract(
-          "compiled_plan", wire, stored_bytes, stored_bytes, 64,
-        ) {
-        Err(issue) => return Err(Projection(Contract(issue)))
-        Ok(value) => value
-      }
-      Some(value)
-    }
-    _ => None
   }
   let refused : Ref[ClientRequestPreparationIssue?] = Ref(None)
   let result = @publication_host.retained_client_run_explanation_view(
@@ -618,12 +680,13 @@ pub fn[I] read_request_explanation_context(
   program_cid : String,
   parameters_cid : String,
   namespace_id : String,
+  authority_scope_cid : String,
   definition_cid : String,
   stored_bytes : Int,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[String?, ClientRequestExplanationReadIssue] {
+) -> Result[String, ClientRequestExplanationReadIssue] {
   guard owner.phase
     is ExplanationContextReadReady(
       stored,
@@ -684,25 +747,25 @@ pub fn[I] read_request_explanation_context(
   if total > stored_bytes.to_int64() {
     return Err(ReadLimit)
   }
-  let definition = match
-    @publication.admit_publication_contract(
-      "run_definition", definition_wire, stored_bytes, stored_bytes, 64,
+  let (definition, plan) = match
+    admit_explanation_read_originals(
+      owner,
+      input,
+      definition_wire,
+      plan_wire,
+      plan_view_wire,
+      if context_bytes > 0 {
+        facts_wire
+      } else {
+        None
+      },
+      stored_bytes,
+      max_bytes,
+      max_nodes,
+      max_depth,
     ) {
-    Err(issue) => return Err(Projection(Contract(issue)))
+    Err(issue) => return Err(issue)
     Ok(value) => value
-  }
-  let plan = match (context_wire, facts_wire, plan_wire) {
-    (Some(_), Some(_), Some(wire)) => {
-      let value = match
-        @publication.admit_publication_contract(
-          "compiled_plan", wire, stored_bytes, stored_bytes, 64,
-        ) {
-        Err(issue) => return Err(Projection(Contract(issue)))
-        Ok(value) => value
-      }
-      Some(value)
-    }
-    _ => None
   }
   let refused : Ref[ClientRequestPreparationIssue?] = Ref(None)
   let result = @publication_host.retained_client_run_explanation_context(
@@ -736,17 +799,17 @@ pub fn[I] read_request_explanation_context(
   if refused.val is Some(issue) {
     return Err(Preparation(issue))
   }
-  let wire = match result {
+  let projected = match result {
     Err(issue) => return Err(Projection(issue))
-    Ok(None) => None
-    Ok(Some(projected)) =>
-      match
-        retained_explanation_context_wire(
-          projected, max_bytes, max_nodes, max_depth,
-        ) {
-        Err(issue) => return Err(Projection(issue))
-        Ok(wire) => Some(wire)
-      }
+    Ok(value) => value
+  }
+  let wire = match
+    retained_explanation_context_wire(
+      projected, namespace_id, authority_scope_cid, definition_cid, max_bytes, max_nodes,
+      max_depth,
+    ) {
+    Err(issue) => return Err(Projection(issue))
+    Ok(value) => value
   }
   grow_explanation_binding(owner, input, 0L)
   .map(_ => wire)
@@ -755,7 +818,10 @@ pub fn[I] read_request_explanation_context(
 
 ///|
 fn retained_explanation_context_wire(
-  projected : @publication_host.ClientRetainedExplanationContext,
+  projected : @publication_host.ClientRetainedExplanationContext?,
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -763,21 +829,50 @@ fn retained_explanation_context_wire(
   let wire = try {
     let writer = @encode.writer(max_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
-    @encode.key(writer, "context")
-    @identity.emit_value(projected.context, writer)
-    @encode.key(writer, "facts")
-    @identity.emit_value(projected.facts, writer)
-    @encode.key(writer, "plan")
-    @identity.emit_value(projected.plan, writer)
+    @encode.key(writer, "explanation")
+    @encode.begin_object(writer)
+    match projected {
+      None => {
+        @encode.key(writer, "reason")
+        @encode.string_value(writer, "not_retained")
+        @encode.key(writer, "state")
+        @encode.string_value(writer, "not_projected")
+      }
+      Some(projected) => {
+        @encode.key(writer, "state")
+        @encode.string_value(writer, "projected")
+        @encode.key(writer, "view")
+        @encode.begin_object(writer)
+        @encode.key(writer, "context")
+        @identity.emit_value(projected.context, writer)
+        @encode.key(writer, "facts")
+        @identity.emit_value(projected.facts, writer)
+        @encode.key(writer, "plan")
+        @identity.emit_value(projected.plan, writer)
+        @encode.key(writer, "version")
+        @encode.string_value(writer, "actql-static-explanation/0.1")
+        @encode.end_object(writer)
+      }
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "run_ref")
+    @encode.begin_object(writer)
+    @encode.key(writer, "authorityScopeCid")
+    @encode.string_value(writer, authority_scope_cid)
+    @encode.key(writer, "namespaceId")
+    @encode.string_value(writer, namespace_id)
+    @encode.key(writer, "runDefinitionCid")
+    @encode.string_value(writer, definition_cid)
+    @encode.end_object(writer)
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-static-explanation/0.1")
+    @encode.string_value(writer, "actql-run-explanation-context-view/0.1")
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
     issue => return Err(Encoding(issue))
   }
   @publication.parse_interactive_run_control_shape(
-    "static_explanation_view", wire, max_bytes, max_nodes, max_depth,
+    "run_explanation_context_view", wire, max_bytes, max_nodes, max_depth,
   )
   .map(_ => wire)
   .map_err(issue => Contract(issue))

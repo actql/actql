@@ -3,6 +3,8 @@ import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {setImmediate} from 'node:timers/promises';
+import {createHostObservationConnection} from '../host-common/observation.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {staticExplanationReadModel} from '../../packages/explorer-ui/read-model.mjs';
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
@@ -157,6 +159,73 @@ test('installed static Explanation retains the original deal-review Source, Mode
     try {await client?.close();}
     catch (error) {primary = primary === undefined ? error :
       new AggregateError([primary, error], 'Original static Explanation and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+  scratch.passed();
+  scratch.close();
+});
+
+
+// One real ordinary Run and a fresh embedded Host generation. Its cold read
+// only uses the original committed Journal and never supplies the AQL again.
+test('installed Saved Context uses the retained original after Host close and reopen', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-saved-context-',
+    label: 'original churn-risk Saved Context'});
+  const project = scaffoldProject(join(scratch.path, 'project'), 'churn-risk-mock');
+  const cwd = process.cwd();
+  let client, primary, phase = 'initialization';
+  process.chdir(project.directory);
+  try {
+    const before = await readFile('mock/data.json');
+    const records = [];
+    const open = () => connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+      installation: {directory: '.actql-node',
+        observation: createHostObservationConnection({deliver: record => records.push(record)})}});
+    client = await open();
+    phase = 'submit original';
+    const run = await client.startSource(await readFile('churn-risk.aql', 'utf8'),
+      {format: 'aql', stopBefore: 'commit'});
+    assert.equal((await run.wait()).status, 'waiting_checkpoint');
+    const ref = structuredClone(run.ref);
+    const originalAttempts = () => records.filter(record =>
+      record.event === 'attempt_started' && ['source', 'model', 'effect'].includes(record.operation) &&
+      record.attributes['actql.run.definition_cid'] === ref.runDefinitionCid);
+    for (let turn = 0; turn < 512 && originalAttempts().filter(record => record.operation === 'source').length < 2;
+      turn++) await setImmediate();
+    const attempts = originalAttempts();
+    assert.equal(attempts.filter(record => record.operation === 'source').length, 2);
+    phase = 'warm Saved Context';
+    const warm = await run.explainContext();
+    assert.deepEqual(warm.run_ref, ref);
+    assert.equal(warm.explanation.state, 'projected');
+    const {plan, context, facts} = warm.explanation.view;
+    assert.deepEqual(context.items.map(item => item.kind), ['source', 'source', 'model_task', 'result', 'effect_set']);
+    assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
+    assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
+    phase = 'warm legacy Facts';
+    assert.deepEqual((await run.explain()).explanation.facts, facts);
+    for (const record of attempts) assert.notEqual(record.operation, 'effect');
+    phase = 'original Host close';
+    await client.close();
+    client = undefined;
+    phase = 'cold Host reopen and attach';
+    client = await open();
+    const saved = await client.attach(ref);
+    phase = 'cold Saved Context';
+    assert.deepEqual(await saved.explainContext(), warm);
+    phase = 'cold legacy Facts';
+    assert.deepEqual((await saved.explain()).explanation.facts, facts);
+    await setImmediate();
+    assert.deepEqual(originalAttempts(), attempts);
+    assert.deepEqual(await readFile('mock/data.json'), before);
+  } catch (error) {
+    primary = error;
+    t.diagnostic(JSON.stringify({phase, retainedScratch: scratch.path, code: error?.code}));
+  } finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error
+      : new AggregateError([primary, error], 'Saved Context read and Host cleanup failed');}
     finally {process.chdir(cwd);}
   }
   if (primary !== undefined) throw primary;

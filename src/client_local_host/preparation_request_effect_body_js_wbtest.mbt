@@ -1041,6 +1041,7 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
           identity.program_definition_cid,
           same_parameters,
           "scope",
+          "sha256:" + "a".repeat(64),
           definition_cid,
           stored,
           65536,
@@ -1055,12 +1056,14 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
       match expected {
         0 => {
           let delivery = @publication.parse_interactive_run_control_shape(
-            "static_explanation_view",
-            value.unwrap().unwrap(),
+            "run_explanation_context_view",
+            value.unwrap(),
             65536,
             8192,
             64,
           ).unwrap()
+          let explanation = @identity.object_field(delivery, "explanation").unwrap()
+          let view = @identity.object_field(explanation, "view").unwrap()
           for
             (key, wire) in [
               ("context", selected.context),
@@ -1069,7 +1072,7 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
             ] {
             assert_eq(
               @identity.stringify_value(
-                @identity.object_field(delivery, key).unwrap(),
+                @identity.object_field(view, key).unwrap(),
                 65536,
                 8192,
                 64,
@@ -1080,7 +1083,21 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
         }
         1 => assert_true(value is Err(Projection(ForeignOriginal)))
         2 => assert_true(value is Err(ReadLimit))
-        _ => assert_true(value is Ok(None))
+        _ => {
+          let delivery = @publication.parse_interactive_run_control_shape(
+            "run_explanation_context_view",
+            value.unwrap(),
+            65536,
+            8192,
+            64,
+          ).unwrap()
+          let envelope = @identity.object_field(delivery, "explanation").unwrap()
+          assert_true(
+            @identity.object_field(envelope, "reason")
+            is Some(@identity.String(reason)) &&
+            reason == "not_retained",
+          )
+        }
       }
       assert_true(read_selected(reader_input) is Err(Preparation(WrongPhase)))
       assert_true(physical_equal(reader.capacity, original_capacity))

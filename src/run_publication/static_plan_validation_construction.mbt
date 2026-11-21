@@ -185,6 +185,11 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
     static_plan_validation_profile("run_explanation_view", true),
   ),
   (
+    "run_explanation_context_view",
+    true,
+    static_plan_validation_profile("run_explanation_context_view", true),
+  ),
+  (
     "static_explanation_view",
     true,
     static_plan_validation_profile("static_explanation_view", true),
