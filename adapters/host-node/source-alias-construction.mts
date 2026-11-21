@@ -4,18 +4,26 @@
 // deliberately outside these Host snapshot and identity quantities.
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {aliasRequestGeometry} from './source-alias-request.mjs';
 import {installedCheckpointBindingCanonicalConstructionGeometry}
   from './installed-check-environment-construction.mjs';
+import type {installedCanonicalTextConstructionShape} from './installed-check-environment-construction.mjs';
 
-const invalid = () => {throw new TypeError('InvalidSourceAliasConstruction');};
-const stage = (retained, workspace, bounds) => ({
+type Extent = ReturnType<typeof installedCheckpointBindingCanonicalConstructionGeometry>;
+type Geometry = Readonly<{retained: Readonly<Extent>; workspace: Readonly<Extent>}>;
+type CanonicalInput = Readonly<{nodes: bigint; entries: bigint; units: bigint; weighted: bigint; depth: bigint}>;
+type NamespaceEntry = Readonly<{facts: Readonly<{aliases: readonly unknown[]}>}>;
+type SourceProjection = () => Extract<SynchronousRuntimeData, object>;
+
+const invalid: () => never = () => {throw new TypeError('InvalidSourceAliasConstruction');};
+const stage = <Bounds,>(retained: Extent, workspace: Extent, bounds: Bounds) => ({
   nodes: retained.nodes + workspace.nodes,
   text: retained.text + workspace.text,
   wire: retained.wire + workspace.wire,
   retained, workspace, bounds,
 });
-const ownMethod = (owner, name) => {
+const ownMethod = (owner: unknown, name: string): (...args: unknown[]) => unknown => {
   if (owner === null || typeof owner !== 'object' || types.isProxy(owner)) invalid();
   const field = Object.getOwnPropertyDescriptor(owner, name);
   if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
@@ -24,11 +32,15 @@ const ownMethod = (owner, name) => {
 };
 // Capture originals before the profile read awaits. A quote never creates a
 // reader, changes its material, or grants a caller a construction capability.
-export function captureSourceAliasConstruction(configurationReader, moon) {
-  if (configurationReader === undefined) return (_geometry, project) => project();
+export function captureSourceAliasConstruction(configurationReader: undefined, moon: unknown):
+  <Result>(geometry: Geometry | undefined, project: () => Result) => Result;
+export function captureSourceAliasConstruction(configurationReader: unknown, moon: unknown):
+  (geometry: Geometry, project: SourceProjection) => unknown;
+export function captureSourceAliasConstruction(configurationReader: unknown, moon: unknown) {
+  if (configurationReader === undefined) return (_geometry: Geometry | undefined, project: () => unknown) => project();
   const prepare = ownMethod(configurationReader, 'prepareNativeInput');
   const quote = ownMethod(moon, 'clientProgramInstalledSourceConstructionCapacity');
-  return (geometry, project) => {
+  return (geometry: Geometry, project: SourceProjection) => {
     const {retained, workspace} = geometry;
     const projection = Object.freeze({
       capacity() {
@@ -44,7 +56,7 @@ export function captureSourceAliasConstruction(configurationReader, moon) {
 // The array and closed-member Set remain with this same initial Source
 // material through bundle close. Keep one complete close-error array beside
 // them; the fixed Host serializes its existing cleanup flight.
-export function sourceMemberCollectionConstructionGeometry(count) {
+export function sourceMemberCollectionConstructionGeometry(count: bigint) {
   if (typeof count !== 'bigint' || count < 0n) invalid();
   return stage({nodes: 3n * count + 6n, text: 0n, wire: 0n},
     {nodes: 0n, text: 0n, wire: 0n}, {memberCount: count});
@@ -52,7 +64,7 @@ export function sourceMemberCollectionConstructionGeometry(count) {
 
 // Individual Sources retain their original read-access checks. This separate
 // synchronous aggregate check owns only its Set and one returned record.
-export function sourceReferenceCollectionConstructionGeometry(count) {
+export function sourceReferenceCollectionConstructionGeometry(count: bigint) {
   if (typeof count !== 'bigint' || count < 0n) invalid();
   return stage({nodes: 1n, text: 0n, wire: 0n},
     {nodes: count + 1n, text: 0n, wire: 0n}, {referenceCount: count});
@@ -61,13 +73,13 @@ export function sourceReferenceCollectionConstructionGeometry(count) {
 // Retain the unique connector Map and final exported array. Each comparison
 // may overlap one current Map-values array; duplicate declarations still
 // contribute to the complete observed upper extent, not a numeric ceiling.
-export function sourceBindingCollectionConstructionGeometry(count) {
+export function sourceBindingCollectionConstructionGeometry(count: bigint) {
   if (typeof count !== 'bigint' || count < 0n) invalid();
   return stage({nodes: 3n * count + 2n, text: 0n, wire: 0n},
     {nodes: count + 1n, text: 0n, wire: 0n}, {bindingCount: count});
 }
 
-export function sourceRegistrationRangeConstructionGeometry(paths, sources) {
+export function sourceRegistrationRangeConstructionGeometry(paths: bigint, sources: bigint) {
   if (typeof paths !== 'bigint' || paths < 0n || typeof sources !== 'bigint' || sources < 0n) invalid();
   return stage({nodes: 4n * sources + 3n, text: 0n, wire: 0n},
     {nodes: 3n * paths + 2n * sources + 6n, text: 0n, wire: 0n}, {registrationCount: sources});
@@ -76,7 +88,7 @@ export function sourceRegistrationRangeConstructionGeometry(paths, sources) {
 // Only an already owned immutable DATA graph may cross the quote callback.
 // In particular a mutable caller request cannot change under liveness checks
 // between geometry and the funded projection. This scan emits no JSON text.
-function jsonStringBytes(value) {
+function jsonStringBytes(value: string) {
   let bytes = 2n;
   for (let index = 0; index < value.length; index++) {
     const code = value.charCodeAt(index);
@@ -90,13 +102,13 @@ function jsonStringBytes(value) {
   return bytes;
 }
 
-export function sourceAliasDataGeometry(value) {
+export function sourceAliasDataGeometry(value: unknown) {
   if (value !== null && typeof value === 'object') {
     if (types.isProxy(value) || !Object.isFrozen(value)) invalid();
   }
   let nodes = 0n, entries = 0n, units = 0n, weighted = 0n, depth = 0n, jsonBytes = 0n;
-  const ancestors = [];
-  function visit(item, level) {
+  const ancestors: object[] = [];
+  function visit(item: unknown, level: bigint) {
     nodes++;
     if (level > depth) depth = level;
     if (item === null || typeof item === 'boolean') {
@@ -143,7 +155,7 @@ export function sourceAliasDataGeometry(value) {
 }
 
 const aliasIdentityDomain = 'actql-installed-query-alias-generation/0.1';
-function canonicalSourceConstructionWorkspace(input) {
+function canonicalSourceConstructionWorkspace(input: CanonicalInput) {
   const {nodes: n, entries: e, units: u, weighted, depth} = input;
   // Keep the existing provider identity vectors. A profile containing aliases
   // also canonicalizes them before the separate exact-DATA row preimage. NFC
@@ -169,7 +181,7 @@ function canonicalSourceConstructionWorkspace(input) {
   };
 }
 
-export function sourceNamespaceConstructionGeometry(range, aliases, name, environmentCid, selector = false) {
+export function sourceNamespaceConstructionGeometry(range: readonly NamespaceEntry[], aliases: readonly unknown[], name: string, environmentCid: string, selector = false) {
   const headerKeys = 'version' + (selector ? 'namespace' : 'name') + 'environmentCid' + 'registrations';
   const version = selector ? 'actql-source-selector-namespace/0.1' : 'actql-source-namespace/0.1';
   const headerValues = BigInt(version.length + name.length + environmentCid.length);
@@ -208,7 +220,7 @@ export function sourceNamespaceConstructionGeometry(range, aliases, name, enviro
       text: canonical.text, wire: canonical.wire}, {registrationCount: count});
 }
 
-export function sourceAliasIdentityConstructionGeometry(aliases) {
+export function sourceAliasIdentityConstructionGeometry(aliases: unknown) {
   if (!Array.isArray(aliases)) invalid();
   const input = sourceAliasDataGeometry(aliases);
   const count = BigInt(aliases.length);
@@ -226,7 +238,7 @@ export function sourceAliasIdentityConstructionGeometry(aliases) {
 // gate slots and authorization-binding rows that Checkpoints consume later.
 // The two CIDs per binding have their existing SHA256 textual extent (71),
 // never a grant or an invented CID value. Account admission still issues them.
-export function sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits, sourceRefShape) {
+export function sourceCheckpointInventoryConstructionGeometry(count: bigint, sourceRefUnits: bigint, sourceRefShape?: ReturnType<typeof installedCanonicalTextConstructionShape>) {
   if (typeof count !== 'bigint' || count < 0n ||
       typeof sourceRefUnits !== 'bigint' || sourceRefUnits < 0n) invalid();
   const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
@@ -252,28 +264,28 @@ export function sourceCheckpointInventoryConstructionGeometry(count, sourceRefUn
 // Validate borrowed metadata without invoking getters, proxies, toJSON or
 // caller methods. Immutability is DATA stability, not Source authority: only
 // the caller's already original reader supplies construction funding.
-export function sourceAliasBorrowedGeometry(aliases) {
+export function sourceAliasBorrowedGeometry(aliases: unknown) {
   if (!Array.isArray(aliases) || types.isProxy(aliases) || !Object.isFrozen(aliases) || aliases.length > 1024) invalid();
   for (let index = 0; index < aliases.length; index++) {
     const element = Object.getOwnPropertyDescriptor(aliases, String(index));
     if (!element || !Object.hasOwn(element, 'value')) invalid();
-    const entry = element.value;
+    const entry = element.value as Readonly<Record<string, unknown>>;
     if (entry === null || typeof entry !== 'object' || types.isProxy(entry) || !Object.isFrozen(entry) ||
         Array.isArray(entry) || Object.getPrototypeOf(entry) !== Object.prototype) invalid();
     const keys = Reflect.ownKeys(entry);
     const request = Object.hasOwn(entry, 'request');
     if (keys.length !== (request ? 5 : 4)) invalid();
     for (const key of keys) {
-      if (!['name', 'sourceRef', 'sourceViewContractCid', 'schemaContractCid', 'request'].includes(key)) invalid();
+      if (!['name', 'sourceRef', 'sourceViewContractCid', 'schemaContractCid', 'request'].includes(key as string)) invalid();
       const field = Object.getOwnPropertyDescriptor(entry, key);
       if (!field || !Object.hasOwn(field, 'value') || !field.enumerable) invalid();
     }
     if (!['name', 'sourceRef', 'sourceViewContractCid', 'schemaContractCid'].every(name =>
           Object.hasOwn(entry, name) && typeof entry[name] === 'string') ||
-        entry.name.length === 0 || entry.name.length > 1024 ||
-        entry.sourceRef.length === 0 || entry.sourceRef.length > 4096 ||
-        !/^sha256:[0-9a-f]{64}$/u.test(entry.sourceViewContractCid) ||
-        !/^sha256:[0-9a-f]{64}$/u.test(entry.schemaContractCid)) invalid();
+        (entry.name as string).length === 0 || (entry.name as string).length > 1024 ||
+        (entry.sourceRef as string).length === 0 || (entry.sourceRef as string).length > 4096 ||
+        !/^sha256:[0-9a-f]{64}$/u.test(entry.sourceViewContractCid as string) ||
+        !/^sha256:[0-9a-f]{64}$/u.test(entry.schemaContractCid as string)) invalid();
     // Enforce the same depth/node/text/direct-slot limits before the generic
     // immutable scan. Frozen manual DATA never bypasses snapshot semantics.
     if (request) aliasRequestGeometry(entry.request);
@@ -286,19 +298,19 @@ export function sourceAliasBorrowedGeometry(aliases) {
 // All per-Source request trees are borrowed from their one installed profile
 // snapshot. Only the aggregate outer array and duplicate-name collections are
 // new here. The source inventory itself is already owned and frozen in place.
-export function sourceAliasCollectionConstructionGeometry(sources) {
+export function sourceAliasCollectionConstructionGeometry(sources: unknown) {
   if (!Array.isArray(sources) || types.isProxy(sources) || !Object.isFrozen(sources)) invalid();
   let count = 0n, bytes = 2n, groups = 0n;
   for (let index = 0; index < sources.length; index++) {
     const element = Object.getOwnPropertyDescriptor(sources, String(index));
     if (!element || !Object.hasOwn(element, 'value')) invalid();
-    const source = element.value;
+    const source: unknown = element.value;
     if (source === null || typeof source !== 'object' || types.isProxy(source) || !Object.isFrozen(source)) invalid();
     const field = Object.getOwnPropertyDescriptor(source, 'queryAliases');
     if (!field || !Object.hasOwn(field, 'value')) invalid();
     const input = sourceAliasBorrowedGeometry(field.value);
-    count += BigInt(field.value.length);
-    if (field.value.length !== 0) {
+    count += BigInt((field.value as readonly unknown[]).length);
+    if ((field.value as readonly unknown[]).length !== 0) {
       bytes += input.jsonBytes - 2n + (groups++ === 0n ? 0n : 1n);
     }
   }

@@ -4,16 +4,22 @@
 import {types as nodeTypes} from 'node:util';
 import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 
-const invalid = () => {throw new TypeError('InvalidInstalledEnvironmentConstructionGeometry');};
+type Extent = ReturnType<typeof sourceJsonWireGeometry>['retained'];
+type CanonicalShape = Readonly<{nodes: bigint; output: bigint; recursive: bigint; normalized: bigint}>;
+type ShapeFrame = Readonly<{value: object; parent?: ShapeFrame}>;
+
+const invalid: () => never = () => {throw new TypeError('InvalidInstalledEnvironmentConstructionGeometry');};
 const zero = () => ({nodes: 0n, text: 0n, wire: 0n});
-const stage = (retained, workspace, bounds = {}) => ({
+const stage = <Bounds extends Readonly<Record<string, bigint | boolean>> = Record<string, never>>(
+  retained: Extent, workspace: Extent, bounds = {} as Bounds,
+) => ({
   nodes: retained.nodes + workspace.nodes, text: retained.text + workspace.text,
   wire: retained.wire + workspace.wire, retained, workspace, bounds,
 });
 const sections = Object.freeze(['command_contracts', 'connector_capabilities',
   'connector_catalogs', 'contract_registry', 'mapping_contracts',
   'model_task_contracts', 'schema_snapshots', 'source_views']);
-const own = (value, name) => {
+const own = (value: unknown, name: string): unknown => {
   if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
       !Object.isFrozen(value)) invalid();
   const property = Object.getOwnPropertyDescriptor(value, name);
@@ -28,7 +34,7 @@ const own = (value, name) => {
 // NFC needs) and two UTF16 units/code point bounds normalization backing.
 // Six-unit JSON escapes bound its encoding. This conservative Unicode branch
 // is separate from the exact ASCII scan, not a whole-wire byte multiplier.
-function textShape(value) {
+function textShape(value: unknown) {
   if (typeof value !== 'string') invalid();
   let output = 2n, normalized = 0n;
   for (let index = 0; index < value.length; index++) {
@@ -45,14 +51,14 @@ function textShape(value) {
 
 // The same actual Local canonicalizer's scalar preflight. It constructs no
 // normalized String, JSON token, body or CID before its caller reserves.
-export function installedCanonicalTextConstructionShape(value) {
+export function installedCanonicalTextConstructionShape(value: unknown) {
   return textShape(value);
 }
 
 // The existing Checkpoint binding has three fixed String fields per Source.
 // Account admission later supplies two SHA256 CIDs (71 UTF16 units each), or
 // the shorter null configuration. No prospective CID or body is constructed.
-export function installedCheckpointBindingCanonicalConstructionGeometry(count, sourceOutput, sourceNormalized) {
+export function installedCheckpointBindingCanonicalConstructionGeometry(count: bigint, sourceOutput: bigint, sourceNormalized: bigint) {
   if ([count, sourceOutput, sourceNormalized].some(value => typeof value !== 'bigint' || value < 0n) ||
       sourceOutput < 2n * count) invalid();
   const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
@@ -70,7 +76,7 @@ export function installedCheckpointBindingCanonicalConstructionGeometry(count, s
   addCanonical(workspace, measured, 1n, 1n);
   return workspace;
 }
-function shape(value, parent = undefined, depth = 0) {
+function shape(value: unknown, parent: ShapeFrame | undefined = undefined, depth = 0) {
   if (depth > 256) invalid();
   let nodes = 1n, output, recursive = 0n, normalized = 0n, fields = 0n;
   if (value === null) output = 4n;
@@ -102,7 +108,7 @@ function shape(value, parent = undefined, depth = 0) {
   }
   return {nodes, output, recursive: recursive + output, normalized, fields};
 }
-function addCanonical(workspace, measured, calls = 1n, hashes = 0n) {
+function addCanonical(workspace: Extent, measured: CanonicalShape, calls = 1n, hashes = 0n) {
   // Object.entries/pairs/filter/replacement pairs+array, sort scratch, mapped
   // children and recursion frames. local-account-config has NO key Set.
   workspace.nodes += calls * 9n * measured.nodes + 4n * hashes;
@@ -114,10 +120,10 @@ function addCanonical(workspace, measured, calls = 1n, hashes = 0n) {
 // The composer invokes these synchronous canonical/hash constructors in
 // sequence. Their returned keys/CIDs may coexist; their private entries,
 // sorting, recursive text and hash buffers do not survive each return.
-function addSequentialCanonical(workspace, largest, measured, calls = 1n, hashes = 0n) {
+function addSequentialCanonical(workspace: Extent, largest: Extent, measured: CanonicalShape, calls = 1n, hashes = 0n) {
   const current = zero();
   addCanonical(current, measured, 1n, hashes === 0n ? 0n : 1n);
-  for (const field of ['nodes', 'text', 'wire']) {
+  for (const field of ['nodes', 'text', 'wire'] as const) {
     if (current[field] > largest[field]) largest[field] = current[field];
   }
   // Conservatively keep ALL complete returned encodings, even those consumed
@@ -129,7 +135,7 @@ function addSequentialCanonical(workspace, largest, measured, calls = 1n, hashes
 /** Before the one actual JSON.parse and recursive freeze, including a partial
  * malformed parse, decoder backing, Object.values arrays/slots and frames.
  * The borrowed String is not copied here. No admission or validity is inferred. */
-export function installedEnvironmentParseConstructionGeometry(originalWire) {
+export function installedEnvironmentParseConstructionGeometry(originalWire: string) {
   const input = sourceJsonWireGeometry(originalWire);
   // Native JSON.parse does not parse detached JSON text inside String values.
   // The existing same-wire scan separately bounds the actual returned tree;
@@ -147,7 +153,7 @@ export function installedEnvironmentParseConstructionGeometry(originalWire) {
 // retains only the original document reference; the body/CID phase retains a
 // shallow root and result/index records, borrowing the same parsed children.
 // Source's existing native-input owner reconciles each actual closed phase.
-export function installedEnvironmentDocumentConstructionStages(frozenDocument) {
+export function installedEnvironmentDocumentConstructionStages(frozenDocument: unknown) {
   const measured = shape(frozenDocument), comparison = zero(), body = zero();
   addCanonical(comparison, measured);
   addCanonical(body, measured, 1n, 1n);
@@ -161,10 +167,10 @@ export function installedEnvironmentDocumentConstructionStages(frozenDocument) {
 // does not normalize keys or values. Measure that ACTUAL writer, including
 // parent entries and completed sibling encodings while one child recurses.
 // The original frozen graph is borrowed; no encoding is constructed here.
-function dataWriterShape(value, depth = 0) {
+function dataWriterShape(value: unknown, depth = 0): {output: bigint; peakNodes: bigint; peakText: bigint} {
   if (depth > 256) invalid();
   let output, peakNodes = 4n, peakText = 0n;
-  const text = value => {
+  const text = (value: string) => {
     let units = 2n;
     for (let i = 0; i < value.length; i++) {
       const code = value.charCodeAt(i);
@@ -205,14 +211,14 @@ function dataWriterShape(value, depth = 0) {
   return {output, peakNodes, peakText};
 }
 
-export function installedEnvironmentDataWriterConstructionGeometry(original, hash = false) {
+export function installedEnvironmentDataWriterConstructionGeometry(original: unknown, hash = false) {
   const measured = dataWriterShape(original);
   return stage({nodes: hash ? 4n : 48n, text: hash ? 2n * 71n : 2n * measured.output, wire: 0n},
     {nodes: measured.peakNodes + 8n, text: measured.peakText + (hash ? 2n * 135n : 0n),
       wire: hash ? 3n * measured.output + 128n : 0n});
 }
 
-export function installedEnvironmentMemberSortConstructionGeometry(originals) {
+export function installedEnvironmentMemberSortConstructionGeometry(originals: readonly unknown[]) {
   let nodes = 0n, text = 0n, wire = 0n;
   for (const original of originals) {
     const measured = installedEnvironmentDataWriterConstructionGeometry(original, true);
@@ -229,7 +235,7 @@ export function installedEnvironmentMemberSortConstructionGeometry(originals) {
  * Whole document geometry safely bounds that smaller body without reconstructing
  * it in the quote. Native admission is NOT included, even if this JS stage runs
  * immediately before it. Both verification calls/failure prefixes coexist. */
-export function installedEnvironmentDocumentConstructionGeometry(frozenDocument) {
+export function installedEnvironmentDocumentConstructionGeometry(frozenDocument: unknown) {
   const measured = shape(frozenDocument), workspace = zero();
   addCanonical(workspace, measured, 2n, 1n);
   workspace.nodes += 3n * measured.nodes + 12n;
@@ -244,7 +250,7 @@ export function installedEnvironmentDocumentConstructionGeometry(frozenDocument)
  * sums actual member work, even equal bodies shared by Source and Effect.
  * Native admission of a NEW merged output is a later separate stage. */
 export function installedEnvironmentCompositionConstructionGeometry(
-  frozenBaseBody, frozenSourceBody = undefined, frozenEffectBody = undefined,
+  frozenBaseBody: unknown, frozenSourceBody: unknown = undefined, frozenEffectBody: unknown = undefined,
 ) {
   const base = shape(frozenBaseBody), workspace = zero(), canonical = zero();
   // Allowed-key Set, keys/validation arrays, body/member wrappers and control.
@@ -287,9 +293,9 @@ export function installedEnvironmentCompositionConstructionGeometry(
     }
   }
   if (frozenSourceBody === undefined || frozenEffectBody === undefined) {
-    for (const field of ['nodes', 'text', 'wire']) workspace[field] += canonical[field];
+    for (const field of ['nodes', 'text', 'wire'] as const) workspace[field] += canonical[field];
     return stage({nodes: 2n + 40n, text: 0n, wire: 0n}, workspace,
-      {merged: false, nativeAdmissionIncluded: false});
+      {merged: false, nativeAdmissionIncluded: false} as const);
   }
   // Keep every member as an upper bound: equal-body coalescing never reduces
   // the quote. Base fields remain, plus section arrays and optional manifest.
@@ -307,12 +313,12 @@ export function installedEnvironmentCompositionConstructionGeometry(
   workspace.nodes += 24n * (members + manifestNodes) + 6n * merged.nodes + 64n;
   workspace.text += 2n * 71n * members;
   workspace.nodes += 4n; // Three original references and their temporary array.
-  for (const field of ['nodes', 'text', 'wire']) workspace[field] += canonical[field];
+  for (const field of ['nodes', 'text', 'wire'] as const) workspace[field] += canonical[field];
   return stage({// New merged census (record +14 fields), pre-admission candidate (record
     // +4 fields), and original index (record +4 fields +entry) coexist.
     // Scoped range/finish/release closures, six range/phase scalars, original
     // retirement fields and up to nine input/three provider rollback slots.
     nodes: base.nodes + 3n * members + manifestNodes + 48n + 26n + 40n,
     text: 2n * (envelope.output + 71n), wire: 0n}, workspace,
-    {merged: true, members, mergedWireUnits: envelope.output, nativeAdmissionIncluded: false});
+    {merged: true, members, mergedWireUnits: envelope.output, nativeAdmissionIncluded: false} as const);
 }

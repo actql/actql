@@ -9,7 +9,7 @@ import {installedEnvironmentParseConstructionGeometry as parseGeometry,
   installedEnvironmentMemberSortConstructionGeometry as memberSortGeometry,
   installedEnvironmentCompositionConstructionGeometry as compositionGeometry}
   from './installed-check-environment-construction.mjs';
-const freeze = value => {
+const freeze = <Value,>(value: Value): Value => {
   if (value !== null && typeof value === 'object') {
     for (const item of Object.values(value)) freeze(item);
     Object.freeze(value);
@@ -20,8 +20,9 @@ const base = () => ({version: 'actql-check-environment/0.1', host_policy_profile
   command_contracts: [], connector_capabilities: [], connector_catalogs: [],
   contract_registry: [], mapping_contracts: [], model_task_contracts: [],
   schema_snapshots: [], source_views: []});
-const additive = q => {
-  for (const field of ['nodes', 'text', 'wire']) {
+type Geometry = Pick<ReturnType<typeof parseGeometry>, 'nodes' | 'text' | 'wire' | 'retained' | 'workspace'>;
+const additive = (q: Geometry) => {
+  for (const field of ['nodes', 'text', 'wire'] as const) {
     assert.equal(q[field], q.retained[field] + q.workspace[field]);
     assert.ok(q[field] >= 0n);
   }
@@ -54,7 +55,7 @@ test('native Environment parse keeps opaque string punctuation in text demand ra
 });
 
 test('closed Environment verification stages retain shared children once and preserve original constructors', () => {
-  const make = count => {
+  const make = (count: number) => {
     const body = {...base(), notes: {value: 'e\u0301日本語😀'}, values: Array.from({length: count}, (_, index) => index)};
     return freeze({...body, evidence_bundle_cid: contentCid(body)});
   };
@@ -106,7 +107,7 @@ test('composition co-counts repeated members before dedup and bounds merged outp
   const left = freeze({...base(), source_views: [member], connector_manifest: {version: 'v', connectors: [{connector_id: 'a'}]}});
   const right = freeze({...base(), source_views: [member], connector_manifest: {version: 'v', connectors: [{connector_id: 'a'}]}});
   const q = compositionGeometry(b, left, right);
-  additive(q); assert.equal(q.bounds.members, 2n);
+  additive(q); assert.equal((q.bounds as Extract<typeof q.bounds, {merged: true}>).members, 2n);
   assert.equal(q.bounds.merged, true);
   const actual = {...base(), source_views: [member], connector_manifest: left.connector_manifest};
   const wire = canonicalJson({...actual, evidence_bundle_cid: contentCid(actual)});
@@ -131,10 +132,10 @@ test('immutable geometry rejects mutable accessor proxy cycle hole and excessive
   assert.throws(() => documentGeometry(getter));
   const proxy = new Proxy(Object.freeze({}), {ownKeys() {called++; return [];}});
   assert.throws(() => documentGeometry(proxy));
-  const cycle = {}; cycle.self = cycle; Object.freeze(cycle);
+  const cycle: {self?: unknown} = {}; cycle.self = cycle; Object.freeze(cycle);
   assert.throws(() => documentGeometry(cycle));
   assert.throws(() => documentGeometry(Object.freeze(Array(2))));
-  let deep = Object.freeze({});
+  let deep: Readonly<Record<string, unknown>> = Object.freeze({});
   for (let i = 0; i < 258; i++) deep = Object.freeze({child: deep});
   assert.throws(() => documentGeometry(deep));
   assert.equal(called, 0);
