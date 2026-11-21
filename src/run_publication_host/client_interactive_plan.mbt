@@ -200,7 +200,10 @@ fn issue_client_static_plan_view(
       map_program.length() +
       program_cid.length() +
       map_steps.length() +
-      map_end.length()
+      map_end.length() +
+      ",\"self_cid\":\"".length() +
+      plan_cid.length() +
+      "\"".length()
     if map_budget < 0 {
       return Err(ConstructionRefused)
     }
@@ -455,6 +458,21 @@ fn issue_client_static_plan_view(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if bounded_capture {
+    guard @publication.run_evidence_value_wire_usage(map) is Some(geometry) else {
+      return Err(Encoding)
+    }
+    let measured = @encode.measuring_writer(max_bytes, max_nodes, max_depth) catch {
+      _ => return Err(Encoding)
+    }
+    try {
+      interactive_geometry_view(measured, geometry, inspect_installed)
+      @encode.finish_measurement_usage(measured) |> ignore
+    } catch {
+      @encode.OutputLimit => return Err(ConstructionRefused)
+      _ => return Err(Encoding)
+    }
   }
   // Each key and carrier above was just issued from this exact checked
   // occurrence and Plan. Producer references use the retained prior output;

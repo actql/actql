@@ -364,10 +364,17 @@ fn static_effect_plan_capture_construction(limits : (Int, Int, Int)) -> Int64? {
       "effectful_static_plan_view", bytes, nodes, depth,
     )
     is Some(effect) &&
+    // Seven root keys and eight capability keys can overlap. The
+    // quantity object's three keys also fit within the same three frames.
+    @encode.measuring_writer_construction_extent(15, 3) is Some(measure) &&
     @execution.preparation_representation_cost(
-      // Original computation-wire reference and the bounded Plan map's
-      // fragment accounting, including its transient UTF-8 Result and controls.
-      static_plan_quote_units(12L, 29L, 18L),
+      // Original computation wire and bounded map accounting stay live
+      // while measuring the whole view over the sealed map's exact geometry.
+      static_plan_quote_units(
+        measure.record_headers + 12L,
+        measure.reference_slots + 29L,
+        measure.scalar_words + 18L,
+      ),
     )
     is Some(controls) &&
     @execution.checked_preparation_add_product(plan, effect, 1L) is Some(codecs) else {

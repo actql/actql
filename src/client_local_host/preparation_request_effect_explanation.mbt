@@ -222,7 +222,7 @@ pub fn[I] try_capture_request_effect_run_explanation(
         Plan(Computation(ConstructionRefused | UnsupportedCarrierContract))
       )
     )
-    | Err(Context(WorkLimit))
+    | Err(Context(WorkLimit | Encoding(@encode.OutputLimit)))
     | Err(Facts(Encoding(@encode.OutputLimit)))
     | Err(Encoding(@encode.OutputLimit)) => {
       // The failed constructor has unwound and handed off no wires. Drop

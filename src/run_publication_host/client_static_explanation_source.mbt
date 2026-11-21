@@ -44,7 +44,7 @@ pub fn capture_client_static_effect_explanation_original(
       retained_explanation=Some(retained),
     ) {
     Ok(wire) => wire
-    Err(issue) => return Err(Plan(issue))
+    Err(issue) => return Err(issue)
   }
   guard retained.val is Some((value, declarations, component)) &&
     @canonical.object_field(value, "logical_map") is Some(map) else {

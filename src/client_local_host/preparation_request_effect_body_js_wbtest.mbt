@@ -785,6 +785,61 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
     @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
     before,
   )
+  let plan = @publication_host.client_effect_static_computation_plan_view(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let effect = @publication_host.client_effectful_static_plan_view(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let plan_bytes = @scalar.admit_utf8_length(plan, 65536).unwrap()
+  let effect_bytes = @scalar.admit_utf8_length(effect, 65536).unwrap()
+  assert_true(plan_bytes < effect_bytes - 1)
+  // Keep the old strict errors and verify each new typed boundary on the
+  // same checked compiler. The exact Effectful extent reproduces its wire.
+  assert_true(
+    @publication_host.client_effect_static_computation_plan_view(
+      prepared,
+      compiled,
+      plan_bytes - 1,
+      8192,
+      64,
+    )
+    is Err(Encoding),
+  )
+  let original_plan = (bytes : Int) => {
+    @publication_host.capture_client_static_effect_explanation_original(
+      prepared, compiled, bytes, 8192, 64,
+    )
+  }
+  assert_true(
+    original_plan(plan_bytes - 1) is Err(Plan(Computation(ConstructionRefused))),
+  )
+  assert_true(
+    @publication_host.client_effectful_static_plan_view(
+      prepared,
+      compiled,
+      effect_bytes - 1,
+      8192,
+      64,
+    )
+    is Err(Encoding),
+  )
+  assert_true(
+    original_plan(effect_bytes - 1) is Err(Encoding(@encode.OutputLimit)),
+  )
+  assert_eq(original_plan(effect_bytes).unwrap().1, effect)
+  for bytes in [plan_bytes - 1, effect_bytes - 1] {
+    assert_true(
+      try_capture_request_effect_run_explanation(
+        parent, input, allowed, definition, bytes, 8192, 64, 10000,
+      )
+      is Ok(None),
+    )
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+      before,
+    )
+  }
   let journal_scope = try_capture_request_effect_run_explanation(
       parent, input, allowed, definition, 65536, 8192, 64, 10000,
     )

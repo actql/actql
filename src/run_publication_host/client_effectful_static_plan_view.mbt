@@ -176,7 +176,12 @@ pub fn client_effectful_static_plan_view(
 ) -> Result[String, ClientEffectfulStaticPlanIssue] {
   issue_client_effectful_static_plan_view(
     prepared, compiled, max_bytes, max_nodes, max_depth, max_members, max_work,
-  )
+  ).map_err(issue => {
+    match issue {
+      Plan(original) => original
+      _ => Encoding
+    }
+  })
 }
 
 ///|
@@ -191,17 +196,17 @@ fn issue_client_effectful_static_plan_view(
   retained_explanation? : Ref[
     (@canonical.CanonicalValue, ClientEffectStaticDeclarationSet, String)?,
   ]? = None,
-) -> Result[String, ClientEffectfulStaticPlanIssue] {
+) -> Result[String, ClientStaticExplanationSourceIssue] {
   if !physical_equal(compiled.owner, prepared) {
-    return Err(ForeignCompilation)
+    return Err(Plan(ForeignCompilation))
   }
   if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
-    return Err(InvalidLimits)
+    return Err(Plan(InvalidLimits))
   }
   let declarations = match
     client_effect_static_declarations(prepared, compiled, max_members, max_work) {
     Ok(value) => value
-    Err(issue) => return Err(Declarations(issue))
+    Err(issue) => return Err(Plan(Declarations(issue)))
   }
   let component = match
     issue_client_static_plan_view(
@@ -214,24 +219,25 @@ fn issue_client_effectful_static_plan_view(
       bounded_capture=retained_explanation is Some(_),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Computation(issue))
+    Err(issue) => return Err(Plan(Computation(issue)))
   }
   let computation = match
     @publication.parse_interactive_run_control_shape(
       "plan_view", component, max_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Contract(issue))
+    Err(issue) => return Err(Plan(Contract(issue)))
   }
   // A single final writer charges the complete envelope, nested Plan and all
   // members together. Separate successful fragments cannot enlarge this bound.
-  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
+  let wire = try {
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    emit_effectful_static_plan_view(writer, computation, declarations)
+    @encode.finish(writer)
+  } catch {
+    @encode.OutputLimit => return Err(Encoding(@encode.OutputLimit))
+    _ => return Err(Plan(Encoding))
   }
-  emit_effectful_static_plan_view(writer, computation, declarations) catch {
-    _ => return Err(Encoding)
-  }
-  let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
   match
     @publication.parse_interactive_run_control_shape(
       "effectful_static_plan_view", wire, max_bytes, max_nodes, max_depth,
@@ -242,7 +248,7 @@ fn issue_client_effectful_static_plan_view(
       }
       Ok(wire)
     }
-    Err(issue) => Err(Contract(issue))
+    Err(issue) => Err(Plan(Contract(issue)))
   }
 }
 
