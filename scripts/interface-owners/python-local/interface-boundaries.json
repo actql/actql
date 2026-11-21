@@ -1,6 +1,6 @@
 {
   "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
-  "syntaxProjectionSha256": "72f8810dd5f5a925a33931405103379006541470e46ad7c7d88a21fd99774cc0",
+  "syntaxProjectionSha256": "a5f70916a146b3c7b590172b3a3d294be92aa93367f534ae1b04751d76111cf2",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -4584,7 +4584,7 @@
           ]
         }
       ],
-      "sha256": "fb98a78c574d7821ad75102f31babe6cbfc3cf1eb74f83a4ef178b91f8feb365",
+      "sha256": "aff0960395de58c0f7add0a442ea7fa1d08a31866869f13943d6da91cec714d5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -5056,6 +5056,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",
+                "anchor": "def test_public_saved_lookup_is_same_snapshot_read_without_payload_grant_or_write("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",
@@ -5939,6 +5943,15 @@
             "value",
             "kind",
             "input"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/advance_and_read_saved_result",
+          "parameters": [
+            "self",
+            "value",
+            "current"
           ]
         },
         {
@@ -8302,7 +8315,7 @@
           ]
         }
       ],
-      "sha256": "e771fbbef9e5b734f7bbdd11bd901234396198b2c559018c0d19801dc1733954",
+      "sha256": "0d731e931a5d7486b67fab60062fe01a863c5465671a6f29b4da797e89c0babf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -11420,6 +11433,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "def test_saved_payload_reserves_selection_on_both_paths(self):"
               }
             ]
           }
@@ -14391,7 +14408,8 @@
             "LocalCore/reserve_saved_payload_record",
             "LocalCore/reserve_saved_result_export",
             "LocalCore/validate_saved_payload_binding",
-            "LocalCore/validate_submission_lookup"
+            "LocalCore/validate_submission_lookup",
+            "LocalCore/advance_and_read_saved_result"
           ],
           "exports": [],
           "attributes": {
@@ -14505,6 +14523,10 @@
               {
                 "path": "src/client_host_wasm/saved_lookup_validation_dispatch_wbtest.mbt",
                 "anchor": "test \"saved status exported validation reaches its existing original snapshot guard\""
+              },
+              {
+                "path": "src/client_host_wasm/saved_lookup_validation_dispatch_wbtest.mbt",
+                "anchor": "test \"incremental Saved Result exported validation reaches its typed retained original guard\""
               },
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
@@ -53165,6 +53187,14 @@
           "async": false
         },
         {
+          "async": true,
+          "name": "InstalledLocalHost/_open_ordinary_result",
+          "parameters": [
+            "self",
+            "body"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_open_original_payload_area",
           "parameters": [
             "self",
@@ -53560,6 +53590,24 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_read_original_result_projection",
+          "parameters": [
+            "self",
+            "output",
+            "definition",
+            "result_name",
+            "incremental"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_read_original_result_projection/inspect",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_read_original_saved_admission",
           "parameters": [
             "self",
@@ -53628,6 +53676,16 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_reserve_original_result_read",
+          "parameters": [
+            "self",
+            "reference",
+            "result_name",
+            "incremental"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_restore_original_run",
           "parameters": [
             "self",
@@ -53678,13 +53736,6 @@
             "self",
             "reference",
             "result_name"
-          ],
-          "async": false
-        },
-        {
-          "name": "InstalledLocalHost/_retain_original_result_read/inspect",
-          "parameters": [
-            "current"
           ],
           "async": false
         },
@@ -53995,7 +54046,7 @@
           "async": false
         }
       ],
-      "sha256": "f7989916838c20f1d79fd3bc00967777ac4b61949f0890804a4e28acffc16f4c",
+      "sha256": "57caa6bc9b6424f86bd010e84a61a3197972469dc98e74100c2673a34819b721",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54122,7 +54173,8 @@
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
             "_ordinary_core_limits",
-            "_state_directory_option"
+            "_state_directory_option",
+            "InstalledLocalHost/_open_ordinary_result"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -55788,7 +55840,9 @@
             "InstalledLocalHost/_read_original_reference",
             "InstalledLocalHost/_read_original_reference/observe",
             "InstalledLocalHost/_retain_original_result_read",
-            "InstalledLocalHost/_retain_original_result_read/inspect"
+            "InstalledLocalHost/_read_original_result_projection",
+            "InstalledLocalHost/_read_original_result_projection/inspect",
+            "InstalledLocalHost/_reserve_original_result_read"
           ],
           "exports": [
             "OriginalSavedResultRead"
@@ -78575,6 +78629,7 @@
         "._local_store_reconciliation",
         "._values",
         "__future__",
+        "asyncio",
         "collections.abc",
         "httpx",
         "typing"
@@ -78599,14 +78654,23 @@
           "name": "OriginalSavedResultRead/_current",
           "parameters": [
             "self",
-            "action"
+            "action",
+            "selection"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_current/confirm",
+          "parameters": [
+            "actual"
           ]
         },
         {
           "async": false,
           "name": "OriginalSavedResultRead/_current/inspect",
           "parameters": [
-            "current"
+            "current",
+            "take_capacity"
           ]
         },
         {
@@ -78615,6 +78679,39 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_ensure_physical_preparation",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_finish_payload",
+          "parameters": [
+            "self",
+            "source",
+            "selection",
+            "name",
+            "format",
+            "attempt_id",
+            "rebind"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_hash_next_original_chunk",
+          "parameters": [
+            "self",
+            "selection"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_hash_next_original_chunk/hash_chunk",
+          "parameters": []
         },
         {
           "async": false,
@@ -78629,36 +78726,48 @@
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/hash_chunk",
+          "name": "OriginalSavedResultRead/_prepare_payload",
+          "parameters": [
+            "self",
+            "source",
+            "metadata"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_prepare_payload/open_area",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/open_area",
+          "name": "OriginalSavedResultRead/_prepare_payload/open_reader",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/open_reader",
+          "name": "OriginalSavedResultRead/_prepare_payload/project_names",
           "parameters": []
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/project_names",
-          "parameters": []
-        },
-        {
-          "async": false,
-          "name": "OriginalSavedResultRead/_prepare/take_capacity",
+          "name": "OriginalSavedResultRead/_prepare_payload/take_capacity",
           "parameters": [
             "capacity"
           ]
         },
         {
           "async": false,
-          "name": "OriginalSavedResultRead/_prepare/take_row",
+          "name": "OriginalSavedResultRead/_prepare_payload/take_row",
           "parameters": [
             "row"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSavedResultRead/_prepare_turn",
+          "parameters": [
+            "self",
+            "scope"
           ]
         },
         {
@@ -78671,6 +78780,17 @@
         {
           "async": false,
           "name": "OriginalSavedResultRead/prepare",
+          "parameters": [
+            "self",
+            "reference",
+            "name",
+            "format",
+            "attempt_id"
+          ]
+        },
+        {
+          "async": true,
+          "name": "OriginalSavedResultRead/prepare_incremental",
           "parameters": [
             "self",
             "reference",
@@ -78698,7 +78818,7 @@
           ]
         }
       ],
-      "sha256": "e94a218ec74a794219d2a4f9185e5cdab64110afbcc6046bf2aa9c80c3462a31",
+      "sha256": "6bd630156e0262b6c4ce44f32c025408834faa0c0447cc3d33faba7c04d0fe64",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -78712,16 +78832,23 @@
             "OriginalSavedResultRead/_current/inspect",
             "OriginalSavedResultRead/_ensure_active",
             "OriginalSavedResultRead/_prepare",
-            "OriginalSavedResultRead/_prepare/hash_chunk",
-            "OriginalSavedResultRead/_prepare/open_area",
-            "OriginalSavedResultRead/_prepare/open_reader",
-            "OriginalSavedResultRead/_prepare/project_names",
-            "OriginalSavedResultRead/_prepare/take_capacity",
-            "OriginalSavedResultRead/_prepare/take_row",
             "OriginalSavedResultRead/close",
             "OriginalSavedResultRead/prepare",
             "OriginalSavedResultRead/prepare_lookup",
-            "_original_decimal"
+            "_original_decimal",
+            "OriginalSavedResultRead/_current/confirm",
+            "OriginalSavedResultRead/_ensure_physical_preparation",
+            "OriginalSavedResultRead/_finish_payload",
+            "OriginalSavedResultRead/_hash_next_original_chunk",
+            "OriginalSavedResultRead/_hash_next_original_chunk/hash_chunk",
+            "OriginalSavedResultRead/_prepare_payload",
+            "OriginalSavedResultRead/_prepare_payload/open_area",
+            "OriginalSavedResultRead/_prepare_payload/open_reader",
+            "OriginalSavedResultRead/_prepare_payload/project_names",
+            "OriginalSavedResultRead/_prepare_payload/take_capacity",
+            "OriginalSavedResultRead/_prepare_payload/take_row",
+            "OriginalSavedResultRead/_prepare_turn",
+            "OriginalSavedResultRead/prepare_incremental"
           ],
           "exports": [
             "ByteFence",
@@ -78890,6 +79017,10 @@
                 "anchor": "def test_failed_lookup_keeps_same_child_and_source_until_actual_return("
               },
               {
+                "path": "packages/python-sdk/tests/test_local_saved_delivery_lookup.py",
+                "anchor": "def test_lookup_close_refusal_keeps_same_unattached_response_and_unreturned_loans("
+              },
+              {
                 "path": "packages/python-sdk/tests/test_local_payload_record.py",
                 "anchor": "def test_saved_parent_reservation_preserves_original_family_and_read_only_core_refusal("
               },
@@ -78916,6 +79047,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_response.py",
                 "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_hash_yields_after_one_real_chunk_and_rechecks_row(self):"
               }
             ]
           }
@@ -79765,7 +79904,7 @@
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+                "anchor": "physical_journal_schema(current.physical)"
               }
             ],
             "failure": [
@@ -79930,7 +80069,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "2a00bcad26a5f70e05b1da819e99e3ec789154cdfeeff1387c370357fc7f0503",
+      "sha256": "48f27f922986c0ec62e6c673e56a77bea5deae3416318c933c0c934d7c65391c",
       "exports": [],
       "operations": [
         {
@@ -80030,7 +80169,7 @@
               },
               {
                 "path": "src/client_host_wasm/submission_lookup.mbt",
-                "anchor": "let physical_schema = physical_journal_schema(current.physical)"
+                "anchor": "physical_journal_schema(current.physical)"
               }
             ],
             "failure": [
@@ -80279,20 +80418,52 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "4e588dfe16ea3167f49eaf25bb65bf4ad30cedc95da2e836f2ff9a80024c9a93",
+      "sha256": "1658af9d033a241e86a3bcded4d8ae4b28958c69f56dd6492466afe6b94d628e",
       "exports": [],
       "operations": [
         {
+          "name": "advance_saved_result_read",
+          "declaration": "advance_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , rebind : Bool , ) - > Result [ Bool , Int ]"
+        },
+        {
+          "name": "begin_saved_result_commit_observation",
+          "declaration": "begin_saved_result_commit_observation ( retained : StoredSavedResultRead , owner : @ publication . PublicationCommitPreparation , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "begin_saved_result_read",
+          "declaration": "begin_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+        },
+        {
           "name": "close_saved_result_read",
           "declaration": "close_saved_result_read ( record : StoredSubmissionProjection ) - > Int"
+        },
+        {
+          "name": "finish_saved_result_read",
+          "declaration": "finish_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Bytes , Int ]"
         },
         {
           "name": "prepare_saved_result_read",
           "declaration": "prepare_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Bytes , Int ]"
         },
         {
+          "name": "produce_incremental_saved_result",
+          "declaration": "produce_incremental_saved_result ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Int"
+        },
+        {
+          "name": "rebind_saved_result_originals",
+          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "reobserve_saved_result_read",
+          "declaration": "reobserve_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredSavedResultRead , incremental ? : Bool"
+        },
+        {
           "name": "saved_result_read_current",
           "declaration": "saved_result_read_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , result_name : String , ) - > Result [ Unit , Int ]"
+        },
+        {
+          "name": "supply_saved_result_read",
+          "declaration": "supply_saved_result_read ( value : Instance , record : StoredSubmissionProjection , wire : Bytes , ) - > Int"
         },
         {
           "name": "validate_saved_result_read",
@@ -80309,7 +80480,15 @@
             "close_saved_result_read",
             "prepare_saved_result_read",
             "saved_result_read_current",
-            "validate_saved_result_read"
+            "validate_saved_result_read",
+            "advance_saved_result_read",
+            "begin_saved_result_commit_observation",
+            "begin_saved_result_read",
+            "finish_saved_result_read",
+            "produce_incremental_saved_result",
+            "reobserve_saved_result_read",
+            "supply_saved_result_read",
+            "rebind_saved_result_originals"
           ],
           "exports": [],
           "attributes": {
@@ -80415,6 +80594,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_real_saved_descriptor_keeps_original_metadata_loan_and_current_refusal("
+              },
+              {
+                "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
+                "anchor": "test \"saved continuation refuses a changed supported schema with identical originals\""
               }
             ]
           }
@@ -80871,7 +81054,7 @@
     },
     {
       "module": "src/client_host_wasm/submission.mbt",
-      "sha256": "c0ac2cff7c37d1875d0cbe9d75b95d68d6cb75a219b734cc1b2244d4c14e176d",
+      "sha256": "d0056bf1c629a6c613c9d512e6f9caa618add46c436c1084938b55dcfc8cafd1",
       "exports": [],
       "operations": [
         {
@@ -80897,6 +81080,10 @@
         {
           "name": "retire_submission_output",
           "declaration": "retire_submission_output ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "saved_result_projection_kind",
+          "declaration": "saved_result_projection_kind ( kind : Int ) - > Bool"
         },
         {
           "name": "submission_projection_length",
@@ -81065,12 +81252,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "saved_result_projection_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The matched installed Local Host and Core use private submission kind 13 for"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "fn saved_result_projection_kind(kind : Int) -> Bool"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "kind == 6 || kind == INCREMENTAL_SAVED_RESULT_KIND"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/saved_sdk_read_context.mbt",
+                "anchor": "saved_result_projection_kind(parent.kind)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The Host releases the Core lock, current reader and SQLite transaction before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "A different supported schema refuses continuation before"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "pub fn begin_submission_cleanup(nonce : Int64, handle : Int) -> Int"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "@buffers.reserve_output_buffer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Kind 13 returns `1` from `submission.produce` while the original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_original_bulk_transfer.py",
+                "anchor": "def test_saved_payload_reserves_selection_on_both_paths(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
+                "anchor": "def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "4c788a9df144d4d9f5c1ad649de35319a74ab70e9c404a79520215c80eb74bc7",
+      "sha256": "3a7cd21f09b6ca732be654bd6cec6f00bd6c63de4cd233fc5f8161623440788d",
       "exports": [],
       "operations": [
         {
@@ -93035,12 +93294,16 @@
     },
     {
       "module": "src/run_publication_host/client_task_material_original.mbt",
-      "sha256": "2206bf801e9a022dbe6abee32a2fb35b34b081fef5474fec16bd07e583625a96",
+      "sha256": "d2c28abd6cc4c20b610b880f67488ec442ae1fa9b5992d66f822be8f978525cf",
       "exports": [],
       "operations": [
         {
           "name": "[E]read_client_task_material_original",
           "declaration": "[ E ] read_client_task_material_original ( key : String , cid : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ String , E ]"
+        },
+        {
+          "name": "[E]read_saved_task_material_original",
+          "declaration": "[ E ] read_saved_task_material_original ( key : String , cid : String , original_wire : String ? , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , digest ? : ( Bytes ) - > String"
         },
         {
           "name": "[E]read_task_material_original_details",
@@ -93083,6 +93346,14 @@
           "declaration": "client_task_material_original_cid ( wire : String , ) - > Result [ String , ClientJournalEncodingIssue ]"
         },
         {
+          "name": "task_material_continuation",
+          "declaration": "task_material_continuation ( value : Byte ) - > Bool"
+        },
+        {
+          "name": "task_material_maximal_chunk",
+          "declaration": "task_material_maximal_chunk ( length : Int , next : Bytes ) - > Bool"
+        },
+        {
           "name": "task_material_original_chunk_bytes",
           "declaration": "task_material_original_chunk_bytes ( key : String , bytes : Bytes , ) - > Result [ Array [ ( String , String ) ] , ClientJournalEncodingIssue ]"
         },
@@ -93099,9 +93370,12 @@
           "operations": [
             "<module>",
             "[E]read_client_task_material_original",
+            "[E]read_saved_task_material_original",
             "[E]read_task_material_original_details",
             "client_task_material_original_chunks",
             "client_task_material_original_cid",
+            "task_material_continuation",
+            "task_material_maximal_chunk",
             "task_material_original_chunk_bytes",
             "task_material_original_cid_bytes"
           ],
@@ -93201,6 +93475,10 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",
                 "anchor": "test \"single-pass nominal saved reader keeps construction fences and fresh material\""
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"exact saved material skips the fresh hash only after every canonical row probe\""
               }
             ]
           }
@@ -93616,7 +93894,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "6491a03c43bb239fed76e2bce2af6755ba98c406a4416565ae137bb264e9810c",
+      "sha256": "4a1bf36a7ba2b74937c95f1db1975ad8a7db45126cca8ee4efa7294dcba97c82",
       "exports": [],
       "operations": [
         {
@@ -93813,6 +94091,10 @@
               {
                 "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
                 "anchor": "test \"retained material inventory repeats full scopes and cancellation with original\""
+              },
+              {
+                "path": "src/run_publication_host/client_saved_original_rows_wbtest.mbt",
+                "anchor": "test \"same saved material reobserves the original canonical chunks and propagates the last query refusal\""
               },
               {
                 "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",
@@ -94404,7 +94686,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "0e9092578e1b98a46dc556ffae17bbabc1008b65b14bedc25f0829a9adafb8fe",
+      "sha256": "e948a56f99bb50206254b13d995dc43514bbe5298d50a540f55131dd67132fe5",
       "exports": [],
       "operations": [
         {
@@ -94412,12 +94694,24 @@
           "declaration": "dispose_journal_decode_rows ( value : Instance , frame : StoredJournalDecodeFrame , keep_selected : Bool , ) - > Int"
         },
         {
+          "name": "journal_decode_cell_matches",
+          "declaration": "journal_decode_cell_matches ( cell : StoredJournalRunOriginal , row : @ host . ClientJournalPhysicalRow , ) - > Bool"
+        },
+        {
           "name": "journal_decode_frame_capacity",
-          "declaration": "journal_decode_frame_capacity ( ) - > Int64 ?"
+          "declaration": "journal_decode_frame_capacity ( indexed ? : Bool"
         },
         {
           "name": "journal_decode_frame_current",
           "declaration": "journal_decode_frame_current ( value : Instance , child : StoredJournalObservation , frame : StoredJournalDecodeFrame , ) - > Bool"
+        },
+        {
+          "name": "journal_decode_index_probe",
+          "declaration": "journal_decode_index_probe ( index : FixedArray [ StoredJournalRunOriginal ? ] , key : String , ) - > ( Int , Int )"
+        },
+        {
+          "name": "journal_decode_original_from_list",
+          "declaration": "journal_decode_original_from_list ( rows : StoredJournalRunOriginal ? , row : @ host . ClientJournalPhysicalRow , ) - > StoredJournalRunOriginal ?"
         },
         {
           "name": "journal_decode_row_capacity",
@@ -94459,7 +94753,10 @@
             "journal_drop_observation",
             "journal_inspect_run_with_observation",
             "open_journal_decode_frame",
-            "settle_journal_decode_original"
+            "settle_journal_decode_original",
+            "journal_decode_index_probe",
+            "journal_decode_cell_matches",
+            "journal_decode_original_from_list"
           ],
           "exports": [],
           "attributes": {
@@ -94467,6 +94764,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### One-read outer Run decoding"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_index_probe("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_original_from_list("
               }
             ],
             "inputsOutputs": [
@@ -94479,12 +94784,20 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "fn journal_decode_frame_current("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "original.body == row.body &&"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
                 "anchor": "fn prepare_journal_observation_close("
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "frame.index = None"
               }
             ],
             "synchronization": [
@@ -94521,6 +94834,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Same-frame typed observation originals"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_frame_capacity(indexed? : Bool = false)"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "return cursor"
               }
             ],
             "extension": [
@@ -94541,6 +94862,14 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
                 "anchor": "test \"journal typed observation exact construction allowance admits and one-short refuses before restore\""
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal same-frame index probes distinct rows without re-decoding on exact repeat\""
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal same-frame index collision ceiling uses the complete decoder\""
               }
             ]
           }

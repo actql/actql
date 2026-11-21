@@ -34,6 +34,7 @@ _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
 # This product ceiling includes that work; private ABI calls never refill it.
 _NORMAL_HOST_OPERATION_FUEL = 64_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
+_INCREMENTAL_SAVED_RESULT_KIND = 13
 
 
 class LocalCoreError(RuntimeError):
@@ -2203,18 +2204,24 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12)):
+                    not 0 < configuration < 2**31 or type(kind) is not int
+                    or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, _INCREMENTAL_SAVED_RESULT_KIND)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 10, 11, 12) else 4096
+            limit = 1048576 if kind >= 3 else 4096
             family = ('run_state_append' if kind == 12 else 'cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
-                      'submission_lookup' if kind in (4, 5, 6, 7, 8, 11) else 'submission')
+                      'submission_lookup' if kind in (4, 5, 6, 7, 8, 11, _INCREMENTAL_SAVED_RESULT_KIND) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
+            if kind in (6, _INCREMENTAL_SAVED_RESULT_KIND):
+                # Both Saved preparation paths carry the payload selection
+                # from physical acquisition through hash and completion.
+                # Its row, capacity and strings remain the original values.
+                physical_bytes += sys.getsizeof((None,) * 6)
             handle = self._call('submission', 'reserve', configuration, source.handle,
                                 kind, ticket, physical_bytes)
             if handle <= 0:
@@ -2596,6 +2603,22 @@ class LocalCore:
         """
         with self._lock:
             self.produce_submission_lookup(value, current)
+            raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
+            self.validate_submission_lookup(value, current)
+            return raw
+
+    def advance_and_read_saved_result(self, value: _Output, current: _Output) -> bytes | None:
+        """Advance the matched private Saved selector in this actual reader."""
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code == 1:
+                return None
+            self._check('produce_submission_lookup', code)
+            self.validate_submission_lookup(value, current)
             raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
             self.validate_submission_lookup(value, current)
             return raw
