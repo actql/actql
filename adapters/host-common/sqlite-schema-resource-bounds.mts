@@ -12,18 +12,24 @@ const keys = Reflect.ownKeys, integer = Number.isSafeInteger;
 const alloc = Buffer.alloc, u16 = Buffer.prototype.readUInt16BE;
 const u32 = Buffer.prototype.readUInt32BE, le32 = Buffer.prototype.readUInt32LE;
 const copy = Buffer.prototype.copy, character = String.prototype.charCodeAt;
-const unavailable = () => {
+export type SqliteSchemaReadLimits = Readonly<{
+  maxSchemaBytes: number; maxSchemaEntries: number; maxSchemaPages: number; maxWalFrames: number;
+}>;
+type OriginalFile = Readonly<{fd: number; bytes: number}>;
+type RecordField = {type: number; offset: number; bytes: number};
+
+const unavailable: () => never = () => {
   throw Object.assign(new Error('SqliteSchemaPreparationUnavailable'),
     {code: 'SqliteSchemaPreparationUnavailable'});
 };
 
-export function snapshotSqliteSchemaReadLimits(value) {
+export function snapshotSqliteSchemaReadLimits(value: unknown): SqliteSchemaReadLimits | undefined {
   if (value === undefined) return undefined;
-  const names = ['maxSchemaBytes', 'maxSchemaEntries', 'maxSchemaPages', 'maxWalFrames'];
+  const names = ['maxSchemaBytes', 'maxSchemaEntries', 'maxSchemaPages', 'maxWalFrames'] as const;
   if (value === null || typeof value !== 'object' || types.isProxy(value)) unavailable();
   const selected = keys(value);
-  if (selected.length !== names.length || selected.some(name => !names.includes(name))) unavailable();
-  const result = {};
+  if (selected.length !== names.length || selected.some(name => !names.includes(name as typeof names[number]))) unavailable();
+  const result = {} as Record<keyof SqliteSchemaReadLimits, number>;
   for (const name of names) {
     const field = descriptor(value, name);
     if (field === undefined || !own(field, 'value') || !integer(field.value) || field.value < 1) unavailable();
@@ -36,13 +42,13 @@ export function snapshotSqliteSchemaReadLimits(value) {
 // byte strings. This is not SQL interpretation, format admission or authority.
 // Unknown/equivalent spellings remain an unsupported backend recipe; SQLite
 // still checks actual schema meaning after this support boundary.
-export function snapshotSqliteSchemaSqlSupport(value, limits) {
+export function snapshotSqliteSchemaSqlSupport(value: unknown, limits: SqliteSchemaReadLimits | undefined) {
   if (value === undefined) return undefined;
   if (limits === undefined || value === null || typeof value !== 'object' ||
       types.isProxy(value) || !Array.isArray(value)) unavailable();
   const length = descriptor(value, 'length')?.value;
   if (!integer(length) || length < 1 || length > limits.maxSchemaEntries) unavailable();
-  const result = [];
+  const result: string[] = [];
   let total = 0;
   for (let index = 0; index < length; index++) {
     const property = descriptor(value, String(index));
@@ -60,32 +66,34 @@ export function snapshotSqliteSchemaSqlSupport(value, limits) {
   return freeze(result);
 }
 
-function at(fd, target, position, bytes = target.length) {
+function at(fd: number, target: Buffer, position: number, bytes = target.length) {
   let offset = 0;
   while (offset < bytes) {
-    const count = apply(readOriginal, undefined, [fd, target, offset, bytes - offset, position + offset]);
+    const count: number = apply(readOriginal, undefined, [fd, target, offset, bytes - offset, position + offset]);
     if (!integer(count) || count < 1 || count > bytes - offset) unavailable();
     offset += count;
   }
 }
-const be = (bytes, offset) => apply(u32, bytes, [offset]);
-const half = (bytes, offset) => apply(u16, bytes, [offset]);
+const be = (bytes: Buffer, offset: number): number => apply(u32, bytes, [offset]);
+const half = (bytes: Buffer, offset: number): number => apply(u16, bytes, [offset]);
 
-function checksum(bytes, length, little, previous) {
+function checksum(bytes: Buffer, length: number, little: boolean,
+  previous: readonly [number, number]): [number, number] {
   let [a, b] = previous;
   const read = little ? le32 : u32;
   for (let offset = 0; offset < length; offset += 8) {
-    a = (a + apply(read, bytes, [offset]) + b) >>> 0;
-    b = (b + apply(read, bytes, [offset + 4]) + a) >>> 0;
+    a = (a + (apply(read, bytes, [offset]) as number) + b) >>> 0;
+    b = (b + (apply(read, bytes, [offset + 4]) as number) + a) >>> 0;
   }
   return [a, b];
 }
 
-function committedWal(wal, pageSize, page, limits, maxPages) {
-  const latest = new Map();
+function committedWal(wal: OriginalFile | undefined, pageSize: number, page: Buffer,
+  limits: SqliteSchemaReadLimits, maxPages: number) {
+  const latest = new Map<number, number>();
   if (wal === undefined || wal.bytes === 0) return {latest, frames: 0};
   if (wal.bytes < 32) unavailable();
-  const header = apply(alloc, Buffer, [32]);
+  const header: Buffer = apply(alloc, Buffer, [32]);
   at(wal.fd, header, 0);
   const magic = be(header, 0);
   if ((magic !== 0x377f0682 && magic !== 0x377f0683) ||
@@ -96,7 +104,7 @@ function committedWal(wal, pageSize, page, limits, maxPages) {
   const salt1 = be(header, 16), salt2 = be(header, 20);
   const count = Math.floor((wal.bytes - 32) / (24 + pageSize));
   if (count > limits.maxWalFrames) unavailable();
-  const frame = apply(alloc, Buffer, [24]);
+  const frame: Buffer = apply(alloc, Buffer, [24]);
   let committed = 0;
   // A single streaming checksum pass finds the same last valid commit prefix.
   // Invalid/uncommitted tails cannot hide an earlier larger schema. Do not
@@ -121,7 +129,7 @@ function committedWal(wal, pageSize, page, limits, maxPages) {
   return {latest, frames: committed};
 }
 
-function varint(page, offset, limit, decode) {
+function varint(page: Buffer, offset: number, limit: number, decode: boolean) {
   let value = 0;
   for (let count = 0; count < 9; count++) {
     if (offset >= limit) unavailable();
@@ -136,7 +144,7 @@ function varint(page, offset, limit, decode) {
   unavailable();
 }
 
-function serialBytes(type) {
+function serialBytes(type: number) {
   if (type === 0 || type === 8 || type === 9) return 0;
   if (type >= 1 && type <= 4) return type;
   if (type === 5) return 6;
@@ -145,7 +153,7 @@ function serialBytes(type) {
   unavailable();
 }
 
-function schemaRootPage(payload, field) {
+function schemaRootPage(payload: Buffer, field: RecordField) {
   if (field.type === 8) return 0;
   if (field.type === 9) return 1;
   if (field.type < 1 || field.type > 6 || (payload[field.offset] & 128) !== 0) unavailable();
@@ -157,10 +165,10 @@ function schemaRootPage(payload, field) {
   return number;
 }
 
-function supportsSchemaRecord(payload, support) {
+function supportsSchemaRecord(payload: Buffer, support: readonly string[]) {
   const header = varint(payload, 0, payload.length, true);
   if (header.value > payload.length || header.value < header.offset) unavailable();
-  let cursor = header.offset, body = header.value, typeName, root, sql;
+  let cursor = header.offset, body = header.value, typeName!: RecordField, root!: RecordField, sql!: RecordField;
   for (let index = 0; index < 5; index++) {
     const type = varint(payload, cursor, header.value, true);
     cursor = type.offset;
@@ -194,19 +202,21 @@ function supportsSchemaRecord(payload, support) {
   unavailable();
 }
 
-function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, schemaPages, overflowPages) {
-  const seen = new Set();
-  const mark = number => {
+function inspectRecordDeclarations(pending: number[], page: Buffer,
+  readPage: (number: number, target: Buffer) => void, maxPages: number, usable: number,
+  schemaPages: ReadonlySet<number>, overflowPages: ReadonlySet<number>) {
+  const seen = new Set<number>();
+  const mark = (number: number) => {
     if (!integer(number) || number < 2 || number > maxPages || seen.has(number) ||
         schemaPages.has(number) || overflowPages.has(number) ||
         seen.size + schemaPages.size + overflowPages.size >= maxPages) unavailable();
     seen.add(number);
   };
   for (const number of pending) mark(number);
-  const enqueue = number => {mark(number); pending.push(number);};
+  const enqueue = (number: number) => {mark(number); pending.push(number);};
   const maxRecordBytes = maxPages * page.length;
   while (pending.length !== 0) {
-    readPage(pending.pop(), page);
+    readPage(pending.pop()!, page);
     const type = page[0], interior = type === 2 || type === 5;
     if (!interior && type !== 10 && type !== 13) unavailable();
     const cells = half(page, 3), header = interior ? 12 : 8;
@@ -234,9 +244,10 @@ function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, sc
   }
 }
 
-export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {
+export function inspectBoundedSqliteSchema(database: OriginalFile, wal: OriginalFile | undefined,
+  limits: SqliteSchemaReadLimits, maxSourceBytes: number, schemaSqlSupport?: readonly string[]) {
   if (!integer(maxSourceBytes) || maxSourceBytes < 512 || database.bytes < 100) unavailable();
-  const header = apply(alloc, Buffer, [100]);
+  const header: Buffer = apply(alloc, Buffer, [100]);
   at(database.fd, header, 0);
   const signature = [83,81,76,105,116,101,32,102,111,114,109,97,116,32,51,0];
   for (let index = 0; index < signature.length; index++) {
@@ -247,27 +258,27 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
   if (pageSize < 512 || pageSize > 65536 || (pageSize & (pageSize - 1)) !== 0) unavailable();
   const maxPages = Math.floor(maxSourceBytes / pageSize);
   if (be(header, 28) > maxPages) unavailable();
-  const page = apply(alloc, Buffer, [pageSize]);
+  const page: Buffer = apply(alloc, Buffer, [pageSize]);
   const overlay = committedWal(wal, pageSize, page, limits, maxPages);
-  const pending = [1], visited = new Set();
+  const pending = [1], visited = new Set<number>();
   // Support inspection reads original record bytes only. One overflow buffer
   // is reused; all allocated payload backings together are bounded by the
   // existing aggregate schema payload ceiling, not by GC between iterations.
   if (schemaSqlSupport !== undefined && be(header, 56) !== 1) unavailable();
-  const overflow = schemaSqlSupport === undefined ? undefined : apply(alloc, Buffer, [pageSize]);
-  const roots = schemaSqlSupport === undefined ? undefined : [];
-  const payloadPages = new Set();
+  const overflow: Buffer | undefined = schemaSqlSupport === undefined ? undefined : apply(alloc, Buffer, [pageSize]);
+  const roots: number[] | undefined = schemaSqlSupport === undefined ? undefined : [];
+  const payloadPages = new Set<number>();
   const usable = pageSize - header[20];
   if (usable < 480) unavailable();
-  const readPage = (number, target) => {
+  const readPage = (number: number, target: Buffer) => {
     if (number < 1 || number > maxPages) unavailable();
     const offset = overlay.latest.get(number);
     if (offset === undefined) {
       if (number * pageSize > database.bytes) unavailable();
       at(database.fd, target, (number - 1) * pageSize);
-    } else at(wal.fd, target, offset);
+    } else at(wal!.fd, target, offset);
   };
-  const readPayload = (offset, bytes) => {
+  const readPayload = (offset: number, bytes: number) => {
     const maximumLocal = usable - 35;
     const minimumLocal = Math.floor((usable - 12) * 32 / 255) - 23;
     let local = bytes;
@@ -276,30 +287,30 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
       if (local > maximumLocal) local = minimumLocal;
     }
     if (offset + local + (local < bytes ? 4 : 0) > usable) unavailable();
-    const payload = apply(alloc, Buffer, [bytes]);
+    const payload: Buffer = apply(alloc, Buffer, [bytes]);
     apply(copy, page, [payload, 0, offset, offset + local]);
     let copied = local, number = local < bytes ? be(page, offset + local) : 0;
     while (copied < bytes) {
       if (number === 0 || visited.has(number) || payloadPages.has(number) ||
           visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();
       payloadPages.add(number);
-      readPage(number, overflow);
+      readPage(number, overflow!);
       const count = Math.min(bytes - copied, usable - 4);
       apply(copy, overflow, [payload, copied, 4, 4 + count]);
       copied += count;
-      number = be(overflow, 0);
+      number = be(overflow!, 0);
     }
     if (number !== 0) unavailable();
     return payload;
   };
   let entries = 0, payloadBytes = 0;
-  const enqueue = number => {
+  const enqueue = (number: number) => {
     if (number < 1 || number > maxPages || visited.has(number) || payloadPages.has(number) ||
         visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();
     pending.push(number);
   };
   while (pending.length !== 0) {
-    const number = pending.pop();
+    const number = pending.pop()!;
     if (visited.has(number) || payloadPages.has(number) ||
         visited.size + payloadPages.size === limits.maxSchemaPages) unavailable();
     visited.add(number);
@@ -307,7 +318,7 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
     if (offset === undefined) {
       if (number * pageSize > database.bytes) unavailable();
       at(database.fd, page, (number - 1) * pageSize);
-    } else at(wal.fd, page, offset);
+    } else at(wal!.fd, page, offset);
     if (number === 1) {
       for (let index = 0; index < signature.length; index++) {
         if (page[index] !== signature[index]) unavailable();
@@ -337,7 +348,7 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
         payloadBytes += payload.value;
         if (schemaSqlSupport !== undefined) {
           const root = supportsSchemaRecord(readPayload(rowid.offset, payload.value), schemaSqlSupport);
-          if (root !== 0) roots.push(root);
+          if (root !== 0) roots!.push(root);
         }
       }
     }

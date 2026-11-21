@@ -1367,3 +1367,7 @@ target/
 /adapters/host-common/sqlite-format-inspection.d.mts
 /adapters/host-common/sqlite-format-inspection.test.mjs
 /adapters/host-common/sqlite-format-inspection.test.d.mts
+/adapters/host-common/sqlite-schema-resource-bounds.mjs
+/adapters/host-common/sqlite-schema-resource-bounds.d.mts
+/adapters/host-common/sqlite-schema-resource-bounds.test.mjs
+/adapters/host-common/sqlite-schema-resource-bounds.test.d.mts

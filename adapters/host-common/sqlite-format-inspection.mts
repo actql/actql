@@ -9,8 +9,8 @@ import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
-// @ts-expect-error TS7016: remove after sqlite-schema-resource-bounds has an authored TypeScript entry.
-import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema} from './sqlite-schema-resource-bounds.mjs';
+import {type SqliteSchemaReadLimits, snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport,
+  inspectBoundedSqliteSchema} from './sqlite-schema-resource-bounds.mjs';
 import type {SynchronousRuntimeData} from './runtime-result.mjs';
 
 type DirectoryOptions = Readonly<{maxEntries?: number; unavailableCode?: string; cleanupCode?: string}>;
@@ -119,7 +119,7 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
       {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
   }
   schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);
-  schemaSqlSupport = snapshotSqliteSchemaSqlSupport(schemaSqlSupport, schemaReadLimits);
+  schemaSqlSupport = snapshotSqliteSchemaSqlSupport(schemaSqlSupport, schemaReadLimits as SqliteSchemaReadLimits | undefined);
   assertCurrent?.();
   if (assertCurrent !== undefined && typeof originalNativeRealpath !== 'function') {
     throw new TypeError('SqliteInspectionNativePathUnavailable');
@@ -267,7 +267,8 @@ export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
         outputs.push({fd, close: closeSync});
         copies.push({fd, bytes: Number(source.identity!.size)});
       }
-      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);
+      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,
+        maxSourceBytes, schemaSqlSupport as readonly string[] | undefined);
       while (outputs.length !== 0) {
         closeFile(outputs.at(-1)!);
         outputs.pop();

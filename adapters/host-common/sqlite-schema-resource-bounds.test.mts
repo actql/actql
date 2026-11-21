@@ -8,11 +8,13 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from './sqlite-format-inspection.mjs';
+import type {SqliteSchemaReadLimits} from './sqlite-schema-resource-bounds.mjs';
+// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {openClientRequestJournal} from '../host-node/client-request-journal.mjs';
 
 const defaults = Object.freeze({maxSchemaBytes: 1024 * 1024,
   maxSchemaEntries: 256, maxSchemaPages: 256, maxWalFrames: 131072});
-const options = changes => ({maxSourceBytes: 64 * 1024 * 1024,
+const options = (changes?: Partial<SqliteSchemaReadLimits>) => ({maxSourceBytes: 64 * 1024 * 1024,
   schemaReadLimits: {...defaults, ...changes}});
 async function fixture({wal = false, tables = 2, pageSize = 4096} = {}) {
   const scratch = await createOwnedScratch({
@@ -29,13 +31,13 @@ async function fixture({wal = false, tables = 2, pageSize = 4096} = {}) {
   if (!wal) database.close();
   return {scratch, path, database, close() {if (database.isOpen) database.close();}};
 }
-function countTables(database) {
-  return database.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'").get().n;
+function countTables(database: DatabaseSync) {
+  return database.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'").get()!.n as number;
 }
-function beforeNativeOpen(body) {
+function beforeNativeOpen(body: () => void) {
   const open = DatabaseSync.prototype.open;
   let opens = 0;
-  DatabaseSync.prototype.open = function () {opens++; return Reflect.apply(open, this, []);};
+  DatabaseSync.prototype.open = function (this: DatabaseSync) {opens++; return Reflect.apply(open, this, []);};
   try {body(); return opens;} finally {DatabaseSync.prototype.open = open;}
 }
 
@@ -70,7 +72,7 @@ test('selected own-DDL support compares original SQL bytes before native schema 
 
 test('an extra valid view stays unsupported before native open, without becoming a language error', async () => {
   const f = await fixture({tables: 1});
-  let source = new DatabaseSync(f.path);
+  let source: DatabaseSync | undefined = new DatabaseSync(f.path);
   source.exec('CREATE VIEW v AS SELECT value FROM t0');
   source.close(); source = undefined;
   const before = readFileSync(f.path);
@@ -79,7 +81,7 @@ test('an extra valid view stays unsupported before native open, without becoming
       countTables, {...options(), schemaSqlSupport: ['CREATE TABLE t0(value TEXT)']}),
     {code: 'SqliteSchemaPreparationUnavailable'})), 0);
     assert.equal(inspectSqliteSnapshot(f.path, database => database.prepare(
-      "SELECT count(*) AS n FROM sqlite_schema WHERE type = 'view'").get().n), 1);
+      "SELECT count(*) AS n FROM sqlite_schema WHERE type = 'view'").get()!.n as number), 1);
     assert.deepEqual(readFileSync(f.path), before);
   } finally {f.close();}
   f.scratch.passed();
@@ -128,9 +130,9 @@ test('an automatic native index with no SQL does not invent another program or r
 
 test('own-DDL support snapshots own DATA without reading accessor or Proxy elements', async () => {
   const f = await fixture(); let reads = 0;
-  const getter = []; getter.length = 1;
+  const getter: unknown[] = []; getter.length = 1;
   Object.defineProperty(getter, '0', {get() {reads++; throw new Error('NotDDLData');}});
-  const proxy = new Proxy(['CREATE TABLE t0(value TEXT)'], {get() {reads++;}, ownKeys() {reads++;}});
+  const proxy = new Proxy(['CREATE TABLE t0(value TEXT)'], {get() {reads++;}, ownKeys() {reads++;}} as unknown as ProxyHandler<string[]>);
   try {
     assert.equal(beforeNativeOpen(() => {
       for (const schemaSqlSupport of [getter, proxy]) assert.throws(() => inspectSqliteSnapshot(
@@ -141,7 +143,7 @@ test('own-DDL support snapshots own DATA without reading accessor or Proxy eleme
   f.scratch.passed();
 });
 
-for (const [name, changes] of [['payload', {maxSchemaBytes: 1}], ['entries', {maxSchemaEntries: 1}]]) {
+for (const [name, changes] of [['payload', {maxSchemaBytes: 1}], ['entries', {maxSchemaEntries: 1}]] as const) {
   test('unsupported schema ' + name + ' refuses before native open, not after decoding', async () => {
     const f = await fixture();
     const before = readFileSync(f.path);
@@ -174,7 +176,7 @@ test('schema traversal follows original interior-table pages with a pre-read vis
 // committed WAL prefix was written by SQLite. Use a page from its checkpointed
 // one-table main DB, so trusting the last frame instead of the last valid
 // commit would undercount schema entries. This is not old-state recovery.
-function appendSmallerSchemaTail(f, validChecksum) {
+function appendSmallerSchemaTail(f: Awaited<ReturnType<typeof fixture>>, validChecksum: boolean) {
   const walPath = f.path + '-wal', wal = readFileSync(walPath), db = readFileSync(f.path);
   const p = wal.readUInt32BE(8), frameSize = p + 24;
   assert(wal.length >= 32 + frameSize);
@@ -238,11 +240,14 @@ test('same Journal reopen consumes schema support bounds without replacing forma
   f.scratch.passed();
 });
 
+type SchemaCopyFailure = {cleanupHandle?: {
+  status(): {pending: boolean}; retry(): {pending: boolean};
+}};
 for (const mode of ['false', 'throw']) {
   test('schema copy FD ' + mode + ' close stays with its original owner before native open', async () => {
     const f = await fixture();
     const open = fs.openSync, close = fs.closeSync;
-    let selected, failure, permit = false, closes = 0;
+    let selected: number | undefined, failure: SchemaCopyFailure | undefined, permit = false, closes = 0;
     fs.openSync = function (path, flags, ...rest) {
       const fd = Reflect.apply(open, this, [path, flags, ...rest]);
       if (String(path).includes('actql-journal-format-') && typeof flags === 'number') selected = fd;
@@ -262,21 +267,21 @@ for (const mode of ['false', 'throw']) {
     try {
       assert.equal(beforeNativeOpen(() => {
         assert.throws(() => inspectSqliteSnapshot(f.path, countTables, options()), error => {
-          failure = error;
-          return error.cleanupHandle?.status().pending === true;
+          failure = error as SchemaCopyFailure;
+          return (error as SchemaCopyFailure).cleanupHandle?.status().pending === true;
         });
       }), 0);
-      assert.equal(fs.fstatSync(selected).isFile(), true);
+      assert.equal(fs.fstatSync(selected!).isFile(), true);
       const attempts = closes;
       // The fixed close callback, not a later property replacement, owns ACK.
       fs.closeSync = () => undefined;
       syncBuiltinESMExports();
-      assert.equal(failure.cleanupHandle.retry().pending, true);
+      assert.equal(failure!.cleanupHandle!.retry().pending, true);
       assert.equal(closes, attempts + 1);
       permit = true;
-      assert.equal(failure.cleanupHandle.retry().pending, false);
-      assert.throws(() => fs.fstatSync(selected), {code: 'EBADF'});
-      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(failure!.cleanupHandle!.retry().pending, false);
+      assert.throws(() => fs.fstatSync(selected!), {code: 'EBADF'});
+      assert.equal(failure!.cleanupHandle!.retry().pending, false);
       assert.equal(closes, attempts + 2);
     } finally {
       permit = true;
@@ -299,10 +304,10 @@ test('DB and WAL copying reuse one backing instead of assuming loop-local backin
     if (path === f.path || path === f.path + '-wal') sources.add(fd);
     return fd;
   };
-  fs.readSync = function (fd, bytes, ...rest) {
+  fs.readSync = function (this: typeof fs, fd: number, bytes: NodeJS.ArrayBufferView, ...rest: unknown[]) {
     if (sources.has(fd)) backings.add(bytes.buffer);
     return Reflect.apply(read, this, [fd, bytes, ...rest]);
-  };
+  } as typeof read;
   syncBuiltinESMExports();
   try {
     assert.equal(inspectSqliteSnapshot(f.path, countTables, options()), 2);

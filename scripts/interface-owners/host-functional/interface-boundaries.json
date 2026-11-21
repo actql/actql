@@ -14444,7 +14444,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -14478,7 +14478,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               }
             ],
             "verification": [
@@ -14499,7 +14499,7 @@
                 "anchor": "combined actual DB and WAL extent refuses before scratch copying or the SQLite inspector"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "schema footprint inspection precedes native open and leaves original bytes unchanged"
               },
               {
@@ -14720,7 +14720,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -14754,7 +14754,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               }
             ],
             "verification": [
@@ -14775,7 +14775,7 @@
                 "anchor": "combined actual DB and WAL extent refuses before scratch copying or the SQLite inspector"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "schema footprint inspection precedes native open and leaves original bytes unchanged"
               },
               {
@@ -14892,34 +14892,34 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// Resource-only preflight for the same isolated SQLite copy. This reads the"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// schema and selected table/index declared payload lengths, not SQL meaning, row authority or"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function snapshotSqliteSchemaReadLimits(value) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function snapshotSqliteSchemaReadLimits(value: unknown): SqliteSchemaReadLimits | undefined {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function snapshotSqliteSchemaSqlSupport(value, limits) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function snapshotSqliteSchemaSqlSupport(value: unknown, limits: SqliteSchemaReadLimits | undefined) {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function inspectBoundedSqliteSchema(database: OriginalFile, wal: OriginalFile | undefined,"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function schemaRootPage(payload, field) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function schemaRootPage(payload: Buffer, field: RecordField) {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, schemaPages, overflowPages) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function inspectRecordDeclarations(pending: number[], page: Buffer,"
               }
             ],
             "identity": [
@@ -14928,11 +14928,11 @@
                 "anchor": "// The same isolated-copy Owner retains these original read FDs before"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "const overlay = committedWal(wal, pageSize, page, limits, maxPages);"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// A single streaming checksum pass finds the same last valid commit prefix."
               }
             ],
@@ -14943,7 +14943,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -14952,12 +14952,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "const readOriginal = readSync, apply = Reflect.apply, freeze = Object.freeze;"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function at(fd, target, position, bytes = target.length) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function at(fd: number, target: Buffer, position: number, bytes = target.length) {"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -14966,19 +14966,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (count > limits.maxWalFrames) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "payload.value > limits.maxSchemaBytes - payloadBytes) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (payload.value > maxRecordBytes) unavailable();"
               }
             ],
@@ -14998,59 +14998,59 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// is reused; all allocated payload backings together are bounded by the"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// existing aggregate schema payload ceiling, not by GC between iterations."
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const pending = [1], visited = new Set();"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const pending = [1], visited = new Set<number>();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const latest = new Map();"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const latest = new Map<number, number>();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const roots = schemaSqlSupport === undefined ? undefined : [];"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const roots: number[] | undefined = schemaSqlSupport === undefined ? undefined : [];"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "seen.size + schemaPages.size + overflowPages.size >= maxPages) unavailable();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// Unknown/equivalent spellings remain an unsupported backend recipe; SQLite"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// still checks actual schema meaning after this support boundary."
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// issued here, and unselected inspection does not use this extra boundary."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "schema footprint inspection precedes native open and leaves original bytes unchanged"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "own-DDL support reads the committed WAL schema rather than the older main-file definition"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "an extra valid view stays unsupported before native open, without becoming a language error"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
               },
               {
@@ -15072,34 +15072,34 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// Resource-only preflight for the same isolated SQLite copy. This reads the"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// schema and selected table/index declared payload lengths, not SQL meaning, row authority or"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function snapshotSqliteSchemaReadLimits(value) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function snapshotSqliteSchemaReadLimits(value: unknown): SqliteSchemaReadLimits | undefined {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function snapshotSqliteSchemaSqlSupport(value, limits) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function snapshotSqliteSchemaSqlSupport(value: unknown, limits: SqliteSchemaReadLimits | undefined) {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "export function inspectBoundedSqliteSchema(database: OriginalFile, wal: OriginalFile | undefined,"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function schemaRootPage(payload, field) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function schemaRootPage(payload: Buffer, field: RecordField) {"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function inspectRecordDeclarations(pending, page, readPage, maxPages, usable, schemaPages, overflowPages) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function inspectRecordDeclarations(pending: number[], page: Buffer,"
               }
             ],
             "identity": [
@@ -15108,11 +15108,11 @@
                 "anchor": "// The same isolated-copy Owner retains these original read FDs before"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "const overlay = committedWal(wal, pageSize, page, limits, maxPages);"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// A single streaming checksum pass finds the same last valid commit prefix."
               }
             ],
@@ -15123,7 +15123,7 @@
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
-                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
+                "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits as SqliteSchemaReadLimits,"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -15132,12 +15132,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "const readOriginal = readSync, apply = Reflect.apply, freeze = Object.freeze;"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "function at(fd, target, position, bytes = target.length) {"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "function at(fd: number, target: Buffer, position: number, bytes = target.length) {"
               },
               {
                 "path": "adapters/host-common/sqlite-format-inspection.mts",
@@ -15146,19 +15146,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (count > limits.maxWalFrames) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "payload.value > limits.maxSchemaBytes - payloadBytes) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "if (payload.value > maxRecordBytes) unavailable();"
               }
             ],
@@ -15178,59 +15178,59 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// is reused; all allocated payload backings together are bounded by the"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// existing aggregate schema payload ceiling, not by GC between iterations."
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const pending = [1], visited = new Set();"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const pending = [1], visited = new Set<number>();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const latest = new Map();"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const latest = new Map<number, number>();"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
-                "anchor": "const roots = schemaSqlSupport === undefined ? undefined : [];"
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
+                "anchor": "const roots: number[] | undefined = schemaSqlSupport === undefined ? undefined : [];"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "seen.size + schemaPages.size + overflowPages.size >= maxPages) unavailable();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// Unknown/equivalent spellings remain an unsupported backend recipe; SQLite"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// still checks actual schema meaning after this support boundary."
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.mts",
                 "anchor": "// issued here, and unselected inspection does not use this extra boundary."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "schema footprint inspection precedes native open and leaves original bytes unchanged"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "own-DDL support reads the committed WAL schema rather than the older main-file definition"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "an extra valid view stays unsupported before native open, without becoming a language error"
               },
               {
-                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-schema-resource-bounds.test.mts",
                 "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
               },
               {
