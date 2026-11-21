@@ -62,6 +62,8 @@ fn Parser::call(
     | "chr"
     | "reverse"
     | "len"
+    | "array_length"
+    | "unix_seconds"
     | "sqrt"
     | "cbrt"
     | "sin"

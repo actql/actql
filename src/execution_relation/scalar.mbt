@@ -93,6 +93,30 @@ pub fn unary(
           }
         _ => Err(InvalidOperand)
       }
+    ArrayLength =>
+      match value {
+        Null => Ok(Null)
+        Captured(@admitted.Array(items)) =>
+          Ok(
+            capture(
+              @admitted.signed64_value(
+                @admitted.element_count(items).to_int64(),
+              ),
+            ),
+          )
+        _ => Err(InvalidOperand)
+      }
+    UnixSeconds =>
+      match value {
+        Null => Ok(Null)
+        Captured(@admitted.Timestamp(text)) =>
+          match @admitted.timestamp_instant(text) {
+            Some(instant) =>
+              Ok(capture(@admitted.signed64_value(instant.seconds)))
+            None => Err(InvalidOperand)
+          }
+        _ => Err(InvalidOperand)
+      }
     IsNull | IsUnknown => Ok(Boolean(value is Null))
     NotNull => Ok(Boolean(!(value is Null)))
     IsTrue => Ok(Boolean(value is Boolean(true)))

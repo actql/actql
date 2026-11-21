@@ -196,7 +196,8 @@ test('default numeric oracle requires runnable checking and same Saved after ori
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
     'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
     'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original',
-    'to-json-string-original', 'json-value-original', 'json-value-prefix', 'regexp-contains-original'];
+    'to-json-string-original', 'json-value-original', 'json-value-prefix', 'regexp-contains-original',
+    'array-length-original', 'unix-seconds-original', 'comma-join-original'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
   assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
@@ -236,6 +237,15 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   assert.deepEqual(observed.find(entry => entry.name === 'json-value-original').rows, [{result: null}]);
   assert.deepEqual(observed.find(entry => entry.name === 'regexp-contains-original').rows, [{result: true}]);
   assert.deepEqual(observed.find(entry => entry.name === 'json-value-prefix').rows, [{result: '9007199254740993'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'array-length-original').rows,
+    [{entries: '3', empty_count: '0', null_entry_count: '1', missing_count: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'unix-seconds-original').rows,
+    [{before_epoch: '-1', present_seconds: '1230219000', missing_seconds: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'comma-join-original').rows, [
+    {a_n: 1, b_n: 1}, {a_n: 1, b_n: 2}, {a_n: 1, b_n: 3},
+    {a_n: 2, b_n: 1}, {a_n: 2, b_n: 2}, {a_n: 2, b_n: 3},
+    {a_n: 3, b_n: 1}, {a_n: 3, b_n: 2}, {a_n: 3, b_n: 3},
+  ]);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {

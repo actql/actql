@@ -1,13 +1,10 @@
 ///|
-test "unselected GoogleSQL scalar families retain a named checked lowering refusal" {
+test "SQL SHA256 retains its current named lowering refusal" {
   let context = bind_query_context([], "fixture.environment").unwrap()
-  for expression in ["ARRAY_LENGTH([1, 2])", "UNIX_SECONDS(1)", "SHA256('a')"] {
-    assert_true(
-      lower("SELECT " + expression + " AS result", Sql, Some(context))
-      is Err(QueryLowering(Expression({ issue: UnsupportedFunction, .. }))),
-      msg=expression,
-    )
-  }
+  assert_true(
+    lower("SELECT SHA256('a') AS result", Sql, Some(context))
+    is Err(QueryLowering(Expression({ issue: UnsupportedFunction, .. }))),
+  )
 }
 
 ///|

@@ -2480,6 +2480,16 @@ are not admitted in 0.1. Their forms are
 inputs and `date_add` results use canonical UTC ISO-8601 strings; `date_diff`
 returns a finite numeric count in the authored fixed unit.
 
+<!-- requirement-block: scalar-expressions.unix-seconds -->
+`unix_seconds` MUST evaluate its original Timestamp operand once, preserving
+any operand failure, enclosing lazy demand, resource limits and cancellation.
+A NULL operand returns NULL. A present Timestamp returns exact `int64` seconds
+since `1970-01-01T00:00:00.000Z`, flooring any fractional seconds, including
+before the epoch. The result is nullable exactly when the operand is nullable.
+The closed source form is `{unix_seconds: operand}` and the machine form is
+`{op: unix_seconds, body: operand_node}`. It uses the existing canonical
+Timestamp Value domain and introduces no clock, cast or timezone rules.
+
 <!-- requirement-block: scalar-expressions.exact-number-date-add-duration -->
 For Timestamp `date_add`, the Common temporal owner MUST first evaluate the
 original Number amount under ordinary binary64 rounding laws, then interpret
@@ -2771,6 +2781,7 @@ The conversion/boundary truth table is normative:
 | `nullif(a,b)` | evaluate a then b once each; null if equality is true, otherwise return the evaluated a |
 | `in`, `not_in` | the ordered [membership rules](#membership-semantics), including an empty or null array as the empty set, override strict null propagation |
 | `date_diff` | fixed-unit quotient truncated toward zero |
+| `unix_seconds(value)` | One Timestamp operand. Exact `int64` whole Unix seconds. |
 
 Strict scalar functions propagate a null input unless the row above states
 another rule. Conditional selection follows the table; constructors follow
@@ -2831,6 +2842,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | Functions | Input → result | Null/failure rule beyond the common rule | Profile |
 | --- | --- | --- | --- |
 | `len` | S → N | Unicode scalar count | RelA |
+| `array_length` | Array(T) → int64 | Exact entry count including NULL and duplicates. NULL input returns NULL. | RelA |
+| `unix_seconds` | Timestamp → int64 | Floor to whole Unix seconds, including before the epoch. Preserves nullability. | RelA |
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
@@ -3920,6 +3933,14 @@ rounding. Arrays are zero-based, independently of SQL-named string functions.
 Receiver then index are evaluated once, eagerly; invalid/null indexes fail
 even if the receiver is null. Negative or fractional literal indexes are
 evaluation-time domain failures, not static signature constraints.
+
+<!-- requirement-block: typed-access.array-length-count -->
+`array_length` MUST evaluate one Array operand exactly once, preserve its
+failures and the enclosing expression's demand, and return the exact
+signed 64-bit count of entries, including NULL and duplicate entries. An
+empty array counts zero. A NULL array yields NULL. The checker supplies int64
+item context to an otherwise unresolved empty or all-NULL constructor in
+this operand. An untyped NULL operand takes a nullable Array contract.
 
 <!-- requirement-block: typed-access.outcomes -->
 | Condition | Outcome |
@@ -11802,7 +11823,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:f76718e6dd83eeefea3c4e1f982e2b714d6ad9e3817fa29d60ab79a71e2eb129
+../../spec/contracts/actql-aoa.json# sha256:7924a22bf2e96ec0aa936663e02047c2f3c10e5e48965c075a1821148846cac3
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11812,13 +11833,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/sql_regex_replacement_ast sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:d32541ab7aaed01e700622f77ef5265d1f19b814d0260713b842b63d8379082e
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:a2b009b820855d8807ce74b678f0ee385d0ec92fdbbb2f25aa19bb9f00d45660
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:35d494fcc202fe8950cb43b2c1d05b919faabe3bd6deb945a691d4b118cc1d18
+../../spec/contracts/actql-expressions.json# sha256:6cd16dcf9c63afc1b6a882fe960b87e19156d7cdb0b2c48fc3133c66fb98291e
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:90dafb680321a4e683f6922bd75dd3ac3ad6e884891c6d1aafb55e6690052284
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:38fb94645563a627cf15a1fa24ce194829ef56507221d95ee9fecaf1299e213c
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:00274988e734dc6773c0d87ec2cc5cba740c2d45a2b1077bde86c2e0a2ae4a6c
-../../spec/contracts/actql-expressions.json#/laws sha256:ac218e48fb42cf8fd791bc02156392002494234fed7e9d4f3120c23e515695c7
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:18ccd470fc812f633cc23a2cdb3b346fc6854edb9b7b6519e578fa739655564c
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0d1766c19ccace6cf89c0b4631fe3f1e16244d4d35e154aeed544c6b5fc4f300
+../../spec/contracts/actql-expressions.json#/laws sha256:216d6a4f9e91f2e7575c2f60f0dad474319e0b1170bf9ba9003596cb40ca3ffd
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6be8f6f4ded0788739c331053546f129cd35a8e831862f163fb22ab4ba594d2f
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b54f888c59be0834929e292eb34d52322de851aae24355a02b664c6163caab17
 ```
 
 <!-- stage-contract-pins:start -->

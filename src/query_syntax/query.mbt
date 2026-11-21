@@ -1473,7 +1473,11 @@ fn QueryParser::join_part(
   self : QueryParser,
 ) -> (JoinPart, Array[QueryBinding]) raise QueryAbort {
   self.node()
-  let kind = if self.has("INNER") {
+  let comma = self.peek().value == Symbol(44)
+  let kind = if comma {
+    ignore(self.advance())
+    "cross"
+  } else if self.has("INNER") {
     self.keyword("INNER")
     "inner"
   } else if self.has("LEFT") {
@@ -1500,7 +1504,9 @@ fn QueryParser::join_part(
   } else {
     "inner"
   }
-  self.keyword("JOIN")
+  if !comma {
+    self.keyword("JOIN")
+  }
   let (relation, source_alias, bindings, _, file_listing) = self.query_source()
   if kind == "cross" {
     return (
@@ -2589,7 +2595,24 @@ fn QueryParser::initial_from(
   let mut bindings = initial_ctes
   let mut file_listing = initial_file_listing
   let joins : Array[JoinPart] = []
-  while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
+  let mut comma_join_seen = false
+  while (!relation.is_empty() || !operations.is_empty()) &&
+        (self.starts_join() || self.peek().value == Symbol(44)) {
+    if self.peek().value == Symbol(44) {
+      comma_join_seen = true
+      if token_at(self.source, self.index + 1)
+        .map(token => keyword(token, "UNNEST"))
+        .unwrap_or(false) {
+        ignore(self.advance())
+        operations.push(self.unnest_source())
+        continue
+      }
+    } else if comma_join_seen && (self.has("RIGHT") || self.has("FULL")) {
+      raise QueryAbort(
+        "RIGHT or FULL JOIN cannot follow a comma join in the same FROM clause",
+        self.peek().start,
+      )
+    }
     if self.starts_correlated_unnest() {
       self.correlated_unnest(operations)
       continue

@@ -22,6 +22,35 @@ fn evaluate_timestamp(
 }
 
 ///|
+test "unix seconds floors admitted timestamps and returns signed64" {
+  let expression = original_timestamp_expression(
+    "unix_seconds(CAST(text AS TIMESTAMP))",
+  )
+  for
+    (text, expected) in [
+      ("1969-12-31T23:59:59.999999999Z", -1L),
+      ("1970-01-01T00:00:00.000Z", 0L),
+      ("1970-01-01T00:00:01.999999999Z", 1L),
+      ("2008-12-25T15:30:00.000Z", 1230219000L),
+      ("9999-12-31T23:59:59.999999999Z", 253402300799L),
+    ] {
+    assert_true(
+      evaluate_timestamp(expression, text)
+      is Ok(Captured(@admitted.Signed64(actual))) &&
+      actual == expected,
+      msg=text,
+    )
+  }
+  assert_true(evaluate_timestamp(expression, "invalid") is Err(_))
+  let null = original_timestamp_expression("unix_seconds(NULL)")
+  assert_true(evaluate_timestamp(null, "unused") is Ok(Null))
+  let unselected = original_timestamp_expression(
+    "if(TRUE, unix_seconds(NULL), unix_seconds(CAST(text AS TIMESTAMP)))",
+  )
+  assert_true(evaluate_timestamp(unselected, "invalid") is Ok(Null))
+}
+
+///|
 test "checked timestamp patterns execute original parse and format through the actual expression frame" {
   let date = original_timestamp_expression(
     "parse_timestamp(text, 'yyyy-MM-dd')",

@@ -190,6 +190,8 @@ fn flatten(
       | "is_false"
       | "is_unknown"
       | "len"
+      | "array_length"
+      | "unix_seconds"
       | "byte_length"
       | "farm_fingerprint"
       | "unicode"

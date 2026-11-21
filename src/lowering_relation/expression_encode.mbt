@@ -319,6 +319,8 @@ fn emit_frames(
                   IsFalse => "is_false"
                   IsUnknown => "is_unknown"
                   Length => "len"
+                  ArrayLength => "array_length"
+                  UnixSeconds => "unix_seconds"
                   ByteLength => "byte_length"
                   FarmFingerprint => "farm_fingerprint"
                   Unicode => "unicode"

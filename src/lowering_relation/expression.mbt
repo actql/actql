@@ -55,6 +55,8 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ArrayLength
+  UnixSeconds
   ByteLength
   FarmFingerprint
   Unicode
@@ -445,6 +447,8 @@ fn expression_tag(
     | "concat"
     | "concat_strict"
     | "len"
+    | "array_length"
+    | "unix_seconds"
     | "byte_length"
     | "farm_fingerprint"
     | "unicode"
@@ -647,6 +651,8 @@ fn expression_children(
     | "is_false"
     | "is_unknown" => [body]
     "len"
+    | "array_length"
+    | "unix_seconds"
     | "byte_length"
     | "farm_fingerprint"
     | "unicode"
@@ -1364,6 +1370,8 @@ fn lower_typed_expression_measured(
           }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
+        "array_length" => Unary(ArrayLength, args[0])
+        "unix_seconds" => Unary(UnixSeconds, args[0])
         "byte_length" => Unary(ByteLength, args[0])
         "farm_fingerprint" => Unary(FarmFingerprint, args[0])
         "unicode" => Unary(Unicode, args[0])

@@ -911,6 +911,30 @@ fn infer(
         _ => fail(source, TypeMismatch("typed array receiver"))
       }
     }
+    "array_length" => {
+      let child = nodes[node.children[0]]
+      if immediate_null(child) {
+        let item = primitive(t, Signed64Type, false, child.source)
+        let hint = put(t, Sequence(item, None), false, child.source)
+        provide(t, child.inferred, hint, child.source)
+      }
+      let (base, nullable) = head(t, child.inferred, child.source)
+      guard t.entries[base].kind is Sequence(item, _) else {
+        fail(child.source, TypeMismatch("typed array receiver"))
+      }
+      let (item_base, _) = head(t, item, child.source)
+      if t.entries[item_base].kind is Hole {
+        // No element is read. Supply the default integer domain only for an
+        // otherwise untyped empty or all-NULL array constructor.
+        let hint = primitive(t, Signed64Type, false, child.source)
+        provide(t, item, hint, child.source)
+      }
+      primitive(t, Signed64Type, nullable, source)
+    }
+    "unix_seconds" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      primitive(t, Signed64Type, value.nullable, source)
+    }
     "is_null" | "not_null" => {
       let child = nodes[node.children[0]]
       if immediate_null(child) {

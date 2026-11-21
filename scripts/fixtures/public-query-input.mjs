@@ -168,7 +168,41 @@ export const pipeResultExecutionFailures = [
     text: 'FROM records |> RESULT original |> SET id = id / (id - id) |> RESULT invalid',
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
+export const arrayLengthOriginal = {name: 'array-length-original', format: 'sql',
+  text: "WITH t AS (SELECT ['coffee', NULL, 'milk'] AS items) SELECT ARRAY_LENGTH(items) AS entries, "
+    + 'ARRAY_LENGTH([]) AS empty_count, ARRAY_LENGTH([NULL]) AS null_entry_count, '
+    + 'ARRAY_LENGTH(CAST(NULL AS ARRAY<INT64>)) AS missing_count FROM t',
+  expected: [{entries: '3', empty_count: '0', null_entry_count: '1', missing_count: null}],
+  columns: ['entries', 'empty_count', 'null_entry_count', 'missing_count']
+    .map(name => ({name, contract: {type: 'int64', nullable: name === 'missing_count'}})),
+  sourceReadCount: 0};
+
+export const unixSecondsOriginal = {name: 'unix-seconds-original', format: 'sql',
+  text: "SELECT UNIX_SECONDS(CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)) AS before_epoch, "
+    + "UNIX_SECONDS(CAST('2008-12-25T15:30:00.000Z' AS TIMESTAMP)) AS present_seconds, "
+    + 'UNIX_SECONDS(CAST(NULL AS TIMESTAMP)) AS missing_seconds',
+  expected: [{before_epoch: '-1', present_seconds: '1230219000', missing_seconds: null}],
+  columns: ['before_epoch', 'present_seconds', 'missing_seconds']
+    .map(name => ({name, contract: {type: 'int64', nullable: name === 'missing_seconds'}})),
+  sourceReadCount: 0};
+
+export const commaJoinOriginal = {
+  name: 'comma-join-original', format: 'sql',
+  text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT a.n AS a_n, b.n AS b_n FROM t AS a, t AS b ORDER BY a_n, b_n",
+  expected: [
+    {a_n: 1, b_n: 1}, {a_n: 1, b_n: 2}, {a_n: 1, b_n: 3},
+    {a_n: 2, b_n: 1}, {a_n: 2, b_n: 2}, {a_n: 2, b_n: 3},
+    {a_n: 3, b_n: 1}, {a_n: 3, b_n: 2}, {a_n: 3, b_n: 3},
+  ],
+  columns: [
+    {name: 'a_n', contract: {type: 'number', nullable: false}},
+    {name: 'b_n', contract: {type: 'number', nullable: false}},
+  ],
+  sourceReadCount: 0, sourceReadSessionCount: 0,
+};
+
 export const queryCompositionSuccesses = [
+  arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",

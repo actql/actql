@@ -109,6 +109,7 @@ propagation is not supported.
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| INT64 \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
+| Timestamp to epoch | `UNIX_SECONDS(timestamp)` returns exact `INT64` seconds rounded down. NULL input returns NULL. |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
 | Exact integers | `CAST(value AS INT64)`, `MOD`, `DIV`; signed 64-bit integers remain distinct from `NUMBER`. Integer/decimal `MOD` and `DIV` preserve exact arithmetic and NULL propagation. |
 | Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep' ORDER BY …)`, filtered aggregates (`… WHERE …` inside the call) |
@@ -174,6 +175,9 @@ month. An out-of-range or impossible date fails evaluation.
 counts signed day boundaries and returns INT64. `DATE_TRUNC(date, MONTH)` returns
 the first day of that month as a Date. These forms require Date operands and
 propagate NULL after the original operands are evaluated.
+
+`ARRAY_LENGTH(array)` returns an exact `INT64` count, including NULL and
+duplicate entries. An empty array returns zero and a NULL array returns NULL.
 
 `ARRAY_CONCAT(array, ...)` joins one or more arrays with compatible item
 types. It preserves order and duplicates and returns NULL for a NULL array
@@ -318,6 +322,9 @@ INT64 Result values use canonical decimal strings on the existing wire.
 
 SQL `GROUP BY ROLLUP` returns each prefix subtotal and the grand total with typed NULLs for omitted grouping keys.
 
+A comma in the initial FROM list uses the bounded CROSS JOIN operation.
+A comma before UNNEST supports correlated expansion and offsets.
+
 ## Not accepted
 
 These are refused at check time with a named reason. They are either outside
@@ -337,14 +344,12 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
-| `ARRAY_LENGTH` | This GoogleSQL function spelling is not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
 | `REGEXP_EXTRACT` with position or occurrence arguments | The selected two-argument String signature uses the first match. |
-| `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
-| Comma joins | Use the documented explicit joins. |
+| `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
 | String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |

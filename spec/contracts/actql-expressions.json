@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "8f78cdce151e28cd59d130d1258e167f6ca80ee2bebd8122c62905028b223390",
+  "grammar_sha256": "7171a41b02e62763eff42f6896ad9c13c75617aed1ebbe95d98915b8cb2c9cc7",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6379,6 +6379,30 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unix_seconds"
+              ],
+              "properties": {
+                "unix_seconds": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_length"
+              ],
+              "properties": {
+                "array_length": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -13423,6 +13447,38 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unix_seconds"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -25826,6 +25882,30 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unix_seconds"
+              ],
+              "properties": {
+                "unix_seconds": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_length"
+              ],
+              "properties": {
+                "array_length": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -31954,6 +32034,38 @@
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unix_seconds"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
                 }
               }
             }
@@ -40323,6 +40435,30 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unix_seconds"
+              ],
+              "properties": {
+                "unix_seconds": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_length"
+              ],
+              "properties": {
+                "array_length": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -46453,6 +46589,38 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unix_seconds"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
             }
           ]
         },
@@ -47769,6 +47937,18 @@
       "signature": "The selector and WHEN operands share an equality-comparable domain under the existing Common comparison rules. An all-literal-NULL comparison list uses the nullable Boolean domain only for the comparison; result typing uses the THEN and ELSE branches alone.",
       "evaluation": "Evaluate the selector once. Evaluate WHEN operands in order and compare each to that selector with Common equality; only true selects a branch. False and NULL continue. Evaluate only the selected THEN or ELSE. All clauses receive static validation.",
       "demand": "The selector and first WHEN inherit outer demand. Each later WHEN adds case_no_match tests for earlier WHEN operands. A THEN additionally adds case_match for its own WHEN. ELSE adds case_no_match for every WHEN. The pointer addresses the exact original WHEN operand; the paired selector is the enclosing case.operand in the same evaluation frame. The tests use the retained comparison outcome and do not reevaluate either operand."
+    },
+    "unix_seconds": {
+      "signature": "One Timestamp operand. The result is signed64 and is nullable exactly when the operand is nullable.",
+      "value": "A NULL operand returns NULL. Otherwise return whole seconds since 1970-01-01T00:00:00.000Z, rounded down even before the epoch.",
+      "evaluation": "Evaluate the original operand once under existing demand, limits and cancellation. Propagate its failure. Use the canonical Timestamp value domain without consulting a clock or applying a cast.",
+      "identity": "The source is {unix_seconds: operand} and the machine node is {op: unix_seconds, body: operand_node}. SQL UNIX_SECONDS selects this same operation."
+    },
+    "array_length": {
+      "signature": "One Array operand. The result is signed64 and is nullable exactly when the array operand is nullable.",
+      "value": "A NULL array returns NULL. A present array returns its exact number of entries, including NULL entries and duplicates. An empty array returns zero.",
+      "evaluation": "Evaluate the operand once under the existing demand, limits and cancellation. Propagate its failure. Count the admitted array entries without copying or evaluating elements again.",
+      "identity": "The source form is {array_length: operand}; the machine form is {op: array_length, body: operand_node}. SQL ARRAY_LENGTH selects this same operation."
     }
   },
   "regex_ast_contract": {

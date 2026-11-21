@@ -420,6 +420,10 @@ second, minute, hour or UTC day, rather than toward epoch zero. Date admits only
 value/work limits and cancellation retain their Common owners; operational
 clock domains and the separate quotient law of `date_diff` do not change.
 
+`UNIX_SECONDS(value)` maps the original Timestamp expression to the Common
+unary `unix_seconds` operation. It returns exact `int64` Unix seconds rounded
+down, preserving NULL. It does not parse a String or use a Host clock.
+
 `DATE_ADD(value, amount, literal_unit)` preserves the three original Common
 children in that order. The literal unit is exactly `ms`, `s`, `m`, `h` or `d`;
 a Parameter or computed String cannot choose the operation unit. The existing
@@ -1769,6 +1773,13 @@ occurs before durable Run admission and provider I/O. Expression refusals retain
 the common expression's original location; producer-schema refusals identify
 the existing Unit, input/step and field without inventing an expression origin.
 
+SQL `ARRAY_LENGTH(a)` MUST select the common array-cardinality
+operation `array_length` with one operand. Its result is nullable exactly
+when the original Array is nullable and has type `int64`. The operand gives
+the common checker sufficient context to count an otherwise untyped empty
+or all-NULL array, while other ARRAY expressions keep their existing
+item-type requirements. See [GoogleSQL ARRAY_LENGTH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_length).
+
 The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
 also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
 `ARRAY<INT64>`. Those behaviors remain coverage gaps here: the common constructor
@@ -2349,7 +2360,14 @@ constructor-definition changes retain their ordinary identity consequences.
 
 SQL/Pipe INNER/LEFT/CROSS JOIN chains use the existing bounded JOIN operations,
 range scopes, ON/USING conditions, evaluated projection slots and alias-priority
-ORDER rules. No legacy Graph conversion or alternate execution owner is allowed.
+ORDER rules.
+A comma in the initial FROM list uses the existing CROSS JOIN operation and
+output bounds. Inputs and joins associate from left to right. A RIGHT or FULL
+JOIN following a comma in the same FROM clause is a syntax error. A comma
+before UNNEST uses the existing correlated CROSS JOIN expansion and keeps its
+range and offset scope.
+
+No legacy Graph conversion or alternate execution owner is allowed.
 Current profile refusals stay explicit rather than being approximated.
 
 ## Named logical SGA calls
