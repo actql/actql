@@ -6,6 +6,7 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+import {restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
@@ -137,46 +138,38 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return value;
     };
   };
-  const restore = ({durable, recorded, members, memberIndexes, body, requestTags, maxRows}) => {
-    if (!Number.isSafeInteger(maxRows) || maxRows < 0 || maxRows > 2147483647 ||
-        !Array.isArray(members) || members.length < 1 || members.length > maxMembers ||
-        !Array.isArray(durable?.connectorRecovery) || durable.connectorRecovery.length > members.length ||
-        !Array.isArray(recorded?.members) || recorded.members.length !== members.length) fail('InvalidKintoneUpdateRecovery');
-    const indexes = memberIndexes ?? members.map((_, index) => index);
-    if (!Array.isArray(indexes) || indexes.length < 1 || indexes.length > members.length ||
-        indexes.some((index, offset) => !Number.isSafeInteger(index) || index < 0 || index >= members.length ||
-          offset > 0 && index <= indexes[offset - 1])) fail('InvalidKintoneUpdateRecovery');
-    const byIndex = new Map();
-    for (const entry of durable.connectorRecovery) {
-      if (!Number.isSafeInteger(entry?.memberIndex) || entry.memberIndex < 0 || entry.memberIndex >= members.length ||
-          byIndex.has(entry.memberIndex)) fail('InvalidKintoneUpdateRecovery');
-      byIndex.set(entry.memberIndex, entry);
-    }
-    return Object.freeze({requests: Object.freeze(indexes.map(index => {
-      const member = members[index]; selected(member);
-      const saved = byIndex.get(index), changes = body?.effects?.[index]?.changes,
-        claims = recorded.members[index]?.claims;
-      if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-          Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-          !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-          claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
-      const value = JSON.parse(saved.wire);
-      if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
-          Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
-          !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
-          !Array.isArray(value.requests) || value.requests.length !== changes.length ||
-          value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
-          encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
-      return Object.freeze(value.requests.map((wire, row) => {
-        const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
-        const facts = requests.requestFacts(rebuilt.request);
-        if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-            encode(facts.value) !== encode(changes[row].after?.value) ||
-            encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignKintoneUpdateRecovery');
-        return rebuilt.request;
-      }));
-    }))});
+  const restoreMember = ({recorded, members, body, requestTags, maxRows}, index, saved) => {
+    const member = members[index]; selected(member);
+    const changes = body?.effects?.[index]?.changes,
+      claims = recorded.members[index]?.claims;
+    if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
+        Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
+        !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
+        claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
+    const value = JSON.parse(saved.wire);
+    if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
+        Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
+        !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
+        !Array.isArray(value.requests) || value.requests.length !== changes.length ||
+        value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
+        encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
+    return Object.freeze(value.requests.map((wire, row) => {
+      const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
+      const facts = requests.requestFacts(rebuilt.request);
+      if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
+          encode(facts.value) !== encode(changes[row].after?.value) ||
+          encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignKintoneUpdateRecovery');
+      return rebuilt.request;
+    }));
   };
+  const restore = context => {
+    const {maxRows} = context;
+    if (!Number.isSafeInteger(maxRows) || maxRows < 0 || maxRows > 2147483647) {
+      fail('InvalidKintoneUpdateRecovery');
+    }
+    return restoreInstalledRowUpdateMembers(context, maxMembers, 'InvalidKintoneUpdateRecovery', restoreMember);
+  };
+
   return Object.freeze({
     kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
     writeOperation: () => KINTONE_RECORD_UPDATE_OPERATION,
