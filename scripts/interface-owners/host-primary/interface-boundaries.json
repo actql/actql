@@ -2765,6 +2765,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/drain/drain",
           "parameters": [],
           "async": true
@@ -2837,6 +2844,23 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -3290,7 +3314,11 @@
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "observeNodeRestoredModelStop",
             "observeNodeRunCancellation",
-            "recordNodeRunPhysicalStop"
+            "recordNodeRunPhysicalStop",
+            "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2"
           ],
           "exports": [
             "cancelNodeRunContinuation",
@@ -4674,6 +4702,7 @@
         "./client-dispatch-diagnostic.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
+        "./infer-operation.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
         "./logical-task-observation.mjs",
@@ -4683,7 +4712,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "ac4777e9c6abdffac5a3fb9baa1f7fd54cc269bb4d98fb63d953878025e5495a",
+      "sha256": "44b8a8deaf6c57657a1535d5a002f9ca263748458958b68284cecd90b24d1a8f",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -29107,7 +29136,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f03d0bf5999b038f76fe172211171176d95138b6636b564658724230f322f057"
+      "sha256": "4e31b2b38e13dfede9a5da69cf7901c863f67a9340c89bc1b864ee22669f3c6b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

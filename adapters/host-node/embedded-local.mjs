@@ -2889,10 +2889,15 @@ async function openInstalledHost(originalInstallation, preparation) {
           state = continuation.runState;
         } else {
           const liveExecution = dispatchOwner.live(ref);
+          // A definite pre-Entry refusal can have a settled execution promise
+          // while its original stop/cleanup is still being confirmed. Only
+          // this exact retained failure uses the pending path. A durable
+          // unresolved Entry or claim above still wins.
           const executionUnknown = retained.dispatchReserved &&
             !retained.preDispatchFailureConfirmed &&
             retained.physicalStartReserved !== false &&
-            retained.observedTerminalOutcome === null && !liveExecution;
+            retained.observedTerminalOutcome === null && !liveExecution &&
+            !dispatchOwner.credentialRefusalPending(ref);
           state = issueInstalledUnpublishedRunState(moon, {
             runId, observedAt: now(), resultNames: retained.resultNames,
             dispatchReserved: retained.dispatchReserved,
@@ -2914,7 +2919,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (afterContinuation?.version !== continuation.version) continue;
       }
       if (state.status === 'running' && !dispatchOwner.live(ref) &&
-          retained.physicalStartReserved === true) {
+          retained.physicalStartReserved === true && !dispatchOwner.credentialRefusalPending(ref)) {
         continue;
       }
       // Only this revision-stable common Owner projection supplies status.
@@ -3115,7 +3120,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const changed = new Promise(resolve => { wake = resolve; });
       const subscriptions = new Map();
       const captureWork = () => {
-        for (const promise of [dispatchOwner.operation(ref),
+        for (const promise of [dispatchOwner.credentialRefusalPending(ref) ? undefined : dispatchOwner.operation(ref),
           effectResumeFlights.get(ref.runDefinitionCid),
           modelResumeFlights.get(ref.runDefinitionCid)]) {
           if (promise !== undefined && !subscriptions.has(promise)) {
@@ -3135,6 +3140,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         const decision = installedRunWaitDecision(moon, current, since);
         if (decision === 'ready') return current;
         if (decision !== 'pending') throw clientOperationError(decision);
+        // Only after the original authorized observation may this wait join
+        // the same failed dispatch's cleanup. Abort only ends observation.
+        const cleanup = dispatchOwner.settleCredentialRefusal(ref);
+        if (cleanup !== undefined) {
+          await observeStep(cleanup);
+          if (!dispatchOwner.credentialRefusalPending(ref)) continue;
+        }
         // Also retain work that started during observation. The unchanged
         // fallback observes other-process changes and later local work; neither
         // a notification nor a settled Promise is a completion/cleanup receipt.

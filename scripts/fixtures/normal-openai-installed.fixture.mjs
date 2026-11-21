@@ -324,6 +324,7 @@ finally {
   catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
   const recorded = await diagnostic.finish(firstClose, close, cleanup);
   if (!recorded.complete && !failed) {failed = true;primary = Error('NormalProviderDiagnosticIncomplete');}
+  if (missingKey && !failed) assert.equal(recorded.value.work.modelCallStarts, 0);
 }
 if (failed) throw primary;
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
