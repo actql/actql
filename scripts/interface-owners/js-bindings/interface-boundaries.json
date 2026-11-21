@@ -17619,6 +17619,1502 @@
       "sha256": "1e87800786af98f271f7d2a2331ca4988b1bf11dfbb5b63200edd01712fbc202"
     },
     {
+      "module": "adapters/host-common/content-generation-control.mjs",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "responsibilityFacet": "supplemental",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>",
+            "contentGenerationControl",
+            "contentGenerationControl/init:advance/init:advance",
+            "contentGenerationControl/init:bindInput/init:bindInput",
+            "contentGenerationControl/init:candidate/init:candidate",
+            "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
+            "contentGenerationControl/init:complete/init:complete",
+            "contentGenerationControl/init:completedOutput/init:completedOutput",
+            "contentGenerationControl/init:effectFamily/init:effectFamily",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/exported/exported",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
+            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
+            "contentGenerationControl/init:encoder/init:encoder",
+            "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
+            "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
+            "contentGenerationControl/init:familyComplete/init:familyComplete",
+            "contentGenerationControl/init:familyInput/init:familyInput",
+            "contentGenerationControl/init:familyPendingPiece/init:familyPendingPiece",
+            "contentGenerationControl/init:finish/init:finish",
+            "contentGenerationControl/init:inputAdvance/init:inputAdvance",
+            "contentGenerationControl/init:inputCancel/init:inputCancel",
+            "contentGenerationControl/init:inputFinish/init:inputFinish",
+            "contentGenerationControl/init:inputIdentityAdvance/init:inputIdentityAdvance",
+            "contentGenerationControl/init:inputIdentityCancel/init:inputIdentityCancel",
+            "contentGenerationControl/init:inputIdentityFinish/init:inputIdentityFinish",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/exportLimits/exportLimits",
+            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/init:inputIdentityStart",
+            "contentGenerationControl/init:inputRow/init:inputRow",
+            "contentGenerationControl/init:inputRows/init:inputRows",
+            "contentGenerationControl/init:inspect/init:inspect",
+            "contentGenerationControl/init:issue/init:issue",
+            "contentGenerationControl/init:issuer/init:issuer",
+            "contentGenerationControl/init:issuer/init:issuer/issuer/issuer",
+            "contentGenerationControl/init:output/init:output",
+            "contentGenerationControl/init:outputAvailable/init:outputAvailable",
+            "contentGenerationControl/init:outputRowWire/init:outputRowWire",
+            "contentGenerationControl/init:prefix/init:prefix",
+            "contentGenerationControl/init:prefixAdvance/init:prefixAdvance",
+            "contentGenerationControl/init:prefixCancel/init:prefixCancel",
+            "contentGenerationControl/init:prefixCapacity/init:prefixCapacity",
+            "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
+            "contentGenerationControl/init:prefixWork/init:prefixWork",
+            "contentGenerationControl/init:prepare/init:prepare",
+            "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
+            "contentGenerationControl/init:recover/init:recover",
+            "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
+            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+            "contentGenerationControl/init:resultAdvance/init:resultAdvance",
+            "contentGenerationControl/init:resultCancel/init:resultCancel",
+            "contentGenerationControl/init:resultFinish/init:resultFinish",
+            "contentGenerationControl/init:resultOccurrence/init:resultOccurrence",
+            "contentGenerationControl/init:resultStart/init:resultStart",
+            "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
+            "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
+            "contentGenerationControl/init:row/init:row",
+            "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
+            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
+            "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits"
+          ],
+          "exports": [
+            "contentGenerationControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "contentGenerationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "adapters/host-common/content-output-demand.test.mts",
+                "anchor": "test('Content demand facade retains the same funded capacity and bounded DATA for its original prefix'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+            "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
+            "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+            "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
+            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
+                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "contentGenerationControl"
+      ],
+      "operations": [
+        {
+          "name": "contentGenerationControl",
+          "parameters": [
+            "moon",
+            "publications"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:advance/init:advance",
+          "parameters": [
+            "encoder",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:bindInput/init:bindInput",
+          "parameters": [
+            "barrier",
+            "output",
+            "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:candidate/init:candidate",
+          "parameters": [
+            "encoder",
+            "binding",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
+          "parameters": [
+            "run",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
+          "parameters": [
+            "run",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:complete/init:complete",
+          "parameters": [
+            "compiled",
+            "definition",
+            "input",
+            "inputEvidence",
+            "candidate",
+            "content",
+            "available",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:completedOutput/init:completedOutput",
+          "parameters": [
+            "compiled",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily",
+          "parameters": [
+            "program",
+            "graph",
+            "bodies",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots",
+            "physical",
+            "retain",
+            "recovery",
+            "managedOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal",
+          "parameters": [
+            "active"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:encoder/init:encoder",
+          "parameters": [
+            "barrier",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
+          "parameters": [
+            "step",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:familyComplete/init:familyComplete",
+          "parameters": [
+            "compiled",
+            "definition",
+            "step",
+            "inputEvidence",
+            "candidate",
+            "content",
+            "available",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:familyInput/init:familyInput",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:familyPendingPiece/init:familyPendingPiece",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:finish/init:finish",
+          "parameters": [
+            "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputAdvance/init:inputAdvance",
+          "parameters": [
+            "input",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputCancel/init:inputCancel",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputFinish/init:inputFinish",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityAdvance/init:inputIdentityAdvance",
+          "parameters": [
+            "scan",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityCancel/init:inputIdentityCancel",
+          "parameters": [
+            "scan"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityFinish/init:inputIdentityFinish",
+          "parameters": [
+            "compiled",
+            "scan",
+            "limits",
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart",
+          "parameters": [
+            "input",
+            "limits",
+            "maxWork",
+            "maxWorkspaceSlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/exportLimits/exportLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/init:inputIdentityStart",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputRow/init:inputRow",
+          "parameters": [
+            "input",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inputRows/init:inputRows",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:inspect/init:inspect",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:issue/init:issue",
+          "parameters": [
+            "candidate",
+            "issuer",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:issuer/init:issuer",
+          "parameters": [
+            "validate",
+            "authorize"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:issuer/init:issuer/issuer/issuer",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:output/init:output",
+          "parameters": [
+            "input",
+            "candidate",
+            "content",
+            "available",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:outputAvailable/init:outputAvailable",
+          "parameters": [
+            "output"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:outputRowWire/init:outputRowWire",
+          "parameters": [
+            "output",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefix/init:prefix",
+          "parameters": [
+            "program",
+            "task",
+            "step",
+            "bodies",
+            "limits",
+            "ledger",
+            "workspace",
+            "source",
+            "keyed"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefixAdvance/init:prefixAdvance",
+          "parameters": [
+            "prefix",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefixCancel/init:prefixCancel",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefixCapacity/init:prefixCapacity",
+          "parameters": [
+            "program",
+            "task",
+            "step",
+            "bodies",
+            "limits",
+            "workspace",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prefixWork/init:prefixWork",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepare/init:prepare",
+          "parameters": [
+            "program",
+            "task",
+            "step",
+            "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "keyed",
+            "directDeclaration",
+            "contentDeclaration",
+            "maxBytes",
+            "maxWork",
+            "queryContract",
+            "evidenceContract",
+            "transfers",
+            "executions",
+            "contracts",
+            "task",
+            "step",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:recover/init:recover",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "expectedGenerationCid",
+            "evidence",
+            "candidate",
+            "content"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
+          "parameters": [
+            "originalWire",
+            "binding",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
+          "parameters": [
+            "n"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
+          "parameters": [
+            "n"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultAdvance/init:resultAdvance",
+          "parameters": [
+            "preparation",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultCancel/init:resultCancel",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultFinish/init:resultFinish",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultOccurrence/init:resultOccurrence",
+          "parameters": [
+            "compiled",
+            "program",
+            "result",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultStart/init:resultStart",
+          "parameters": [
+            "program",
+            "result",
+            "output",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:row/init:row",
+          "parameters": [
+            "barrier",
+            "input",
+            "row",
+            "encoder"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected",
+            "source",
+            "lookup"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
+          "parameters": [
+            "run",
+            "program",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
+          "parameters": [
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "7bd760959676157ebb70590feaae65911f4be95998239b34c23b6e906589da27"
+    },
+    {
       "module": "adapters/host-common/remote-transfer-control.mjs",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
@@ -20520,10 +22016,6 @@
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
-            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
-            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
-            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
-            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
           ],
@@ -20964,71 +22456,7 @@
           }
         },
         {
-          "operations": [
-            "contentGenerationControl",
-            "contentGenerationControl/init:advance/init:advance",
-            "contentGenerationControl/init:bindInput/init:bindInput",
-            "contentGenerationControl/init:candidate/init:candidate",
-            "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
-            "contentGenerationControl/init:complete/init:complete",
-            "contentGenerationControl/init:completedOutput/init:completedOutput",
-            "contentGenerationControl/init:effectFamily/init:effectFamily",
-            "contentGenerationControl/init:effectFamily/init:effectFamily/exported/exported",
-            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
-            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
-            "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
-            "contentGenerationControl/init:encoder/init:encoder",
-            "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
-            "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
-            "contentGenerationControl/init:familyComplete/init:familyComplete",
-            "contentGenerationControl/init:familyInput/init:familyInput",
-            "contentGenerationControl/init:familyPendingPiece/init:familyPendingPiece",
-            "contentGenerationControl/init:finish/init:finish",
-            "contentGenerationControl/init:inputAdvance/init:inputAdvance",
-            "contentGenerationControl/init:inputCancel/init:inputCancel",
-            "contentGenerationControl/init:inputFinish/init:inputFinish",
-            "contentGenerationControl/init:inputIdentityAdvance/init:inputIdentityAdvance",
-            "contentGenerationControl/init:inputIdentityCancel/init:inputIdentityCancel",
-            "contentGenerationControl/init:inputIdentityFinish/init:inputIdentityFinish",
-            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart",
-            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/exportLimits/exportLimits",
-            "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/init:inputIdentityStart",
-            "contentGenerationControl/init:inputRow/init:inputRow",
-            "contentGenerationControl/init:inputRows/init:inputRows",
-            "contentGenerationControl/init:inspect/init:inspect",
-            "contentGenerationControl/init:issue/init:issue",
-            "contentGenerationControl/init:issuer/init:issuer",
-            "contentGenerationControl/init:issuer/init:issuer/issuer/issuer",
-            "contentGenerationControl/init:output/init:output",
-            "contentGenerationControl/init:outputAvailable/init:outputAvailable",
-            "contentGenerationControl/init:outputRowWire/init:outputRowWire",
-            "contentGenerationControl/init:prefix/init:prefix",
-            "contentGenerationControl/init:prefixAdvance/init:prefixAdvance",
-            "contentGenerationControl/init:prefixCancel/init:prefixCancel",
-            "contentGenerationControl/init:prefixCapacity/init:prefixCapacity",
-            "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
-            "contentGenerationControl/init:prefixWork/init:prefixWork",
-            "contentGenerationControl/init:prepare/init:prepare",
-            "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
-            "contentGenerationControl/init:recover/init:recover",
-            "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
-            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
-            "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
-            "contentGenerationControl/init:resultAdvance/init:resultAdvance",
-            "contentGenerationControl/init:resultCancel/init:resultCancel",
-            "contentGenerationControl/init:resultFinish/init:resultFinish",
-            "contentGenerationControl/init:resultOccurrence/init:resultOccurrence",
-            "contentGenerationControl/init:resultStart/init:resultStart",
-            "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
-            "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
-            "contentGenerationControl/init:row/init:row",
-            "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
-            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
-            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
-            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
-            "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
-            "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits"
-          ],
+          "operations": [],
           "exports": [
             "contentGenerationControl"
           ],
@@ -25170,13 +26598,6 @@
         },
         {
           "operations": [
-            "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
-            "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
-            "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
-            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
-            "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
-            "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
-            "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
             "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
             "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
             "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
@@ -25873,7 +27294,6 @@
         },
         {
           "operations": [
-            "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal",
             "publicationControl/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
             "publicationControl/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal"
           ],
@@ -28890,670 +30310,6 @@
         "runtimeCore"
       ],
       "operations": [
-        {
-          "name": "contentGenerationControl",
-          "parameters": [
-            "moon",
-            "publications"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:advance/init:advance",
-          "parameters": [
-            "encoder",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:bindInput/init:bindInput",
-          "parameters": [
-            "barrier",
-            "output",
-            "encoder"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:candidate/init:candidate",
-          "parameters": [
-            "encoder",
-            "binding",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:cleanupRequestKeyedPrefix/init:cleanupRequestKeyedPrefix",
-          "parameters": [
-            "run",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:cleanupRequestPrefix/init:cleanupRequestPrefix",
-          "parameters": [
-            "run",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:complete/init:complete",
-          "parameters": [
-            "compiled",
-            "definition",
-            "input",
-            "inputEvidence",
-            "candidate",
-            "content",
-            "available",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:completedOutput/init:completedOutput",
-          "parameters": [
-            "compiled",
-            "generation"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily",
-          "parameters": [
-            "program",
-            "graph",
-            "bodies",
-            "generation",
-            "reference",
-            "contract",
-            "output",
-            "identitySlots",
-            "physical",
-            "retain",
-            "recovery",
-            "managedOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/exported/exported",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal",
-          "parameters": [
-            "active"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:encoder/init:encoder",
-          "parameters": [
-            "barrier",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
-          "parameters": [
-            "step",
-            "revision"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
-          "parameters": [
-            "step"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:familyComplete/init:familyComplete",
-          "parameters": [
-            "compiled",
-            "definition",
-            "step",
-            "inputEvidence",
-            "candidate",
-            "content",
-            "available",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:familyInput/init:familyInput",
-          "parameters": [
-            "step"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:familyPendingPiece/init:familyPendingPiece",
-          "parameters": [
-            "step"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:finish/init:finish",
-          "parameters": [
-            "encoder"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputAdvance/init:inputAdvance",
-          "parameters": [
-            "input",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputCancel/init:inputCancel",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputFinish/init:inputFinish",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityAdvance/init:inputIdentityAdvance",
-          "parameters": [
-            "scan",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityCancel/init:inputIdentityCancel",
-          "parameters": [
-            "scan"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityFinish/init:inputIdentityFinish",
-          "parameters": [
-            "compiled",
-            "scan",
-            "limits",
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart",
-          "parameters": [
-            "input",
-            "limits",
-            "maxWork",
-            "maxWorkspaceSlots"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/exportLimits/exportLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputIdentityStart/init:inputIdentityStart/init:inputIdentityStart",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputRow/init:inputRow",
-          "parameters": [
-            "input",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inputRows/init:inputRows",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:inspect/init:inspect",
-          "parameters": [
-            "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:issue/init:issue",
-          "parameters": [
-            "candidate",
-            "issuer",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:issuer/init:issuer",
-          "parameters": [
-            "validate",
-            "authorize"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:issuer/init:issuer/issuer/issuer",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:output/init:output",
-          "parameters": [
-            "input",
-            "candidate",
-            "content",
-            "available",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:outputAvailable/init:outputAvailable",
-          "parameters": [
-            "output"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:outputRowWire/init:outputRowWire",
-          "parameters": [
-            "output",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefix/init:prefix",
-          "parameters": [
-            "program",
-            "task",
-            "step",
-            "bodies",
-            "limits",
-            "ledger",
-            "workspace",
-            "source",
-            "keyed"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefixAdvance/init:prefixAdvance",
-          "parameters": [
-            "prefix",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefixCancel/init:prefixCancel",
-          "parameters": [
-            "prefix"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefixCapacity/init:prefixCapacity",
-          "parameters": [
-            "program",
-            "task",
-            "step",
-            "bodies",
-            "limits",
-            "workspace",
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefixCleanup/init:prefixCleanup",
-          "parameters": [
-            "prefix"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prefixWork/init:prefixWork",
-          "parameters": [
-            "prefix"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepare/init:prepare",
-          "parameters": [
-            "program",
-            "task",
-            "step",
-            "maxWork"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareModelRequestPrefix/init:prepareModelRequestPrefix",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "limits",
-            "workspace",
-            "queryTime"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestKeyedPlan/init:prepareRequestKeyedPlan",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "keyed",
-            "directDeclaration",
-            "contentDeclaration",
-            "maxBytes",
-            "maxWork",
-            "queryContract",
-            "evidenceContract",
-            "transfers",
-            "executions",
-            "contracts",
-            "task",
-            "step",
-            "limits",
-            "workspace"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
-          "parameters": [
-            "parent",
-            "input",
-            "compiled",
-            "selection",
-            "generation",
-            "reference",
-            "contract",
-            "output",
-            "identitySlots"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "limits",
-            "workspace"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:recover/init:recover",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "expectedGenerationCid",
-            "evidence",
-            "candidate",
-            "content"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:recoveryCandidate/init:recoveryCandidate",
-          "parameters": [
-            "originalWire",
-            "binding",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity/init:requestKeyedPrefixCapacity",
-          "parameters": [
-            "n"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:requestPrefixCapacity/init:requestPrefixCapacity/init:requestPrefixCapacity",
-          "parameters": [
-            "n"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultAdvance/init:resultAdvance",
-          "parameters": [
-            "preparation",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultCancel/init:resultCancel",
-          "parameters": [
-            "preparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultFinish/init:resultFinish",
-          "parameters": [
-            "preparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultOccurrence/init:resultOccurrence",
-          "parameters": [
-            "compiled",
-            "program",
-            "result",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultStart/init:resultStart",
-          "parameters": [
-            "program",
-            "result",
-            "output",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultStart/init:resultStart/exportLimits/exportLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:resultStart/init:resultStart/init:resultStart",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:row/init:row",
-          "parameters": [
-            "barrier",
-            "input",
-            "row",
-            "encoder"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:startRequestAcquiredPrefix/init:startRequestAcquiredPrefix",
-          "parameters": [
-            "run",
-            "program",
-            "selected",
-            "capture"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:startRequestKeyedPrefix/init:startRequestKeyedPrefix",
-          "parameters": [
-            "run",
-            "program",
-            "selected",
-            "source",
-            "lookup"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:startRequestPrefix/init:startRequestPrefix",
-          "parameters": [
-            "run",
-            "program",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity",
-          "parameters": [
-            "generation",
-            "reference",
-            "contract",
-            "output",
-            "identitySlots"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
         {
           "name": "inferQuantityCapacity/inferQuantityCapacity",
           "parameters": [
@@ -35594,6 +36350,7 @@
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
         "./content-capture-control.mjs",
+        "./content-generation-control.mjs",
         "./dispatch-failure-observation.mjs",
         "./effect-application-control.mjs",
         "./installation-preparation-metadata.mjs",
@@ -35614,7 +36371,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5f7959421b9d71d21b8561aa2c92731c70964bb3a8b96445909d1756eb2c5043"
+      "sha256": "65a933a9cdb800f91366e897f2a97ffdfd9c17e635cce1e26759b44460899fce"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
