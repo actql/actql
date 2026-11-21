@@ -88082,7 +88082,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('pure preparation snapshots configuration and is consumed by exactly one launch', async t => {"
               },
               {
@@ -88090,11 +88090,11 @@
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
               },
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
               },
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {"
               }
             ]
@@ -88272,7 +88272,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('pure preparation snapshots configuration and is consumed by exactly one launch', async t => {"
               },
               {
@@ -88280,7 +88280,7 @@
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
               },
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
               },
               {
@@ -88424,7 +88424,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('pure preparation snapshots configuration and is consumed by exactly one launch', async t => {"
               },
               {
@@ -88432,7 +88432,7 @@
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
               },
               {
-                "path": "adapters/host-node/process-channel.test.mjs",
+                "path": "adapters/host-node/process-channel.test.mts",
                 "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
               }
             ]

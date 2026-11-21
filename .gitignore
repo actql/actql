@@ -1123,3 +1123,5 @@ target/
 /adapters/host-node/foreign-process-fixture.d.mts
 /adapters/connectors/local/host/iceberg-process.mjs
 /adapters/connectors/local/host/iceberg-process.d.mts
+/adapters/host-node/process-channel.test.mjs
+/adapters/host-node/process-channel.test.d.mts

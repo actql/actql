@@ -4,6 +4,15 @@ import { prepareManagedExecution, startManagedExecution } from './process-channe
 import {encodeProcessFrame, executionProtocol} from './process-frames.mjs';
 import {pathToFileURL} from 'node:url';
 
+type HostChannel = Awaited<ReturnType<typeof startManagedExecution>>;
+type PreparedOptions = Parameters<typeof prepareManagedExecution>[0];
+type SpawnHook = NonNullable<Parameters<typeof startManagedExecution>[2]>;
+type TableWriteInput = Parameters<ReturnType<
+  typeof import('../connectors/local/host/iceberg-process.mjs').createIcebergPhysicalBridge
+>['prepareWrite']>[0];
+type ProcessTestError = Error & {code: string; cause?: {message?: string}; cleanupHandle: HostChannel['cleanupHandle']};
+type EchoReply = {value: unknown; pid: number};
+
 const configuration = () => ({
   entry: new URL('./process-fixture.mjs', import.meta.url), run: 'owned-run',
   frames: { maxBytes: 4096, maxNodes: 100, maxDepth: 10 },
@@ -19,17 +28,17 @@ test('pure preparation snapshots configuration and is consumed by exactly one la
   const channel = await startManagedExecution(prepared);
   t.after(() => channel.close());
   assert.equal(channel.identity().run, 'owned-run');
-  assert.equal((await channel.request({command: 'echo', value: 3})).value, 3);
+  assert.equal((await channel.request({command: 'echo', value: 3}) as EchoReply).value, 3);
   await assert.rejects(startManagedExecution(prepared));
 });
 
 test('managed execution uses a separate process and bounded sequential requests', async t => {
   const channel = await startManagedExecution(configuration());
   t.after(() => channel.close());
-  const first = await channel.request({ command: 'echo', value: 'a' });
+  const first = await channel.request({ command: 'echo', value: 'a' }) as EchoReply;
   assert.notEqual(first.pid, process.pid);
   assert.equal(first.value, 'a');
-  const second = await channel.request({ command: 'echo', value: 'b' });
+  const second = await channel.request({ command: 'echo', value: 'b' }) as EchoReply;
   assert.equal(second.pid, first.pid);
   assert.equal(channel.status().requests, 2);
   assert.equal(channel.cleanupHandle.status().pending, true);
@@ -44,20 +53,20 @@ test('trusted interpreter URL is snapshotted with the existing process owner', a
   runtime.pathname = '/missing-interpreter';
   const channel = await startManagedExecution(prepared);
   t.after(() => channel.close());
-  assert.notEqual((await channel.request({command: 'echo', value: 1})).pid, process.pid);
+  assert.notEqual((await channel.request({command: 'echo', value: 1}) as EchoReply).pid, process.pid);
   await channel.close();
   assert.equal(channel.cleanupHandle.status().pending, false);
 });
 
 test('interpreter configuration rejects non-file input and retains failed-spawn cleanup', async () => {
   for (const runtime of ['python', new URL('https://example.invalid/python')]) {
-    assert.throws(() => prepareManagedExecution({...configuration(), runtime}),
+    assert.throws(() => prepareManagedExecution({...configuration(), runtime} as unknown as PreparedOptions),
       {code: 'InvalidExecutionConfiguration'});
   }
-  let error;
+  let error!: ProcessTestError;
   try {
     await startManagedExecution({...configuration(), runtime: new URL('file:///missing-interpreter')});
-  } catch (caught) { error = caught; }
+  } catch (caught) { error = caught as ProcessTestError; }
   assert.equal(error.code, 'ExecutionSpawnFailure');
   await error.cleanupHandle.retry();
   assert.equal(error.cleanupHandle.status().pending, false);
@@ -68,7 +77,7 @@ test('invalid request is correctable without consuming the sequence', async t =>
   t.after(() => channel.close());
   await assert.rejects(channel.request({ command: 'echo', value: 'x'.repeat(5000) }), { code: 'FrameByteLimit' });
   assert.equal(channel.status().requests, 0);
-  assert.equal((await channel.request({ command: 'echo', value: 1 })).value, 1);
+  assert.equal((await channel.request({ command: 'echo', value: 1 }) as EchoReply).value, 1);
 });
 
 test('control wire counters include exact UTF8 envelopes but not rejected unsent requests', async t => {
@@ -76,7 +85,7 @@ test('control wire counters include exact UTF8 envelopes but not rejected unsent
   const channel = await startManagedExecution(config);
   t.after(() => channel.close());
   const {session, run} = channel.identity();
-  const bytes = (kind, sequence, body) => BigInt(encodeProcessFrame(
+  const bytes = (kind: string, sequence: number, body: unknown) => BigInt(encodeProcessFrame(
     {protocol: executionProtocol, session, run, kind, sequence, body}, config.frames).byteLength);
   const initial = channel.status().transport;
   assert.equal(BigInt(initial.submittedBytes), bytes('hello', 0, null));
@@ -125,13 +134,13 @@ test('noncooperative process is terminated without pretending cancellation settl
   assert.equal(channel.status().exited, false);
   await channel.close();
   await rejected;
-  assert.equal(channel.status().exit.signal, 'SIGKILL');
+  assert.equal(channel.status().exit!.signal, 'SIGKILL');
 });
 
 test('spawn and handshake failures retain an explicit process cleanup handle', async () => {
-  let error;
+  let error!: ProcessTestError;
   try { await startManagedExecution({ ...configuration(), entry: new URL('./missing-executor.mjs', import.meta.url) }); }
-  catch (caught) { error = caught; }
+  catch (caught) { error = caught as ProcessTestError; }
   assert.ok(error);
   assert.equal(typeof error.cleanupHandle.retry, 'function');
   await error.cleanupHandle.retry();
@@ -177,16 +186,16 @@ for (const corrupt of ['missing-usage', 'usage-run', 'usage-session', 'usage-seq
 
 test('installed handoff runs once only after preparation and abort refusals', async t => {
   let entries = 0;
-  const enter = () => { entries++; };
+  const enter = (): undefined => { entries++; };
   await assert.rejects(startManagedExecution({...configuration(), startupMs: 0}, undefined, enter));
   await assert.rejects(startManagedExecution(configuration(), AbortSignal.abort(), enter));
-  await assert.rejects(startManagedExecution(configuration(), undefined, {}), /InvalidExecutionHandoff/);
+  await assert.rejects(startManagedExecution(configuration(), undefined, {} as unknown as SpawnHook), /InvalidExecutionHandoff/);
   assert.equal(entries, 0);
   const prepared = prepareManagedExecution(configuration());
   const channel = await startManagedExecution(prepared, undefined, enter);
   t.after(() => channel.close());
   assert.equal(entries, 1);
-  assert.notEqual((await channel.request({command: 'echo', value: 1})).pid, process.pid);
+  assert.notEqual((await channel.request({command: 'echo', value: 1}) as EchoReply).pid, process.pid);
   await assert.rejects(startManagedExecution(prepared, undefined, enter));
   assert.equal(entries, 1);
   await channel.close();
@@ -198,7 +207,7 @@ test('rejected handoff consumes its prepared token without launching or replayin
   const {syncBuiltinESMExports} = await import('node:module');
   const originalSpawn = childProcess.spawn;
   let spawns = 0;
-  t.mock.method(childProcess, 'spawn', (...args) => {
+  t.mock.method(childProcess, 'spawn', (...args: Parameters<typeof originalSpawn>) => {
     spawns++;
     return originalSpawn(...args);
   });
@@ -210,23 +219,23 @@ test('rejected handoff consumes its prepared token without launching or replayin
   await assert.rejects(startManagedExecution(prepared, undefined, () => {
     entries++;
     throw rejected;
-  }), error => error === rejected && error.cleanupHandle === undefined);
+  }), error => error === rejected && (error as Partial<ProcessTestError>).cleanupHandle === undefined);
   await assert.rejects(startManagedExecution(prepared, undefined, () => { entries++; }));
   assert.equal(entries, 1);
   const abort = new AbortController();
   await assert.rejects(startManagedExecution(configuration(), abort.signal, () => {
     abort.abort(rejected);
-  }), error => error === rejected && error.cleanupHandle === undefined);
-  await assert.rejects(startManagedExecution(configuration(), undefined, async () => {
+  }), error => error === rejected && (error as Partial<ProcessTestError>).cleanupHandle === undefined);
+  await assert.rejects(startManagedExecution(configuration(), undefined, (async () => {
     throw rejected;
-  }), /InvalidExecutionHandoff/);
-  await new Promise(resolve => setImmediate(resolve));
+  }) as unknown as SpawnHook), /InvalidExecutionHandoff/);
+  await new Promise<void>(resolve => setImmediate(resolve));
   assert.equal(spawns, 0);
 });
 
 test('prepared process retains the original synchronous body backing entry through handshake and response', async t => {
-  const lengths=[];
-  const config={...configuration(),beforeBodyAllocation(length){lengths.push(length);}};
+  const lengths: number[]=[];
+  const config={...configuration(),beforeBodyAllocation(length: number): undefined {lengths.push(length);}};
   const prepared=prepareManagedExecution(config);
   config.beforeBodyAllocation=()=>assert.fail('a replaced configuration cannot supply another original');
   assert.deepEqual(lengths,[],'pure configuration preparation receives no frame');
@@ -234,7 +243,7 @@ test('prepared process retains the original synchronous body backing entry throu
   t.after(()=>channel.close());
   assert.equal(lengths.length,1,'the original ready frame is backed too');
   const original='e\u0301\r\n';
-  assert.equal((await channel.request({command:'echo',value:original})).value,original);
+  assert.equal((await channel.request({command:'echo',value:original}) as EchoReply).value,original);
   assert.equal(lengths.length,2);
   assert(lengths.every(value=>Number.isSafeInteger(value)&&value>0&&value<=config.frames.maxBytes));
   await channel.close();assert.equal(channel.status().exited,true);assert.equal(channel.cleanupHandle.status().pending,false);
@@ -242,9 +251,9 @@ test('prepared process retains the original synchronous body backing entry throu
 
 for(const [kind,original] of [['frozen',Object.freeze(new Error('OriginalBodyBackingRefusal'))],['undefined',undefined]]){
   test(`process body backing ${kind} refusal retains original cause and SAME exit cleanup`,async()=>{
-    let entries=0,failure;
+    let entries=0,failure!: ProcessTestError;
     try{await startManagedExecution({...configuration(),beforeBodyAllocation(){entries++;throw original;}});}
-    catch(error){failure=error;}
+    catch(error){failure=error as ProcessTestError;}
     assert.equal(entries,1);assert.equal(failure.code,'ExecutionChannelFailure');
     assert.equal(Object.hasOwn(failure,'cause'),true);assert.strictEqual(failure.cause,original);
     const cleanup=failure.cleanupHandle;assert.equal(typeof cleanup.retry,'function');
@@ -254,13 +263,13 @@ for(const [kind,original] of [['frozen',Object.freeze(new Error('OriginalBodyBac
 }
 
 test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {
-  let release;
-  const original=new Promise(resolve=>{release=resolve;});
-  let channel,failure;
+  let release!: () => void;
+  const original=new Promise<void>(resolve=>{release=resolve;});
+  let channel: HostChannel | undefined,failure!: ProcessTestError;
   try {
-    try{channel=await startManagedExecution({...configuration(),beforeBodyAllocation(){return original;}});}
-    catch(error){failure=error;}
-    if(failure===undefined){await channel.close();assert.fail('an asynchronous backing handoff cannot dispatch ready');}
+    try{channel=await startManagedExecution({...configuration(),beforeBodyAllocation(){return original;}} as unknown as PreparedOptions);}
+    catch(error){failure=error as ProcessTestError;}
+    if(failure===undefined){await channel!.close();assert.fail('an asynchronous backing handoff cannot dispatch ready');}
     assert.equal(failure.code,'ExecutionChannelFailure');
     assert.equal(failure.cause?.message,'InvalidFrameCapacityHandoff');
     const cleanup=failure.cleanupHandle;
@@ -274,18 +283,18 @@ test('returned asynchronous body backing never admits a frame or releases its pr
 
 test('declared async frame entry is refused during inert process preparation', () => {
   let calls=0;
-  assert.throws(()=>prepareManagedExecution({...configuration(),async beforeBodyAllocation(){calls++;}}),{code:'InvalidExecutionConfiguration'});
+  assert.throws(()=>prepareManagedExecution({...configuration(),async beforeBodyAllocation(){calls++;}} as unknown as PreparedOptions),{code:'InvalidExecutionConfiguration'});
   assert.equal(calls,0);
 });
 
 test('Table bridge forwards the same read body backing entry to the original process owner', async () => {
   const {createIcebergPhysicalBridge}=await import('../connectors/local/host/iceberg-process.mjs');
-  const cid=digit=>`sha256:${digit.repeat(64)}`;
+  const cid=(digit: string)=>`sha256:${digit.repeat(64)}`;
   const bridge=createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-backing-read',
     entry:new URL('./process-fixture.mjs',import.meta.url),
     catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
-  const original=Object.freeze(new Error('OriginalTableBodyBackingRefusal'));let calls=0,failure;
-  try{await bridge.read({}, {}, undefined,()=>{calls++;throw original;});}catch(error){failure=error;}
+  const original=Object.freeze(new Error('OriginalTableBodyBackingRefusal'));let calls=0,failure!: ProcessTestError;
+  try{await bridge.read({}, {}, undefined,()=>{calls++;throw original;});}catch(error){failure=error as ProcessTestError;}
   try{assert.equal(calls,1);assert.strictEqual(failure?.cause,original);assert.equal(failure.cleanupHandle.status().pending,false);}
   finally{if(failure?.cleanupHandle)await failure.cleanupHandle.retry();}
 });
@@ -293,15 +302,15 @@ test('Table bridge forwards the same read body backing entry to the original pro
 test('Table prepared and readonly operations keep the original per-call body entry outside wire DATA', async () => {
   const [{createIcebergPhysicalBridge},{createHash}]=await Promise.all([
     import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
-  const cid=digit=>`sha256:${digit.repeat(64)}`;
+  const cid=(digit: string)=>`sha256:${digit.repeat(64)}`;
   const original=Object.freeze(new Error('OriginalTableBodyBackingRefusal'));let calls=0;
-  const beforeBodyAllocation=()=>{calls++;throw original;};
+  const beforeBodyAllocation=(): undefined =>{calls++;throw original;};
   const make=()=>createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-backing-prepared',
     entry:new URL('./process-fixture.mjs',import.meta.url),
     catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
-  const refused=async action=>{
-    const before=calls;let failure;
-    try{await action();}catch(error){failure=error;}
+  const refused=async (action: () => unknown)=>{
+    const before=calls;let failure!: ProcessTestError;
+    try{await action();}catch(error){failure=error as ProcessTestError;}
     try{assert.equal(calls,before+1);assert.strictEqual(failure?.cause,original);assert.equal(failure.cleanupHandle.status().pending,false);}
     finally{if(failure?.cleanupHandle)await failure.cleanupHandle.retry();}
   };
@@ -328,7 +337,7 @@ test('Table prepared and readonly operations keep the original per-call body ent
 test('Table original pending body callback custody cannot become a stopped writer after process exit', async () => {
   const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
     import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
-  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
   const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-pending-body',
     entry:new URL('./process-fixture.mjs',import.meta.url),
     catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
@@ -339,9 +348,9 @@ test('Table original pending body callback custody cannot become a stopped write
   const schemaWire = '{"fields":[]}', schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
   const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
     input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
-    beforeBodyAllocation() {return original;}});
-  let failure;
-  try {await bridge.execute(prepared,{useCid:cid('e')});} catch (error) {failure = error;}
+    beforeBodyAllocation() {return original;}} as unknown as TableWriteInput);
+  let failure!: ProcessTestError;
+  try {await bridge.execute(prepared,{useCid:cid('e')});} catch (error) {failure = error as ProcessTestError;}
   assert.equal(failure?.code,'ExecutionChannelFailure');
   assert.equal(failure.cause?.message,'InvalidFrameCapacityHandoff');
   const cleanup = failure.cleanupHandle;
@@ -356,7 +365,7 @@ test('Table original pending body callback custody cannot become a stopped write
 test('Table pure body callback refusal before launcher selection has no physical cleanup debt', async () => {
   const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
     import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
-  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
   const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-inert-body',
     entry:new URL('./process-fixture.mjs',import.meta.url),
     catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
@@ -365,14 +374,14 @@ test('Table pure body callback refusal before launcher selection has no physical
   let called = false;
   const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
     input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
-    async beforeBodyAllocation() {called = true;}});
+    async beforeBodyAllocation() {called = true;}} as unknown as TableWriteInput);
   await assert.rejects(bridge.execute(prepared,{useCid:cid('e')}),{code:'InvalidExecutionConfiguration'});
   assert.equal(called,false);
   assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:true});
 });
 
 test('same original process observes received body bytes after allocation and before its reply decoding', async () => {
-  const announced=[],received=[];
+  const announced: number[]=[],received: Buffer[]=[];
   const config=configuration();
   const channel=await startManagedExecution({...config,
     beforeBodyAllocation(length){announced.push(length);},
@@ -381,7 +390,7 @@ test('same original process observes received body bytes after allocation and be
     assert.equal(received.length,1);
     assert.equal(received[0].length,announced[0]);
     assert.equal(JSON.parse(received[0].toString()).kind,'ready');
-    const result=await channel.request({command:'echo',value:'e\u0301\r\n'});
+    const result=await channel.request({command:'echo',value:'e\u0301\r\n'}) as EchoReply;
     assert.equal(result.value,'e\u0301\r\n');assert.equal(received.length,2);
     assert.equal(received[1].length,announced[1]);
     const raw=JSON.parse(received[1].toString());
@@ -394,9 +403,9 @@ test('same original process observes received body bytes after allocation and be
 
 for(const [name,result]of [['original-frozen',Object.freeze(new Error('OriginalReceiveFailure'))],['original-undefined',undefined]]){
   test(`same original received-body ${name} failure retains cause and actual cleanup`,async()=>{
-    let failure,received=0;
+    let failure!: ProcessTestError,received=0;
     try {await startManagedExecution({...configuration(),bodyReceived(body){received++;assert(Buffer.isBuffer(body));throw result;}});}
-    catch(error){failure=error;}
+    catch(error){failure=error as ProcessTestError;}
     assert.equal(received,1);assert.equal(failure?.code,'ExecutionChannelFailure');
     assert.equal(Object.hasOwn(failure,'cause'),true);assert.equal(failure.cause,result);
     const cleanup=failure.cleanupHandle;await cleanup.retry();assert.equal(cleanup.status().pending,false);
@@ -405,10 +414,10 @@ for(const [name,result]of [['original-frozen',Object.freeze(new Error('OriginalR
 }
 
 test('received-body returned task stays with SAME process cleanup until original settlement',async()=>{
-  let release,failure;const task=new Promise(resolve=>{release=resolve;});
+  let release!: () => void,failure!: ProcessTestError;const task=new Promise<void>(resolve=>{release=resolve;});
   try {
-    try {await startManagedExecution({...configuration(),bodyReceived(){return task;}});}
-    catch(error){failure=error;}
+    try {await startManagedExecution({...configuration(),bodyReceived(){return task;}} as unknown as PreparedOptions);}
+    catch(error){failure=error as ProcessTestError;}
     assert.equal(failure?.code,'ExecutionChannelFailure');
     const cleanup=failure.cleanupHandle,joined=cleanup.retry();
     await cleanup.whenStopped();assert.equal(cleanup.status().pending,true);
@@ -419,12 +428,12 @@ test('received-body returned task stays with SAME process cleanup until original
 test('Table actual read and prepared operations forward original received-byte observer outside wire data',async()=>{
   const [{createIcebergPhysicalBridge},{createHash}]=await Promise.all([
     import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
-  const cid=x=>`sha256:${x.repeat(64)}`,refusal=Object.freeze(new Error('OriginalTableReceivedBody'));let received=0;
-  const bodyReceived=body=>{assert(Buffer.isBuffer(body));received++;throw refusal;};
+  const cid=(x: string)=>`sha256:${x.repeat(64)}`,refusal=Object.freeze(new Error('OriginalTableReceivedBody'));let received=0;
+  const bodyReceived=(body: Buffer)=>{assert(Buffer.isBuffer(body));received++;throw refusal;};
   const bridge=createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-received-original',
     entry:new URL('./process-fixture.mjs',import.meta.url),
     catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
-  const reject=async action=>{let failure;try{await action();}catch(error){failure=error;}
+  const reject=async (action: () => unknown)=>{let failure!: ProcessTestError;try{await action();}catch(error){failure=error as ProcessTestError;}
     assert.equal(failure?.cause,refusal);await failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.status().pending,false);};
   const selector={catalog_identity_cid:cid('a'),namespace:['analytics'],table_name:'rows',
     table_uuid:'00000000-0000-0000-0000-000000000001',schema_cid:cid('b')};
