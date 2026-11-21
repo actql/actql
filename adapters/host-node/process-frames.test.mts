@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { encodeProcessFrame, createProcessFrameReader, snapshotProcessValue } from './process-frames.mjs';
+import type {ProcessFrameValue} from './process-frames.mjs';
 const limits = Object.freeze({ maxBytes: 128, maxNodes: 20, maxDepth: 4 });
 
 test('private IPC frames survive every byte split and preserve control payloads', () => {
   const input = { session: 'é😀', attempt: 2, body: ['K', 'k', null] };
   const frame = encodeProcessFrame(input, limits);
   for (let split = 0; split <= frame.length; split++) {
-    const values = [];
+    const values: ProcessFrameValue[] = [];
     const reader = createProcessFrameReader(limits, value => values.push(value));
     reader.feed(frame.subarray(0, split)); reader.feed(frame.subarray(split)); reader.end();
     assert.equal(JSON.stringify(values[0]), JSON.stringify(input));
@@ -32,7 +33,7 @@ test('snapshot rejects getters cycles and class instances without invoking them'
   const item = { get value() { calls++; return 1; } };
   assert.throws(() => encodeProcessFrame(item, limits), { code: 'InvalidFrameValue' });
   assert.equal(calls, 0);
-  const cycle = {}; cycle.self = cycle;
+  const cycle: {self?: unknown} = {}; cycle.self = cycle;
   assert.throws(() => encodeProcessFrame(cycle, limits), { code: 'InvalidFrameValue' });
   assert.throws(() => encodeProcessFrame(new Date(), limits), { code: 'InvalidFrameValue' });
 });
@@ -44,7 +45,7 @@ test('truncated invalid UTF8 and reentrant frames never count as complete messag
   assert.throws(() => reader.end(), { code: 'TruncatedFrame' });
   const corrupt = Buffer.from([0, 0, 0, 3, 34, 255, 34]);
   assert.throws(() => createProcessFrameReader(limits, () => assert.fail('bad UTF8')).feed(corrupt));
-  let recursive;
+  let recursive: ReturnType<typeof createProcessFrameReader>;
   recursive = createProcessFrameReader(limits, () => recursive.feed(frame));
   assert.throws(() => recursive.feed(frame), { code: 'FrameReaderClosed' });
 });
@@ -59,8 +60,8 @@ test('pure configuration snapshots preserve framed JSON values without transport
     assert.deepStrictEqual(pure, framed);
     assert.equal(Object.getPrototypeOf(pure), Object.prototype);
     if (Object.hasOwn(input, '__proto__')) {
-      assert.equal(Object.hasOwn(pure, '__proto__'), true);
-      assert.equal(pure.safe, undefined);
+      assert.equal(Object.hasOwn(pure as object, '__proto__'), true);
+      assert.equal((pure as {safe?: unknown}).safe, undefined);
     }
   }
 });
@@ -68,20 +69,20 @@ test('pure configuration snapshots preserve framed JSON values without transport
 test('pure configuration snapshots preserve frame refusal boundaries', () => {
   const accessor = Object.defineProperty({}, 'x', {enumerable: true,
     get() {assert.fail('configuration getter must not run');}});
-  const cycle = {}; cycle.self = cycle;
+  const cycle: {self?: unknown} = {}; cycle.self = cycle;
   const inputs = [Array(1), [undefined], {a: undefined}, NaN, Infinity,
     Object.create({inherited: true}), new Date(0), accessor, cycle,
     'x'.repeat(129), Array(21).fill(null), [[[[[null]]]]]];
   for (const input of inputs) {
-    let expected;
-    assert.throws(() => encodeProcessFrame(input, limits), error => {expected = error.code; return true;});
+    let expected!: string;
+    assert.throws(() => encodeProcessFrame(input, limits), error => {expected = (error as {code: string}).code; return true;});
     assert.throws(() => snapshotProcessValue(input, limits), {code: expected});
   }
 });
 
 test('original frame body admission runs before its first body allocation and preserves the original refusal', () => {
   const original = Object.freeze(new Error('OriginalFrameCapacityRefusal'));
-  const lengths = [], allocations = [];
+  const lengths: number[] = [], allocations: number[] = [];
   const reader = createProcessFrameReader(limits, () => assert.fail('refused body cannot dispatch'), length => {
     lengths.push(length); throw original;
   });
@@ -89,7 +90,7 @@ test('original frame body admission runs before its first body allocation and pr
   const allocate = Buffer.allocUnsafe;
   let failure;
   try {
-    Buffer.allocUnsafe = function(size) { allocations.push(size); return Reflect.apply(allocate, this, [size]); };
+    Buffer.allocUnsafe = function(this: typeof Buffer, size: number) { allocations.push(size); return Reflect.apply(allocate, this, [size]); };
     try { reader.feed(header); } catch (error) { failure = error; }
   } finally { Buffer.allocUnsafe = allocate; }
   assert.strictEqual(failure, original);
@@ -99,12 +100,12 @@ test('original frame body admission runs before its first body allocation and pr
 });
 
 test('frame body admission is once per complete header across byte splits and stays behind byte limits', () => {
-  const frame = encodeProcessFrame({value:'e\u0301\r\n'}, limits), lengths = [], values = [];
+  const frame = encodeProcessFrame({value:'e\u0301\r\n'}, limits), lengths: number[] = [], values: ProcessFrameValue[] = [];
   const reader = createProcessFrameReader(limits, value => values.push(value), length => lengths.push(length));
   for (const byte of frame) reader.feed(Buffer.from([byte]));
   reader.end();
   assert.deepEqual(lengths,[frame.length-4]);
-  assert.equal(values[0].value,'e\u0301\r\n');
+  assert.equal((values[0] as {value?: unknown}).value,'e\u0301\r\n');
   for (const length of [0,limits.maxBytes+1]) {
     const invalid = Buffer.alloc(4);invalid.writeUInt32BE(length);
     assert.throws(()=>createProcessFrameReader(limits,()=>assert.fail('invalid dispatch'),()=>assert.fail('invalid allocation handoff')).feed(invalid),{code:'FrameByteLimit'});
@@ -112,7 +113,7 @@ test('frame body admission is once per complete header across byte splits and st
 });
 
 test('current callback cannot allocate a frame after closing the same reader', () => {
-  let reader;
+  let reader: ReturnType<typeof createProcessFrameReader>;
   reader = createProcessFrameReader(limits,()=>assert.fail('closed dispatch'),()=>{
     assert.throws(()=>reader.end(),{code:'TruncatedFrame'});
   });
@@ -123,8 +124,8 @@ test('current callback cannot allocate a frame after closing the same reader', (
 test('complete original IPC body is observed once before UTF8 or JSON decoding, including refused bodies', () => {
   const malformed = Buffer.from('{not JSON'), header = Buffer.alloc(4);
   header.writeUInt32BE(malformed.length);
-  let received;
-  const calls = [];
+  let received: Buffer | undefined;
+  const calls: string[] = [];
   const reader = createProcessFrameReader(limits, () => assert.fail('invalid JSON cannot dispatch'),
     length => {assert.equal(length, malformed.length);calls.push('reserve');},
     body => {assert(Buffer.isBuffer(body));received = body;calls.push('receive');});
@@ -143,7 +144,7 @@ test('original IPC received-body refusal or reentry cannot decode or accept the 
   const reader = createProcessFrameReader(limits,()=>{accepts++;},undefined,()=>{throw cause;});
   assert.throws(()=>reader.feed(frame), error=>error===cause);
   assert.equal(accepts,0);
-  let reentrant;
+  let reentrant: ReturnType<typeof createProcessFrameReader>;
   reentrant = createProcessFrameReader(limits,()=>assert.fail('closed received body dispatch'),undefined,()=>{
     assert.throws(()=>reentrant.end(),{code:'TruncatedFrame'});
   });
@@ -152,7 +153,7 @@ test('original IPC received-body refusal or reentry cannot decode or accept the 
 
 
 test('accepted reply snapshot reports its actual original geometry before dispatch without another walk', () => {
-  const events = [], value = {rows: [{text: 'abc'}]};
+  const events: string[] = [], value = {rows: [{text: 'abc'}]};
   const reader = createProcessFrameReader(limits, actual => {
     events.push('accept'); assert.equal(JSON.stringify(actual), JSON.stringify(value));
   }, undefined, undefined, geometry => {

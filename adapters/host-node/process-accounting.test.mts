@@ -34,8 +34,8 @@ test('usage preserves reserved and live custody counts without admitting them as
   const usage = {...emptyProcessUsage(), reserved_attempts: 2,
     live_reservations: 3, live_delegations: 1};
   assert.deepEqual(decodeProcessUsage(encodeProcessUsage(usage)), usage);
-  for (const field of ['reserved_attempts', 'live_reservations', 'live_delegations']) {
-    const missing = {...usage}; delete missing[field];
+  for (const field of ['reserved_attempts', 'live_reservations', 'live_delegations'] as const) {
+    const missing: Partial<typeof usage> = {...usage}; delete missing[field];
     assert.throws(() => encodeProcessUsage(missing), /InvalidProcessAccounting/);
     for (const value of [-1, 0.5, 2147483648, '1']) {
       assert.throws(() => encodeProcessUsage({...usage, [field]: value}), /InvalidProcessAccounting/);

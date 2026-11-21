@@ -1105,3 +1105,11 @@ target/
 /adapters/store-local/process-client.d.mts
 /adapters/store-local/direct-file.test.mjs
 /adapters/store-local/direct-file.test.d.mts
+/adapters/host-node/process-frames.mjs
+/adapters/host-node/process-frames.d.mts
+/adapters/host-node/process-accounting.mjs
+/adapters/host-node/process-accounting.d.mts
+/adapters/host-node/process-frames.test.mjs
+/adapters/host-node/process-frames.test.d.mts
+/adapters/host-node/process-accounting.test.mjs
+/adapters/host-node/process-accounting.test.d.mts

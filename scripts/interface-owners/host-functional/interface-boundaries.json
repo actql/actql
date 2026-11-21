@@ -87361,8 +87361,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/local-provider-work-accounting.md",
@@ -87375,8 +87375,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "src/physical_resources/ledger.mbt",
@@ -87389,7 +87389,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Private local-IPC accounting, not ActQL identity or completion evidence."
               },
               {
@@ -87403,8 +87403,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -87417,7 +87417,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Exact primitive fields are copied before an await; no provider payload lives"
               },
               {
@@ -87431,7 +87431,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "throw new TypeError('InvalidProcessAccounting');"
               },
               {
@@ -87445,8 +87445,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -87459,7 +87459,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// here. The common MoonBit ledger enforces cumulative relationships and limits."
               },
               {
@@ -87473,7 +87473,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Exact primitive fields are copied before an await; no provider payload lives"
               },
               {
@@ -87487,7 +87487,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-accounting.test.mjs",
+                "path": "adapters/host-node/process-accounting.test.mts",
                 "anchor": "test('private accounting snapshots exact bounded primitives without narrowing Int64 values', () => {"
               },
               {
@@ -87495,7 +87495,7 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "adapters/host-node/process-accounting.test.mjs",
+                "path": "adapters/host-node/process-accounting.test.mts",
                 "anchor": "test('usage preserves reserved and live custody counts without admitting them as limit fields', () => {"
               }
             ]
@@ -87509,8 +87509,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/local-provider-work-accounting.md",
@@ -87523,8 +87523,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "src/physical_resources/ledger.mbt",
@@ -87537,7 +87537,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Private local-IPC accounting, not ActQL identity or completion evidence."
               },
               {
@@ -87551,8 +87551,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -87565,7 +87565,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Exact primitive fields are copied before an await; no provider payload lives"
               },
               {
@@ -87579,7 +87579,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "throw new TypeError('InvalidProcessAccounting');"
               },
               {
@@ -87593,8 +87593,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
+                "path": "adapters/host-node/process-accounting.mts",
+                "anchor": "export const snapshotProcessLimits = (value: unknown) => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -87607,7 +87607,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// here. The common MoonBit ledger enforces cumulative relationships and limits."
               },
               {
@@ -87621,7 +87621,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-accounting.mjs",
+                "path": "adapters/host-node/process-accounting.mts",
                 "anchor": "// Exact primitive fields are copied before an await; no provider payload lives"
               },
               {
@@ -87635,7 +87635,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-accounting.test.mjs",
+                "path": "adapters/host-node/process-accounting.test.mts",
                 "anchor": "test('private accounting snapshots exact bounded primitives without narrowing Int64 values', () => {"
               },
               {
@@ -87643,7 +87643,7 @@
                 "anchor": "pub(all) struct LedgerUsage {"
               },
               {
-                "path": "adapters/host-node/process-accounting.test.mjs",
+                "path": "adapters/host-node/process-accounting.test.mts",
                 "anchor": "test('usage preserves reserved and live custody counts without admitting them as limit fields', () => {"
               }
             ]
@@ -88543,7 +88543,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
               },
               {
@@ -88557,7 +88557,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
               },
               {
@@ -88571,7 +88571,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "// Private bounded local IPC framing, not ActQL wire/identity or execution proof."
               },
               {
@@ -88585,7 +88585,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "let closed = false;"
               },
               {
@@ -88599,8 +88599,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export function validateFrameLimits(limits) {"
+                "path": "adapters/host-node/process-frames.mts",
+                "anchor": "export function validateFrameLimits(limits: unknown) {"
               },
               {
                 "path": "docs/design/local-provider-work-accounting.md",
@@ -88613,7 +88613,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "export class ProcessProtocolError extends Error {"
               },
               {
@@ -88627,7 +88627,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "let closed = false;"
               },
               {
@@ -88641,7 +88641,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "// Private bounded local IPC framing, not ActQL wire/identity or execution proof."
               },
               {
@@ -88655,7 +88655,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-frames.mjs",
+                "path": "adapters/host-node/process-frames.mts",
                 "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
               },
               {
@@ -88669,7 +88669,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/process-frames.test.mjs",
+                "path": "adapters/host-node/process-frames.test.mts",
                 "anchor": "test('private IPC frames survive every byte split and preserve control payloads', () => {"
               },
               {

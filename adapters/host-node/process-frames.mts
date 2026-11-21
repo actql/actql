@@ -1,36 +1,44 @@
 // Private bounded local IPC framing, not ActQL wire/identity or execution proof.
 import { Buffer } from 'node:buffer';
+import type {SynchronousAction} from './installed-host-cleanup.mjs';
+
+export type FrameLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
+type FrameObject = {[key: string]: ProcessFrameValue};
+export type ProcessFrameValue = null | boolean | number | string | FrameObject | ProcessFrameValue[];
+type BodyGeometry = Readonly<{nodes: number; fields: number; objects: number; arrays: number; utf16Units: number}>;
+type SynchronousObserver<T> = (value: T) => ReturnType<SynchronousAction>;
 
 export const executionProtocol = 'actql-local-execution/0.1';
 
 export class ProcessProtocolError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  declare code: string;
+  constructor(code: string) { super(code); this.code = code; }
 }
-const fail = code => { throw new ProcessProtocolError(code); };
+const fail: (code: string) => never = code => { throw new ProcessProtocolError(code); };
 
-export function validateFrameLimits(limits) {
-  const copy = { ...limits };
-  for (const key of ['maxBytes', 'maxNodes', 'maxDepth']) {
+export function validateFrameLimits(limits: unknown) {
+  const copy = { ...limits as FrameLimits };
+  for (const key of ['maxBytes', 'maxNodes', 'maxDepth'] as const) {
     if (!Number.isSafeInteger(copy[key]) || copy[key] < 1) fail('InvalidFrameLimits');
   }
   if (copy.maxBytes > 16 * 1024 * 1024 || copy.maxDepth > 64) fail('InvalidFrameLimits');
   return Object.freeze(copy);
 }
 
-function snapshot(value, limits, plainObjects = false, observed) {
+function snapshot(value: unknown, limits: FrameLimits, plainObjects = false, observed?: SynchronousObserver<BodyGeometry>) {
   let nodes = 0;
   let bytes = 0, fields = 0, objects = 0, arrays = 0, utf16Units = 0;
-  const parents = new Set();
-  const charge = count => {
+  const parents = new Set<object>();
+  const charge = (count: number) => {
     if (count > limits.maxBytes - bytes) fail('FrameByteLimit');
     bytes += count;
   };
-  const textSize = text => {
+  const textSize = (text: string) => {
     utf16Units += text.length;
     if (text.length > limits.maxBytes - bytes) fail('FrameByteLimit');
     return Buffer.byteLength(JSON.stringify(text));
   };
-  const read = (item, depth) => {
+  const read = (item: unknown, depth: number): ProcessFrameValue => {
     if (++nodes > limits.maxNodes || depth > limits.maxDepth) fail('FrameShapeLimit');
     if (item === null) { charge(4); return item; }
     if (typeof item === 'boolean') { charge(item ? 4 : 5); return item; }
@@ -45,14 +53,14 @@ function snapshot(value, limits, plainObjects = false, observed) {
     if (!array && proto !== Object.prototype && proto !== null) fail('InvalidFrameValue');
     parents.add(item);
     charge(2);
-    const result = array ? [] : plainObjects ? {} : Object.create(null);
+    const result: ProcessFrameValue[] | FrameObject = array ? [] : plainObjects ? {} : Object.create(null) as FrameObject;
     if (array) {
       if (item.length > limits.maxNodes - nodes) fail('FrameShapeLimit');
       for (let index = 0; index < item.length; index++) {
         if (index) charge(1);
         const property = Object.getOwnPropertyDescriptor(item, String(index));
         if (!property || !Object.hasOwn(property, 'value')) fail('InvalidFrameValue');
-        result.push(read(property.value, depth + 1));
+        (result as ProcessFrameValue[]).push(read(property.value, depth + 1));
       }
     } else {
       let count = 0;
@@ -66,7 +74,7 @@ function snapshot(value, limits, plainObjects = false, observed) {
         const child = read(property.value, depth + 1);
         if (plainObjects) Object.defineProperty(result, key,
           {value: child, enumerable: true, writable: true, configurable: true});
-        else result[key] = child;
+        else (result as FrameObject)[key] = child;
       }
     }
     parents.delete(item);
@@ -79,11 +87,11 @@ function snapshot(value, limits, plainObjects = false, observed) {
 
 // Pure configuration validation can retain the same bounded JSON snapshot
 // without manufacturing a transport frame that will never be sent.
-export function snapshotProcessValue(value, inputLimits) {
+export function snapshotProcessValue(value: unknown, inputLimits: unknown) {
   return snapshot(value, validateFrameLimits(inputLimits), true);
 }
 
-export function encodeProcessFrame(value, inputLimits) {
+export function encodeProcessFrame(value: unknown, inputLimits: unknown) {
   const limits = validateFrameLimits(inputLimits);
   const body = Buffer.from(JSON.stringify(snapshot(value, limits)));
   if (body.length > limits.maxBytes) fail('FrameByteLimit');
@@ -93,7 +101,9 @@ export function encodeProcessFrame(value, inputLimits) {
   return frame;
 }
 
-export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation, bodyReceived, bodySnapshot) {
+export function createProcessFrameReader(inputLimits: unknown, accept: SynchronousObserver<ProcessFrameValue>,
+  beforeBodyAllocation?: SynchronousObserver<number>, bodyReceived?: SynchronousObserver<Buffer>,
+  bodySnapshot?: SynchronousObserver<BodyGeometry>) {
   const limits = validateFrameLimits(inputLimits);
   if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function' ||
       bodyReceived !== undefined && typeof bodyReceived !== 'function' ||
@@ -102,11 +112,11 @@ export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocati
   }
   const header = Buffer.alloc(4);
   let headerBytes = 0;
-  let body;
+  let body: Buffer | undefined;
   let bodyBytes = 0;
   let closed = false;
   let feeding = false;
-  const feed = chunk => {
+  const feed = (chunk: unknown) => {
     if (closed || feeding) fail('FrameReaderClosed');
     if (!Buffer.isBuffer(chunk)) fail('InvalidFrameBytes');
     feeding = true;
