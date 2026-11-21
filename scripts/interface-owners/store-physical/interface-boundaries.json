@@ -1119,7 +1119,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/delegated-reader.mjs",
+                "path": "adapters/store-local/delegated-reader.mts",
                 "anchor": "consumeDelegatedFile"
               },
               {
@@ -1608,7 +1608,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/files.mjs",
+                "path": "adapters/store-local/files.mts",
                 "anchor": "RetainedFileError"
               },
               {
@@ -1664,7 +1664,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/files.test.mjs",
+                "path": "adapters/store-local/files.test.mts",
                 "anchor": "test("
               },
               {

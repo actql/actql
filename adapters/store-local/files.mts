@@ -5,26 +5,45 @@ import { constants } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 
+import type { Hash } from 'node:crypto';
+import type { Stats } from 'node:fs';
+import type { FileHandle } from 'node:fs/promises';
+
+type StoreConfiguration = {parentDirectory: string; capacityBytes: number; maxFrameBytes: number;
+  maxEntries?: number; maxReadersPerBody?: number; maxReadBufferBytes?: number};
+type FileClaim = {bytes?: unknown; cid?: unknown};
+type DelegatedWriteGrant = {version: 'actql-local-file/0.1' | 'actql-local-file-create/0.1';
+  session: string; token: string; maxBytes: number; maxFrameBytes: number; path: string};
+type FileTransferReport = {version?: unknown; session?: unknown; token?: unknown;
+  bytes?: unknown; cid?: unknown; device?: unknown; inode?: unknown};
+type RetainedEntry = {
+  path: string; reservation: number; fd?: FileHandle; identity?: Stats; created: boolean;
+  opening: boolean; busy: boolean; readers: number; revoked: boolean; released: boolean; sealed: boolean;
+  bytes: number; hash: Hash; cid?: string; delegation?: DelegatedWriteGrant;
+  externalCreate: boolean; createResolved: boolean; writerStopped: boolean; cleanupInFlight?: Promise<boolean>;
+};
+
 export class RetainedFileError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  declare code: string;
+  constructor(code: string) { super(code); this.code = code; }
 }
 
-const fail = code => { throw new RetainedFileError(code); };
-const quantity = n => Number.isSafeInteger(n) && n >= 0;
-const bodyOwners = new WeakMap(), storeOwners = new WeakMap();
+const fail: (code: string) => never = code => { throw new RetainedFileError(code); };
+const quantity = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
+const bodyOwners = new WeakMap<object, object>(), storeOwners = new WeakMap<object, {owner: object; available: () => boolean}>();
 
 // Exact installed Store ownership, not content equality or completion authority.
-export function localStoreOwnsBody(store, body) {
+export function localStoreOwnsBody(store: object, body: object) {
   const owner = storeOwners.get(store)?.owner;
   return owner !== undefined && bodyOwners.get(body) === owner;
 }
 
-export function localRetainedStoreAvailable(store) {
+export function localRetainedStoreAvailable(store: object) {
   return storeOwners.get(store)?.available() === true;
 }
 
 export function validateLocalStoreConfiguration({ parentDirectory, capacityBytes, maxFrameBytes,
-  maxEntries = 1024, maxReadersPerBody = 1, maxReadBufferBytes }) {
+  maxEntries = 1024, maxReadersPerBody = 1, maxReadBufferBytes }: StoreConfiguration) {
   // Pure validation precedes file creation/reservation.
   if (typeof parentDirectory !== 'string' || !parentDirectory.length ||
       !quantity(capacityBytes) || !quantity(maxEntries) || maxEntries === 0 ||
@@ -39,11 +58,11 @@ export function validateLocalStoreConfiguration({ parentDirectory, capacityBytes
     maxReadersPerBody, maxReadBufferBytes: readCapacity});
 }
 
-export async function createLocalRetainedStore(options) {
+export async function createLocalRetainedStore(options: StoreConfiguration) {
   const {parentDirectory, capacityBytes, maxFrameBytes, maxEntries, maxReadersPerBody,
     maxReadBufferBytes} = validateLocalStoreConfiguration(options);
   const directory = await mkdtemp(join(parentDirectory, 'actql-retained-'));
-  const entries = new Set();
+  const entries = new Set<RetainedEntry>();
   const owner = Object.freeze({});
   let remaining = capacityBytes;
   let admittedWriteBytes = 0;
@@ -52,15 +71,15 @@ export async function createLocalRetainedStore(options) {
   let next = 0;
   let closed = false;
   let removed = false;
-  let cleanupInFlight;
+  let cleanupInFlight: Promise<boolean> | undefined;
   let activeReaders = 0, reservedReadBufferBytes = 0;
 
-  const resolveStoppedExternalCreate = async entry => {
+  const resolveStoppedExternalCreate = async (entry: RetainedEntry) => {
     if (!entry.externalCreate || entry.createResolved) return;
     let pathState;
     try { pathState = await lstat(entry.path); }
     catch (error) {
-      if (error.code !== 'ENOENT') throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       entry.createResolved = true;
       entry.delegation = undefined;
       return;
@@ -86,7 +105,7 @@ export async function createLocalRetainedStore(options) {
     }
   };
 
-  const releaseEntry = async entry => {
+  const releaseEntry = async (entry: RetainedEntry) => {
     if (entry.released) return true;
     if (!entry.revoked || entry.busy || entry.readers) return false;
     // A stopped external writer may have created its allowed file before its
@@ -103,10 +122,10 @@ export async function createLocalRetainedStore(options) {
       // opened descriptor, not this pathname; cleanup has its own identity check.
       let current;
       try { current = await lstat(entry.path); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
       if (current) {
-        if (!entry.identity || current.ino !== entry.identity.ino ||
-            current.dev !== entry.identity.dev || !current.isFile()) fail('RetainedPathReplaced');
+        if (!entry.identity || current.ino !== entry.identity!.ino ||
+            current.dev !== entry.identity!.dev || !current.isFile()) fail('RetainedPathReplaced');
         await unlink(entry.path);
       }
       entry.created = false;
@@ -117,7 +136,7 @@ export async function createLocalRetainedStore(options) {
     entries.delete(entry);
     return true;
   };
-  const cleanupEntry = entry => {
+  const cleanupEntry = (entry: RetainedEntry) => {
     if (entry.cleanupInFlight) return entry.cleanupInFlight;
     entry.cleanupInFlight = releaseEntry(entry).finally(() => { entry.cleanupInFlight = undefined; });
     return entry.cleanupInFlight;
@@ -135,12 +154,12 @@ export async function createLocalRetainedStore(options) {
     cleanupPending: [...entries].some(e => e.revoked && !e.released) || (closed && !removed),
   });
 
-  const reserve = maxBytes => {
+  const reserve = (maxBytes: number) => {
     if (closed) fail('StoreClosed');
     if (entries.size >= maxEntries || next >= Number.MAX_SAFE_INTEGER) fail('StoreEntryLimit');
     if (!quantity(maxBytes) || maxBytes > remaining) fail('StoreCapacity');
     remaining -= maxBytes;
-    const entry = {
+    const entry: RetainedEntry = {
       path: join(directory, `body-${next++}`), reservation: maxBytes,
       fd: undefined, identity: undefined, created: false, opening: false,
       busy: false, readers: 0, revoked: false, released: false, sealed: false,
@@ -171,10 +190,10 @@ export async function createLocalRetainedStore(options) {
       status: () => Object.freeze({ pending: entry.revoked && !entry.released }),
       retry: () => cleanupEntry(entry),
     });
-    const attachCleanup = error => {
+    const attachCleanup = (error: unknown) => {
       revoke();
       const failure = error instanceof Error ? error : new RetainedFileError('StoreFailure');
-      failure.cleanupHandle = cleanupHandle;
+      (failure as Error & {cleanupHandle?: typeof cleanupHandle}).cleanupHandle = cleanupHandle;
       return failure;
     };
 
@@ -192,11 +211,11 @@ export async function createLocalRetainedStore(options) {
       finally { entry.busy = false; }
     };
 
-    const append = async (frame, binary = false) => {
+    const append = async (frame: unknown, binary = false) => {
       active();
       if (!entry.fd || entry.sealed || entry.busy) fail('InvalidStoreWriteState');
       if (binary ? !(frame instanceof Uint8Array) : typeof frame !== 'string') fail('InvalidStoreFrame');
-      const bytes = binary ? frame.byteLength : Buffer.byteLength(frame, 'utf8');
+      const bytes = binary ? (frame as Uint8Array).byteLength : Buffer.byteLength(frame as string, 'utf8');
       if (bytes > maxFrameBytes || bytes > entry.reservation - entry.bytes ||
           !Number.isSafeInteger(admittedWriteBytes + uncertainWriteBytes + delegatedWriteBytes + bytes)) fail('StoreCapacity');
       entry.busy = true;
@@ -205,7 +224,7 @@ export async function createLocalRetainedStore(options) {
       admittedWriteBytes += bytes;
       // Copy bounded bytes before the first await: native producers may reuse
       // their output buffer as soon as the write has been submitted.
-      const buffer = binary ? Buffer.from(frame) : Buffer.from(frame, 'utf8');
+      const buffer = binary ? Buffer.from(frame as Uint8Array) : Buffer.from(frame as string, 'utf8');
       try {
         let offset = 0;
         while (offset < buffer.length) {
@@ -220,7 +239,7 @@ export async function createLocalRetainedStore(options) {
       finally { entry.busy = false; }
     };
 
-    const seal = async (identity, delegated = false, physical = false) => {
+    const seal = async (identity: FileClaim | null | undefined, delegated = false, physical = false) => {
       active();
       if (!entry.fd || entry.sealed || entry.busy) fail('InvalidStoreSealState');
       entry.busy = true;
@@ -233,9 +252,9 @@ export async function createLocalRetainedStore(options) {
         if (!delegated) {
           if (cid !== actual) fail('StoreIdentityMismatch');
         }
-        const state = await entry.fd.stat();
+        const state = await entry.fd!.stat();
         if (!state.isFile() || state.size !== bytes ||
-            state.dev !== entry.identity.dev || state.ino !== entry.identity.ino) fail('StoreIdentityMismatch');
+            state.dev !== entry.identity!.dev || state.ino !== entry.identity!.ino) fail('StoreIdentityMismatch');
         active();
         entry.cid = cid;
         entry.sealed = true;
@@ -245,17 +264,17 @@ export async function createLocalRetainedStore(options) {
       finally { entry.busy = false; }
       const body = Object.freeze({
         // Immutable identity of physical bytes only, not an ActQL result claim.
-        bytes: entry.bytes, cid: entry.cid,
+        bytes: entry.bytes, cid: entry.cid!,
         available: () => !closed && !entry.revoked && !entry.released,
         close: revoke,
         cleanupHandle,
-        delegateRead(session) {
+        delegateRead(session: string) {
           active();
           if (typeof session !== 'string' || !session.length || session.length > 256) fail('InvalidStoreSession');
           const descriptor = Object.freeze({
             version: 'actql-local-file-read/0.1', session, token: randomUUID(),
-            path: entry.path, device: entry.identity.dev, inode: entry.identity.ino,
-            bytes: entry.bytes, cid: entry.cid, maxFrameBytes,
+            path: entry.path, device: entry.identity!.dev, inode: entry.identity!.ino,
+            bytes: entry.bytes, cid: entry.cid!, maxFrameBytes,
           });
           const release = acquireRead();
           let settled = false;
@@ -265,7 +284,7 @@ export async function createLocalRetainedStore(options) {
             release();
             return true;
           };
-          const verifyReport = report => {
+          const verifyReport = (report: FileTransferReport | null | undefined) => {
             if (settled || !report || report.version !== descriptor.version ||
                 report.session !== descriptor.session || report.token !== descriptor.token ||
                 report.bytes !== descriptor.bytes || report.cid !== descriptor.cid) fail('ForeignStoreReadReport');
@@ -275,23 +294,23 @@ export async function createLocalRetainedStore(options) {
             // A verified read can keep the physical holding borrowed while
             // logical admission/consumer work finishes. Verification is not
             // release and does not make a closed body available again.
-            verify(report) {
-              verifyReport(report);
+            verify(report: unknown) {
+              verifyReport(report as FileTransferReport | null | undefined);
               active();
-              return Object.freeze({bytes: entry.bytes, cid: entry.cid});
+              return Object.freeze({bytes: entry.bytes, cid: entry.cid!});
             },
-            finish(report) {
-              verifyReport(report);
+            finish(report: unknown) {
+              verifyReport(report as FileTransferReport | null | undefined);
               settle();
               active();
-              return Object.freeze({ bytes: entry.bytes, cid: entry.cid });
+              return Object.freeze({ bytes: entry.bytes, cid: entry.cid! });
             },
             // Trusted actual process exit or confirmed reader stop only. A
             // cancellation request cannot settle a still-running borrow.
             confirmStopped: settle,
           });
         },
-        async consume(accept, signal) {
+        async consume(accept: (bytes: Buffer) => unknown, signal?: AbortSignal) {
           active();
           if (typeof accept !== 'function') fail('InvalidStoreReader');
           signal?.throwIfAborted();
@@ -305,7 +324,7 @@ export async function createLocalRetainedStore(options) {
               signal?.throwIfAborted();
               let bytesRead;
               try {
-                ({ bytesRead } = await entry.fd.read(buffer, 0, Math.min(buffer.length, entry.bytes - position), position));
+                ({ bytesRead } = await entry.fd!.read(buffer, 0, Math.min(buffer.length, entry.bytes - position), position));
               } catch (error) { throw attachCleanup(error); }
               if (!bytesRead) throw attachCleanup(new RetainedFileError('RetainedBodyTruncated'));
               active();
@@ -318,7 +337,7 @@ export async function createLocalRetainedStore(options) {
               position += bytesRead;
             }
             let state;
-            try { state = await entry.fd.stat(); }
+            try { state = await entry.fd!.stat(); }
             catch (error) { throw attachCleanup(error); }
             if (state.size !== entry.bytes || `sha256:${hash.digest('hex')}` !== entry.cid) {
               throw attachCleanup(new RetainedFileError('RetainedBodyChanged'));
@@ -337,14 +356,14 @@ export async function createLocalRetainedStore(options) {
     // a selected execution process writes directly, without relaying body bytes
     // through the control channel. Neither descriptor nor report is completion
     // evidence. Reports must arrive over that process's exact owned IPC session.
-    const delegate = session => {
+    const delegate = (session: string) => {
       active();
       if (typeof session !== 'string' || !session.length || session.length > 256) fail('InvalidStoreSession');
       if (!entry.fd || entry.busy || entry.sealed || entry.bytes || entry.delegation) fail('InvalidStoreWriteState');
       if (!Number.isSafeInteger(admittedWriteBytes + uncertainWriteBytes + delegatedWriteBytes + entry.reservation)) fail('StoreCapacity');
       const descriptor = Object.freeze({
         version: 'actql-local-file/0.1', session, token: randomUUID(),
-        path: entry.path, device: entry.identity.dev, inode: entry.identity.ino,
+        path: entry.path, device: entry.identity!.dev, inode: entry.identity!.ino,
         maxBytes: entry.reservation, maxFrameBytes,
       });
       entry.delegation = descriptor;
@@ -352,7 +371,7 @@ export async function createLocalRetainedStore(options) {
       entry.busy = true;
       return descriptor;
     };
-    const finishDelegated = async report => {
+    const finishDelegated = async (report: FileTransferReport | null | undefined) => {
       const lease = entry.delegation;
       if (!lease || !entry.busy || entry.sealed || !report ||
           report.session !== lease.session || report.token !== lease.token ||
@@ -375,7 +394,7 @@ export async function createLocalRetainedStore(options) {
     // adopt only the exact regular file generation observed after the writer
     // has stopped. This is a physical holding capability, never logical output
     // or completion evidence.
-    const delegateCreate = session => {
+    const delegateCreate = (session: string) => {
       active();
       if (typeof session !== 'string' || !session.length || session.length > 256) {
         fail('InvalidStoreSession');
@@ -396,7 +415,7 @@ export async function createLocalRetainedStore(options) {
       entry.busy = true;
       return descriptor;
     };
-    const finishCreated = async report => {
+    const finishCreated = async (report: FileTransferReport | null | undefined) => {
       const lease = entry.delegation;
       if (!lease || lease.version !== 'actql-local-file-create/0.1' ||
           !entry.busy || entry.fd || entry.created || entry.sealed || !report ||
@@ -465,7 +484,8 @@ export async function createLocalRetainedStore(options) {
             entry.created = true;
           }
         } catch (statusError) {
-          if (statusError.code !== 'ENOENT') error.cleanupErrors = [statusError];
+          if ((statusError as NodeJS.ErrnoException).code !== 'ENOENT')
+            (error as Error & {cleanupErrors?: unknown[]}).cleanupErrors = [statusError];
         }
         throw attachCleanup(error);
       }
@@ -486,8 +506,8 @@ export async function createLocalRetainedStore(options) {
       revoke();
       return true;
     };
-    return Object.freeze({ start, append: text => append(text), appendBytes: bytes => append(bytes, true),
-      seal: identity => seal(identity),
+    return Object.freeze({ start, append: (text: unknown) => append(text), appendBytes: (bytes: unknown) => append(bytes, true),
+      seal: (identity: FileClaim | null | undefined) => seal(identity),
       // Physical-byte proof only. Logical content/conversion and completion
       // still require their own exact, installed verifier.
       sealPhysical: () => seal(undefined, false, true),
@@ -520,3 +540,7 @@ export async function createLocalRetainedStore(options) {
   storeOwners.set(store, {owner, available: () => !closed});
   return store;
 }
+
+export type LocalRetainedStore = Awaited<ReturnType<typeof createLocalRetainedStore>>;
+type SealedBody = Awaited<ReturnType<ReturnType<LocalRetainedStore['reserve']>['seal']>>;
+export type DelegatedReadLease = ReturnType<SealedBody['delegateRead']>['descriptor'];

@@ -5,22 +5,25 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createLocalRetainedStore } from './files.mjs';
+import type { LocalRetainedStore } from './files.mjs';
+import type { BinaryLike } from 'node:crypto';
+import type { TestContext } from 'node:test';
 
-const digest = text => `sha256:${createHash('sha256').update(text).digest('hex')}`;
-const code = expected => error => error?.code === expected;
-async function fixture(t, options = {}) {
+const digest = (text: BinaryLike) => `sha256:${createHash('sha256').update(text).digest('hex')}`;
+const code = (expected: string) => (error: unknown) => (error as {code?: unknown} | null | undefined)?.code === expected;
+async function fixture(t: TestContext, options: Partial<Parameters<typeof createLocalRetainedStore>[0]> = {}) {
   const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-store-test-'));
   const store = await createLocalRetainedStore({ parentDirectory, capacityBytes: 100, maxFrameBytes: 16, ...options });
   t.after(async () => { store.close(); await store.cleanup(); await rmdir(parentDirectory); });
   return { store, parentDirectory };
 }
-async function held(store, text = '[1,2,3]') {
+async function held(store: LocalRetainedStore, text = '[1,2,3]') {
   const write = store.reserve(20);
   await write.start();
   await write.append(text);
   return write.seal({ bytes: Buffer.byteLength(text), cid: digest(text) });
 }
-async function bodyPath(parent) {
+async function bodyPath(parent: string) {
   const directory = join(parent, (await readdir(parent))[0]);
   return join(directory, (await readdir(directory))[0]);
 }
@@ -79,7 +82,7 @@ test('binary storage snapshots bounded bytes and seals physical identity without
   const body = await writer.sealPhysical();
   assert.equal(body.bytes, expected.length);
   assert.equal(body.cid, digest(expected));
-  const chunks = [];
+  const chunks: Buffer[] = [];
   await body.consume(bytes => chunks.push(Buffer.from(bytes)));
   assert.deepEqual(Buffer.concat(chunks), expected);
   assert.equal(store.status().reservedBytes, 6);
@@ -111,8 +114,8 @@ test('wrong identity leaves cleanup pending, without admitting a holding', async
   const write = store.reserve(20);
   await write.start(); await write.append('[]');
   await assert.rejects(write.seal({ bytes: 2, cid: digest('[0]') }), error => {
-    assert.equal(error.code, 'StoreIdentityMismatch');
-    assert.equal(error.cleanupHandle.status().pending, true);
+    assert.equal((error as {code?: unknown}).code, 'StoreIdentityMismatch');
+    assert.equal((error as {cleanupHandle: {status: () => {pending: boolean}}}).cleanupHandle.status().pending, true);
     return true;
   });
   assert.equal(store.status().holdings, 0);
@@ -126,10 +129,10 @@ test('wrong identity leaves cleanup pending, without admitting a holding', async
 test('close during a borrow revokes use but keeps capacity until the reader leaves', async t => {
   const { store } = await fixture(t);
   const body = await held(store);
-  let entered;
-  const inside = new Promise(resolve => { entered = resolve; });
-  let resume;
-  const wait = new Promise(resolve => { resume = resolve; });
+  let entered!: () => void;
+  const inside = new Promise<void>(resolve => { entered = resolve; });
+  let resume!: () => void;
+  const wait = new Promise<void>(resolve => { resume = resolve; });
   const reading = body.consume(async () => { entered(); await wait; });
   const rejected = assert.rejects(reading, code('RetainedUnavailable'));
   await inside;

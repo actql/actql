@@ -5,12 +5,13 @@ import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { RetainedFileError } from './files.mjs';
+import type { DelegatedReadLease } from './files.mjs';
 
-const fail = code => { throw new RetainedFileError(code); };
-const quantity = n => Number.isSafeInteger(n) && n >= 0;
+const fail: (code: string) => never = code => { throw new RetainedFileError(code); };
+const quantity = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
 
-export async function consumeDelegatedFile(supplied, accept, signal) {
-  const lease = Object.freeze({ ...supplied });
+export async function consumeDelegatedFile(supplied: unknown, accept: (bytes: Buffer) => unknown, signal?: AbortSignal) {
+  const lease = Object.freeze({ ...supplied as DelegatedReadLease });
   if (lease.version !== 'actql-local-file-read/0.1' ||
       typeof lease.session !== 'string' || !lease.session.length || lease.session.length > 256 ||
       typeof lease.token !== 'string' || !/^[a-f0-9-]{36}$/.test(lease.token) ||
