@@ -13927,9 +13927,9 @@
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
-      "module": "adapters/store-local/publication-store-io.mts",
+      "module": "adapters/store-local/publication-store-io.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c6f45c85d4e211be59a82a8778734c6795e67ab2ef6afab79cd04968a9568bf5",
+      "sha256": "be03b782c926b2277a7a1c50ff77d58012e34449795901933a9c5bc5203b8df6",
       "exports": [
         "PublicationStoreError",
         "fail",
@@ -13938,120 +13938,73 @@
       ],
       "operations": [
         {
-          "name": "<call>",
-          "parameters": [],
-          "result": "unknown"
-        },
-        {
-          "name": "<call>#2",
-          "parameters": [
-            "code: string",
-            "cause?: unknown"
-          ],
-          "result": "never"
-        },
-        {
-          "name": "fail",
+          "name": "fail/fail",
           "parameters": [
             "code",
             "cause"
           ],
-          "result": null
+          "async": false
         },
         {
-          "name": "PublicationStoreError/constructor",
+          "name": "PublicationStoreError/constructor:constructor/constructor:constructor",
           "parameters": [
-            "code: string",
-            "cause?: unknown"
+            "code",
+            "cause"
           ],
-          "result": null
+          "async": false
         },
         {
-          "name": "quantity",
+          "name": "quantity/quantity",
           "parameters": [
-            "value: unknown"
+            "value"
           ],
-          "result": "value is number"
+          "async": false
         },
         {
           "name": "readBounded",
           "parameters": [
-            "path: Parameters<typeof open>[0]",
-            "maximum: unknown",
-            "closed?: () => void",
-            "signal?: AbortSignal",
-            "ownerOnly = false",
-            "readDemand?: (size: number) => undefined"
+            "path",
+            "maximum",
+            "closed",
+            "signal",
+            "ownerOnly",
+            "readDemand"
           ],
-          "result": null
+          "async": true
         },
         {
-          "name": "readBounded/<call>",
+          "name": "readBounded/cleanup/init:retry/init:retry",
           "parameters": [],
-          "result": "void"
+          "async": false
         },
         {
-          "name": "readBounded/<call>#2",
-          "parameters": [
-            "size: number"
-          ],
-          "result": "undefined"
-        },
-        {
-          "name": "readBounded/<call>#3",
-          "parameters": [
-            "name"
-          ],
-          "result": null
-        },
-        {
-          "name": "readBounded/captureClose",
+          "name": "readBounded/cleanup/init:retry/init:retry/init:retry",
           "parameters": [],
-          "result": null
+          "async": false
         },
         {
-          "name": "readBounded/retry",
-          "parameters": [],
-          "result": "Promise<MetadataStatus>"
-        },
-        {
-          "name": "readBounded/retry/<call>",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "readBounded/retry/<call>#2",
+          "name": "readBounded/cleanup/init:retry/init:retry/init:retry#2",
           "parameters": [
             "result"
           ],
-          "result": null
+          "async": false
         },
         {
-          "name": "readBounded/retry/<call>#3",
+          "name": "readBounded/cleanup/init:retry/init:retry/init:retry#3",
           "parameters": [],
-          "result": null
+          "async": false
         },
         {
-          "name": "readBounded/retry#2",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "readBounded/sameFile",
+          "name": "readBounded/readBounded",
           "parameters": [
-            "state: BigIntStats"
+            "name"
           ],
-          "result": null
+          "async": false
         },
         {
-          "name": "readBounded/status",
+          "name": "readBounded/status/status",
           "parameters": [],
-          "result": null
-        },
-        {
-          "name": "readBounded/status#2",
-          "parameters": [],
-          "result": "MetadataStatus"
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -14060,24 +14013,16 @@
         {
           "operations": [
             "<module>",
-            "<call>",
-            "<call>#2",
-            "fail",
-            "PublicationStoreError/constructor",
-            "quantity",
+            "fail/fail",
+            "PublicationStoreError/constructor:constructor/constructor:constructor",
+            "quantity/quantity",
             "readBounded",
-            "readBounded/<call>",
-            "readBounded/<call>#2",
-            "readBounded/<call>#3",
-            "readBounded/captureClose",
-            "readBounded/retry",
-            "readBounded/retry/<call>",
-            "readBounded/retry/<call>#2",
-            "readBounded/retry/<call>#3",
-            "readBounded/retry#2",
-            "readBounded/sameFile",
-            "readBounded/status",
-            "readBounded/status#2"
+            "readBounded/cleanup/init:retry/init:retry",
+            "readBounded/cleanup/init:retry/init:retry/init:retry",
+            "readBounded/cleanup/init:retry/init:retry/init:retry#2",
+            "readBounded/cleanup/init:retry/init:retry/init:retry#3",
+            "readBounded/readBounded",
+            "readBounded/status/status"
           ],
           "exports": [
             "PublicationStoreError",
