@@ -1485,14 +1485,15 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "97c759c8c07bfa9dcd1b0e89e2f4bb92d37d4caacbf596b73b2004d4366b0d4b",
+      "sha256": "1b718558eaad7a12c80c1f17d4c4520d7e35911ed258f359e57692ed23901288",
       "exports": [
         "invocationBindingsMatch",
         "invocationScopeFields",
         "invokeScopedCredentialOperation",
         "ownInvocationAuthorization",
         "ownInvocationContext",
-        "ownInvocationLimits"
+        "ownInvocationLimits",
+        "rowUpdateTransportObservation"
       ],
       "operations": [
         {
@@ -1572,6 +1573,13 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "rowUpdateTransportObservation",
+          "parameters": [
+            "response"
+          ],
+          "async": false
         }
       ],
       "role": "public-wire-codec",
@@ -1586,7 +1594,8 @@
             "ownInvocationAuthorization",
             "ownInvocationContext",
             "ownInvocationLimits",
-            "ownInvocationLimits/ownInvocationLimits"
+            "ownInvocationLimits/ownInvocationLimits",
+            "rowUpdateTransportObservation"
           ],
           "exports": [
             "invocationBindingsMatch",
@@ -1594,7 +1603,8 @@
             "invokeScopedCredentialOperation",
             "ownInvocationAuthorization",
             "ownInvocationContext",
-            "ownInvocationLimits"
+            "ownInvocationLimits",
+            "rowUpdateTransportObservation"
           ],
           "attributes": {
             "responsibility": [
@@ -1637,6 +1647,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "useCid: response.useCid"
               }
             ],
             "ownership": [
@@ -1747,6 +1761,10 @@
               {
                 "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
                 "anchor": "test('metadata actual publication sends"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
+                "anchor": "test('kintone driver does not discard an observed write on late abort or retry a lost response'"
               }
             ]
           }

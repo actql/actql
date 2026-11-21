@@ -2129,7 +2129,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "323efe1c3cc31e58db85f6e3ed58b6a1f7cef696cd8c220a7a277a8551627b90",
+      "sha256": "7fb77b71d039033bb8b2ca6597afc1b88ba8480da0e25c0ddfdba447fee06d66",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2187,21 +2187,6 @@
           "parameters": [
             "member",
             "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
-          "parameters": [
-            "key",
-            "item"
           ],
           "async": false
         },
@@ -2381,8 +2366,6 @@
             "hubspotUpdateDriver",
             "hubspotUpdateDriver/hubspotUpdateDriver",
             "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
-            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
             "hubspotUpdateDriver/init:describe/init:describe",
             "hubspotUpdateDriver/init:footprint/init:footprint",
             "hubspotUpdateDriver/init:observeTargets/init:observeTargets",

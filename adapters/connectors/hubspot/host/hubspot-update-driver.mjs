@@ -5,8 +5,8 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
-import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
+import {invocationScopeFields, invokeScopedCredentialOperation, rowUpdateTransportObservation} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
@@ -198,10 +198,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         site_binding_cid: siteBindingCid, generation_cid: generationCid, effect_id: member.effectId,
         member_index: member.memberIndex, mapping_ref: original.mappingRef, mapping_cid: original.mappingCid,
         resource: original.resource, effect_kind: 'update', key: 'id', fields: original.fields};
-      const matched = checkpointApprovalFacts(decision)?.physicalBindings?.find(value =>
-        Object.entries(expected).every(([key, item]) => encode(value[key]) === encode(item)));
-      if (!matched) fail('HubSpotTargetReadApprovalNotAdmitted');
-      return physical.admitCheckpointEffectTargetRead(decision, matched, HUBSPOT_OBJECT_BATCH_READ_OPERATION);
+      return admitCheckpointPhysicalRead(decision, expected, HUBSPOT_OBJECT_BATCH_READ_OPERATION,
+        physical.admitCheckpointEffectTargetRead, 'HubSpotTargetReadApprovalNotAdmitted');
     },
     footprint({member}) {
       const original = selected(member);
@@ -230,8 +228,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         path: '/crm/v3/objects/' + segment(requests.objectType(request)) + '/batch/update',
         query: [], headers: [['accept', 'application/json']], body, responseHeaders: [],
         maxRequestBytes: responsePolicy.maxRequestBytes, maxResponseBytes: responsePolicy.maxResponseBytes, signal});
-      return Object.freeze({observation: Object.freeze({useCid: response.useCid,
-        statusCode: response.statusCode, body: response.body})});
+      return rowUpdateTransportObservation(response);
     },
     project({request, observation}) {
       const result = projectHubSpotRecordWriteObservation({moon: native,

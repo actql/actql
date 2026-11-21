@@ -1404,14 +1404,41 @@
     {
       "module": "adapters/host-common/checkpoint-approval.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a140ed7ef49554eda56412cd239e02b64274fcc36362fe629fdcc3b6f7c97566",
+      "sha256": "a63bc8c864424b94da713d47c92a51ca385b0852c22e65cd529dfd7992bf0432",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
+        "admitCheckpointPhysicalRead",
         "checkpointApprovalFacts",
         "recordCheckpointApproval"
       ],
       "operations": [
+        {
+          "name": "admitCheckpointPhysicalRead",
+          "parameters": [
+            "decision",
+            "expected",
+            "operation",
+            "admit",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched/matched",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
         {
           "name": "checkpointApprovalFacts",
           "parameters": [
@@ -1431,10 +1458,14 @@
       "contracts": [
         {
           "operations": [
+            "admitCheckpointPhysicalRead",
+            "admitCheckpointPhysicalRead/matched/matched",
+            "admitCheckpointPhysicalRead/matched/matched/matched",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
           "exports": [
+            "admitCheckpointPhysicalRead",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
@@ -1479,6 +1510,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "anchor": "return admit(decision, matched, operation);"
               }
             ],
             "ownership": [
@@ -1573,6 +1608,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
+                "anchor": "test('kintone driver delegates only the actual matching original Checkpoint physical binding'"
               }
             ]
           }
@@ -1723,7 +1762,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "../../packages/sdk/host-port.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },

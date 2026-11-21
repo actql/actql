@@ -149,3 +149,10 @@ export function invokeScopedCredentialOperation({
     signal,
   });
 }
+
+// The Row Effect retains this exact observation for classification and
+// settlement. Receiving a response takes precedence over a late abort.
+export function rowUpdateTransportObservation(response) {
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+    statusCode: response.statusCode, body: response.body})});
+}

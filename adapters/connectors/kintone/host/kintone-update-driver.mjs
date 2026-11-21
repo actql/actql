@@ -3,9 +3,9 @@
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
-import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
+import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
-import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+import {invocationScopeFields, invokeScopedCredentialOperation, rowUpdateTransportObservation} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
@@ -219,10 +219,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         generation_cid: generationCid, effect_id: member.effectId, member_index: member.memberIndex,
         mapping_ref: requests.mappingRef, mapping_cid: requests.mappingCid, resource, effect_kind: 'update',
         key: '$id', fields: beforeFields};
-      const matched = checkpointApprovalFacts(decision)?.physicalBindings?.find(value =>
-        Object.entries(expected).every(([key, item]) => encode(value[key]) === encode(item)));
-      if (!matched) fail('KintoneTargetReadApprovalNotAdmitted');
-      return admitTarget(decision, matched, KINTONE_TARGET_READ_OPERATION);
+      return admitCheckpointPhysicalRead(decision, expected, KINTONE_TARGET_READ_OPERATION,
+        admitTarget, 'KintoneTargetReadApprovalNotAdmitted');
     },
     footprint({member}) {
       selected(member);
@@ -246,10 +244,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       const response = await invokeScopedCredentialOperation({authorization, credential, callResource,
         operation: KINTONE_RECORD_UPDATE_OPERATION, method: 'PUT', path: prefix + 'records.json', query: [],
         headers: [['accept', 'application/json']], body, responseHeaders: [], maxRequestBytes, maxResponseBytes, signal});
-      // No post-send abort exception may discard an observed response. Host
-      // owns its custody and the original subsequent current/settlement fence.
-      return Object.freeze({observation: Object.freeze({useCid: response.useCid,
-        statusCode: response.statusCode, body: response.body})});
+      return rowUpdateTransportObservation(response);
     },
     project({request, observation}) {return requests.projectResponse(request, observation);},
   });

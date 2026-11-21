@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "3adfc1dda5e75ae91bfdb7fb6fd23afca80668851d2da5459462135bf0800607",
+      "sha256": "cc5d16b0bb9dc9fedcb79cf2116e142e2985db6069f46b7149add66316d5f10d",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -8582,21 +8582,6 @@
           "parameters": [
             "member",
             "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
-          "parameters": [
-            "key",
-            "item"
           ],
           "async": false
         },
@@ -8796,8 +8781,6 @@
             "capture/capture/capture",
             "kintoneUpdateDriver",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
-            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
             "kintoneUpdateDriver/init:describe/init:describe",
             "kintoneUpdateDriver/init:footprint/init:footprint",
             "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
