@@ -249,7 +249,7 @@ test('optional timeout completion rechecks every independent installed package i
   const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'], changed = new Set(), consumers = new Set();
   await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
     const result = await f.command(cmd, args, options);
-    if (args[1] === 'cold' || args[1]?.startsWith('usage-')) {
+    if (args[1] === 'cold' || args[1] === 'missing-key' || args[1]?.startsWith('usage-')) {
       const index = f.preparations.findIndex(prepared => prepared.cwd === options.cwd);
       assert(index >= 0); assert(!consumers.has(options.cwd)); consumers.add(options.cwd);
       const name = packages[index % packages.length]; changed.add(name);
@@ -338,11 +338,12 @@ test('optional diagnostic selection retains nested inventories and bounded usage
   const patterns = upload.with.path.split('\n').filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
   const expected = ['summary.json'];
   const privateFiles = [];
-  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body', 'timeout-call']) {
+  for (const name of ['warm', 'missing-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
+    'timeout-headers', 'timeout-body', 'timeout-call']) {
     expected.push(`cases/${name}/packages/ordinary-operation-packages.json`,
       `cases/${name}/packages/optional-provider-packages.json`, `raw/${name}/install-node.stdout`);
     if (name.startsWith('usage-')) for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
-    for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider.key', '.state/private.db'])
+    for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider-credential.fixture', 'provider.key', '.state/private.db'])
       privateFiles.push(`cases/${name}/consumer/${file}`);
   }
   for (const path of [...expected, ...privateFiles]) {await mkdir(join(root, path, '..'), {recursive: true}); await writeFile(join(root, path), 'fixture');}
