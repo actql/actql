@@ -4,20 +4,30 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts,
   createAuthorizationDecisionBudget, createAuthorizationGate} from
   '../host-common/authorization-gate.mjs';
 
+type GateOptions = NonNullable<Parameters<typeof createAuthorizationGate>[0]>;
+type Runtime = NonNullable<GateOptions['runtime']>;
+type Ask = NonNullable<GateOptions['decide']>;
+type FixtureOptions = Readonly<{wire?: string; readConfiguration?: GateOptions['readConfiguration'];
+  budget?: GateOptions['decisionBudget']; decide?: (view: Parameters<Ask>[0]) => ReturnType<Ask>}>;
+type Evaluation = Readonly<{
+  account_id: string; entry_id: string; principal: string; connection: string;
+  resource: string; operation: string; outcome: 'allow' | 'deny' | 'delegate';
+}>;
+
 // Real adapter with a finite Core double. These controls establish issuer and
 // account-observation routing, not compiled Core or physical Provider coverage.
-const cid = value => `sha256:${value.repeat(64)}`;
+const cid = (value: string) => `sha256:${value.repeat(64)}`;
 const context = Object.freeze({principal: 'owner', contextCid: cid('a')});
 const scope = Object.freeze({connection: 'connection', resource: 'resource', operation: 'read'});
 const subjectCid = cid('b');
-const accountWire = (fields = {}) => JSON.stringify({state: 'admitted',
+const accountWire = (fields: Readonly<Record<string, unknown>> = {}) => JSON.stringify({state: 'admitted',
   account_id: 'account', configuration_cid: cid('c'), outcome: 'allow',
   entry_id: 'entry', ...fields});
 
-function fixture({wire = accountWire(), readConfiguration, budget, decide} = {}) {
+function fixture({wire = accountWire(), readConfiguration, budget, decide}: FixtureOptions = {}) {
   let decisions = 0;
   const calls = {admit: 0, accountState: 0, evaluate: 0};
-  const runtime = {
+  const runtime: Runtime = {
     executionAuthorizationAdmit(text) { calls.admit++; return JSON.parse(text); },
     executionAuthorizationMissing: () => ({state: 'missing'}),
     executionAuthorizationAccountJson(account) { calls.accountState++; return JSON.stringify(account); },
@@ -26,15 +36,15 @@ function fixture({wire = accountWire(), readConfiguration, budget, decide} = {})
       return {...account, principal, connection, resource, operation};
     },
     executionAuthorizationEvaluationJson: JSON.stringify,
-    executionAuthorizationEvaluationAction: evaluation => evaluation.outcome === 'allow'
+    executionAuthorizationEvaluationAction: evaluation => (evaluation as Evaluation).outcome === 'allow'
       ? {action: 'dispatch', basis: 'account_allow'}
       : {action: 'deny', basis: 'account', reason: 'explicit'},
     executionAuthorizationPrepare(evaluation, configurationCid, boundary, subjectCid,
       contextCid, answeringAuthorities, requiredClaims) {
-      return {ok: true, subject: {account_id: evaluation.account_id,
-        configuration_cid: configurationCid, entry_id: evaluation.entry_id,
-        principal: evaluation.principal, connection: evaluation.connection,
-        resource: evaluation.resource, operation: evaluation.operation,
+      return {ok: true, subject: {account_id: (evaluation as Evaluation).account_id,
+        configuration_cid: configurationCid, entry_id: (evaluation as Evaluation).entry_id,
+        principal: (evaluation as Evaluation).principal, connection: (evaluation as Evaluation).connection,
+        resource: (evaluation as Evaluation).resource, operation: (evaluation as Evaluation).operation,
         boundary, subject_cid: subjectCid, context_cid: contextCid},
       answering_authorities: answeringAuthorities, required_claims: requiredClaims};
     },
@@ -129,7 +139,7 @@ test('copies and another scope cannot borrow an original issuer', async () => {
     assert.throws(() => assertAuthorizationAccountCurrent(Object.freeze({...original})),
       {code: 'ForeignAuthorizationDecision'});
     for (const fake of [undefined, null, {}, Object.freeze({action: 'dispatch'})]) {
-      assert.throws(() => assertAuthorizationAccountCurrent(fake), {code: 'ForeignAuthorizationDecision'});
+      assert.throws(() => assertAuthorizationAccountCurrent(fake as Parameters<typeof assertAuthorizationAccountCurrent>[0]), {code: 'ForeignAuthorizationDecision'});
     }
   } finally { sibling.close(); x.gate.close(); }
 });
@@ -173,7 +183,8 @@ test('the original account identity and configuration must both remain exact', a
 test('missing rejected malformed asynchronous or failed observations cannot dispatch', async () => {
   for (const read of [() => undefined, () => JSON.stringify({state: 'rejected'}),
     () => '{', () => Promise.resolve(accountWire()), () => { throw new Error('read unavailable'); }]) {
-    const x = fixture({readConfiguration: read});
+    // Include the intentionally asynchronous invalid port in this runtime refusal test.
+    const x = fixture({readConfiguration: read as GateOptions['readConfiguration']});
     try {
       await assert.rejects(x.authorize(), {code: 'AuthorizationCurrentAccountUnavailable',
         runtimeCode: 'ACTQL_E_ACCOUNT_CONFIG_INVALID'});
@@ -193,9 +204,9 @@ test('a current deny or changed selected entry never converts an original decisi
 
 test('account change during the original Host answer await fences its returned permit', async () => {
   let wire = accountWire({outcome: 'delegate'});
-  let release, started;
-  const began = new Promise(resolve => { started = resolve; });
-  const held = new Promise(resolve => { release = resolve; });
+  let release!: () => void, started!: () => void;
+  const began = new Promise<void>(resolve => { started = resolve; });
+  const held = new Promise<void>(resolve => { release = resolve; });
   const x = fixture({wire, readConfiguration: () => wire,
     decide: async view => { started(); await held;
       return {decision: 'permit', subject: view.subject, authority: 'host', claims: []}; }});

@@ -16633,7 +16633,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16647,7 +16647,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16661,7 +16661,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "// `options` is Host installation: account configuration text and its CID,"
               },
               {
@@ -16675,7 +16675,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16689,7 +16689,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16703,7 +16703,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16717,7 +16717,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "'../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',"
               },
               {
@@ -16731,7 +16731,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16745,7 +16745,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "// Node Host installation of the execution-authorization gate. The gate shares"
               },
               {
@@ -16777,7 +16777,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16791,7 +16791,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16805,7 +16805,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "// `options` is Host installation: account configuration text and its CID,"
               },
               {
@@ -16819,7 +16819,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16833,7 +16833,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16847,7 +16847,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16861,7 +16861,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "'../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',"
               },
               {
@@ -16875,7 +16875,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "export function loadExecutionAuthorizationRuntime() {"
               },
               {
@@ -16889,7 +16889,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/authorization.mjs",
+                "path": "adapters/host-node/authorization.mts",
                 "anchor": "// Node Host installation of the execution-authorization gate. The gate shares"
               },
               {

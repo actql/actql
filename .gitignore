@@ -1245,3 +1245,7 @@ target/
 /adapters/host-common/completed-effect-capture-retirement.test.d.mts
 /adapters/host-common/authorization-gate.mjs
 /adapters/host-common/authorization-gate.d.mts
+/adapters/host-node/authorization.mjs
+/adapters/host-node/authorization.d.mts
+/adapters/host-node/authorization-account-current.test.mjs
+/adapters/host-node/authorization-account-current.test.d.mts
