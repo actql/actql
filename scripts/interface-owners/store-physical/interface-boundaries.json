@@ -167,7 +167,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -193,7 +193,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               },
               {
@@ -223,7 +223,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               },
               {
@@ -408,7 +408,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -434,7 +434,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -464,7 +464,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               },
               {
@@ -688,7 +688,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -706,7 +706,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -732,7 +732,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -878,7 +878,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -896,7 +896,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -918,7 +918,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -1771,7 +1771,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1789,7 +1789,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1811,7 +1811,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -1954,7 +1954,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1972,7 +1972,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1998,7 +1998,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -2421,7 +2421,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "installManagedRepresentation"
               },
               {
@@ -2445,7 +2445,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2463,7 +2463,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2485,7 +2485,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -2504,7 +2504,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2514,7 +2514,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2524,7 +2524,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2534,7 +2534,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2544,7 +2544,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2554,7 +2554,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2564,7 +2564,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2574,7 +2574,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2584,7 +2584,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "path": "adapters/store-local/managed-memory-representations.mts",
                 "anchor": "export function managedMemoryReleaseFailureMatches("
               },
               {
@@ -2690,7 +2690,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2708,7 +2708,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -2730,7 +2730,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -3008,7 +3008,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3026,7 +3026,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3048,7 +3048,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -3320,7 +3320,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3338,7 +3338,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3360,7 +3360,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]
@@ -14167,7 +14167,7 @@
                 "anchor": "source and destination overlap"
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -14185,7 +14185,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ],
@@ -14211,7 +14211,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/managed-memory-transfer.test.mjs",
+                "path": "adapters/store-local/managed-memory-transfer.test.mts",
                 "anchor": "test("
               }
             ]

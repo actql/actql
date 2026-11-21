@@ -1,32 +1,73 @@
 // Portable registry and scoped access for managed row representations. File
 // providers install their own grouped reader; memory-only consumers never load
 // Node filesystem or crypto modules.
-const representations = new WeakMap();
-const rowPlans = new WeakSet();
-const managedInputOwners = new WeakMap();
-const managedInputReleaseFailures = new WeakMap();
+export type ManagedTransferEstimate = Readonly<{
+  transferBytes: bigint;
+  retainedBytes: bigint;
+  executionBytes: bigint;
+}>;
+type Readable = (input: unknown) => boolean;
+type RowAuthorization = (input: unknown, index: number) => boolean;
+type EmitRow = (row: string) => unknown;
+type AppendRow = (index: number, row: string) => unknown;
+type BeforeRead = (indices: readonly number[], bytes: number) => unknown;
+type RowProvider = Readonly<{read(file: unknown, emit: EmitRow, signal?: AbortSignal): unknown}>;
+type Occurrence = Readonly<{material: object; input: unknown; codecContractCid?: string}>;
+type RowUse = <Value, Committed>(occurrences: readonly Occurrence[], authorize: RowAuthorization,
+  append: AppendRow, use: () => Value, signal?: AbortSignal, beforeRead?: BeforeRead,
+  commit?: (provisional: Awaited<Value>) => Committed) => Promise<Awaited<Value> | Awaited<Committed>>;
+type UsePin = Readonly<{acquire(): void; releaseUse(): void; sourceAvailable(): boolean; available(): boolean}>;
+type Representation = Readonly<{
+  readable: Readable;
+  codecContractCid?: string;
+  physicalManifest?: {cid: string};
+  rowProvider?: RowProvider;
+  transferEstimate?: ManagedTransferEstimate;
+  transferAvailable?(): boolean;
+}> & ((UsePin & {memory: true; rowProvider: RowProvider}) | {memory?: false; rowUse?: RowUse});
+type MemoryRepresentation = Extract<Representation, {memory: true}>;
+type ProviderGroup = Readonly<{kind: 'provider'; rowUse: RowUse; indices: readonly number[]}>;
+type RowGroup = Readonly<{kind: 'memory'; indices: readonly number[]}> | ProviderGroup;
+type RowPlan = Readonly<{
+  materials: readonly object[];
+  owners: readonly Representation[];
+  groups: readonly RowGroup[];
+}>;
+type CleanupHandle = Readonly<{status(): unknown; retry(): unknown}>;
+type ManagedInputFailure = Error & {
+  code: string;
+  primaryFailure: unknown;
+  cleanupPending: boolean;
+  cleanupErrors: readonly unknown[];
+  cleanupHandle?: CleanupHandle;
+};
+
+const representations = new WeakMap<object, Representation>();
+const rowPlans = new WeakSet<RowPlan>();
+const managedInputOwners = new WeakMap<object, CleanupHandle>();
+const managedInputReleaseFailures = new WeakMap<object, {handle: CleanupHandle; primary: unknown}>();
 // A copied wrapper or replaced recovery callback cannot borrow a registered
 // memory owner's completed-output cleanup authority.
-export function managedMemoryReleaseFailureMatches(owner, failure) {
+export function managedMemoryReleaseFailureMatches(owner: object, failure: object) {
   const original = managedInputReleaseFailures.get(failure);
   return original !== undefined && managedInputOwners.get(owner) === original.handle &&
     Object.getOwnPropertyDescriptor(failure, 'cleanupHandle')?.value === original.handle &&
     Object.getOwnPropertyDescriptor(failure, 'primaryFailure')?.value === original.primary;
 }
-const issue = code => Object.assign(new Error(code), {code});
-const member = (value, name) => {
+const issue = (code: string) => Object.assign(new Error(code), {code});
+const member = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
-const cleanupState = handle => {
+const cleanupState = (handle: unknown) => {
   if (!handle || typeof member(handle, 'status') !== 'function') {
     return Object.freeze({pending: true, errors: Object.freeze([])});
   }
   try {
-    const state = handle.status();
+    const state = (handle as CleanupHandle).status() as {pending?: unknown; errors?: unknown} | undefined;
     if (!state || typeof state.pending !== 'boolean') {
       return Object.freeze({pending: true, errors: Object.freeze([])});
     }
@@ -39,12 +80,12 @@ const cleanupState = handle => {
   }
 };
 
-function memoryUseFailure(reason, acquired) {
+function memoryUseFailure(reason: unknown, acquired: readonly UsePin[]) {
   const native = member(reason, 'cleanupHandle');
   if (member(reason, 'cleanupPending') !== true) return undefined;
   let usesReleased = false;
-  const diagnostics = [];
-  const releaseFailures = [];
+  const diagnostics: unknown[] = [];
+  const releaseFailures: unknown[] = [];
   const releaseAll = () => {
     if (usesReleased) return;
     usesReleased = true;
@@ -59,7 +100,7 @@ function memoryUseFailure(reason, acquired) {
     if (releaseFailures.length === 0) return undefined;
   }
   const failure = issue(typeof member(reason, 'code') === 'string'
-    ? member(reason, 'code') : 'ManagedInputUseFailed');
+    ? member(reason, 'code') as string : 'ManagedInputUseFailed') as ManagedInputFailure;
   failure.cause = reason;
   failure.primaryFailure = reason;
   failure.cleanupPending = true;
@@ -85,7 +126,7 @@ function memoryUseFailure(reason, acquired) {
     status,
     async retry() {
       if (!usesReleased && typeof member(native, 'retry') === 'function') {
-        try { await native.retry(); }
+        try { await (native as CleanupHandle).retry(); }
         catch (error) { diagnostics.push(error); }
       }
       if (!usesReleased && !cleanupState(native).pending) releaseAll();
@@ -93,7 +134,7 @@ function memoryUseFailure(reason, acquired) {
         const handle = member(error, 'cleanupHandle');
         if (cleanupState(handle).pending &&
             typeof member(handle, 'retry') === 'function') {
-          try { await handle.retry(); }
+          try { await (handle as CleanupHandle).retry(); }
           catch (retryError) { diagnostics.push(retryError); }
         }
       }
@@ -105,20 +146,20 @@ function memoryUseFailure(reason, acquired) {
   return failure;
 }
 
-function releaseMemoryUses(acquired, primary) {
+function releaseMemoryUses(acquired: readonly UsePin[], primary?: unknown) {
   const primaryProvided = arguments.length >= 2;
-  const errors = [];
+  const errors: unknown[] = [];
   for (let index = acquired.length - 1; index >= 0; index--) {
     try { acquired[index].releaseUse(); }
     catch (error) { errors.push(error); }
   }
   if (errors.length === 0) return;
-  const failure = issue('ManagedInputReleaseFailed');
+  const failure = issue('ManagedInputReleaseFailed') as ManagedInputFailure;
   const hasReleaseCause = errors[0] !== null &&
     (typeof errors[0] === 'object' || typeof errors[0] === 'function') &&
     Object.hasOwn(errors[0], 'primaryFailure');
   const releaseCause = hasReleaseCause
-    ? errors[0].primaryFailure
+    ? (errors[0] as {primaryFailure: unknown}).primaryFailure
     : errors[0];
   failure.cause = primaryProvided ? primary : releaseCause;
   failure.primaryFailure = primaryProvided ? primary : releaseCause;
@@ -142,7 +183,7 @@ function releaseMemoryUses(acquired, primary) {
         for (const handle of handles) {
           if (cleanupState(handle).pending &&
               typeof member(handle, 'retry') === 'function') {
-            try { await handle.retry(); }
+            try { await (handle as CleanupHandle).retry(); }
             catch (error) { failure.cleanupErrors = Object.freeze([
               ...failure.cleanupErrors, error,
             ]); }
@@ -156,11 +197,11 @@ function releaseMemoryUses(acquired, primary) {
   throw failure;
 }
 
-export function managedRepresentation(material) {
+export function managedRepresentation(material: object) {
   return representations.get(material);
 }
 
-export function installManagedRepresentation(material, representation) {
+export function installManagedRepresentation(material: object, representation: Representation) {
   if (!material || typeof material !== 'object' ||
       representations.has(material)) {
     throw issue('InvalidManagedInputRegistration');
@@ -168,18 +209,18 @@ export function installManagedRepresentation(material, representation) {
   representations.set(material, Object.freeze(representation));
 }
 
-export function managedInputCodecContractCid(material) {
+export function managedInputCodecContractCid(material: object) {
   return representations.get(material)?.codecContractCid;
 }
 
-export function managedInputPhysicalManifestCid(material) {
+export function managedInputPhysicalManifestCid(material: object) {
   return representations.get(material)?.physicalManifest?.cid;
 }
 
 // Pure capacity advertisement for an explicit representation Transfer. These
 // are safe upper bounds fixed by the representation owner, not observed usage
 // and not permission to acquire the generation.
-export function managedInputTransferEstimate(material) {
+export function managedInputTransferEstimate(material: object) {
   const representation = representations.get(material);
   if (!representation) return undefined;
   try {
@@ -194,7 +235,7 @@ export function managedInputTransferEstimate(material) {
 
 // Pure support lookup used during candidate preparation. It grants no Store
 // access, pins no generation and starts no provider work.
-export function managedInputSupportsRows(material) {
+export function managedInputSupportsRows(material: object) {
   return typeof representations.get(material)?.rowProvider?.read === 'function';
 }
 
@@ -202,15 +243,15 @@ export function managedInputSupportsRows(material) {
 // owners and the scopes that must overlap, but acquires no generation and
 // starts no provider work. Different physical providers compose by nesting
 // their scoped uses; publication remains outside every final provider check.
-export function planManagedInputRows(materials) {
+export function planManagedInputRows(materials: readonly object[]): RowPlan | undefined {
   if (!Array.isArray(materials)) return undefined;
   const held = materials.map(material => representations.get(material));
   if (held.some(value =>
       typeof value?.rowProvider?.read !== 'function')) return undefined;
-  const grouped = new Map();
-  const memory = [];
+  const grouped = new Map<RowUse, number[]>();
+  const memory: number[] = [];
   for (let index = 0; index < held.length; index++) {
-    const value = held[index];
+    const value = held[index]!;
     if (value.memory === true) {
       memory.push(index);
       continue;
@@ -221,7 +262,7 @@ export function planManagedInputRows(materials) {
     grouped.set(value.rowUse, indices);
   }
   if (grouped.size > 1) return undefined;
-  const groups = [];
+  const groups: RowGroup[] = [];
   if (memory.length > 0) {
     groups.push(Object.freeze({kind: 'memory', indices: Object.freeze(memory)}));
   }
@@ -234,7 +275,7 @@ export function planManagedInputRows(materials) {
   }
   const plan = Object.freeze({
     materials: Object.freeze([...materials]),
-    owners: Object.freeze([...held]),
+    owners: Object.freeze([...held]) as readonly Representation[],
     groups: Object.freeze(groups),
   });
   rowPlans.add(plan);
@@ -245,7 +286,8 @@ export function planManagedInputRows(materials) {
 // with the installed implementation; this registry only acquires a scoped
 // use count and never turns the opaque material into a portable handle.
 export function registerManagedMemoryInput(
-  material, readable, available, rowProvider, release, transferEstimate,
+  material: object, readable: Readable, available: () => boolean,
+  rowProvider: RowProvider, release: () => void, transferEstimate?: ManagedTransferEstimate,
 ) {
   const estimateValid = transferEstimate === undefined ||
     (transferEstimate !== null && typeof transferEstimate === 'object' &&
@@ -262,13 +304,13 @@ export function registerManagedMemoryInput(
     throw issue('InvalidManagedInputRegistration');
   }
   let open = true, readers = 0, released = false;
-  let releaseAttempted = false, releaseFailed = false, releaseFailure;
-  let originalReleaseError;
-  const closeWaiters = [];
+  let releaseAttempted = false, releaseFailed = false, releaseFailure: unknown;
+  let originalReleaseError: ManagedInputFailure | undefined;
+  const closeWaiters: {resolve(): void; reject(error: unknown): void}[] = [];
   const settleCloseWaiters = () => {
     if (!released && !releaseFailed) return;
     while (closeWaiters.length > 0) {
-      const waiter = closeWaiters.shift();
+      const waiter = closeWaiters.shift()!;
       if (released) waiter.resolve();
       else waiter.reject(releaseError());
     }
@@ -301,7 +343,7 @@ export function registerManagedMemoryInput(
       const handle = member(releaseFailure, 'cleanupHandle');
       if (!released && member(releaseFailure, 'cleanupPending') === true &&
           typeof member(handle, 'retry') === 'function') {
-        await handle.retry();
+        await (handle as CleanupHandle).retry();
         const state = cleanupState(handle);
         if (!state.pending && state.errors.length === 0) {
           released = true;
@@ -315,7 +357,7 @@ export function registerManagedMemoryInput(
     // releaseAttempted fixes the original failure. Concurrent waiters and
     // later retries share this one wrapper, not a growing failure inventory.
     if (originalReleaseError !== undefined) return originalReleaseError;
-    const failure = issue('ManagedInputReleaseFailed');
+    const failure = issue('ManagedInputReleaseFailed') as ManagedInputFailure;
     failure.cause = releaseFailure;
     failure.primaryFailure = releaseFailure;
     failure.cleanupErrors = releaseCleanup.status().errors;
@@ -325,7 +367,7 @@ export function registerManagedMemoryInput(
     originalReleaseError = failure;
     return failure;
   };
-  const held = {
+  const held: MemoryRepresentation = {
     readable,
     available: () => open && available() === true,
     sourceAvailable: () => available() === true,
@@ -357,7 +399,7 @@ export function registerManagedMemoryInput(
       if (!released) {
         // An admitted reader still owns the generation. Its releaseUse()
         // settles these waiters without polling or granting a new use.
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           closeWaiters.push({resolve, reject});
           settleCloseWaiters();
         });
@@ -379,15 +421,15 @@ export function registerManagedMemoryInput(
 // Publication-only scoped read of one exact managed material generation.
 // Semantic admission remains in MoonBit; this function owns only the physical
 // use pin while the installed representation emits its retained rows.
-export async function withManagedOutputRows(
-  material, emit, signal, commit,
+export async function withManagedOutputRows<Value>(
+  material: object, emit: EmitRow, signal: AbortSignal | undefined, commit: () => Value,
 ) {
-  const held = representations.get(material);
+  const held = representations.get(material) as MemoryRepresentation | undefined;
   if (!held || typeof held.rowProvider?.read !== 'function' ||
       typeof emit !== 'function' || typeof commit !== 'function') {
     throw issue('UnsupportedManagedRowRepresentation');
   }
-  const acquired = [];
+  const acquired: UsePin[] = [];
   let failed = false;
   try {
     held.acquire();
@@ -416,13 +458,15 @@ export async function withManagedOutputRows(
   }
 }
 
-async function withManagedMemoryRows(
-  occurrences, held, providers, authorize, append, use, signal, commit,
+async function withManagedMemoryRows<Value, Committed>(
+  occurrences: readonly Occurrence[], held: readonly MemoryRepresentation[], providers: readonly RowProvider[],
+  authorize: RowAuthorization, append: AppendRow, use: (recheck: () => void) => Value,
+  signal: AbortSignal | undefined, commit?: (provisional: Awaited<Value>) => Committed,
 ) {
-    const admit = (index, acquired = false) => {
+    const admit = (index: number, acquired = false) => {
       signal?.throwIfAborted();
       const occurrence = occurrences[index];
-      const value = held[index];
+      const value = held[index]!;
       const isAvailable = acquired
         ? value.sourceAvailable() === true
         : value.available() === true;
@@ -433,7 +477,7 @@ async function withManagedMemoryRows(
       }
     };
     const unique = [...new Set(held)];
-    const acquired = [];
+    const acquired: UsePin[] = [];
     let failed = false;
     try {
       for (const value of unique) {
@@ -482,8 +526,18 @@ async function withManagedMemoryRows(
 // Representation-neutral managed row use. Memory generations are pinned in
 // this portable module. Installed physical providers retain their own grouped
 // read operation so importing the Local connector does not import Node I/O.
-export async function withManagedInputRows(
-  occurrences, authorize, append, use, signal, beforeRead, commit, planned,
+export function withManagedInputRows<Value, Committed>(
+  occurrences: readonly Occurrence[], authorize: RowAuthorization, append: AppendRow, use: () => Value,
+  signal: AbortSignal | undefined, beforeRead: BeforeRead | undefined,
+  commit: (provisional: Awaited<Value>) => Committed, planned?: RowPlan,
+): Promise<Awaited<Committed>>;
+export function withManagedInputRows<Value>(
+  occurrences: readonly Occurrence[], authorize: RowAuthorization, append: AppendRow, use: () => Value,
+  signal?: AbortSignal, beforeRead?: BeforeRead, commit?: undefined, planned?: RowPlan,
+): Promise<Awaited<Value>>;
+export async function withManagedInputRows<Value, Committed>(
+  occurrences: readonly Occurrence[], authorize: RowAuthorization, append: AppendRow, use: () => Value,
+  signal?: AbortSignal, beforeRead?: BeforeRead, commit?: (provisional: Awaited<Value>) => Committed, planned?: RowPlan,
 ) {
   if (!Array.isArray(occurrences) ||
       typeof authorize !== 'function' || typeof append !== 'function' ||
@@ -491,7 +545,7 @@ export async function withManagedInputRows(
       (commit !== undefined && typeof commit !== 'function')) {
     throw issue('InvalidManagedInputUse');
   }
-  const materials = occurrences.map(occurrence => occurrence?.material);
+  const materials = occurrences.map((occurrence: Occurrence) => occurrence?.material);
   const plan = planned ?? planManagedInputRows(materials);
   if (!plan || !rowPlans.has(plan) ||
       plan.materials.length !== materials.length ||
@@ -500,13 +554,13 @@ export async function withManagedInputRows(
         owner !== representations.get(materials[index]))) {
     throw issue('UnsupportedManagedRowRepresentation');
   }
-  const groupArguments = group => {
+  const groupArguments = (group: RowGroup) => {
     const subset = group.indices.map(index => occurrences[index]);
     const held = group.indices.map(index => plan.owners[index]);
-    const providers = held.map(value => value.rowProvider);
-    const authorizeSubset = (input, index) =>
+    const providers = held.map(value => value.rowProvider!);
+    const authorizeSubset = (input: unknown, index: number) =>
       authorize(input, group.indices[index]);
-    const appendSubset = (index, row) =>
+    const appendSubset = (index: number, row: string) =>
       append(group.indices[index], row);
     return {subset, held, providers, authorizeSubset, appendSubset};
   };
@@ -523,7 +577,7 @@ export async function withManagedInputRows(
     const args = groupArguments(group);
     if (group.kind === 'memory') {
       return withManagedMemoryRows(
-        args.subset, args.held, args.providers, args.authorizeSubset,
+        args.subset, args.held as readonly MemoryRepresentation[], args.providers, args.authorizeSubset,
         args.appendSubset, () => use(), signal, commit,
       );
     }
@@ -533,12 +587,12 @@ export async function withManagedInputRows(
     );
   }
   const memory = plan.groups[0];
-  const provider = plan.groups[1];
+  const provider = plan.groups[1] as ProviderGroup;
   const memoryArgs = groupArguments(memory);
   const providerArgs = groupArguments(provider);
   return withManagedMemoryRows(
     memoryArgs.subset,
-    memoryArgs.held,
+    memoryArgs.held as readonly MemoryRepresentation[],
     memoryArgs.providers,
     memoryArgs.authorizeSubset,
     memoryArgs.appendSubset,

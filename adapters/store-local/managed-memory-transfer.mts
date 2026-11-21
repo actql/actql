@@ -4,10 +4,21 @@
 // logical CID; the common Host supplies authorization and ledger accounting.
 import {managedInputTransferEstimate, registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
+import type {ManagedTransferEstimate} from './managed-memory-representations.mjs';
 import {Buffer} from 'node:buffer';
 
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const positive = value => Number.isSafeInteger(value) && value > 0;
+type TransferOptions = Readonly<{
+  sourceMaterial?: object;
+  input?: unknown;
+  authorize?: (input: unknown) => boolean;
+  destinationAuthorize?: (input: unknown) => boolean;
+  charge?: (bytes: bigint) => unknown;
+  signal?: AbortSignal;
+  estimate?: ManagedTransferEstimate;
+}>;
+
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 
 // Host-adopted trust boundary for the first Transfer codec. This assertion is
 // backed by independent conformance fixtures, not by a per-transfer digest.
@@ -32,7 +43,7 @@ export function createManagedMemoryTransferProvider({
   }
   return Object.freeze({
     contract: managedMemoryTransferContract,
-    estimate(material) {
+    estimate(material: object) {
       const estimate = managedInputTransferEstimate(material);
       if (!estimate || estimate.executionBytes < BigInt(maxBatchBytes)) {
         return undefined;
@@ -48,7 +59,7 @@ export function createManagedMemoryTransferProvider({
       charge,
       signal,
       estimate,
-    } = {}) {
+    }: TransferOptions = {}) {
       if (!sourceMaterial || typeof sourceMaterial !== 'object' ||
           input == null || typeof authorize !== 'function' ||
           typeof destinationAuthorize !== 'function' ||
@@ -58,10 +69,10 @@ export function createManagedMemoryTransferProvider({
             typeof value === 'bigint' && value >= 0n)) {
         fail('InvalidManagedTransfer');
       }
-      let current = [], currentBytes = 0;
-      const chunks = [];
+      let current: string[] = [], currentBytes = 0;
+      const chunks: (readonly string[])[] = [];
       let rows = 0, bytes = 0n, retainedBytes = 0n;
-      const chargeBytes = value => {
+      const chargeBytes = (value: number) => {
         const charged = BigInt(value);
         if (bytes > estimate.transferBytes - charged) {
           fail('ManagedTransferByteLimit');
@@ -79,7 +90,7 @@ export function createManagedMemoryTransferProvider({
           fail('ManagedTransferRetentionLimit');
         }
       };
-      const append = async row => {
+      const append = async (row: unknown) => {
         signal?.throwIfAborted();
         if (typeof row !== 'string') fail('InvalidManagedTransferRow');
         // This provider needs the exact wire length, not an owned byte copy.
@@ -112,7 +123,7 @@ export function createManagedMemoryTransferProvider({
         },
         signal,
         (...values) => {
-          const physicalBytes = values.at(-1);
+          const physicalBytes = values.at(-1) as number;
           if (!Number.isSafeInteger(physicalBytes) || physicalBytes < 0) {
             fail('InvalidManagedTransferSourceBytes');
           }

@@ -6,7 +6,12 @@ import {createManagedMemoryTransferProvider} from
 import {registerManagedMemoryInput, withManagedInputRows} from
   './managed-memory-representations.mjs';
 
-function source(rows, estimate) {
+type Provider = ReturnType<typeof createManagedMemoryTransferProvider>;
+type Destination = Awaited<ReturnType<Provider['copy']>>;
+type CopyOptions = NonNullable<Parameters<Provider['copy']>[0]>;
+type Copy = {copy(options: CopyOptions): Promise<Destination>};
+
+function source(rows: readonly string[], estimate: Parameters<typeof registerManagedMemoryInput>[5]) {
   const material = {};
   const input = {};
   let released = false;
@@ -34,8 +39,8 @@ const estimate = Object.freeze({
   executionBytes: 64n,
 });
 
-async function observeDestination(destination, input) {
-  const rows = [];
+async function observeDestination(destination: Pick<Destination, 'material'>, input: unknown) {
+  const rows: string[] = [];
   await withManagedInputRows(
     [{material: destination.material, input}],
     value => value === input,
@@ -45,7 +50,7 @@ async function observeDestination(destination, input) {
   return rows;
 }
 
-async function requirePreservedRows(provider, rows) {
+async function requirePreservedRows(provider: Copy, rows: readonly string[]) {
   const original = source(rows, estimate);
   const destination = await provider.copy({
     sourceMaterial: original.material,
@@ -70,7 +75,7 @@ async function requirePreservedRows(provider, rows) {
 
 test('bounded transfer creates an independent destination generation', async () => {
   const original = source(['{"id":1}', '{"id":2}', '{"id":3}'], estimate);
-  const charged = [];
+  const charged: bigint[] = [];
   const provider = createManagedMemoryTransferProvider({
     maxBatchRows: 2,
     maxBatchBytes: 64,
@@ -96,7 +101,7 @@ test('bounded transfer creates an independent destination generation', async () 
   sourceAuthorized = false;
   await original.registration.close();
   assert.equal(original.released(), true);
-  const observed = [];
+  const observed: string[] = [];
   await withManagedInputRows(
     [{material: destination.material, input: original.input}],
     value => value === original.input,
@@ -120,7 +125,7 @@ test('independent preservation fixture detects value substitution and reordering
   for (const defect of ['substitute', 'reorder']) {
     const faulty = Object.freeze({
       ...conforming,
-      async copy(options) {
+      async copy(options: CopyOptions) {
         const destination = await conforming.copy(options);
         const observed = await observeDestination(destination, options.input);
         await destination.close();
@@ -153,7 +158,7 @@ test('independent preservation fixture detects value substitution and reordering
 test('transfer charges before retention and rejects a byte overrun', async () => {
   const limited = Object.freeze({...estimate, transferBytes: 7n});
   const original = source(['{"id":1}'], limited);
-  const events = [];
+  const events: bigint[] = [];
   const provider = createManagedMemoryTransferProvider({
     maxBatchRows: 1,
     maxBatchBytes: 64,
@@ -186,7 +191,7 @@ test('transfer counts exact UTF-8 bytes before bounded retention', async () => {
     executionBytes: 128n,
   });
   const original = source(rows, exactEstimate);
-  const charged = [];
+  const charged: bigint[] = [];
   const provider = createManagedMemoryTransferProvider({
     maxBatchRows: rows.length,
     maxBatchBytes: exactBytes,
@@ -223,7 +228,7 @@ test('batch rejection does not allocate a row-sized UTF-8 array', async () => {
     maxBatchRows: 256,
     maxBatchBytes: 1024 * 1024,
   });
-  const charged = [];
+  const charged: bigint[] = [];
   await assert.rejects(provider.copy({
     sourceMaterial: original.material,
     input: original.input,
