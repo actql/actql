@@ -2400,7 +2400,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a8ec7ca88a2161e4f67e6763f06932c3007a696d6129e82fcd4bb6af123611a9",
+      "sha256": "68f7d6631b5fbdb2dcda986c2c2c58305a4626b11dad4727655d6d0acd3c18e7",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2534,7 +2534,7 @@
             "client: Pick<Client, 'explain'>",
             "input: Parameters<Client['explain']>[0]",
             "options: Parameters<Client['explain']>[1]",
-            "presentation: {locale?: 'en' | 'ja'} | undefined",
+            "presentation: StaticExplanationPresentation",
             "ticket: ReadTicket"
           ],
           "result": "Promise<StaticExplanationReadModel>"
@@ -2550,10 +2550,18 @@
           "result": "Promise<PlanReadModel>"
         },
         {
+          "name": "render",
+          "parameters": [
+            "view: WireStaticExplanationView",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "Readonly<{context: readonly string[]; steps: readonly string[]}>"
+        },
+        {
           "name": "staticExplanationReadModel",
           "parameters": [
             "view: WireStaticExplanationView",
-            "options?: {locale?: 'en' | 'ja'}"
+            "presentation: StaticExplanationPresentation"
           ],
           "result": "StaticExplanationReadModel"
         }
@@ -2861,6 +2869,7 @@
         {
           "operations": [
             "readStaticExplanation",
+            "render",
             "staticExplanationReadModel"
           ],
           "exports": [
@@ -2907,7 +2916,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation discards a late read"
               }
             ],
@@ -2920,16 +2929,16 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const contextText = Object.freeze({"
+                "anchor": "const narrative = render(view, locale);"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
@@ -2940,7 +2949,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f80a2e753c9319d93e92456896d65321e26a98364a820aacff495588a3172166",
+      "sha256": "a5422f60785e18c130493eb7fa21d8df1a7a48e0e04bdc86ce991978738e45c3",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -2959,6 +2968,14 @@
         "staticExplanationReadModel"
       ],
       "operations": [
+        {
+          "name": "attachExplanationFacts/attachExplanationFacts",
+          "parameters": [
+            "occurrence",
+            "index"
+          ],
+          "async": false
+        },
         {
           "name": "checkedContext/checkedContext",
           "parameters": [
@@ -3038,19 +3055,18 @@
           "async": false
         },
         {
-          "name": "explainStory/explainStory",
-          "parameters": [
-            "occurrence",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "explanationStoryModel",
           "parameters": [
             "view",
             "facts",
             "locale"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationStoryModel/explanationStoryModel",
+          "parameters": [
+            "index"
           ],
           "async": false
         },
@@ -3200,6 +3216,7 @@
             "input",
             "options",
             "locale",
+            "render",
             "ticket"
           ],
           "async": true
@@ -3250,14 +3267,23 @@
           "name": "staticExplanationReadModel",
           "parameters": [
             "view",
-            "locale"
+            "locale",
+            "render"
           ],
           "async": false
         },
         {
           "name": "staticExplanationReadModel/staticExplanationReadModel",
           "parameters": [
-            "item"
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "staticExplanationReadModel/story/story",
+          "parameters": [
+            "index"
           ],
           "async": false
         },
@@ -3299,6 +3325,7 @@
         {
           "operations": [
             "<module>",
+            "attachExplanationFacts/attachExplanationFacts",
             "createReadEpoch",
             "createReadEpoch/init:capture/init:capture",
             "createReadEpoch/init:capture/init:capture/init:assertCurrent/init:assertCurrent",
@@ -3307,15 +3334,15 @@
             "describeExistingResult/describeExistingResult",
             "describeExistingResult/run/run",
             "explanationStoryModel",
-            "explainStory/explainStory",
+            "explanationStoryModel/explanationStoryModel",
             "freeze/freeze",
             "originalRunPlan/run/run",
             "planReadModel",
             "planReadModel/planReadModel",
             "planReadModel/planReadModel/planReadModel",
-            "planStoryModel",
             "planStory/planStory",
             "planStory/planStory#2",
+            "planStoryModel",
             "predicateStory/predicateStory",
             "readExistingRun",
             "readExistingRun/readExistingRun",
@@ -3626,7 +3653,8 @@
             "readStaticExplanation/readStaticExplanation",
             "sameDeclaration/sameDeclaration",
             "staticExplanationReadModel",
-            "staticExplanationReadModel/staticExplanationReadModel"
+            "staticExplanationReadModel/staticExplanationReadModel",
+            "staticExplanationReadModel/story/story"
           ],
           "exports": [
             "readStaticExplanation",
@@ -3671,7 +3699,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation discards a late read"
               }
             ],
@@ -3684,16 +3712,16 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const contextText = Object.freeze({"
+                "anchor": "const narrative = render(view, locale);"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
@@ -4717,7 +4745,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation discards a late read"
               }
             ],
@@ -4730,16 +4758,16 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const contextText = Object.freeze({"
+                "anchor": "const narrative = render(view, locale);"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
@@ -5322,7 +5350,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation discards a late read"
               }
             ],
@@ -5335,16 +5363,16 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const contextText = Object.freeze({"
+                "anchor": "const narrative = render(view, locale);"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
@@ -5803,7 +5831,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation discards a late read"
               }
             ],
@@ -5816,16 +5844,16 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const contextText = Object.freeze({"
+                "anchor": "const narrative = render(view, locale);"
               }
             ],
             "verification": [
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               },
               {
-                "path": "packages/explorer-ui/read-model.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
@@ -6630,7 +6658,7 @@
                 "anchor": "test("
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               }
             ]
@@ -6641,7 +6669,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17858a8f3a20a2e3463ed4924eb89f6802f1466aec9f2355aa64afa7c31c0392",
+      "sha256": "bcf97edc3f472701bddbfac2b13e65647571b61fbf6c1bba783204efd1653b7a",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -6701,6 +6729,14 @@
           "name": "createExplorerGateway/createExplorerGateway/read/read",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createExplorerGateway/createExplorerGateway/read/read/init:render/init:render",
+          "parameters": [
+            "view",
+            "locale"
+          ],
+          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway/settled/settled",
@@ -6879,6 +6915,8 @@
         "@actql/client-wire",
         "@actql/explorer-ui/read-model",
         "@actql/explorer-ui/run-observation",
+        "@actql/run-host-core/explanation-narrative",
+        "@actql/sdk/host-port",
         "@hono/node-server",
         "hono",
         "node:crypto"
@@ -6894,17 +6932,18 @@
             "<module>",
             "createExplorerGateway",
             "createExplorerGateway/createExplorerGateway",
+            "createExplorerGateway/createExplorerGateway#2",
+            "createExplorerGateway/createExplorerGateway#3",
+            "createExplorerGateway/createExplorerGateway#4",
+            "createExplorerGateway/createExplorerGateway#5",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/matches/matches",
             "createExplorerGateway/createExplorerGateway/matches/matches#2",
             "createExplorerGateway/createExplorerGateway/read/read",
+            "createExplorerGateway/createExplorerGateway/read/read/init:render/init:render",
             "createExplorerGateway/createExplorerGateway/settled/settled",
             "createExplorerGateway/createExplorerGateway/ticket/init:assertCurrent/init:assertCurrent",
-            "createExplorerGateway/createExplorerGateway#2",
-            "createExplorerGateway/createExplorerGateway#3",
-            "createExplorerGateway/createExplorerGateway#4",
-            "createExplorerGateway/createExplorerGateway#5",
             "createExplorerGateway/init:close/init:close",
             "createExplorerGateway/init:close/init:close/init:close",
             "createExplorerGateway/init:invalidateScope/init:invalidateScope",
@@ -7073,7 +7112,7 @@
                 "anchor": "a known socket close failure still retains the original outstanding SDK read"
               },
               {
-                "path": "packages/explorer/gateway.test.mjs",
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Explorer static explanation uses one SDK read"
               }
             ]

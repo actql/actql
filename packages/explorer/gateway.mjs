@@ -3,6 +3,7 @@ import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
+import {canonicalJson} from '@actql/sdk/host-port';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readExistingRunExplanation, readExistingRunPresentation, readStaticPlan,
   readStaticExplanation} from '@actql/explorer-ui/read-model';
@@ -88,6 +89,8 @@ function copiedAssets(assets) {
   return result;
 }
 function safeReadError(error) {
+  if (error?.code === 'InvalidStaticExplanationNarrative') return {code: 'ExplorerInvalidExplanation', status: 409};
+  if (error?.code === 'StaticExplanationNarrativeLimit') return {code: 'ExplorerExplanationLimit', status: 409};
   if (['ExplorerBodyLimit', 'ExplorerContentType', 'ExplorerInvalidRequest',
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
@@ -232,8 +235,16 @@ export function createExplorerGateway({client, origin, assets = new Map(),
                 ['format', 'parameters', 'parameterDeclarations', 'maxWireBytes', 'maxNodes', 'maxDepth']))) {
             fail('ExplorerInvalidRequest');
           }
-          data = kind === 'plan' ? await readStaticPlan(client, body.input, body.options ?? {}, ticket)
-            : await readStaticExplanation(client, body.input, body.options ?? {}, {locale: body.locale}, ticket);
+          if (kind === 'plan') {
+            data = await readStaticPlan(client, body.input, body.options ?? {}, ticket);
+          } else {
+            if (typeof client.explain !== 'function') fail('ExplorerCapabilityUnavailable', 404);
+            const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+            ticket.assertCurrent();
+            data = await readStaticExplanation(client, body.input, body.options ?? {}, {locale: body.locale,
+              render(view, locale) {return renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);},
+            }, ticket);
+          }
           break;
         case 'run':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');

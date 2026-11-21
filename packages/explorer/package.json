@@ -8,6 +8,7 @@
     "@actql/client-wire": "0.0.0-development",
     "@actql/explorer-ui": "0.0.0-development",
     "@actql/node": "0.0.0-development",
+    "@actql/run-host-core": "0.0.0-development",
     "@actql/sdk": "0.0.0-development",
     "hono": "4.13.13",
     "@hono/node-server": "2.1.4",

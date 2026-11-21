@@ -650,24 +650,6 @@ test('Effectful static declarations retain unknowns without adding computation e
   assert.throws(() => planReadModel(foreign), {code: 'ExplorerInvalidPlan'});
 });
 
-test('Static Context renders deterministic EN and JA from one unchanged Plan', () => {
-  const original = effectfulStaticExplanationFixture();
-  const en = staticExplanationReadModel(original), ja = staticExplanationReadModel(original, {locale: 'ja'});
-  assert.equal(JSON.stringify(staticExplanationReadModel(original)), JSON.stringify(en));
-  assert.deepEqual(ja.plan, en.plan);
-  assert.deepEqual(en.context.map(item => item.origin), original.context.items);
-  assert.deepEqual(ja.context.map(item => item.origin), original.context.items);
-  assert.equal(en.context[0].text, 'Read "crm"."accounts" through view "accounts"');
-  assert.equal(en.context[1].text, 'Apply model task "model-task:review" to each input row');
-  assert.equal(ja.context[1].text, 'モデルタスク "model-task:review" を各入力行に適用');
-  assert.equal(en.context[2].text, 'Declare Result "updates"');
-  assert.equal(en.context[3].text, 'Declared write update "connector://crm/account" on fields "tag" · Contract minimum approval: required · Current decision unknown');
-  assert.match(ja.context[3].text, /更新.*対象フィールド "tag".*現在の判断は不明/u);
-  assert.equal(en.plan.effectful.observations.approval.state, 'unknown');
-  assert.deepEqual(en.story.capabilities.sample_capture, []);
-  assert(Object.isFrozen(en.context[0].origin));
-});
-
 test('Static Context refuses mixed bindings, foreign ports, and substituted Effect declarations', () => {
   for (const mutate of [
     view => {view.context.binding.check_environment_cid = cid('f');},
@@ -678,7 +660,9 @@ test('Static Context refuses mixed bindings, foreign ports, and substituted Effe
   ]) {
     const original = effectfulStaticExplanationFixture();
     mutate(original);
-    assert.throws(() => staticExplanationReadModel(original), {code: 'ExplorerInvalidExplanation'});
+    assert.throws(() => staticExplanationReadModel(original, {render() {
+      assert.fail('refuse the mismatched original before rendering');
+    }}), {code: 'ExplorerInvalidExplanation'});
   }
 });
 

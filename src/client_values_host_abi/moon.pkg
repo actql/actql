@@ -20,6 +20,7 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/query_program" @query,
   "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_json" @canonical,
   "actql/actql/host_observation" @observation,
   "moonbitlang/core/encoding/utf8",
 }

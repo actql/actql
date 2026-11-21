@@ -49,8 +49,11 @@ export function explanationStoryModel(view: WirePlanView | WireEffectfulStaticPl
   facts: WireExplanationFacts, options?: {locale?: 'en' | 'ja'}): ExplanationStoryModel;
 export type StaticExplanationReadModel = Readonly<{plan: PlanReadModel; story: ExplanationStoryModel;
   context: readonly Readonly<{origin: WireExplanationContext['items'][number]; text: string}>[]}>;
+type StaticExplanationPresentation = Readonly<{locale?: 'en' | 'ja';
+  render(view: WireStaticExplanationView, locale: 'en' | 'ja'):
+    Readonly<{context: readonly string[]; steps: readonly string[]}>}>;
 export function staticExplanationReadModel(view: WireStaticExplanationView,
-  options?: {locale?: 'en' | 'ja'}): StaticExplanationReadModel;
+  presentation: StaticExplanationPresentation): StaticExplanationReadModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
 export function createReadEpoch(): Readonly<{invalidate(): void; capture(): ReadTicket}>;
 export function readStaticPlan(client: Pick<Client, 'plan'>,
@@ -58,7 +61,7 @@ export function readStaticPlan(client: Pick<Client, 'plan'>,
   ticket: ReadTicket): Promise<PlanReadModel>;
 export function readStaticExplanation(client: Pick<Client, 'explain'>,
   input: Parameters<Client['explain']>[0], options: Parameters<Client['explain']>[1],
-  presentation: {locale?: 'en' | 'ja'} | undefined, ticket: ReadTicket): Promise<StaticExplanationReadModel>;
+  presentation: StaticExplanationPresentation, ticket: ReadTicket): Promise<StaticExplanationReadModel>;
 export function readExistingRun(client: Pick<Client, 'attach'>,
   ref: RunReference, ticket: ReadTicket): Promise<WireRunView>;
 export type OriginalRunPlanReadModel = Readonly<{

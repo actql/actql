@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createExplorerGateway, gatewayLimits, startExplorerGateway} from './gateway.mjs';
+import {gatewayLimits, startExplorerGateway} from './gateway.mjs';
+import {harness, origin, ref, tick} from './gateway-test.fixture.mjs';
 import {createExplorerBrowserSource} from './browser-source.mjs';
 import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
 import {observationRef, runObservationFixture, ownerObservationFixture}
   from '../explorer-ui/run-observation.fixture.mjs';
 import {runExplanation, unprojectedRunExplanation}
   from '../../scripts/fixtures/explanation-facts-vectors.mjs';
-import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
 
 test('current observation endpoint reads only the same original Run and one Owner-local page', async () => {
   const calls=[], original=observationRef();
@@ -42,39 +42,6 @@ test('foreign and delayed Owner replies cannot escape current observation scope'
   const f=harness({client:{attach:async()=>({inspect:async()=>runObservationFixture(),observeOwners:async()=>foreign})}});
   assert.notEqual((await f.read('observation',{ref:original},await f.connect())).status,200);
 });
-
-const origin = 'http://127.0.0.1:43210';
-const ref = {namespaceId: 'original', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
-  runDefinitionCid: `sha256:${'b'.repeat(64)}`};
-const tick = () => new Promise(resolve => setImmediate(resolve));
-function harness(options = {}) {
-  const calls = [];
-  const client = {async attach(selected) {
-    calls.push(['attach', structuredClone(selected)]);
-    return {inspect(limits) {calls.push(['inspect', limits]); return {status: 'fixture'};},
-      result(name) {calls.push(['result', name]); return {
-        describe() {calls.push(['describe']); return {name, marker: '<script>not HTML</script> e\u0301\r\n'};},
-        rows() {assert.fail('no payload open');},
-      };},
-    };
-  }, close() {assert.fail('borrowed client is not owned by Gateway');},
-  submit() {assert.fail('no business work');}, cancel() {assert.fail('no cancellation');}};
-  const gateway = createExplorerGateway({client, origin, ...options});
-  const send = (path, body, headers = {}, method = 'POST') => gateway.fetch(new Request(`${origin}${path}`, {
-    method, headers: {Host: '127.0.0.1:43210', Origin: origin,
-      'Content-Type': 'application/json', ...headers},
-    ...(method === 'POST' ? {body: typeof body === 'string' ? body : JSON.stringify(body)} : {}),
-  }));
-  async function connect() {
-    const issued = gateway.issueBootstrap();
-    const response = await send('/api/session', {bootstrap: issued.bootstrap});
-    assert.equal(response.status, 200);
-    return {body: await response.json(), cookie: response.headers.get('set-cookie').split(';')[0], issued};
-  }
-  const read = (kind, body, session, more = {}) => send(`/api/read/${kind}`, body,
-    {Cookie: session.cookie, 'X-Actql-CSRF': session.body.csrf, ...more});
-  return {gateway, send, connect, read, calls, client};
-}
 
 test('expired cancellation session cannot dispatch after original attach awaits', async () => {
   let now = 1000, entered, release, cancellations = 0;
@@ -341,51 +308,6 @@ test('Gateway original presentation rejects extra execution inputs and unsupport
     assert.equal((await h.read('run-presentation', body, session)).status, 400);
   }
   assert.equal((await h.read('run-presentation', {ref}, session, {'X-Actql-CSRF': ''})).status, 403);
-  await h.gateway.close();
-});
-
-test('Explorer static explanation uses one SDK read through the original authenticated Gateway', async () => {
-  const original = effectfulStaticExplanationFixture(), calls = [];
-  const h = harness({client: {explain(input, options) {
-    calls.push({input, options}); return structuredClone(original);
-  }, plan() {assert.fail('no separate Plan compilation');}, attach() {assert.fail('no Run');}}});
-  const input = {stages: []}, options = {maxNodes: 2000};
-  assert.equal((await h.send('/api/read/static-explanation', {input, options})).status, 401);
-  let cookie;
-  const browser = createExplorerBrowserSource({origin, fetch: async (url, init) => {
-    const response = await h.gateway.fetch(new Request(url, {...init,
-      headers: {...init.headers, Host: '127.0.0.1:43210', Origin: origin, ...(cookie ? {Cookie: cookie} : {})}}));
-    const setCookie = response.headers.get('set-cookie');
-    if (setCookie !== null) cookie = setCookie.split(';')[0];
-    return response;
-  }});
-  const capabilities = await browser.connect(h.gateway.issueBootstrap().bootstrap);
-  assert.equal(capabilities.sample, false); assert.equal(capabilities.control, false);
-  const model = await browser.staticExplanation(input, options, 'ja');
-  assert.equal(model.plan.logicalMapCid, original.context.binding.logical_map_cid);
-  assert.equal(model.story.locale, 'ja');
-  assert.equal(model.context[1].text, 'モデルタスク "model-task:review" を各入力行に適用');
-  assert.deepEqual(calls, [{input, options: {maxWireBytes: 65536, maxNodes: 2000, maxDepth: 64}}]);
-  const session = await h.connect();
-  for (const body of [{input, locale: 'fr'}, {input, options: {start: true}}, {input, ref}]) {
-    assert.equal((await h.read('static-explanation', body, session)).status, 400);
-  }
-  assert.equal(calls.length, 1);
-  await h.gateway.close();
-});
-
-test('Explorer static explanation discards a late read after the original Gateway session changes', async () => {
-  const entered = Promise.withResolvers(), pending = Promise.withResolvers();
-  const h = harness({client: {explain() {entered.resolve(); return pending.promise;},
-    attach() {assert.fail('no replacement Run');}}});
-  const original = await h.connect();
-  const read = h.read('static-explanation', {input: 'SELECT 1'}, original);
-  await Promise.race([entered.promise, read.then(() => assert.fail('read did not start'))]);
-  await h.connect();
-  pending.resolve(effectfulStaticExplanationFixture());
-  const response = await read;
-  assert.notEqual(response.status, 200);
-  assert.doesNotMatch(await response.text(), /model-task:review/);
   await h.gateway.close();
 });
 

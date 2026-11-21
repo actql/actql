@@ -31093,6 +31093,224 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "packages/run-host-core/explanation-narrative.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "exports": [
+        "StaticExplanationNarrative",
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire: string",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "StaticExplanationNarrative"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "StaticExplanationNarrative",
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@host.render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@host.render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/run-host-core/explanation-narrative.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b106cc46882c8d60a88fd53d61f488d15e4a6004e7b9c4cbc8a620ecc8832464",
+      "exports": [
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire",
+            "locale"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@host.render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_values_host_abi/explanation_narrative.mbt",
+                "anchor": "@host.render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/run-host-core/index.mjs",
       "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
