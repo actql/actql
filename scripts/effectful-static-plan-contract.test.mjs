@@ -4,7 +4,7 @@ import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
 import {buildControlRegistry} from './interactive-run-control-contract.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWireExplanationContextShape,
-  validWirePlanViewShape, validWireStaticExplanationViewShape} from
+  validWirePlanViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from
   '../packages/client-wire/interactive-control.generated.js';
 import {effectfulStaticPlan, computationPlan, commandMember,
   positiveEffectfulPlans, negativeEffectfulPlans} from './fixtures/effectful-static-plan-vectors.mjs';
@@ -68,8 +68,9 @@ test('Effectful static envelope preserves the independent original Plan/map sche
 
 test('versioned static Explanation composes the existing closed schema families', () => {
   const registry = buildControlRegistry();
-  const {static_explanation_view: added, ...originalPins} = registry.schema_cids;
+  const {static_explanation_view: added, run_explanation_context_view: saved, ...originalPins} = registry.schema_cids;
   assert.match(added, /^sha256:[0-9a-f]{64}$/u);
+  assert.match(saved, /^sha256:[0-9a-f]{64}$/u);
   assert.equal(Object.keys(originalPins).length, 45);
   assert.equal(createHash('sha256').update(canonicalText(originalPins)).digest('hex'),
     '917cfb213c126abac9b31eea1d4ddb303d340094ce239cdf47c9181963604995');
@@ -88,6 +89,20 @@ test('versioned static Explanation composes the existing closed schema families'
     {...envelope, context: undefined}, {...envelope, plan: null}, {...envelope, run_ref: {}},
     {...envelope, context: {...envelope.context, source_body: {}}},
   ]) assert.equal(validWireStaticExplanationViewShape(value), false);
+});
+
+test('Saved Explanation Context has its own closed original Run response', () => {
+  const saved = {version: 'actql-run-explanation-context-view/0.1',
+    run_ref: {namespaceId: 'local', authorityScopeCid: cid('1'), runDefinitionCid: cid('2')},
+    explanation: {state: 'not_projected', reason: 'not_retained'}};
+  assert.equal(validWireRunExplanationContextViewShape(saved), true);
+  for (const value of [{...saved, version: 'actql-static-explanation/0.1'},
+    {...saved, run_ref: undefined},
+    {...saved, run_ref: {...saved.run_ref, runDefinitionCid: 'foreign'}},
+    {...saved, explanation: {...saved.explanation, context: {}}},
+    {...saved, explanation: {state: 'not_projected', reason: 'forbidden'}},
+    {...saved, explanation: {state: 'projected'}},
+  ]) assert.equal(validWireRunExplanationContextViewShape(value), false);
 });
 
 test('declared minimum none/required and Command not-represented remain separate from permission', () => {
