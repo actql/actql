@@ -5618,7 +5618,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5632,7 +5632,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5646,7 +5646,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "// binds Connector placements and opaque physical values; it does not decide"
               },
               {
@@ -5660,8 +5660,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const cleanupResponsibilities = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const cleanupResponsibilities = new WeakMap<object, RetainedValue<CleanupHandle>>();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -5674,7 +5674,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5688,8 +5688,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const error = Object.assign(new Error(code), {code});"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const error = Object.assign(new Error(code), {code})"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -5702,8 +5702,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const cleanupResponsibilities = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const cleanupResponsibilities = new WeakMap<object, RetainedValue<CleanupHandle>>();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -5716,7 +5716,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "// mutable Site lifecycle, capacity, or terminal state."
               },
               {
@@ -5730,8 +5730,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const installations = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const installations = new WeakMap<object, SiteInstallation>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -5762,7 +5762,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5776,7 +5776,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5790,7 +5790,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "// binds Connector placements and opaque physical values; it does not decide"
               },
               {
@@ -5804,8 +5804,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const cleanupResponsibilities = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const cleanupResponsibilities = new WeakMap<object, RetainedValue<CleanupHandle>>();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -5818,7 +5818,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "export function createInProcessExecutionSite({"
               },
               {
@@ -5832,8 +5832,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const error = Object.assign(new Error(code), {code});"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const error = Object.assign(new Error(code), {code})"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -5846,8 +5846,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const cleanupResponsibilities = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const cleanupResponsibilities = new WeakMap<object, RetainedValue<CleanupHandle>>();"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -5860,7 +5860,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
+                "path": "adapters/host-common/execution-sites.mts",
                 "anchor": "// mutable Site lifecycle, capacity, or terminal state."
               },
               {
@@ -5874,8 +5874,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/execution-sites.mjs",
-                "anchor": "const installations = new WeakMap();"
+                "path": "adapters/host-common/execution-sites.mts",
+                "anchor": "const installations = new WeakMap<object, SiteInstallation>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",

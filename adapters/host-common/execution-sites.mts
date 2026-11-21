@@ -1,31 +1,213 @@
 // Environment-facing handles for portable MoonBit Site control. This module
 // binds Connector placements and opaque physical values; it does not decide
 // mutable Site lifecycle, capacity, or terminal state.
-const sites = new WeakMap();
-const policies = new WeakMap();
-const installations = new WeakMap();
-const bindings = new WeakMap();
-const operations = new WeakMap();
-const transferOperations = new WeakMap();
-const holdings = new WeakMap();
-const cleanupResponsibilities = new WeakMap();
-const retainedCloseProgresses = new WeakMap();
-const retainedHoldingProgresses = new WeakMap();
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+import type {createManagedMemoryTransferProvider} from '../store-local/managed-memory-transfer.mjs';
+import type {ManagedTransferEstimate} from '../store-local/managed-memory-representations.mjs';
 
-const fail = (code, details) => {
-  const error = Object.assign(new Error(code), {code});
+declare const coreBrand: unique symbol;
+type CoreHandle<Kind extends string> = Extract<SynchronousRuntimeData, object> &
+  Readonly<{[coreBrand]: Kind}>;
+type SiteHandle = CoreHandle<'Site'>;
+type OperationHandle = CoreHandle<'SiteOperation'>;
+type TransferHandle = CoreHandle<'SiteTransfer'>;
+type HoldingHandle = CoreHandle<'SiteHolding'>;
+type CleanupHandle = CoreHandle<'SiteCleanup'>;
+type FailureProgress = CoreHandle<'SiteFailureProgress'>;
+type RetainedCloseProgress = CoreHandle<'RetainedCloseProgress'>;
+type RetainedHoldingProgress = CoreHandle<'RetainedHoldingProgress'>;
+type HostCleanupProgress = CoreHandle<'HostCleanupProgress'>;
+type HostSuccessProgress = CoreHandle<'HostSuccessProgress'>;
+type RemoteJournalHandle = CoreHandle<'RemoteJournal'>;
+type Optional<Value> = Value | null | undefined;
+
+type Capacity = Readonly<{retainedBytes: bigint; executionBytes: bigint}>;
+type SiteConfiguration = Readonly<{
+  key: string;
+  generation: number;
+  runtimeRevision: string;
+  maxConcurrentOperations: number;
+  maxConcurrentTransfers: number;
+  maxRetainedBytes: bigint;
+  maxExecutionBytes: bigint;
+}>;
+type SiteTiming = Readonly<{
+  startupMilliseconds: bigint | null;
+  transferMilliseconds: bigint | null;
+}>;
+type SitePlanningFacts = SiteTiming & Readonly<{
+  durationMilliseconds: bigint | null;
+  capacitySupported: boolean;
+  acceptsSiteTransfer: boolean;
+  transferProviderAvailable: boolean;
+  transferRequired: readonly boolean[];
+  sharedTransfer: readonly boolean[];
+  sourceRevoked: readonly boolean[];
+  estimateAvailable: readonly boolean[];
+  transferBytes: readonly bigint[];
+  retainedBytes: readonly bigint[];
+  executionBytes: readonly bigint[];
+}>;
+
+// This is the existing normalized JS control from runtime-core. Opaque views
+// carry the original Common values; the runtime callable checks are unchanged.
+type SiteControl = Readonly<{
+  create(configuration: SiteConfiguration): Optional<SiteHandle>;
+  available(site: SiteHandle): boolean;
+  revoked(site: SiteHandle): boolean;
+  capacitySupports(site: SiteHandle, retained: bigint, execution: bigint): boolean;
+  bindingCurrent(site: SiteHandle, generation: number, revision: string): boolean;
+  startOperation(site: SiteHandle, retained: bigint, execution: bigint): Optional<OperationHandle>;
+  operationAvailable(operation: OperationHandle): boolean;
+  settleOperation(operation: OperationHandle): boolean;
+  retainOperationHolding(operation: OperationHandle, bytes: bigint): Optional<HoldingHandle>;
+  startTransfer(source: SiteHandle, destination: SiteHandle, retained: bigint, execution: bigint): Optional<TransferHandle>;
+  transferAvailable(transfer: TransferHandle): boolean;
+  settleTransferSource(transfer: TransferHandle): boolean;
+  settleTransferDestination(transfer: TransferHandle): boolean;
+  retainTransferHolding(transfer: TransferHandle, bytes: bigint): Optional<HoldingHandle>;
+  retainHolding(site: SiteHandle, bytes: bigint): Optional<HoldingHandle>;
+  releaseHolding(holding: HoldingHandle): boolean;
+  retainCleanup(site: SiteHandle): Optional<CleanupHandle>;
+  releaseCleanup(cleanup: CleanupHandle): boolean;
+  beginTeardown(site: SiteHandle): undefined;
+  revoke(site: SiteHandle): undefined;
+  status(site: SiteHandle): readonly bigint[];
+  selectCandidate(durations: readonly bigint[], keys: readonly string[]): number;
+  planCandidate(facts: SitePlanningFacts): unknown;
+  managedCandidateFallback(retainedInputCount: number, exclusionCodes: readonly number[]): number;
+  beginFailedOperation(cleanupRequired: boolean, alreadySettled: boolean): FailureProgress;
+  recordFailedOperationStop(progress: FailureProgress): boolean;
+  recordFailedOperationSettlement(progress: FailureProgress): boolean;
+  failedOperationAction(progress: FailureProgress): number;
+  beginRetainedClose(): RetainedCloseProgress;
+  beginRetainedHolding(progress: RetainedCloseProgress): Optional<RetainedHoldingProgress>;
+  recordRetainedCloseStarted(progress: RetainedCloseProgress): boolean;
+  recordRetainedCloseSucceeded(progress: RetainedCloseProgress): boolean;
+  recordRetainedCloseFailed(progress: RetainedCloseProgress): boolean;
+  recordRetainedCleanupAuthority(progress: RetainedCloseProgress): boolean;
+  recordRetainedCleanupStopped(progress: RetainedCloseProgress): boolean;
+  recordRetainedHoldingReleased(progress: RetainedHoldingProgress): boolean;
+  retainedCloseAction(progress: RetainedCloseProgress): number;
+  retainedHoldingAction(progress: RetainedHoldingProgress): number;
+  beginHostCleanup(): HostCleanupProgress;
+  recordHostCleanupRetry(progress: HostCleanupProgress): boolean;
+  recordHostCleanupClosesAwaited(progress: HostCleanupProgress): boolean;
+  hostCleanupAction(progress: HostCleanupProgress, closesPending: boolean, knownCleanupPending: boolean,
+    unconfirmedOwnership: boolean, cleanupFailed: boolean): number;
+  hostCleanupPending(closesPending: boolean, knownCleanupPending: boolean, unconfirmedOwnership: boolean): boolean;
+  hostTaskRunOutcome(failed: boolean, runFinished: boolean): number;
+  beginHostTaskSuccess(connectorOwnedOutput: boolean, managedBindingClaimed: boolean): HostSuccessProgress;
+  recordHostTaskSiteCompletion(progress: HostSuccessProgress, ready: boolean): boolean;
+  recordHostTaskCommonCompletion(progress: HostSuccessProgress, completed: boolean): boolean;
+  recordHostTaskOutputRetained(progress: HostSuccessProgress): boolean;
+  recordHostTaskSiteOperationSettled(progress: HostSuccessProgress): boolean;
+  recordHostTaskManagedBinding(progress: HostSuccessProgress, valid: boolean): boolean;
+  hostTaskSiteOperationSettled(progress: HostSuccessProgress): boolean;
+  hostTaskSuccessAction(progress: HostSuccessProgress): number;
+}>;
+type SiteState = SiteConfiguration & SiteTiming & {
+  identity: object;
+  control: SiteControl | undefined;
+  handle: SiteHandle | undefined;
+  pendingTeardown: boolean;
+  pendingRevocation: boolean;
+};
+type ControlledSite = SiteState & {control: SiteControl; handle: SiteHandle};
+type MemoryTransferProvider = ReturnType<typeof createManagedMemoryTransferProvider>;
+type TransferProvider = Readonly<{
+  contract: Readonly<Record<keyof MemoryTransferProvider['contract'], string>>;
+  estimate(material: object): ManagedTransferEstimate | undefined;
+  copy(options: Parameters<MemoryTransferProvider['copy']>[0]): unknown;
+}>;
+type PlacementContribution = Readonly<{managedSelectionKey?: string; registration?: unknown}>;
+type PolicyOptions = Readonly<{
+  sites?: readonly object[];
+  placements?: ReadonlyMap<string, readonly object[]>;
+  defaultSites?: readonly object[];
+  transferProvider?: TransferProvider;
+  maxSites?: number;
+  maxPlacements?: number;
+}>;
+type SitePolicy = Readonly<{
+  sites: readonly object[];
+  placements: ReadonlyMap<string, readonly object[]>;
+  defaultSites: readonly object[];
+  transferProvider: TransferProvider | undefined;
+  maxPlacements: number;
+}>;
+type SiteInstallation = Readonly<{
+  policy: SitePolicy;
+  placement: ReadonlyMap<PlacementContribution, readonly object[]>;
+  control: SiteControl;
+}>;
+type SiteInput = Readonly<{
+  task: number;
+  material: object;
+  site: object;
+  siteMaterial: object;
+  materialGeneration: object;
+  transferMode?: 'preserve-to-independent-material';
+}>;
+type InputSite = Readonly<{
+  site: object;
+  identity: object;
+  generation: number;
+  runtimeRevision: string;
+}>;
+type SiteTransfer<Input extends SiteInput> = Readonly<{
+  input: Input;
+  estimate: ManagedTransferEstimate;
+  sharedWith: Input | undefined;
+}>;
+type CandidateOptions<Input extends SiteInput> = Readonly<{
+  installation: object;
+  contribution: PlacementContribution;
+  site: object;
+  task: number;
+  registration: unknown;
+  inputs: readonly Input[];
+  durationMilliseconds: bigint | null;
+  acceptsSiteTransfer?: boolean;
+  capacity?: Capacity;
+}>;
+type SiteCandidate = NonNullable<ReturnType<typeof executionSiteCandidate>>;
+type AcceptedCandidate = Extract<SiteCandidate, {excluded: undefined}>;
+type CandidateSelection = Pick<AcceptedCandidate, 'site' | 'excluded' | 'durationMilliseconds' | 'selectionKey'>;
+type SiteBinding = {candidate: AcceptedCandidate; state: ControlledSite; consumed: boolean};
+type ControlledHandle<Handle> = Readonly<{control: SiteControl; handle: Handle}>;
+type RetainedValue<Handle> = ControlledHandle<Handle> & Readonly<{value: unknown}>;
+type ControlledProgress<Progress> = Readonly<{control: SiteControl; progress: Progress}>;
+type RetainedCloseMethod = 'recordRetainedCloseStarted' | 'recordRetainedCloseSucceeded' |
+  'recordRetainedCloseFailed' | 'recordRetainedCleanupAuthority' | 'recordRetainedCleanupStopped';
+type HostSuccessMethod = 'recordHostTaskSiteCompletion' | 'recordHostTaskCommonCompletion' |
+  'recordHostTaskOutputRetained' | 'recordHostTaskSiteOperationSettled' | 'recordHostTaskManagedBinding';
+
+const sites = new WeakMap<object, SiteState>();
+const policies = new WeakMap<object, SitePolicy>();
+const installations = new WeakMap<object, SiteInstallation>();
+const bindings = new WeakMap<object, SiteBinding>();
+const operations = new WeakMap<object, ControlledHandle<OperationHandle>>();
+const transferOperations = new WeakMap<object, ControlledHandle<TransferHandle>>();
+const holdings = new WeakMap<object, RetainedValue<HoldingHandle>>();
+const cleanupResponsibilities = new WeakMap<object, RetainedValue<CleanupHandle>>();
+const retainedCloseProgresses = new WeakMap<object, ControlledProgress<RetainedCloseProgress>>();
+const retainedHoldingProgresses = new WeakMap<object, ControlledProgress<RetainedHoldingProgress> & Readonly<{closeOwner: object}>>();
+
+const fail: (code: string, details?: unknown) => never = (code, details) => {
+  const error = Object.assign(new Error(code), {code}) as Error & {code: string; details?: unknown};
   if (details !== undefined) error.details = details;
   throw error;
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const count = value => Number.isSafeInteger(value) && value >= 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 const maximumBytes = 9223372036854775807n;
-const duration = value => value === null ||
+const duration = (value: unknown): value is bigint | null => value === null ||
   (typeof value === 'bigint' && value >= 0n && value <= maximumBytes);
-const bytes = value => typeof value === 'bigint' &&
+const bytes = (value: unknown): value is bigint => typeof value === 'bigint' &&
   value >= 0n && value <= maximumBytes;
-const siteState = site => sites.get(site) ?? fail('ForeignExecutionSite');
-const sameInputOccurrence = (left, right) =>
+const siteState = (site: unknown) => sites.get(site as object) ?? fail('ForeignExecutionSite');
+const sameInputOccurrence = (left: SiteInput, right: SiteInput) =>
   left.task === right.task &&
   left.material === right.material &&
   left.site === right.site &&
@@ -55,17 +237,17 @@ const controlMethods = [
   'recordHostTaskSiteOperationSettled', 'recordHostTaskManagedBinding',
   'hostTaskSiteOperationSettled',
   'hostTaskSuccessAction',
-];
+] as const satisfies readonly (keyof SiteControl)[];
 
-function checkedControl(control) {
+function checkedControl(control: unknown): SiteControl {
   if (control === null || typeof control !== 'object' ||
-      controlMethods.some(name => typeof control[name] !== 'function')) {
+      controlMethods.some(name => typeof (control as Record<string, unknown>)[name] !== 'function')) {
     fail('MissingExecutionSiteControl');
   }
-  return control;
+  return control as SiteControl;
 }
 
-function bindSiteControl(state, control) {
+function bindSiteControl(state: SiteState, control: SiteControl) {
   if (state.control !== undefined) {
     if (state.control !== control) fail('ForeignExecutionSiteControl');
     return false;
@@ -87,7 +269,7 @@ function bindSiteControl(state, control) {
 
 // A failed installation is not a rollback of the original Core handles. Keep
 // the bindings and retry only their existing teardown, never create them again.
-function installationCleanup(createdSites) {
+function installationCleanup(createdSites: readonly object[]) {
   const status = () => {
     const statuses = Object.freeze(createdSites.map(executionSiteStatus));
     return Object.freeze({
@@ -113,11 +295,11 @@ function installationCleanup(createdSites) {
   return Object.freeze({status, retry});
 }
 
-function controlled(state) {
+function controlled(state: SiteState): ControlledSite {
   if (state.control === undefined || state.handle === undefined) {
     fail('UnboundExecutionSite');
   }
-  return state;
+  return state as ControlledSite;
 }
 
 export function createInProcessExecutionSite({
@@ -130,7 +312,7 @@ export function createInProcessExecutionSite({
   maxConcurrentTransfers = 1,
   maxRetainedBytes = maximumBytes,
   maxExecutionBytes = maximumBytes,
-} = {}) {
+}: Partial<SiteConfiguration & SiteTiming> = {}) {
   if (!text(key) || !count(generation) || !text(runtimeRevision) ||
       !duration(startupMilliseconds) || !duration(transferMilliseconds) ||
       !count(maxConcurrentOperations) || maxConcurrentOperations === 0 ||
@@ -148,11 +330,11 @@ export function createInProcessExecutionSite({
   return site;
 }
 
-export function executionSiteDescription(site) {
+export function executionSiteDescription(site: unknown) {
   const state = siteState(site);
   const accepting = state.control === undefined
     ? !state.pendingTeardown && !state.pendingRevocation
-    : state.control.available(state.handle);
+    : state.control.available(state.handle!);
   return Object.freeze({
     key: state.key,
     generation: state.generation,
@@ -171,7 +353,7 @@ export function prepareExecutionSitePolicy({
   transferProvider,
   maxSites = 64,
   maxPlacements = 256,
-} = {}) {
+}: PolicyOptions = {}) {
   if (!Array.isArray(supplied) || !count(maxSites) || !count(maxPlacements) ||
       supplied.length === 0 || supplied.length > maxSites ||
       !(placements instanceof Map) ||
@@ -188,21 +370,21 @@ export function prepareExecutionSitePolicy({
          !text(transferProvider.contract?.logicalIdentity)))) {
     fail('InvalidExecutionSitePolicy');
   }
-  const unique = new Set();
+  const unique = new Set<string>();
   for (const site of supplied) {
     const state = siteState(site);
     const identity = `${state.key}\u0000${state.generation}`;
     if (unique.has(identity)) fail('DuplicateExecutionSiteGeneration');
     unique.add(identity);
   }
-  const siteSet = new Set(supplied);
+  const siteSet = new Set<object>(supplied);
   const selectedDefaults = defaultSites === undefined
     ? [supplied[0]] : [...defaultSites];
   if (selectedDefaults.length === 0 ||
       selectedDefaults.some(site => !siteSet.has(site))) {
     fail('InvalidExecutionSitePolicy');
   }
-  const ownedPlacements = new Map();
+  const ownedPlacements = new Map<string, readonly object[]>();
   let placementCount = selectedDefaults.length;
   if (placementCount > maxPlacements) fail('ExecutionSitePlacementLimit');
   for (const [key, values] of placements) {
@@ -236,13 +418,13 @@ export function prepareSingleExecutionSitePolicy() {
   return prepareExecutionSitePolicy({sites: [site]});
 }
 
-export function installExecutionSites(policy, contributions, suppliedControl) {
+export function installExecutionSites(policy: object, contributions: readonly PlacementContribution[], suppliedControl: unknown) {
   const configured = policies.get(policy) ?? fail('ForeignExecutionSitePolicy');
   const control = checkedControl(suppliedControl);
   if (!Array.isArray(contributions) || contributions.length === 0) {
     fail('InvalidExecutionSiteInstallation');
   }
-  const placement = new Map();
+  const placement = new Map<PlacementContribution, readonly object[]>();
   let total = 0;
   for (const contribution of contributions) {
     const key = contribution?.managedSelectionKey;
@@ -263,7 +445,7 @@ export function installExecutionSites(policy, contributions, suppliedControl) {
       fail('ForeignExecutionSiteControl');
     }
   }
-  const createdSites = [];
+  const createdSites: object[] = [];
   try {
     for (const site of configured.sites) {
       const state = siteState(site);
@@ -271,16 +453,18 @@ export function installExecutionSites(policy, contributions, suppliedControl) {
         createdSites.push(site);
         // Track the original handle before applying a pending lifecycle action:
         // that action can itself fail and must leave a reachable cleanup duty.
-        if (state.pendingRevocation) control.revoke(state.handle);
-        else if (state.pendingTeardown) control.beginTeardown(state.handle);
+        if (state.pendingRevocation) control.revoke(state.handle!);
+        else if (state.pendingTeardown) control.beginTeardown(state.handle!);
       }
     }
   } catch (cause) {
     if (createdSites.length === 0) throw cause;
     const cleanupHandle = installationCleanup(Object.freeze(createdSites));
-    const code = typeof cause?.code === 'string'
-      ? cause.code : 'ExecutionSiteInstallationFailed';
-    const error = Object.assign(new Error(code, {cause}), {code, cleanupHandle});
+    const code = typeof (cause as {code?: unknown} | null | undefined)?.code === 'string'
+      ? (cause as {code: string}).code : 'ExecutionSiteInstallationFailed';
+    const error = Object.assign(new Error(code, {cause}), {code, cleanupHandle}) as Error & {
+      code: string; cleanupHandle: typeof cleanupHandle; cleanupPending?: boolean; cleanupFailure?: unknown;
+    };
     try {
       error.cleanupPending = cleanupHandle.retry().pending;
     } catch (cleanupFailure) {
@@ -294,7 +478,7 @@ export function installExecutionSites(policy, contributions, suppliedControl) {
   return installation;
 }
 
-export function executionSitePlacements(installation, contribution) {
+export function executionSitePlacements(installation: object, contribution: PlacementContribution) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
   const placed = state.placement.get(contribution);
@@ -303,9 +487,9 @@ export function executionSitePlacements(installation, contribution) {
 }
 
 export function classifyManagedExecutionSiteFallback(
-  installation,
-  retainedInputCount,
-  exclusionCodes,
+  installation: object,
+  retainedInputCount: number,
+  exclusionCodes: readonly number[],
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -326,7 +510,7 @@ export function classifyManagedExecutionSiteFallback(
 // Candidate facts are produced by environment placement adapters, while the
 // portable Site control owns the cost and stable-key decision.
 export function selectExecutionSiteCandidateIndex(
-  candidates,
+  candidates: readonly CandidateSelection[],
   {
     invalid = 'InvalidExecutionSiteCandidateSet',
     duplicate = 'DuplicateExecutionSiteSelectionKey',
@@ -334,7 +518,7 @@ export function selectExecutionSiteCandidateIndex(
 ) {
   if (!Array.isArray(candidates)) fail(invalid);
   if (candidates.length === 0) return -1;
-  let control;
+  let control: SiteControl | undefined;
   for (const candidate of candidates) {
     if (candidate === null || typeof candidate !== 'object' ||
         candidate.excluded !== undefined) {
@@ -344,7 +528,7 @@ export function selectExecutionSiteCandidateIndex(
     if (control !== undefined && control !== state.control) fail(invalid);
     control = state.control;
   }
-  const selected = control.selectCandidate(
+  const selected = control!.selectCandidate(
     candidates.map(candidate => candidate.durationMilliseconds),
     candidates.map(candidate => candidate.selectionKey),
   );
@@ -356,14 +540,14 @@ export function selectExecutionSiteCandidateIndex(
   return selected;
 }
 
-export function executionSiteTransferProvider(installation) {
+export function executionSiteTransferProvider(installation: object) {
   return (installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation')).policy.transferProvider;
 }
 
 // The physical adapter receives only the opaque MoonBit Site authority. Site
 // generation, revocation, and capacity remain owned by the portable control.
-export function createExecutionSiteRemoteJournal(site, remoteControl) {
+export function createExecutionSiteRemoteJournal(site: unknown, remoteControl: Readonly<{createJournal(site: SiteHandle): RemoteJournalHandle}>) {
   const state = controlled(siteState(site));
   if (remoteControl === null || typeof remoteControl !== 'object' ||
       typeof remoteControl.createJournal !== 'function') {
@@ -372,7 +556,7 @@ export function createExecutionSiteRemoteJournal(site, remoteControl) {
   return remoteControl.createJournal(state.handle);
 }
 
-export function executionSiteCandidate({
+export function executionSiteCandidate<Input extends SiteInput>({
   installation,
   contribution,
   site,
@@ -382,7 +566,7 @@ export function executionSiteCandidate({
   durationMilliseconds,
   acceptsSiteTransfer = false,
   capacity = Object.freeze({retainedBytes: 0n, executionBytes: 0n}),
-} = {}) {
+}: CandidateOptions<Input> = {} as CandidateOptions<Input>) {
   const installed = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
   if (!installed.placement.get(contribution)?.includes(site) ||
@@ -399,8 +583,8 @@ export function executionSiteCandidate({
     capacity.retainedBytes,
     capacity.executionBytes,
   );
-  const transfers = [];
-  const inputSites = [];
+  const transfers: SiteTransfer<Input>[] = [];
+  const inputSites: InputSite[] = [];
   const provider = installed.policy.transferProvider;
   const transferRequired = [];
   const sharedTransfer = [];
@@ -409,7 +593,7 @@ export function executionSiteCandidate({
   const transferBytes = [];
   const retainedBytes = [];
   const executionBytes = [];
-  for (const input of inputs) {
+  for (const input of inputs as readonly Input[]) {
     if (!input || typeof input !== 'object' ||
         !Number.isSafeInteger(input.task) || input.task < 0 ||
         input.material === null || typeof input.material !== 'object' ||
@@ -488,9 +672,9 @@ export function executionSiteCandidate({
     'UnsupportedTransferRepresentation', 'MissingTransferProvider',
     'SourceSiteRevoked', 'MissingTransferEstimate'];
   if (plan[0] !== 0) {
-    const excluded = exclusions[plan[0]];
+    const excluded = exclusions[plan[0] as number];
     if (excluded === undefined) fail('InvalidExecutionSiteCandidate');
-    return Object.freeze({excluded, exclusionCode: plan[0]});
+    return Object.freeze({excluded, exclusionCode: plan[0] as number});
   }
   return Object.freeze({
     excluded: undefined,
@@ -503,18 +687,18 @@ export function executionSiteCandidate({
     runtimeRevision: destination.runtimeRevision,
     task,
     registration,
-    inputs: Object.freeze([...inputs]),
+    inputs: Object.freeze([...inputs] as Input[]),
     inputSites: Object.freeze(inputSites),
     transfers: Object.freeze(transfers),
     capacity: Object.freeze({...capacity}),
-    durationMilliseconds: plan[1],
+    durationMilliseconds: plan[1] as bigint,
     selectionKey: `${contribution.managedSelectionKey}\u0000${destination.key}\u0000${destination.generation}`,
   });
 }
 
 // Binding occurs only after common candidate comparison. It rechecks exact
 // placement, estimate, and MoonBit-owned Site state without starting I/O.
-export function bindExecutionSiteCandidate(candidate) {
+export function bindExecutionSiteCandidate(candidate: SiteCandidate | undefined) {
   if (!candidate || candidate.excluded !== undefined) {
     fail('ExecutionSiteCandidateExcluded', candidate?.excluded);
   }
@@ -560,7 +744,7 @@ export function bindExecutionSiteCandidate(candidate) {
   return binding;
 }
 
-export function startExecutionSiteOperation(binding) {
+export function startExecutionSiteOperation(binding: object) {
   const bound = bindings.get(binding) ?? fail('ForeignExecutionSiteBinding');
   if (bound.consumed) fail('ExecutionSiteAdmissionRejected');
   const handle = bound.state.control.startOperation(
@@ -577,14 +761,14 @@ export function startExecutionSiteOperation(binding) {
   return operation;
 }
 
-export function settleExecutionSiteOperation(operation) {
+export function settleExecutionSiteOperation(operation: object) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   return state.control.settleOperation(state.handle);
 }
 
 export function failedExecutionSiteOperationAction(
-  operation,
-  progress,
+  operation: object,
+  progress: FailureProgress,
 ) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   const action = state.control.failedOperationAction(progress);
@@ -595,9 +779,9 @@ export function failedExecutionSiteOperationAction(
 }
 
 export function beginFailedExecutionSiteOperation(
-  operation,
-  cleanupRequired,
-  alreadySettled,
+  operation: object,
+  cleanupRequired: boolean,
+  alreadySettled: boolean,
 ) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   const progress = state.control.beginFailedOperation(
@@ -610,7 +794,7 @@ export function beginFailedExecutionSiteOperation(
   return progress;
 }
 
-export function recordFailedExecutionSiteOperationStop(operation, progress) {
+export function recordFailedExecutionSiteOperationStop(operation: object, progress: FailureProgress) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   if (state.control.recordFailedOperationStop(progress) !== true) {
     fail('InvalidExecutionSiteFailureProgress');
@@ -618,8 +802,8 @@ export function recordFailedExecutionSiteOperationStop(operation, progress) {
 }
 
 export function recordFailedExecutionSiteOperationSettlement(
-  operation,
-  progress,
+  operation: object,
+  progress: FailureProgress,
 ) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   if (state.control.recordFailedOperationSettlement(progress) !== true) {
@@ -627,7 +811,7 @@ export function recordFailedExecutionSiteOperationSettlement(
   }
 }
 
-export function beginRetainedExecutionSiteClose(authority) {
+export function beginRetainedExecutionSiteClose(authority: object) {
   const state = operations.get(authority) ?? installations.get(authority) ??
     fail('ForeignExecutionSiteCloseAuthority');
   const progress = state.control.beginRetainedClose();
@@ -639,7 +823,7 @@ export function beginRetainedExecutionSiteClose(authority) {
   return owner;
 }
 
-export function beginRetainedExecutionSiteHolding(closeOwner, operation) {
+export function beginRetainedExecutionSiteHolding(closeOwner: object, operation: object) {
   const close = retainedCloseProgresses.get(closeOwner) ??
     fail('ForeignExecutionSiteCloseProgress');
   const operationState = operations.get(operation) ??
@@ -657,39 +841,39 @@ export function beginRetainedExecutionSiteHolding(closeOwner, operation) {
   return owner;
 }
 
-function retainedClose(closeOwner) {
+function retainedClose(closeOwner: object) {
   return retainedCloseProgresses.get(closeOwner) ??
     fail('ForeignExecutionSiteCloseProgress');
 }
 
-function recordRetainedClose(closeOwner, method) {
+function recordRetainedClose(closeOwner: object, method: RetainedCloseMethod) {
   const state = retainedClose(closeOwner);
   if (state.control[method](state.progress) !== true) {
     fail('InvalidExecutionSiteHoldingProgress');
   }
 }
 
-export function recordRetainedExecutionSiteCloseStarted(closeOwner) {
+export function recordRetainedExecutionSiteCloseStarted(closeOwner: object) {
   recordRetainedClose(closeOwner, 'recordRetainedCloseStarted');
 }
 
-export function recordRetainedExecutionSiteCloseSucceeded(closeOwner) {
+export function recordRetainedExecutionSiteCloseSucceeded(closeOwner: object) {
   recordRetainedClose(closeOwner, 'recordRetainedCloseSucceeded');
 }
 
-export function recordRetainedExecutionSiteCloseFailed(closeOwner) {
+export function recordRetainedExecutionSiteCloseFailed(closeOwner: object) {
   recordRetainedClose(closeOwner, 'recordRetainedCloseFailed');
 }
 
-export function recordRetainedExecutionSiteCleanupAuthority(closeOwner) {
+export function recordRetainedExecutionSiteCleanupAuthority(closeOwner: object) {
   recordRetainedClose(closeOwner, 'recordRetainedCleanupAuthority');
 }
 
-export function recordRetainedExecutionSiteCleanupStopped(closeOwner) {
+export function recordRetainedExecutionSiteCleanupStopped(closeOwner: object) {
   recordRetainedClose(closeOwner, 'recordRetainedCleanupStopped');
 }
 
-export function retainedExecutionSiteHoldingAction(holdingOwner) {
+export function retainedExecutionSiteHoldingAction(holdingOwner: object) {
   const state = retainedHoldingProgresses.get(holdingOwner) ??
     fail('ForeignExecutionSiteHoldingProgress');
   const action = state.control.retainedHoldingAction(state.progress);
@@ -699,7 +883,7 @@ export function retainedExecutionSiteHoldingAction(holdingOwner) {
   return action;
 }
 
-export function retainedExecutionSiteCloseAction(closeOwner) {
+export function retainedExecutionSiteCloseAction(closeOwner: object) {
   const state = retainedClose(closeOwner);
   const action = state.control.retainedCloseAction(state.progress);
   if (!Number.isSafeInteger(action) || action < 0 || action > 4) {
@@ -708,7 +892,7 @@ export function retainedExecutionSiteCloseAction(closeOwner) {
   return action;
 }
 
-export function recordRetainedExecutionSiteHoldingReleased(holdingOwner) {
+export function recordRetainedExecutionSiteHoldingReleased(holdingOwner: object) {
   const state = retainedHoldingProgresses.get(holdingOwner) ??
     fail('ForeignExecutionSiteHoldingProgress');
   if (state.control.recordRetainedHoldingReleased(state.progress) !== true) {
@@ -717,12 +901,12 @@ export function recordRetainedExecutionSiteHoldingReleased(holdingOwner) {
 }
 
 export function executionSiteHostCleanupAction(
-  installation,
-  progress,
-  closesPending,
-  knownCleanupPending,
-  unconfirmedOwnership,
-  cleanupFailed,
+  installation: object,
+  progress: HostCleanupProgress,
+  closesPending: boolean,
+  knownCleanupPending: boolean,
+  unconfirmedOwnership: boolean,
+  cleanupFailed: boolean,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -739,7 +923,7 @@ export function executionSiteHostCleanupAction(
   return action;
 }
 
-export function beginExecutionSiteHostCleanup(installation) {
+export function beginExecutionSiteHostCleanup(installation: object) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
   const progress = state.control.beginHostCleanup();
@@ -750,8 +934,8 @@ export function beginExecutionSiteHostCleanup(installation) {
 }
 
 export function recordExecutionSiteHostCleanupRetry(
-  installation,
-  progress,
+  installation: object,
+  progress: HostCleanupProgress,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -761,8 +945,8 @@ export function recordExecutionSiteHostCleanupRetry(
 }
 
 export function recordExecutionSiteHostCleanupClosesAwaited(
-  installation,
-  progress,
+  installation: object,
+  progress: HostCleanupProgress,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -772,10 +956,10 @@ export function recordExecutionSiteHostCleanupClosesAwaited(
 }
 
 export function executionSiteHostCleanupPending(
-  installation,
-  closesPending,
-  knownCleanupPending,
-  unconfirmedOwnership,
+  installation: object,
+  closesPending: boolean,
+  knownCleanupPending: boolean,
+  unconfirmedOwnership: boolean,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -791,9 +975,9 @@ export function executionSiteHostCleanupPending(
 }
 
 export function executionSiteHostTaskRunOutcome(
-  installation,
-  failed,
-  runFinished,
+  installation: object,
+  failed: boolean,
+  runFinished: boolean,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -805,8 +989,8 @@ export function executionSiteHostTaskRunOutcome(
 }
 
 export function executionSiteHostTaskSuccessAction(
-  installation,
-  progress,
+  installation: object,
+  progress: HostSuccessProgress,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -818,9 +1002,9 @@ export function executionSiteHostTaskSuccessAction(
 }
 
 export function beginExecutionSiteHostTaskSuccess(
-  installation,
-  connectorOwnedOutput,
-  managedBindingClaimed,
+  installation: object,
+  connectorOwnedOutput: boolean,
+  managedBindingClaimed: boolean,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -834,18 +1018,18 @@ export function beginExecutionSiteHostTaskSuccess(
   return progress;
 }
 
-function recordHostTaskSuccessFact(installation, method, progress, value) {
+function recordHostTaskSuccessFact(installation: object, method: HostSuccessMethod, progress: HostSuccessProgress, value: readonly [] | readonly [boolean]) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
-  if (state.control[method](progress, ...value) !== true) {
+  if ((state.control[method] as (progress: HostSuccessProgress, ...value: readonly boolean[]) => boolean)(progress, ...value) !== true) {
     fail('InvalidExecutionSiteHostTaskSuccessProgress');
   }
 }
 
 export function recordExecutionSiteHostTaskSiteCompletion(
-  installation,
-  progress,
-  ready,
+  installation: object,
+  progress: HostSuccessProgress,
+  ready: boolean,
 ) {
   recordHostTaskSuccessFact(
     installation, 'recordHostTaskSiteCompletion', progress, [ready],
@@ -853,9 +1037,9 @@ export function recordExecutionSiteHostTaskSiteCompletion(
 }
 
 export function recordExecutionSiteHostTaskCommonCompletion(
-  installation,
-  progress,
-  completed,
+  installation: object,
+  progress: HostSuccessProgress,
+  completed: boolean,
 ) {
   recordHostTaskSuccessFact(
     installation, 'recordHostTaskCommonCompletion', progress, [completed],
@@ -863,8 +1047,8 @@ export function recordExecutionSiteHostTaskCommonCompletion(
 }
 
 export function recordExecutionSiteHostTaskOutputRetained(
-  installation,
-  progress,
+  installation: object,
+  progress: HostSuccessProgress,
 ) {
   recordHostTaskSuccessFact(
     installation, 'recordHostTaskOutputRetained', progress, [],
@@ -872,8 +1056,8 @@ export function recordExecutionSiteHostTaskOutputRetained(
 }
 
 export function recordExecutionSiteHostTaskSiteOperationSettled(
-  installation,
-  progress,
+  installation: object,
+  progress: HostSuccessProgress,
 ) {
   recordHostTaskSuccessFact(
     installation, 'recordHostTaskSiteOperationSettled', progress, [],
@@ -881,9 +1065,9 @@ export function recordExecutionSiteHostTaskSiteOperationSettled(
 }
 
 export function recordExecutionSiteHostTaskManagedBinding(
-  installation,
-  progress,
-  valid,
+  installation: object,
+  progress: HostSuccessProgress,
+  valid: boolean,
 ) {
   recordHostTaskSuccessFact(
     installation, 'recordHostTaskManagedBinding', progress, [valid],
@@ -891,8 +1075,8 @@ export function recordExecutionSiteHostTaskManagedBinding(
 }
 
 export function executionSiteHostTaskSiteOperationSettled(
-  installation,
-  progress,
+  installation: object,
+  progress: HostSuccessProgress,
 ) {
   const state = installations.get(installation) ??
     fail('ForeignExecutionSiteInstallation');
@@ -903,7 +1087,7 @@ export function executionSiteHostTaskSiteOperationSettled(
   return settled;
 }
 
-export function retainExecutionSiteOperationHolding(operation, value, valueBytes) {
+export function retainExecutionSiteOperationHolding(operation: object, value: unknown, valueBytes: bigint) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   if (value == null || !bytes(valueBytes)) fail('ExecutionSiteHoldingRejected');
   const handle = state.control.retainOperationHolding(state.handle, valueBytes);
@@ -915,15 +1099,15 @@ export function retainExecutionSiteOperationHolding(operation, value, valueBytes
   return holding;
 }
 
-export function executionSiteOperationAvailable(operation) {
+export function executionSiteOperationAvailable(operation: object) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   return state.control.operationAvailable(state.handle);
 }
 
 export function startExecutionSiteTransferOperation(
-  sourceSite,
-  destinationSite,
-  capacity = Object.freeze({retainedBytes: 0n, executionBytes: 0n}),
+  sourceSite: object,
+  destinationSite: object,
+  capacity: Capacity = Object.freeze({retainedBytes: 0n, executionBytes: 0n}),
 ) {
   const source = controlled(siteState(sourceSite));
   const destination = controlled(siteState(destinationSite));
@@ -947,28 +1131,28 @@ export function startExecutionSiteTransferOperation(
   return operation;
 }
 
-export function executionSiteTransferOperationAvailable(operation) {
+export function executionSiteTransferOperationAvailable(operation: object) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
   return state.control.transferAvailable(state.handle);
 }
 
-export function settleExecutionSiteTransferSource(operation) {
+export function settleExecutionSiteTransferSource(operation: object) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
   return state.control.settleTransferSource(state.handle);
 }
 
-export function settleExecutionSiteTransferDestination(operation) {
+export function settleExecutionSiteTransferDestination(operation: object) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
   return state.control.settleTransferDestination(state.handle);
 }
 
 export function retainExecutionSiteTransferHolding(
-  operation,
-  value,
-  valueBytes,
+  operation: object,
+  value: unknown,
+  valueBytes: bigint,
 ) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
@@ -982,7 +1166,7 @@ export function retainExecutionSiteTransferHolding(
   return holding;
 }
 
-export function retainExecutionSiteHolding(site, value, retainedBytes = 0n) {
+export function retainExecutionSiteHolding(site: object, value: unknown, retainedBytes = 0n) {
   const state = controlled(siteState(site));
   if (value == null || !bytes(retainedBytes)) fail('ExecutionSiteHoldingRejected');
   const handle = state.control.retainHolding(state.handle, retainedBytes);
@@ -994,12 +1178,12 @@ export function retainExecutionSiteHolding(site, value, retainedBytes = 0n) {
   return holding;
 }
 
-export function releaseExecutionSiteHolding(holding) {
+export function releaseExecutionSiteHolding(holding: object) {
   const held = holdings.get(holding) ?? fail('ForeignExecutionSiteHolding');
   return held.control.releaseHolding(held.handle);
 }
 
-export function retainExecutionSiteCleanup(site, value) {
+export function retainExecutionSiteCleanup(site: object, value: unknown) {
   const state = controlled(siteState(site));
   if (value == null) fail('ExecutionSiteCleanupRejected');
   const handle = state.control.retainCleanup(state.handle);
@@ -1011,28 +1195,28 @@ export function retainExecutionSiteCleanup(site, value) {
   return cleanup;
 }
 
-export function releaseExecutionSiteCleanup(cleanup) {
+export function releaseExecutionSiteCleanup(cleanup: object) {
   const owned = cleanupResponsibilities.get(cleanup) ??
     fail('ForeignExecutionSiteCleanup');
   return owned.control.releaseCleanup(owned.handle);
 }
 
-export function beginExecutionSiteTeardown(site) {
+export function beginExecutionSiteTeardown(site: unknown) {
   const state = siteState(site);
   state.pendingTeardown = true;
-  if (state.control !== undefined) state.control.beginTeardown(state.handle);
+  if (state.control !== undefined) state.control.beginTeardown(state.handle!);
   return executionSiteStatus(site);
 }
 
-export function revokeExecutionSite(site) {
+export function revokeExecutionSite(site: unknown) {
   const state = siteState(site);
   state.pendingTeardown = true;
   state.pendingRevocation = true;
-  if (state.control !== undefined) state.control.revoke(state.handle);
+  if (state.control !== undefined) state.control.revoke(state.handle!);
   return executionSiteStatus(site);
 }
 
-export function executionSiteStatus(site) {
+export function executionSiteStatus(site: unknown) {
   const state = siteState(site);
   if (state.control === undefined) {
     return Object.freeze({
@@ -1051,7 +1235,7 @@ export function executionSiteStatus(site) {
       teardownComplete: state.pendingTeardown,
     });
   }
-  const values = state.control.status(state.handle);
+  const values = state.control.status(state.handle!);
   if (!Array.isArray(values) || values.length !== 11 ||
       values.some(value => typeof value !== 'bigint')) {
     fail('InvalidExecutionSiteStatus');

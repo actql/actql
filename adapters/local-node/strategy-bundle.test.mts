@@ -16,7 +16,6 @@ import {installManagedRepresentation} from
   '../store-local/managed-memory-representations.mjs';
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
-  // @ts-expect-error TS7016: remove after migrating the execution Site implementation.
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
 type LocalBindings = Parameters<typeof localStrategyContribution>[0];
 type ReferenceBindings = Parameters<typeof numericStrategyContribution>[0];
