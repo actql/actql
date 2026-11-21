@@ -90575,6 +90575,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "inputsOutputs": [
@@ -90585,6 +90589,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "identity": [
@@ -90595,6 +90603,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "ownership": [
@@ -90605,6 +90617,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "synchronization": [
@@ -90615,6 +90631,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "failure": [
@@ -90625,6 +90645,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "cancellation": [
@@ -90635,6 +90659,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "resources": [
@@ -90645,6 +90673,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "extension": [
@@ -90655,6 +90687,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "verification": [
@@ -90665,12 +90701,16 @@
               {
                 "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
                 "anchor": "test \"platform VM capacity binds exact original Root"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
         }
       ],
-      "sha256": "e7e958fd0a54bf3b70883a69cd1ec9913cb514641a28dd79561e40213ce62cb7",
+      "sha256": "4f3622adf21314c467db6f6386beee657e2b96af5f917af55411e3df6e6fec20",
       "operations": [
         {
           "name": "allocated",
