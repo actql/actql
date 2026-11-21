@@ -9,7 +9,7 @@ import test from 'node:test';
 
 const prefix = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs', import.meta.url), 'utf8');
 const capture = parse(prefix, {ecmaVersion: 'latest', sourceType: 'script'}).body
-  .filter(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureJournalNativeBindings');
+  .filter(node => node.type === 'FunctionDeclaration' && node.id!.name === 'captureJournalNativeBindings');
 assert.equal(capture.length, 1);
 const captureBody = prefix.slice(capture[0].start, capture[0].end);
 const setup = `
@@ -33,7 +33,7 @@ const setup = `
   const held=capture(fs,crypto,fs.promises);
   current(DatabaseSync,StatementSync,held);
 `;
-function child(body) {
+function child(body: string) {
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', setup + body],
     {cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8', timeout: 15000});
   assert.equal(result.error, undefined);

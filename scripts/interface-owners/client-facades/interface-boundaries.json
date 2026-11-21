@@ -8911,7 +8911,7 @@
                 "anchor": "export class RequestHeld extends ClientError"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"
               }
             ],
@@ -8934,7 +8934,7 @@
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
               }
             ],
@@ -8967,11 +8967,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "test('SDK class delivery exports only the original two classes without the execution graph'"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
               },
               {

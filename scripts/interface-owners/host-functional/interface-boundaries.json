@@ -30520,11 +30520,11 @@
                 "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
               }
             ]
@@ -32707,11 +32707,11 @@
                 "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
               }
             ]
@@ -34273,11 +34273,11 @@
                 "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
               }
             ]
@@ -37056,11 +37056,11 @@
                 "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
               }
             ]
@@ -49747,7 +49747,7 @@
                 "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               }
             ]
@@ -49867,7 +49867,7 @@
                 "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
               }
             ]
@@ -55988,7 +55988,7 @@
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -56496,7 +56496,7 @@
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -57422,7 +57422,7 @@
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -57646,7 +57646,7 @@
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -58897,7 +58897,7 @@
                 "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -59057,7 +59057,7 @@
                 "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -59571,7 +59571,7 @@
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               },
               {
@@ -59739,7 +59739,7 @@
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               },
               {
@@ -87088,7 +87088,7 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -87408,7 +87408,7 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
@@ -88659,7 +88659,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary connected Local HTTP selection stays unselected without traversing Host fields"
               }
             ]
@@ -88794,11 +88794,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source original retains two file children and separates logical stop from FD close"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source refuses distinct same-sized Buffer wrappers over one physical backing"
               }
             ]
@@ -88895,11 +88895,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run keeps one joint original for both file children without Source child conversion"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report"
               }
             ]
@@ -89333,7 +89333,7 @@
                 "anchor": "actual selected Host statement and captured facade use the same Root format original"
               },
               {
-                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",
                 "anchor": "early native Iterator capture refuses accessor and Proxy without prototype traps"
               }
             ]
@@ -89434,11 +89434,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run keeps one joint original for both file children without Source child conversion"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report"
               }
             ]
@@ -89506,7 +89506,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary connected Local HTTP selection stays unselected without traversing Host fields"
               }
             ]
@@ -95142,11 +95142,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run keeps one joint original for both file children without Source child conversion"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
                 "anchor": "ordinary Source managed Run unpublished initialization closes distinctly without a fabricated usage report"
               }
             ]

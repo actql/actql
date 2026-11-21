@@ -1409,3 +1409,7 @@ target/
 /adapters/host-node/client-request-journal-facility.d.mts
 /adapters/host-node/host-journal-facility-fields.cjs
 /adapters/host-node/host-journal-facility-fields.d.cts
+/adapters/host-node/node-public-initial-control-bootstrap.test.mjs
+/adapters/host-node/node-public-initial-control-bootstrap.test.d.mts
+/adapters/host-node/client-request-journal-iterator-current.test.mjs
+/adapters/host-node/client-request-journal-iterator-current.test.d.mts

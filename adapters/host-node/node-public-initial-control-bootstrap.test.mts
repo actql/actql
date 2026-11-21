@@ -6,18 +6,27 @@ import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {localModuleGraphInputs} from '../../scripts/adapter-module-graph.mjs';
+
+type FixtureImage = {path: string; bytes: number; sha256: string};
+type FixtureNodePackage = {
+  name: string;
+  version: string;
+  dependencies: {name: string; local: boolean}[];
+  images: FixtureImage[];
+};
 
 // Real ordinary Node module loading, same-FD captured images and the private
 // installation Owner. The small Host below is explicit, not the full product
 // Host or a normal installed README success, business supplier or permission.
-function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFacade=false,ordinaryProvider=false,source=false,managedRun=false,oversizeRun=false}={}) {
+function fixture(t: TestContext,{inventory=true,changeImage=false,publicNode=false,actualFacade=false,ordinaryProvider=false,source=false,managedRun=false,oversizeRun=false}={}) {
   const directory=mkdtempSync(join(tmpdir(),'actql-ordinary-control-'));
   t.after(()=>rmSync(directory,{recursive:true}));
   const root=join(directory,'node_modules/@actql/local-node');
   const sourcePath=join(directory,'mock-original.json');
   if(source)writeFileSync(sourcePath,'{"original":"same-file"}\n');
-  const sources=new Map();
+  const sources=new Map<string,Buffer>();
   sources.set('package.json',Buffer.from(JSON.stringify({name:'@actql/local-node',version:'1.0.0',
     type:'module',exports:{'.':'./index.mjs',
       './_internal/compile-cache':'./adapters/host-node/compile-cache.mjs',
@@ -73,13 +82,13 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
   const facts=[...sources].map(([path,bytes])=>({path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}));
   const selected={engine:{...engine,eager:true},ordinaryEngine:{...engine,eager:false},images:facts,
     packages:[],dependencies:[],localVersion:'1.0.0',optionalSdk:null,optionalSdkCoverage:'absent',
-    publicNode:null,publicNodeCoverage:'absent',localPublicModule:'index.mjs',
+    publicNode:null as FixtureNodePackage|null,publicNodeCoverage:'absent',localPublicModule:'index.mjs',
     hostModule:'adapters/host-node/embedded-local.mjs',hostValidator:'assertInitialControlHostPreparation'};
   if(publicNode){
     const node=join(directory,'node_modules/@actql/node');
     const nodeSources=new Map([
       ['package.json',Buffer.from(JSON.stringify({name:'@actql/node',version:'1.0.0',type:'module',exports:'./index.mjs'}))],
-      ['index.mjs',actualFacade?readFileSync(new URL('../../packages/node/index.mjs',import.meta.url)):sources.get('index.mjs')],
+      ['index.mjs',actualFacade?readFileSync(new URL('../../packages/node/index.mjs',import.meta.url)):sources.get('index.mjs')!],
       ['initial-control-public-dispatch.cjs',readFileSync(new URL('../../packages/node/initial-control-public-dispatch.cjs',import.meta.url))]
     ]);
     for(const[path,bytes]of nodeSources){mkdirSync(dirname(join(node,path)),{recursive:true});writeFileSync(join(node,path),bytes);}
@@ -93,7 +102,7 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
         const source=new URL('../../packages/'+name+'/',import.meta.url);
         const target=join(directory,'node_modules/@actql',name);
         mkdirSync(target,{recursive:true});
-        const manifest=JSON.parse(readFileSync(new URL('package.json',source),'utf8'));
+        const manifest=JSON.parse(readFileSync(new URL('package.json',source),'utf8')) as {files:string[]};
         for(const path of globSync(['package.json',...manifest.files],{cwd:fileURLToPath(source)})){
           const destination=join(target,path);
           mkdirSync(dirname(destination),{recursive:true});
@@ -106,7 +115,7 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
     'module.exports=Object.freeze({imageInventory:'+(inventory?JSON.stringify(selected):'undefined')+'});'));
   for(const [path,bytes]of sources){mkdirSync(dirname(join(root,path)),{recursive:true});writeFileSync(join(root,path),bytes);}
   if(changeImage)writeFileSync(join(root,'spec/local-check-environment.json'),'changed');
-  return {directory,root,sourcePath,run(body){
+  return {directory,root,sourcePath,run(body:string){
     const entry=join(directory,'entry.mjs');writeFileSync(entry,body);
     const result=spawnSync(process.execPath,[entry],{cwd:directory,env:{PATH:process.env.PATH},encoding:'utf8',timeout:30000});
     assert.equal(result.error,undefined);return result;
