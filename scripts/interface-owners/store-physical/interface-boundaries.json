@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eab6f462c310177656e6aa7ef65a900fcb8edcf2d16f874705fdc178af7d3b91",
+      "sha256": "751bf69a3f58887276f137a8abb8b8c9e59afd0e4926e2acf1970688d479b161",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6210,6 +6210,13 @@
           "name": "assertOriginalLocalPublicationStoreFacilityCurrent",
           "parameters": [
             "bindings"
+          ],
+          "async": false
+        },
+        {
+          "name": "cidHex/cidHex",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -8833,41 +8840,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject",
-          "parameters": [
-            "cid",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject/verifyObject",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
           "parameters": [
             "key",
@@ -9584,12 +9556,6 @@
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/status/status",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/verifyObject",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
@@ -9613,7 +9579,8 @@
             "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
-            "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation"
+            "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
+            "cidHex/cidHex"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13333,6 +13300,7 @@
         "./publication-custody-records.mjs",
         "./publication-metadata-deletion-markers.mjs",
         "./publication-metadata-inventory.mjs",
+        "./publication-object-verifier.mjs",
         "./publication-store-bootstrap.mjs",
         "./publication-store-format.mjs",
         "./publication-store-inputs.mjs",
@@ -13349,6 +13317,157 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-object-verifier.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "482e4d42799ac73cef710e32e260523d002861c1f73de6c500ebf5fd331fe6e5",
+      "exports": [
+        "createPublicationObjectVerifier"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationObjectVerifier",
+          "parameters": [
+            "configuration",
+            "objectPath",
+            "cidHex",
+            "active",
+            "activeSemanticReaders",
+            "physicalContentReadWindowBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier",
+          "parameters": [
+            "cid",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier/createPublicationObjectVerifier",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectVerifier/createPublicationObjectVerifier/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationObjectVerifier",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry/init:retry",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier/cleanup/init:retry/init:retry/init:retry#2",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier/createPublicationObjectVerifier",
+            "createPublicationObjectVerifier/createPublicationObjectVerifier/status/status"
+          ],
+          "exports": [
+            "createPublicationObjectVerifier"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "The mandatory object verifier has a distinct, non-escaping read lifetime."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "export function createPublicationObjectVerifier("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "hash.digest('hex') !== cidHex(cid)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "activeSemanticReaders.add(reader);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "const primary = readFailed ? readFailure : closeFailure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "await original!.close() === false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "const buffer = Buffer.allocUnsafeSlow(window);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-object-verifier.mts",
+                "anchor": "readDemand(window) !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/object-verifier-close-custody.test.mjs",
+                "anchor": "Store close retains and drives the same failed verifier FD without another read"
+              },
+              {
+                "path": "adapters/store-local/streaming-object-read-bound.test.mjs",
+                "anchor": "actual multi-piece short reads reuse one verifier backing"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original bounded verifier, one physical FileHandle and same-Store failed-close custody."
     },
     {
       "module": "adapters/store-local/publication-custody-records.mjs",

@@ -1521,3 +1521,5 @@ target/
 /adapters/store-local/publication-metadata-deletion-markers.d.mts
 /adapters/store-local/publication-custody-records.mjs
 /adapters/store-local/publication-custody-records.d.mts
+/adapters/store-local/publication-object-verifier.mjs
+/adapters/store-local/publication-object-verifier.d.mts
