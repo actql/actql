@@ -87498,7 +87498,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "f6ba3f3cc9809dc68fac4199ed27929c5b1f674bbbafb0a59860371ff51dd856",
+      "sha256": "d2ac652d63dc51e208e48fab7448ff645594ecb5faf8d8fcd5c42c4de5d1c16f",
       "exports": [],
       "operations": [
         {
@@ -87544,6 +87544,10 @@
         {
           "name": "pin_installed_effect_model_unit_results",
           "declaration": "pin_installed_effect_model_unit_results ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_combined_source_unit",
+          "declaration": "prepare_installed_effect_combined_source_unit ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , ClientEffectUnitPreparationIssue , ]"
         },
         {
           "name": "prepare_installed_effect_model_source_unit",
@@ -87592,6 +87596,7 @@
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
             "pin_installed_effect_model_unit_results",
+            "prepare_installed_effect_combined_source_unit",
             "prepare_installed_effect_model_source_unit",
             "prepare_installed_effect_model_source_unit_artifact",
             "prepare_installed_effect_model_source_unit_catalog",
@@ -87676,6 +87681,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
                 "anchor": "test \"Effect publication limits refuse copied plan request and retired original\""
+              },
+              {
+                "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
+                "anchor": "test \"Native shared-file Effect joins and binds both original Source observations without a Model\""
               }
             ]
           }

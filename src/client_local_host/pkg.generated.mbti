@@ -951,6 +951,8 @@ pub fn prepare_installed_effect_capture_recipe_extent(String, Array[@execution_r
 
 pub fn prepare_installed_effect_capture_recovery(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientInstalledEffectCaptureRecovery, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_combined_source_unit(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, ClientEffectUnitPreparationIssue]
+
 pub fn prepare_installed_effect_content(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientSerializationPlanGraph, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool) -> Result[ClientInstalledEffectContentPreparation, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_dependency_bodies(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectInputs, Int, Int, Int, Int) -> Result[Array[(String, @program_check.CheckedLocalDependencyBody)], ClientInstalledManagedRunIssue]

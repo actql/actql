@@ -87,12 +87,42 @@ pub fn prepare_client_effect_combined_source_unit(
   max_depth : Int,
 ) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue] {
   prepare_client_effect_source_unit_body(
-    {
-      owner: value.owner,
-      source: value.source.original,
-      run_definition_cid: value.run_definition_cid,
-    },
+    client_effect_direct_source_unit_inputs(value),
     Some((value.source.invocation, value.source.observation)),
+    unit,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn client_effect_direct_source_unit_inputs(
+  value : ClientEffectDirectSourcesPublication,
+) -> ClientEffectSourceUnitInputs {
+  {
+    owner: value.owner,
+    source: value.source.original,
+    run_definition_cid: value.run_definition_cid,
+  }
+}
+
+///|
+/// Measure the same original Unit used by the final-context constructor.
+pub fn client_effect_combined_source_unit_construction_geometry(
+  value : ClientEffectDirectSourcesPublication,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectAcquiredEvidenceIssue,
+] {
+  client_effect_source_unit_construction_geometry(
+    client_effect_direct_source_unit_inputs(value),
     unit,
     retention,
     max_bytes,

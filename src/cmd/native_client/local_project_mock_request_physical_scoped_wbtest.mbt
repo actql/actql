@@ -2218,6 +2218,57 @@ test "Native shared-file Effect joins and binds both original Source observation
         "second_account_next": "A2-new",
       } : Json),
   )
+  {
+    let held = state.direct_sources.unwrap()
+    let policy = @run_host.prepared_client_effect_publication_data_policy_cid(
+      prepared,
+    ).unwrap()
+    let retained = @publication.seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
+      "sha256:" +
+      "d".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"" +
+      policy +
+      "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-02T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
+      "sha256:" +
+      "e".repeat(64) +
+      "\",\"metadata_delete_by\":\"2099-01-03T00:00:00.000Z\",\"clock_contract_cid\":\"" +
+      "sha256:" +
+      "f".repeat(64) +
+      "\"}",
+      16384,
+      1024,
+      20,
+    ).unwrap()
+    let unit = @local_values.prepare_installed_effect_combined_source_unit(
+      run,
+      plan,
+      original.request,
+      held._retained_publication.unwrap(),
+      0,
+      retained,
+      16384,
+      1024,
+      20,
+    ).native_file_route_value("fund both original Sources in the same Unit")
+    let invocation = @run_host.client_effect_combined_source_unit_invocation(
+      unit,
+    )
+    guard @json.parse(@run_host.client_effect_local_invocation_json(invocation))
+      is Object(body) else {
+      fail("missing original Unit invocation")
+    }
+    let expected = held.observations.map(evidence => {
+      Json::string(@publication.run_evidence_value_identity(evidence))
+    })
+    assert_eq(body.get("observation_cids"), Some(Json::array(expected)))
+    let (_, slot, count) = @run_host.client_effect_combined_source_unit_catalog_subject(
+      unit,
+    )
+    assert_eq(slot, 0)
+    assert_eq(count, 2)
+  }
   assert_true(executed.close())
   assert_true(
     @local_values.retire_installed_effect_captured_consumers(run).unwrap(),

@@ -589,6 +589,8 @@ pub fn client_effect_combined_source_unit_catalog_dependencies_at(ClientEffectCo
 
 pub fn client_effect_combined_source_unit_catalog_subject(ClientEffectCombinedSourceUnit) -> (@program_check.CheckedProgram, Int, Int)
 
+pub fn client_effect_combined_source_unit_construction_geometry(ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectAcquiredEvidenceIssue]
+
 pub fn client_effect_combined_source_unit_dependency_bodies(ClientEffectCombinedSourceUnit) -> Array[(String, String, String)]
 
 pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientEffectLocalInvocation
