@@ -519,6 +519,6 @@ test('REST actual Common codec identity capacity retains the same request',
     assert(plain != null && identity != null);
     const plainBytes = moon.clientProgramSerializationCapacityBytes(plain);
     const identityBytes = moon.clientProgramSerializationCapacityBytes(identity);
-    assert.equal(runtimeField(identityBytes, 0) - runtimeField(plainBytes, 0), 1224n);
-    assert.equal(runtimeField(identityBytes, 1) - runtimeField(plainBytes, 1), 1336n);
+    assert.equal(runtimeField(identityBytes, 0) - runtimeField(plainBytes, 0), 1272n);
+    assert.equal(runtimeField(identityBytes, 1) - runtimeField(plainBytes, 1), 1384n);
   });

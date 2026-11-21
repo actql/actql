@@ -149,16 +149,17 @@ test "codec identity reader funds complete map growth on the same original backi
   ).unwrap()
   let retention = @execution.execution_capacity_retained_bytes(selected)
   let execution = @execution.execution_capacity_execution_bytes(selected)
-  // Three IDs: map19H/51R/60W plus the new record fields and capture2H/8R/1W,
-  // minus the replaced entries6R/3W. Existing UTF16 and request amounts stay.
+  // Three IDs: map19H/51R/60W plus three retained String headers and the
+  // new record fields and capture2H/8R/1W, minus the replaced entries6R/3W.
+  // Existing UTF16 and request amounts stay.
   // The identity call adds2H/8R/2W to the concurrent execution inventory.
   assert_eq(
     retention - @execution.execution_capacity_retained_bytes(plain),
-    1224L,
+    1272L,
   )
   assert_eq(
     execution - @execution.execution_capacity_execution_bytes(plain),
-    1336L,
+    1384L,
   )
   for (r_short, e_short) in [(0L, 0L), (1L, 0L), (0L, 1L)] {
     let ledger = @resources.create_ledger({

@@ -276,9 +276,10 @@ fn installed_source_reader_retained_inventory(
       // header. Add its map reference and row ceiling, complete Map growth,
       // and one extra captured method at each of the two provider boundaries
       // (two function headers, seven closure and provider-table references).
-      // The same exact ID Strings are already counted by id_text.
+      // Map extent covers links, not key bodies. One String header per ID
+      // outlives the parsed page. id_text already covers its UTF16 units.
       let identity_progress : @execution.PreparationRepresentationUnits = {
-        record_headers: map.record_headers + 2L,
+        record_headers: map.record_headers + 2L + ids,
         reference_slots: map.reference_slots + 8L,
         scalar_words: map.scalar_words + 1L,
         owned_utf16_units: 0L,
