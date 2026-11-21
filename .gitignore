@@ -1751,3 +1751,8 @@ target/
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs
 /adapters/host-node/result-transformation-control.test.d.mts
+
+/adapters/connectors/duckdb/node/acquisition-planning.mjs
+/adapters/connectors/duckdb/node/acquisition-planning.d.mts
+/adapters/host-node/duckdb-physical-target.mjs
+/adapters/host-node/duckdb-physical-target.d.mts

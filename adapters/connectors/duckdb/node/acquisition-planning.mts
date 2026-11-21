@@ -3,16 +3,56 @@
 // assertions scoped to exact input conditions, never measured resource limits.
 import {checked} from '../../../host-common/runtime-result.mjs';
 
-const names = Object.freeze(['nativeQuery', 'broadQuery']);
-const sourceKeys = Object.freeze(['database', 'schema', 'sourceRef', 'table']);
-const quantityKeys = Object.freeze(['moneyUnits', 'retainedBytes', 'transferBytes']);
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const keys = (value, expected) => object(value) &&
-  Object.keys(value).sort().join('\0') === [...expected].sort().join('\0');
-const quantity = value => value === null || Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0);
-const fail = () => { throw new TypeError('InvalidInstalledAcquisitionPlanning'); };
+type Candidate = 'nativeQuery' | 'broadQuery';
+type QuantityName = 'moneyUnits' | 'retainedBytes' | 'transferBytes';
+type SourceKey = 'database' | 'schema' | 'sourceRef' | 'table';
+type SourceIdentity = Readonly<Record<SourceKey, string>>;
+type Estimate = Readonly<{
+  inputConditions: Readonly<{requirementCid: unknown; source: SourceIdentity}>;
+  unit: 'milliseconds';
+  basis: string;
+  estimates: readonly Readonly<{workSlots: readonly number[]; milliseconds: number | null}>[];
+  quantities: Readonly<Record<QuantityName, number | null>>;
+}>;
+type Planning = Readonly<{policy: 'priority'; priority: readonly Candidate[]}> |
+  Readonly<{policy: 'estimatedLatency'; candidates: Readonly<Partial<Record<Candidate, Estimate>>>}>;
+type Runtime = Readonly<{
+  clientProgramQueryRequirementCid(requirement: unknown): string;
+  clientProgramDuckDBAcquisitionEstimate(workSlots: readonly (readonly number[])[],
+    milliseconds: readonly (bigint | undefined)[], quantities: readonly (bigint | undefined)[]): unknown;
+  clientProgramSelectDuckDBAcquisition(requirement: unknown, schema: string, table: string,
+    queryContract: string, evidenceContract: string, receiptContract: string,
+    nativeEstimate: unknown, broadEstimate: unknown, priority: readonly Candidate[]): unknown;
+  clientProgramDuckDBSelectionDocument(selected: unknown): string;
+  clientProgramDuckDBSelectionNative(selected: unknown): unknown;
+  clientProgramDuckDBSelectionBroad(selected: unknown): unknown;
+}>;
+type SelectionInputs = Readonly<{
+  moon: Runtime;
+  requirement: unknown;
+  schema: string;
+  table: string;
+  contracts: readonly [string, string, string];
+  source: SourceIdentity;
+  planning?: unknown;
+}>;
+// The Common binding produces this document. Only these two fields are used
+// here; the original spread preserves the rest of the compiler-owned report.
+type SelectionDocument = Readonly<{
+  candidates: readonly Readonly<{candidate: string}>[];
+  missing: readonly string[];
+}>;
 
-export function freezeAcquisitionDiagnostic(value) {
+const names: readonly Candidate[] = Object.freeze(['nativeQuery', 'broadQuery']);
+const sourceKeys: readonly SourceKey[] = Object.freeze(['database', 'schema', 'sourceRef', 'table']);
+const quantityKeys = Object.freeze(['moneyUnits', 'retainedBytes', 'transferBytes']);
+const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
+const keys = <Key extends string>(value: unknown, expected: readonly Key[]): value is Record<Key, unknown> => object(value) &&
+  Object.keys(value).sort().join('\0') === [...expected].sort().join('\0');
+const quantity = (value: unknown) => value === null || Number.isSafeInteger(value) && (value as number) >= 0 && !Object.is(value, -0);
+const fail: () => never = () => { throw new TypeError('InvalidInstalledAcquisitionPlanning'); };
+
+export function freezeAcquisitionDiagnostic<Value>(value: Value): Value {
   if (object(value) || Array.isArray(value)) {
     for (const child of Object.values(value)) freezeAcquisitionDiagnostic(child);
     Object.freeze(value);
@@ -20,19 +60,19 @@ export function freezeAcquisitionDiagnostic(value) {
   return value;
 }
 
-export function checkDuckDBAcquisitionPlanning(value) {
+export function checkDuckDBAcquisitionPlanning(value: unknown): Planning {
   if (!object(value)) fail();
   if (value.policy === 'priority') {
     if (!keys(value, ['policy', 'priority']) || !Array.isArray(value.priority) ||
         value.priority.length !== 2 || new Set(value.priority).size !== 2 ||
-        value.priority.some(name => !names.includes(name))) fail();
+        value.priority.some(name => !names.includes(name as Candidate))) fail();
   } else if (value.policy === 'estimatedLatency') {
     if (!keys(value, ['policy', 'candidates']) || !object(value.candidates) ||
-        Object.keys(value.candidates).some(name => !names.includes(name))) fail();
+        Object.keys(value.candidates).some(name => !names.includes(name as Candidate))) fail();
     for (const [name, estimate] of Object.entries(value.candidates)) {
       if (!keys(estimate, ['inputConditions', 'unit', 'basis', 'estimates', 'quantities']) ||
           !keys(estimate.inputConditions, ['requirementCid', 'source']) ||
-          !/^sha256:[0-9a-f]{64}$/u.test(estimate.inputConditions.requirementCid) ||
+          !/^sha256:[0-9a-f]{64}$/u.test(estimate.inputConditions.requirementCid as string) ||
           !keys(estimate.inputConditions.source, sourceKeys) ||
           !Object.values(estimate.inputConditions.source).every(value =>
             typeof value === 'string' && value.length > 0 && value.length <= 4096) ||
@@ -50,7 +90,7 @@ export function checkDuckDBAcquisitionPlanning(value) {
     }
   } else fail();
   // Installation owns this snapshot; later caller mutation cannot revise it.
-  return freezeAcquisitionDiagnostic(structuredClone(value));
+  return freezeAcquisitionDiagnostic(structuredClone(value)) as Planning;
 }
 
 // Called only after the current read gate and mandatory physical limits pass.
@@ -58,13 +98,13 @@ export function checkDuckDBAcquisitionPlanning(value) {
 // and retains the selected payload. The source tuple uses exact strings;
 // canonical text normalization cannot make different physical files equal.
 export function selectInstalledDuckDBAcquisition({moon, requirement, schema,
-  table, contracts, source, planning}) {
-  const policy = planning === undefined
+  table, contracts, source, planning}: SelectionInputs) {
+  const policy: Planning = planning === undefined
     ? {policy: 'estimatedLatency', candidates: {}}
     : checkDuckDBAcquisitionPlanning(planning);
   const requirementCid = moon.clientProgramQueryRequirementCid(requirement);
-  const missingEvidence = [];
-  const admitted = {};
+  const missingEvidence: string[] = [];
+  const admitted: Partial<Record<Candidate, Estimate>> = {};
   const unknown = () => checked(moon.clientProgramDuckDBAcquisitionEstimate(
     [], [], [undefined, undefined, undefined]));
   const estimates = names.map(name => {
@@ -88,16 +128,16 @@ export function selectInstalledDuckDBAcquisition({moon, requirement, schema,
       return unknown();
     }
     admitted[name] = evidence;
-    const optional = value => value === null ? undefined : BigInt(value);
+    const optional = (value: number | null) => value === null ? undefined : BigInt(value);
     return checked(moon.clientProgramDuckDBAcquisitionEstimate(
       evidence.estimates.map(line => line.workSlots),
       evidence.estimates.map(line => optional(line.milliseconds)),
-      ['transferBytes', 'retainedBytes', 'moneyUnits'].map(key => optional(evidence.quantities[key]))));
-  });
+      ['transferBytes', 'retainedBytes', 'moneyUnits'].map(key => optional(evidence.quantities[key as QuantityName]))));
+  }) as [unknown, unknown];
   const selected = checked(moon.clientProgramSelectDuckDBAcquisition(requirement,
     schema, table, ...contracts, ...estimates,
     policy.policy === 'priority' ? policy.priority : []));
-  const report = JSON.parse(moon.clientProgramDuckDBSelectionDocument(selected));
+  const report = JSON.parse(moon.clientProgramDuckDBSelectionDocument(selected)) as SelectionDocument;
   const eligible = new Set(report.candidates.map(candidate => candidate.candidate));
   const selection = freezeAcquisitionDiagnostic({...report,
     policy: policy.policy,

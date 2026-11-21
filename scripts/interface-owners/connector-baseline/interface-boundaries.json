@@ -160,31 +160,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "selectInstalledDuckDBAcquisition"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "evidence.inputConditions.requirementCid !== requirementCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "Installation owns this snapshot"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "clientProgramSelectDuckDBAcquisition"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "InvalidInstalledAcquisitionPlanning"
               }
             ],
@@ -193,13 +193,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "assertions scoped to exact input conditions"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
+                "path": "adapters/connectors/duckdb/node/acquisition-planning.mts",
                 "anchor": "missingEvidence"
               }
             ],

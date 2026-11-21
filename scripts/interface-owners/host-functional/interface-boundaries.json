@@ -44140,8 +44140,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -44154,8 +44154,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -44168,7 +44168,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
+                "path": "adapters/host-node/duckdb-physical-target.mts",
                 "anchor": "// exact UTF-8 hex participates in installation, connector and approval identity."
               },
               {
@@ -44182,8 +44182,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -44196,8 +44196,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -44210,8 +44210,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -44224,8 +44224,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -44238,8 +44238,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -44252,7 +44252,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
+                "path": "adapters/host-node/duckdb-physical-target.mts",
                 "anchor": "// exact UTF-8 hex participates in installation, connector and approval identity."
               },
               {
@@ -44284,8 +44284,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -44298,8 +44298,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -44312,7 +44312,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
+                "path": "adapters/host-node/duckdb-physical-target.mts",
                 "anchor": "// exact UTF-8 hex participates in installation, connector and approval identity."
               },
               {
@@ -44326,8 +44326,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -44340,8 +44340,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -44354,8 +44354,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -44368,8 +44368,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -44382,8 +44382,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
-                "anchor": "export function duckDBPhysicalTarget({database, schema, table}) {"
+                "path": "adapters/host-node/duckdb-physical-target.mts",
+                "anchor": "export function duckDBPhysicalTarget({database, schema, table}: Readonly<{"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -44396,7 +44396,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/duckdb-physical-target.mjs",
+                "path": "adapters/host-node/duckdb-physical-target.mts",
                 "anchor": "// exact UTF-8 hex participates in installation, connector and approval identity."
               },
               {
