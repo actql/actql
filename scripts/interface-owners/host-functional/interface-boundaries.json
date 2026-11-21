@@ -51729,93 +51729,93 @@
                 "anchor": "The private directory image loader keeps native binary facts separate from JS"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "// Private selected image custody, not operational admission. The real prefix"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent) {"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown,"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.view = freeze({operations: native, assertCurrent() {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "const same = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "const entry: ImageEntry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.loadAttempted = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "apply(dlopen, processOriginal, [entry.module, entry.path]);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const fence = () => { currentBindings(); apply(assertRuntimeCurrent, undefined, []); };"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "close('writer');"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "hashCopy();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "invalidated = true; fail('HostJournalNativeImageChanged');"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "if (selected.failed) throw selected.failure;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.failed = true;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "duty.consumed = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "carrier.cleanupHandle = freeze({status, retry: observeCleanup});"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "// No source acquisition, loading or consumed close is repeated here."
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const backing = apply(allocate, Buffer, [bytes]), lookahead = apply(allocate, Buffer, [1]);"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const working = apply(allocate, Buffer, [Math.min(65536, bytes)]);"
               },
               {
@@ -51835,19 +51835,19 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "private image custody retains one actual native instance and fences detected loader replacement"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "actual source-FD consumed-close uncertainty prevents loading and is never retried"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "an error after actual native initialization keeps that original attempt without a replacement load"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "initial current reentry observes the original initialization without a second load"
               }
             ]
@@ -51865,93 +51865,93 @@
                 "anchor": "The private directory image loader keeps native binary facts separate from JS"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "// Private selected image custody, not operational admission. The real prefix"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent) {"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown,"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.view = freeze({operations: native, assertCurrent() {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "const same = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "path": "adapters/host-node/host-journal-native-image.cts",
+                "anchor": "const entry: ImageEntry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.loadAttempted = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "apply(dlopen, processOriginal, [entry.module, entry.path]);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const fence = () => { currentBindings(); apply(assertRuntimeCurrent, undefined, []); };"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "close('writer');"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "hashCopy();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "invalidated = true; fail('HostJournalNativeImageChanged');"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "if (selected.failed) throw selected.failure;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "entry.failed = true;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "duty.consumed = true;"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "carrier.cleanupHandle = freeze({status, retry: observeCleanup});"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "// No source acquisition, loading or consumed close is repeated here."
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const backing = apply(allocate, Buffer, [bytes]), lookahead = apply(allocate, Buffer, [1]);"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image.cjs",
+                "path": "adapters/host-node/host-journal-native-image.cts",
                 "anchor": "const working = apply(allocate, Buffer, [Math.min(65536, bytes)]);"
               },
               {
@@ -51971,19 +51971,19 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "private image custody retains one actual native instance and fences detected loader replacement"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "actual source-FD consumed-close uncertainty prevents loading and is never retried"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "an error after actual native initialization keeps that original attempt without a replacement load"
               },
               {
-                "path": "adapters/host-node/host-journal-native-image-loader.test.mjs",
+                "path": "adapters/host-node/host-journal-native-image-loader.test.mts",
                 "anchor": "initial current reentry observes the original initialization without a second load"
               }
             ]
@@ -52041,7 +52041,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "assert.deepEqual(actual, [...selectedSql].sort());"
               }
             ],
@@ -52059,7 +52059,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "valid but unsupported extra schema refuses before cold native open and preserves original bytes"
               }
             ],
@@ -52087,11 +52087,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "selected own-DDL bytes cover the actual primary, Source and observation schema then cold reopen"
               },
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "selected Journal reopens its own durable usage metadata without changing original bytes"
               }
             ]
@@ -52119,7 +52119,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "assert.deepEqual(actual, [...selectedSql].sort());"
               }
             ],
@@ -52137,7 +52137,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "valid but unsupported extra schema refuses before cold native open and preserves original bytes"
               }
             ],
@@ -52165,11 +52165,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "selected own-DDL bytes cover the actual primary, Source and observation schema then cold reopen"
               },
               {
-                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "path": "adapters/host-node/host-journal-schema-support.test.mts",
                 "anchor": "selected Journal reopens its own durable usage metadata without changing original bytes"
               },
               {
@@ -52302,15 +52302,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "fixed Journal selection retains original callbacks and cannot receive caller limits"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "current callbacks cannot replace fixed argument construction or unknown-name refusal"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "fixed service arguments construct both actual Journal connections and inspect their same saved bytes"
               }
             ]
@@ -52398,15 +52398,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "fixed Journal selection retains original callbacks and cannot receive caller limits"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "current callbacks cannot replace fixed argument construction or unknown-name refusal"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.test.mjs",
+                "path": "adapters/host-node/host-journal-service-recipe.test.mts",
                 "anchor": "fixed service arguments construct both actual Journal connections and inspect their same saved bytes"
               }
             ]

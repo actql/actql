@@ -9,8 +9,8 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import recipeModule from './host-journal-service-recipe.cjs';
 import nativeImage from './host-journal-native-image.cjs';
 import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
-  assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody, assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
 
 const shared = Object.freeze({explicitUnaccountedControlFixture: true});
 const recipe = recipeModule.declareHostJournalServiceRecipe(shared);
@@ -21,8 +21,9 @@ const noCurrent = () => {};
 test('fixed Journal selection retains original callbacks and cannot receive caller limits', () => {
   const control = Object.freeze({explicitControlAlias: true});
   const directory = () => {};
-  const options = {updateOriginalControl: control, submissionEpochNow: undefined,
-    submissionEpochTtlMs: undefined};
+  const options: {updateOriginalControl: object; submissionEpochNow: undefined; submissionEpochTtlMs: undefined} =
+    {updateOriginalControl: control, submissionEpochNow: undefined,
+      submissionEpochTtlMs: undefined};
   const selected = recipe.selectArguments(options, directory, temporaryDirectory, noCurrent);
   assert.strictEqual(selected.updateOriginalControl, control);
   assert.strictEqual(selected.primaryCurrent, noCurrent);
@@ -43,8 +44,8 @@ test('fixed Journal selection retains original callbacks and cannot receive call
 test('selected Journal arguments refuse accessors, proxies and clock closures without calling them', () => {
   let observed = 0;
   for (const options of [
-    {get updateOriginalControl() { observed++; }},
-    {get submissionEpochNow() { observed++; }},
+    {get updateOriginalControl() { observed++; return undefined; }},
+    {get submissionEpochNow() { observed++; return undefined; }},
     {submissionEpochNow() { observed++; }},
     new Proxy({}, {ownKeys() { observed++; return []; }}),
   ]) {
@@ -66,7 +67,7 @@ test('current callbacks cannot replace fixed argument construction or unknown-na
     Object.assign = () => { entered++; throw new Error('ReplacedAssign'); };
     Array.prototype.includes = () => true;
   };
-  let selected, failure;
+  let selected: ReturnType<typeof recipe.selectArguments>, failure: unknown;
   try {
     selected = recipe.selectArguments({}, () => {}, temporaryDirectory, poison);
     try { recipe.selectArguments({maxDatabaseBytes: 1}, () => {}, temporaryDirectory, poison); }
@@ -79,23 +80,23 @@ test('current callbacks cannot replace fixed argument construction or unknown-na
   assert.equal(entered, 0);
   assert.equal(Object.getPrototypeOf(selected), null);
   assert.strictEqual(selected.primarySqlLimits, recipe.journal.primarySqlLimits);
-  assert.equal(failure?.code, error.code);
+  assert.equal((failure as NodeJS.ErrnoException | undefined)?.code, error.code);
 });
 
 // Real retained Darwin directory module and SQLite/FS. The selected recipe and
 // Host/control below remain explicit unaccounted fixtures, not a production
 // operational issuer, full namespace or normal installed N0 qualification.
 const packageRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
-function selectedArguments(current) {
+function selectedArguments(current: Parameters<typeof createHostJournalDirectoryInspector>[2]) {
   assert.equal(typeof packageRoot, 'string', 'the matching retained native package is required');
-  const fact = JSON.parse(readFileSync(join(packageRoot,
-    '_build/native/directory-original.json'), 'utf8')).binary;
+  const fact = JSON.parse(readFileSync(join(packageRoot!,
+    '_build/native/directory-original.json'), 'utf8')).binary as unknown;
   const limits = Object.freeze({...recipe.directoryLimits, temporaryDirectory});
   const image = nativeImage.loadHostJournalDirectoryNative(packageRoot, fact, limits, noCurrent);
   const inspection = createHostJournalDirectoryInspector(image.operations, limits, current);
   return recipe.selectArguments({}, inspection, temporaryDirectory, current);
 }
-async function fixture(label) {
+async function fixture(label: string) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-selected-service-', label,

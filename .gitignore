@@ -1453,3 +1453,11 @@ target/
 /adapters/host-node/host-journal-service-recipe.d.cts
 /adapters/host-node/host-journal-schema-support.cjs
 /adapters/host-node/host-journal-schema-support.d.cts
+/adapters/host-node/host-journal-native-image.cjs
+/adapters/host-node/host-journal-native-image.d.cts
+/adapters/host-node/host-journal-service-recipe.test.mjs
+/adapters/host-node/host-journal-service-recipe.test.d.mts
+/adapters/host-node/host-journal-schema-support.test.mjs
+/adapters/host-node/host-journal-schema-support.test.d.mts
+/adapters/host-node/host-journal-native-image-loader.test.mjs
+/adapters/host-node/host-journal-native-image-loader.test.d.mts

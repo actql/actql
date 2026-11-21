@@ -8,8 +8,8 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import support from './host-journal-schema-support.cjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
-  assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody, assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
 
 const options = Object.freeze({maxDatabaseBytes: 4194304, maxRecords: 128,
   maxInspectionEntries: 32, maxInspectionBytes: 4194304,
@@ -21,7 +21,7 @@ const options = Object.freeze({maxDatabaseBytes: 4194304, maxRecords: 128,
     maxSchemaPages: 256, maxWalFrames: 8192},
   sourceOperationLimits: {maxRecords: 128, maxWireBytes: 65536},
   primarySchemaSqlSupport: support.sql});
-const snapshot = directory => readdirSync(directory).sort().map(name => ({name,
+const snapshot = (directory: string) => readdirSync(directory).sort().map(name => ({name,
   sha256: createHash('sha256').update(readFileSync(join(directory, name))).digest('hex')}));
 async function fixture() {
   const scratch = await createOwnedScratch({
@@ -57,7 +57,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   // open on the original path (which may itself create WAL/SHM auxiliaries).
   const actual = inspectSqliteSnapshot(join(directory, 'client-requests.sqlite3'), original =>
     original.prepare('SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL')
-      .all().map(row => row.sql).sort(), {maxSourceBytes: options.maxDatabaseBytes});
+      .all().map(row => row.sql as string).sort(), {maxSourceBytes: options.maxDatabaseBytes});
   assert.equal(actual.length, 32);
   // This fixture intentionally opens without an owned Store. The supported
   // local execution-owner table is conditional on that original ownership and
@@ -89,7 +89,7 @@ test('valid but unsupported extra schema refuses before cold native open and pre
   const before = snapshot(directory);
   const open = DatabaseSync.prototype.open;
   let nativeOpens = 0;
-  DatabaseSync.prototype.open = function () {nativeOpens++; return Reflect.apply(open, this, []);};
+  DatabaseSync.prototype.open = function (this: DatabaseSync) {nativeOpens++; return Reflect.apply(open, this, []);};
   try {
     assert.throws(() => openClientRequestJournal(directory, options),
       {code: 'SqliteSchemaPreparationUnavailable'});

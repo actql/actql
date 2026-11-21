@@ -12,8 +12,19 @@ import {tmpdir} from 'node:os';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
+type BinaryFact = Readonly<{path: string; bytes: number; sha256: string}>;
+type NativeDescriptor = Readonly<{node: string; arch: string; moduleAbi: string; napi: number;
+  source: Pick<BinaryFact, 'path' | 'sha256'>; binary: BinaryFact}>;
+type FixtureFileConstants = typeof constants & Readonly<{O_CLOEXEC?: number}>;
+type NativeFixtureOperations = {
+  open(path: string, maxEntries: number, maxNameBytes: number, maxWork: number): object;
+  current(handle: object): unknown;
+  next(handle: object): unknown;
+  close(handle: object): unknown;
+};
+
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 
 test('private native image entry exposes one frozen operation without loading a native image', () => {
   const child = spawnSync(process.execPath, ['--input-type=commonjs', '-e', `
@@ -34,7 +45,8 @@ test('selected Darwin Node initializes a private named image before unlinking it
   assert.equal(process.platform, 'darwin'); assert.equal(process.versions.node, '22.22.0');
   const selected = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
   assert.ok(selected, 'select the already qualified native artifact; do not build another one');
-  const original = JSON.parse(readFileSync(join(resolve(selected), '_build/native/directory-original.json')));
+  const original = JSON.parse(readFileSync(join(resolve(selected), '_build/native/directory-original.json'),
+    'utf8')) as NativeDescriptor;
   assert.equal(original.node, process.versions.node); assert.equal(original.arch, process.arch);
   assert.equal(original.moduleAbi, process.versions.modules); assert.equal(original.napi, 8);
   assert.equal(original.source.sha256, sha(readFileSync(join(root, original.source.path))));
@@ -43,32 +55,32 @@ test('selected Darwin Node initializes a private named image before unlinking it
   const scratch = await createOwnedScratch({parent: join(root, '_build'),
     prefix: 'directory-native-fd-', label: 'selected native same-FD loader diagnostic'});
   const path = join(scratch.path, 'original.node');
-  let writer, reader;
+  let writer: number | undefined, reader: number | undefined;
   try {
     writer = openSync(path, constants.O_CREAT | constants.O_EXCL | constants.O_RDWR |
-      constants.O_NOFOLLOW | constants.O_CLOEXEC, 0o600);
+      constants.O_NOFOLLOW | (constants as FixtureFileConstants).O_CLOEXEC!, 0o600);
     let offset = 0;
     while (offset < bytes.length) {
       const count = writeSync(writer, bytes, offset, bytes.length - offset, null);
       assert.ok(count > 0); offset += count;
     }
     fsyncSync(writer);
-    reader = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_CLOEXEC);
+    reader = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | (constants as FixtureFileConstants).O_CLOEXEC!);
     const first = fstatSync(writer, {bigint: true}), second = fstatSync(reader, {bigint: true});
     assert.equal(first.dev, second.dev); assert.equal(first.ino, second.ino);
     assert.equal(second.size, BigInt(bytes.length));
     assert.equal(closeSync(writer), undefined); writer = undefined;
     assert.equal(fstatSync(reader, {bigint: true}).nlink, 1n);
-    const module = {exports: {}};
+    const module: {exports: Partial<NativeFixtureOperations>} = {exports: {}};
     // The ordinary named-image path is required by this platform's loader.
     // No OS policy, signature or protection setting is changed.
     process.dlopen(module, path);
     unlinkSync(path);
     assert.deepEqual(Object.keys(module.exports).sort(), ['close', 'current', 'next', 'open']);
     const directory = join(scratch.path, 'empty'); mkdirSync(directory);
-    const handle = module.exports.open(directory, 1, 1024, 1024);
-    assert.equal(module.exports.current(handle), undefined); assert.equal(module.exports.next(handle), null);
-    assert.deepEqual(module.exports.close(handle), {outcome: 'closed', errno: 0});
+    const handle = module.exports.open!(directory, 1, 1024, 1024);
+    assert.equal(module.exports.current!(handle), undefined); assert.equal(module.exports.next!(handle), null);
+    assert.deepEqual(module.exports.close!(handle), {outcome: 'closed', errno: 0});
     const after = fstatSync(reader, {bigint: true});
     assert.equal(after.dev, second.dev); assert.equal(after.ino, second.ino); assert.equal(after.nlink, 0n);
   } finally {
@@ -82,8 +94,10 @@ test('selected Darwin Node initializes a private named image before unlinking it
 
 test('private image custody retains one actual native instance and fences detected loader replacement', () => {
   const selected = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
-  const expected = JSON.parse(readFileSync(join(selected, '_build/native/directory-original.json'))).binary;
-  const {loadHostJournalDirectoryNative: load} = createRequire(import.meta.url)('./host-journal-native-image.cjs');
+  const expected = (JSON.parse(readFileSync(join(selected!, '_build/native/directory-original.json'),
+    'utf8')) as NativeDescriptor).binary;
+  const {loadHostJournalDirectoryNative: load} = createRequire(import.meta.url)('./host-journal-native-image.cjs') as
+    typeof import('./host-journal-native-image.cjs');
   const current = () => {};
   const limits = {maxImageBytes: expected.bytes, temporaryDirectory: tmpdir()};
   const image = load(selected, expected, limits, current);
@@ -94,7 +108,7 @@ test('private image custody retains one actual native instance and fences detect
   assert.throws(() => load(selected, expected, {...limits, maxImageBytes: expected.bytes - 1}, current),
     {code: 'HostJournalNativeImageUnavailable'});
   let traps = 0;
-  assert.throws(() => load(selected, new Proxy(expected, {getOwnPropertyDescriptor() {traps++;}}), limits, current),
+  assert.throws(() => load(selected, new Proxy(expected, {getOwnPropertyDescriptor() {traps++; return undefined;}}), limits, current),
     {code: 'HostJournalNativeImageUnavailable'});
   assert.equal(traps, 0);
   const dlopen = process.dlopen;
@@ -105,9 +119,9 @@ test('private image custody retains one actual native instance and fences detect
   assert.throws(() => image.assertCurrent(), {code: 'HostJournalNativeImageChanged'});
 });
 
-function child(source) {
+function child(source: string): unknown {
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', source,
-    process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT,
+    process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT!,
     fileURLToPath(new URL('./host-journal-native-image.cjs', import.meta.url))],
   {encoding: 'utf8', timeout: 30000, maxBuffer: 1024 * 1024});
   assert.equal(result.status, 0, result.stdout + result.stderr);

@@ -3,25 +3,66 @@
 // Private selected image custody, not operational admission. The real prefix
 // must supply its complete native/loader/FS/managed phase BEFORE this call.
 // The normal package fact identifies bytes; it cannot issue that supplier.
-const fs = require('node:fs'), processOriginal = require('node:process');
-const {join, isAbsolute} = require('node:path');
-const crypto = require('node:crypto'), {Buffer} = require('node:buffer');
-const {types} = require('node:util');
+import type {BigIntStats} from 'node:fs';
+import type {Buffer as NodeBuffer} from 'node:buffer';
+
+type FileOperations = {
+  openSync(path: string, flags: number, mode?: number): number;
+  readSync(fd: number, buffer: NodeBuffer, offset: number, length: number, position: number | null): number;
+  writeSync(fd: number, buffer: NodeBuffer, offset: number, length: number, position: number | null): number;
+  fstatSync(fd: number, options: {bigint: true}): BigIntStats;
+  lstatSync(path: string, options: {bigint: true}): BigIntStats;
+  closeSync(fd: number): void;
+  fsyncSync(fd: number): void;
+  fchmodSync(fd: number, mode: number): void;
+  mkdtempSync(prefix: string): string;
+  unlinkSync(path: string): void;
+  rmdirSync(path: string): void;
+};
+type Current = () => void | (object & Readonly<{then?: never}>);
+type DescriptorDuty = {fd: number; consumed: boolean; unknown: unknown};
+type NativeImage = Readonly<{operations: object; assertCurrent(): void}>;
+type ImageEntry = {
+  root: string; sha256: string; bytes: number; runtimeCurrent: Current; temporaryDirectory: string;
+  source: DescriptorDuty | undefined; writer: DescriptorDuty | undefined; reader: DescriptorDuty | undefined;
+  directory: string | undefined; path: string | undefined; identity: BigIntStats | undefined;
+  module: {exports: object} | undefined; loadAttempted: boolean; failed: boolean;
+  failure: unknown; view: NativeImage | undefined;
+};
+type ImageCleanup = Readonly<{pending: boolean; loadAttempted: boolean; errors: readonly unknown[]}>;
+type ImageCleanupError = Error & {
+  code?: string;
+  cleanupPending?: boolean;
+  cleanupHandle?: Readonly<{status(): ImageCleanup; retry(): ImageCleanup}>;
+};
+
+const fs: typeof import('node:fs') = require('node:fs'),
+  processOriginal: typeof import('node:process') = require('node:process');
+const {join, isAbsolute}: Pick<typeof import('node:path'), 'join' | 'isAbsolute'> = require('node:path');
+const crypto: typeof import('node:crypto') = require('node:crypto'),
+  {Buffer}: Pick<typeof import('node:buffer'), 'Buffer'> = require('node:buffer');
+const {types}: Pick<typeof import('node:util'), 'types'> = require('node:util');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
-const hasOwn = Object.hasOwn, freeze = Object.freeze, integer = Number.isSafeInteger;
+const hasOwn = Object.hasOwn, freeze = Object.freeze,
+  integer = Number.isSafeInteger as (value: unknown) => value is number;
 const NativeError = Error, big = BigInt, isProxy = types.isProxy;
 const allocate = Buffer.allocUnsafe, slice = Buffer.prototype.subarray;
 const update = crypto.Hash.prototype.update, digest = crypto.Hash.prototype.digest;
-const createHash = crypto.createHash, dlopen = descriptor(processOriginal, 'dlopen').value;
+const createHash = crypto.createHash,
+  dlopen: typeof processOriginal.dlopen = descriptor(processOriginal, 'dlopen')!.value;
 const fsNames = ['openSync', 'readSync', 'writeSync', 'fstatSync', 'lstatSync',
-  'closeSync', 'fsyncSync', 'fchmodSync', 'mkdtempSync', 'unlinkSync', 'rmdirSync'];
-const operations = freeze(Object.fromEntries(fsNames.map(name => [name, descriptor(fs, name).value])));
+  'closeSync', 'fsyncSync', 'fchmodSync', 'mkdtempSync', 'unlinkSync', 'rmdirSync'] as const;
+// A finite view of the captured methods with the overloads this loader uses.
+const operations = freeze(Object.fromEntries(fsNames.map(name => [name, descriptor(fs, name)!.value]))) as
+  Readonly<FileOperations>;
 const constants = freeze({read: fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK,
   create: fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR | fs.constants.O_NOFOLLOW,
   mask: big(fs.constants.S_IFMT), regular: big(fs.constants.S_IFREG)});
-let selected, invalidated = false;
-const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
-const own = (value, name) => {
+let selected: ImageEntry | undefined, invalidated = false;
+const fail: (code: string) => never = code => {
+  const error: Error & {code?: string} = new NativeError(code); error.code = code; throw error;
+};
+const own = (value: unknown, name: PropertyKey): unknown => {
   if (value === null || typeof value !== 'object' || isProxy(value)) fail('HostJournalNativeImageUnavailable');
   const field = descriptor(value, name);
   if (field === undefined || !hasOwn(field, 'value')) fail('HostJournalNativeImageUnavailable');
@@ -34,11 +75,13 @@ function currentBindings() {
     invalidated = true; fail('HostJournalNativeImageChanged');
   }
 }
-const call = (name, args) => apply(operations[name], fs, args);
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
+const call = <Name extends keyof FileOperations>(name: Name, args: Parameters<FileOperations[Name]>):
+  ReturnType<FileOperations[Name]> => apply(operations[name], fs, args) as ReturnType<FileOperations[Name]>;
+const same = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
   a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
 
-function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent) {
+function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown,
+  assertRuntimeCurrent: Current): NativeImage {
   const path = own(expected, 'path'), bytes = own(expected, 'bytes'), sha256 = own(expected, 'sha256');
   const maxImageBytes = own(limits, 'maxImageBytes');
   const temporaryDirectory = own(limits, 'temporaryDirectory');
@@ -63,13 +106,13 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     apply(assertRuntimeCurrent, undefined, []);
     return selected.view;
   }
-  const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,
+  const entry: ImageEntry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,
     temporaryDirectory,
     source: undefined, writer: undefined, reader: undefined, directory: undefined, path: undefined,
     identity: undefined, module: undefined, loadAttempted: false, failed: false, failure: undefined, view: undefined};
   const fence = () => { currentBindings(); apply(assertRuntimeCurrent, undefined, []); };
-  const acquired = fd => ({fd, consumed: false, unknown: undefined});
-  const close = name => {
+  const acquired = (fd: number): DescriptorDuty => ({fd, consumed: false, unknown: undefined});
+  const close = (name: 'source' | 'writer' | 'reader') => {
     const duty = entry[name];
     if (duty === undefined || duty.consumed) return;
     duty.consumed = true;
@@ -86,9 +129,9 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     close('writer');
     if (entry.path !== undefined) {
       // Only remove this exact private inode, never a successor at its name.
-      let actual;
+      let actual: BigIntStats | undefined;
       try { actual = call('lstatSync', [entry.path, {bigint: true}]); }
-      catch (cause) { if (cause.code !== 'ENOENT') throw cause; }
+      catch (cause) { if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause; }
       if (actual !== undefined) {
         if (entry.identity === undefined || actual.dev !== entry.identity.dev || actual.ino !== entry.identity.ino) {
           fail('HostJournalNativeImageCleanupPending');
@@ -103,8 +146,8 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
       entry.directory = undefined;
     }
   };
-  let cleanupError;
-  const status = () => freeze({pending: entry.source !== undefined || entry.writer !== undefined ||
+  let cleanupError: unknown;
+  const status = (): ImageCleanup => freeze({pending: entry.source !== undefined || entry.writer !== undefined ||
     entry.reader !== undefined || entry.path !== undefined || entry.directory !== undefined,
     loadAttempted: entry.loadAttempted,
     errors: freeze([entry.source?.unknown, entry.writer?.unknown, entry.reader?.unknown, cleanupError]
@@ -121,11 +164,11 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     let offset = 0;
     while (offset < bytes) {
       const length = Math.min(working.length, bytes - offset);
-      const count = call('readSync', [entry.reader.fd, working, 0, length, offset]);
+      const count = call('readSync', [entry.reader!.fd, working, 0, length, offset]);
       if (!integer(count) || count < 1 || count > length) fail('HostJournalNativeImageChanged');
       apply(update, hash, [apply(slice, working, [0, count])]); offset += count;
     }
-    if (call('readSync', [entry.reader.fd, lookahead, 0, 1, bytes]) !== 0 ||
+    if (call('readSync', [entry.reader!.fd, lookahead, 0, 1, bytes]) !== 0 ||
         apply(digest, hash, ['hex']) !== sha256) fail('HostJournalNativeImageChanged');
   };
   try {
@@ -183,8 +226,8 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     if (!same(copy, call('fstatSync', [entry.reader.fd, {bigint: true}]))) fail('HostJournalNativeImageChanged');
     cleanup();
     if (status().pending) fail('HostJournalNativeImageCleanupPending');
-    const native = own(entry.module, 'exports');
-    const captured = {};
+    const native: object = own(entry.module, 'exports') as object;
+    const captured: Record<string, unknown> = {};
     for (const name of ['open', 'next', 'current', 'close']) {
       const operation = own(native, name);
       if (typeof operation !== 'function') fail('HostJournalNativeImageUnavailable');
@@ -208,7 +251,7 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     entry.failed = true;
     observeCleanup();
     if (status().pending) {
-      const carrier = new NativeError('HostJournalNativeImageCleanupPending', {cause});
+      const carrier: ImageCleanupError = new NativeError('HostJournalNativeImageCleanupPending', {cause});
       carrier.code = 'HostJournalNativeImageCleanupPending'; carrier.cleanupPending = true;
       carrier.cleanupHandle = freeze({status, retry: observeCleanup});
       entry.failure = carrier;
@@ -216,5 +259,4 @@ function loadHostJournalDirectoryNative(packageRoot, expected, limits, assertRun
     throw entry.failure;
   }
 }
-module.exports = {loadHostJournalDirectoryNative};
-freeze(module.exports);
+export = Object.freeze({loadHostJournalDirectoryNative});
