@@ -135,6 +135,39 @@ async def observe_read(host, result, stop_phase=None, *, totals=None):
     return reading.result(), receipt, beats, core_turns, reader.attempt_id
 
 
+def original_terminal_revision(creator):
+    # Successful public RunState need not project control. This dedicated
+    # fresh Store contains only the seed Run at this point. Borrow only its
+    # storage revision through the current reader, never the row's contents.
+    host = creator._local_host
+    assert type(host) is InstalledLocalHost
+    binding = host._active().binding
+    revisions = []
+
+    def inspect(_current):
+        reader = binding._observed_reader
+        assert reader is not None
+        rows = []
+
+        def observe(row):
+            assert row is not None
+            key, original = row
+            assert type(original.generation) is int and 0 <= original.generation < 2**31
+            rows.append((key, original.generation))
+
+        def end(row):
+            assert row is None
+
+        reader.scan_after('client_runs', '', observe)
+        (key, revision), = rows
+        reader.scan_after('client_runs', key, end)
+        revisions.append(revision)
+
+    binding.inspect(inspect)
+    revision, = revisions
+    return revision
+
+
 async def prepare_original(state_dir, report_wait_failure=None, *,
                            value_size=16512, cancellation_records=None):
     assert not state_dir.exists()
@@ -151,7 +184,8 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
             state = plain(await control.wait())
             assert state['status'] == 'succeeded'
             if cancellation_records == 1:
-                observed = plain(await control.cancel(expected_revision=state['control']['revision']))
+                revision = original_terminal_revision(creator)
+                observed = plain(await control.cancel(expected_revision=revision))
                 original = observed['cancellation']
                 assert observed['kind'] == 'already_satisfied' and original['kind'] == 'already_terminal'
                 assert original['ref'] == plain(control.ref)
@@ -219,9 +253,9 @@ async def exercise(state_dir):
                       'physical_sha256': physical_digest, 'first_close': True}))
 
 
-async def measure_history(destination):
+async def measure_history(destination, levels):
     destination.mkdir(mode=0o700)
-    for cancellation_records in (0, 1):
+    for cancellation_records in levels:
         for chunk_count in (1, 2):
             # The one-row canonical array has ten framing bytes. A single
             # extra byte changes the physical read from one chunk to two.
@@ -258,7 +292,8 @@ async def measure_history(destination):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3 and sys.argv[2] == '--measure-history':
-        asyncio.run(measure_history(Path(sys.argv[1])))
+    if len(sys.argv) == 3 and sys.argv[2] in ('--measure-history', '--measure-nonempty-history'):
+        levels = (1,) if sys.argv[2] == '--measure-nonempty-history' else (0, 1)
+        asyncio.run(measure_history(Path(sys.argv[1]), levels))
     else:
         asyncio.run(exercise(Path(sys.argv[1])))
