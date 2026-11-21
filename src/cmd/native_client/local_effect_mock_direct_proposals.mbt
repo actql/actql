@@ -179,11 +179,13 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal_with_cause(report)
     entry.stream = Some(stream)
+    // The funded JSON row bounds all decoded UTF-16 keys and values.
+    // A per-value text limit cannot bound this aggregate decode.
     while @execution.next_completed_output_export_canonical_row(
             stream,
             wire.max_nodes,
             wire.max_depth,
-            limits.values.max_text_bytes,
+            wire.max_bytes,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal_with_cause(report)

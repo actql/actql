@@ -2311,6 +2311,125 @@ test "Native shared-file Effect joins and binds both original Source observation
         [artifact],
       ),
     )
+    @local_values.yield_installed_effect_operation_construction_workspace(
+      proposals.construction.unwrap().operation,
+    ).native_file_route_value(
+      "yield proposal workspace before original target reads",
+    )
+    let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap() +
+      "/shared-file-empty-models/mock"
+    let read_file = fn() raise {
+      @files.read_bounded_text_file(
+        root,
+        "data.json",
+        file_limits.page.max_bytes.to_int64(),
+      ).native_file_route_value("read independent target file")
+    }
+    let before = read_file()
+    let selected_reads : Array[String] = []
+    let target_issue : Ref[LocalCommandPreparationIssue?] = Ref(None)
+    state.observe_mock_effect_targets_in_original_request(
+      run,
+      proposals,
+      installations,
+      (connection, resource) => {
+        guard connection == "salesforce" &&
+          (resource == "Account" || resource == "Contact") &&
+          @local_values.check_installed_effect_managed_run(
+            run,
+            prepared,
+            original.request,
+          )
+          is Ok(_) else {
+          stop("fixture target read escaped the original Request")
+        }
+        if selected_reads.last() != Some(resource) {
+          selected_reads.push(resource)
+        }
+      },
+      task => task(),
+      issue => if target_issue.val is None { target_issue.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native targets: " +
+          message +
+          " / " +
+          target_issue.val
+          .map(command_preparation_cleanup_cause)
+          .unwrap_or("no typed cause"),
+        )
+    }
+    assert_eq(selected_reads, ["Account", "Contact", "Account"])
+    assert_eq(state.targets.length(), 3)
+    assert_eq(read_file(), before)
+    let same_sources = state.direct_sources.unwrap()
+    let (observation, invocation, _) = proposals.publication_context.unwrap()
+    state.build_mock_effect_preview(
+      proposals,
+      installations,
+      "sha256:" + "a".repeat(64),
+      file_limits.page.max_bytes,
+      100,
+      () => (observation, invocation, [], same_sources.observations, None),
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native Preview: " +
+          message +
+          " / " +
+          primary.val
+          .map(issue => {
+            command_preparation_cleanup_cause(
+              CommandBusinessEffectProposals(issue),
+            )
+          })
+          .unwrap_or("no typed cause"),
+        )
+    }
+    let preview = state.preview.unwrap()
+    assert_true(physical_equal(preview._retained_observation, observation))
+    assert_true(physical_equal(preview._retained_invocation, invocation))
+    assert_eq(preview.proofs.length(), 3)
+    guard @json.parse(preview._retained_wire) is Object(fields) &&
+      fields.get("model_derived") == Some(Json::boolean(false)) &&
+      fields.get("effects") is Some(Array(effects)) else {
+      fail("expected original model-free Effect Preview")
+    }
+    assert_eq(effects.length(), 3)
+    for index, selector in ["a1", "c1", "a2"] {
+      guard effects[index] is Object(effect_body) &&
+        effect_body.get("executed") == Some(Json::boolean(false)) &&
+        effect_body.get("changes") is Some(Array(changes)) &&
+        changes.length() == 1 &&
+        changes[0] is Object(change) &&
+        change.get("before") is Some(Object(old)) &&
+        old.get("value") is Some(Object(old_row)) &&
+        change.get("after") is Some(Object(new)) &&
+        new.get("value") is Some(Object(new_row)) else {
+        fail("expected a before/after pair from the original target")
+      }
+      assert_eq(change.get("target_row_identity"), Some(Json::string(selector)))
+      assert_eq(old_row.get("id"), Some(Json::string(selector)))
+      assert_eq(
+        old_row.get("value"),
+        Some(Json::string(["A-old", "C-old", "A2-old"][index])),
+      )
+      assert_eq(
+        new_row.get("value"),
+        Some(Json::string(["A-new", "C-new", "A2-new"][index])),
+      )
+    }
+    for verifier in preview.verifiers {
+      @strategy.cancel_captured_effect_plan_verifier(verifier)
+    }
+    state.preview = None
+    for target in state.targets {
+      assert_true(target.close().unwrap())
+    }
+    state.targets.clear()
+    assert_eq(read_file(), before)
     assert_true(proposals.close())
     state.proposals = None
     state.suffix = None
