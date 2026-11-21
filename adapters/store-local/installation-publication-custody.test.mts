@@ -4,20 +4,30 @@ import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {open, readFile} from 'node:fs/promises';
+import type {FileHandle} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
+import type {PhysicalReadHandle, ReadFailureCarrier} from './publication-object-verifier.mjs';
+import type {FixtureCleanup} from './fixtures/store-file-ports.d.mts';
+
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type FaultReadHandle = PhysicalReadHandle & Pick<FileHandle, 'fd'>;
+type DirectoryHook = Readonly<{syncDirectory(path: string): Promise<void>}>;
+type ReconciliationFailure = Error & Readonly<{reconciliationFailure?: unknown; cleanupHandle?: unknown}>;
+type ColdObservation = Readonly<{pid: number; bytes: number; digest: string; holdingCid: string}>;
 
 const execute = promisify(execFile);
 const sqliteExperimentalWarning = /^\(node:\d+\) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n\(Use `node --trace-warnings \.\.\.` to show where the warning was created\)\n/u;
-const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+const digest = (bytes: Buffer | string) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const coldProbe = fileURLToPath(new URL('./installation-publication-cold.fixture.mjs', import.meta.url));
 // This is deliberately not an invented installation-publication schema. The
 // existing semantic Owner must supply its actual closed record and holding key.
@@ -26,7 +36,7 @@ const binding = Object.freeze({name: 'installation_publication',
   semanticCid: digest('explicit semantic binding fixture'),
   holdingCid: digest('explicit owner holding fixture'), wire});
 
-async function fixture(t, hooks) {
+async function fixture(t: TestContext, hooks?: DirectoryHook) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'installation-publication-', label: 'installation publication physical custody',
@@ -35,7 +45,7 @@ async function fixture(t, hooks) {
     storeAuthorityCid: digest('explicit physical Store authority fixture'),
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
     maxContractNodes: 256, maxContractDepth: 32});
-  const stores = [];
+  const stores: Store[] = [];
   const acquire = async () => {
     const store = await openLocalPublicationStore({...configuration,
       privateEvidenceKey: Buffer.alloc(32, 7)}, createPublicationContractControlFixture(), hooks);
@@ -51,12 +61,12 @@ async function fixture(t, hooks) {
     // selects ACTQL_TEST_PRESERVE_SCRATCH=1 to keep successful original records.
   });
   return {store, configuration, acquire, scratch,
-    async cold(patch = {}, keyByte = 7) {
+    async cold(patch: Partial<Readonly<{name: string; semanticCid: string; holdingCid: string; wire: string}>> = {}, keyByte: number | null = 7) {
       const result = await execute(process.execPath, [coldProbe,
         JSON.stringify({configuration, binding: {...binding, ...patch}, keyByte})],
       {timeout: 20000, maxBuffer: 1024 * 1024});
       assert.equal(result.stderr.replace(sqliteExperimentalWarning, ''), '');
-      return JSON.parse(result.stdout);
+      return JSON.parse(result.stdout) as ColdObservation;
     }};
 }
 
@@ -67,7 +77,7 @@ test('installation publication survives fresh-process cold read without metadata
   assert.equal(record.namespace, 'publication-private');
   assert.equal(record.manifest_cid, binding.semanticCid);
   assert.equal(owner.status().committed, true);
-  const cipherPath = join(f.configuration.directory, 'objects', record.objects[0].cid.slice(7));
+  const cipherPath = join(f.configuration.directory, 'objects', (record.objects[0].cid as string).slice(7));
   const ciphertext = await readFile(cipherPath);
   assert.equal(ciphertext.includes(Buffer.from(wire)), false);
   assert.equal(await f.store.close(), true);
@@ -89,12 +99,12 @@ for (const [name, patch, keyByte, code] of [
     'PublicationPrivateEvidenceUnavailable'],
   ['foreign holding', {holdingCid: digest('foreign original holding fixture')}, 7,
     'PublicationPrivateEvidenceUnavailable'],
-]) {
+] as const) {
   test(`cold installation publication refuses ${name}`, async t => {
     const f = await fixture(t);
     await preparePrivatePublicationHolding(f.store, binding).commit();
     assert.equal(await f.store.close(), true);
-    await assert.rejects(f.cold(patch, keyByte), error => error.stderr.includes(code));
+    await assert.rejects(f.cold(patch, keyByte), error => (error as {stderr: string}).stderr.includes(code));
     // The original authenticated record survives every refused cold consumer.
     const cold = await f.cold();
     assert.equal(cold.digest, digest(wire).slice(7));
@@ -105,7 +115,7 @@ for (const [name, patch, keyByte, code] of [
 test('installation holding admits only its exact purpose, not prefixes or arbitrary kinds', async t => {
   const f = await fixture(t);
   for (const name of ['installation', 'installation_publication_copy', 'Installation_publication']) {
-    assert.throws(() => preparePrivatePublicationHolding(f.store, {...binding, name}),
+    assert.throws(() => preparePrivatePublicationHolding(f.store, {...binding, name} as typeof binding),
       {code: 'InvalidPrivatePublicationHolding'});
     await assert.rejects(f.store.confirmPrivateEvidence({...binding, name}),
       {code: 'InvalidPublicationPrivateEvidence'});
@@ -117,7 +127,7 @@ test('installation holding admits only its exact purpose, not prefixes or arbitr
 
 test('unknown installation commit retains the same preparation until original durability confirms', async t => {
   let refuse = false;
-  const faults = [];
+  const faults: Error[] = [];
   const f = await fixture(t, {async syncDirectory(path) {
     if (refuse && path === join(f.configuration.directory, 'physical-holdings')) {
       // Each original syscall refusal has its own error. Reusing a mutable
@@ -141,18 +151,18 @@ test('unknown installation commit retains the same preparation until original du
   refuse = true;
   await assert.rejects(owner.commit(), error => {
     assert.equal(error, faults[0]);
-    assert.equal(error.reconciliationFailure, faults[1]);
-    assert.equal(error.cleanupHandle, owner);
+    assert.equal((error as ReconciliationFailure).reconciliationFailure, faults[1]);
+    assert.equal((error as ReconciliationFailure).cleanupHandle, owner);
     return true;
   });
   assert.equal(owner.status().committed, false);
   assert.equal(owner.status().preparedPending, true);
-  const original = await f.store.inspectPhysicalHolding(binding.holdingCid);
-  const path = join(f.configuration.directory, 'objects', original.objects[0].cid.slice(7));
+  const original = (await f.store.inspectPhysicalHolding(binding.holdingCid))!;
+  const path = join(f.configuration.directory, 'objects', (original.objects[0].cid as string).slice(7));
   const originalBytes = await readFile(path);
   await assert.rejects(owner.retry(), error => {
     assert.equal(error, faults[2]);
-    assert.equal(error.cleanupHandle, owner);
+    assert.equal((error as ReconciliationFailure).cleanupHandle, owner);
     return true;
   });
   assert.equal(preparations, 1);
@@ -172,59 +182,60 @@ for (const outcome of ['false', 'reject']) {
   test(`${outcome} installation evidence FD close retains the original read duty`, async t => {
     const f = await fixture(t);
     const record = await preparePrivatePublicationHolding(f.store, binding).commit();
-    const path = join(f.configuration.directory, 'objects', record.objects[0].cid.slice(7));
+    const path = join(f.configuration.directory, 'objects', (record.objects[0].cid as string).slice(7));
     const ciphertext = await readFile(path);
     const probe = await open(path, 'r');
-    const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
+    const prototype = Object.getPrototypeOf(probe) as Pick<PhysicalReadHandle, 'stat'>, stat = prototype.stat;
     await probe.close();
-    let original, nativeClose, cleanup, closeCalls = 0, reads = 0, holdClose = true;
+    let original: FaultReadHandle | undefined, nativeClose: PhysicalReadHandle['close'] | undefined,
+      cleanup: FixtureCleanup | undefined, closeCalls = 0, reads = 0, holdClose = true;
     const closeFailure = new Error('OriginalInstallationEvidenceCloseRefused');
-    prototype.stat = function(...args) {
-      if (original === undefined && new Error().stack.split('\n')[2]?.includes('consumeObject')) {
+    prototype.stat = (function(this: FaultReadHandle, ...args: Parameters<PhysicalReadHandle['stat']>) {
+      if (original === undefined && new Error().stack!.split('\n')[2]?.includes('consumeObject')) {
         original = this;
         nativeClose = this.close;
         const read = this.read;
-        this.read = function(...readArgs) {
+        this.read = (function(this: FaultReadHandle, ...readArgs: Parameters<PhysicalReadHandle['read']>) {
           reads++;
           return Reflect.apply(read, this, readArgs);
-        };
-        this.close = function(...closeArgs) {
+        }) as PhysicalReadHandle['read'];
+        this.close = function(this: FaultReadHandle, ...closeArgs: Parameters<PhysicalReadHandle['close']>) {
           // Node's stream destroy has a separate notification. Control only
           // the Store's original close, not a synthetic replacement FD.
-          if (new Error().stack.split('\n')[2]?.includes('node:internal/fs/streams:')) {
-            return Reflect.apply(nativeClose, this, closeArgs);
+          if (new Error().stack!.split('\n')[2]?.includes('node:internal/fs/streams:')) {
+            return Reflect.apply(nativeClose!, this, closeArgs);
           }
           closeCalls++;
           if (holdClose) return outcome === 'false'
             ? Promise.resolve(false) : Promise.reject(closeFailure);
-          return Reflect.apply(nativeClose, this, closeArgs);
+          return Reflect.apply(nativeClose!, this, closeArgs);
         };
       }
       return Reflect.apply(stat, this, args);
-    };
+    }) as PhysicalReadHandle['stat'];
     t.after(async () => {
       prototype.stat = stat;
       holdClose = false;
-      if (cleanup?.status().pending) await cleanup.retry();
+      if (cleanup?.status().pending) await cleanup!.retry();
       assert(original === undefined || original.fd === -1);
     });
     await assert.rejects(f.store.readPrivateEvidence(binding.name,
       binding.semanticCid, binding.holdingCid), error => {
-      cleanup = error.cleanupHandle;
+      cleanup = (error as ReadFailureCarrier).cleanupHandle;
       return cleanup?.status().pending === true;
     });
-    assert(original.fd >= 0);
+    assert((original as FaultReadHandle | undefined)!.fd >= 0);
     assert.equal(closeCalls, 1);
     await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
     assert.deepEqual(await readFile(path), ciphertext);
     const originalReads = reads;
     holdClose = false;
-    await cleanup.retry();
-    assert.equal(cleanup.status().pending, false);
-    assert.equal(original.fd, -1);
+    await cleanup!.retry();
+    assert.equal(cleanup!.status().pending, false);
+    assert.equal((original as FaultReadHandle | undefined)!.fd, -1);
     assert.equal(closeCalls, 2);
     assert.equal(reads, originalReads, 'cleanup closes only; no metadata or ciphertext reread');
-    await cleanup.retry();
+    await cleanup!.retry();
     assert.equal(closeCalls, 2);
     assert.deepEqual(await f.store.inspectPhysicalHolding(binding.holdingCid), record);
     assert.equal(await f.store.close(), true);

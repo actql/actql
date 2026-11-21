@@ -138,6 +138,12 @@ type PrivateEvidenceRead = Readonly<{
   releaseBytes(): string;
   confirm(binding: unknown): Promise<SelectedPhysicalHoldingRecord>;
 }>;
+// The original read checks the namespace, manifest, and each selected object path.
+type SelectedPrivatePublicationHolding = SelectedPhysicalHoldingRecord & Readonly<{
+  namespace: 'publication-private';
+  manifest_cid: string;
+  objects: readonly Readonly<{cid: string; byte_count: number}>[];
+}>;
 type ConsumeEvidence<Value> = (plaintext: Buffer, read: PrivateEvidenceRead) => Value;
 type BeforeEvidenceRead = ((bytes: number) => undefined) & Readonly<{
   reserveEnvelope?: (wire: string) => undefined;
@@ -586,7 +592,7 @@ export function createPrivatePublicationEvidence(
         // Confirmation still requires its original directory ACK and adoption.
         await confirmPhysicalHoldingDirectory(record);
       }
-      return Object.freeze({record, bytes});
+      return Object.freeze({record, bytes}) as Readonly<{record: SelectedPrivatePublicationHolding; bytes: Buffer}>;
     } finally {release();}
   };
   const readModelRawEvidenceOriginal = (binding: RawEvidenceBinding, confirm = false) =>
@@ -691,7 +697,7 @@ export function createPrivatePublicationEvidence(
         // The same serialized operation retains its actual read facts through
         // the real directory ACK, excluding retirement until adoption finishes.
         await confirmPhysicalHoldingDirectory(record);
-        return record;
+        return record as SelectedPrivatePublicationHolding;
       } finally {
         stored?.fill(0);
         stored = undefined;

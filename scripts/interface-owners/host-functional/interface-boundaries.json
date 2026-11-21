@@ -8827,7 +8827,7 @@
                 "anchor": "test('private holding reconciles a lost durable commit acknowledgement',"
               },
               {
-                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "path": "adapters/store-local/installation-publication-custody.test.mts",
                 "anchor": "unknown installation commit retains the same preparation until original durability confirms"
               },
               {
@@ -8979,7 +8979,7 @@
                 "anchor": "test('private holding reconciles a lost durable commit acknowledgement',"
               },
               {
-                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "path": "adapters/store-local/installation-publication-custody.test.mts",
                 "anchor": "unknown installation commit retains the same preparation until original durability confirms"
               },
               {

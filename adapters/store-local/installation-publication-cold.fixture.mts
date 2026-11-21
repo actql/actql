@@ -5,7 +5,12 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 
-const {configuration, binding, keyByte} = JSON.parse(process.argv[2]);
+type ColdInput = Readonly<{
+  configuration: Readonly<Record<string, unknown>>;
+  binding: Readonly<{name: string; semanticCid: string; holdingCid: string}>;
+  keyByte: number | null;
+}>;
+const {configuration, binding, keyByte} = JSON.parse(process.argv[2]) as ColdInput;
 const store = await openLocalPublicationStore({...configuration,
   privateEvidenceKey: keyByte === null ? undefined : Buffer.alloc(32, keyByte)},
 createPublicationContractControlFixture());
@@ -16,7 +21,7 @@ try {
   console.log(JSON.stringify({pid: process.pid,
     bytes: bytes.byteLength,
     digest: createHash('sha256').update(bytes).digest('hex'),
-    holdingCid: record.holding_cid}));
+    holdingCid: record!.holding_cid}));
 } finally {
   if (await store.close() !== true) throw new Error('ColdPublicationStoreClosePending');
 }

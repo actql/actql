@@ -8339,7 +8339,7 @@
                 "anchor": "# Physical holding metadata publication"
               },
               {
-                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mts",
                 "anchor": "an already corrupt final holding remains refused"
               },
               {
@@ -8347,7 +8347,7 @@
                 "anchor": "setter cannot discard the original Content FD responsibility"
               },
               {
-                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "path": "adapters/store-local/installation-publication-custody.test.mts",
                 "anchor": "installation publication survives fresh-process cold read without metadata acquisition"
               },
               {
@@ -8507,15 +8507,15 @@
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
               },
               {
-                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mts",
                 "anchor": "test('prepared custody acknowledges its final name without a redundant staging directory ACK'"
               },
               {
-                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mts",
                 "anchor": "test('failed final custody directory ACK cannot install the payload and remains recoverable'"
               },
               {
-                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mts",
                 "anchor": "test('a final-ACKed custody retains the same failed temporary unlink without repeating its ACK'"
               },
               {
@@ -16660,7 +16660,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mts",
                 "anchor": "failed final custody directory ACK cannot install the payload and remains recoverable"
               },
               {
@@ -17890,7 +17890,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mts",
                 "anchor": "an already corrupt final holding remains refused without deletion or repair"
               },
               {
@@ -18241,11 +18241,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mts",
                 "anchor": "holding publication retains the same"
               },
               {
-                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mts",
                 "anchor": "prepared custody acknowledges its final name without a redundant staging directory ACK"
               },
               {
@@ -19568,7 +19568,7 @@
                 "anchor": "test('Store lease rejects replacement of its exact opened anchor"
               },
               {
-                "path": "adapters/store-local/owner-atomic-publication.test.mjs",
+                "path": "adapters/store-local/owner-atomic-publication.test.mts",
                 "anchor": "exclusive native directory publication never replaces an existing empty or foreign owner"
               }
             ]
@@ -20055,7 +20055,7 @@
                 "anchor": "lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen"
               },
               {
-                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "path": "adapters/store-local/installation-publication-custody.test.mts",
                 "anchor": "unknown installation commit retains the same preparation until original durability confirms"
               }
             ]

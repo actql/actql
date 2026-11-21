@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import fs from 'node:fs/promises';
+import type {FileHandle} from 'node:fs/promises';
+import type {FixtureCleanupFailure, FixtureWrite} from './fixtures/store-file-ports.d.mts';
 import {syncBuiltinESMExports, createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -15,7 +17,7 @@ import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   closePreparedLocalPublicationStoreOwnership} from './publication-store.mjs';
 
 test.before(() => buildNodeDirectoryNative());
-const configuration = directory => ({directory, storeAuthorityCid: 'sha256:' + 'a'.repeat(64),
+const configuration = (directory: string) => ({directory, storeAuthorityCid: 'sha256:' + 'a'.repeat(64),
   capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
   maxContractNodes: 256, maxContractDepth: 32});
 for (const mode of ['empty', 'partial', 'lease']) {
@@ -29,7 +31,7 @@ for (const mode of ['empty', 'partial', 'lease']) {
     }
     const child = spawn(process.execPath, [fileURLToPath(new URL('./fixtures/owner-interrupted.fixture.mjs', import.meta.url)),
       directory, mode], {stdio: ['ignore', 'pipe', 'pipe']});
-    const stdout = [], stderr = [];
+    const stdout: Buffer[] = [], stderr: Buffer[] = [];
     child.stdout.on('data', bytes => stdout.push(bytes)); child.stderr.on('data', bytes => stderr.push(bytes));
     const [code, signal] = await once(child, 'close');
     assert.equal(code, null, Buffer.concat(stderr).toString()); assert.equal(signal, 'SIGKILL');
@@ -59,51 +61,61 @@ for (const mode of ['false', 'throw']) {
       prefix: 'owner-close-', label: 'actual pending owner writer'});
     const directory = join(scratch.path, 'store'), originalOpen = fs.open;
     const primary = Object.assign(new Error('OriginalOwnerClosePending'), {code: 'EIO'});
-    let permitted = false, writer, writes = 0, failure;
+    let permitted = false, writer: FileHandle | undefined, writes = 0, failure: FixtureCleanupFailure | undefined;
     fs.open = async (...args) => {
-      const handle = await originalOpen(...args), write = handle.write.bind(handle), close = handle.close.bind(handle);
-      handle.write = async (...values) => {
+      const handle = await originalOpen(...args), write = handle.write.bind(handle) as FixtureWrite, close = handle.close.bind(handle);
+      handle.write = (async (...values: Parameters<FixtureWrite>) => {
         if (Buffer.isBuffer(values[0]) && values[0].toString().includes('actql-local-publication-store-owner/0.1')) {
           writer = handle; writes++;
         }
         return write(...values);
-      };
-      handle.close = async () => {
+      }) as FixtureWrite as typeof handle.write;
+      handle.close = (async () => {
         if (handle === writer && !permitted) {
           if (mode === 'false') return false;
           throw primary;
         }
         return close();
-      };
+      }) as typeof handle.close;
       return handle;
     };
     syncBuiltinESMExports();
     t.after(async () => {
       permitted = true;
       fs.open = originalOpen; syncBuiltinESMExports();
-      if (failure?.cleanupHandle) await failure.cleanupHandle.retry();
+      if (failure?.cleanupHandle) await failure!.cleanupHandle.retry();
     });
     await assert.rejects(prepareLocalPublicationStoreOwnership(directory, {maxWireBytes: 16384, maxDirectoryEntries: 64}),
-      error => {failure = error; return error.cleanupHandle?.status().pending === true;});
-    assert.equal(writes, 1); assert.notEqual(writer.fd, -1);
+      error => {failure = error as FixtureCleanupFailure; return (error as FixtureCleanupFailure).cleanupHandle?.status().pending === true;});
+    assert.equal(writes, 1); assert.notEqual(writer!.fd, -1);
     await assert.rejects(fs.readFile(join(directory, 'owner', 'owner.json')), {code: 'ENOENT'});
     // No format or execution owner is invented for this incomplete fresh prefix.
     await assert.rejects(prepareLocalPublicationStoreOwnership(directory, {maxWireBytes: 16384, maxDirectoryEntries: 64}),
       {code: 'UnknownPublicationStoreFormat'});
     permitted = true;
-    assert.equal((await failure.cleanupHandle.retry()).pending, false);
-    assert.equal(writer.fd, -1); assert.equal(writes, 1);
+    assert.equal((await failure!.cleanupHandle.retry()).pending, false);
+    assert.equal(writer!.fd, -1); assert.equal(writes, 1);
     assert.deepEqual(await fs.readdir(directory), []);
     scratch.passed();
   });
 }
+
+type NativeOwnerPort = Readonly<{
+  openFileRoot(path: string): unknown;
+  openFileDirectory(root: unknown, name: string, maximum: number): unknown;
+  publishStoreOwnerDirectory(root: unknown, stage: string, device: bigint, inode: bigint): unknown;
+  replaceStoreOwnerMetadata(directory: unknown, name: string, device: bigint, inode: bigint,
+    size: bigint, mtime: bigint, ctime: bigint, replacementDevice: bigint, replacementInode: bigint,
+    parentDevice: bigint, parentInode: bigint): unknown;
+  fileRootClose(original: unknown): Readonly<{outcome: string}>;
+}>;
 
 test('exclusive native directory publication never replaces an existing empty or foreign owner', async () => {
   const scratch = await createOwnedScratch({parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'owner-exclusive-', label: 'same native Store directory no-replace'});
   const directory = join(scratch.path, 'store'); await fs.mkdir(directory, {mode: 0o700});
   const native = createRequire(import.meta.url)(fileURLToPath(new URL(
-    `../../packages/local-node/_build/native/${process.platform === 'linux' ? 'local-files-linux-x64' : 'directory-darwin-' + process.arch}.node`, import.meta.url)));
+    `../../packages/local-node/_build/native/${process.platform === 'linux' ? 'local-files-linux-x64' : 'directory-darwin-' + process.arch}.node`, import.meta.url))) as NativeOwnerPort;
   const root = native.openFileRoot(directory), stage = '.owner-opening-11111111-1111-4111-8111-111111111111';
   await fs.mkdir(join(directory, stage), {mode: 0o700});
   const original = await fs.stat(join(directory, stage), {bigint: true});
@@ -150,10 +162,10 @@ for (const mode of ['false', 'throw', 'foreign']) {
     const original = await prepareLocalPublicationStoreOwnership(directory, {maxWireBytes: 16384, maxDirectoryEntries: 64});
     const originalBytes = await fs.readFile(path), originalState = await fs.stat(path);
     const originalOpen = fs.open, primary = new Error('LeaseWriterClosePending');
-    let permitted = false, writer, writes = 0, substituted = false;
+    let permitted = false, writer: FileHandle | undefined, writes = 0, substituted = false;
     fs.open = async (...args) => {
-      const handle = await originalOpen(...args), write = handle.write.bind(handle), close = handle.close.bind(handle);
-      handle.write = async (...values) => {
+      const handle = await originalOpen(...args), write = handle.write.bind(handle) as FixtureWrite, close = handle.close.bind(handle);
+      handle.write = (async (...values: Parameters<FixtureWrite>) => {
         if (Buffer.isBuffer(values[0]) && values[0].toString().includes('leaseAnchor')) {
           writer = handle; writes++;
           if (mode === 'foreign' && !substituted) {
@@ -163,14 +175,14 @@ for (const mode of ['false', 'throw', 'foreign']) {
           }
         }
         return write(...values);
-      };
-      handle.close = async () => {
+      }) as FixtureWrite as typeof handle.write;
+      handle.close = (async () => {
         if (handle === writer && !permitted && mode !== 'foreign') {
           if (mode === 'false') return false;
           throw primary;
         }
         return close();
-      };
+      }) as typeof handle.close;
       return handle;
     };
     syncBuiltinESMExports();
@@ -192,10 +204,10 @@ for (const mode of ['false', 'throw', 'foreign']) {
       await assert.rejects(closePreparedLocalPublicationStoreOwnership(original), {code: 'PublicationStoreOwnershipLost'});
       assert.equal((await fs.stat(path)).ino, foreignState.ino, 'cleanup never unlinks a copied foreign original');
     } else {
-      assert.notEqual(writer.fd, -1);
+      assert.notEqual(writer!.fd, -1);
       permitted = true;
       assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
-      assert.equal(writer.fd, -1); assert.equal(writes, 1);
+      assert.equal(writer!.fd, -1); assert.equal(writes, 1);
     }
     scratch.passed();
   });
@@ -207,7 +219,7 @@ test('committed lease metadata retains consumed native-close Unknown before owne
   const directory = join(scratch.path, 'store');
   const child = spawn(process.execPath, [fileURLToPath(new URL('./fixtures/owner-native-close.fixture.mjs', import.meta.url)),
     directory], {stdio: ['ignore', 'pipe', 'pipe']});
-  const stdout = [], stderr = [];
+  const stdout: Buffer[] = [], stderr: Buffer[] = [];
   child.stdout.on('data', bytes => stdout.push(bytes)); child.stderr.on('data', bytes => stderr.push(bytes));
   const [code, signal] = await once(child, 'close');
   assert.equal(signal, null); assert.equal(code, 0, Buffer.concat(stderr).toString());

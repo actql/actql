@@ -5,24 +5,28 @@ import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
+import type {FixtureCleanupFailure, FixtureWrite} from './fixtures/store-file-ports.d.mts';
 import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
-const configuration = directory => ({directory,
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type PreparedWriter = ReturnType<Store['createPreparedObjectWriter']>;
+type PreparedObject = Awaited<ReturnType<PreparedWriter['seal']>>;
+const cid = (value: string | Buffer) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+const configuration = (directory: string) => ({directory,
   storeAuthorityCid: cid('prepared custody publication authority'), capacityBytes: 65536,
   maxObjectBytes: 4096, maxObjects: 8, maxContractNodes: 256, maxContractDepth: 32});
-const openStore = directory => openLocalPublicationStore(configuration(directory),
+const openStore = (directory: string) => openLocalPublicationStore(configuration(directory),
   createPublicationContractControlFixture());
-const syncDirectory = async path => {
+const syncDirectory = async (path: string) => {
   const handle = await fs.open(path, 'r');
   try { await handle.sync(); }
   finally { await handle.close(); }
 };
-async function scratchFor(label) {
+async function scratchFor(label: string) {
   return createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'prepared-custody-atomic-', label});
 }
@@ -33,7 +37,7 @@ for (const mode of ['empty', 'partial']) {
     const directory = join(scratch.path, 'store');
     const child = spawn(process.execPath, [new URL('./fixtures/prepared-custody-interrupted.fixture.mjs',
       import.meta.url).pathname, directory, mode], {stdio: ['ignore', 'pipe', 'pipe']});
-    const stdout = [], stderr = [];
+    const stdout: Buffer[] = [], stderr: Buffer[] = [];
     child.stdout.on('data', bytes => stdout.push(bytes));
     child.stderr.on('data', bytes => stderr.push(bytes));
     const [code, signal] = await once(child, 'close');
@@ -58,7 +62,7 @@ for (const mode of ['empty', 'partial']) {
 test('healthy simultaneous prepared writers retain distinct exact original custody records', async t => {
   const scratch = await scratchFor('parallel original prepared custody');
   const directory = join(scratch.path, 'store'), store = await openStore(directory);
-  let stored = [];
+  let stored: PreparedObject[] = [];
   t.after(async () => {
     for (const value of stored) await value.prepared.release();
     if (!store.status().closed) await store.close();
@@ -88,12 +92,13 @@ for (const mode of ['false', 'rejected']) {
     await writer.append(bytes);
     const originalOpen = fs.open;
     const primary = Object.freeze(Object.assign(new Error('Original custody FD close failure'), {code:'EIO'}));
-    let refusing = true, closes = 0, writes = 0, fd, failure, escaped, originalClose;
+    let refusing = true, closes = 0, writes = 0, fd: number | undefined, failure: FixtureCleanupFailure | undefined,
+      escaped: PreparedObject | undefined, originalClose: (() => Promise<void> | undefined) | undefined;
     fs.open = async (...args) => {
       const handle = await originalOpen(...args);
-      const write = handle.write.bind(handle), close = handle.close.bind(handle);
+      const write = handle.write.bind(handle) as FixtureWrite, close = handle.close.bind(handle);
       let custody = false;
-      handle.write = async (...values) => {
+      handle.write = (async (...values: Parameters<FixtureWrite>) => {
         if (Buffer.isBuffer(values[0]) && values[0].toString('utf8').startsWith(
           '{"version":"actql-local-prepared-custody/0.1"')) {
           custody = true;
@@ -102,8 +107,8 @@ for (const mode of ['false', 'rejected']) {
           writes++;
         }
         return write(...values);
-      };
-      handle.close = async () => {
+      }) as FixtureWrite as typeof handle.write;
+      handle.close = (async () => {
         if (custody) {
           assert.equal(handle.fd, fd);
           closes++;
@@ -113,17 +118,17 @@ for (const mode of ['false', 'rejected']) {
           }
         }
         return close();
-      };
+      }) as typeof handle.close;
       return handle;
     };
     syncBuiltinESMExports();
     try {
       await assert.rejects(writer.seal(cid(bytes)).then(value => { escaped = value; return value; }), error => {
-        failure = error;
-        return error.code === 'PublicationStoreCleanupPending';
+        failure = error as FixtureCleanupFailure;
+        return (error as FixtureCleanupFailure).code === 'PublicationStoreCleanupPending';
       });
-      assert.equal(failure.cleanupHandle.status().pending, true);
-      if (mode === 'rejected') assert.equal(failure.primaryFailure, primary);
+      assert.equal(failure!.cleanupHandle.status().pending, true);
+      if (mode === 'rejected') assert.equal(failure!.primaryFailure, primary);
       assert.deepEqual(await fs.readdir(join(directory, 'prepared-custody')), []);
       assert.equal(writes, 1);
       await assert.rejects(store.close(), {code:'PublicationStoreCleanupPending'});
@@ -131,13 +136,13 @@ for (const mode of ['false', 'rejected']) {
       refusing = false;
       if (mode === 'false') {
         await store.close();
-        assert.equal(failure.cleanupHandle.status().pending, false);
+        assert.equal(failure!.cleanupHandle.status().pending, false);
       } else {
-        const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+        const first = failure!.cleanupHandle.retry(), second = failure!.cleanupHandle.retry();
         assert.equal(first, second);
         assert.equal((await first).pending, false);
       }
-      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal((await failure!.cleanupHandle.retry()).pending, false);
       assert.equal(writes, 1, 'FD cleanup cannot repeat custody writes or seal again');
       assert.ok(closes >= 3);
       assert.equal(store.status().storedBytes, 0);
@@ -148,9 +153,9 @@ for (const mode of ['false', 'rejected']) {
       refusing = false;
       fs.open = originalOpen;
       syncBuiltinESMExports();
-      if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
-      await originalClose?.();
-      if (escaped?.prepared.status().pending) await escaped.prepared.release();
+      if (failure?.cleanupHandle?.status().pending) await failure!.cleanupHandle.retry();
+      await (originalClose as (() => Promise<void> | undefined) | undefined)?.();
+      if ((escaped as PreparedObject | undefined)?.prepared.status().pending) await (escaped as PreparedObject | undefined)!.prepared.release();
       await writer.cancel();
       if (!store.status().closed) await store.close();
     }
@@ -173,13 +178,13 @@ test('an already corrupt final custody record is not deleted or reinterpreted as
 
 test('prepared custody acknowledges its final name without a redundant staging directory ACK', async () => {
   const scratch = await scratchFor('prepared custody final name acknowledgement');
-  const directory = join(scratch.path, 'store'), observed = [];
+  const directory = join(scratch.path, 'store'), observed: string[] = [];
   const store = await openLocalPublicationStore(configuration(directory),
-    createPublicationContractControlFixture(), {syncDirectory: async path => {
+    createPublicationContractControlFixture(), {syncDirectory: async (path: string) => {
       observed.push(path);
       await syncDirectory(path);
     }});
-  let stored;
+  let stored: PreparedObject | undefined;
   try {
     const payload = Buffer.from('bounded prepared payload');
     const writer = store.createPreparedObjectWriter(payload.length);
@@ -211,9 +216,9 @@ test('failed final custody directory ACK cannot install the payload and remains 
   const scratch = await scratchFor('prepared custody final acknowledgement failure');
   const directory = join(scratch.path, 'store');
   const primary = Object.freeze(Object.assign(new Error('Original custody directory ACK failure'), {code: 'EIO'}));
-  let refusing = false, escaped, writer;
+  let refusing = false, escaped: PreparedObject | undefined, writer: PreparedWriter | undefined;
   const store = await openLocalPublicationStore(configuration(directory),
-    createPublicationContractControlFixture(), {syncDirectory: async path => {
+    createPublicationContractControlFixture(), {syncDirectory: async (path: string) => {
       if (refusing && path === join(directory, 'prepared-custody')) throw primary;
       await syncDirectory(path);
     }});
@@ -247,15 +252,16 @@ test('failed final custody directory ACK cannot install the payload and remains 
 test('a final-ACKed custody retains the same failed temporary unlink without repeating its ACK', async () => {
   const scratch = await scratchFor('prepared custody original temporary unlink duty');
   const directory = join(scratch.path, 'store'), originalLink = fs.link, originalUnlink = fs.unlink;
-  let temporary, refusing = true, custodyAcks = 0, failure, writer;
+  let temporary: Parameters<typeof fs.unlink>[0] | undefined, refusing = true, custodyAcks = 0,
+    failure: FixtureCleanupFailure | undefined, writer: PreparedWriter | undefined;
   const primary = Object.freeze(Object.assign(new Error('Original temporary unlink failure'), {code: 'EIO'}));
   const store = await openLocalPublicationStore(configuration(directory),
-    createPublicationContractControlFixture(), {syncDirectory: async path => {
+    createPublicationContractControlFixture(), {syncDirectory: async (path: string) => {
       await syncDirectory(path);
       if (path === join(directory, 'prepared-custody')) custodyAcks++;
     }});
   fs.link = async (source, target) => {
-    if (target.startsWith(join(directory, 'prepared-custody') + '/')) temporary = source;
+    if ((target as string).startsWith(join(directory, 'prepared-custody') + '/')) temporary = source;
     return originalLink(source, target);
   };
   fs.unlink = async path => {
@@ -268,20 +274,20 @@ test('a final-ACKed custody retains the same failed temporary unlink without rep
     writer = store.createPreparedObjectWriter(7);
     await writer.append('payload');
     await assert.rejects(writer.seal(cid('payload')), error => {
-      failure = error;
-      return error.code === 'PublicationStoreCleanupPending';
+      failure = error as FixtureCleanupFailure;
+      return (error as FixtureCleanupFailure).code === 'PublicationStoreCleanupPending';
     });
-    assert.equal(failure.primaryFailure, primary);
+    assert.equal(failure!.primaryFailure, primary);
     assert.equal(custodyAcks, 1, 'Final metadata custody was really acknowledged before temporary retirement');
     const [name] = await fs.readdir(join(directory, 'prepared-custody'));
     const finalPath = join(directory, 'prepared-custody', name), before = await fs.lstat(finalPath);
-    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
     await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
     refusing = false;
-    const first = failure.cleanupHandle.retry();
-    assert.equal(failure.cleanupHandle.retry(), first);
+    const first = failure!.cleanupHandle.retry();
+    assert.equal(failure!.cleanupHandle.retry(), first);
     assert.equal((await first).pending, false);
-    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal((await failure!.cleanupHandle.retry()).pending, false);
     assert.equal(custodyAcks, 1, 'Cleanup reuses only the same already-held final-name ACK');
     const after = await fs.lstat(finalPath);
     assert.equal(after.dev, before.dev);
@@ -296,7 +302,7 @@ test('a final-ACKed custody retains the same failed temporary unlink without rep
   } finally {
     refusing = false;
     fs.link = originalLink; fs.unlink = originalUnlink; syncBuiltinESMExports();
-    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    if (failure?.cleanupHandle?.status().pending) await failure!.cleanupHandle.retry();
     await writer?.cancel();
     if (!store.status().closed) await store.close();
   }
