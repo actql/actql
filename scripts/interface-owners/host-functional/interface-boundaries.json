@@ -68359,15 +68359,14 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "adapters/host-node/installed-duckdb-source.mjs",
+      "module": "adapters/host-node/installed-duckdb-profile.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "83dfb2345ac4b6b8e3c2f288599633094b1cd0615c8404df3fd2d28cc0136274",
+      "sha256": "326b00aa82109b9ae2f89e961c9364c9183e3482d7070545cafbce0a4bed9029",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "INSTALLED_DUCKDB_SOURCE_VERSION",
         "checkInstalledDuckDBSourceProfile",
-        "createInstalledDuckDBSource",
         "installDuckDBSourceProfile",
         "loadInstalledDuckDBSource"
       ],
@@ -68393,6 +68392,361 @@
           ],
           "async": false
         },
+        {
+          "name": "installDuckDBSourceProfile",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "runtime",
+            "retainAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledDuckDBSource",
+          "parameters": [
+            "path",
+            "root",
+            "principalId"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "checkInstalledDuckDBSourceProfile",
+            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
+            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
+            "installDuckDBSourceProfile",
+            "loadInstalledDuckDBSource"
+          ],
+          "exports": [
+            "INSTALLED_DUCKDB_SOURCE_VERSION",
+            "checkInstalledDuckDBSourceProfile",
+            "installDuckDBSourceProfile",
+            "loadInstalledDuckDBSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "function cid(value: InstallationIdentity & {version: string}) {"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "anchor": "import {readFile} from 'node:fs/promises';"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "throw new TypeError('InvalidInstalledSourceProfilePath');"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "const sourceLimits = Object.freeze({"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-duckdb-selection.test.mjs",
+                "anchor": "test('one real requirement compares Native and Broad and keeps the exact selected payload', async () => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "function cid(value: InstallationIdentity & {version: string}) {"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "anchor": "import {readFile} from 'node:fs/promises';"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "throw new TypeError('InvalidInstalledSourceProfilePath');"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "const sourceLimits = Object.freeze({"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-duckdb-selection.test.mjs",
+                "anchor": "test('one real requirement compares Native and Broad and keeps the exact selected payload', async () => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../connectors/duckdb/node/acquisition-planning.mjs",
+        "../host-common/authorization-gate.mjs",
+        "./authorization.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-duckdb-source.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8b9c8993c1db8ab675cb42cba74c3528b2223ab9885c9b3d6d07f7d5a3728a0c",
+      "role": "physical-io",
+      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
+      "exports": [
+        "INSTALLED_DUCKDB_SOURCE_VERSION",
+        "checkInstalledDuckDBSourceProfile",
+        "createInstalledDuckDBSource",
+        "installDuckDBSourceProfile",
+        "loadInstalledDuckDBSource"
+      ],
+      "operations": [
         {
           "name": "createInstalledDuckDBSource",
           "parameters": [
@@ -68662,37 +69016,12 @@
             "view"
           ],
           "async": false
-        },
-        {
-          "name": "installDuckDBSourceProfile",
-          "parameters": [
-            "profile",
-            "root",
-            "principalId",
-            "runtime",
-            "retainAuthorization"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledDuckDBSource",
-          "parameters": [
-            "path",
-            "root",
-            "principalId"
-          ],
-          "async": true
         }
       ],
       "contracts": [
         {
           "operations": [
-            "checkInstalledDuckDBSourceProfile",
-            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
-            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
-            "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
-            "installDuckDBSourceProfile",
-            "loadInstalledDuckDBSource"
+            "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding"
           ],
           "exports": [
             "INSTALLED_DUCKDB_SOURCE_VERSION",
@@ -68704,7 +69033,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68718,7 +69047,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68732,8 +69061,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
-                "anchor": "function cid(value) {"
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "function cid(value: InstallationIdentity & {version: string}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -68746,7 +69075,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68774,7 +69103,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "throw new TypeError('InvalidInstalledSourceProfilePath');"
               },
               {
@@ -68788,7 +69117,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68802,7 +69131,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "const sourceLimits = Object.freeze({"
               },
               {
@@ -68856,7 +69185,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68870,7 +69199,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68884,8 +69213,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
-                "anchor": "function cid(value) {"
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
+                "anchor": "function cid(value: InstallationIdentity & {version: string}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -68898,7 +69227,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68926,7 +69255,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "throw new TypeError('InvalidInstalledSourceProfilePath');"
               },
               {
@@ -68940,7 +69269,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "export const INSTALLED_DUCKDB_SOURCE_VERSION ="
               },
               {
@@ -68954,7 +69283,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-profile.mts",
                 "anchor": "const sourceLimits = Object.freeze({"
               },
               {
@@ -69466,24 +69795,21 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../connectors/duckdb/node/acquisition-planning.mjs",
         "../connectors/duckdb/node/native-runtime.mjs",
         "../connectors/duckdb/node/physical-capacity.mjs",
         "../host-common/acquisition-outcome.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./authorization.mjs",
         "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
+        "./installed-duckdb-profile.mjs",
         "./installed-host-services.mjs",
         "./installed-row-run.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
         "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "node:util"
+        "node:fs/promises"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

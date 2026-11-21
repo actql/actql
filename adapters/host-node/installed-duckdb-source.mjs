@@ -1,11 +1,7 @@
 // Host-owned physical source installation. Programs select a checked Catalog
 // source; they cannot provide a file path, account grant, or transport policy.
-import {createHash, randomUUID} from 'node:crypto';
+import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {isAbsolute} from 'node:path';
-import {createNodeAuthorizationGate} from './authorization.mjs';
-import {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
-import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
@@ -22,87 +18,8 @@ import {openCapturedDuckDBSource, prepareCapturedDuckDBSource, prepareRetainedCa
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
   capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from
   './captured-duckdb-source.mjs';
-import {checkDuckDBAcquisitionPlanning} from '../connectors/duckdb/node/acquisition-planning.mjs';
-
-const sourceLimits = Object.freeze({
-  maxRows: 10000, maxCells: 100000, maxTransportBytes: 10000000,
-  maxSqlBytes: 10000, maxParameters: 100, maxColumns: 100,
-  memoryBytes: 128 * 1024 * 1024, threads: 1,
-});
-
-function cid(value) {
-  return `sha256:${createHash('sha256').update(JSON.stringify(value))
-    .digest('hex')}`;
-}
-
-export const INSTALLED_DUCKDB_SOURCE_VERSION =
-  'actql-installed-duckdb-source/0.1';
-
-export async function loadInstalledDuckDBSource(path, {root, principalId}) {
-  if (path === undefined) return undefined;
-  if (typeof path !== 'string' || !isAbsolute(path)) {
-    throw new TypeError('InvalidInstalledSourceProfilePath');
-  }
-  return installDuckDBSourceProfile(JSON.parse(await readFile(path, 'utf8')),
-    {root, principalId});
-}
-
-// Original checked DATA snapshots are reusable only by identity. This neither
-// admits an Environment nor issues an Account decision or Source construction.
-const checkedProfiles = new WeakSet();
-export function checkInstalledDuckDBSourceProfile(profile) {
-  if (checkedProfiles.has(profile)) return profile;
-  if (profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
-      Array.isArray(profile) ||
-      Reflect.ownKeys(Object.getOwnPropertyDescriptors(profile)).some(name =>
-        typeof name !== 'string' || !Object.hasOwn(Object.getOwnPropertyDescriptor(profile, name), 'value')) ||
-      Object.keys(profile).sort().join('\0') !==
-        ['accountConfigurationWire', 'acquisitionPlanning', 'checkEnvironmentWire', 'database',
-          'schema', 'sourceRef', 'table', 'version'].join('\0') ||
-      profile.version !== 'actql-installed-duckdb-source/0.1' ||
-      typeof profile.database !== 'string' ||
-      !isAbsolute(profile.database) ||
-      !['schema', 'table', 'sourceRef', 'checkEnvironmentWire',
-        'accountConfigurationWire'].every(key =>
-        typeof profile[key] === 'string' && profile[key].length > 0)) {
-    throw new TypeError('InvalidInstalledSourceProfile');
-  }
-  const acquisitionPlanning = checkDuckDBAcquisitionPlanning(profile.acquisitionPlanning);
-  const checked = Object.freeze({...profile, acquisitionPlanning});
-  checkedProfiles.add(checked);
-  return checked;
-}
-
-// Install one original checked profile on the selected Host runtime. The
-// bound Source owner retains this gate before another fallible constructor.
-export async function installDuckDBSourceProfile(profile, {root, principalId, runtime, retainAuthorization}) {
-  profile = checkInstalledDuckDBSourceProfile(profile);
-  const acquisitionPlanning = profile.acquisitionPlanning;
-  const context = Object.freeze({principal: principalId,
-    contextCid: cid({version: 'actql-installed-source-context/0.1',
-      root, principalId})});
-  const options = {configuration: profile.accountConfigurationWire, context};
-  const authorization = runtime === undefined
-    ? await createNodeAuthorizationGate(options)
-    : createAuthorizationGate({...options, runtime});
-  // The bound caller owns this original before any returned-profile wrapper
-  // or subsequent native-library constructor can fail.
-  if (retainAuthorization !== undefined) retainAuthorization(authorization);
-  return Object.freeze({
-    // The source's own read authorization, for the Host's pre-acquisition
-    // Checkpoint decision (the same configuration and context as the
-    // adapter's check).
-    readAuthorization: Object.freeze({
-      accountConfiguration: profile.accountConfigurationWire, context}),
-    environmentWire: profile.checkEnvironmentWire,
-    database: profile.database, schema: profile.schema,
-    table: profile.table, sourceRef: profile.sourceRef,
-    sourceAccess: Object.freeze({authorization,
-      connection: 'local-database', resource: profile.database,
-      sourceRef: profile.sourceRef}),
-    transportLimits: sourceLimits, acquisitionPlanning,
-  });
-}
+export {INSTALLED_DUCKDB_SOURCE_VERSION, checkInstalledDuckDBSourceProfile,
+  installDuckDBSourceProfile, loadInstalledDuckDBSource} from './installed-duckdb-profile.mjs';
 
 // The known builtin constructor, selected only by the bound Host factory.
 // Its Query/native-acquisition behavior remains the original implementation.

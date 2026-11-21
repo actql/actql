@@ -1760,3 +1760,5 @@ target/
 /adapters/connectors/duckdb/node/physical-capacity.d.mts
 /adapters/connectors/duckdb/node/transport-bounds.mjs
 /adapters/connectors/duckdb/node/transport-bounds.d.mts
+/adapters/host-node/installed-duckdb-profile.mjs
+/adapters/host-node/installed-duckdb-profile.d.mts
