@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash, Hash} from 'node:crypto';
 import {loadInstalledHubSpotSource, prepareInstalledHubSpotMaterials, installedHubSpotSiteBinding} from '../host/installed-hubspot-source.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 function fixture(native, common) {
   const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: 'https://api.hubapi.com',
@@ -37,21 +38,16 @@ function fixture(native, common) {
     const capacity = Object.freeze({originalQuote: state.quotes.length + 1});
     state.quotes.push({name, args, capacity}); return capacity;
   };
+  const originalQuote = (name, method) => (...args) => {
+    const result = common[method](...args);
+    state.quotes.push({name, args, capacity: checked(result)});
+    return result;
+  };
   const moon = Object.freeze({clientProgramHubSpotAccountConstructionCapacity: quote('account'),
     clientProgramHubSpotObjectConstructionCapacity: quote('object'),
-    clientProgramInstalledSourceConstructionCapacity: (...args) => {
-      const result = common.clientProgramInstalledSourceConstructionCapacity(...args);
-      if (state.identityCapacityReady) state.quotes.push({name: 'target', args, capacity: result._0});
-      return result;
-    },
-    clientProgramInstalledProfileConstructionCapacities: common.clientProgramInstalledProfileConstructionCapacities,
-    clientProgramComposeInstalledSourceConstructionCapacity: common.clientProgramComposeInstalledSourceConstructionCapacity,
-    clientProgramSerializationCapacityBytes: common.clientProgramSerializationCapacityBytes,
-    clientProgramRowSourceProviderCapacity: (...args) => {
-      const capacity = common.clientProgramRowSourceProviderCapacity(...args);
-      state.identityCapacityReady = true;
-      state.quotes.push({name: 'metadata-identity', args, capacity}); return capacity;
-    },
+    clientProgramHubSpotMetadataIdentityCapacity: originalQuote('metadata-identity', 'clientProgramHubSpotMetadataIdentityCapacity'),
+    clientProgramHubSpotReadTargetCapacity: originalQuote('target', 'clientProgramHubSpotReadTargetCapacity'),
+    clientProgramHubSpotReadSequenceBounds: common.clientProgramHubSpotReadSequenceBounds,
     clientProgramHubSpotSourceReaderObservedCapacity: quote('source-reader')});
   const construction = {
     configurationReader: {async readJson(path) {
@@ -74,7 +70,7 @@ function fixture(native, common) {
     prepareReadTarget(projection) {
       const capacity = projection.capacity();
       assert.strictEqual(capacity, state.quotes.at(-1).capacity);
-      assert.deepEqual(state.quotes.at(-1).args, [27n, 0n, 0n, 27n, 0n, 0n]);
+      assert.deepEqual(state.quotes.at(-1).args, [2, 6n]);
       state.targets = projection.project();
       assert.equal(state.targets[0].metadataCid, state.retained.at(-1).output.metadataCid);
       assert(Object.isFrozen(state.targets));
@@ -91,6 +87,7 @@ function fixture(native, common) {
       assert.strictEqual(options.readSequenceConstruction.capacity, original.capacity);
       assert.equal(options.columnCount, 3);
       assert.equal(options.limits.maxTotalResponseBytes, 65536);
+      assert.equal(options.limits.maxTargetBytes, 1342);
       assert.equal(options.limits.maxRows, 2); assert.equal(options.limits.maxTotalRows, 10);
       assert.deepEqual(options.readSequenceConstruction.sequence, {
         operation: 'hubspot:objects:list', maxUses: 2, children: [
@@ -156,6 +153,12 @@ export function registerHubSpotInstallationMaterialTests(native, common) {
     error => error === marker);
     assert.deepEqual(f.state.reads, [f.profile.siteProfilePath, f.profile.metadataPath]);
     assert.deepEqual(f.state.quotes.map(value => value.name), ['account', 'object', 'object', 'metadata-identity', 'target', 'source-reader']);
+    const [first, second] = f.metadata.objects;
+    assert.deepEqual(f.state.quotes[3].args, [2,
+      BigInt(f.metadata.accountBody.length + first.propertiesBody.length + second.propertiesBody.length),
+      BigInt(f.metadata.version.length + f.metadata.connectorId.length + f.metadata.portalId.length +
+        f.metadata.apiOrigin.length + first.resource.length + first.objectType.length +
+        second.resource.length + second.objectType.length)]);
     assert.deepEqual(f.state.events, ['reserve:account', 'retained', 'reserve:object', 'retained',
       'reserve:object', 'retained', 'reserve:metadata-identity', 'retained', 'declaration', 'read-target', 'reader-implementation']);
   });
