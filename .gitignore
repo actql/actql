@@ -1181,3 +1181,5 @@ target/
 /adapters/local-node/retained-process.d.mts
 /adapters/local-node/carrier-snapshot.mjs
 /adapters/local-node/carrier-snapshot.d.mts
+/adapters/local-node/captured-source-identity.mjs
+/adapters/local-node/captured-source-identity.d.mts

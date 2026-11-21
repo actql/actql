@@ -7,11 +7,20 @@ import {retainedStorageBody, retainedStorageContract} from
   '../store-local/representations.mjs';
 import {createMoonBitRetainedRowFrames} from
   '../store-local/moonbit-row-frames.mjs';
+import type {readLocalRetainedInput} from './retained-input.mjs';
 
-export async function identifyRetainedCapturedSource(moon, source, signal) {
+type ScanBindings = Parameters<typeof readLocalRetainedInput>[0] & Readonly<{
+  clientProgramPrepareCapturedSourceIdentityScan(source: unknown): unknown;
+  clientProgramCapturedSourceIdentityScanMaterial(scan: unknown): object | null | undefined;
+  clientProgramAppendCapturedSourceIdentityScan(scan: unknown, row: string): unknown;
+  clientProgramFinishCapturedSourceIdentityScan(scan: unknown): unknown;
+  clientProgramCancelCapturedSourceIdentityScan(scan: unknown): boolean;
+}>;
+
+export async function identifyRetainedCapturedSource(moon: ScanBindings, source: unknown, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const scan = checked(moon.clientProgramPrepareCapturedSourceIdentityScan(source));
-  let frames;
+  let frames: ReturnType<typeof createMoonBitRetainedRowFrames> | undefined;
   try {
     const material = moon.clientProgramCapturedSourceIdentityScanMaterial(scan);
     if (material == null) throw new Error('CapturedSourceStorageUnavailable');
@@ -33,7 +42,7 @@ export async function identifyRetainedCapturedSource(moon, source, signal) {
       signal?.throwIfAborted();
     });
     await retainedStorageBody(material).consume(
-      chunk => frames.feed(chunk, signal), signal);
+      chunk => frames!.feed(chunk, signal), signal);
     signal?.throwIfAborted();
     frames.finish();
     return checked(moon.clientProgramFinishCapturedSourceIdentityScan(scan));
