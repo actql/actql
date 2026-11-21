@@ -130,6 +130,19 @@ test('actual finite keyed lifecycle inventory uses its owned construction bounda
   assert.deepEqual(checkResourceLifecycle(root).problems, []);
 });
 
+test('serial dependency growth rejects unclassified direct and aliased callers', () => {
+  for (const body of [
+    'grow_keyed_dependency_body(lookup, 1, 2, 3, None)',
+    'let grow = grow_keyed_dependency_body',
+    'let reserve = reserve_keyed_dependency_serial_controls',
+  ]) {
+    const extra = [['src/run_publication_host/new_serial_receiver.mbt',
+      `fn added(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`]];
+    assert(problems(guardedConstruction(''), extra).some(issue =>
+      issue.function === 'added' && issue.rule === 'unclassified-serial-dependency-funding'));
+  }
+});
+
 test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {
   for (const body of [
     'let grow = grow_keyed_body_construction',

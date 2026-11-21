@@ -159,16 +159,20 @@ fn checked_client_source_policy_bodies(
         return Err(BudgetExceeded)
       }
     }
-    let writer = @encode.writer(remaining, max_nodes, max_depth) catch {
-      _ => return Err(BudgetExceeded)
-    }
-    emit(writer) catch {
-      issue => return Err(Encoding(issue))
-    }
-    if receive is Some(receive) {
-      let (wire, bytes, nodes, depth) = @encode.finish_text_usage(writer) catch {
+    // Only immutable wire and usage cross to the hash, parser and receiver.
+    // The policy collector's own seen/selection backing stays live outside.
+    let (wire, bytes, nodes, depth) = {
+      let writer = @encode.writer(remaining, max_nodes, max_depth) catch {
+        _ => return Err(BudgetExceeded)
+      }
+      emit(writer) catch {
         issue => return Err(Encoding(issue))
       }
+      @encode.finish_text_usage(writer) catch {
+        issue => return Err(Encoding(issue))
+      }
+    }
+    if receive is Some(receive) {
       // Preserve the checked policy's original whole-body identity check.
       if "sha256:" + @sha.hex(@utf8.encode(wire)) != identity {
         return Err(ForeignBody)
@@ -195,9 +199,6 @@ fn checked_client_source_policy_bodies(
       remaining -= bytes
       seen[identity] = true
       return Ok(())
-    }
-    let wire = @encode.finish(writer) catch {
-      issue => return Err(Encoding(issue))
     }
     let bytes = @utf8.encode(wire)
     if "sha256:" + @sha.hex(bytes) != identity {

@@ -592,6 +592,32 @@ fn keyed_lookup_protocol_extent_cost(
 }
 
 ///|
+fn keyed_dependency_body_extent_cost(
+  body : @publication.CapturedEffectDependencyBody,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Int64, ClientKeyedRequestIssue] {
+  let (tree, controls, text) = match
+    @publication.captured_effect_dependency_body_representation_extent(
+      body, max_nodes, max_depth, 2147483647,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(@publication.Contract(issue)))
+  }
+  match
+    @execution.canonical_preparation_retained_bytes(
+      tree,
+      controls.record_headers,
+      controls.reference_slots,
+      controls.scalar_words,
+      text,
+    ) {
+    Some(bytes) => Ok(bytes)
+    None => Err(Assembly("capacity_overflow"))
+  }
+}
+
+///|
 // Called only after the actual writers/scans have returned and their outputs
 // are retained on this same lookup (or the original returning frame). Failure
 // keeps the construction peak. Success returns only unused codec workspace;
@@ -605,6 +631,7 @@ fn finish_keyed_lookup_protocol_metadata(
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
   dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
+  dependencies? : KeyedProtocolDependencies = NoDependencies,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   if !physical_equal(phase.lookup, lookup) {
     return Err(Assembly("foreign_protocol_construction"))
@@ -623,7 +650,11 @@ fn finish_keyed_lookup_protocol_metadata(
   // stack. No wire is re-encoded/hashed/admitted and no permission is observed.
   // Dependency bodies are visited sequentially. Only one body/extent/control
   // tuple and its Some/Result/arithmetic carriers coexist; no extent array.
-  let dependency_frames = if dependency_bodies is Some(_) { 16L } else { 0L }
+  let dependency_frames = match dependencies {
+    NoDependencies => if dependency_bodies is Some(_) { 16L } else { 0L }
+    Unmeasured(_) => 20L
+    Measured(_, _) => 32L
+  }
   let frames = 4L * (max_depth.to_int64() + 1L) +
     4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L) +
     dependency_frames
@@ -691,6 +722,11 @@ fn finish_keyed_lookup_protocol_metadata(
     }
     retained = total
   }
+  let dependency_bodies = match dependencies {
+    NoDependencies => dependency_bodies
+    Unmeasured(bodies) => Some(bodies)
+    Measured(bodies, _) => Some(bodies)
+  }
   if dependency_bodies is Some(bodies) {
     guard @shape.reference_array_retained_extent(
         1L,
@@ -711,27 +747,63 @@ fn finish_keyed_lookup_protocol_metadata(
       return Err(Assembly("capacity_overflow"))
     }
     retained = total
-    for body in bodies {
-      let (tree, controls, text) = match
-        @publication.captured_effect_dependency_body_representation_extent(
-          body, max_nodes, max_depth, 2147483647,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+    // Preserve the original order of unmeasured bodies and their failures.
+    // The collector can have one Request interval and two policy intervals.
+    let ranges = match dependencies {
+      Measured(_, last) => {
+        let ordered = Array(capacity=3)
+        let mut limit = bodies.length()
+        let mut current = Some(last)
+        while current is Some(original) {
+          guard ordered.length() < 3 &&
+            physical_equal(original.bodies, bodies) &&
+            original.start >= 0 &&
+            original.start < original.end &&
+            original.end <= limit else {
+            return Err(Assembly("foreign_dependency_body_extent"))
+          }
+          ordered.push(original)
+          limit = original.start
+          current = original.previous
+        }
+        Some(ordered)
       }
-      guard @execution.canonical_preparation_retained_bytes(
-          tree,
-          controls.record_headers,
-          controls.reference_slots,
-          controls.scalar_words,
-          text,
-        )
-        is Some(bytes) &&
-        @execution.checked_preparation_add_product(retained, bytes, 1L)
+      NoDependencies | Unmeasured(_) => None
+    }
+    let mut next_range = match ranges {
+      Some(ordered) => ordered.length() - 1
+      None => -1
+    }
+    let mut index = 0
+    while index < bodies.length() {
+      if next_range >= 0 &&
+        ranges is Some(ordered) &&
+        ordered[next_range].start == index {
+        let original = ordered[next_range]
+        guard @execution.checked_preparation_add_product(
+            retained,
+            original.bytes,
+            1L,
+          )
+          is Some(next) else {
+          return Err(Assembly("capacity_overflow"))
+        }
+        retained = next
+        index = original.end
+        next_range -= 1
+        continue
+      }
+      let bytes = match
+        keyed_dependency_body_extent_cost(bodies[index], max_nodes, max_depth) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard @execution.checked_preparation_add_product(retained, bytes, 1L)
         is Some(total) else {
         return Err(Assembly("capacity_overflow"))
       }
       retained = total
+      index += 1
     }
   }
   guard @execution.checked_preparation_add_product(
