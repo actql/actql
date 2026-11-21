@@ -153,15 +153,20 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
   let policy = @run_host.client_standard_effect_computation_limits()
   for index, entry in proposals.members {
     let header = @syntax.effect_header_at(headers, index).unwrap()
-    let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
+    // The retained Result's liveness follows the original Source backing.
+    // Check that borrow in its Request before returning to the Read for
+    // target authorization; neither boundary can stand in for the other.
+    in_request(() => {
+      let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
+          stop("LocalOriginalEffectTargetsUnavailable")
+        },
+      )
+      if @strategy.captured_effect_input_member_index(input) != index ||
+        @strategy.captured_effect_input_stage(input) !=
+        @syntax.effect_header_stage(header) {
         stop("LocalOriginalEffectTargetsUnavailable")
-      },
-    )
-    if @strategy.captured_effect_input_member_index(input) != index ||
-      @strategy.captured_effect_input_stage(input) !=
-      @syntax.effect_header_stage(header) {
-      stop("LocalOriginalEffectTargetsUnavailable")
-    }
+      }
+    })
     let descriptor = @run_host.client_effect_member_descriptor(
       state._retained_prepared,
       @syntax.effect_header_stage(header),

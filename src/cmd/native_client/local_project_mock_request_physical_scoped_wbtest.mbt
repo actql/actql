@@ -2311,12 +2311,28 @@ test "Native shared-file Effect joins and binds both original Source observation
       state.issue_mock_effect_direct_sources(run, bound) is Err(Coverage),
     )
   }
+  let direct = state.direct_sources.unwrap()
+  let source_live = () => direct.captures.all(@query.captured_source_available)
   let executed = @local_values.execute_retained_effect_local_tasks_guarded(
     state.effect_host.unwrap(),
     state.effect_capture.unwrap(),
     256,
-    10000,
-    () => true,
+    100000,
+    () => {
+      source_live() &&
+      @local_values.check_installed_effect_managed_run(
+        run,
+        prepared,
+        original.request,
+      )
+      is Ok(_) &&
+      @run_host.client_effect_run_start_current(
+        original.allowed,
+        original.definition,
+        local_utc_now(),
+      )
+    },
+    require_live=Some(source_live),
   ).native_file_route_value("compute original file Effect Result")
   let rows = executed.rows().unwrap()
   assert_eq(rows.length(), 1)
@@ -2436,26 +2452,46 @@ test "Native shared-file Effect joins and binds both original Source observation
     let before = read_file()
     let selected_reads : Array[String] = []
     let target_issue : Ref[LocalCommandPreparationIssue?] = Ref(None)
+    // The CLI restores the captured Read between Request phases. Checking
+    // the live Result borrow for a target must reenter that same Request.
+    facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+    assert_true(@strategy.captured_effect_input_at(proposals.inputs, 0) is None)
+    let mut in_request = false
     state.observe_mock_effect_targets_in_original_request(
       run,
       proposals,
       installations,
       (connection, resource) => {
-        guard connection == "salesforce" &&
-          (resource == "Account" || resource == "Contact") &&
-          @local_values.check_installed_effect_managed_run(
-            run,
-            prepared,
-            original.request,
-          )
-          is Ok(_) else {
+        guard !in_request &&
+          connection == "salesforce" &&
+          (resource == "Account" || resource == "Contact") else {
           stop("fixture target read escaped the original Request")
         }
         if selected_reads.last() != Some(resource) {
           selected_reads.push(resource)
         }
       },
-      task => task(),
+      task => {
+        if in_request {
+          stop("fixture entered the same Request twice")
+        }
+        facility.arena
+        .enter_domain_retained_execution(facility.physical)
+        .unwrap()
+        in_request = true
+        defer {
+          in_request = false
+          facility.arena
+          .leave_domain_retained_execution(facility.physical)
+          .unwrap()
+        }
+        @local_values.check_installed_effect_managed_run(
+          run,
+          prepared,
+          original.request,
+        ).unwrap()
+        task()
+      },
       issue => if target_issue.val is None { target_issue.val = Some(issue) },
     ) catch {
       ClientStop(message) =>
@@ -2468,6 +2504,8 @@ test "Native shared-file Effect joins and binds both original Source observation
           .unwrap_or("no typed cause"),
         )
     }
+    assert_false(in_request)
+    facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
     assert_eq(selected_reads, ["Account", "Contact", "Account"])
     assert_eq(state.targets.length(), 3)
     assert_eq(read_file(), before)
