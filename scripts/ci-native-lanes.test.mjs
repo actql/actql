@@ -150,6 +150,7 @@ test('Core runner aggregate requires every selected matrix and refuses missing f
   const context = {sourceRevision, event: 'pull_request'};
   const results = Object.fromEntries(gateJobs.map(name => [name,
     {result: gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  results['python-wheels'].outputs = {'linux-x64': sourceRevision, 'darwin-arm64': sourceRevision};
   assert.doesNotThrow(() => verifyGate(plan, results, context));
   for (const name of ['preflight', 'lint', 'core', 'spec']) {
     for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
