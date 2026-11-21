@@ -3775,8 +3775,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-source-operation.mjs",
-                "anchor": "export function bindClientSourceOperationRowRun(source, moon, program,"
+                "path": "adapters/host-node/client-source-operation.mts",
+                "anchor": "export function bindClientSourceOperationRowRun(source: object, moon: JobRuntime, program: unknown,"
               }
             ],
             "identity": [

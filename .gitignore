@@ -1319,3 +1319,5 @@ target/
 /adapters/host-node/installed-finite-page-source.d.mts
 /adapters/host-node/fixtures/ordinary-source-binding.fixture.mjs
 /adapters/host-node/fixtures/ordinary-source-binding.fixture.d.mts
+/adapters/host-node/client-source-operation.mjs
+/adapters/host-node/client-source-operation.d.mts
