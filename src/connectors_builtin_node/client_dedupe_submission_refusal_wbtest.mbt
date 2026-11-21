@@ -233,7 +233,17 @@ extern "js" fn request_original_corresponding_fixture(
   loader : RequestDiagnosticTestLoader,
   name : String,
 ) -> NativeJsonValue =
-  #|(loader,name)=>{const {setCorrespondingRefusals,setCorrespondingSuccesses}=loader('../../../../../scripts/fixtures/set-corresponding-source-input.mjs');const fixture=setCorrespondingRefusals.find(item=>item.name===name)??setCorrespondingSuccesses.find(item=>item.name===name);if(!fixture||(fixture.sourceRows?.length??0)!==0)throw new Error('ChangedOriginalCorrespondingFixture');return {kind:'aql',input:{format:fixture.format,text:fixture.text},parameters:null};}
+  #|(loader, name) => {
+  #|  const {setCorrespondingRefusals, setCorrespondingSuccesses} =
+  #|    loader('../../../../../scripts/fixtures/set-corresponding-source-input.mjs');
+  #|  const {setJoinRefusals} = loader('../../../../../scripts/fixtures/set-join-source-input.mjs');
+  #|  const fixture = setCorrespondingRefusals.find(item => item.name === name)
+  #|    ?? setCorrespondingSuccesses.find(item => item.name === name)
+  #|    ?? setJoinRefusals.find(item => item.name === name);
+  #|  if (!fixture || (fixture.sourceRows?.length ?? 0) !== 0)
+  #|    throw new Error('ChangedOriginalCorrespondingFixture');
+  #|  return {kind: 'aql', input: {format: fixture.format, text: fixture.text}, parameters: null};
+  #|}
 
 ///|
 extern "js" fn request_corresponding_publication_fixture(
@@ -340,15 +350,19 @@ fn check_request_original_corresponding_fixture(
     Ok(kind) => kind
   }
   if refusal {
-    assert_true(
-      result
-      is Err(
+    // The original joined named set is rejected by the joined-set lowering
+    // owner. The parenthesized projection reaches the separate name check.
+    let original_cause = match result {
+      Err(QueryLowering(Publication(Frontend(QueryLowering(UnsupportedJoin))))) =>
+        name == "set-join-refuse-anonymous-by-name"
+      Err(
         QueryLowering(
           Publication(Frontend(QueryLowering(UnsupportedProjection)))
         )
-      ),
-      msg=reason,
-    )
+      ) => name == "set-corresponding-refuse-parenthesized-by-name"
+      _ => false
+    }
+    assert_true(original_cause, msg=reason)
     assert_eq(
       client_program_request_preparation_issue_code(result),
       Some("source_implementation_limit"),
@@ -367,6 +381,13 @@ fn check_request_original_corresponding_fixture(
 test "Request original parenthesized BY NAME refusal retains its typed cause" {
   check_request_original_corresponding_fixture(
     "set-corresponding-refuse-parenthesized-by-name", true,
+  )
+}
+
+///|
+test "Request original joined anonymous BY NAME retains its typed cause" {
+  check_request_original_corresponding_fixture(
+    "set-join-refuse-anonymous-by-name", true,
   )
 }
 
