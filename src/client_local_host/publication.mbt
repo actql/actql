@@ -143,7 +143,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
-  reserve_row_copy? : ((Int64) -> Bool)? = None,
+  reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val || !physical_equal(captured, self.run) {
     return Err(MissingOutput)
@@ -259,13 +259,14 @@ fn LocalValuesExecution::publication_original_for_task(
 
 ///|
 // One preflight cursor, three copied limit records and the pending Value
-// bounds at a time. The row is borrowed from the original producer transport.
+// bounds at a time, plus split quote and bridge peak counters. The row is
+// borrowed from the original producer transport.
 let publication_bridge_row_quote_controls : Int64 = {
   let source = @source.json_source_preflight_control_extent()
   @execution.preparation_representation_cost({
-    record_headers: source.record_headers + 7L,
-    reference_slots: source.reference_slots + 10L,
-    scalar_words: source.scalar_words + 23L,
+    record_headers: source.record_headers + 9L,
+    reference_slots: source.reference_slots + 12L,
+    scalar_words: source.scalar_words + 29L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -282,9 +283,10 @@ fn reserve_publication_bridge_row_copy(
   bytes : Int64,
   prefix_rows : Int64,
   prefix : @execution.ValueUsage,
-  previous_extent : Int64,
-  reserve : (Int64) -> Bool,
-) -> (Int64, Int64, Int64)? {
+  previous_retained : Int64,
+  previous_decoder : Int64,
+  reserve : (Int64, Int64) -> Bool,
+) -> (Int64, Int64, Int64, Int64)? {
   guard bytes >= 0L && bytes <= limits.row.max_bytes.to_int64() else {
     return None
   }
@@ -329,7 +331,7 @@ fn reserve_publication_bridge_row_copy(
       @schema.field_reference_name_bytes(schema).to_int64(),
     )
   }
-  guard @local.local_import_next_retention_extent(
+  guard @local.local_import_next_copy_extent(
       quote,
       prefix_rows,
       prefix.nodes.to_int64(),
@@ -338,16 +340,18 @@ fn reserve_publication_bridge_row_copy(
       pending_value_nodes=Some(row_nodes + presence_nodes),
       pending_value_text=Some(bytes + presence_text),
     )
-    is Some((_, nodes, text, required)) else {
+    is Some((_, nodes, text, retained, decoder)) else {
     return None
   }
-  // This bridge owns its copied prefix and one decoder. Only the positive
-  // high-water difference is admitted; no earlier copy is reclaimed here.
-  let extent = Int64::max(previous_extent, required)
-  if extent > previous_extent && !reserve(extent - previous_extent) {
+  // The copied prefix stays with this bridge. Only this append needs the
+  // decoder workspace, and the previous append has already returned.
+  let retained_peak = Int64::max(previous_retained, retained)
+  let decoder_peak = Int64::max(previous_decoder, decoder)
+  if (retained_peak > previous_retained || decoder_peak > previous_decoder) &&
+    !reserve(retained_peak - previous_retained, decoder) {
     return None
   }
-  Some((extent, nodes, text))
+  Some((retained_peak, decoder_peak, nodes, text))
 }
 
 ///|
@@ -363,7 +367,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
-  reserve_row_copy? : ((Int64) -> Bool)? = None,
+  reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
@@ -400,7 +404,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
           start, publication_bridge_row_quote_controls, 1L,
         )
         is Some(start) &&
-        reserve(start) &&
+        reserve(start, 0L) &&
         self.available.val else {
         return Err(MissingOutput)
       }
@@ -419,7 +423,8 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  let mut copy_extent = 0L
+  let mut copied_prefix = 0L
+  let mut decoder_peak = 0L
   for index in 0..<(operations.output_rows)() {
     let row = match (operations.output_row)(index) {
       Ok(value) => value
@@ -452,14 +457,16 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
             bytes,
             index.to_int64(),
             usage,
-            copy_extent,
+            copied_prefix,
+            decoder_peak,
             reserve,
           )
-          is Some((extent, nodes, text)) else {
+          is Some((retained, decoder, nodes, text)) else {
           @execution.close_managed_publication_bridge(bridge)
           return Err(MissingOutput)
         }
-        copy_extent = extent
+        copied_prefix = retained
+        decoder_peak = decoder
         Some((nodes, text))
       }
     }

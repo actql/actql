@@ -84,6 +84,35 @@ pub fn local_import_next_retention_extent(
 }
 
 ///|
+/// Split the original import quote above its empty baseline. The copied
+/// prefix survives append; the synchronous decoder workspace does not.
+pub fn local_import_next_copy_extent(
+  limits : LocalImportLimits,
+  rows : Int64,
+  nodes : Int64,
+  text : Int64,
+  wire_bytes : Int64,
+  pending_value_nodes? : Int64? = None,
+  pending_value_text? : Int64? = None,
+) -> (Int64, Int64, Int64, Int64, Int64)? {
+  guard local_import_next_retention_extent(
+      limits,
+      rows,
+      nodes,
+      text,
+      wire_bytes,
+      pending_value_nodes~,
+      pending_value_text~,
+    )
+    is Some((next_rows, next_nodes, next_text, total)) else {
+    return None
+  }
+  let retained = local_import_prefix_capacity(next_rows, next_nodes, next_text)
+  guard total >= retained else { return None }
+  Some((next_rows, next_nodes, next_text, retained, total - retained))
+}
+
+///|
 /// Per-port growth counters and the before-decode closure are allocated only
 /// for the certified materializing route. The original importer limits remain
 /// the semantic admission policy.

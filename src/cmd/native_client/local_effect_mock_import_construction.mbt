@@ -358,21 +358,30 @@ fn Result::retain_mock_effect_proposal_issue(
 }
 
 ///|
-// The publication bridge computes the additional peak from the same admitted
-// copy before allocating. Keep the charge on the original capture reservation.
+// Each bridge keeps its own copied prefix on the capture reservation. The
+// decoder returns before the next synchronous constructor can start, so its
+// workspace can reuse the same peak. Other live capture inputs stay charged.
 fn LocalNativeMockEffectImportConstruction::reserve_row_copy(
   self : Self,
   additional : Int64,
+  decoder : Int64,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
   guard @execution.checked_preparation_add_product(
       self.retained,
       additional,
       1L,
     )
-    is Some(retained) else {
+    is Some(retained) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      self.workspace,
+      self.source_snapshot.unwrap_or(0L),
+      decoder,
+    )
+    is Some(workspace) else {
     return Err(Managed(InsufficientCapacity))
   }
-  self.resize_result(self.recipe, retained, self.workspace)
+  self.resize_result(self.recipe, retained, workspace)
 }
 
 ///|
@@ -411,9 +420,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
       schema: limits.identity.schema,
       max_batch_bytes: Int::min(wire.max_bytes, 16384),
     },
-    reserve_row_copy=Some(bytes => {
+    reserve_row_copy=Some((bytes, decoder) => {
       construction
-      .reserve_row_copy(bytes)
+      .reserve_row_copy(bytes, decoder)
       .retain_mock_effect_proposal_issue(issue => {
         self.original.retain_primary(CommandBusinessEffectProposals(issue))
       })

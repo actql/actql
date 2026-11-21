@@ -66,6 +66,8 @@ pub fn local_export_retention_capacity(LocalExportLimits) -> Int64?
 
 pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
+pub fn local_import_next_copy_extent(LocalImportLimits, Int64, Int64, Int64, Int64, pending_value_nodes? : Int64?, pending_value_text? : Int64?) -> (Int64, Int64, Int64, Int64, Int64)?
+
 pub fn local_import_next_retention_extent(LocalImportLimits, Int64, Int64, Int64, Int64, pending_value_nodes? : Int64?, pending_value_text? : Int64?) -> (Int64, Int64, Int64, Int64)?
 
 pub fn local_import_retention_capacity(LocalImportLimits) -> Int64?

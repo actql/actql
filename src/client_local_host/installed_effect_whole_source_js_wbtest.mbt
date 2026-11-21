@@ -911,8 +911,10 @@ fn retained_effect_whole_source_export_control(
       // numeric value bound retained values, wire nodes and both decoder
       // views at two nodes each. The empty frame and decoder already
       // reserve one byte each.
-      let row_growth = 64L * (1L + 2L + 2L + 2L * 2L) + 8L * (5L * 8L - 2L)
-      let offered : Array[Int64] = []
+      let copied = 64L * (1L + 2L) + 8L * 8L
+      let decoder = 64L * (2L + 2L * 2L) + 8L * (4L * 8L - 2L)
+      let row_growth = copied + decoder
+      let offered : Array[(Int64, Int64)] = []
       assert_true(
         execution.prepare_captured_result_export(
           dag,
@@ -921,18 +923,19 @@ fn retained_effect_whole_source_export_control(
           1000,
           10000,
           export_limits,
-          reserve_row_copy=Some(bytes => {
-            offered.push(bytes)
-            offered.length() == 1 || bytes <= row_growth - 1L
+          reserve_row_copy=Some((retained, workspace) => {
+            offered.push((retained, workspace))
+            offered.length() == 1 || retained + workspace <= row_growth - 1L
           }),
         )
         is Err(MissingOutput),
       )
       assert_eq(offered.length(), 2)
-      assert_true(offered[0] > 0L)
-      assert_eq(offered[1], row_growth)
+      assert_true(offered[0].0 > 0L)
+      assert_eq(offered[0].1, 0L)
+      assert_eq(offered[1], (copied, decoder))
       assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
-      let funded : Array[Int64] = []
+      let funded : Array[(Int64, Int64)] = []
       let owned = execution
         .prepare_captured_result_export(
           dag,
@@ -941,9 +944,9 @@ fn retained_effect_whole_source_export_control(
           1000,
           10000,
           export_limits,
-          reserve_row_copy=Some(bytes => {
-            funded.push(bytes)
-            funded.length() == 1 || bytes <= row_growth
+          reserve_row_copy=Some((retained, workspace) => {
+            funded.push((retained, workspace))
+            funded.length() == 1 || retained + workspace <= row_growth
           }),
         )
         .unwrap()
@@ -1064,7 +1067,7 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
     let (_, _, text_bytes, original) = @local.local_import_next_retention_extent(
       limits, 1L, 4L, 10L, bytes,
     ).unwrap()
-    let (measured, measured_nodes, measured_text) = reserve_publication_bridge_row_copy(
+    let (retained, decoder, measured_nodes, measured_text) = reserve_publication_bridge_row_copy(
       limits,
       schema,
       wire,
@@ -1072,15 +1075,16 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
       1L,
       prefix,
       0L,
-      _ => true,
+      0L,
+      (_, _) => true,
     ).unwrap()
     assert_eq(measured_nodes, 4L + observed_nodes.to_int64())
     assert_eq(measured_text, text_bytes)
     assert_eq(
-      original - measured,
+      original - retained - decoder,
       4L * 64L * (bytes - observed_nodes.to_int64()),
     )
-    let (_, expected_nodes, expected_text, expected) = @local.local_import_next_retention_extent(
+    let (_, expected_nodes, expected_text, expected_retained, expected_decoder) = @local.local_import_next_copy_extent(
       limits,
       1L,
       4L,
@@ -1096,9 +1100,10 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
         1L,
         prefix,
         0L,
-        _ => true,
+        0L,
+        (_, _) => true,
       ),
-      Some((expected, expected_nodes, expected_text)),
+      Some((expected_retained, expected_decoder, expected_nodes, expected_text)),
     )
   }
 }
@@ -1162,8 +1167,9 @@ test "publication bridge funds a sparse row before copying its nested present Va
   let bytes = @scalar.admit_utf8_length64(wire, limits.row.max_bytes.to_int64()).unwrap()
   // Five emitted nodes, three possible presence slots, and three views
   // of the five decoder nodes. The two one-byte empty buffers are prepaid.
-  let exact = 64L * (1L + 8L + 3L * 5L) +
-    8L * (5L * bytes + name_bytes.to_int64() - 2L)
+  let copied = 64L * (1L + 8L) + 8L * (bytes + name_bytes.to_int64())
+  let decoder = 64L * (3L * 5L) + 8L * (4L * bytes - 2L)
+  let exact = copied + decoder
   for allowance in [exact - 1L, exact] {
     let output = @execution.prepare_admitted_output(
       owner,
@@ -1180,14 +1186,15 @@ test "publication bridge funds a sparse row before copying its nested present Va
       0L,
       { nodes: 0, text_bytes: 0, work: 0, },
       0L,
-      additional => {
-        calls.push(additional)
-        additional <= allowance
+      0L,
+      (retained, workspace) => {
+        calls.push((retained, workspace))
+        retained + workspace <= allowance
       },
     )
-    assert_eq(calls, [exact])
+    assert_eq(calls, [(copied, decoder)])
     if allowance == exact {
-      let (_, nodes, text) = funded.unwrap()
+      let (_, _, nodes, text) = funded.unwrap()
       @execution.append_admitted_output_wire(output, wire, limits.row).unwrap()
       let retained = @execution.finish_admitted_output(output).unwrap()
       let observed = @execution.admitted_output_usage(retained)
