@@ -1200,14 +1200,14 @@
                 "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
-                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+                "path": "adapters/host-node/installed-rest-source.mts",
+                "anchor": "export function createInstalledRestSource(definition: RestSourceInstallationDefinition,"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -1216,11 +1216,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const {declaration, declared, environment} = prepare();"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
               }
             ],
@@ -1234,27 +1234,27 @@
                 "anchor": "The Host passes that projection into the original Run Ledger's"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "{sourceReader: providerReader, sourceProfile: site});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// Select original service methods before any configuration await. The"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
               },
               {
@@ -1282,7 +1282,7 @@
                 "anchor": "These finite page and row ceilings constrain the connector; they are not a"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// funding. The same selected Host profile must cover them in full."
               },
               {
@@ -1296,7 +1296,7 @@
                 "anchor": "the Core or Host for each new Connector."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
               }
             ],

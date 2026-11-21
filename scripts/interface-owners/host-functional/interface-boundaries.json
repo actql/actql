@@ -129572,14 +129572,14 @@
                 "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
-                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+                "path": "adapters/host-node/installed-rest-source.mts",
+                "anchor": "export function createInstalledRestSource(definition: RestSourceInstallationDefinition,"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -129588,11 +129588,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const {declaration, declared, environment} = prepare();"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
               },
               {
@@ -129610,27 +129610,27 @@
                 "anchor": "The Host passes that projection into the original Run Ledger's"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "{sourceReader: providerReader, sourceProfile: site});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// Select original service methods before any configuration await. The"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
               },
               {
@@ -129658,7 +129658,7 @@
                 "anchor": "These finite page and row ceilings constrain the connector; they are not a"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// funding. The same selected Host profile must cover them in full."
               },
               {
@@ -129666,11 +129666,11 @@
                 "anchor": "Common checks the additions and reserves them before the reader"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// Both constructors select the same already-validated Source demand."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const pageBounds = Object.freeze({maxNodes:"
               }
             ],
@@ -129680,7 +129680,7 @@
                 "anchor": "the Core or Host for each new Connector."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
               }
             ],
@@ -129732,14 +129732,14 @@
                 "anchor": "The common semantics stay in the MoonBit Core and the common Host owners."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// owners. Provider declarations supply DATA; no reader lifecycle is here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
-                "anchor": "export function createInstalledRestSource(definition, {decodePage} = {}) {"
+                "path": "adapters/host-node/installed-rest-source.mts",
+                "anchor": "export function createInstalledRestSource(definition: RestSourceInstallationDefinition,"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -129748,11 +129748,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const {declaration, declared, environment} = prepare();"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,"
               }
             ],
@@ -129766,27 +129766,27 @@
                 "anchor": "The Host passes that projection into the original Run Ledger's"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "{sourceReader: providerReader, sourceProfile: site});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// Select original service methods before any configuration await. The"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareAuthoredDeclaration');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "types.isProxy(sourceInitialization)) fail('RestSourceInitializationUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "throw await retainInstalledHostInitializationFailure(cause,"
               },
               {
@@ -129814,7 +129814,7 @@
                 "anchor": "These finite page and row ceilings constrain the connector; they are not a"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// funding. The same selected Host profile must cover them in full."
               },
               {
@@ -129822,11 +129822,11 @@
                 "anchor": "Common checks the additions and reserves them before the reader"
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "// Both constructors select the same already-validated Source demand."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "const pageBounds = Object.freeze({maxNodes:"
               }
             ],
@@ -129836,7 +129836,7 @@
                 "anchor": "the Core or Host for each new Connector."
               },
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
+                "path": "adapters/host-node/installed-rest-source.mts",
                 "anchor": "if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');"
               }
             ],
@@ -130158,7 +130158,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// Static author DATA enters the existing Common declaration owner. This"
               },
               {
@@ -130168,11 +130168,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "export function createRestSourceMetadata(definition) {"
+                "path": "adapters/host-node/rest-source-metadata.mts",
+                "anchor": "export function createRestSourceMetadata(definition: RestSourceInstallationDefinition) {"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "return original.authoredViewsWire;"
               },
               {
@@ -130182,21 +130182,21 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "const original = freeze(structuredClone(definition));"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "const reads = captureConfigurationReaders(configurationReader, undefined,"
               },
               {
@@ -130210,7 +130210,7 @@
                 "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST metadata retains the same Host reader methods and exact original CA without an author bound'"
               },
               {
@@ -130220,25 +130220,25 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (configurationReader === undefined) fail('RestSourceConfigurationReaderUnavailable');"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (typeof reads.readOriginalBytes !== 'function') fail('RestSourceTlsAuthorityPolicyUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// module owns no provider I/O, credential, capacity, reader or publication"
               },
               {
@@ -130252,7 +130252,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// The original Host reader owns the observed FD extent and physical read."
               },
               {
@@ -130266,8 +130266,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "const profileKeys = ['version', 'connectorId', 'siteProfilePath', 'accountConfigurationWire'];"
+                "path": "adapters/host-node/rest-source-metadata.mts",
+                "anchor": "const profileKeys = ['version', 'connectorId', 'siteProfilePath', 'accountConfigurationWire'] as const;"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -130276,23 +130276,23 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST normal metadata has no standalone reader or declaration fallback'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA refuses a missing actual-FD byte reader without a text fallback'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST CA uses only the captured actual-FD byte method and original receiver'"
               },
               {
@@ -130314,7 +130314,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// Static author DATA enters the existing Common declaration owner. This"
               },
               {
@@ -130324,11 +130324,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "export function createRestSourceMetadata(definition) {"
+                "path": "adapters/host-node/rest-source-metadata.mts",
+                "anchor": "export function createRestSourceMetadata(definition: RestSourceInstallationDefinition) {"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "return original.authoredViewsWire;"
               },
               {
@@ -130338,21 +130338,21 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "originalStringsCid: hash(JSON.stringify([definitionWire, ...profileKeys.map(name => installed[name]),"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "const original = freeze(structuredClone(definition));"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "const reads = captureConfigurationReaders(configurationReader, undefined,"
               },
               {
@@ -130366,7 +130366,7 @@
                 "anchor": "// Capture the initializer's optional actual-FD text method before any read awaits."
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST metadata retains the same Host reader methods and exact original CA without an author bound'"
               },
               {
@@ -130376,25 +130376,25 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (configurationReader === undefined) fail('RestSourceConfigurationReaderUnavailable');"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (!Buffer.isBuffer(ca)) fail('InvalidInstalledRestSourceSite');"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "if (typeof reads.readOriginalBytes !== 'function') fail('RestSourceTlsAuthorityPolicyUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// module owns no provider I/O, credential, capacity, reader or publication"
               },
               {
@@ -130408,7 +130408,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
+                "path": "adapters/host-node/rest-source-metadata.mts",
                 "anchor": "// The original Host reader owns the observed FD extent and physical read."
               },
               {
@@ -130422,8 +130422,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/rest-source-metadata.mjs",
-                "anchor": "const profileKeys = ['version', 'connectorId', 'siteProfilePath', 'accountConfigurationWire'];"
+                "path": "adapters/host-node/rest-source-metadata.mts",
+                "anchor": "const profileKeys = ['version', 'connectorId', 'siteProfilePath', 'accountConfigurationWire'] as const;"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -130432,23 +130432,23 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST identity binds changed CA bytes and path through the original Host reader'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST normal metadata has no standalone reader or declaration fallback'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA cannot disappear into default trust when its original reader returns no bytes'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST configured CA refuses a missing actual-FD byte reader without a text fallback'"
               },
               {
-                "path": "adapters/host-node/rest-source-metadata.test.mjs",
+                "path": "adapters/host-node/rest-source-metadata.test.mts",
                 "anchor": "test('REST CA uses only the captured actual-FD byte method and original receiver'"
               },
               {
@@ -136599,8 +136599,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-rest-source.mjs",
-                "anchor": "if (!nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget);"
+                "path": "adapters/host-node/installed-rest-source.mts",
+                "anchor": "if (!nativeReads) material = (preparePhysicalTargets as ReturnType<typeof capturePhysicalTargetConstruction>)(original.sources, declared, physicalTarget);"
               }
             ],
             "failure": [

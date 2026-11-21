@@ -6,12 +6,12 @@ import {createRestSourceMetadata, REST_SOURCE_SITE_VERSION} from './rest-source-
 function fixture() {
   const sources = [{resource: 'records', resource_kind: 'record',
     fields: [{name: 'id', type: 'string', nullable: false}],
-    read: {method: 'GET', path: '/records'}, pagination: {kind: 'none', items: []},
+    read: {method: 'GET' as const, path: '/records'}, pagination: {kind: 'none' as const, items: []},
     limits: {maxPageRows: 2, maxPageBytes: 1024, maxPages: 1, maxRows: 2,
       maxNodes: 64, maxDepth: 8, maxCursorBytes: 32}}];
   const definition = {registration: 'acme', revision: 'acme/0.1',
     profileVersion: 'actql-installed-acme-rest-source/0.1', origin: 'https://api.acme.invalid',
-    auth: {kind: 'bearer'}, sources,
+    auth: {kind: 'bearer' as const}, sources,
     authoredViewsWire: JSON.stringify({views: sources.map(({resource, resource_kind, fields}) =>
       ({resource, resource_kind, fields}))})};
   const profile = {version: definition.profileVersion, connectorId: 'acme-one',
@@ -27,16 +27,16 @@ function fixture() {
 // Explicit original reader ports only: no physical read, Source funding,
 // Credential Site or normal Host acceptance is established by these cases.
 test('REST metadata retains the same Host reader methods and exact original CA without an author bound', async () => {
-  const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls = [];
+  const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls: [string, string][] = [];
   const ca = Buffer.from('-----BEGIN CERTIFICATE-----\r\nauthored-opaque-CA\r\n-----END CERTIFICATE-----\r\n');
   const reader = {
-    async readJson(path) {
+    async readJson(path: string) {
       assert.strictEqual(this, reader);calls.push(['json', path]);
       reader.readOriginalBytes = () => assert.fail('Captured before original JSON await');
       return f.site;
     },
     readText() {assert.fail('Configured CA uses the actual-FD reader, not a caller bound');},
-    readOriginalBytes(path) {
+    readOriginalBytes(path: string) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
       calls.push(['bytes', path]);return ca;
     },
@@ -80,7 +80,7 @@ test('REST normal metadata has no standalone reader or declaration fallback', as
     readJson: async () => f.site, readText() {assert.fail('No bounded CA read');},
     readOriginalBytes: async () => 'not-original-bytes',
   }}), {code: 'InvalidInstalledRestSourceSite'});
-  assert.throws(() => createRestSourceMetadata({...f.definition, authoredViewsWire: undefined}),
+  assert.throws(() => createRestSourceMetadata({...f.definition, authoredViewsWire: undefined!}),
     {code: 'InvalidRestSourceInstallationDefinition'});
 });
 
@@ -103,17 +103,17 @@ test('REST configured CA refuses a missing actual-FD byte reader without a text 
 });
 
 test('REST CA uses only the captured actual-FD byte method and original receiver', async () => {
-  const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls = [];
+  const f = fixture(), metadata = createRestSourceMetadata(f.definition), calls: [string, string][] = [];
   const ca = Buffer.from([0xef, 0xbb, 0xbf, 13, 10, 0, 0xff]);
   const reader = {
-    async readJson(path) {
+    async readJson(path: string) {
       assert.strictEqual(this, reader);calls.push(['json', path]);
       reader.readOriginalBytes = () => assert.fail('Original method must be captured before JSON awaits');
       return f.site;
     },
     readText() {assert.fail('Bounded readText must not be used without a declared bound');},
     readOriginalText() {assert.fail('No CA text projection');},
-    readOriginalBytes(path) {
+    readOriginalBytes(path: string) {
       assert.strictEqual(this, reader);assert.equal(arguments.length, 1);
       calls.push(['original', path]);return ca;
     },

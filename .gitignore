@@ -1289,6 +1289,12 @@ target/
 /adapters/host-node/rest-source-page.d.mts
 /adapters/host-node/rest-read-original.mjs
 /adapters/host-node/rest-read-original.d.mts
+/adapters/host-node/rest-source-metadata.mjs
+/adapters/host-node/rest-source-metadata.d.mts
+/adapters/host-node/rest-source-metadata.test.mjs
+/adapters/host-node/rest-source-metadata.test.d.mts
+/adapters/host-node/installed-rest-source.mjs
+/adapters/host-node/installed-rest-source.d.mts
 /adapters/host-node/local-account-config.mjs
 /adapters/host-node/local-account-config.d.mts
 /adapters/host-node/local-account-current.test.mjs
