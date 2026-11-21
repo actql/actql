@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "45974e61a3587df34a560b3f0c66815037c03f2ef921d37ded1a32b3a496fcbd",
+      "sha256": "7963ea8cddad403ca2b87ea9c96460de96faf6a680a96fa3058cdec369046596",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",

@@ -1281,8 +1281,10 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned, localContractLimits.maxNodes, supportedKinds);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
   const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
-  if (automaticUpdate && (owned.describe !== undefined || owned.finalizeRequest !== undefined ||
-      managedPlanConstruction !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
+  if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
+      owned.finalizeRequest !== undefined || managedPlanConstruction !== undefined)) {
+    fail('InvalidInstalledEffectPlanRecipe');
+  }
   const checkedUpdateWrite = recipe => {
     const slot = selectInstalledEffectCredentialOperation(recipe, 'write');
     if (slot?.maxTargetBytes === undefined || recipe.physicalWrite !== undefined ||

@@ -552,8 +552,11 @@ export interface RowEffectUpdateTransportBounds {
   readonly maxResponseBytes: number;
   readonly maxTargetBytes: number;
 }
-/** Compiled author constructors for the request, target and response codecs.
- * Return the original native profiles emitted by the installed connector. */
+/** Return the original compiled quantity profiles from this installed connector.
+ * The constructor roles are row request, unused target-check, write response
+ * and target response. The row-request quantity also bounds the pure
+ * prepareUpdateWrite constructor on the write child. The capture profile
+ * carries the fixed member, per-row and checked Effect identity quantities. */
 export interface RowEffectUpdateConstructionProvider {
   installedDeclaredUpdateConstructionProfile(previewBytes: number, previewNodes: number, previewDepth: number,
     rowBytes: number, rowNodes: number, rowDepth: number): object;

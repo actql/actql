@@ -8,7 +8,7 @@ import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLim
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
-import {ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {exchangeLimits, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 const NativePromise = Promise;
 const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -214,7 +214,33 @@ export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, wr
   if (!Array.isArray(capacities) || capacities.length !== 8) invalid();
   const prepareCapture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
   const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
-  const composeTarget = captureDeclaredUpdateTargetCapacity(moon);
+  const requestCapacity = method(moon, 'clientProgramInstalledSourceConstructionCapacity');
+  const compose = method(moon, 'clientProgramComposeInstalledSourceConstructionCapacity');
+  const requestEnvelope = ({maxTargetBytes, maxRequestBytes}, responseHeaders) => {
+    const target = BigInt(maxTargetBytes);
+    const query = BigInt(Math.min(maxTargetBytes, exchangeLimits.maxQueryBytes));
+    const pairs = BigInt(exchangeLimits.maxQueryPairs);
+    const headers = BigInt(exchangeLimits.maxRequestHeaders);
+    const observed = responseHeaders ? BigInt(exchangeLimits.maxObservedHeaders) : 0n;
+    const headerName = BigInt(exchangeLimits.maxHeaderNameBytes);
+    const headerValue = BigInt(exchangeLimits.maxHeaderValueBytes);
+    const body = BigInt(maxRequestBytes);
+    // The canonical request and Credential Resource each keep header pairs;
+    // the Site also makes a header dictionary and its physical copy. Include
+    // the encoding vector and output pair Strings while the full target lives.
+    const headerPairs = 1n + 4n * headers;
+    const headerDictionaries = 2n * (1n + 2n * headers);
+    const responseNames = 2n * (1n + observed);
+    const retained = 6n + 2n * headerPairs + headerDictionaries + responseNames;
+    const workspace = retained + (1n + 4n * pairs) + (5n + 4n * headers) + 12n;
+    // Bound both encoding passes, joined query and full target, plus one
+    // request body and header lines. Secret/response backing is already on
+    // the selected Common physical capacity. This is logical Host backing.
+    const headerText = headers * (headerName + headerValue + 4n) + observed * headerName;
+    return checked(requestCapacity(retained, 2n * target, 0n,
+      workspace, 2n * (4n * query + 2n * target + headerText + body),
+      target + headerText + body));
+  };
   const member = Object.freeze({operation, extent: checked(prepareCapture(operation, capacities.slice(0, 6), ...input.slice(0, 3)))});
   const rowOperations = [Object.freeze({operation, extent: checked(extent(operation, capacities[2], 0n, false))})];
   const credentialOperations = [];
@@ -225,11 +251,16 @@ export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, wr
       extent: checked(extent(name, quantity, transfer, true))}));
     credentialOperations.push(Object.freeze({phase, operationIndex, ...bound, ...(slot === undefined ? {} : {slot})}));
   };
-  const targetCapacity = composeTarget(capacities[7], target.maxTargetBytes);
+  const targetCapacity = checked(compose(capacities[7], [requestEnvelope(target, false)]));
   for (const phase of ['capture-target', 'apply-target', 'resume-target']) {
     physical(phase, targetOperation, target, targetCapacity, 'target');
   }
-  physical('write', operation, mutation, composeTarget(capacities[3], mutation.maxTargetBytes));
+  // The mutation's pure transport builder can run while its original row
+  // request is still retained. Fund the declared constructor envelope in
+  // this physical child before invoking it, independently of the row slot.
+  const mutationCapacity = checked(compose(capacities[3],
+    [capacities[2], requestEnvelope(mutation, true)]));
+  physical('write', operation, mutation, mutationCapacity);
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations: Object.freeze([member, member]), rowOperations: Object.freeze(rowOperations),
     controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0}),
