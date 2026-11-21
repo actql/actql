@@ -520,16 +520,24 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     let mut index = 0
     let mut references = 0
     while index < bodies.length() {
-      guard @publication.captured_effect_dependency_body_references(
-          bodies[index],
-          limits.max_references - references,
-        )
-        is Some(required) else {
+      let body = bodies[index]
+      let count = @publication.captured_effect_dependency_body_reference_count(
+        body,
+      )
+      if count > limits.max_references - references {
         return Err(Dependency(ReferenceLimit))
       }
-      references += required.length()
+      references += count
       index += 1
-      for (kind, cid) in required {
+      // The admitted body keeps its immutable edges. One borrowed pair and
+      // its Option are live across each nested call, instead of a copied vector.
+      for slot in 0..<count {
+        guard @publication.captured_effect_dependency_body_reference_at(
+            body, slot,
+          )
+          is Some((kind, cid)) else {
+          return Err(Dependency(InvalidBody))
+        }
         if seen.contains(kind + "\u0000" + cid) {
           continue
         }
