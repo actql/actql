@@ -277,26 +277,26 @@
       "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
     },
     {
-      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "path": "adapters/site-node/sqlite-transfer-journal.mts",
       "token": "actql-remote-transfer-journal/0.2",
       "contextSha256": "fc3a11b6a2b5548725e5e1e49470af7cbe93c01dcbb03433cf05ee5b366a5c2b",
-      "line": 136,
+      "line": 181,
       "count": 1,
       "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
     },
     {
-      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "path": "adapters/site-node/sqlite-transfer-journal.mts",
       "token": "actql-remote-transfer-journal/0.2",
       "contextSha256": "42fa41c90cb26100de6bcaee6f46ac090783728d8d2465785bd4a17a504ea056",
-      "line": 145,
+      "line": 190,
       "count": 1,
       "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
     },
     {
-      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "path": "adapters/site-node/sqlite-transfer-journal.mts",
       "token": "actql-remote-transfer-journal/0.2",
       "contextSha256": "0e1f983294d3e92a35999d9b1076e4de7fa7feb5c947ade36936e6c31f3c605c",
-      "line": 146,
+      "line": 191,
       "count": 1,
       "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
     },
