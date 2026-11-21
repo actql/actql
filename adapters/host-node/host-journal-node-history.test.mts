@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import requests from './host-journal-native-requests.cjs';
 
-const input = (overrides = {}) => ({databaseBytes:4194304n, pageBytes:4096n,
+const input = (overrides: Record<string, unknown> = {}) => ({databaseBytes:4194304n, pageBytes:4096n,
   walFrames:4062n, preparedStatements:10n, sqlCalls:100n, sqlBytes:10000n,
   statementCalls:100n, resultRows:128n, parameterBytes:4096n, ...overrides});
 
@@ -63,5 +63,5 @@ test('same Node lifetime history never replaces cumulative requests with live ca
     3n * first.nodeAllocationHistory.payloadSuccessfulOriginalsUpper);
   assert.equal(first.completePhase, false);
   assert.equal(doubled.completePhase, false);
-  assert.equal(typeof requests.prepareHostJournalInstallation, 'undefined');
+  assert.equal(typeof (requests as {prepareHostJournalInstallation?: unknown}).prepareHostJournalInstallation, 'undefined');
 });

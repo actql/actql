@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import requests from './host-journal-native-requests.cjs';
 
 const {hostJournalNativeStructureRequests:calculate, hostJournalNativeUsableUpper:usable} = requests;
-const input = (overrides = {}) => ({databaseBytes:4194304n, pageBytes:4096n,
+const input = (overrides: Record<string, unknown> = {}) => ({databaseBytes:4194304n, pageBytes:4096n,
   walFrames:4062n, preparedStatements:10n, sqlCalls:100n, sqlBytes:10000n,
   statementCalls:100n, resultRows:128n, parameterBytes:4096n, ...overrides});
 const unavailable = {code:'HostJournalEnvelopeUnavailable'};
@@ -52,9 +52,9 @@ test('incomplete vectors are immutable DATA and never claim complete phase or re
   assert.equal(value.completePhase,false);
   assert.equal(value.replenishedOnClose,false);
   assert(Object.isFrozen(value));
-  for (const key of ['cache','wal','savepoint','workspaces']) assert(Object.isFrozen(value[key]));
-  assert.throws(() => {value.wal.logicalRegions = 0n;},TypeError);
-  assert.equal(typeof requests.prepareHostJournalInstallation,'undefined');
+  for (const key of ['cache','wal','savepoint','workspaces'] as const) assert(Object.isFrozen(value[key]));
+  assert.throws(() => {(value.wal as {logicalRegions: bigint}).logicalRegions = 0n;},TypeError);
+  assert.equal(typeof (requests as {prepareHostJournalInstallation?: unknown}).prepareHostJournalInstallation,'undefined');
 });
 
 test('distinct retained request demand need not fit one native allocation or a reserved heap', () => {
@@ -107,7 +107,7 @@ test('distinct positional binding payloads keep demand separate from each origin
 
 test('proxy/accessor/inherited input is refused without invoking caller traps or coercion', () => {
   let reads = 0;
-  const proxy = new Proxy(input(),{get(){reads++;},ownKeys(){reads++;},getOwnPropertyDescriptor(){reads++;}});
+  const proxy = new Proxy(input(),{get(){reads++;},ownKeys(){reads++;},getOwnPropertyDescriptor(){reads++;}} as unknown as ProxyHandler<object>);
   assert.throws(() => calculate(proxy),unavailable);
   const getter = input();
   Object.defineProperty(getter,'pageBytes',{get(){reads++;return 4096n;}});
@@ -147,7 +147,7 @@ test('bulk and page are mapped individually rather than mapping their request su
 
 test('reallocation keeps both original alternatives and does not free prior maximum on logical shrink', () => {
   const allocations = calculate(input()).allocationBounds;
-  assert.equal(allocations.cacheHashGrowth.previousMaximum.request,8192n);
+  assert.equal(allocations.cacheHashGrowth.previousMaximum!.request,8192n);
   assert.equal(allocations.cacheHashGrowth.nextMaximum.request,16384n);
   assert.equal(allocations.cacheHashGrowth.immediateCredit,false);
   const saved = allocations.savedPointArrayGrowth;
@@ -613,7 +613,7 @@ test('native wrapper bytes do not stand in for V8 cells, result backing, paths o
   const n = calculate(input()).nodeWrappers;
   assert.equal(n.persistentHandleCells,111n);
   for (const name of ['completeNativeControl','coversV8HandleBlocks','coversResultBacking',
-    'coversPathBacking','coversAllocatorRegions']) assert.equal(n[name],false);
+    'coversPathBacking','coversAllocatorRegions'] as const) assert.equal(n[name],false);
   const subset = calculate(input()).includedNativeComponents.nodeWrapperSubset;
   assert.equal(subset,27168n);
   assert(calculate(input({preparedStatements:100n})).includedNativeComponents.nodeWrapperSubset > subset);

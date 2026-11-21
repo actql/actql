@@ -5,18 +5,18 @@
 // hard quota or guarantee that an allocation succeeds. The actual prefix
 // must bind all native/platform/managed originals and the complete phase
 // before use. These partial request vectors cannot populate a disposition.
-const {isProxy} = require('node:util').types;
+const {isProxy}: Pick<typeof import('node:util').types, 'isProxy'> = require('node:util').types;
 const descriptor = Object.getOwnPropertyDescriptor, own = Object.hasOwn;
 const freeze = Object.freeze, NativeError = Error;
 const maximum = 9223372036854775807n;
 const names = freeze(['databaseBytes', 'pageBytes', 'walFrames', 'preparedStatements',
-  'sqlCalls', 'sqlBytes', 'statementCalls', 'resultRows', 'parameterBytes']);
-const unavailable = () => {
-  const cause = new NativeError('HostJournalEnvelopeUnavailable');
+  'sqlCalls', 'sqlBytes', 'statementCalls', 'resultRows', 'parameterBytes'] as const);
+const unavailable: () => never = () => {
+  const cause: Error & {code?: string} = new NativeError('HostJournalEnvelopeUnavailable');
   cause.code = 'HostJournalEnvelopeUnavailable';
   throw cause;
 };
-const checked = value => {
+const checked = (value: bigint) => {
   if (value < 0n || value > maximum) unavailable();
   return value;
 };
@@ -24,15 +24,15 @@ const checked = value => {
 // backed numerical capacity. Keep it exact even above a native size bound.
 // Inputs, individual requests and SQLite representation checks below remain
 // bounded. Their fixed finite arithmetic does not introduce unbounded work.
-const requestDemand = value => {
+const requestDemand = (value: bigint) => {
   if (typeof value !== 'bigint' || value < 0n) unavailable();
   return value;
 };
-const ceil = (value, divisor) => value / divisor + (value % divisor === 0n ? 0n : 1n);
-const rounded = (value, quantum) => ceil(value, quantum) * quantum;
-const greater = (a, b) => a > b ? a : b;
+const ceil = (value: bigint, divisor: bigint) => value / divisor + (value % divisor === 0n ? 0n : 1n);
+const rounded = (value: bigint, quantum: bigint) => ceil(value, quantum) * quantum;
+const greater = (a: bigint, b: bigint) => a > b ? a : b;
 
-function hostJournalNativeUsableUpper(request) {
+function hostJournalNativeUsableUpper(request: unknown) {
   if (typeof request !== 'bigint' || request < 1n || request > maximum) unavailable();
   // Conditional ordinary arm64 libmalloc792.60.6 xzone/nano/scalable family.
   // Not a live zone observation, region/metadata reservation or selection of
@@ -55,9 +55,9 @@ function hostJournalNativeUsableUpper(request) {
     2n * rounded(request, 16384n) - 1n));
 }
 
-const allocation = request => freeze({request,
+const allocation = (request: bigint) => freeze({request,
   heapUsableUpper:hostJournalNativeUsableUpper(request)});
-const preservingGrowth = (previousPeak, next) => freeze({
+const preservingGrowth = (previousPeak: bigint, next: bigint) => freeze({
   previousMaximum:allocation(previousPeak), nextMaximum:allocation(next),
   retainedOriginalUpper:greater(hostJournalNativeUsableUpper(previousPeak),
     hostJournalNativeUsableUpper(next)),
@@ -68,10 +68,10 @@ const preservingGrowth = (previousPeak, next) => freeze({
 // The selected stock family above satisfies U(r)<=2r+32768 per block.
 // Keep this conservative form where the fixed source inventory records a
 // request sum but not every individual size class. This is not region backing.
-const allocationGroup = (count, requestSum) => freeze({count, requestSum,
+const allocationGroup = (count: bigint, requestSum: bigint) => freeze({count, requestSum,
   heapUsableSumUpper:requestDemand(2n * requestSum + 32768n * count)});
 
-function bitvecTree(size) {
+function bitvecTree(size: bigint): Readonly<{nodes: bigint; depth: bigint}> {
   // LP64 source layout: 512-byte node,496 usable bytes,62 child pointers,
   //3968 bitmap bits. Last child has the SAME divisor size, not a shorter
   // caller-invented allocation. Full population is a conservative upper.
@@ -83,7 +83,7 @@ function bitvecTree(size) {
     depth:1n + child.depth});
 }
 
-function includedNativeComponents(value) {
+function includedNativeComponents(value: ReturnType<typeof structureRequests>) {
   const a = value.allocationBounds, c = value.cache, w = value.wal;
   const s = value.savepoint, work = value.workspaces;
   const u = hostJournalNativeUsableUpper;
@@ -235,12 +235,12 @@ function includedNativeComponents(value) {
     returnsCreditOnNativeObjectFree:false});
 }
 
-function hostJournalNativeStructureRequests(input) {
+function structureRequests(input: unknown) {
   // Only fixed already-covered recipe DATA is projected here. This neither
   // enumerates/adopts a raw public packet nor changes its unknown-field or
   // consent semantics. Opaque aliases and callback backing remain elsewhere.
   if (input === null || typeof input !== 'object' || isProxy(input)) unavailable();
-  const selected = {};
+  const selected = {} as Record<typeof names[number], bigint>;
   for (const name of names) {
     const property = descriptor(input, name);
     if (property === undefined || !own(property, 'value') ||
@@ -398,7 +398,7 @@ function hostJournalNativeStructureRequests(input) {
     freeReturnsCredit:false, replenishedOnClose:false,
   });
 
-  const value = freeze({
+  return freeze({
     qualification:'partial-native-request-vectors', completePhase:false,
     replenishedOnClose:false,
     nodeAllocationHistory:nodeHistory,
@@ -788,7 +788,11 @@ function hostJournalNativeStructureRequests(input) {
       btree:allocation(128n), sharedBtree:allocation(240n), walAndFile:allocation(848n),
     }),
   });
+}
+
+function hostJournalNativeStructureRequests(input: unknown) {
+  const value = structureRequests(input);
   return freeze({...value, includedNativeComponents:includedNativeComponents(value)});
 }
 
-module.exports = freeze({hostJournalNativeStructureRequests, hostJournalNativeUsableUpper});
+export = freeze({hostJournalNativeStructureRequests, hostJournalNativeUsableUpper});

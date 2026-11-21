@@ -1481,3 +1481,11 @@ target/
 /adapters/host-node/fixtures/selected-host-journal-adapter.fixture.d.mts
 /adapters/host-node/host-journal-root-custody.test.mjs
 /adapters/host-node/host-journal-root-custody.test.d.mts
+/adapters/host-node/host-journal-native-requests.cjs
+/adapters/host-node/host-journal-native-requests.d.cts
+/adapters/host-node/host-journal-native-requests.test.mjs
+/adapters/host-node/host-journal-native-requests.test.d.mts
+/adapters/host-node/host-journal-directory-native.test.mjs
+/adapters/host-node/host-journal-directory-native.test.d.mts
+/adapters/host-node/host-journal-node-history.test.mjs
+/adapters/host-node/host-journal-node-history.test.d.mts

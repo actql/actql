@@ -11,6 +11,21 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(import.meta.url);
+type DirectoryOperations = {
+  open(path: string, maxEntries: number, maxNameBytes: number, maxWork: number): object;
+  current(original: object): unknown;
+  close(original: object): unknown;
+  next(original: object): unknown;
+};
+type FaultFixture = {operations: DirectoryOperations; attempts(): number; physicallyClosed(): number};
+type PendingDirectory = {
+  code: string;
+  cleanupHandle: {
+    status(): Readonly<{pending: boolean; outcome: unknown}>;
+    retry(): Readonly<{pending: boolean}>;
+  };
+};
+
 const limits = Object.freeze({maxEntries: 4, maxNameBytes: 1024, maxWork: 8192, maxInspections: 256});
 // One explicitly selected matching-target diagnostic; not a normal package
 // build, selected startup, resource original or installed Host acceptance.
@@ -25,7 +40,7 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
   const sdk = spawnSync('xcrun', ['--show-sdk-path'], {encoding: 'utf8', timeout: 10000});
   assert.equal(sdk.status, 0, sdk.stderr);
   const compiler = clang.stdout.trim();
-  const build = source => {
+  const build = (source: string): unknown => {
     const output = join(scratch.path, source.includes('fault') ? 'fault.node' : 'original.node');
     const command = ['-std=c11', '-D_DARWIN_C_SOURCE', '-Wall', '-Wextra', '-Werror', '-O0', '-g',
       '-isysroot', sdk.stdout.trim(),
@@ -37,7 +52,7 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
     assert.equal(result.status, 0, JSON.stringify({command, stdout: result.stdout, stderr: result.stderr}));
     return require(output);
   };
-  const native = build('directory-darwin.c');
+  const native = build('directory-darwin.c') as DirectoryOperations;
   const directory = join(scratch.path, 'directory'); mkdirSync(directory);
   for (const name of ['b', 'a', '\uFEFForiginal']) writeFileSync(join(directory, name), name);
   const inspect = createHostJournalDirectoryInspector(native, limits, () => {});
@@ -65,7 +80,7 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
   const selectedLimits = {maxEntries: 64, maxNameBytes: 1024, maxWork: 65536, maxInspections: 256};
   const selected = createHostJournalDirectoryInspector(native, selectedLimits, () => {});
   const options = {maxInspectionEntries: 64, primaryDirectoryInspection: selected};
-  let journal = openClientRequestJournal(requests, options);
+  let journal: ReturnType<typeof openClientRequestJournal> | undefined = openClientRequestJournal(requests, options);
   journal.close(); journal = undefined;
   const originalDatabase = readFileSync(join(requests, 'client-requests.sqlite3'));
   journal = openClientRequestJournal(requests, options);
@@ -80,27 +95,27 @@ test('actual Darwin directory original bounds names/currentness and owns one-sho
     {...options, maxInspectionEntries: 63}), {code: 'HostJournalDirectoryUnavailable'});
   assert.equal(existsSync(untouched), false);
 
-  const fault = build('fixtures/directory-close-fault.c');
+  const fault = build('fixtures/directory-close-fault.c') as FaultFixture;
   const uncertain = createHostJournalDirectoryInspector(fault.operations, limits, () => {});
-  let carrier;
+  let carrier: PendingDirectory;
   assert.throws(() => uncertain(moved), error => {
-    carrier = error; return error.code === 'HostJournalDirectoryCleanupPending';
+    carrier = error as PendingDirectory; return (error as PendingDirectory).code === 'HostJournalDirectoryCleanupPending';
   });
-  assert.equal(carrier.cleanupHandle.status().pending, true);
-  assert.deepEqual(carrier.cleanupHandle.status().outcome, {outcome: 'unknown', errno: 5});
-  for (let index = 0; index < 3; index++) assert.equal(carrier.cleanupHandle.retry().pending, true);
+  assert.equal(carrier!.cleanupHandle.status().pending, true);
+  assert.deepEqual(carrier!.cleanupHandle.status().outcome, {outcome: 'unknown', errno: 5});
+  for (let index = 0; index < 3; index++) assert.equal(carrier!.cleanupHandle.retry().pending, true);
   assert.equal(fault.attempts(), 1);
   assert.equal(fault.physicallyClosed(), 1);
   assert.throws(() => uncertain(moved), {code: 'HostJournalDirectoryUnavailable'});
   assert.equal(fault.attempts(), 1);
   const journalUnknown = createHostJournalDirectoryInspector(fault.operations, selectedLimits, () => {});
-  let journalFailure;
+  let journalFailure: PendingDirectory;
   assert.throws(() => openClientRequestJournal(requests,
     {...options, primaryDirectoryInspection: journalUnknown}), error => {
-    journalFailure = error; return error.code === 'HostJournalDirectoryCleanupPending';
+    journalFailure = error as PendingDirectory; return (error as PendingDirectory).code === 'HostJournalDirectoryCleanupPending';
   });
-  assert.equal(journalFailure.cleanupHandle.retry().pending, true);
-  assert.equal(journalFailure.cleanupHandle.retry().pending, true);
+  assert.equal(journalFailure!.cleanupHandle.retry().pending, true);
+  assert.equal(journalFailure!.cleanupHandle.retry().pending, true);
   assert.equal(fault.attempts(), 2);
   assert.equal(fault.physicallyClosed(), 2);
   assert.deepEqual(readFileSync(join(requests, 'client-requests.sqlite3')), originalDatabase);
