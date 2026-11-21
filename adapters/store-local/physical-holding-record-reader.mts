@@ -18,7 +18,7 @@ type PhysicalHoldingRecord = Readonly<{
   manifest_cid: unknown;
   objects: readonly PhysicalHoldingObject[];
 }>;
-type SelectedPhysicalHoldingRecord = PhysicalHoldingRecord & Readonly<{holding_cid: string}>;
+export type SelectedPhysicalHoldingRecord = PhysicalHoldingRecord & Readonly<{holding_cid: string}>;
 
 export const closedMetadataObjectExtent = (value: Readonly<Record<string, unknown>>) => {
   let nodes = 1, textUnits = 0;
@@ -141,7 +141,7 @@ export function createPhysicalHoldingObjectVerifier<Physical extends Readonly<{b
   };
 }
 
-type ReadPhysicalHolding = (holdingCid: string) => Promise<SelectedPhysicalHoldingRecord | undefined>;
+export type ReadPhysicalHolding = (holdingCid: string) => Promise<SelectedPhysicalHoldingRecord | undefined>;
 type ConsumeObject = ReturnType<typeof createPublicationObjectConsumer>;
 type AcceptPiece = Parameters<ConsumeObject>[1];
 

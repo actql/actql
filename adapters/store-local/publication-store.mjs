@@ -58,7 +58,7 @@ import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStor
   from './prepared-publication-store-ownership.mjs';
 import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
 import {admitExistingStoreFormat, createStoreContract} from './publication-store-format.mjs';
-import {encodePrivateEvidenceEnvelope, privateEvidenceWireLimitForObject, retainPrivateRawCleanup,
+import {createPrivateEvidenceReader, encodePrivateEvidenceEnvelope, privateEvidenceWireLimitForObject, retainPrivateRawCleanup,
   retainPrivateWriterCleanup} from './publication-store-private-evidence.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
@@ -2323,227 +2323,6 @@ async function openOriginalLocalPublicationStore(
   const readSemanticBytes = async (cid, includeNative = true, readDemand) =>
     (await readSemanticOriginal(cid, includeNative, false, undefined, readDemand)).bytes;
 
-  // Private evidence uses the prepared-object and physical-holding custody
-  // already used by Transfer. A semantic alias before a durable owner would
-  // strand ciphertext on a crash, so this path never creates one.
-  // The Local continuation namespace holds only Local continuation evidence.
-  const privateEvidenceHolding = (holding, name) =>
-    holding?.namespace === 'publication-private' ||
-    (holding?.namespace === 'local-continuation-private' &&
-      localContinuationEvidenceNames.includes(name));
-  const privateEvidenceAad = (name, semanticCid) => {
-    const text = `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`;
-    // Preserve the exact historical preimage without borrowing a larger pool
-    // slab through crypto/read/cleanup. String/control and crypto scratch are
-    // still separate original-envelope costs; exact extent is not a grant.
-    const bytes = Buffer.allocUnsafeSlow(Buffer.byteLength(text, 'utf8'));
-    bytes.write(text, 0, bytes.byteLength, 'utf8');
-    return bytes;
-  };
-  const privateEvidenceKey = () => {
-    if (configuration.privateEvidenceKey === undefined) {
-      fail('PublicationPrivateEvidenceKeyUnavailable');
-    }
-    return configuration.privateEvidenceKey;
-  };
-  const privateEvidenceField = (value, bytes) => {
-    if (typeof value !== 'string' || value.length % 4 !== 0) {
-      fail('PublicationPrivateEvidenceCorrupt');
-    }
-    // The selected holding already bounds this field. A repeated-group
-    // regexp can exhaust the engine stack on a valid large ciphertext;
-    // scan the same alphabet/padding grammar with constant workspace.
-    const end = value.length - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
-    for (let index = 0; index < end; index++) {
-      const code = value.charCodeAt(index);
-      if (!(code >= 65 && code <= 90 || code >= 97 && code <= 122 ||
-          code >= 48 && code <= 57 || code === 43 || code === 47)) {
-        fail('PublicationPrivateEvidenceCorrupt');
-      }
-    }
-    // The bounded envelope and strict alphabet above fix the decoded extent.
-    // Noncanonical padding bits still fail the same round-trip check below.
-    // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
-    const length = value.length / 4 * 3 - (value.length - end);
-    if (bytes !== undefined && length !== bytes) {
-      fail('PublicationPrivateEvidenceCorrupt');
-    }
-    const decoded = Buffer.allocUnsafeSlow(length);
-    if (decoded.write(value, 0, length, 'base64') !== length ||
-        decoded.toString('base64') !== value) {
-      fail('PublicationPrivateEvidenceCorrupt');
-    }
-    return decoded;
-  };
-  const readPrivateEvidenceObject = async (
-    name, semanticCid, holdingCid, index = 0, objectCount = 1, originalHolding,
-    retainOriginalRead, beforeEnvelope,
-  ) => {
-    active();
-    if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
-      fail('InvalidPublicationPrivateEvidence');
-    }
-    cidHex(semanticCid);
-    cidHex(holdingCid);
-    // This private getter reads the same immutable Store configuration with
-    // no await/caller callback between size validation and copying. Do not add
-    // an original-key alias to the async reader frame; only its copy escapes.
-    const key = Buffer.allocUnsafeSlow(privateEvidenceKey().byteLength);
-    key.set(privateEvidenceKey());
-    try {
-      // No plaintext or application callback escapes this private acquisition.
-      // Admit the selected holding once; consume/hash its ciphertext once on
-      // the original FD below, then authenticate AEAD before returning bytes.
-      let holding = originalHolding;
-      if (holding === undefined) {
-        if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
-          fail('PublicationPrivateEvidenceUnavailable');
-        }
-        holding = await readPhysicalHolding(holdingCid);
-      }
-      if (!privateEvidenceHolding(holding, name) ||
-          holding.manifest_cid !== semanticCid ||
-          holding.objects.length !== objectCount) {
-        fail('PublicationPrivateEvidenceUnavailable');
-      }
-      const expectedBytes = holding.objects[index].byte_count;
-      if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 ||
-          expectedBytes > configuration.maxObjectBytes) {
-        fail('PublicationPrivateEvidenceCorrupt');
-      }
-      if (retainOriginalRead !== undefined) {
-        retainOriginalRead(holding);
-        active();
-      }
-      // The existing holding owns an exact bounded file. Receive directly
-      // into one buffer instead of retaining copied chunks plus their concat.
-      // No bytes escape before the same physical read/close and AEAD succeed.
-      const bytes = Buffer.alloc(expectedBytes);
-      let receivedBytes = 0;
-      try {
-        await consumeSelectedPhysicalHolding(holding, index, chunk => {
-          if (chunk.byteLength > expectedBytes - receivedBytes) {
-            fail('InvalidPublicationPhysicalHoldingStore');
-          }
-          bytes.set(chunk, receivedBytes);
-          receivedBytes += chunk.byteLength;
-        });
-      } catch (error) {
-        if (error?.code === 'ENOENT' && error.cleanupHandle === undefined) {
-          fail('PublicationObjectMissing', error);
-        }
-        throw error;
-      }
-      if (receivedBytes !== expectedBytes) {
-        fail('InvalidPublicationPhysicalHoldingStore');
-      }
-      // Initial SAME-Read reservation already covers bytes and this String.
-      // The closed numeric envelope census then precedes any generic parser;
-      // its typed Resource refusal is the primary cause, outside AEAD wrapping.
-      const envelopeWire = bytes.toString('utf8');
-      if (beforeEnvelope !== undefined) {
-        if (typeof beforeEnvelope !== 'function' || beforeEnvelope(envelopeWire) !== undefined) {
-          fail('InvalidPublicationPrivateEvidence');
-        }
-      }
-      let plaintext;
-      try {
-        let envelope;
-        try { envelope = JSON.parse(envelopeWire); }
-        catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }
-        if (!exactKeys(envelope, ['version', 'nonce', 'tag', 'ciphertext']) ||
-            envelope.version !== 'actql-private-publication-evidence/0.1') {
-          fail('PublicationPrivateEvidenceCorrupt');
-        }
-        const nonce = privateEvidenceField(envelope.nonce, 12);
-        const tag = privateEvidenceField(envelope.tag, 16);
-        const ciphertext = privateEvidenceField(envelope.ciphertext);
-        const decipher = createDecipheriv('aes-256-gcm', key, nonce);
-        decipher.setAAD(privateEvidenceAad(name, semanticCid));
-        decipher.setAuthTag(tag);
-        plaintext = decipher.update(ciphertext);
-        // Authentication must complete before any plaintext escapes. Reuse
-        // the owned block only after final succeeds with no additional bytes;
-        // otherwise preserve the complete authenticated concatenation.
-        const final = decipher.final();
-        return final.byteLength === 0 ? plaintext
-          : Buffer.concat([plaintext, final]);
-      } catch (error) {
-        // update() can materialize unauthenticated plaintext before final()
-        // rejects. That failed child never reaches the outer consumer, so its
-        // SAME backing must be retired here rather than at consumer cleanup.
-        plaintext?.fill(0);
-        if (error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
-        fail('PublicationPrivateEvidenceCorrupt', error);
-      }
-    } finally {
-      key.fill(0);
-    }
-  };
-  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume, beforeRead) => {
-    if (consume === undefined) {
-      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
-      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
-    }
-    active();
-    if (typeof consume !== 'function') fail('InvalidPublicationPrivateEvidence');
-    cidHex(holdingCid);
-    // The existing reader census protects this SAME private holding until
-    // its trusted consumer has completed decode/admission, including awaits.
-    // It supplies no memory credit or semantic/physical cleanup ACK. The
-    // caller's original Request/Run reservation must precede acquisition.
-    const release = retainPhysicalHoldingReader(holdingCid);
-    let plaintext, wire, record, reading = true;
-    const releaseBytes = () => {
-      if (!reading) fail('PublicationPrivateEvidenceUnavailable');
-      if (wire === undefined) {
-        wire = plaintext.toString('utf8');
-        plaintext.fill(0);
-        plaintext = undefined;
-      }
-      return wire;
-    };
-    const context = Object.freeze({releaseBytes,
-      confirm(binding) {
-        if (!reading) fail('PublicationPrivateEvidenceUnavailable');
-        if (!exactKeys(binding, ['name', 'semanticCid', 'holdingCid', 'wire']) ||
-            binding.name !== name || binding.semanticCid !== semanticCid ||
-            binding.holdingCid !== holdingCid || binding.wire !== releaseBytes()) {
-          fail('PublicationPrivateEvidenceConflict');
-        }
-        const operation = materialRetentionBusy.then(async () => {
-          active();
-          if (!reading) fail('PublicationPrivateEvidenceUnavailable');
-          // This reader has already consumed/hashed/authenticated the SAME
-          // immutable holding. Its original reader census still excludes
-          // retirement; confirm that record without a second decrypt/parse.
-          await confirmPhysicalHoldingDirectory(record);
-          return record;
-        });
-        materialRetentionBusy = operation.catch(() => {});
-        return operation;
-      }});
-    try {
-      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, 1,
-        undefined, original => {
-          record = original;
-          if (beforeRead !== undefined) {
-            if (typeof beforeRead !== 'function' || beforeRead(original.objects[0].byte_count) !== undefined) {
-              fail('InvalidPublicationPrivateEvidence');
-            }
-          }
-        }, beforeRead?.reserveEnvelope);
-      return await consume(plaintext, context);
-    } finally {
-      // This overload never hands byte custody to its caller. Typed values
-      // may retain their own strings; the temporary decrypted backing stops
-      // here even when decode or its original child rejects.
-      plaintext?.fill(0);
-      reading = false;
-      plaintext = wire = record = undefined;
-      release();
-    }
-  };
   const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
@@ -6041,6 +5820,15 @@ async function openOriginalLocalPublicationStore(
     }
   };
 
+  const materialRetentionCurrent = () => materialRetentionBusy;
+  const retainMaterialOperation = operation => { materialRetentionBusy = operation; };
+
+  const {privateEvidenceAad, privateEvidenceKey, readPrivateEvidenceObject, readPrivateEvidence} =
+    createPrivateEvidenceReader(configuration, localContinuationEvidenceNames, {
+      active, cidHex, readPhysicalHolding, readPhysicalHoldingDeletion, consumeSelectedPhysicalHolding,
+      retainPhysicalHoldingReader, confirmPhysicalHoldingDirectory, materialRetentionCurrent, retainMaterialOperation,
+    });
+
   const ensurePhysicalHoldingDeletion = async record => {
     const bytes = Buffer.from(JSON.stringify(record), 'utf8');
     const path = physicalHoldingDeletionPath(record.holding_cid);
@@ -6351,8 +6139,6 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(recovered);
   };
 
-  const materialRetentionCurrent = () => materialRetentionBusy;
-  const retainMaterialOperation = operation => { materialRetentionBusy = operation; };
   const {registerCustody, removeCustodyRecord, reclaimCustody, reclaimNativePreparation, recoverPreparedCustodies} =
     createPublicationCustodyRecords(
       configuration, custodyDirectory, objectsDirectory, contractsDirectory, custodyNamePattern, reclaimableCustodies,

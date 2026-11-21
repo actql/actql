@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0966bc19975394d8fefb40e13e865b17ccda4830e6d47dfcd5e5aa90a276d8a0",
+      "sha256": "2ecba295b3db5897a0ba9dc15c3fa542612b062cd30a452b204127996c06d442",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6837,6 +6837,14 @@
             "retainPreparations"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+          "parameters": [
+            "record",
+            "adopt"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
@@ -7863,11 +7871,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/privateEvidenceKey/privateEvidenceKey",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
           "parameters": [
             "contract"
@@ -8274,53 +8277,6 @@
           "parameters": [
             "holdingCid",
             "readDemand"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence",
-          "parameters": [
-            "name",
-            "semanticCid",
-            "holdingCid",
-            "consume",
-            "beforeRead"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
-          "parameters": [
-            "chunk"
           ],
           "async": false
         },
@@ -9370,7 +9326,6 @@
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
-            "openOriginalLocalPublicationStore/privateEvidenceKey/privateEvidenceKey",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
@@ -9414,13 +9369,6 @@
             "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
             "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-            "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
             "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
@@ -9506,7 +9454,8 @@
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
             "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
-            "cidHex/cidHex"
+            "cidHex/cidHex",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory"
           ],
           "exports": [
             "PublicationStoreError",
@@ -16015,14 +15964,106 @@
     {
       "module": "adapters/store-local/publication-store-private-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a486314097eda534e31b75893b016e321491d99d7eb2e024c5c85eb0dd826f02",
+      "sha256": "e48a8254316b9e362e394538ce145400c74470e6386c4f62c3f2fce80e7c013f",
       "exports": [
+        "createPrivateEvidenceReader",
         "encodePrivateEvidenceEnvelope",
         "privateEvidenceWireLimitForObject",
         "retainPrivateRawCleanup",
         "retainPrivateWriterCleanup"
       ],
       "operations": [
+        {
+          "name": "createPrivateEvidenceReader",
+          "parameters": [
+            "configuration",
+            "localContinuationEvidenceNames",
+            "active",
+            "cidHex",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "consumeSelectedPhysicalHolding",
+            "retainPhysicalHoldingReader",
+            "confirmPhysicalHoldingDirectory",
+            "materialRetentionCurrent",
+            "retainMaterialOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/privateEvidenceAad/privateEvidenceAad",
+          "parameters": [
+            "name",
+            "semanticCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/privateEvidenceKey/privateEvidenceKey",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence",
+          "parameters": [
+            "name",
+            "semanticCid",
+            "holdingCid",
+            "consume",
+            "beforeRead"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject",
+          "parameters": [
+            "name",
+            "semanticCid",
+            "holdingCid",
+            "index",
+            "objectCount",
+            "originalHolding",
+            "retainOriginalRead",
+            "beforeEnvelope"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
         {
           "name": "encodePrivateEvidenceEnvelope",
           "parameters": [
@@ -16163,13 +16204,25 @@
             "retainPrivateWriterCleanup/release/release",
             "retainPrivateWriterCleanup/release/release/release",
             "retainPrivateWriterCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/release/release/release#3"
+            "retainPrivateWriterCleanup/release/release/release#3",
+            "createPrivateEvidenceReader",
+            "createPrivateEvidenceReader/privateEvidenceAad/privateEvidenceAad",
+            "createPrivateEvidenceReader/privateEvidenceKey/privateEvidenceKey",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
+            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
+            "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject",
+            "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject"
           ],
           "exports": [
             "encodePrivateEvidenceEnvelope",
             "privateEvidenceWireLimitForObject",
             "retainPrivateRawCleanup",
-            "retainPrivateWriterCleanup"
+            "retainPrivateWriterCleanup",
+            "createPrivateEvidenceReader"
           ],
           "attributes": {
             "responsibility": [
@@ -16182,24 +16235,40 @@
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "export function encodePrivateEvidenceEnvelope("
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "export function createPrivateEvidenceReader("
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "const cipher = createCipheriv('aes-256-gcm', key, nonce);"
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "const decipher = createDecipheriv('aes-256-gcm', key, nonce);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "let originals: [PrivateCleanup, PrivateCleanup] | undefined = [descriptor, content];"
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "key.fill(0);"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "const operation = materialRetentionCurrent().then(async () => {"
               }
             ],
             "failure": [
@@ -16234,6 +16303,10 @@
               {
                 "path": "adapters/store-local/private-evidence-writer-cleanup.test.mjs",
                 "anchor": "raw descriptor writer and earlier content cleanup retain both original duties"
+              },
+              {
+                "path": "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
+                "anchor": "same authenticated private read confirms without a second decrypt or wire construction"
               }
             ]
           }
