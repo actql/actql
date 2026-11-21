@@ -12010,7 +12010,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "}, async needed => {"
               }
             ],
@@ -103293,7 +103293,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "}, async needed => {"
               }
             ],

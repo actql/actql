@@ -9694,7 +9694,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3f95b94a471c09e408ae9a8c0b3a24354edad51172be6461a50f535b0b3af81d",
+      "sha256": "9296fb64363f45fc328b8c16d46660db90a8c48824a3f569d5f228bbdd4d3b91",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -9861,7 +9861,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -9883,7 +9883,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -9895,8 +9895,8 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
-                "anchor": "async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {"
+                "path": "adapters/host-common/result-delivery.mts",
+                "anchor": "async function requireCurrentAuthorization(authorize: Authorize, facts: AuthorityFacts, sinkCallbackCount: number) {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -9905,7 +9905,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "// attempt, receipt, serialization, and transition semantics. Store and sink"
               },
               {
@@ -9923,7 +9923,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "failure.cleanupPending = current.pending;"
               },
               {
@@ -9945,7 +9945,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
               },
               {
@@ -9967,7 +9967,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -9985,7 +9985,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "'authorize', 'signal',"
               },
               {
@@ -10003,7 +10003,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "typeof value.name === 'string' && value.name.length !== 0 &&"
               },
               {
@@ -10029,7 +10029,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "// Install the shared flight before invoking either port. Only this loop"
               },
               {
@@ -10096,7 +10096,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "const appendCompletion = store.appendDeliveryCompletion;"
               },
               {
@@ -10106,7 +10106,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "Reflect.apply(appendCompletion, store, [attempt, receipt, record]);"
               },
               {
@@ -10194,7 +10194,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -10216,7 +10216,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -10228,8 +10228,8 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
-                "anchor": "async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {"
+                "path": "adapters/host-common/result-delivery.mts",
+                "anchor": "async function requireCurrentAuthorization(authorize: Authorize, facts: AuthorityFacts, sinkCallbackCount: number) {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10238,7 +10238,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "// attempt, receipt, serialization, and transition semantics. Store and sink"
               },
               {
@@ -10256,7 +10256,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "failure.cleanupPending = current.pending;"
               },
               {
@@ -10278,7 +10278,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
               },
               {
@@ -10300,7 +10300,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               },
               {
@@ -10318,7 +10318,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "'authorize', 'signal',"
               },
               {
@@ -10336,7 +10336,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "typeof value.name === 'string' && value.name.length !== 0 &&"
               },
               {
@@ -10358,7 +10358,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "// Install the shared flight before invoking either port. Only this loop"
               },
               {
@@ -10414,7 +10414,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10424,7 +10424,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10434,7 +10434,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10444,7 +10444,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10454,7 +10454,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10464,7 +10464,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10474,7 +10474,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10484,7 +10484,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10494,7 +10494,7 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "export class ResultDeliveryError extends Error {"
               }
             ],
@@ -10524,7 +10524,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "appendExactRecord"
               }
             ],
@@ -10542,7 +10542,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-delivery.mjs",
+                "path": "adapters/host-common/result-delivery.mts",
                 "anchor": "}, async needed => {"
               }
             ],
@@ -111889,7 +111889,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3f95b94a471c09e408ae9a8c0b3a24354edad51172be6461a50f535b0b3af81d",
+      "sha256": "9296fb64363f45fc328b8c16d46660db90a8c48824a3f569d5f228bbdd4d3b91",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -112125,7 +112125,7 @@
             "synchronization": [
               {
                 "path": "packages/run-host-core/result-delivery.mjs",
-                "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
+                "anchor": "if (await authorize(Object.freeze({ ...facts, sinkCallbackCount })) !== true) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -112378,7 +112378,7 @@
             "synchronization": [
               {
                 "path": "packages/run-host-core/result-delivery.mjs",
-                "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
+                "anchor": "if (await authorize(Object.freeze({ ...facts, sinkCallbackCount })) !== true) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -112618,7 +112618,7 @@
             "synchronization": [
               {
                 "path": "packages/run-host-core/result-delivery.mjs",
-                "anchor": "}, async needed => {"
+                "anchor": "}, async (needed) => {"
               }
             ],
             "failure": [

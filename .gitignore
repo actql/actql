@@ -1683,6 +1683,8 @@ target/
 /adapters/host-common/manifest-access.d.mts
 /adapters/host-common/result-retention.mjs
 /adapters/host-common/result-retention.d.mts
+/adapters/host-common/result-delivery.mjs
+/adapters/host-common/result-delivery.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs

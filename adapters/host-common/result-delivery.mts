@@ -1,41 +1,157 @@
-import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // Common sequencing for one authorized Result delivery. MoonBit owns grant,
 // attempt, receipt, serialization, and transition semantics. Store and sink
 // adapters own durable effects and exact byte-exposure observations.
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
+import type {WireRunRef} from '../../packages/client-wire/index.js';
+import type {PublicationContract} from '../store-local/publication-contract-store.mjs';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import type {publicationAction} from './publication-action.mjs';
+
+type Awaitable<T> = T | PromiseLike<T>;
+type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type Format = 'json' | 'jsonl' | 'csv';
+type Exposure = 'exact' | 'unknown_additional';
+type LocalStore = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Store = Pick<LocalStore,
+  'confirmCommittedIndex' | 'readPublicationContract' |
+  'latestDeliveryRecord' | 'latestDeliveryRecordContract' | 'confirmDeliveryRecord' |
+  'appendDeliveryRecord' | 'putPublicationContract' | 'withCommittedResultRows'> &
+  Partial<Pick<LocalStore, 'appendDeliveryCompletion' | 'beginDeliveryAttempt'>> & Readonly<{
+  createDeliveryAttempt(wire: string, grantWire: string, original?: unknown): Awaitable<AttemptSelection>;
+}>;
+type ReadDemand = NonNullable<Parameters<Store['confirmCommittedIndex']>[1]>;
+type FrameLimits = Parameters<Store['withCommittedResultRows']>[3];
+type FrameControl = Parameters<Store['withCommittedResultRows']>[5];
+type ResultMetadata = Parameters<Parameters<Store['withCommittedResultRows']>[4]>[0];
+type AppendRecord = (record: PublicationContract) => Awaitable<unknown>;
+type AttemptRequest = Readonly<{resultName: string; format: Format; attemptId: string}>;
+type AttemptSelection = Readonly<{created: boolean; original?: unknown; attempt?: unknown}>;
+type RecordData = Readonly<{
+  state: 'streaming' | 'succeeded' | 'failed' | 'cancelled';
+  confirmedByteCount: number;
+  exposure: Exposure;
+  possibleUnconfirmedMaxBytes: number | undefined;
+  deliveredSha256: string | undefined;
+  receipt: PublicationContract | undefined;
+  failureCid: string | undefined;
+  observedAt: string;
+  cleanupOwnerCids: readonly string[];
+}>;
+type Control = FrameControl & Readonly<{
+  admit(name: 'delivery_attempt', wire: string, limits: Limits): PublicationContract;
+  issueDeliveryAttempt(index: PublicationContract, manifest: PublicationContract, grant: PublicationContract,
+    request: AttemptRequest & Readonly<{requestedAt: string}>, limits: Limits): PublicationContract;
+  captureIssuedDeliveryAttempt?(attempt: PublicationContract, index: PublicationContract,
+    manifest: PublicationContract, grant: PublicationContract, limits: Limits): unknown;
+  deliveryResultDefinitionCid(manifest: PublicationContract, attempt: PublicationContract): string;
+  resultReadGrantAllowsBytes(grant: PublicationContract, bytes: number): boolean;
+  resultReadGrantValidAt(grant: PublicationContract, observedAt: string): boolean;
+  issueDeliveryRecord(attempt: PublicationContract, previous: PublicationContract | undefined,
+    record: RecordData, limits: Limits): PublicationContract;
+  issueResultDeliveryReceipt(index: PublicationContract, manifest: PublicationContract,
+    grant: PublicationContract, attempt: PublicationContract,
+    summary: Readonly<{byteCount: number; sha256: string}>, limits: Limits): PublicationContract;
+  prepareResultDeliverySerializer(format: Format, schema: string, fields: readonly string[], limits: Limits): unknown;
+  beginResultDelivery(serializer: unknown): string;
+  nextResultDeliveryRow(serializer: unknown, row: string): string;
+  finishResultDelivery(serializer: unknown): string;
+  existingDeliveryAttemptAction(record: PublicationContract): ReturnType<typeof publicationAction<'existingDelivery'>>;
+  deliveryFailureTerminalAction(cancelled: boolean): ReturnType<typeof publicationAction<'failureTerminal'>>;
+  deliveryRecordRetryAction(nextRecord: number, recordCount: number): ReturnType<typeof publicationAction<'recordRetry'>>;
+}>;
+type SelectedPublication = Readonly<{
+  store: Store; control: Control; index: PublicationContract; manifest: PublicationContract;
+}>;
+type Sink = Readonly<{
+  write(bytes: Uint8Array, signal?: AbortSignal): Awaitable<unknown>;
+  finish(signal?: AbortSignal): Awaitable<unknown>;
+}>;
+type Digest = Readonly<{
+  update(bytes: Uint8Array): unknown;
+  finish(): Awaitable<string>;
+}>;
+type AuthorityFacts = AttemptRequest & Readonly<{
+  index: PublicationContract; manifest: PublicationContract; grant: PublicationContract; observedAt: string;
+}> & (
+  Readonly<{stage: 'attempt'}> |
+  Readonly<{stage: 'read'; attempt: PublicationContract}> & Omit<ResultMetadata, 'resultFields' | 'resultSchemaWire'> |
+  Readonly<{stage: 'write'; attempt: PublicationContract; confirmedByteCount: number; nextByteCount: number}> |
+  Readonly<{stage: 'finish'; attempt: PublicationContract; confirmedByteCount: number}> |
+  Readonly<{stage: 'receipt'; attempt: PublicationContract; confirmedByteCount?: number}>
+);
+type Authorize = (facts: AuthorityFacts & Readonly<{sinkCallbackCount: number}>) => Awaitable<boolean>;
+type DeliveryOptions = AttemptRequest & Readonly<{
+  store: Store;
+  control: Control;
+  indexKey: WireRunRef;
+  grant: PublicationContract;
+  limits: Limits;
+  frameLimits: FrameLimits;
+  now: () => unknown;
+  sink: Sink;
+  createDigest: () => Digest;
+  authorize: Authorize;
+  signal: AbortSignal | undefined;
+}>;
+type AdmittedRow = Readonly<{units: number; window: number}>;
+type Workspace = Readonly<{
+  metadata: ReadDemand;
+  prepare(metadata: ResultMetadata): number;
+  row(units: number): AdmittedRow;
+  row(wire: string): Awaitable<AdmittedRow>;
+  serializer(value: unknown): unknown;
+}>;
+type RecordedReceipt = Readonly<{
+  result_delivery_receipt_cid: string;
+  confirmed_byte_count: number;
+  delivered_sha256: string;
+}>;
+type SinkProgress = Readonly<{
+  confirmedBytes: number;
+  exposure: Exposure;
+  possibleUnconfirmedMaxBytes?: number;
+}>;
+type SinkObservation = Readonly<{confirmedBytes: number}> | null | undefined;
+type ChildCleanup = Readonly<{status?: unknown; retry?: unknown}>;
+type CleanupCause = Readonly<{cleanupHandle?: ChildCleanup}> | null | undefined;
+type CleanupStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
 
 export class ResultDeliveryError extends Error {
-  constructor(code, cause) {
+  declare readonly code: string;
+  declare readonly primaryFailure: unknown;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
     this.primaryFailure = cause;
   }
 }
 
-const fail = (code, cause) => { throw new ResultDeliveryError(code, cause); };
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw new ResultDeliveryError(code, cause); };
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const digestPattern = /^[0-9a-f]{64}$/u;
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const contractShape = value => exactKeys(value,
+const contractShape = (value: PublicationContract) => exactKeys(value,
   ['name', 'identityField', 'identity', 'wire']) &&
   typeof value.name === 'string' && value.name.length !== 0 &&
   typeof value.identityField === 'string' &&
   cidPattern.test(value.identity) && typeof value.wire === 'string';
 
-function validateStore(store) {
+function validateStore(store: Store) {
   if (store === null || typeof store !== 'object' ||
       !['confirmCommittedIndex', 'readPublicationContract',
         'createDeliveryAttempt', 'latestDeliveryRecord',
         'latestDeliveryRecordContract', 'confirmDeliveryRecord',
         'appendDeliveryRecord',
         'putPublicationContract', 'withCommittedResultRows']
-        .every(name => typeof store[name] === 'function')) {
+        .every(name => typeof store[name as keyof Store] === 'function')) {
     fail('InvalidResultDeliveryStore');
   }
 }
 
-function validateControl(control) {
+function validateControl(control: Control) {
   if (control === null || typeof control !== 'object' ||
       !['admit', 'issueDeliveryAttempt', 'deliveryResultDefinitionCid',
         'resultReadGrantAllowsBytes', 'resultReadGrantValidAt',
@@ -44,13 +160,16 @@ function validateControl(control) {
         'nextResultDeliveryRow', 'finishResultDelivery',
         'existingDeliveryAttemptAction', 'deliveryFailureTerminalAction',
         'deliveryRecordRetryAction']
-        .every(name => typeof control[name] === 'function')) {
+        .every(name => typeof control[name as keyof Control] === 'function')) {
     fail('InvalidResultDeliveryControl');
   }
 }
 
-function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
-  grant, request, limits, original) {
+function selectDeliveryAttempt(
+  control: Control, admitted: AttemptSelection, proposed: PublicationContract,
+  index: PublicationContract, manifest: PublicationContract, grant: PublicationContract,
+  request: AttemptRequest, limits: Limits, original: unknown,
+) {
   try {
     if (typeof admitted?.created !== 'boolean') fail('InvalidResultDeliveryAttemptState');
     if (admitted.original !== undefined) {
@@ -70,7 +189,7 @@ function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
     const selected = control.admit('delivery_attempt',
       JSON.stringify(admitted.attempt), limits);
     const expected = control.issueDeliveryAttempt(index, manifest, grant, {
-      ...request, requestedAt: JSON.parse(selected.wire).requested_at,
+      ...request, requestedAt: (JSON.parse(selected.wire) as Readonly<{requested_at: string}>).requested_at,
     }, limits);
     if (selected.identity !== expected.identity || selected.wire !== expected.wire ||
         admitted.created && selected.wire !== proposed.wire) {
@@ -83,7 +202,7 @@ function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
   }
 }
 
-function validateRequest(options) {
+function validateRequest(options: DeliveryOptions) {
   if (!exactKeys(options, [
     'store', 'control', 'indexKey', 'grant', 'resultName', 'format',
     'attemptId', 'limits', 'frameLimits', 'now', 'sink', 'createDigest',
@@ -120,13 +239,13 @@ function validateRequest(options) {
   }
 }
 
-async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {
+async function requireCurrentAuthorization(authorize: Authorize, facts: AuthorityFacts, sinkCallbackCount: number) {
   if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {
     fail('ResultDeliveryDenied');
   }
 }
 
-function trustedNow(now) {
+function trustedNow(now: DeliveryOptions['now']) {
   const value = now();
   if (typeof value !== 'string' || value.length === 0) {
     fail('InvalidResultDeliveryClock');
@@ -135,7 +254,11 @@ function trustedNow(now) {
 }
 
 class SinkWriteFailure extends Error {
-  constructor(cause, confirmedBytes, exposure, possibleUnconfirmedMaxBytes) {
+  declare readonly confirmedBytes: number;
+  declare readonly exposure: Exposure;
+  declare readonly possibleUnconfirmedMaxBytes: number | undefined;
+
+  constructor(cause: unknown, confirmedBytes: number, exposure: Exposure, possibleUnconfirmedMaxBytes: number | undefined) {
     super('ResultDeliverySinkWriteFailed', {cause});
     this.cause = cause;
     this.confirmedBytes = confirmedBytes;
@@ -144,9 +267,9 @@ class SinkWriteFailure extends Error {
   }
 }
 
-function sinkFailure(reason, length) {
+function sinkFailure(reason: unknown, length: number) {
   const progress = reason !== null && typeof reason === 'object'
-    ? reason.deliveryProgress : undefined;
+    ? (reason as Readonly<{deliveryProgress?: SinkProgress}>).deliveryProgress : undefined;
   if (progress !== null && typeof progress === 'object' &&
       Number.isSafeInteger(progress.confirmedBytes) &&
       progress.confirmedBytes >= 0 && progress.confirmedBytes <= length &&
@@ -155,8 +278,8 @@ function sinkFailure(reason, length) {
         progress.possibleUnconfirmedMaxBytes === undefined ||
         progress.exposure === 'unknown_additional' &&
         Number.isSafeInteger(progress.possibleUnconfirmedMaxBytes) &&
-        progress.possibleUnconfirmedMaxBytes >= 0 &&
-        progress.possibleUnconfirmedMaxBytes <=
+        progress.possibleUnconfirmedMaxBytes! >= 0 &&
+        progress.possibleUnconfirmedMaxBytes! <=
           length - progress.confirmedBytes)) {
     return new SinkWriteFailure(
       reason,
@@ -168,29 +291,36 @@ function sinkFailure(reason, length) {
   return new SinkWriteFailure(reason, 0, 'unknown_additional', length);
 }
 
-async function appendExactRecord(store, record) {
+async function appendExactRecord(store: Store, record: PublicationContract) {
   return store.appendDeliveryRecord(record.wire);
 }
 
-class DeliveryRecordDurabilityFailure extends ResultDeliveryError {}
+class DeliveryRecordDurabilityFailure extends ResultDeliveryError {
+  declare cleanupErrors: readonly unknown[];
+  declare cleanupPending: boolean;
+  declare cleanupHandle: Readonly<{
+    status(): CleanupStatus;
+    retry(): Promise<CleanupStatus>;
+  }>;
+}
 
 function pendingRecordFailure(
-  code,
-  reason,
-  store,
-  control,
-  records,
-  recordFailure,
-  appendRecord = record => appendExactRecord(store, record),
+  code: string,
+  reason: unknown,
+  store: Store,
+  control: Control,
+  records: readonly PublicationContract[],
+  recordFailure: unknown,
+  appendRecord: AppendRecord = record => appendExactRecord(store, record),
 ) {
   const failure = new DeliveryRecordDurabilityFailure(code, reason);
   const errors = [recordFailure];
   let pending = true;
   let nextRecord = 0;
-  let retrying;
-  let pendingChild;
-  const retainChild = error => {
-    const child = error?.cleanupHandle;
+  let retrying: Promise<CleanupStatus> | undefined;
+  let pendingChild: (ChildCleanup & Readonly<{child: ChildCleanup}>) | undefined;
+  const retainChild = (error: unknown) => {
+    const child = (error as CleanupCause)?.cleanupHandle;
     if (child !== undefined) {
       pendingChild = {child, status: child.status, retry: child.retry};
     }
@@ -230,7 +360,7 @@ function pendingRecordFailure(
               if (typeof status !== 'function' || typeof retry !== 'function') {
                 fail('ResultDeliveryDurabilityPending');
               }
-              let observation = await Reflect.apply(status, child, []);
+              let observation: unknown = await Reflect.apply(status, child, []);
               if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) {
                 await Reflect.apply(retry, child, []);
                 observation = await Reflect.apply(status, child, []);
@@ -259,25 +389,27 @@ function pendingRecordFailure(
 }
 
 function pendingTerminalFailure(
-  reason, store, control, terminal, recordFailure,
+  reason: unknown, store: Store, control: Control, terminal: PublicationContract, recordFailure: unknown,
 ) {
   return pendingRecordFailure(
     'ResultDeliveryFailed', reason, store, control, [terminal], recordFailure,
   );
 }
 
-async function finishSink(sink, signal) {
-  let result;
-  try { result = await sink.finish(signal); }
+async function finishSink(sink: Sink, signal?: AbortSignal) {
+  let result: Readonly<{confirmed: unknown}> | null | undefined;
+  try { result = await sink.finish(signal) as typeof result; }
   catch (cause) {
     fail('ResultDeliverySinkCompletionFailed', cause);
   }
-  if (!exactKeys(result, ['confirmed']) || result.confirmed !== true) {
+  if (!exactKeys(result, ['confirmed']) || result!.confirmed !== true) {
     fail('ResultDeliverySinkCompletionUnknown');
   }
 }
 
-export async function deliverPublishedResult(options, resolvedPublication, workspace) {
+export async function deliverPublishedResult(
+  options: DeliveryOptions, resolvedPublication?: SelectedPublication, workspace?: Workspace,
+) {
   validateRequest(options);
   validateStore(options.store);
   validateControl(options.control);
@@ -287,7 +419,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
   // callbacks, not internal awaits or another public authorization frame.
   let sinkCallbackCount = 0;
   const readDemand = workspace?.metadata;
-  const demandArgument = readDemand === undefined ? [] : [readDemand];
+  const demandArgument: [ReadDemand?] = readDemand === undefined ? [] : [readDemand];
   const appendCompletion = store.appendDeliveryCompletion;
   if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
     fail('InvalidResultDeliveryStore');
@@ -363,9 +495,9 @@ export async function deliverPublishedResult(options, resolvedPublication, works
       receipt: undefined, failureCid: undefined, observedAt: requestedAt,
       cleanupOwnerCids: [],
     }, limits);
-  const admitted = initialStreaming === undefined ? await store.createDeliveryAttempt(
+  const admitted: AttemptSelection = initialStreaming === undefined ? await store.createDeliveryAttempt(
     proposed.wire, grant.wire, original,
-  ) : await Reflect.apply(beginAttempt, store, [original, initialStreaming]);
+  ) : await Reflect.apply(beginAttempt!, store, [original, initialStreaming]);
   const attempt = selectDeliveryAttempt(control, admitted, proposed, index,
     manifest, grant, {resultName, format, attemptId}, limits, original);
   if (!admitted.created) {
@@ -377,7 +509,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
     if (existing === undefined) fail('ResultDeliveryAttemptUnresolved');
     if (existing !== undefined) {
       const action = control.existingDeliveryAttemptAction(existing);
-      const value = JSON.parse(existing.wire);
+      const value = JSON.parse(existing.wire) as RecordedReceipt;
       if (action === 'confirm_succeeded_record') {
         try { await store.confirmDeliveryRecord(existing.wire); }
         catch (recordFailure) {
@@ -419,10 +551,10 @@ export async function deliverPublishedResult(options, resolvedPublication, works
     }
   }
 
-  let streaming;
+  let streaming: PublicationContract | undefined;
   let ownsStreaming = false;
   let confirmedByteCount = 0;
-  let writeFailure;
+  let writeFailure: SinkWriteFailure | undefined;
   try {
     streaming = initialStreaming ?? control.issueDeliveryRecord(attempt, undefined, {
       state: 'streaming',
@@ -471,7 +603,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
       fail('InvalidResultDeliveryDigest');
     }
     const encoder = new TextEncoder();
-    const write = async text => {
+    const write = async (text: unknown) => {
       if (typeof text !== 'string') fail('InvalidResultDeliveryChunk');
       const bytes = encoder.encode(text);
       if (bytes.byteLength === 0) return;
@@ -497,28 +629,28 @@ export async function deliverPublishedResult(options, resolvedPublication, works
         fail('ResultDeliveryGrantExpired');
       }
       signal?.throwIfAborted();
-      let result;
+      let result: SinkObservation;
       sinkCallbackCount++;
-      try { result = await sink.write(bytes, signal); }
+      try { result = await sink.write(bytes, signal) as SinkObservation; }
       catch (reason) {
         writeFailure = sinkFailure(reason, bytes.byteLength);
         confirmedByteCount += writeFailure.confirmedBytes;
         throw writeFailure;
       }
       if (!exactKeys(result, ['confirmedBytes']) ||
-          result.confirmedBytes !== bytes.byteLength) {
+          result!.confirmedBytes !== bytes.byteLength) {
         writeFailure = new SinkWriteFailure(
           new ResultDeliveryError('InvalidResultDeliverySinkResult'),
           Number.isSafeInteger(result?.confirmedBytes) &&
-            result.confirmedBytes >= 0 &&
-            result.confirmedBytes <= bytes.byteLength
-            ? result.confirmedBytes : 0,
+            result!.confirmedBytes >= 0 &&
+            result!.confirmedBytes <= bytes.byteLength
+            ? result!.confirmedBytes : 0,
           'unknown_additional',
           bytes.byteLength -
             (Number.isSafeInteger(result?.confirmedBytes) &&
-              result.confirmedBytes >= 0 &&
-              result.confirmedBytes <= bytes.byteLength
-              ? result.confirmedBytes : 0),
+              result!.confirmedBytes >= 0 &&
+              result!.confirmedBytes <= bytes.byteLength
+              ? result!.confirmedBytes : 0),
         );
         confirmedByteCount += writeFailure.confirmedBytes;
         throw writeFailure;
@@ -580,7 +712,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
                 const admitted = workspace.row(row.length);
                 if (!Number.isSafeInteger(admitted?.units) || admitted.units < row.length ||
                     !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
-                    admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+                    admitted.window > window!) fail('InvalidResultDeliveryWorkspace');
                 rowUnits = admitted.units; window = admitted.window;
               }
               // Equal-length rows may have different node geometry. Fund the
@@ -590,15 +722,15 @@ export async function deliverPublishedResult(options, resolvedPublication, works
               const admitted = await workspace.row(row);
               if (!Number.isSafeInteger(admitted?.units) || admitted.units < row.length ||
                   !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
-                  admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+                  admitted.window > window!) fail('InvalidResultDeliveryWorkspace');
               rowUnits = admitted.units; window = admitted.window;
               const text = control.nextResultDeliveryRow(serializer, row);
               const bytes = encoder.encode(text).byteLength;
-              if (bytes > window) {
+              if (bytes > window!) {
                 await flush();
                 await write(text);
               } else {
-                if (bytes > window - stagedBytes) await flush();
+                if (bytes > window! - stagedBytes) await flush();
                 staged += text; stagedBytes += bytes;
               }
             }, async needed => {
@@ -606,7 +738,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
               const admitted = workspace.row(needed);
               if (!Number.isSafeInteger(admitted?.units) || admitted.units < needed ||
                   !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
-                  admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+                  admitted.window > window!) fail('InvalidResultDeliveryWorkspace');
               rowUnits = admitted.units; window = admitted.window;
               return admitted.units;
             });
@@ -667,7 +799,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
       observedAt: committedAt,
       cleanupOwnerCids: [],
     }, limits);
-    const appendSucceeded = appendCompletion === undefined ? undefined : record =>
+    const appendSucceeded = appendCompletion === undefined ? undefined : (record: PublicationContract) =>
       Reflect.apply(appendCompletion, store, [attempt, receipt, record]);
     try {
       if (appendSucceeded === undefined) await appendExactRecord(store, succeeded);
