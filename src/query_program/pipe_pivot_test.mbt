@@ -171,7 +171,7 @@ test "anonymous positional set fields do not supply public or BY NAME aliases" {
       values_context(),
       construction_limits(),
     )
-    is Err(UnsupportedSet),
+    is Err(UnsupportedProjection),
   )
 }
 
