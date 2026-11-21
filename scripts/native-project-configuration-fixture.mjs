@@ -70,18 +70,41 @@ export function nativeProjectConfigurationFixture(namespace) {
     const files = {...projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock')};
     if (name === 'deal-review-plural') {
       const catalog = JSON.parse(files['mock/catalog.json']);
+      const connectors = JSON.parse(files['connectors.json']);
       const data = JSON.parse(files['mock/data.json']);
-      const connection = catalog.connections.salesforce;
-      for (const resource of ['Contacts', 'Leads']) {
-        connection.views.push({...connection.views[0], resource});
-        connection.query_aliases.push({name: 'salesforce.' + resource.toLowerCase(), resource});
-        connection.data.push({...connection.data[0], resource,
-          items_path: ['salesforce', resource, 'rows'], key_path: ['salesforce', resource, 'key']});
-        connection.writes.push({...connection.writes[0], resource, aliases: ['salesforce.' + resource]});
-        data.salesforce[resource] = {key: ['id'], rows: [
-          {id: resource + '-001', name: resource + ' seed', StageName: 'Qualified', NextStep: null},
-        ]};
+      const {views: [view], writes: [writeTarget]} = catalog.connections.salesforce;
+      connectors.connections.outreach = {connector: 'salesforce'};
+      catalog.connections.outreach = {views: [], query_aliases: [], data: [], writes: []};
+      data.crossover = {
+        directory: {key: ['contact_key'], rows: [
+          {contact_key: 'C-1', status: 'Qualified', visits: 4, summary: null},
+        ]},
+        inbox: {key: ['lead_key'], rows: [
+          {lead_key: 'L-1', status: 'New', visits: 12, summary: 'Unread'},
+        ]},
+        controls: {key: ['audit_key'], rows: [
+          {audit_key: 'A-1', status: 'Keep', visits: 0, summary: null},
+        ]},
+      };
+      for (const [name, resource, key, collection, writable] of [
+        ['salesforce', 'Contacts', 'contact_key', 'directory', true],
+        ['outreach', 'Leads', 'lead_key', 'inbox', true],
+        ['outreach', 'Control', 'audit_key', 'controls', false],
+      ]) {
+        const connection = catalog.connections[name];
+        connection.views.push({...view, resource, schema: {
+          [key]: {type: 'string', nullable: false},
+          status: {type: 'string', nullable: false},
+          visits: {type: 'int64', nullable: false},
+          summary: {type: 'string', nullable: true},
+        }, facts: {relation_keys: {candidate_keys: [[key]]}}});
+        connection.query_aliases.push({name: name + '.' + resource.toLowerCase(), resource});
+        connection.data.push({resource, primary_identity: key,
+          items_path: ['crossover', collection, 'rows'], key_path: ['crossover', collection, 'key']});
+        if (writable) connection.writes.push({...writeTarget, resource, primary_identity: key,
+          writable_fields: ['status'], aliases: [name + '.' + resource]});
       }
+      files['connectors.json'] = JSON.stringify(connectors) + '\n';
       files['mock/catalog.json'] = JSON.stringify(catalog) + '\n';
       files['mock/data.json'] = JSON.stringify(data) + '\n';
     }

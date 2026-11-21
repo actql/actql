@@ -1077,13 +1077,36 @@ fn native_project_mock_plural_account_in_original_read() -> Unit raise {
   let expected = [
     ("salesforce", "Opportunity"),
     ("salesforce", "Contacts"),
-    ("salesforce", "Leads"),
+    ("outreach", "Leads"),
   ]
-  assert_eq(targets, expected)
+  assert_eq(targets.length(), expected.length())
   assert_true(subjects.update_target is None)
   for target in expected {
+    assert_true(targets.contains(target))
     assert_true(subjects.sources.contains(target))
   }
+  assert_true(subjects.sources.contains(("outreach", "Control")))
+  assert_false(targets.contains(("outreach", "Control")))
+  let contacts = original.sources
+    .iter()
+    .find_first(source => source._retained_connection == "salesforce")
+    .unwrap()._retained_rows
+    .iter()
+    .find_first(row => row.view.resource == "Contacts")
+    .unwrap()._retained_selection
+  let leads = original.sources
+    .iter()
+    .find_first(source => source._retained_connection == "outreach")
+    .unwrap()._retained_rows
+    .iter()
+    .find_first(row => row.view.resource == "Leads")
+    .unwrap()._retained_selection
+  assert_eq(contacts.directory, leads.directory)
+  assert_eq(contacts.name, leads.name)
+  assert_eq(contacts.primary_identity, "contact_key")
+  assert_eq(leads.primary_identity, "lead_key")
+  assert_eq(contacts.items_path, ["crossover", "directory", "rows"])
+  assert_eq(leads.items_path, ["crossover", "inbox", "rows"])
 }
 
 ///|
