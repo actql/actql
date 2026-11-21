@@ -637,11 +637,12 @@ test('managed usage refuses foreign readers and missing or retired observations 
   let foreign = 0;
   assert.equal(captureManagedRunObservation({captureManagedRun() {foreign++;}}, ref, () => []), undefined);
   assert.equal(foreign, 0);
+  assert.equal(captureManagedRunObservation(observer, ref, undefined), undefined);
   for (const value of [undefined, Array(16).fill(0n), Array(19).fill(0), Array(18).fill(0n), Array(19).fill(-1n)]) {
     captureManagedRunObservation(observer, ref, () => value)!();
   }
   captureManagedRunObservation(observer, ref, () => {throw new Error('Retired');})!();
-  assert.equal(observer.status().loss.resourceUnavailable, 6);
+  assert.equal(observer.status().loss.resourceUnavailable, 7);
   assert.equal(records.length, 0);
   const excluded = installHostObservation(createHostObservationConnection({deliver() {},
     measurements: {exclude: ['resources']}}))!;
