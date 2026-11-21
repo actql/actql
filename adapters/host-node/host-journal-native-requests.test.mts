@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import requests from './host-journal-native-requests.cjs';
+import schema from './host-journal-schema-support.cjs';
 
 const {hostJournalNativeStructureRequests:calculate, hostJournalNativeUsableUpper:usable} = requests;
 const input = (overrides: Record<string, unknown> = {}) => ({databaseBytes:4194304n, pageBytes:4096n,
@@ -201,9 +201,9 @@ test('generated/intermediate record upper is not silently limited to saved file 
 });
 
 test('fixed schema request catalogue remains a partial subset of the supported own DDL', () => {
-  const body = readFileSync(new URL('./host-journal-schema-support.cjs', import.meta.url));
-  assert.equal(createHash('sha256').update(body).digest('hex'),
-    '29f17c802b94833db3141020ea99252f4de83025ea31c06758146c918f2c92a2');
+  // Pin the original ordered DDL independently of CommonJS emitter formatting.
+  assert.equal(createHash('sha256').update(JSON.stringify(schema.sql)).digest('hex'),
+    '8b25e86ef46a7d9c5a4e3e11fed981640cad3f0b29fb44712498d36f458bf7de');
   const s = calculate(input()).fixedSchema;
   // The historical fixed vector excludes the newer private usage metadata.
   // It neither gates ordinary supported allocation nor claims whole-schema demand.
