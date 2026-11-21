@@ -9361,11 +9361,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -9373,19 +9373,19 @@
                 "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               },
               {
@@ -9694,19 +9694,19 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               },
               {
@@ -24229,11 +24229,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -24241,19 +24241,19 @@
                 "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               },
               {

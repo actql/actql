@@ -4,32 +4,40 @@ import {managedPreparationRetirementContinuation, bindManagedComputeRunObservati
   managedComputeUsageReader} from './embedded-local-lifecycle.mjs';
 import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-const ok = value => ({$tag: 1, _0: value});
+type ManagedRun = Parameters<typeof managedPreparationRetirementContinuation>[0];
+type Registry = Parameters<typeof managedPreparationRetirementContinuation>[1];
+type RunReference = Parameters<typeof managedComputeUsageReader>[1];
+type RuntimeFixture = {
+  clientProgramInstalledManagedRunAccounting?: (value: unknown) => unknown;
+  clientProgramInstalledManagedRunUsage?: () => readonly bigint[];
+};
+
+const ok = (value: unknown) => ({$tag: 1, _0: value});
 
 // Actual Host observation/retirement consumers with explicit Core ports. No
 // physical Run, Resource admission or cleanup acknowledgement is issued here.
 function observationFixture() {
-  const record = {};
-  return {record, bind(prepared, ref) {
+  const record = {} as Registry;
+  return {record, bind(prepared: object, ref: RunReference) {
     bindManagedComputeRunObservation(record, prepared, ref,
       code => Object.assign(new Error(code), {code}));
-  }, reader(ref) {return managedComputeUsageReader(record, ref);}};
+  }, reader(ref: RunReference) {return managedComputeUsageReader(record, ref);}};
 }
 
 test('managed usage reader selects only the same admitted Run and releases its installation alias', () => {
-  const runtime = {}, f = observationFixture();
+  const runtime: RuntimeFixture = {}, f = observationFixture();
   const prepared = {}, value = {}, foreign = {}, first = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
   let reads = 0;
   const usage = [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n,11n,12n,13n,14n,15n,16n];
-  runtime.clientProgramInstalledManagedRunAccounting = function(actual) {
+  runtime.clientProgramInstalledManagedRunAccounting = function(actual: unknown) {
     assert.strictEqual(this,runtime); assert.strictEqual(actual,value); reads++; return ok(usage);
   };
-  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
+  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false} as ManagedRun & {prepared: object}]]);
   assert.equal(f.reader(first),undefined);
   f.bind(foreign,first);
   assert.equal(f.reader(first),undefined);
   f.bind(prepared,first);
-  const read = f.reader({...first});
+  const read = f.reader({...first})!;
   assert.equal(reads,0,'Capturing correlation does not sample or admit');
   assert.equal(f.reader({...first,authorityScopeCid:'foreign'}),undefined);
   assert.strictEqual(read(),usage); assert.equal(reads,1);
@@ -41,24 +49,24 @@ test('managed usage reader selects only the same admitted Run and releases its i
 });
 
 function finalAccountingFixture() {
-  const runtime = {}, f = observationFixture();
+  const runtime: RuntimeFixture = {}, f = observationFixture();
   const prepared = {}, value = {}, original = {}, ref = {namespaceId: 'n', authorityScopeCid: 'a', runDefinitionCid: 'r'};
   const first = [...ledgerLimitsFields, ...ledgerUsageFields].map((_, index) => BigInt(index + 1));
-  let current = [...first], live = true, retireFailure, managerFailure, accountingFailure, malformed;
+  let current = [...first], live = true, retireFailure: unknown, managerFailure: unknown, accountingFailure: unknown, malformed: unknown;
   let reads = 0, retires = 0, acknowledgements = 0;
   const retiredRead = new Error('OriginalLedgerRetired');
-  runtime.clientProgramInstalledManagedRunAccounting = function(actual) {
+  runtime.clientProgramInstalledManagedRunAccounting = function(actual: unknown) {
     assert.strictEqual(this, runtime); assert.strictEqual(actual, value); reads++;
     if (!live) throw retiredRead;
     if (accountingFailure !== undefined) throw accountingFailure;
     return ok(malformed ?? [...current]);
   };
-  const run = {runtime, prepared, value, original, closed: false,
-    retire(actual) {
+  const run: ManagedRun & {prepared: object} = {runtime, prepared, value, original, closed: false,
+    retire(actual: unknown) {
       assert.strictEqual(this, runtime); assert.strictEqual(actual, value); retires++;
       if (retireFailure !== undefined) throw retireFailure;
       live = false; return ok(undefined);
-    }, manager: {retireSeveredPreparation(actual) {
+    }, manager: {retireSeveredPreparation(actual: unknown) {
       assert.strictEqual(actual, original); assert.equal(live, false); acknowledgements++;
       if (managerFailure !== undefined) throw managerFailure;
     }}};
@@ -67,11 +75,11 @@ function finalAccountingFixture() {
   const continueRetirement = managedPreparationRetirementContinuation(run, f.record);
   return {...f, run, first, retiredRead,
     finish() {run.closed = true; return continueRetirement();},
-    readCore: () => checked(Reflect.apply(runtime.clientProgramInstalledManagedRunAccounting, runtime, [value])),
-    bind() {f.bind(prepared, ref); return f.reader(ref);},
-    change(values) {current = [...values];}, failRetire(error) {retireFailure = error;},
-    failManager(error) {managerFailure = error;}, failAccounting(error) {accountingFailure = error;},
-    malformed(value) {malformed = value;},
+    readCore: () => checked(Reflect.apply(runtime.clientProgramInstalledManagedRunAccounting!, runtime, [value])),
+    bind() {f.bind(prepared, ref); return f.reader(ref)!;},
+    change(values: readonly bigint[]) {current = [...values];}, failRetire(error: unknown) {retireFailure = error;},
+    failManager(error: unknown) {managerFailure = error;}, failAccounting(error: unknown) {accountingFailure = error;},
+    malformed(value: unknown) {malformed = value;},
     counts: () => ({reads, retires, acknowledgements})};
 }
 
@@ -84,7 +92,7 @@ test('final managed accounting retains every original scalar after actual retire
   assert.equal(f.run.value, undefined); assert.equal(f.run.runtime, undefined); assert.equal(f.run.manager, undefined);
   assert.equal(f.record.computeLiveRuns.has(f.run), false);
   assert.deepEqual(f.counts(), {reads: 1, retires: 1, acknowledgements: 1});
-  assert.throws(() => {observed[0] = 0n;}, TypeError);
+  assert.throws(() => {(observed as bigint[])[0] = 0n;}, TypeError);
   f.record.computeRunObservations = undefined;
   assert.equal(read(), undefined, 'Escaped DATA cannot restore a retired installation or live Core owner');
 });
@@ -128,7 +136,7 @@ test('an unobserved managed retirement does not sample or retain accounting DATA
 
 test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port', () => {
   for (const extra of [false, true]) {
-    const f = finalAccountingFixture(), read = f.bind(), values = [...f.first];
+    const f = finalAccountingFixture(), read = f.bind(), values: unknown[] & {foreign?: object} = [...f.first];
     if (extra) values.foreign = {};
     else values[0] = {};
     f.malformed(values); f.finish();
@@ -138,14 +146,14 @@ test('final accounting cannot retain a foreign object or extra alias from a malf
 });
 
 test('managed accounting refuses old Usage capability before any sample', () => {
-  const runtime = {}, f = observationFixture();
+  const runtime: RuntimeFixture = {}, f = observationFixture();
   const prepared = {}, value = {}, original = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
   let oldReads = 0;
   runtime.clientProgramInstalledManagedRunUsage = () => {oldReads++; return Array(19).fill(0n);};
-  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
+  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false} as ManagedRun & {prepared: object}]]);
   f.bind(prepared,original);
   const read = f.reader(original);
   assert.equal(typeof read,'function');
-  assert.equal(read(),undefined,'An older same-size layout cannot be interpreted by the new capability');
+  assert.equal(read!(),undefined,'An older same-size layout cannot be interpreted by the new capability');
   assert.equal(oldReads,0,'No legacy fallback or speculative second sample');
 });

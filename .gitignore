@@ -1391,3 +1391,7 @@ target/
 /adapters/host-node/client-observation-journal.test.d.mts
 /adapters/host-common/observation.mjs
 /adapters/host-common/observation.d.mts
+/adapters/host-common/observation.test.mjs
+/adapters/host-common/observation.test.d.mts
+/adapters/host-node/managed-run-observation.test.mjs
+/adapters/host-node/managed-run-observation.test.d.mts

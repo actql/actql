@@ -950,7 +950,7 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               },
               {
@@ -1071,11 +1071,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
@@ -1195,15 +1195,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics copy only actual reader scalars and the original operation context'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
               },
               {
@@ -1315,11 +1315,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('retained original work settles without delaying ingress or creating a second observation context'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('observation close detaches its bounded metadata without settling original unfinished work'"
               }
             ]
@@ -1395,7 +1395,7 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               }
             ]
@@ -2311,7 +2311,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "queue overflow and delivery failure"
               }
             ]
@@ -2387,7 +2387,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "queue overflow and delivery failure"
               }
             ]

@@ -3,18 +3,34 @@ import assert from 'node:assert/strict';
 import {createHostObservationConnection, installHostObservation,
   observationTraceParent, snapshotObservationContext,
   projectEffectApplication, projectEffectPreflightFailure, captureManagedRunObservation} from './observation.mjs';
+import type {ObservationStorage} from './observation.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+import type {ObservationRecord} from '../../packages/local-node/observation.js';
+
+type Projection = NonNullable<ReturnType<typeof installHostObservation>>;
+type CaptureRecord = (record: ObservationRecord) => void;
+type ObservationCharge = Parameters<ObservationStorage['consume']>[0];
+// These read-only cases intentionally expose just the storage operation exercised by the fixture.
+type ConsumeOnlyStorage = Pick<ObservationStorage, 'consume'>;
+type DiagnosticFacts = NonNullable<Parameters<Projection['diagnostic']>[1]>;
+type RowFixture = Omit<Partial<DiagnosticFacts>, 'requestSelection' | 'selectedRowRef' | 'returnedRows'> & {
+  returnedRows?: number;
+  requestSelection?: {authorityScopeCid: string; requestId: string};
+  selectedRowRef?: {namespaceId: string; authorityScopeCid: string; runDefinitionCid: string};
+};
+
 
 const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
-const turn = () => new Promise(resolve => setImmediate(resolve));
+const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 
 const originalLogicalKey = '{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":2,"occurrence":{"kind":"operation","operation_ordinal":3},"self_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}';
 
 test('logical boundary metadata preserves the original key separately from physical task ordinal', async () => {
-  const records = [], observer = installHostObservation(createHostObservationConnection({
-    include: ['compute'], correlation: {include: ['task']}, deliver: record => records.push(record),
-  }));
+  const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['compute'], correlation: {include: ['task']}, deliver: (record => records.push(record)) as CaptureRecord,
+  }))!;
   observer.logicalBoundary({task: 19}, {state: 'projected', keyWire: originalLogicalKey, phase: 'settled'});
   await observer.close();
   assert.equal(records.length, 1);
@@ -27,9 +43,9 @@ test('logical boundary metadata preserves the original key separately from physi
 });
 
 test('logical boundary metadata reports explicit unavailable and rejects fabricated completion or reserved-event bypass', async () => {
-  const records = [], observer = installHostObservation(createHostObservationConnection({
-    include: ['compute'], correlation: {include: ['task']}, deliver: record => records.push(record),
-  }));
+  const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['compute'], correlation: {include: ['task']}, deliver: (record => records.push(record)) as CaptureRecord,
+  }))!;
   observer.logicalBoundary({task: 0}, {state: 'not_projected', reason: 'not_projected'});
   for (const boundary of [
     {state: 'not_projected', reason: 'not_projected', keyWire: originalLogicalKey},
@@ -37,9 +53,9 @@ test('logical boundary metadata reports explicit unavailable and rejects fabrica
     {state: 'projected', phase: 'settled'},
     {state: 'projected', keyWire: originalLogicalKey, phase: 'stopped'},
     {state: 'projected', keyWire: originalLogicalKey, phase: 'settled', done: true},
-    {state: 'projected', get keyWire() {assert.fail('Do not invoke a metadata accessor');}, phase: 'settled'},
+    {state: 'projected', get keyWire() {return assert.fail('Do not invoke a metadata accessor');}, phase: 'settled'},
   ]) observer.logicalBoundary({task: 0}, boundary);
-  observer.emit('compute', 'logical_boundary_observed', {task: 0, keyWire: originalLogicalKey});
+  observer.emit('compute', 'logical_boundary_observed', {task: 0, keyWire: originalLogicalKey} as Parameters<Projection['emit']>[2]);
   await observer.close();
   assert.equal(records.length, 1);
   assert.equal(records[0].event, 'logical_boundary_unavailable');
@@ -50,12 +66,12 @@ test('logical boundary metadata reports explicit unavailable and rejects fabrica
 
 test('logical boundary metadata retains operation correlation attribute and record-size refusals', async () => {
   for (const selected of ['operation', 'correlation', 'key-excluded', 'size']) {
-    const records = [], observer = installHostObservation(createHostObservationConnection({
+    const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
       include: selected === 'operation' ? ['run'] : ['compute'],
       correlation: selected === 'correlation' ? false : {include: ['task']},
       attributes: {exclude: selected === 'key-excluded' ? ['actql.logical_step.key'] : []},
-      deliver: record => records.push(record),
-    }));
+      deliver: (record => records.push(record)) as CaptureRecord,
+    }))!;
     observer.logicalBoundary({task: 0}, {state: 'projected',
       keyWire: selected === 'size' ? 'x'.repeat(4097) : originalLogicalKey, phase: 'before'});
     await observer.close();
@@ -64,15 +80,15 @@ test('logical boundary metadata retains operation correlation attribute and reco
 });
 
 test('dispatch failure observation forwards typed primary DATA and original occurrence without private bodies', async () => {
-  const records = [], failure = Object.freeze({code: 'MoonBitHostFailure',
+  const records: ObservationRecord[] = [], failure = Object.freeze({code: 'MoonBitHostFailure',
     phase: 'original_model_acquired_effect_evidence', kind: 'invocation.foreign_captured_input',
     task: 4, unit: 2, step: 5});
   const observer = installHostObservation(createHostObservationConnection({
     include: ['run'], correlation: {include: ['task']}, events: {level: 'diagnostic'},
-    deliver: record => records.push(record),
-  }));
+    deliver: (record => records.push(record)) as CaptureRecord,
+  }))!;
   observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure,
-    code: 'private outer message', issueTag: 2, body: 'private body'});
+    code: 'private outer message', issueTag: 2, body: 'private body'} as DiagnosticFacts);
   await observer.close();
   assert.equal(records.length, 1);
   assert.equal(records[0].event, 'dispatch_failed');
@@ -91,13 +107,13 @@ test('dispatch primary DATA respects lifecycle operation correlation and attribu
   const failure = {code: 'MoonBitHostFailure', phase: 'original_model_acquired_effect_evidence',
     kind: 'invocation.foreign_captured_input', task: 4, unit: 2, step: 5};
   for (const selection of ['lifecycle', 'excluded-operation', 'no-correlation', 'excluded-attributes']) {
-    const records = [], observer = installHostObservation(createHostObservationConnection({
+    const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
       include: selection === 'excluded-operation' ? ['source'] : ['run'],
       events: {level: selection === 'lifecycle' ? 'lifecycle' : 'diagnostic'},
       correlation: selection === 'no-correlation' ? false : {include: ['task']},
       attributes: {exclude: selection === 'excluded-attributes' ? ['actql.failure.kind', 'actql.step.ordinal'] : []},
-      deliver: record => records.push(record),
-    }));
+      deliver: (record => records.push(record)) as CaptureRecord,
+    }))!;
     observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure});
     await observer.close();
     if (selection === 'excluded-operation') {assert.equal(records.length, 0); continue;}
@@ -117,12 +133,12 @@ test('dispatch primary DATA respects lifecycle operation correlation and attribu
 });
 
 test('physical write diagnostics remain distinct from whole Effect application and Source Model starts', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['source', 'infer', 'effect'],
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['source', 'infer', 'effect'],
     correlation: false, events: {level: 'diagnostic'},
   }), {runId: () => assert.fail('No identity lookup for uncorrelated counters'),
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   observer.diagnostic('acquisition_started', {});
   observer.diagnostic('model_call_entered', {});
   observer.diagnostic('effect_write_observed', {});
@@ -138,26 +154,26 @@ test('physical write diagnostics remain distinct from whole Effect application a
   assert.equal(observer.status().queued, 0);
 });
 
-const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
+const selectedRows = (extra: object = {}): RowFixture => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
 
-const requestRows = (requestId = 'original-request', extra = {}) => selectedRows({
+const requestRows = (requestId = 'original-request', extra: object = {}) => selectedRows({
   ref: undefined, selection: 'request', unrelatedRows: undefined,
   requestSelection: {authorityScopeCid: ref.authorityScopeCid, requestId},
   selectedRowRef: {...ref}, ...extra});
 
 test('request selection metadata is copied and resolved only by the matching accepted original', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['run'],
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['run'],
     measurements: {include: ['rows']}, events: {level: 'diagnostic'},
   }), {runId: () => 'actual-original',
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   await observer.run('submit', trace, () => {
     const original = requestRows();
     observer.diagnostic('selected_rows_observed', original);
-    original.requestSelection.requestId = 'changed-after-capture';
-    original.selectedRowRef.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+    original.requestSelection!.requestId = 'changed-after-capture';
+    original.selectedRowRef!.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
     observer.diagnostic('selected_rows_observed', selectedRows({ref: undefined,
       returnedRows: 0, unrelatedRows: undefined, runSelectionCid: ref.runDefinitionCid}));
     observer.accepted({ref, inserted: false}, 'original-request');
@@ -174,12 +190,12 @@ test('request selection metadata is copied and resolved only by the matching acc
 
 for (const kind of ['missing', 'wrong-request', 'foreign-scope', 'previous-operation']) {
   test('request selection keeps original binding unavailable for ' + kind, async () => {
-    const records = [];
+    const records: ObservationRecord[] = [];
     const observer = installHostObservation(createHostObservationConnection({
-      deliver: record => records.push(record), include: ['run'],
+      deliver: (record => records.push(record)) as CaptureRecord, include: ['run'],
       measurements: {include: ['rows']}, events: {level: 'diagnostic'},
     }), {runId: () => 'unrelated-original',
-      journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+      journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
     if (kind === 'previous-operation') await observer.run('submit', trace,
       () => observer.accepted({ref, inserted: false}, 'original-request'));
     await observer.run('read', trace, () => {
@@ -198,12 +214,12 @@ for (const kind of ['missing', 'wrong-request', 'foreign-scope', 'previous-opera
 }
 
 test('an actually different selected row is classified unrelated instead of acquiring accepted identity', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['run'],
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['run'],
     measurements: {include: ['rows']}, events: {level: 'diagnostic'},
   }), {runId: () => 'actual-original',
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   await observer.run('submit', trace, () => {
     observer.diagnostic('selected_rows_observed', requestRows('original-request', {
       selectedRowRef: {...ref, runDefinitionCid: `sha256:${'c'.repeat(64)}`}}));
@@ -216,11 +232,11 @@ test('an actually different selected row is classified unrelated instead of acqu
 });
 
 test('unresolved request selections are bounded by the existing operation record limit', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['run'], limits: {requestRecords: 8},
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['run'], limits: {requestRecords: 8},
     measurements: {include: ['rows']}, events: {level: 'diagnostic'},
-  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   await observer.run('submit', trace, () => {
     for (let index = 0; index < 9; index++) observer.diagnostic('selected_rows_observed', requestRows());
     observer.accepted({ref, inserted: false}, 'original-request');
@@ -231,18 +247,18 @@ test('unresolved request selections are bounded by the existing operation record
 });
 
 test('Run identity lookup contributes its actual row before the final selected-row record closes', async () => {
-  const records = []; let lookups = 0, observer;
+  const records: ObservationRecord[] = []; let lookups = 0, observer!: Projection;
   observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['run'],
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['run'],
     measurements: {include: ['rows']}, events: {level: 'diagnostic'},
-  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
     runId(original) {
       assert.deepEqual(original, ref); lookups++;
       // Explicit original-port fixture: the Host's real resolver performs a
       // selected Journal lookup before deriving this immutable identifier.
       observer.diagnostic('selected_rows_observed', selectedRows());
       return 'original-run';
-    }});
+    }})!;
   await observer.run('read', trace, () => observer.diagnostic('selected_rows_observed', selectedRows()));
   await observer.close();
   const rows = records.filter(record => record.event === 'selected_rows_observed');
@@ -253,11 +269,11 @@ test('Run identity lookup contributes its actual row before the final selected-r
 });
 
 test('positive Run identity is reused only inside the same original operation and exact Run tuple', async () => {
-  const records = [], calls = [], foreignScope = {...ref, authorityScopeCid: `sha256:${'c'.repeat(64)}`};
-  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  const records: ObservationRecord[] = [], calls: (typeof ref)[] = [], foreignScope = {...ref, authorityScopeCid: `sha256:${'c'.repeat(64)}`};
+  const observer = installHostObservation(createHostObservationConnection({deliver: (record => records.push(record)) as CaptureRecord}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
     runId(original) {calls.push({...original}); return original.authorityScopeCid === ref.authorityScopeCid ? 'first-run' : 'other-run';},
-  });
+  })!;
   await observer.run('submit', trace, () => {
     observer.emit('run', 'dispatch_reserved', {ref});
     observer.emit('run', 'physical_start_reserved', {ref: {...ref}});
@@ -274,33 +290,33 @@ test('positive Run identity is reused only inside the same original operation an
 });
 
 test('missing Run identity is not retained as a positive original and disabled correlation performs no lookup', async () => {
-  const records = [], failure = new Error('OriginalRunLookupFailed'); let available = false, calls = 0;
-  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  const records: ObservationRecord[] = [], failure = new Error('OriginalRunLookupFailed'); let available = false, calls = 0;
+  const observer = installHostObservation(createHostObservationConnection({deliver: (record => records.push(record)) as CaptureRecord}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
     runId() {calls++; if (!available) return undefined; return 'now-original';},
-  });
+  })!;
   await observer.run('submit', trace, () => {
     observer.emit('run', 'dispatch_reserved', {ref}); available = true;
     observer.emit('run', 'physical_start_reserved', {ref});
     observer.emit('run', 'owner_observed', {ref});
   });
   await observer.close(); assert.equal(calls, 2);
-  assert.equal(records.find(record => record.event === 'dispatch_reserved').attributes['actql.run.id'], undefined);
-  assert.equal(records.find(record => record.event === 'physical_start_reserved').attributes['actql.run.id'], 'now-original');
+  assert.equal(records.find(record => record.event === 'dispatch_reserved')!.attributes['actql.run.id'], undefined);
+  assert.equal(records.find(record => record.event === 'physical_start_reserved')!.attributes['actql.run.id'], 'now-original');
   const disabled = installHostObservation(createHostObservationConnection({deliver() {}, correlation: false}), {
-    runId() {throw failure;}, journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
-  });
+    runId() {throw failure;}, journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
+  })!;
   assert.equal(await disabled.run('read', trace, () => {disabled.emit('run', 'owner_observed', {ref}); return 7;}), 7);
   await disabled.close(); assert.equal(disabled.status().dropped, 0);
 });
 
 test('failed Run identity lookup preserves execution and never becomes a successful retained fact', async () => {
-  const records = [], failure = new Error('OriginalRunLookupFailed'), answer = {};
+  const records: ObservationRecord[] = [], failure = new Error('OriginalRunLookupFailed'), answer = {};
   let calls = 0, failing = true;
-  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  const observer = installHostObservation(createHostObservationConnection({deliver: (record => records.push(record)) as CaptureRecord}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
     runId() {calls++; if (failing) throw failure; return 'original-after-observation';},
-  });
+  })!;
   assert.strictEqual(await observer.run('read', trace, () => {
     observer.emit('run', 'dispatch_reserved', {ref}); failing = false;
     observer.emit('run', 'physical_start_reserved', {ref});
@@ -309,21 +325,21 @@ test('failed Run identity lookup preserves execution and never becomes a success
   await observer.close();
   assert.equal(calls, 2); assert.equal(observer.status().budgetUnavailable, 1);
   assert.equal(records.some(record => record.event === 'dispatch_reserved'), false);
-  assert.equal(records.find(record => record.event === 'physical_start_reserved').attributes['actql.run.id'], 'original-after-observation');
+  assert.equal(records.find(record => record.event === 'physical_start_reserved')!.attributes['actql.run.id'], 'original-after-observation');
 });
 
 test('foreign Run identity projections do not borrow the current installation context', async () => {
-  const firstRecords = [], otherRecords = []; let firstCalls = 0, otherCalls = 0;
-  const first = installHostObservation(createHostObservationConnection({deliver: r => firstRecords.push(r),
+  const firstRecords: ObservationRecord[] = [], otherRecords: ObservationRecord[] = []; let firstCalls = 0, otherCalls = 0;
+  const first = installHostObservation(createHostObservationConnection({deliver: (r => firstRecords.push(r)) as CaptureRecord,
     include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
     runId() {firstCalls++; return 'first-original';},
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
-  });
-  const other = installHostObservation(createHostObservationConnection({deliver: r => otherRecords.push(r),
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
+  })!;
+  const other = installHostObservation(createHostObservationConnection({deliver: (r => otherRecords.push(r)) as CaptureRecord,
     include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
     runId() {otherCalls++; return 'other-original';},
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
-  });
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
+  })!;
   await first.run('read', trace, () => {
     first.emit('run', 'owner_observed', {ref});
     other.diagnostic('selected_rows_observed', selectedRows());
@@ -342,38 +358,38 @@ test('Run identity lookup is unnecessary for excluded or already limited observa
     let calls = 0;
     const observer = installHostObservation(createHostObservationConnection({deliver() {}, ...options}), {
       runId() {calls++; return 'must-not-be-needed';},
-      journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
-    });
+      journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
+    })!;
     assert.equal(await observer.run('read', trace, () => {observer.emit('run', 'owner_observed', {ref}); return 7;}), 7);
     await observer.close(); assert.equal(calls, 0);
   }
 });
 
 test('selected-row Run identity snapshots cannot be transferred to another installation projection', async () => {
-  const firstRecords = [], otherRecords = [];
-  const options = deliver => ({deliver, include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}});
-  const journal = {observationStorage: () => ({consume: () => ({accepted: true})})};
+  const firstRecords: ObservationRecord[] = [], otherRecords: ObservationRecord[] = [];
+  const options = (deliver: CaptureRecord) => ({deliver, include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}} as const);
+  const journal = {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)};
   const first = installHostObservation(createHostObservationConnection(options(r => firstRecords.push(r))), {
     journal, runId: () => 'first-original',
-  });
+  })!;
   await first.run('read', trace, () => first.diagnostic('selected_rows_observed', selectedRows()));
   await first.close();
-  const snapshot = firstRecords.find(record => record.event === 'selected_rows_observed').attributes;
+  const snapshot = firstRecords.find(record => record.event === 'selected_rows_observed')!.attributes;
   const other = installHostObservation(createHostObservationConnection(options(r => otherRecords.push(r))), {
     journal, runId: () => 'other-original',
-  });
+  })!;
   other.emit('run', 'selected_rows_observed', {ref}, {selectedRows: snapshot});
   await other.close();
   assert.equal(otherRecords.length, 0); assert.equal(other.status().loss.rowsUnavailable, 1);
 });
 
 test('selected-row Run identity remains absent for unbound references without losing actual row counts', async () => {
-  const records = []; let lookups = 0;
-  const observer = installHostObservation(createHostObservationConnection({deliver: r => records.push(r),
+  const records: ObservationRecord[] = []; let lookups = 0;
+  const observer = installHostObservation(createHostObservationConnection({deliver: (r => records.push(r)) as CaptureRecord,
     include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
-    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)},
     runId() {lookups++; throw new Error('NoOriginalRun');},
-  });
+  })!;
   for (const unbound of [undefined, null]) await observer.run('read', trace, () => {
     observer.diagnostic('selected_rows_observed', selectedRows({ref: unbound}));
   });
@@ -388,11 +404,11 @@ test('selected-row Run identity remains absent for unbound references without lo
 });
 
 test('retained original work settles without delaying ingress or creating a second observation context', async () => {
-  const records = [], observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record), include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'},
-  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
-  let release, child;
-  const gate = new Promise(resolve => {release = resolve;}), result = {};
+  const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
+    deliver: (record => records.push(record)) as CaptureRecord, include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
+  let release!: () => void, child!: Promise<void>;
+  const gate = new Promise<void>(resolve => {release = resolve;}), result = {};
   assert.strictEqual(await observer.run('submit', trace, () => {
     observer.diagnostic('selected_rows_observed', selectedRows());
     child = gate.then(async () => {await turn(); observer.diagnostic('selected_rows_observed', selectedRows());});
@@ -412,10 +428,10 @@ test('retained original work settles without delaying ingress or creating a seco
 });
 
 test('retained rejection preserves the original failure and thenables cannot become operation originals', async () => {
-  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
-  const marker = new Error('OriginalWork'); let reject, child, thenReads = 0;
+  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}))!;
+  const marker = new Error('OriginalWork'); let reject!: (cause: unknown) => void, child!: Promise<void>, thenReads = 0;
   await observer.run('submit', trace, () => {
-    child = new Promise((_, fail) => {reject = fail;}); observer.retainOperation(child);
+    child = new Promise<void>((_, fail) => {reject = fail;}); observer.retainOperation(child);
     observer.retainOperation({get then() {thenReads++; throw new Error('UnownedThen');}});
   });
   assert.equal(thenReads, 0); assert.equal(observer.status().activeSegments, 1);
@@ -425,12 +441,12 @@ test('retained rejection preserves the original failure and thenables cannot bec
 });
 
 test('a captured continuation uses the original context once and respects existing lifetime bounds', async () => {
-  const records = [], observer = installHostObservation(createHostObservationConnection({
-    deliver: value => records.push(value), include: ['run'], measurements: {include: ['rows']},
+  const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
+    deliver: (value => records.push(value)) as CaptureRecord, include: ['run'], measurements: {include: ['rows']},
     events: {level: 'diagnostic'}, limits: {activeSegments: 1},
-  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
-  let capture;
-  await observer.run('read', trace, () => {capture = observer.captureCurrentOperation();});
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
+  let capture!: NonNullable<ReturnType<Projection['captureCurrentOperation']>>;
+  await observer.run('read', trace, () => {capture = observer.captureCurrentOperation()!;});
   let unobservedWork = 0;
   await observer.run('read', trace, () => {unobservedWork++;});
   assert.equal(unobservedWork, 1); assert.equal(observer.status().limited, 1);
@@ -443,11 +459,11 @@ test('a captured continuation uses the original context once and respects existi
 });
 
 test('observation close detaches its bounded metadata without settling original unfinished work', async () => {
-  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
-  const other = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
-  let finish, settled = false, child;
+  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}))!;
+  const other = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}))!;
+  let finish!: () => void, settled = false, child!: Promise<void>;
   await observer.run('submit', trace, () => {
-    child = new Promise(resolve => {finish = resolve;});
+    child = new Promise<void>(resolve => {finish = resolve;});
     assert.equal(other.captureCurrentOperation(), undefined);
     other.retainOperation(child); observer.retainOperation(child);
     child.then(() => {settled = true;});
@@ -461,27 +477,27 @@ test('observation close detaches its bounded metadata without settling original 
 
 test('no-row observation close preserves the pending ingress count until its original settlement', async () => {
   const connection = createHostObservationConnection({deliver() {}, include: ['run'], measurements: {include: ['duration']}});
-  const observer = installHostObservation(connection), answer = {};
-  let release;
-  const gate = new Promise(resolve => {release = resolve;});
+  const observer = installHostObservation(connection)!, answer = {};
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {release = resolve;});
   const original = observer.run('read', trace, () => gate.then(() => answer));
   try {
     assert.equal(observer.status().activeSegments, 1);
     await observer.close();
     release(); assert.strictEqual(await original, answer);
     assert.equal(observer.status().activeSegments, 0);
-    const reopened = installHostObservation(connection);
+    const reopened = installHostObservation(connection)!;
     await reopened.close(); assert.equal(reopened.status().activeSegments, 0);
   } finally {release(); await original;}
 });
 
 test('selected row diagnostics copy only actual reader scalars and the original operation context', async () => {
-  const records = [], charges = [];
-  const connection = createHostObservationConnection({deliver: value => records.push(value),
+  const records: ObservationRecord[] = [], charges: ObservationCharge[] = [];
+  const connection = createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
     events: {level: 'diagnostic'}, measurements: {include: ['rows']}, include: ['run']});
   const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
     consume(value) {charges.push(value); return {accepted: true};},
-  })}});
+  } as ConsumeOnlyStorage as ObservationStorage)}})!;
   const facts = selectedRows({payload: 'SECRET_ROW', statement: 'SECRET_QUERY'});
   await observer.run('read', trace, () => {
     observer.diagnostic('selected_rows_observed', facts);
@@ -505,36 +521,36 @@ test('selected row diagnostics copy only actual reader scalars and the original 
 
 test('selected row diagnostics stay disabled before reading facts unless explicitly selected', async () => {
   for (const options of [{}, {events: {level: 'diagnostic'}, include: ['compute']},
-    {events: {level: 'diagnostic'}, measurements: {exclude: ['rows']}}]) {
+    {events: {level: 'diagnostic'}, measurements: {exclude: ['rows']}}] as const) {
     let reads = 0;
-    const observer = installHostObservation(createHostObservationConnection({deliver() {}, ...options}));
-    observer.diagnostic('selected_rows_observed', {get rowOwner() {reads++; throw new Error('MustNotRead');}});
+    const observer = installHostObservation(createHostObservationConnection({deliver() {}, ...options}))!;
+    observer.diagnostic('selected_rows_observed', {get rowOwner(): never {reads++; throw new Error('MustNotRead');}});
     await observer.close();
     assert.equal(reads, 0); assert.deepEqual(observer.status().loss, {});
   }
 });
 
 test('selected row diagnostics preserve missing and invalid coverage instead of inventing zero counts', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
-    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}));
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}))!;
   await observer.run('read', trace, () => {
     for (const facts of [undefined, selectedRows({coverage: undefined}), selectedRows({rowOwner: 'unknown-owner'}),
       selectedRows({selection: 'all-history'}), selectedRows({rowKind: 'effect'}), selectedRows({returnedRows: -1}),
       selectedRows({unrelatedRows: 2}), selectedRows({returnedRows: 1.5}),
-      {get rowOwner() {throw new Error('Unavailable');}}]) observer.diagnostic('selected_rows_observed', facts);
+      {get rowOwner(): never {throw new Error('Unavailable');}}]) observer.diagnostic('selected_rows_observed', facts);
   });
   assert.equal(observer.status().loss.rowsUnavailable, 9);
   await observer.close(); assert.equal(records.filter(record => record.event === 'selected_rows_observed').length, 0);
 });
 
 test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
     events: {level: 'diagnostic'}, measurements: {include: ['rows']}}),
-    {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   await observer.run('read', trace, () => {
-    observer.accepted({ref, inserted: false});
+    (observer.accepted as (result: Parameters<Projection['accepted']>[0], requestId?: string) => void)({ref, inserted: false});
     observer.diagnostic('selected_rows_observed', selectedRows());
     observer.diagnostic('selected_rows_observed', selectedRows({ref: undefined, selection: 'request',
       returnedRows: 0, unrelatedRows: undefined}));
@@ -550,12 +566,12 @@ test('selected row diagnostics keep unknown classification and pre-Run binding a
 });
 
 test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
-    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}));
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}))!;
   observer.diagnostic('selected_rows_observed', selectedRows());
-  let release, late;
-  const pending = new Promise(resolve => {release = resolve;});
+  let release!: () => void, late!: Promise<void>;
+  const pending = new Promise<void>(resolve => {release = resolve;});
   await observer.run('read', trace, () => {
     late = pending.then(() => observer.diagnostic('selected_rows_observed', selectedRows()));
   });
@@ -565,18 +581,18 @@ test('selected row diagnostics refuse contextless or late facts instead of creat
 });
 
 test('selected row diagnostics cannot be forged through generic event attributes', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
-    events: {level: 'diagnostic'}}));
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
+    events: {level: 'diagnostic'}}))!;
   observer.emit('run', 'selected_rows_observed', {ref}, {selectedRows: {'actql.rows.returned': 0}});
   assert.equal(observer.status().loss.rowsUnavailable, 1);
   await observer.close(); assert.equal(records.length, 0);
 });
 
 test('selected row diagnostics cannot replace the original result when optional custody refuses', async () => {
-  const records = [], result = {};
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
-    events: {level: 'diagnostic'}}), {journal: {observationStorage: () => ({consume() {throw new Error('Unavailable');}})}});
+  const records: ObservationRecord[] = [], result = {};
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord,
+    events: {level: 'diagnostic'}}), {journal: {observationStorage: () => ({consume() {throw new Error('Unavailable');}} as ConsumeOnlyStorage as ObservationStorage)}})!;
   const actual = await observer.run('read', trace, () => {
     observer.diagnostic('selected_rows_observed', selectedRows()); return result;
   });
@@ -586,15 +602,15 @@ test('selected row diagnostics cannot replace the original result when optional 
 });
 
 test('managed usage retains one original reader and operation correlation across row consumption', async () => {
-  const records = [], charges = [];
-  const connection = createHostObservationConnection({deliver: value => records.push(value)});
+  const records: ObservationRecord[] = [], charges: ObservationCharge[] = [];
+  const connection = createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord});
   const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
     consume(value) {charges.push(value); return {accepted: true};},
-  })}});
+  } as ConsumeOnlyStorage as ObservationStorage)}})!;
   const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 0n, 3n, 2n, 1n, 4n, 0n, 0n, 8n, 0n, 0n, 16n];
-  let reads = 0, complete;
+  let reads = 0, complete!: NonNullable<ReturnType<typeof captureManagedRunObservation>>;
   await observer.run('read', trace, () => {
-    complete = captureManagedRunObservation(observer, ref, () => {reads++; return values;});
+    complete = captureManagedRunObservation(observer, ref, () => {reads++; return values;})!;
     assert.equal(reads, 0, 'No speculative sample before the actual row response finishes');
   });
   complete(); complete(); values.fill(999n);
@@ -616,35 +632,35 @@ test('managed usage retains one original reader and operation correlation across
 });
 
 test('managed usage refuses foreign readers and missing or retired observations without zero fill', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value)}));
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (value => records.push(value)) as CaptureRecord}))!;
   let foreign = 0;
   assert.equal(captureManagedRunObservation({captureManagedRun() {foreign++;}}, ref, () => []), undefined);
   assert.equal(foreign, 0);
   for (const value of [undefined, Array(16).fill(0n), Array(19).fill(0), Array(18).fill(0n), Array(19).fill(-1n)]) {
-    captureManagedRunObservation(observer, ref, () => value)();
+    captureManagedRunObservation(observer, ref, () => value)!();
   }
-  captureManagedRunObservation(observer, ref, () => {throw new Error('Retired');})();
+  captureManagedRunObservation(observer, ref, () => {throw new Error('Retired');})!();
   assert.equal(observer.status().loss.resourceUnavailable, 6);
   assert.equal(records.length, 0);
   const excluded = installHostObservation(createHostObservationConnection({deliver() {},
-    measurements: {exclude: ['resources']}}));
+    measurements: {exclude: ['resources']}}))!;
   assert.equal(captureManagedRunObservation(excluded, ref, () => {throw new Error('MustNotRead');}), undefined);
   await excluded.close();
   const afterClose = captureManagedRunObservation(observer, ref, () => {throw new Error('MustNotReadAfterClose');});
-  await observer.close(); afterClose();
+  await observer.close(); afterClose!();
   assert.equal(records.length, 0);
 });
 
 test('internal Effect projection uses the active scope and defers delivery', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record)}));
+    deliver: (record => records.push(record)) as CaptureRecord}))!;
   projectEffectApplication({diagnostic() { throw new Error('must not call a foreign hook'); }},
-    undefined, {status: 'published'});
+    undefined!, {status: 'published'});
   await observer.run('submit', trace, () => {
-    projectEffectApplication(observer, undefined,
-      {status: 'needs_reconciliation', receipt: 'SECRET_SENTINEL'});
+    projectEffectApplication(observer, undefined!,
+      {status: 'needs_reconciliation', receipt: 'SECRET_SENTINEL'} as Parameters<typeof projectEffectApplication>[2]);
     assert.equal(records.length, 0, 'no processor runs inside completion');
   });
   await observer.close();
@@ -657,13 +673,13 @@ test('internal Effect projection uses the active scope and defers delivery', asy
 });
 
 test('metadata projection discards every unapproved value and baggage', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record)}));
+    deliver: (record => records.push(record)) as CaptureRecord}))!;
   const sentinel = 'SECRET_SENTINEL';
   await observer.run('check', {...trace, baggage: {password: sentinel}}, async () => {
     observer.emit('check', 'check_completed', {outcome: 'failed',
-      query: sentinel, error: sentinel, name: sentinel, resource: sentinel},
+      query: sentinel, error: sentinel, name: sentinel, resource: sentinel} as Parameters<Projection['emit']>[2],
     {resources: {arbitrary: sentinel}});
   });
   await observer.close();
@@ -676,7 +692,7 @@ test('metadata projection discards every unapproved value and baggage', async ()
 
 test('strict context parsing is correlation only and retains no baggage', () => {
   assert.deepEqual(observationTraceParent({traceparent:
-    `00-${trace.traceId}-${trace.spanId}-01`, baggage: 'secret'}), trace);
+    `00-${trace.traceId}-${trace.spanId}-01`, baggage: 'secret'} as Parameters<typeof observationTraceParent>[0]), trace);
   for (const value of [undefined, 'invalid', `00-${'0'.repeat(32)}-${trace.spanId}-01`,
     `ff-${trace.traceId}-${trace.spanId}-01`]) {
     assert.equal(observationTraceParent({traceparent: value}), undefined);
@@ -687,11 +703,11 @@ test('strict context parsing is correlation only and retains no baggage', () => 
 
 test('unavailable Run budget stops new observations without changing execution', async () => {
   let called = 0;
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record)}), {journal: {
+    deliver: (record => records.push(record)) as CaptureRecord}), {journal: {
     observationStorage() { throw new Error('failed disk'); },
-  }});
+  }})!;
   await observer.run('submit', trace, async () => {
     observer.accepted({inserted: true, ref}, 'request');
     observer.emit('run', 'owner_observed', {ref, outcome: 'running'});
@@ -705,17 +721,17 @@ test('unavailable Run budget stops new observations without changing execution',
 });
 
 test('repeated Owner facts are neither delivered nor reported as observation loss', async () => {
-  const records = [], charges = [];
-  let key;
+  const records: ObservationRecord[] = [], charges: ObservationCharge[] = [];
+  let key: string | undefined;
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record)}), {journal: {observationStorage: () => ({
+    deliver: (record => records.push(record)) as CaptureRecord}), {journal: {observationStorage: () => ({
       consume(value) {
         charges.push(value);
         if (key === value.ownerFactKey) return {accepted: false, repeated: true};
         key = value.ownerFactKey;
         return {accepted: true};
       },
-    })}});
+    } as ConsumeOnlyStorage as ObservationStorage)}})!;
   const facts = {ref, outcome: 'succeeded', revision: 7, cleanupPending: true};
   observer.emit('run', 'owner_observed', facts, {ownerFactKey: 'succeeded;7;1;?'});
   observer.emit('run', 'owner_observed', facts, {ownerFactKey: 'succeeded;7;1;?'});
@@ -739,12 +755,12 @@ test('failed optional storage initialization retains retryable close custody', a
   const observer = installHostObservation(connection, {
     journal: {observationStorage() { throw new Error('initialization failed'); },
       closeObservationStorage() { if (++closes === 1) throw new Error('close failed'); }},
-  });
+  })!;
   assert.equal(await observer.run('check', trace, () => 42), 42);
   await assert.rejects(observer.close(), {message: 'HostObservationCleanupPending'});
   assert.equal(observer.status().budgetUnavailable, 1);
   assert.equal(observer.status().cleanupPending, true);
-  assert.throws(() => installHostObservation(connection), /HostObservationConnectionInUse/u);
+  assert.throws(() => installHostObservation(connection)!, /HostObservationConnectionInUse/u);
   await observer.close();
   await observer.close();
   assert.equal(closes, 2);
@@ -752,12 +768,12 @@ test('failed optional storage initialization retains retryable close custody', a
 });
 
 test('queue overflow and delivery failure cannot replace an operation result', async () => {
-  let release;
-  const blocked = new Promise(resolve => { release = resolve; });
+  let release!: () => void;
+  const blocked = new Promise<void>(resolve => { release = resolve; });
   const observer = installHostObservation(createHostObservationConnection({
     limits: {queueRecords: 1, shutdownMs: 20},
     deliver: async () => { await blocked; throw new Error('export failed'); },
-  }));
+  }))!;
   observer.emit('compute', 'task_started');
   await turn();
   assert.equal(observer.status().active, 1);
@@ -780,7 +796,7 @@ test('disabled signals neither open telemetry storage nor call delivery', async 
   const observer = installHostObservation(createHostObservationConnection({
     include: [], deliver: () => { calls++; },
     currentContext: () => { throw new Error('must not be called'); },
-  }), {journal: {observationStorage() { throw new Error('must not be read'); }}});
+  }), {journal: {observationStorage() { throw new Error('must not be read'); }}})!;
   assert.equal(await observer.run('check', trace, () => 42), 42);
   await observer.close();
   assert.equal(calls, 0);
@@ -797,12 +813,12 @@ test('context getters are copied once and cannot inject a later value', () => {
 });
 
 test('application callback state changes at actual delivery entry and thrown settlement only', async () => {
-  let observer, active;
+  let observer!: Projection, active: ReturnType<Projection['applicationCallbackState']> | undefined;
   observer = installHostObservation(createHostObservationConnection({deliver() {
     active = observer.applicationCallbackState();
     assert.equal(active.active, true);
     throw new Error('original callback rejection');
-  }}));
+  }}))!;
   try {
     const idle = observer.applicationCallbackState();
     assert(Object.isFrozen(idle));
@@ -821,11 +837,11 @@ test('application callback state changes at actual delivery entry and thrown set
 });
 
 test('observation shutdown cannot mark an unsettled application callback idle', async () => {
-  let release;
-  const callback = new Promise(resolve => {release = resolve;});
+  let release!: () => void;
+  const callback = new Promise<void>(resolve => {release = resolve;});
   const observer = installHostObservation(createHostObservationConnection({
     limits: {shutdownMs: 10}, deliver: () => callback,
-  }));
+  }))!;
   try {
     observer.emit('compute', 'task_started');
     await turn();
@@ -841,25 +857,25 @@ test('observation shutdown cannot mark an unsettled application callback idle', 
 });
 
 test('timed-out delivery keeps its connection owned until physical settlement', async () => {
-  let release;
+  let release!: () => void;
   const connection = createHostObservationConnection({limits: {shutdownMs: 10},
-    deliver: () => new Promise(resolve => { release = resolve; })});
-  const observer = installHostObservation(connection);
+    deliver: () => new Promise<void>(resolve => { release = resolve; })});
+  const observer = installHostObservation(connection)!;
   observer.emit('compute', 'task_started');
   await turn();
   await observer.close();
-  assert.throws(() => installHostObservation(connection), /HostObservationConnectionInUse/u);
+  assert.throws(() => installHostObservation(connection)!, /HostObservationConnectionInUse/u);
   release();
   await turn();
-  await installHostObservation(connection).close();
+  await installHostObservation(connection)!.close();
 });
 
 test('recovery links saved context, never reopens its caller span', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    deliver: record => records.push(record)}), {journal: {observationStorage: () => ({
+    deliver: (record => records.push(record)) as CaptureRecord}), {journal: {observationStorage: () => ({
     consume: () => ({accepted: true, context: trace}),
-  })}});
+  } as ConsumeOnlyStorage as ObservationStorage)}})!;
   observer.emit('recovery', 'resume_claimed', {ref});
   await observer.close();
   assert.equal(records[0].parent, undefined);
@@ -869,19 +885,19 @@ test('recovery links saved context, never reopens its caller span', async () => 
 test('unknown configuration and increased budgets are rejected at installation', () => {
   for (const options of [{transport: 'grpc'}, {limits: {runRecords: 99999}},
     {include: ['unknown']}, {include: ['run', 'run']}, {limits: null}]) {
-    assert.throws(() => createHostObservationConnection({deliver() {}, ...options}), TypeError);
+    assert.throws(() => createHostObservationConnection({deliver() {}, ...options} as Parameters<typeof createHostObservationConnection>[0]), TypeError);
   }
 });
 
 test('disabling correlation removes saved links, caller context and Run identity', async () => {
-  const records = [];
-  let initialized;
+  const records: ObservationRecord[] = [];
+  let initialized!: Parameters<ObservationStorage['initialize']>[0];
   const observer = installHostObservation(createHostObservationConnection({
-    correlation: false, deliver: record => records.push(record)}), {
+    correlation: false, deliver: (record => records.push(record)) as CaptureRecord}), {
     runId: () => 'owner-run', journal: {observationStorage: () => ({
       initialize: value => { initialized = value; },
       consume: () => ({accepted: true, context: trace}),
-    })}});
+    })}})!;
   await observer.run('submit', trace, () => {
     observer.accepted({inserted: true, ref}, 'request');
     observer.emit('run', 'owner_observed', {ref});
@@ -897,8 +913,8 @@ test('disabling correlation removes saved links, caller context and Run identity
 });
 
 test('unknown event content never enters the queue', async () => {
-  const records = [];
-  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}));
+  const records: ObservationRecord[] = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: (record => records.push(record)) as CaptureRecord}))!;
   observer.emit('run', 'SECRET_SENTINEL');
   await observer.close();
   assert.equal(records.length, 0);
@@ -906,13 +922,13 @@ test('unknown event content never enters the queue', async () => {
 });
 
 test('measurement and correlation selections preserve facts while narrowing disclosure', async () => {
-  const records = [];
-  const connection = createHostObservationConnection({deliver: record => records.push(record),
+  const records: ObservationRecord[] = [];
+  const connection = createHostObservationConnection({deliver: (record => records.push(record)) as CaptureRecord,
     measurements: {include: ['duration'], exclude: ['duration']},
     correlation: {include: ['task']}, attributes: {exclude: ['actql.task.ordinal']}});
   const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
     consume: () => ({accepted: true, context: trace}),
-  })}, runId: () => 'original-run'});
+  } as ConsumeOnlyStorage as ObservationStorage)}, runId: () => 'original-run'})!;
   await observer.run('check', trace, () => observer.emit('compute', 'task_completed',
     {ref, task: 0, slot: 0, attempt: 1, attemptCid: `sha256:${'c'.repeat(64)}`}, {durationMs: 100}));
   await observer.close();
@@ -928,9 +944,9 @@ test('measurement and correlation selections preserve facts while narrowing disc
 });
 
 test('excluding required metadata suppresses a record instead of emitting a misleading schema', async () => {
-  const records = [];
+  const records: ObservationRecord[] = [];
   const observer = installHostObservation(createHostObservationConnection({
-    attributes: {exclude: ['actql.operation']}, deliver: record => records.push(record)}));
+    attributes: {exclude: ['actql.operation']}, deliver: (record => records.push(record)) as CaptureRecord}))!;
   assert.equal(await observer.run('check', trace, () => 42), 42);
   await observer.close();
   assert.equal(records.length, 0);
@@ -938,12 +954,12 @@ test('excluding required metadata suppresses a record instead of emitting a misl
 });
 
 
-async function accountingRecords(value) {
-  const records=[];
-  const observer=installHostObservation(createHostObservationConnection({deliver:record=>records.push(record)}),{
-    journal:{observationStorage:()=>({consume:()=>({accepted:true})})},
-  });
-  await observer.run('read',trace,()=>captureManagedRunObservation(observer,ref,()=>value)());
+async function accountingRecords(value: SynchronousRuntimeData) {
+  const records: ObservationRecord[]=[];
+  const observer=installHostObservation(createHostObservationConnection({deliver:(record=>records.push(record)) as CaptureRecord}),{
+    journal:{observationStorage:()=>({consume:()=>({accepted:true})} as ConsumeOnlyStorage as ObservationStorage)},
+  })!;
+  await observer.run('read',trace,()=>captureManagedRunObservation(observer,ref,()=>value)!());
   await observer.close();
   return {records:records.filter(record=>record.event==='resources_observed'),loss:observer.status().loss};
 }
@@ -973,7 +989,7 @@ test('managed accounting maps every canonical Core field to its unchanged public
 test('managed accounting derives each primitive refusal from Core width without zero fill',async()=>{
   for(const [index,value]of[[0,2147483648n],[8,2147483648n],[10,2147483648n],
     [11,2147483648n],[3,9223372036854775808n],[12,9223372036854775808n],[18,9223372036854775808n]]){
-    const values=Array(19).fill(0n);values[index]=value;
+    const values=Array(19).fill(0n);values[index as number]=value;
     const {records,loss}=await accountingRecords(values);
     assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
   }
@@ -984,7 +1000,7 @@ test('managed accounting refuses holes accessors and extra own metadata without 
   const accessor=Array(19).fill(0n);
   Object.defineProperty(accessor,8,{get(){reads++;return 0n;},enumerable:true,configurable:true});
   const hole=Array(19).fill(0n);delete hole[10];
-  const extra=Array(19).fill(0n);extra.not_a_ledger_counter=0n;
+  const extra=Array(19).fill(0n) as bigint[] & {not_a_ledger_counter?: bigint};extra.not_a_ledger_counter=0n;
   for(const values of[accessor,hole,extra]){
     const {records,loss}=await accountingRecords(values);
     assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
@@ -993,8 +1009,8 @@ test('managed accounting refuses holes accessors and extra own metadata without 
 });
 
 test('effect preflight diagnostics carry only the retained typed failure without invented task coordinates', async () => {
-  const records = [], observer = installHostObservation(createHostObservationConnection({
-    include: ['effect'], correlation: {include: ['task']}, events: {level: 'diagnostic'}, deliver: record => records.push(record)}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['effect'], correlation: {include: ['task']}, events: {level: 'diagnostic'}, deliver: (record => records.push(record)) as CaptureRecord}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
   const failure = Object.freeze({code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'});
   projectEffectPreflightFailure(observer, ref, failure);
   await observer.close();
@@ -1013,9 +1029,9 @@ test('effect preflight diagnostic absence, disabled selection and failed deliver
   const failure = {code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'};
   projectEffectPreflightFailure({diagnostic() {assert.fail('Foreign projection is not callable');}}, ref, failure);
   for (const selected of ['absent', 'disabled', 'delivery-failed']) {
-    const records = [], observer = installHostObservation(createHostObservationConnection({
+    const records: ObservationRecord[] = [], observer = installHostObservation(createHostObservationConnection({
       include: selected === 'disabled' ? ['source'] : ['effect'], events: {level: 'diagnostic'},
-      deliver(record) {if (selected === 'delivery-failed') throw new Error('Optional delivery failed'); records.push(record);}}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+      deliver(record) {if (selected === 'delivery-failed') throw new Error('Optional delivery failed'); records.push(record);}}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})} as ConsumeOnlyStorage as ObservationStorage)}})!;
     assert.doesNotThrow(() => projectEffectPreflightFailure(observer, ref, selected === 'absent' ? undefined : failure));
     await observer.close(); assert.deepEqual(records, []);
     if (selected === 'delivery-failed') assert.equal(observer.status().deliveryFailed, 1);

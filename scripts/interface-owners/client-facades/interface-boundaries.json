@@ -2785,7 +2785,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test("
               }
             ]

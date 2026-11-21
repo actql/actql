@@ -43759,19 +43759,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('failed optional accounting cannot replace cleanup or fabricate a final snapshot'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               }
             ],
@@ -43793,11 +43793,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               }
             ]
@@ -48533,11 +48533,11 @@
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -48951,11 +48951,11 @@
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
@@ -49243,11 +49243,11 @@
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -49615,11 +49615,11 @@
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
-                "path": "adapters/host-common/observation.test.mjs",
+                "path": "adapters/host-common/observation.test.mts",
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mts",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
