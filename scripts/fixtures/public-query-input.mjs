@@ -615,6 +615,9 @@ const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
   dateLiteralOriginal,
+  {name: 'timestamp-literal', format: 'sql', text: "SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS x",
+    expected: [{x: '2026-01-02T03:04:05.000Z'}],
+    columns: [{name: 'x', contract: {type: 'timestamp', nullable: false}}], sourceReadCount: 0},
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,

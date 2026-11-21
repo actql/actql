@@ -333,6 +333,7 @@ pub fn is_source_free_scalar_projection(query : Query) -> Bool {
       | StringLiteral(_)
       | JsonLiteral(_)
       | DateLiteral(_)
+      | TimestampLiteral(_)
       | ParameterReference(_)
       | Property(_, _)
       | ArrayOffset(_, _, _)

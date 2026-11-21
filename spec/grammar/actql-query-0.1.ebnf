@@ -285,8 +285,9 @@ pipe_set_part = set_matching, "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
-expression    = ? closed query expression grammar in query-text.md, including date_literal ? ;
+expression    = ? closed query expression grammar in query-text.md, including date_literal and timestamp_literal ? ;
 date_literal  = "DATE", ? STRING literal chunks decoding to YYYY-[M]M-[D]D ? ;
+timestamp_literal = "TIMESTAMP", ? STRING literal chunks decoding to a civil date with optional time and fixed UTC offset ? ;
 array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
                     "[", [ expression, { ",", expression } ], "]" ;
 array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "NUMBER" | "FLOAT64" | "DOUBLE"

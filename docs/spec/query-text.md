@@ -163,6 +163,17 @@ calendar from `0001-01-01` through `9999-12-31`. SQL lowers the literal to the
 padded `YYYY-MM-DD` spelling of the common `date_literal` expression. Invalid
 calendar dates are refused before execution.
 
+An unquoted `TIMESTAMP` followed by STRING literal chunks selects a Timestamp
+instant. The same civil date spelling can be followed by a space, `T` or `t`
+and one- or two-digit hour, minute and second fields separated by colons.
+The optional decimal fraction has one through six digits. A date alone selects
+midnight UTC. A time can use `Z`, `z`, ` UTC`, ` Etc/UTC` or a numeric offset in
+`±H[H][:M[M]]` with magnitude at most 14 hours. An omitted offset is UTC.
+Second 60 advances to the next minute. Calendar and resulting UTC dates stay
+within years 0001 through 9999. Other named zones require a zone-rule source
+and are outside this literal path. The frontend passes the resulting canonical
+UTC spelling to the existing Timestamp cast expression.
+
 Integer tokens follow the selected [GoogleSQL lexical forms](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#integer_literals): decimal digits or `0x`/`0X` followed by one or more hexadecimal digits. Hexadecimal digits are case-insensitive; the token and AST retain the exact authored spelling and original source span. Unary `+` and `-` remain expression operators. The existing common `number` profile admits integer magnitudes through `9007199254740991` (`0x1fffffffffffff`) exactly, before conversion to finite binary64. Larger integer tokens are refused without rounding; this profile does not claim GoogleSQL's full INT64 value domain. Signed zero expression tokens normalize to canonical positive zero; canonical JSON Number and Parameter admission still reject negative zero. Hexadecimal fractions, binary exponents, digit separators and incomplete prefixes are not integer tokens in the selected profile.
 
 SQL `MOD`/`DIV` have a separate exact signature context. It retains original

@@ -589,6 +589,29 @@ fn append_resolved(
           )
         DateLiteral(text) =>
           lowering.form("date_literal", lowering.add(String(text)))
+        TimestampLiteral(text) => {
+          let scan = text.length().min(34)
+          if scan > max_work - work {
+            raise Abort(WorkLimit)
+          }
+          work += scan
+          guard @value.normalize_sql_timestamp_literal(text) is Some(timestamp) else {
+            raise Abort(InvalidArguments)
+          }
+          lowering.form(
+            "cast",
+            lowering.object([
+              (
+                "value",
+                lowering.form("literal", lowering.add(String(timestamp))),
+              ),
+              (
+                "target",
+                lowering.object([("type", lowering.add(String("timestamp")))]),
+              ),
+            ]),
+          )
+        }
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>

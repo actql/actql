@@ -243,6 +243,7 @@ pub(all) enum ExpressionKind {
   StringLiteral(String)
   JsonLiteral(String)
   DateLiteral(String)
+  TimestampLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)

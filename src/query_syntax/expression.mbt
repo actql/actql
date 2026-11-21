@@ -28,6 +28,7 @@ pub(all) enum ExpressionKind {
   StringLiteral(String)
   JsonLiteral(String)
   DateLiteral(String)
+  TimestampLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
@@ -648,6 +649,11 @@ fn ExpressionParser::expression(
               raise ExpressionAbort("Expected DATE literal YYYY-MM-DD", t.start)
             }
             result = self.add(DateLiteral(date), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "TIMESTAMP" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            result = self.add(TimestampLiteral(value), t.start, end)
           }
           value if value == Symbol(91) || keyword(t, "ARRAY") => {
             let mut target : ArrayElementType? = None
