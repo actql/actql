@@ -95,10 +95,11 @@ export function ownInvocationContext({authorization, credential, limits,
 // ordered query pairs, allowed non-secret request headers, body, and the
 // response header names their installation declared. The common boundary
 // assembles one scoped physical invocation without interpreting its outcome.
-export function invokeScopedCredentialOperation({
-  authorization,
-  credential,
-  callResource,
+export function invokeScopedCredentialOperation(request) {
+  return invokeCredentialRequest(request, request);
+}
+
+function invokeCredentialRequest({
   operation,
   method,
   path,
@@ -111,8 +112,7 @@ export function invokeScopedCredentialOperation({
   maxRequestBytes,
   maxResponseBytes,
   responseCustody,
-  signal,
-}) {
+}, {authorization, credential, callResource, signal}) {
   if (typeof callResource !== 'function' ||
       typeof operation !== 'string' || operation.length === 0 ||
       typeof method !== 'string' || typeof path !== 'string' ||
@@ -155,4 +155,22 @@ export function invokeScopedCredentialOperation({
 export function rowUpdateTransportObservation(response) {
   return Object.freeze({observation: Object.freeze({useCid: response.useCid,
     statusCode: response.statusCode, body: response.body})});
+}
+
+// The two built-in UPDATE declarations share this closed kind inventory.
+// It neither selects a target nor grants an operation.
+export const declaredRowUpdateKinds = Object.freeze(['update']);
+
+// The existing Row Effect dispatch supplies the original scoped invocation.
+// Author transport code receives identity DATA and the original cancellation
+// signal. It has no physical send callback or credential.
+export async function invokeDeclaredRowUpdate(declaration, invocation) {
+  const {member, request, current, authorization, credential, signal} = invocation;
+  const scope = invocationScopeFields(authorization?.scope, credential?.control);
+  const transport = declaration.prepareUpdateWrite(member, request, current,
+    scope?.resourceOrigin, scope?.connectorRegistration, signal);
+  signal?.throwIfAborted();
+  if (transport.bodyBytes !== undefined || transport.bodyMediaType !== undefined ||
+      transport.responseCustody !== undefined) fail();
+  return rowUpdateTransportObservation(await invokeCredentialRequest(transport, invocation));
 }

@@ -428,6 +428,23 @@ test('a failed capture read leaves no unobserved physical continuation',
   }
 }
 
+test('declared UPDATE requires a pure write preparation and an installed credential recipe', async () => {
+  const never = () => assert.fail('Rejected declaration ran a provider callback');
+  const write = Object.freeze({kind: 'update', kinds: Object.freeze(['update']),
+    prepareRequest: never, requestFacts: never, writeOperation: never, prepareUpdateWrite: never,
+    project: never, footprint: never, recoveryEntry: never, recoverRequests: never, requestCid: never,
+    targetRead: Object.freeze({operation: 'read'}), observeTargets: never});
+  await assert.rejects(createInstalledRowEffect({write}), {code: 'InvalidInstalledEffectPlanRecipe'});
+  for (const invalid of [
+    Object.freeze({...write, send: never}),
+    Object.freeze({...write, async prepareUpdateWrite() {never();}}),
+    Object.freeze({...write, kinds: ['create', 'update']}),
+  ]) {
+    await assert.rejects(createInstalledRowEffect({write: invalid}), {code: 'InvalidInstalledRowEffectDriver'});
+  }
+  await assert.rejects(createInstalledRowEffect({driver: write}), {code: 'InvalidInstalledRowEffectDriver'});
+});
+
 function continuationFixture() {
   const original = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
   const binding = {version: 'actql-effect-target-read-binding/0.1',

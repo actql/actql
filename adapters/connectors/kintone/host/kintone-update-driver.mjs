@@ -5,7 +5,7 @@ import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
-import {invocationScopeFields, invokeScopedCredentialOperation, rowUpdateTransportObservation} from '../../../host-common/owned-invocation-context.mjs';
+import {declaredRowUpdateKinds} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
@@ -167,7 +167,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
   };
 
   return Object.freeze({
-    kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
+    kind: 'update', kinds: declaredRowUpdateKinds, targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
     writeOperation: () => KINTONE_RECORD_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
@@ -235,16 +235,13 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'KintoneUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    async send({member, request, current, authorization, credential, signal, callResource}) {
+    prepareUpdateWrite(member, request, current, resourceOrigin, registration, signal) {
       frame(member, current);
-      const scope = invocationScopeFields(authorization?.scope, credential?.control);
-      if (scope?.resourceOrigin !== origin || scope.connectorRegistration !== 'kintone') fail('ForeignKintoneUpdateOrigin');
+      if (resourceOrigin !== origin || registration !== 'kintone') fail('ForeignKintoneUpdateOrigin');
       const body = requests.requestBody(request);
       signal?.throwIfAborted();
-      const response = await invokeScopedCredentialOperation({authorization, credential, callResource,
-        operation: KINTONE_RECORD_UPDATE_OPERATION, method: 'PUT', path: prefix + 'records.json', query: [],
-        headers: [['accept', 'application/json']], body, responseHeaders: [], maxRequestBytes, maxResponseBytes, signal});
-      return rowUpdateTransportObservation(response);
+      return {operation: KINTONE_RECORD_UPDATE_OPERATION, method: 'PUT', path: prefix + 'records.json', query: [],
+        headers: [['accept', 'application/json']], body, responseHeaders: [], maxRequestBytes, maxResponseBytes};
     },
     project({request, observation}) {return requests.projectResponse(request, observation);},
   });

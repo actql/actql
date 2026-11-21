@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {invocationBindingsMatch, invokeScopedCredentialOperation,
+import {invocationBindingsMatch, invokeDeclaredRowUpdate, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
   './owned-invocation-context.mjs';
 
@@ -119,4 +119,40 @@ test('scoped Source invocation forwards its exact original response custody befo
       throw primary;
     }}), error => error === primary);
   assert.equal(retained, 1); assert.strictEqual(observed.body, body);
+});
+
+test('declared row UPDATE uses the original Host authority and refuses codec-owned response custody', async () => {
+  const member = {}, request = {}, current = {}, grant = {}, journal = {};
+  const origin = 'https://records.example', registration = 'fixture';
+  const signal = new AbortController().signal;
+  const body = Buffer.from('original response');
+  const invocations = [];
+  const invocation = {member, request, current, signal, credential: {journal},
+    authorization: {grant, useId: 'original-use', scope: {
+      operation: 'update-record', resourceOrigin: origin, connectorRegistration: registration}},
+    callResource: async call => {
+      invocations.push(call);
+      return {useCid: 'original-reply', statusCode: 200, body};
+    }};
+  const transport = {operation: 'update-record', method: 'PUT', path: '/records', body: '{}',
+    maxRequestBytes: 2, maxResponseBytes: 32};
+  const update = {prepareUpdateWrite(...data) {
+    assert.deepEqual(data, [member, request, current, origin, registration, signal]);
+    return {...transport, authorization: {}, credential: {},
+      callResource() {assert.fail('Codec tried to replace the Host transport');}};
+  }};
+  const {observation} = await invokeDeclaredRowUpdate(update, invocation);
+  assert.equal(observation.body, body);
+  assert.equal(observation.useCid, 'original-reply');
+  assert.equal(invocations.length, 1);
+  assert.equal(invocations[0].grant, grant);
+  assert.equal(invocations[0].journal, journal);
+  assert.equal(invocations[0].signal, signal);
+  assert.equal(invocations[0].useId, 'original-use');
+  assert.deepEqual(invocations[0].operations.get('update-record'), {method: 'PUT', path: '/records', body: '{}'});
+  for (const replacement of [{operation: 'foreign'}, {responseCustody: {}}, {bodyBytes: new Uint8Array()}]) {
+    await assert.rejects(invokeDeclaredRowUpdate({prepareUpdateWrite: () => ({...transport, ...replacement})},
+      invocation), {code: 'InvalidOwnedInvocationContext'});
+  }
+  assert.equal(invocations.length, 1);
 });

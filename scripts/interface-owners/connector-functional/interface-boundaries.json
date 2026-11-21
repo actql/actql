@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "197030beb6a1583b17e48a2556a85b2b1da9dde8104e762f1bc85cb4563fdee8",
+      "sha256": "b2bebe19f4b612f7fc5b0465797b16522b67630ea759bc23fe08ce6aad1c0264",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -7094,6 +7094,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.test.mjs",
+                "anchor": "test('declared UPDATE requires a pure write preparation and an installed credential recipe'"
               }
             ]
           }

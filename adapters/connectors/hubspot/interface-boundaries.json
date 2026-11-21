@@ -2129,7 +2129,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "7fb77b71d039033bb8b2ca6597afc1b88ba8480da0e25c0ddfdba447fee06d66",
+      "sha256": "dd06efb38215d4f0a0994a5ec15896fca649c8dd8eb52a52bc04b7c00e8261bd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2219,6 +2219,18 @@
           "async": false
         },
         {
+          "name": "hubspotUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "resourceOrigin",
+            "_registration",
+            "signal"
+          ],
+          "async": false
+        },
+        {
           "name": "hubspotUpdateDriver/init:project/init:project",
           "parameters": [
             "request",
@@ -2248,19 +2260,6 @@
             "entries"
           ],
           "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:send/init:send",
-          "parameters": [
-            "member",
-            "request",
-            "current",
-            "authorization",
-            "credential",
-            "signal",
-            "callResource"
-          ],
-          "async": true
         },
         {
           "name": "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
@@ -2370,11 +2369,11 @@
             "hubspotUpdateDriver/init:footprint/init:footprint",
             "hubspotUpdateDriver/init:observeTargets/init:observeTargets",
             "hubspotUpdateDriver/init:prepareRequest/init:prepareRequest",
+            "hubspotUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
             "hubspotUpdateDriver/init:project/init:project",
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests",
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests/check/check",
             "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "hubspotUpdateDriver/init:send/init:send",
             "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
@@ -2756,7 +2755,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "f750465a3f5595d2dce986a8f94af4ceb34ea07c3b746f352b9223fba15b4594",
+      "sha256": "8a97f6ab5f892060322f898330efb26c2a3718ff47cb8dfa8abd2f51f06dd1ee",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",

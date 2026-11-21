@@ -6,7 +6,7 @@ import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
-import {invocationScopeFields, invokeScopedCredentialOperation, rowUpdateTransportObservation} from '../../../host-common/owned-invocation-context.mjs';
+import {declaredRowUpdateKinds} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
@@ -162,7 +162,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     });
 
   return Object.freeze({
-    kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
+    kind: 'update', kinds: declaredRowUpdateKinds, targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
     writeOperation: () => HUBSPOT_INSTALLED_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
@@ -214,21 +214,19 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'HubSpotUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    async send({member, request, current, authorization, credential, signal, callResource}) {
+    prepareUpdateWrite(member, request, current, resourceOrigin, _registration, signal) {
       frame(member, current);
-      if (invocationScopeFields(authorization?.scope, credential?.control)?.resourceOrigin !== origin) {
+      if (resourceOrigin !== origin) {
         fail('ForeignHubSpotUpdateOrigin');
       }
       checked(native.hubspotRecheckRecordBatch(requests.nativeRequest(request), current.catalog, maxProperties));
       const body = native.hubspotRecordBatchBody(requests.nativeRequest(request));
       if (Buffer.byteLength(body) > responsePolicy.maxRequestBytes) fail('HubSpotUpdateRequestLimit');
       signal?.throwIfAborted();
-      const response = await invokeScopedCredentialOperation({authorization, credential, callResource,
-        operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, method: 'POST',
+      return {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, method: 'POST',
         path: '/crm/v3/objects/' + segment(requests.objectType(request)) + '/batch/update',
         query: [], headers: [['accept', 'application/json']], body, responseHeaders: [],
-        maxRequestBytes: responsePolicy.maxRequestBytes, maxResponseBytes: responsePolicy.maxResponseBytes, signal});
-      return rowUpdateTransportObservation(response);
+        maxRequestBytes: responsePolicy.maxRequestBytes, maxResponseBytes: responsePolicy.maxResponseBytes};
     },
     project({request, observation}) {
       const result = projectHubSpotRecordWriteObservation({moon: native,

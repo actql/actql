@@ -99,7 +99,7 @@ import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
-import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
+import {invokeDeclaredRowUpdate, invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -1010,14 +1010,19 @@ function prepareInstalledCreateRows(moon, proposals, limits) {
   return {rows: createRows.map(item => item.entry), createRows};
 }
 
-function checkDriver(driver) {
+function checkDriver(driver, declaredUpdate = false) {
   if (driver === null || typeof driver !== 'object' ||
       !Array.isArray(driver.kinds) || driver.kinds.length === 0 ||
       driver.kinds.some(kind => !kinds.includes(kind)) ||
       typeof driver.prepareRequest !== 'function' ||
       typeof driver.requestFacts !== 'function' ||
       typeof driver.writeOperation !== 'function' ||
-      typeof driver.send !== 'function' ||
+      (declaredUpdate
+        ? driver.kinds.length !== 1 || driver.kinds[0] !== 'update' ||
+          !Object.isFrozen(driver) || driver.send !== undefined ||
+          typeof Object.getOwnPropertyDescriptor(driver, 'prepareUpdateWrite')?.value !== 'function' ||
+          nodeTypes.isProxy(driver.prepareUpdateWrite) || nodeTypes.isAsyncFunction(driver.prepareUpdateWrite)
+        : typeof driver.send !== 'function') ||
       typeof driver.project !== 'function' ||
       typeof driver.footprint !== 'function' ||
       ![driver.describe, driver.recheckRequests, driver.issueCapability,
@@ -1203,12 +1208,23 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const configuredMaxRows = Object.hasOwn(suppliedLimits ?? {}, 'maxRows') ? limits.maxRows : undefined;
   const configuredMaxMembers = Object.hasOwn(suppliedLimits ?? {}, 'maxMembers') ? limits.maxMembers : undefined;
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
-  const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
-  const owned = checkDriver(standard === undefined ? driver : standard.driver);
+  // The installed UPDATE declaration borrows the same provider codec and
+  // managed plan. In the shared stage only the Host invokes the write.
+  const declaredUpdate = write !== null && typeof write === 'object' && !nodeTypes.isProxy(write) &&
+    Object.getOwnPropertyDescriptor(write, 'kind')?.value === 'update';
+  const standard = write === undefined || declaredUpdate ? undefined
+    : deriveInstalledRowWrite(write, connectorRegistration);
+  const owned = checkDriver(write === undefined ? driver : standard?.driver ?? write, declaredUpdate);
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
   const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned, localContractLimits.maxNodes);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
+  // A declared UPDATE still uses its existing funded credential children,
+  // including per-row observations. Do not select the unfunded legacy port.
+  const updateRecipe = declaredUpdate ? suppliedRecipes?.update ?? suppliedRecipe : undefined;
+  if (declaredUpdate && (updateRecipe?.credentialOperations === undefined || updateRecipe.physicalWrite !== undefined)) {
+    fail('InvalidInstalledEffectPlanRecipe');
+  }
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
     fail('InvalidInstalledEffectDriverConstruction');
   }
@@ -1314,7 +1330,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     // not invoke current or repeat Mapping/Environment admission.
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
-  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
+  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile, declaredUpdate,
     configuredMaxRows, configuredMaxMembers,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
@@ -2250,7 +2266,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                 expected[field] !== claim[field])) {
             fail('InvalidInstalledRowEffectDispatch');
           }
-          const {owned, site, beforeSendCheck} = ownerOf(member);
+          const {owned, site, beforeSendCheck, declaredUpdate} = ownerOf(member);
           const managedPlanRecipe = recipeOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
@@ -2288,9 +2304,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                   operation: owned.writeOperation(member), site, originalAuthorization: grant, useId,
                   resource: member.resource, purpose: 'effect', runInvocationCid,
                   dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
-                  invoke: ({authorization, credential, callResource}) =>
-                    owned.send({member, request: entry.request, current: now[memberIndex],
-                      authorization, credential, callResource, signal, ...resourceFields(member)})});
+                  invoke: ({authorization, credential, callResource}) => {
+                    const invocation = {member, request: entry.request, current: now[memberIndex],
+                      authorization, credential, callResource, signal, ...resourceFields(member)};
+                    return declaredUpdate ? invokeDeclaredRowUpdate(owned, invocation) : owned.send(invocation);
+                  }});
                 if (beforeSendCheck === undefined) return send();
                 return (async () => {
                   // The SAME durable dispatch already owns this possible send.

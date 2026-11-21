@@ -1,3 +1,4 @@
+import {invokeDeclaredRowUpdate} from '../../../host-common/owned-invocation-context.mjs';
 // Real provider constructors/decoders with explicit Account/Site/physical
 // ports. The common Host owns actual approval, Ledger claims and cleanup;
 // these tests do not manufacture their acceptance or send to a real service.
@@ -76,7 +77,7 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
     const logical = driver.prepareRequest({member, current, value, selector});
     return {logical, finalized: driver.finalizeRequest({member, request: logical.request, requestTag: tag})};
   };
-  const send = (current, request, changed = {}) => driver.send({member, current, request,
+  const send = (current, request, changed = {}) => invokeDeclaredRowUpdate(driver, {member, current, request,
     credential: {binding: {}}, authorization: {grant: {}, useId: 'original-write',
       scope: Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(key => [key, 'same'])),
         resourceOrigin: origin, operation: 'hubspot:objects:batch-update'})},

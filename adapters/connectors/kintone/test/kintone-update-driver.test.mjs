@@ -1,3 +1,4 @@
+import {invokeDeclaredRowUpdate} from '../../../host-common/owned-invocation-context.mjs';
 // Actual same-source native request, Form, target and response validators.
 // Explicit Account/Site/read/send ports are component inputs, not ordinary
 // Host approval, durable claims, physical cleanup or provider acceptance.
@@ -56,7 +57,7 @@ function fixture(changes = {}) {
   const observe = (current, entries, options = {}) => driver.observeTargets({...describeOptions, current, entries,
     authorizationForRow: () => target, ...options});
   const finalize = logical => driver.finalizeRequest({request: logical.request, requestTag: cid('c')});
-  const send = (current, request, changes = {}) => driver.send({member, current, request,
+  const send = (current, request, changes = {}) => invokeDeclaredRowUpdate(driver, {member, current, request,
     credential: {binding: {}}, authorization: {grant: {}, useId: 'one-write',
       scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
     async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},

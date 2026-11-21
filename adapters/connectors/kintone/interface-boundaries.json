@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "cc5d16b0bb9dc9fedcb79cf2116e142e2985db6069f46b7149add66316d5f10d",
+      "sha256": "6c3445398a07186afa6db104dc16196034591df78cda67d9d3d4e199eb67ff7e",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -8621,6 +8621,18 @@
           "async": false
         },
         {
+          "name": "kintoneUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "resourceOrigin",
+            "registration",
+            "signal"
+          ],
+          "async": false
+        },
+        {
           "name": "kintoneUpdateDriver/init:project/init:project",
           "parameters": [
             "request",
@@ -8645,19 +8657,6 @@
             "entries"
           ],
           "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:send/init:send",
-          "parameters": [
-            "member",
-            "request",
-            "current",
-            "authorization",
-            "credential",
-            "signal",
-            "callResource"
-          ],
-          "async": true
         },
         {
           "name": "kintoneUpdateDriver/kintoneUpdateDriver",
@@ -8778,6 +8777,7 @@
         {
           "operations": [
             "<module>",
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "capture/capture/capture",
             "kintoneUpdateDriver",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
@@ -8786,10 +8786,10 @@
             "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
             "kintoneUpdateDriver/init:observeTargets/init:observeTargets/observed/observed",
             "kintoneUpdateDriver/init:prepareRequest/init:prepareRequest",
+            "kintoneUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
             "kintoneUpdateDriver/init:project/init:project",
             "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
             "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "kintoneUpdateDriver/init:send/init:send",
             "kintoneUpdateDriver/kintoneUpdateDriver",
             "kintoneUpdateDriver/kintoneUpdateDriver#2",
             "kintoneUpdateDriver/readScope/readScope/decision/decision",
@@ -8798,8 +8798,7 @@
             "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
             "kintoneUpdateDriver/restore/restore",
             "kintoneUpdateDriver/restore/restore/restore",
-            "kintoneUpdateDriver/restore/restore/restore/restore",
-            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor"
+            "kintoneUpdateDriver/restore/restore/restore/restore"
           ],
           "exports": [
             "KINTONE_UPDATE_TARGET_VERSION",
@@ -9088,7 +9087,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "1c41c2eb9dcb21a1f9150b2115710015c18e6f36ea8c26695991d1513f9bc14d",
+      "sha256": "864a1c3f551a49c9bfeb81176d640fe8365a2f077c1be88442316ee20102ec0f",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",

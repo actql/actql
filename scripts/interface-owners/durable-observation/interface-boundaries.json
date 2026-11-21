@@ -1485,10 +1485,12 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1b718558eaad7a12c80c1f17d4c4520d7e35911ed258f359e57692ed23901288",
+      "sha256": "168d9e9002bff4c210806b637c36b9e9c2cd90847e9a31f1f3874443c98d100f",
       "exports": [
+        "declaredRowUpdateKinds",
         "invocationBindingsMatch",
         "invocationScopeFields",
+        "invokeDeclaredRowUpdate",
         "invokeScopedCredentialOperation",
         "ownInvocationAuthorization",
         "ownInvocationContext",
@@ -1521,24 +1523,17 @@
           "async": false
         },
         {
+          "name": "invokeDeclaredRowUpdate",
+          "parameters": [
+            "declaration",
+            "invocation"
+          ],
+          "async": true
+        },
+        {
           "name": "invokeScopedCredentialOperation",
           "parameters": [
-            "authorization",
-            "credential",
-            "callResource",
-            "operation",
-            "method",
-            "path",
-            "query",
-            "headers",
-            "body",
-            "bodyBytes",
-            "bodyMediaType",
-            "responseHeaders",
-            "maxRequestBytes",
-            "maxResponseBytes",
-            "responseCustody",
-            "signal"
+            "request"
           ],
           "async": false
         },
@@ -1590,6 +1585,7 @@
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
             "invocationScopeFields",
+            "invokeDeclaredRowUpdate",
             "invokeScopedCredentialOperation",
             "ownInvocationAuthorization",
             "ownInvocationContext",
@@ -1598,8 +1594,10 @@
             "rowUpdateTransportObservation"
           ],
           "exports": [
+            "declaredRowUpdateKinds",
             "invocationBindingsMatch",
             "invocationScopeFields",
+            "invokeDeclaredRowUpdate",
             "invokeScopedCredentialOperation",
             "ownInvocationAuthorization",
             "ownInvocationContext",
@@ -1665,6 +1663,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "anchor": "It has no physical send callback or credential."
               }
             ],
             "synchronization": [
@@ -1765,6 +1767,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
                 "anchor": "test('kintone driver does not discard an observed write on late abort or retry a lost response'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared row UPDATE uses the original Host authority and refuses codec-owned response custody'"
               }
             ]
           }
