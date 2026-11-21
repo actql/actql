@@ -5,12 +5,20 @@ import {join} from 'node:path';
 import {sourceCases, sourceRefusals, sourceRuntimeRefusals}
   from './fixtures/infer-source-expectation.mjs';
 
+type SourceAcceptance = {
+  root: string; directory: string; environment: NodeJS.ProcessEnv; sourceSha: string;
+  inputFieldsOnly?: boolean;
+  run(command: string, args: readonly string[], cwd: string, environment: NodeJS.ProcessEnv, timeout: number): string;
+};
+type PositiveCase = keyof typeof sourceCases;
+type ProviderCall = {transport: string; phase: string; caseName: string};
+
 export async function exercisePackedInferSource({root, directory, run, environment,
-  sourceSha, inputFieldsOnly = false}) {
+  sourceSha, inputFieldsOnly = false}: SourceAcceptance) {
   // The default CI cohort retains every case. This selector narrows a local
   // boundary check without substituting another install or execution path.
-  const positiveCases = inputFieldsOnly ? ['minimal', 'folded-input', 'quoted-input'] :
-    Object.keys(sourceCases);
+  const positiveCases: readonly PositiveCase[] = inputFieldsOnly ? ['minimal', 'folded-input', 'quoted-input'] :
+    Object.keys(sourceCases) as PositiveCase[];
   const refusalCases = inputFieldsOnly ? ['unknown-input', 'duplicate-input'] :
     Object.keys(sourceRefusals);
   const runtimeRefusalCases = inputFieldsOnly ? [] : Object.keys(sourceRuntimeRefusals);
@@ -47,7 +55,7 @@ export async function exercisePackedInferSource({root, directory, run, environme
   }
   const calls = (await readFile(join(root, 'source-provider-calls.jsonl'), 'utf8'))
     .trim().split('\n').map(line => {
-      const {transport, phase, caseName} = JSON.parse(line);
+      const {transport, phase, caseName} = JSON.parse(line) as ProviderCall;
       return `${transport}:${phase}:${caseName}`;
     });
   const expectedCalls = ['local', 'remote'].flatMap(transport => [

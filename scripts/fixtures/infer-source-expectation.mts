@@ -82,6 +82,9 @@ const compositeHistoricalColumn = {name: 'assessment', contract: {
         id: {type: 'number', nullable: false}}}},
 }};
 
+type SourceCase = {source: string; rows: readonly unknown[]; columns: readonly unknown[];
+  calls: number; inputWire?: string; noResponse?: boolean};
+
 // All cases are authored from the common outcome, key and projection rules.
 // No expected row or contract is obtained from a compiler or Result reader.
 export const sourceCases = {
@@ -222,7 +225,7 @@ export const sourceCases = {
     columns: [{name: 'id', contract: {type: 'number', nullable: false}},
       retainedColumns[1], historicalColumn], calls: 1, inputWire: '"urgent"',
   },
-};
+} satisfies Record<string, SourceCase>;
 
 // These are admitted Runs whose ordinary ASSERT UNIQUE guard must fail before
 // Model dispatch. They must never be counted as source/admission refusals.

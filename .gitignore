@@ -985,3 +985,7 @@ target/
 /scripts/readme-quickstart.test.d.mts
 /scripts/packed-public-query-options.mjs
 /scripts/packed-public-query-options.d.mts
+/scripts/packed-infer-source-acceptance.mjs
+/scripts/packed-infer-source-acceptance.d.mts
+/scripts/fixtures/infer-source-expectation.mjs
+/scripts/fixtures/infer-source-expectation.d.mts
