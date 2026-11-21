@@ -171,21 +171,24 @@ test "negative offset classification retains the expression work limit" {
 }
 
 ///|
-test "navigation offset input violations do not reclassify unsupported window signatures" {
+test "valid navigation defaults and absent frames do not require offset recovery" {
   for
     text in [
       "SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS adjacent FROM orders", "SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM orders",
       "SELECT LAG(amount, 1, 0) OVER (ORDER BY id) AS adjacent FROM orders",
     ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        values_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedAnalytic),
-      msg=text,
-    )
+    let program = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      values_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_false(semantic(program).contains("\"frame\":"))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+      NeedsInputs(_) => fail("the authored default frame is closed")
+    }
   }
 }
 
