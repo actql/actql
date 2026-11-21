@@ -1,10 +1,15 @@
 // Exact transport for authored test values only. Every node is tagged, so
 // authored arrays/objects cannot collide with a sentinel. Never calls toJSON
 // or getters, and never normalizes away an explicitly present undefined.
-const fail = () => { throw new TypeError('InvalidRetainedFixtureValue'); };
-export function encodeRetainedFixture(value) {
-  const active = new WeakSet();
-  const encode = value => {
+type EncodedValue = ['undefined' | 'null'] | ['string' | 'number' | 'bigint', string] | ['boolean', boolean] |
+  ['array', EncodedValue[]] | ['object' | 'null-object', [string, EncodedValue][]];
+type RetainedValue = null | undefined | string | boolean | number | bigint |
+  RetainedValue[] | {[key: string]: RetainedValue};
+
+const fail = (): never => { throw new TypeError('InvalidRetainedFixtureValue'); };
+export function encodeRetainedFixture(value: unknown) {
+  const active = new WeakSet<object>();
+  const encode = (value: unknown): EncodedValue => {
     if (value === undefined) return ['undefined'];
     if (value === null) return ['null'];
     if (typeof value === 'string') return ['string', value];
@@ -18,13 +23,13 @@ export function encodeRetainedFixture(value) {
         !(prototype === null && !array)) return fail();
     active.add(value);
     const keys = Reflect.ownKeys(value);
-    const entries = [];
+    const entries: [string, EncodedValue][] = [];
     for (const key of keys) {
       if (array && key === 'length') continue;
       if (typeof key !== 'string') return fail();
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (!descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) return fail();
-      entries.push([key, encode(descriptor.value)]);
+      if (!descriptor!.enumerable || !Object.hasOwn(descriptor!, 'value')) return fail();
+      entries.push([key, encode(descriptor!.value)]);
     }
     active.delete(value);
     if (array) {
@@ -35,12 +40,12 @@ export function encodeRetainedFixture(value) {
   };
   return JSON.stringify(['retained-fixture-values/0.1', encode(value)]);
 }
-export function decodeRetainedFixture(wire) {
-  const root = JSON.parse(wire);
+export function decodeRetainedFixture(wire: string) {
+  const root: unknown = JSON.parse(wire);
   if (!Array.isArray(root) || root.length !== 2 || root[0] !== 'retained-fixture-values/0.1') return fail();
-  const decode = node => {
+  const decode = (node: unknown): RetainedValue => {
     if (!Array.isArray(node) || typeof node[0] !== 'string') return fail();
-    const [tag, value] = node;
+    const [tag, value]: unknown[] = node;
     if (tag === 'undefined' || tag === 'null') {
       if (node.length !== 1) return fail();
       return tag === 'null' ? null : undefined;
@@ -48,7 +53,7 @@ export function decodeRetainedFixture(wire) {
     if (node.length !== 2) return fail();
     if (tag === 'string' || tag === 'boolean') {
       if (typeof value !== tag) return fail();
-      return value;
+      return value as string | boolean;
     }
     if (tag === 'number') {
       if (typeof value !== 'string') return fail();
@@ -65,7 +70,7 @@ export function decodeRetainedFixture(wire) {
       return value.map(decode);
     }
     if (tag !== 'object' && tag !== 'null-object' || !Array.isArray(value)) return fail();
-    const object = tag === 'null-object' ? Object.create(null) : {};
+    const object: Record<string, RetainedValue> = tag === 'null-object' ? Object.create(null) : {};
     for (const pair of value) {
       if (!Array.isArray(pair) || pair.length !== 2 || typeof pair[0] !== 'string' ||
           Object.hasOwn(object, pair[0])) return fail();

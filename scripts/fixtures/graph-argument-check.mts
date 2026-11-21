@@ -3,6 +3,17 @@
 // parser/checker creates this oracle.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import type {CheckOutcome, CheckInput, Client} from '@actql/sdk';
+import type * as Sdk from '@actql/sdk';
+
+type CompletedCheck = Extract<CheckOutcome, {outcome: 'completed'}>;
+type CheckLocation = Parameters<typeof Sdk.resolveCheckLocation>[1];
+type ArgumentFixture = {id: string; source: string; operation: string; startByte: number; endByte: number; token: string};
+type LiteralFixture = ArgumentFixture & {argument: string};
+type CheckReport = {version: string; mode: string; beforeDispatchCalls: number | null;
+  expectedInventory: readonly string[]; completedInventory: readonly string[];
+  cases: readonly {id: string; noExecution: unknown}[];
+  noExecution: unknown; complete: boolean; primaryError: unknown};
 
 export const graphArgumentLiteralIds = Object.freeze([
   'components-kind-plain', 'components-max-output-rows-plain', 'subgraph-nodes-plain',
@@ -12,7 +23,7 @@ export const graphArgumentLiteralIds = Object.freeze([
   'components-kind-repeated-plain', 'components-kind-repeated-emoji-crlf',
 ]);
 const {cases: literals} = JSON.parse(readFileSync(
-  new URL('./graph-argument-origin-literals.json', import.meta.url), 'utf8'));
+  new URL('./graph-argument-origin-literals.json', import.meta.url), 'utf8')) as {cases: readonly LiteralFixture[]};
 assert.deepEqual(literals.map(item => item.id), graphArgumentLiteralIds);
 
 export const graphArgumentCheckInventory = Object.freeze([
@@ -28,7 +39,7 @@ export const graphArgumentNoExecution = Object.freeze({
   runs: 0, dispatchReservations: 0, physicalReservations: 0,
   sourceOpens: 0, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
 });
-export function requireGraphArgumentCheckReport(report, mode) {
+export function requireGraphArgumentCheckReport(report: CheckReport, mode: string) {
   assert.equal(report.version, 'actql-graph-argument-check/0.1');
   assert.equal(report.mode, mode);
   assert.equal(report.beforeDispatchCalls, mode === 'remote' ? 0 : null);
@@ -54,18 +65,19 @@ const explanations = {
     hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'},
 };
 
-export async function exerciseGraphArgumentChecks({denied, absent}, sdk,
-  completedCase = async () => {}) {
+export async function exerciseGraphArgumentChecks({denied, absent}: {denied: Pick<Client, 'check'>; absent: Pick<Client, 'check'>},
+  sdk: Pick<typeof Sdk, 'getCheckInput' | 'resolveCheckLocation' | 'explainCheckReason'>,
+  completedCase: (id: string) => void | Promise<void> = async () => {}) {
   const {getCheckInput, resolveCheckLocation, explainCheckReason} = sdk;
   // Independent installations use different keyed context/input identities.
   // Validate each binding first, then replace only these opaque identities;
   // retain all public facts, locations, requirements and disclosure structure.
-  function publicEnvelope(outcome) {
+  function publicEnvelope(outcome: CompletedCheck) {
     assert.match(outcome.report.context_ref, /^ctx:[0-9a-f]{64}$/u);
     const revisions = new Map();
     for (const input of outcome.report.inputs) {
       assert.match(input.revision, /^rev:[0-9a-f]{64}$/u);
-      assert.equal(getCheckInput(outcome, input.document_id).revision, input.revision);
+      assert.equal(getCheckInput(outcome, input.document_id)!.revision, input.revision);
       revisions.set(input.document_id, input.revision);
     }
     return {...outcome, report: {...outcome.report, context_ref: '<host-context>',
@@ -77,12 +89,12 @@ export async function exerciseGraphArgumentChecks({denied, absent}, sdk,
         return {...reason, location: {...reason.location, revision: '<' + reason.location.document_id + '>'}};
       })}};
   }
-  let previous;
-  async function invalid(fixture, issue) {
+  let previous: {input: CheckInput; location: CheckLocation} | undefined;
+  async function invalid(fixture: ArgumentFixture, issue: keyof typeof explanations) {
     const outcome = await denied.check(fixture.source, options);
     assert.equal(outcome.outcome, 'completed', fixture.id);
     assert.equal(outcome.report.verdict, 'invalid', fixture.id);
-    const original = getCheckInput(outcome, 'source');
+    const original = getCheckInput(outcome, 'source')!;
     assert.equal(original.documentId, 'source', fixture.id);
     assert.match(original.revision, /^rev:[0-9a-f]{64}$/u, fixture.id);
     assert.equal(original.kind, 'text', fixture.id);
@@ -90,18 +102,19 @@ export async function exerciseGraphArgumentChecks({denied, absent}, sdk,
     assert.deepEqual(outcome.report.inputs.find(input => input.document_id === 'source'),
       {document_id: 'source', revision: original.revision, kind: 'text',
         byte_length: Buffer.byteLength(fixture.source, 'utf8')}, fixture.id);
-    const location = {document_id: 'source', revision: original.revision, kind: 'text',
+    const location: CheckLocation = {document_id: 'source', revision: original.revision, kind: 'text',
       start_byte: fixture.startByte, end_byte: fixture.endByte, precision: 'exact'};
     assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
       facts: {operation: fixture.operation, issue}, location}], fixture.id);
     assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []}, fixture.id);
     assert.deepEqual(outcome.report.requirements, [], fixture.id);
-    const resolved = resolveCheckLocation(outcome, location);
+    const resolved = resolveCheckLocation(outcome, location)!;
     assert.equal(resolved.input, original, fixture.id);
-    assert.equal(resolved.text, fixture.token, fixture.id);
+    assert.equal((resolved as Extract<typeof resolved, {kind: 'text'}>).text, fixture.token, fixture.id);
     assert.equal(resolveCheckLocation(outcome, location,
       {...original, text: 'SELECT 1 AS replacement'}), undefined, fixture.id);
     assert.equal(resolveCheckLocation(outcome,
+      // @ts-expect-error An invalid JavaScript document ID must also refuse at runtime.
       {...location, document_id: 'parameter_values'}), undefined, fixture.id);
     assert.equal(resolveCheckLocation(outcome,
       {...location, revision: 'rev:' + '0'.repeat(64)}), undefined, fixture.id);
@@ -134,7 +147,7 @@ export async function exerciseGraphArgumentChecks({denied, absent}, sdk,
     ['components-private-kind', "kind: 'private-kind-value'", 'invalid_kind', 147, 167, "'private-kind-value'"],
     ['components-output-zero', "kind: 'weak', max_output_rows: 0", 'invalid_output_rows', 172, 173, '0'],
     ['components-output-fraction', "kind: 'weak', max_output_rows: 1.5", 'invalid_output_rows', 172, 175, '1.5'],
-  ]) {
+  ] as const) {
     await invalid({id, source: '/*😀*/\r\n' + prefix +
       `FROM g |> components(${arguments_}) |> SELECT component_size`,
     operation: 'components', startByte, endByte, token}, issue);
@@ -142,7 +155,7 @@ export async function exerciseGraphArgumentChecks({denied, absent}, sdk,
   for (const [id, token, endByte] of [
     ['subgraph-empty-ids', '{ids: []}', 145],
     ['subgraph-unknown-selector', '{ids: [], unknown: true}', 160],
-  ]) {
+  ] as const) {
     await invalid({id, source: prefix +
       `FROM g |> subgraph(nodes: ${token}) |> node_rows() |> SELECT node_key`,
     operation: 'subgraph', startByte: 136, endByte, token}, 'invalid_node_selector');

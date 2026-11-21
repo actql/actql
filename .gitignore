@@ -995,3 +995,9 @@ target/
 /scripts/fixtures/packed-query-transport-owner.d.mts
 /scripts/test-packed-public-query.mjs
 /scripts/test-packed-public-query.d.mts
+/scripts/fixtures/retained-fixture-values.mjs
+/scripts/fixtures/retained-fixture-values.d.mts
+/scripts/fixtures/distinct-join-order-inventory.mjs
+/scripts/fixtures/distinct-join-order-inventory.d.mts
+/scripts/fixtures/graph-argument-check.mjs
+/scripts/fixtures/graph-argument-check.d.mts

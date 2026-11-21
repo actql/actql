@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 
+type TransportReport = {mode: string; complete: boolean; expectedInventory: unknown; completedInventory: unknown;
+  expectedRetainedCohorts: number; needsTail: boolean};
+
 // Authored from the original issue #640 corpus at
 // 57c5ce979025c57ac8d2dc65affaa9bedb83b0b7, independently of worker selection.
 const expected = [
@@ -17,12 +20,12 @@ const expected = [
 ].map(([kind, position, name]) =>
   ['standard', kind, position, 'distinct-join-order-' + name]);
 
-export function requireDistinctJoinOrderInventory(inventory) {
+export function requireDistinctJoinOrderInventory(inventory: unknown) {
   assert.ok(Array.isArray(inventory));
   assert.equal(inventory.length, 11, 'original DISTINCT JOIN corpus has eleven cases per transport');
-  const identities = inventory.map(value => {
+  const identities = inventory.map((value: unknown) => {
     assert.equal(typeof value, 'string');
-    const identity = JSON.parse(value);
+    const identity = JSON.parse(value as string) as unknown;
     assert.ok(Array.isArray(identity));
     assert.equal(identity.length, 5);
     assert.match(identity[4], /^[a-f0-9]{64}$/u, 'retain the original case-content digest');
@@ -32,7 +35,7 @@ export function requireDistinctJoinOrderInventory(inventory) {
     'selected DISTINCT JOIN acceptance must retain every original case in order');
 }
 
-export function requireDistinctJoinOrderReports(reports) {
+export function requireDistinctJoinOrderReports(reports: readonly TransportReport[]) {
   assert.deepEqual(reports.map(report => report.mode), ['local', 'remote']);
   for (const report of reports) {
     assert.equal(report.complete, true);
