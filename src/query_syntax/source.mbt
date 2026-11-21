@@ -125,6 +125,7 @@ fn scan_tokens(
   let scanner : Scanner = { text, budget, offset: 0, byte_offset: 0, }
   let tokens : Array[Token] = []
   let identifiers : Map[String, String] = Map([])
+  let mut sql_from = false
   let result = try {
     while true {
       let t = scanner.next()
@@ -148,16 +149,24 @@ fn scan_tokens(
         _ => ()
       }
       tokens.push(t)
-      // A selected query keeps this scanner, budget and source document. A
-      // rejected first-token route must not inspect a foreign body's grammar.
-      let rejected_route = tokens.length() == 1 &&
-        (match query_route {
-          Some(sql_only) =>
-            !query_head(t) ||
-            (sql_only && t.value != Symbol(40) && !sql_head(t))
-          None => false
-        })
-      if first_only || rejected_route || t.value == End {
+      if tokens.length() == 1 {
+        sql_from = query_route == Some(true) && keyword(t, "FROM")
+      }
+      // A selected query keeps one scanner and budget. Inspect the second
+      // token of a SQL FROM head, then stop at a foreign Source or Pipe.
+      let rejected_route = match query_route {
+        Some(sql_only) if tokens.length() == 1 =>
+          !query_head(t) ||
+          (sql_only && !sql_from && t.value != Symbol(40) && !sql_head(t))
+        Some(true) if sql_from =>
+          if tokens.length() == 2 {
+            !keyword(t, "UNNEST")
+          } else {
+            t.value == Pipe
+          }
+        _ => false
+      }
+      if (first_only && !sql_from) || rejected_route || t.value == End {
         break
       }
     }

@@ -1979,9 +1979,9 @@ execution, capacity or successful publication.
 
 `WITH name AS (body), ... query` is the shared logical producer-binding surface
 for SQL and AQL-text. Both selectors lower accepted WITH/SELECT/CREATE input
-through the same ordinary frontend; SQL keeps its existing top-level head
-selection, while AQL-text also accepts a standalone FROM-headed Pipe. JSON/YAML
-remain supported machine Program inputs.
+and bare `FROM UNNEST(...) AS element` value tables through the same ordinary
+frontend. AQL-text selects standalone FROM-headed Pipes, including those
+starting with a value table. JSON/YAML remain supported machine Program inputs.
 
 A binding does not acquire, copy, store, normalize or publish its value and does
 not request placement or a task boundary. Its body resolves before its name

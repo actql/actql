@@ -499,6 +499,14 @@ fn sql_head(first : Token) -> Bool {
 }
 
 ///|
+fn sql_unnest_route(source : Tokens) -> Bool {
+  source.tokens.length() >= 3 &&
+  keyword(source.tokens[0], "FROM") &&
+  keyword(source.tokens[1], "UNNEST") &&
+  source.tokens[source.tokens.length() - 1].value == End
+}
+
+///|
 /// SQL is selected explicitly. A Pipe source must retain the AQL-text
 /// spelling, even though both lower through the same query representation.
 pub fn starts_sql(
@@ -506,12 +514,12 @@ pub fn starts_sql(
   limits : LexicalLimits,
   source_path? : String = "<query>",
 ) -> Result[Bool, Diagnostic] {
-  match scan_tokens(text, limits, source_path, true) {
+  match scan_tokens(text, limits, source_path, true, query_route=Some(true)) {
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
       if first.value != Symbol(40) {
-        return Ok(sql_head(first))
+        return Ok(sql_head(first) || sql_unnest_route(tokens))
       }
       // Inspect admitted tokens, not source substrings: parentheses and
       // comments do not change whether the head is SQL or FROM-headed Pipe.
