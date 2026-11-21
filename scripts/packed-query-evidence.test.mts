@@ -11,6 +11,12 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 
+type EvidenceSummary = ReturnType<typeof createCommandEvidence>['summary'];
+type CommandOutcome = EvidenceSummary['commands'][number];
+type WorkflowStep = {id?: string; if?: string; run?: string; 'continue-on-error'?: boolean};
+type UploadStep = WorkflowStep & {with: {name: string; path: string; 'if-no-files-found': string; 'retention-days': number}};
+
+// The installed Node typings omit file URL prefixes accepted by both supported runtimes.
 const scratch = new URL('../_build/packed-query-evidence-tests/', import.meta.url);
 mkdirSync(scratch, {recursive: true});
 // Output/exit assertions must not depend on Node starting within 500 ms.
@@ -22,12 +28,12 @@ const silentUntilKilled = 'setInterval(() => {}, 1000)';
 
 for (const scenario of ['success', 'slow-success', 'nonzero', 'keep']) {
   test(`packed query evidence preserves ${scenario} before cleanup`, async t => {
-    const root = mkdtempSync(new URL('case-', scratch));
+    const root = mkdtempSync(new URL('case-', scratch) as unknown as string);
     t.after(() => rmSync(root, {recursive: true}));
     const sibling = join(root, 'another-owner');
     mkdirSync(sibling);
     writeFileSync(join(sibling, 'keep'), 'untouched');
-    let directory;
+    let directory!: string;
     const githubOutput = join(root, 'step-output');
     const action = withPackedQueryEvidence({scratch: root, revision: 'fixed-sha',
       githubOutput,
@@ -49,7 +55,7 @@ for (const scenario of ['success', 'slow-success', 'nonzero', 'keep']) {
     } else await action;
     assert.equal(readFileSync(githubOutput, 'utf8'),
       `evidence-directory=${directory}\n`);
-    const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
+    const summary = JSON.parse(readFileSync(join(directory, 'summary.json')) as unknown as string) as EvidenceSummary;
     assert.equal(summary.revision, 'fixed-sha');
     assert.equal(summary.status, scenario === 'nonzero'
       ? 'failed' : 'passed');
@@ -58,7 +64,7 @@ for (const scenario of ['success', 'slow-success', 'nonzero', 'keep']) {
     assert.equal(readFileSync(join(directory, '001.stdout.log'), 'utf8'), 'out');
     assert.equal(readFileSync(join(directory, '001.stderr.log'), 'utf8'), 'err');
     const result = summary.commands[0];
-    assert.ok(result.elapsedMs > 0);
+    assert.ok(result.elapsedMs! > 0);
     assert.equal(result.error, null);
     assert.equal(result.signal, null);
     assert.equal(result.status, scenario === 'nonzero' ? 7 : 0);
@@ -71,7 +77,7 @@ for (const scenario of ['success', 'slow-success', 'nonzero', 'keep']) {
 
 test('timeout without output persists empty streams and reclaims artifacts',
 async t => {
-  const root = mkdtempSync(new URL('timeout-', scratch));
+  const root = mkdtempSync(new URL('timeout-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const githubOutput = join(root, 'step-output');
   await assert.rejects(withPackedQueryEvidence({scratch: root,
@@ -80,15 +86,15 @@ async t => {
   }), {code: 'PackedQueryCommandFailed'});
   const directory = readFileSync(githubOutput, 'utf8')
     .trim().slice('evidence-directory='.length);
-  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
+  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')) as unknown as string) as EvidenceSummary;
   assert.equal(summary.status, 'failed');
   assert.equal(summary.revision, 'fixed-sha');
   assert.equal(summary.commands.length, 1);
   const result = summary.commands[0];
-  assert.equal(result.error.code, 'ETIMEDOUT');
+  assert.equal(result.error!.code, 'ETIMEDOUT');
   assert.equal(result.signal, 'SIGKILL');
   assert.equal(result.status, null);
-  assert.ok(result.elapsedMs > 0);
+  assert.ok(result.elapsedMs! > 0);
   assert.equal(readFileSync(join(directory, '001.stdout.log'), 'utf8'), '');
   assert.equal(readFileSync(join(directory, '001.stderr.log'), 'utf8'), '');
   assert.equal(summary.artifactsRemoved, true);
@@ -97,7 +103,7 @@ async t => {
 
 for (const scenario of ['nonzero', 'timeout']) {
 test(`recorded ${scenario} remains a failing process exit`, () => {
-  const root = mkdtempSync(new URL('exit-', scratch));
+  const root = mkdtempSync(new URL('exit-', scratch) as unknown as string);
   try {
     const githubOutput = join(root, 'step-output');
     const result = spawnSync(process.execPath, ['--input-type=module', '-e',
@@ -119,10 +125,10 @@ test(`recorded ${scenario} remains a failing process exit`, () => {
       .trim().slice('evidence-directory='.length);
     assert.equal(readFileSync(join(evidence, '001.stdout.log'), 'utf8'), '');
     assert.equal(readFileSync(join(evidence, '001.stderr.log'), 'utf8'), '');
-    const observation = JSON.parse(readFileSync(join(evidence, 'summary.json')))
+    const observation = (JSON.parse(readFileSync(join(evidence, 'summary.json')) as unknown as string) as EvidenceSummary)
       .commands[0];
     if (scenario === 'timeout') {
-      assert.equal(observation.error.code, 'ETIMEDOUT');
+      assert.equal(observation.error!.code, 'ETIMEDOUT');
       assert.equal(observation.signal, 'SIGKILL');
       assert.equal(observation.status, null);
     } else {
@@ -143,16 +149,16 @@ for (const [scenario, script, options, expected] of [
   ['nonzero', "console.log('partial'); process.exit(7)", {}, {status: 7, signal: null}],
   ['signal', "console.error('before signal'); process.kill(process.pid, 'SIGTERM')", {}, {status: null, signal: 'SIGTERM'}],
   ['timeout', silentUntilKilled, {timeout: timeoutDeadline, killSignal: 'SIGKILL'}, {status: null, signal: 'SIGKILL'}],
-]) {
+] as const) {
   test(`command attempt retains exact ${scenario} identity and incomplete invocation`, t => {
-    const root = mkdtempSync(new URL('attempt-', scratch));
+    const root = mkdtempSync(new URL('attempt-', scratch) as unknown as string);
     t.after(() => rmSync(root, {recursive: true}));
     const recorder = createCommandEvidence({scratch: root, revision: 'declared-source',
       env: {...process.env, GITHUB_RUN_ID: '42', GITHUB_RUN_ATTEMPT: '3', GITHUB_SHA: 'a'.repeat(40), GITHUB_JOB: 'probe'}});
     const {result} = recorder.capture(process.execPath, ['-e', script], {timeout: normalExitWatchdog, ...options});
     recorder.finish('failed');
-    const summary = JSON.parse(readFileSync(join(recorder.directory, 'summary.json')));
-    const outcome = JSON.parse(readFileSync(join(recorder.directory, '001.result.json')));
+    const summary = JSON.parse(readFileSync(join(recorder.directory, 'summary.json')) as unknown as string) as EvidenceSummary;
+    const outcome = (JSON.parse(readFileSync(join(recorder.directory, '001.result.json')) as unknown as string) as CommandOutcome);
     assert.equal(summary.complete, false);
     assert.equal(summary.status, 'failed');
     assert.deepEqual(summary.github, {runId: '42', runAttempt: '3', eventSha: 'a'.repeat(40), job: 'probe'});
@@ -163,20 +169,20 @@ for (const [scenario, script, options, expected] of [
     assert.deepEqual(outcome.args, ['-e', script]);
     assert.equal(outcome.cwd.path, process.cwd());
     assert.equal(typeof outcome.cwd.inode, 'string');
-    assert.ok(Date.parse(outcome.endedAt) >= Date.parse(outcome.startedAt));
+    assert.ok(Date.parse(outcome.endedAt!) >= Date.parse(outcome.startedAt));
     assert.equal(typeof outcome.source.dirty, 'boolean');
-    assert.match(outcome.source.revision, /^[a-f0-9]{40}$/u);
-    const started = JSON.parse(readFileSync(join(recorder.directory, '001.started.json')));
+    assert.match(outcome.source.revision!, /^[a-f0-9]{40}$/u);
+    const started = (JSON.parse(readFileSync(join(recorder.directory, '001.started.json')) as unknown as string) as CommandOutcome);
     assert.equal(started.complete, false);
     assert.equal(started.endedAt, null);
     assert.equal(started.status, null);
     assert.equal(started.outputComplete, false);
-    if (scenario === 'timeout') assert.equal(outcome.error.code, 'ETIMEDOUT');
+    if (scenario === 'timeout') assert.equal(outcome.error!.code, 'ETIMEDOUT');
   });
 }
 
 test('write failure cannot replace primary command failure; old snapshots survive', t => {
-  const root = mkdtempSync(new URL('write-failure-', scratch));
+  const root = mkdtempSync(new URL('write-failure-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const recorder = createCommandEvidence({scratch: root});
   const target = join(root, 'unrelated');
@@ -188,25 +194,25 @@ test('write failure cannot replace primary command failure; old snapshots surviv
   assert.equal(outcome.verificationStatus, 9);
   assert.ok(writeFailure);
   assert.equal(readFileSync(target, 'utf8'), 'untouched');
-  assert.equal(JSON.parse(readFileSync(join(recorder.directory, '001.result.json'))).status, 9);
+  assert.equal((JSON.parse(readFileSync(join(recorder.directory, '001.result.json')) as unknown as string) as CommandOutcome).status, 9);
   assert.ok(readdirSync(recorder.directory).some(name => name.endsWith('.summary.json')));
   assert.throws(() => recorder.finish('failed'), /OwnershipChanged/u);
 });
 
 test('replaced artifact root is never cleaned or followed', async t => {
-  const root = mkdtempSync(new URL('replacement-', scratch));
+  const root = mkdtempSync(new URL('replacement-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const target = join(root, 'unrelated');
   mkdirSync(target);
   writeFileSync(join(target, 'keep'), 'untouched');
-  let directory;
+  let directory!: string;
   await assert.rejects(withPackedQueryEvidence({scratch: root}, evidence => {
     directory = evidence.directory;
     renameSync(evidence.root, join(evidence.directory, 'original-artifacts'));
     symlinkSync(target, evidence.root);
   }), /ArtifactDirectoryOwnershipChanged/u);
   assert.equal(readFileSync(join(target, 'keep'), 'utf8'), 'untouched');
-  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
+  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')) as unknown as string) as EvidenceSummary;
   assert.equal(summary.status, 'failed');
   assert.equal(summary.complete, false);
   assert.equal(summary.artifactsRemoved, false);
@@ -214,7 +220,7 @@ test('replaced artifact root is never cleaned or followed', async t => {
 });
 
 test('owned output is bounded and authorization arguments and streams are masked', t => {
-  const root = mkdtempSync(new URL('redaction-', scratch));
+  const root = mkdtempSync(new URL('redaction-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const env = {...process.env, EXAMPLE_TOKEN: 'fixture-secret-value'};
   const recorder = createCommandEvidence({scratch: root, env});
@@ -228,7 +234,7 @@ test('owned output is bounded and authorization arguments and streams are masked
   }
   assert.ok(!summary.includes('"env"'), 'environment is not serialized');
   const capture = recorder.capture(process.execPath, ['-e', "process.stdout.write('x'.repeat(9 * 1024 * 1024))"]);
-  assert.equal(capture.result.error.code, 'ENOBUFS');
+  assert.equal((capture.result.error as NodeJS.ErrnoException).code, 'ENOBUFS');
   assert.equal(capture.outcome.outputComplete, false);
   assert.ok(readFileSync(join(recorder.directory, '002.stdout.log')).length <= COMMAND_OUTPUT_LIMIT);
 });
@@ -237,7 +243,7 @@ import {checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {parse as parseYaml} from 'yaml';
 
 test('uploader selects partial start snapshots, refuses missing evidence and unsafe files', t => {
-  const root = mkdtempSync(new URL('upload-', scratch));
+  const root = mkdtempSync(new URL('upload-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const recorder = createCommandEvidence({scratch: root});
   const selected = checkCommandEvidenceUpload(recorder.directory);
@@ -253,27 +259,31 @@ test('uploader selects partial start snapshots, refuses missing evidence and uns
 });
 
 test('existing failure probe collects after failure and separately tests upload failure', () => {
-  const action = parseYaml(readFileSync(new URL('../.github/actions/upload-packed-query-evidence/action.yml', import.meta.url), 'utf8'));
-  const probe = parseYaml(readFileSync(new URL('../.github/workflows/packed-query-evidence-probe.yml', import.meta.url), 'utf8'));
+  const action = parseYaml(readFileSync(new URL('../.github/actions/upload-packed-query-evidence/action.yml', import.meta.url), 'utf8')) as {
+    runs: {steps: UploadStep[]};
+  };
+  const probe = parseYaml(readFileSync(new URL('../.github/workflows/packed-query-evidence-probe.yml', import.meta.url), 'utf8')) as {
+    jobs: Record<string, {'timeout-minutes': number; strategy: {matrix: {fault: string[]}}; steps: WorkflowStep[]}>;
+  };
   const job = probe.jobs['failure-probe'];
   assert.deepEqual(job.strategy.matrix.fault, ['nonzero', 'timeout', 'interrupted', 'upload']);
   assert.equal(job['timeout-minutes'], 3, 'existing watchdog is unchanged');
-  const collect = job.steps.find(step => step.id === 'collection');
-  assert.match(collect.if, /^always\(\)/u);
+  const collect = job.steps.find(step => step.id === 'collection')!;
+  assert.match(collect.if!, /^always\(\)/u);
   assert.equal(collect['continue-on-error'], undefined);
-  assert.equal(job.steps.find(step => step.id === 'probe')['continue-on-error'], undefined);
-  const upload = action.runs.steps.find(step => step.id === 'upload');
+  assert.equal(job.steps.find(step => step.id === 'probe')!['continue-on-error'], undefined);
+  const upload = action.runs.steps.find(step => step.id === 'upload')!;
   assert.equal(upload.with['if-no-files-found'], 'error');
   assert.equal(upload.with['retention-days'], 7);
   assert.match(upload.with.name, /github.run_id.*github.run_attempt/u);
   assert.match(upload.with.path, /\*\.started\.json/u);
   assert.match(upload.with.path, /\*\.result\.json/u);
   assert.ok(!upload.with.path.includes('artifacts'));
-  const report = action.runs.steps.at(-1);
+  const report = action.runs.steps.at(-1)!;
   assert.equal(report.if, 'always()');
   // Execute the action's exact report shell, not a separately reimplemented model.
-  for (const [outcome, exit] of [['success', 0], ['failure', 1], ['skipped', 1]]) {
-    const result = spawnSync('bash', ['-c', report.run], {encoding: 'utf8',
+  for (const [outcome, exit] of [['success', 0], ['failure', 1], ['skipped', 1]] as const) {
+    const result = spawnSync('bash', ['-c', report.run!], {encoding: 'utf8',
       env: {...process.env, UPLOAD_OUTCOME: outcome}});
     assert.equal(result.status, exit);
     assert.match(result.stdout, outcome === 'success' ? /does not establish verification success/u : /verification result is unchanged/u);
@@ -281,7 +291,7 @@ test('existing failure probe collects after failure and separately tests upload 
 });
 
 test('abrupt parent termination leaves only honest start evidence for collection', t => {
-  const root = mkdtempSync(new URL('interrupted-', scratch));
+  const root = mkdtempSync(new URL('interrupted-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const githubOutput = join(root, 'step-output');
   const child = spawnSync(process.execPath, ['--input-type=module', '-e',
@@ -291,7 +301,7 @@ test('abrupt parent termination leaves only honest start evidence for collection
     {encoding: 'utf8', timeout: normalExitWatchdog});
   assert.equal(child.signal, 'SIGKILL');
   const directory = readFileSync(githubOutput, 'utf8').trim().slice('evidence-directory='.length);
-  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
+  const summary = JSON.parse(readFileSync(join(directory, 'summary.json')) as unknown as string) as EvidenceSummary;
   assert.equal(summary.complete, false);
   assert.equal(summary.status, 'running');
   assert.equal(summary.commands[0].status, null);
@@ -302,7 +312,7 @@ test('abrupt parent termination leaves only honest start evidence for collection
 
 
 test('child cwd outside Git retains the recorder repository source identity', t => {
-  const root = mkdtempSync(new URL('child-source-', scratch));
+  const root = mkdtempSync(new URL('child-source-', scratch) as unknown as string);
   t.after(() => rmSync(root, {recursive: true}));
   const recorder = createCommandEvidence({scratch: root, cwd: process.cwd()});
   // An isolated consumer cwd can have a different directory identity from the
@@ -310,15 +320,17 @@ test('child cwd outside Git retains the recorder repository source identity', t 
   const {outcome} = recorder.capture(process.execPath, ['-e', ''], {cwd: root});
   assert.equal(outcome.cwd.path, root);
   assert.deepEqual(outcome.source, recorder.summary.source);
-  assert.match(outcome.source.revision, /^[a-f0-9]{40}$/u);
+  assert.match(outcome.source.revision!, /^[a-f0-9]{40}$/u);
 });
 
 
 test('Client packed reaches ownership controls through its normal driver before installation', () => {
-  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as {
+    jobs: Record<string, {'timeout-minutes': number; steps: WorkflowStep[]}>;
+  };
   const job = workflow.jobs['client-packed'];
   assert.equal(job['timeout-minutes'], 45);
-  const run = job.steps.find(step => step.id === 'packed-query').run;
+  const run = job.steps.find(step => step.id === 'packed-query')!.run!;
   assert.match(run, /node scripts\/test-packed-public-query\.mjs/u);
   const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   const controls = driver.indexOf("'scripts/packed-query-transports.test.mjs'");

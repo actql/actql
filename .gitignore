@@ -977,3 +977,5 @@ target/
 /adapters/site-node/https-test-certificates.test.d.mts
 /scripts/test-packed-graph.mjs
 /scripts/test-packed-graph.d.mts
+/scripts/packed-query-evidence.test.mjs
+/scripts/packed-query-evidence.test.d.mts
