@@ -359,10 +359,16 @@ resource or physical execution grant. The Effect-free public inventory continues
 to reject Effect programs; only the original static Effect closure can enter this
 composition. Existing catalogue bodies and all saved recipes remain unchanged.
 
-Fresh selection first reads the retained original narrow applicability audit;
-when that profile is not installed, the common composition must establish its
-own complete original proof. An observed completion is never rescued by the
-broader audit. The selected nominal inventory and its distinct catalogue are
-bound before the first Effect compilation, retained by the same preparation and
-carried through original material and saved-compilation profile checks. Later
-reads of the retained original proof do not repeat the occurrence audit.
+Fresh selection first reads the retained narrow audit. The common
+completion-free profile still requires its own zero-entry proof.
+`actql-local-common-update-source-normalization-catalog.json` applies when
+the complete common audit finds one or more original sole-view selections and
+every completion is one of those selections. The same cumulative work bound
+covers the entire ordered original mapped UPDATE set. The journal records each
+original input path, its absent view and the resolver's selected name.
+
+The selected inventory and catalogue bind to the first Effect compilation.
+Saved admission verifies the original journal digest and compares the
+canonical entries to the source selections from the restored checked owner.
+Later reads project the retained admitted journal. Source authority, the
+approval, dispatch and physical cleanup retain their existing owners.

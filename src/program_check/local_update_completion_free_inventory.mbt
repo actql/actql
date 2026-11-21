@@ -193,10 +193,53 @@ struct LocalCommonUpdateCompletionFreeInventory {
 }
 
 ///|
+/// An original ordered mapped UPDATE whose computation requires only
+/// Source-view selection. The checked candidate still owns every Source.
+struct LocalCommonUpdateSourceNormalizationInventory {
+  owner : EffectProgramStaticCandidate
+  computation : LocalCommonNormalizationInventory
+  audited_work : Int
+}
+
+///|
+pub(all) enum LocalCommonUpdateNormalizationInventory {
+  CompletionFree(LocalCommonUpdateCompletionFreeInventory)
+  SourceCompleted(LocalCommonUpdateSourceNormalizationInventory)
+}
+
+///|
 pub fn effect_program_common_update_completion_free_inventory(
   candidate : EffectProgramStaticCandidate,
 ) -> Result[
   LocalCommonUpdateCompletionFreeInventory,
+  CompletionFreeInventoryIssue,
+] {
+  match audit_common_update_normalization_inventory(candidate, false) {
+    Ok(CompletionFree(value)) => Ok(value)
+    Ok(SourceCompleted(_)) => Err(CompletionObserved)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Walk the checked computation once. Every completion must be the existing
+/// resolver's exact Source occurrence and the entire ordered mapped set must
+/// pass the existing shared audit within the same cumulative limit.
+pub fn effect_program_common_update_normalization_inventory(
+  candidate : EffectProgramStaticCandidate,
+) -> Result[
+  LocalCommonUpdateNormalizationInventory,
+  CompletionFreeInventoryIssue,
+] {
+  audit_common_update_normalization_inventory(candidate, true)
+}
+
+///|
+fn audit_common_update_normalization_inventory(
+  candidate : EffectProgramStaticCandidate,
+  allow_source_completion : Bool,
+) -> Result[
+  LocalCommonUpdateNormalizationInventory,
   CompletionFreeInventoryIssue,
 ] {
   let computation = match
@@ -208,19 +251,54 @@ pub fn effect_program_common_update_completion_free_inventory(
     Err(CompletionObserved) => return Err(CompletionObserved)
     Err(_) => return Err(ProfileNotInstalled)
   }
-  // This new immutable profile certifies only actual zero-entry inventories.
-  // A sort/projection/default/Source completion is never discarded.
-  if local_common_normalization_entry_count(computation) != 0 {
+  let count = local_common_normalization_entry_count(computation)
+  if count != 0 && !allow_source_completion {
     return Err(CompletionObserved)
   }
   let work = local_common_normalization_inventory_work(computation)
-  match
-    audit_local_update_mapping(candidate.computation, candidate.effects, work) {
-    Complete(audited_work) =>
-      Ok({ owner: candidate, computation, audited_work, })
-    CompletionObserved => Err(CompletionObserved)
-    ProfileNotInstalled => Err(ProfileNotInstalled)
+  if count > 10000 - work {
+    return Err(ProfileNotInstalled)
   }
+  for entry in computation.entries {
+    if !(entry.original is Source(_)) {
+      return Err(CompletionObserved)
+    }
+  }
+  let audited_work = match
+    audit_local_update_mapping(
+      candidate.computation,
+      candidate.effects,
+      work + count,
+    ) {
+    Complete(value) => value
+    CompletionObserved => return Err(CompletionObserved)
+    ProfileNotInstalled => return Err(ProfileNotInstalled)
+  }
+  if count == 0 {
+    Ok(CompletionFree({ owner: candidate, computation, audited_work, }))
+  } else {
+    Ok(SourceCompleted({ owner: candidate, computation, audited_work, }))
+  }
+}
+
+///|
+pub fn local_common_update_source_normalization_computation(
+  inventory : LocalCommonUpdateSourceNormalizationInventory,
+) -> LocalCommonNormalizationInventory {
+  inventory.computation
+}
+
+///|
+pub fn local_common_update_source_normalization_inventory_matches(
+  inventory : LocalCommonUpdateSourceNormalizationInventory,
+  candidate : EffectProgramStaticCandidate,
+) -> Bool {
+  physical_equal(inventory.owner, candidate) &&
+  inventory.audited_work >= 0 &&
+  local_common_normalization_inventory_matches(
+    inventory.computation,
+    candidate.computation.checked,
+  )
 }
 
 ///|

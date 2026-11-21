@@ -41,13 +41,23 @@ test "selected normalization supplier reuses each original kind proof" {
 }
 
 ///|
-test "selected normalization supplier refuses a real implicit Source completion" {
+test "selected normalization records the original implicit Source completion" {
   let completed = local_update_source_normalization_fixture(false)
-  assert_true(
-    issue_prepared_client_effect_selected_normalization(completed)
-    is Err(Inventory(CompletionObserved)),
+  let proof = issue_prepared_client_effect_selected_normalization(completed).unwrap()
+  assert_true(proof.inventory is SourceCompletedUpdate(_))
+  let journal = prepared_client_effect_normalization_evidence(completed, proof).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(journal),
+    (
+      #|{"entries":[{"authored":"null","canonical":"v","path":"$.stages[0].inputs[\"table\"].view","rule":"actql.source.sole-view-completion"}],"journal_cid":"sha256:2481749e9a10d56cc31b1e621868cf6d802a8de3194e0e295b7dcc4bd4d2bbfe","rule_catalog_cid":"sha256:2ec2fd95b3aa1bfcddaf87bcf2a383321fb0d17b39917b65da6f3cde10a6dae8","version":"actql-normalization-journal/0.1"}
+    ),
   )
-  assert_true(completed.normalization is None)
+  assert_true(
+    physical_equal(
+      proof,
+      issue_prepared_client_effect_selected_normalization(completed).unwrap(),
+    ),
+  )
 }
 
 ///|

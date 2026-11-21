@@ -147,7 +147,7 @@ export function nativeProjectConfigurationFixture(namespace) {
       write(path, relative, body);
     }
   }
-  const sharedFile = threeWriteMockProject().files;
+  const sharedProject = threeWriteMockProject(), sharedFile = sharedProject.files;
   const modelFixture = projectTemplateFiles('deal-review-mock');
   for (const name of ['shared-file-empty-models', 'shared-file-missing-answers']) {
     const path = directory(name);
@@ -160,6 +160,8 @@ export function nativeProjectConfigurationFixture(namespace) {
     if (missingAnswers) {
       mkdirSync(join(path, 'model-tasks'), {mode: 0o700});
       write(path, 'model-tasks/deal-review.v1.yaml', modelFixture['model-tasks/deal-review.v1.yaml']);
+    } else {
+      write(path, sharedProject.programFile, sharedFile[sharedProject.programFile]);
     }
   }
   // Independent oracle for the SAME public File-facts consumer. The missing
