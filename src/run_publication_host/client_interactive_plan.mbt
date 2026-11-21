@@ -304,6 +304,12 @@ fn issue_client_static_plan_view(
         // operation. Read its retained tag; do not parse another Program.
         for field in fields {
           if field != "from" && field != "as" && field != "meta" {
+            // SERIALIZE is checked for execution, but LogicalMap 0.1 has no
+            // operator tag for it. Original capture must decline that projection
+            // before trying to seal an invalid map or blocking the ordinary Run.
+            if bounded_capture && field == "serialize" {
+              return Err(ConstructionRefused)
+            }
             operator = interactive_quote(field, max_bytes) catch {
               _ => return Err(Encoding)
             }
