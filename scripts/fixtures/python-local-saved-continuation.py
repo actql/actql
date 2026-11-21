@@ -31,7 +31,7 @@ class PhysicalQueries:
         assert type(self.original) is _JournalCallbacks
         self.previous = sys.getprofile()
         self.query = _JournalCallbacks.query.__code__
-        self.scans = self.points = self.cancel_scans = 0
+        self.scans = self.points = self.cancel_scans = self.cancel_rows = 0
 
     def profile(self, frame, event, status):
         if event != 'return' or frame.f_code is not self.query or status not in (0, 1):
@@ -44,6 +44,8 @@ class PhysicalQueries:
             if mode == 0 and arguments.get('namespace') in (
                     'client_cancel_custody', 'client_cancellations', 'client_cancel_originals'):
                 self.cancel_scans += 1
+                if status == 0 and arguments['namespace'] == 'client_cancellations':
+                    self.cancel_rows += 1
 
     def __enter__(self):
         assert self.previous is None
@@ -54,7 +56,7 @@ class PhysicalQueries:
         sys.setprofile(self.previous)
 
 
-async def observe_read(host, result, stop_phase=None):
+async def observe_read(host, result, stop_phase=None, *, totals=None):
     reader = result.rows()
 
     async def consume():
@@ -92,6 +94,8 @@ async def observe_read(host, result, stop_phase=None):
                 beat = {'phase': phase, 'offset': 0 if physical is None else physical.offset,
                         'fuel_remaining': store.get_fuel(), 'scan_calls': queries.scans,
                         'point_calls': queries.points, 'cancel_scan_calls': queries.cancel_scans}
+                if totals is not None:
+                    beat['cancel_rows'] = queries.cancel_rows
                 if physical is not None and physical.eof:
                     beat['physical_sha256'] = physical.hash.hexdigest()
                 if not beats or beats[-1] != beat:
@@ -114,6 +118,9 @@ async def observe_read(host, result, stop_phase=None):
                     assert stopped_advance.cancelling() == 1
                     assert type(stopped_advance.exception()) is StopAsyncIteration
                     break
+            if totals is not None:
+                totals.update(scan_calls=queries.scans, point_calls=queries.points,
+                              cancel_scan_calls=queries.cancel_scans, cancel_rows=queries.cancel_rows)
     assert sys.getprofile() is None
     assert carrier is not None and scope is not None and beats[0]['phase'] == 'core'
     assert core._host_operation_scope is None
@@ -128,13 +135,31 @@ async def observe_read(host, result, stop_phase=None):
     return reading.result(), receipt, beats, core_turns, reader.attempt_id
 
 
-async def prepare_original(state_dir, report_wait_failure=None):
+async def prepare_original(state_dir, report_wait_failure=None, *,
+                           value_size=16512, cancellation_records=None):
     assert not state_dir.exists()
-    values = ['x' * 16512]
+    values = ['x' * value_size]
     expected = [{'s': value} for value in values]
     delivered_wire = b''.join(json.dumps(row, separators=(',', ':')).encode() + b'\n' for row in expected)
     query = "SELECT '" + values[0] + "' AS s"
     async with await AsyncClient.open(state_dir=state_dir) as creator:
+        if cancellation_records is not None:
+            # Both history levels have the same number of Runs. The extra
+            # original comes from the public AlreadyTerminal cancellation.
+            control = await creator.start_source('SELECT 1 AS n', format='sql',
+                                                 submission_ref=creator.new_submission())
+            state = plain(await control.wait())
+            assert state['status'] == 'succeeded'
+            if cancellation_records == 1:
+                observed = plain(await control.cancel(expected_revision=state['control']['revision']))
+                original = observed['cancellation']
+                assert observed['kind'] == 'already_satisfied' and original['kind'] == 'already_terminal'
+                assert original['ref'] == plain(control.ref)
+                assert plain(await control.lookup_cancellation(original['cancelRef'])) == {
+                    'kind': 'found', 'cancellation': original}
+                assert plain(await control.status()) == state
+            else:
+                assert cancellation_records == 0
         submission = creator.new_submission()
         execution = await creator.start_source(query, format='sql', submission_ref=submission)
         try:
@@ -194,5 +219,46 @@ async def exercise(state_dir):
                       'physical_sha256': physical_digest, 'first_close': True}))
 
 
+async def measure_history(destination):
+    destination.mkdir(mode=0o700)
+    for cancellation_records in (0, 1):
+        for chunk_count in (1, 2):
+            # The one-row canonical array has ten framing bytes. A single
+            # extra byte changes the physical read from one chunk to two.
+            state_dir = destination / f'c{cancellation_records}-k{chunk_count}'
+            reference, expected, delivered = await prepare_original(
+                state_dir, value_size=16373 + chunk_count, cancellation_records=cancellation_records)
+            physical = json.dumps(expected, separators=(',', ':')).encode()
+            assert len(physical) == 16383 + chunk_count
+            async with await AsyncClient.open(state_dir=state_dir) as client:
+                execution = await client.attach(reference)
+                assert plain(execution.ref) == reference
+                host = client._local_host
+                assert type(host) is InstalledLocalHost and type(host._core) is LocalCore
+                assert host._core._ordinary_host and 'advance_and_read_saved_result' not in vars(host._core)
+                totals = {}
+                rows, receipt, beats, core_turns, attempt = await observe_read(
+                    host, execution.result('answer'), totals=totals)
+                assert rows == expected and core_turns >= 2
+                assert (totals['cancel_rows'] > 0) == bool(cancellation_records)
+                hash_beats = [beat for beat in beats if beat['phase'] == 'hash']
+                assert [beat['offset'] for beat in hash_beats] == (
+                    [16384] if chunk_count == 1 else [16384, 16385])
+                assert hash_beats[-1]['physical_sha256'] == sha256(physical).hexdigest()
+                assert receipt['kind'] == 'found' and receipt['record']['state'] == 'succeeded'
+                assert receipt['attempt']['attempt_id'] == attempt
+                proof = receipt['hostReleaseReceipt']
+                assert proof['run_definition_cid'] == reference['runDefinitionCid']
+                assert proof['delivered_byte_count'] == len(delivered)
+                assert proof['delivered_sha256'] == sha256(delivered).hexdigest()
+            print(json.dumps({'cancellation_records': cancellation_records, 'physical_chunks': chunk_count,
+                              'core_turns': core_turns, 'beats': beats, 'read_totals': totals,
+                              'delivered_bytes': len(delivered), 'physical_bytes': len(physical),
+                              'first_close': True}), flush=True)
+
+
 if __name__ == '__main__':
-    asyncio.run(exercise(Path(sys.argv[1])))
+    if len(sys.argv) == 3 and sys.argv[2] == '--measure-history':
+        asyncio.run(measure_history(Path(sys.argv[1])))
+    else:
+        asyncio.run(exercise(Path(sys.argv[1])))
