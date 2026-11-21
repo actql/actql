@@ -815,6 +815,8 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
+pub fn client_effect_result_import_observation_retained_capacity(ClientEffectResultImportObservation) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_effect_review_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], ClientEffectCheckpointBindingIssue]
 
 pub fn client_effect_review_checkpoint_cancelled_state(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointCancelledIssue]

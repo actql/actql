@@ -386,8 +386,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       source.manifest is Some(manifest) else {
       stop("LocalOriginalEffectImportsUnavailable")
     }
-    held.import_observations.push(
-      @run_host.issue_client_effect_result_import_observation(
+    let observed = @run_host.issue_client_effect_result_import_observation(
         state._retained_prepared,
         held.inputs,
         captured,
@@ -400,14 +399,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       .map_err(issue => {
         LocalNativeMockEffectProposalIssue::ImportObservation(issue)
       })
-      .native_effect_proposal(self.original),
-    )
-    construction.retain_wire(
-      self.original,
-      @run_host.client_effect_result_import_observation_json(
-        held.import_observations[index],
-      ),
-    )
+      .native_effect_proposal(self.original)
+    held.import_observations.push(observed)
+    if !construction.prepare_body(
+        self.original,
+        @run_host.client_effect_result_import_observation_retained_capacity(
+          observed,
+        ),
+      ) {
+      stop("LocalOriginalEffectProposalsUnavailable")
+    }
   }
   held.imports = Some(
     @run_host.issue_client_effect_imported_evidence(

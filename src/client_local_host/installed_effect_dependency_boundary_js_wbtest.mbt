@@ -945,6 +945,31 @@ fn dependency_boundary_complete_inventory(
       max_nodes,
       depth,
     ).unwrap()
+    if count == 2 {
+      let cid = @publication_host.client_effect_result_import_observation_cid(
+        observed,
+      )
+      let wire = @publication_host.client_effect_result_import_observation_json(
+        observed,
+      )
+      let capacity = @publication_host.client_effect_result_import_observation_retained_capacity(
+        observed,
+      ).unwrap()
+      // Observation and capture records, their retained references and
+      // consumer coordinate, plus the two owned Strings and their text.
+      let expected = 4L * 16L +
+        10L * 8L +
+        8L +
+        2L * (cid.length().to_int64() + wire.length().to_int64())
+      assert_eq(
+        @execution.execution_capacity_retained_bytes(capacity),
+        expected,
+      )
+      assert_eq(
+        @execution.execution_capacity_execution_bytes(capacity),
+        expected,
+      )
+    }
     append(
       "result_import_observation",
       Some(
