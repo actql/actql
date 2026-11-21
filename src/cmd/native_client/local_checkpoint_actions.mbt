@@ -213,13 +213,29 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
   if returned is Err(issue) {
     self.retain_primary(CommandStoreOperation(issue))
   }
-  let capacity = match (capacity, returned) {
-    (Ok(value), Ok(_)) => value
+  match (capacity, returned) {
+    (Ok(_), Ok(_)) => ()
     (Err(issue), _) => {
       self.retain_primary(CommandAdoption(issue))
       stop("LocalCheckpointOriginalUnavailable")
     }
     (_, Err(_)) => stop("LocalCheckpointReadReturnUnavailable")
+  }
+  let capacity = match
+    review.finish_approval_capture_in_original_read(
+      journal,
+      @env.now().to_double(),
+      wire_limits,
+    ) {
+    Ok(value) => value
+    Err(StoreOperationCapture(issue)) => {
+      self.retain_primary(CommandAdoption(issue))
+      stop("LocalCheckpointOriginalUnavailable")
+    }
+    Err(issue) => {
+      self.retain_primary(CommandStoreOperation(issue))
+      stop("LocalCheckpointReadReturnUnavailable")
+    }
   }
   command_preparation_result(
     self.prepare_saved_effect_construction_capacity(capture, capacity),

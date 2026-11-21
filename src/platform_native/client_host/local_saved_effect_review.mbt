@@ -49,7 +49,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
         // input identity/Store/String fields remain original borrowed values.
         // The restoration child retains one original material reference.
         record_headers: 9L,
-        reference_slots: 35L,
+        reference_slots: 37L,
         scalar_words: 8L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
