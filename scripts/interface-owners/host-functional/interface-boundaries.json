@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c525293fbee1c548ac80289feb6d3fbb7cdacb2ef08e64ebba61365a1c3ca12a",
+      "sha256": "3f39e4e05775c9284b1a6cb517e310ea4dfa4762fdaf56a099420d9af77b1233",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28263,38 +28263,6 @@
           "name": "assertOriginalClientRequestJournal",
           "parameters": [
             "journal"
-          ],
-          "async": false
-        },
-        {
-          "name": "assertOriginalClientRequestJournalFacilityCurrent",
-          "parameters": [
-            "database",
-            "statement",
-            "nativeBindings"
-          ],
-          "async": false
-        },
-        {
-          "name": "facilityOperations/facilityOperations",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "facilityPlatformOperations/facilityPlatformOperations",
-          "parameters": [
-            "group",
-            "receiver"
-          ],
-          "async": false
-        },
-        {
-          "name": "facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -30403,10 +30371,6 @@
         },
         {
           "operations": [
-            "assertOriginalClientRequestJournalFacilityCurrent",
-            "facilityOperations/facilityOperations",
-            "facilityPlatformOperations/facilityPlatformOperations",
-            "facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
             "observeOriginalClientRequestJournalCustody",
             "openClientRequestJournal/initializationCleanup/init:close/init:close",
             "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#8"
@@ -30432,14 +30396,14 @@
                 "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -30478,7 +30442,7 @@
                 "anchor": "const beginOperation = () => {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],"
               }
             ],
@@ -30526,7 +30490,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
               },
               {
@@ -32524,6 +32488,7 @@
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
         "./client-observation-journal.mjs",
+        "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
         "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
@@ -32534,8 +32499,232 @@
         "./local-values-capacity.mjs",
         "node:crypto",
         "node:fs",
-        "node:fs/promises",
         "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-request-journal-facility.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ec4c2359616e2eeea6521a6f438b64132dedcdfadd704576e4555c82da7326a3",
+      "role": "physical-io",
+      "owner": "Existing Client request/Run/submission Owners and same physical journal",
+      "exports": [
+        "captureOriginalClientRequestJournalFacility"
+      ],
+      "operations": [
+        {
+          "name": "captureOriginalClientRequestJournalFacility",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureOriginalClientRequestJournalFacility/assertOriginalClientRequestJournalFacilityCurrent",
+          "parameters": [
+            "database",
+            "statement",
+            "nativeBindings"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureOriginalClientRequestJournalFacility/facilityOperations/facilityOperations",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureOriginalClientRequestJournalFacility/facilityPlatformOperations/facilityPlatformOperations",
+          "parameters": [
+            "group",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureOriginalClientRequestJournalFacility/facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureOriginalClientRequestJournalFacility",
+            "captureOriginalClientRequestJournalFacility/assertOriginalClientRequestJournalFacilityCurrent",
+            "captureOriginalClientRequestJournalFacility/facilityOperations/facilityOperations",
+            "captureOriginalClientRequestJournalFacility/facilityPlatformOperations/facilityPlatformOperations",
+            "captureOriginalClientRequestJournalFacility/facilityPlatformOperations/facilityPlatformOperations/facilityPlatformOperations"
+          ],
+          "exports": [
+            "captureOriginalClientRequestJournalFacility"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The complete separate Journal disposition must precede this preparation:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimarySqlLimits(value: unknown):"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
+              },
+              {
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
+                "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const iteratorOriginal = field(globalThis, 'Iterator');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationDatabaseClosed = true;"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "const iteratorPrototype = field(iteratorOriginal, 'prototype');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const originalJournalCustodies = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const beginOperation = () => {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (supported !== 1) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (operationActive) fail('ClientRequestJournalSqlCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "if (typeof iteratorOriginal !== 'function' || isProxy(iteratorOriginal)) unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "selectedSql?.retireClosedNativeAliases();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observationSql?.retireClosedNativeAliases();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "That disposition includes the actual selected SQLite allocator's necessary"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The retained descriptors, constructor/prototype aliases"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This is the finite Journal facility, not a universal allocator lease or another"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-observation-extent.test.mjs",
+                "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "anchor": "temporary storage precedes the schema-loading Pager pragma"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "failed original cursor close and pending database close retain the same native connection until its close ACK"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-execution-bounds.test.mjs",
+                "anchor": "selected preparation current callback cannot reenter the same Journal before native preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
+                "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "anchor": "same earlier native Iterator constructor and prototype are required independently of table shape"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
+                "anchor": "selected native Iterator getter is refused before invocation and restoration cannot revive currentness"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./client-request-journal-sql.mjs",
+        "./host-journal-facility-fields.cjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
         "node:sqlite",
         "node:util"
       ],
@@ -33960,14 +34149,14 @@
                 "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -34006,7 +34195,7 @@
                 "anchor": "const beginOperation = () => {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],"
               }
             ],
@@ -34054,7 +34243,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
               },
               {
@@ -36743,14 +36932,14 @@
                 "anchor": "function snapshotPrimaryExecutionLimits(value: unknown):"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -36789,7 +36978,7 @@
                 "anchor": "const beginOperation = () => {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],"
               }
             ],
@@ -36837,7 +37026,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "// Fixed namespace forwarder for the selected startup's actual node:sqlite"
               },
               {
@@ -49415,7 +49604,7 @@
     {
       "module": "adapters/host-node/host-journal-facility-fields.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "cc1f37db5aa69cde437084562ea20869ca365883deded59e73e9500046d60877",
+      "sha256": "6fc676116c42e7032cb2f167edd9281433721d45392f2ccf505d17ca44094a1b",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -49458,11 +49647,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
-                "anchor": "module.exports = Object.freeze({"
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
+                "anchor": "export = Object.freeze({"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],
@@ -49472,8 +49661,8 @@
                 "anchor": "function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function originalJournalFacilityField(value, name) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function originalJournalFacilityField(value: unknown, name: string): unknown {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -49482,8 +49671,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const facilityPlatformOperations = Object.freeze(["
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "const facilityPlatformOperations = Object.freeze((["
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -49496,17 +49685,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "if (nativeBindings !== undefined) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "if (facilityChanged) fail('ClientRequestJournalFacilityUnavailable');"
               },
               {
@@ -49578,11 +49767,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
-                "anchor": "module.exports = Object.freeze({"
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
+                "anchor": "export = Object.freeze({"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],
@@ -49592,8 +49781,8 @@
                 "anchor": "function captureJournalNativeBindings(fsOriginal, cryptoOriginal, fsPromisesOriginal) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function originalJournalFacilityField(value, name) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function originalJournalFacilityField(value: unknown, name: string): unknown {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -49602,8 +49791,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const facilityPlatformOperations = Object.freeze(["
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "const facilityPlatformOperations = Object.freeze((["
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -49616,17 +49805,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {"
+                "path": "adapters/host-node/client-request-journal-facility.mts",
+                "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "if (nativeBindings !== undefined) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-facility.mts",
                 "anchor": "if (facilityChanged) fail('ClientRequestJournalFacilityUnavailable');"
               },
               {
@@ -89008,7 +89197,7 @@
                 "anchor": "[root, freeze({directoryInspection: entry.rootDirectoryInspection})]);"
               },
               {
-                "path": "adapters/host-node/host-journal-facility-fields.cjs",
+                "path": "adapters/host-node/host-journal-facility-fields.cts",
                 "anchor": "iteratorConstructor:Object.freeze(['prototype']),"
               }
             ],

@@ -1,18 +1,14 @@
 import {retainedBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
-import {DatabaseSync, StatementSync} from 'node:sqlite';
-import * as facilityFs from 'node:fs';
-import * as facilityFsPromises from 'node:fs/promises';
-import * as facilityCrypto from 'node:crypto';
-import facilityFields from './host-journal-facility-fields.cjs';
+import {DatabaseSync} from 'node:sqlite';
+import './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
-import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {assertHostJournalDirectoryInspector} from './host-journal-directory.mjs';
@@ -46,91 +42,16 @@ import {keyedLookupOriginalTable, explanationOriginalTable, inspectExplanationOr
   validJournalRowUsage, adoptSubmissionUsageStorage, nameMarker, nameTables, nameTriggers, restartMarker,
   retirementMarker, intentMarker, epochMarker, maxEpochTtlMs, hexKey, validEpochAuthority,
   readJournalFormatFeatures, inspectJournalNativeStorage, inspectJournalSnapshot} from './client-request-journal-format.mjs';
+import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
 export {validateSourceInventory};
 
 const pathText = value => typeof value === 'string' && value.length > 0;
 const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
-const facilityDescriptor = Object.getOwnPropertyDescriptor;
-const facilityRealpath = realpathSync;
-const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.value;
-const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
-const facilityHasOwn = Object.hasOwn, facilityIsProxy = utilTypes.isProxy;
-const facilityDatabase = DatabaseSync, facilityStatement = StatementSync;
-const facilityIteratorProperty = facilityDescriptor(globalThis, 'Iterator');
-// No getter/Proxy is evaluated while capturing this actual namespace. Missing
-// or unsupported originals remain absent and the selected fence refuses them.
-const facilityIteratorConstructor = facilityIteratorProperty !== undefined &&
-  facilityHasOwn(facilityIteratorProperty, 'value') &&
-  typeof facilityIteratorProperty.value === 'function' &&
-  !facilityIsProxy(facilityIteratorProperty.value) ? facilityIteratorProperty.value : undefined;
-const facilityOperations = Object.freeze([
-  [facilityDatabase.prototype, 'open'], [facilityDatabase.prototype, 'close'],
-  [facilityDatabase.prototype, 'prepare'], [facilityDatabase.prototype, 'exec'],
-  [facilityStatement.prototype, 'get'], [facilityStatement.prototype, 'run'],
-  [facilityStatement.prototype, 'iterate'],
-].map(([receiver, name]) => Object.freeze({receiver, name,
-  property: facilityDescriptor(receiver, name)})));
-const facilityPlatformOperations = Object.freeze([
-  ['fs',facilityFs],['crypto',facilityCrypto],['constants',facilityFs.constants],
-  ['promises',facilityFsPromises],
-  ['iteratorGlobal',globalThis],['iteratorConstructor',facilityIteratorConstructor],
-  ['directory',facilityFs.Dir.prototype],['hash',facilityCrypto.Hash.prototype],
-  ['hmac',facilityCrypto.Hmac.prototype],['realpath',facilityRealpath],
-].flatMap(([group,receiver]) => facilityFields[group].map(name => Object.freeze({
-  group,receiver,name,property:receiver === undefined ? undefined : facilityDescriptor(receiver,name),
-}))));
-
-function originalJournalFacilityField(value, name) {
-  if (value === null || typeof value !== 'object' || facilityIsProxy(value)) {
-    fail('ClientRequestJournalFacilityUnavailable');
-  }
-  const property = facilityDescriptor(value,name);
-  if (property === undefined || !facilityHasOwn(property,'value')) {
-    fail('ClientRequestJournalFacilityUnavailable');
-  }
-  return property.value;
-}
-
-// Fixed namespace forwarder for the selected startup's actual node:sqlite
-// originals. This observes correspondence/currentness, not capacity, a new
-// installation or authority. No caller callback or equal label is a native
-// constructor, and restoration after a detected change cannot revive it.
-let facilityChanged = false;
-export function assertOriginalClientRequestJournalFacilityCurrent(database, statement, nativeBindings) {
-  if (database !== facilityDatabase || statement !== facilityStatement) {
-    fail('ClientRequestJournalFacilityUnavailable');
-  }
-  for (const {receiver, name, property} of facilityOperations) {
-    const current = facilityDescriptor(receiver, name);
-    if (property === undefined || current === undefined ||
-        typeof property.value !== 'function' || current.value !== property.value ||
-        current.get !== property.get || current.set !== property.set ||
-        current.writable !== property.writable || current.configurable !== property.configurable ||
-        current.enumerable !== property.enumerable) facilityChanged = true;
-  }
-  if (nativeBindings !== undefined) {
-    // This is correspondence DATA from the actual early prefix, not a new
-    // facility issuer. A foreign table cannot poison another original's
-    // currentness; a detected change in the real operations is irreversible.
-    for (const {group,name,property} of facilityPlatformOperations) {
-      const selected = originalJournalFacilityField(nativeBindings,group);
-      if (property === undefined || !facilityHasOwn(property, 'value') ||
-          originalJournalFacilityField(selected,name) !== property.value) {
-        fail('ClientRequestJournalFacilityUnavailable');
-      }
-    }
-    for (const {receiver,name,property} of facilityPlatformOperations) {
-      const current = receiver === undefined ? undefined : facilityDescriptor(receiver,name);
-      if (current === undefined || current.value !== property.value ||
-          current.get !== property.get || current.set !== property.set ||
-          current.writable !== property.writable || current.configurable !== property.configurable ||
-          current.enumerable !== property.enumerable) facilityChanged = true;
-    }
-  }
-  if (facilityChanged) fail('ClientRequestJournalFacilityUnavailable');
-}
+const {facilityNativeRealpath, facilityRealpath, nativePathOptions,
+  assertOriginalClientRequestJournalFacilityCurrent} = captureOriginalClientRequestJournalFacility();
+export {assertOriginalClientRequestJournalFacilityCurrent};
 
 // Private physical-facility observation, not request/Run authority or a
 // capacity issuer. Only this module's actual constructor can install a member.
