@@ -770,6 +770,50 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.previous = (None, None)
         return module, control, core, matches
 
+    def test_unrelated_and_foreign_profile_events_never_read_counts(self):
+        from types import SimpleNamespace
+        _, control, core, _ = self.configured_control()
+        class UnreadableCounts:
+            def __iter__(self):
+                raise AssertionError('An unrelated profile event read counters')
+        def unrelated():
+            return None
+        counts = UnreadableCounts()
+        control.counts = counts
+        for code, receiver in ((unrelated.__code__, core),
+                               (control.drive_code, object()),
+                               (control.export_code, object())):
+            for event in ('call', 'return'):
+                with self.subTest(code=code.co_name, event=event):
+                    frame = SimpleNamespace(f_code=code, f_locals={'self': receiver})
+                    control._profile(frame, event, None)
+                    self.assertIs(control.counts, counts)
+                    self.assertTrue(control.valid)
+                    self.assertIsNone(control.failure)
+                    self.assertEqual(control.refusal_bits, 0)
+                    self.assertEqual(control.span_refusal_bits, 0)
+
+    def test_exact_drive_and_export_events_still_saturate_and_preserve_first_failure(self):
+        from types import SimpleNamespace
+        for target in ('drive', 'export'):
+            with self.subTest(target=target):
+                _, control, core, _ = self.configured_control()
+                first = RuntimeError('Original observation failure')
+                control.failure = first
+                control.counts = [1024] * 5
+                frame = SimpleNamespace(
+                    f_code=control.drive_code if target == 'drive' else control.export_code,
+                    f_locals={'self': core if target == 'drive' else control.export})
+                for event in ('call', 'return'):
+                    control._profile(frame, event, None)
+                self.assertEqual(control.counts, ([1025, 1025, 1024, 1024, 1024]
+                                                 if target == 'drive'
+                                                 else [1024, 1024, 1025, 1025, 1025]))
+                self.assertFalse(control.valid)
+                self.assertIs(control.failure, first)
+                self.assertEqual(control.refusal_bits, 16)
+                self.assertEqual(control.span_refusal_bits, 0)
+
     def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
         module, control, core, matches = self.configured_control()
         original = type(core).drive_task
@@ -957,6 +1001,249 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
             control.result()
 
 
+class OrdinaryOuterFuelObservationTests(unittest.TestCase):
+    """Actual SDK scope owners with explicit non-VM fuel ports, not acceptance."""
+
+    def fixture(self):
+        import os
+        import threading
+        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
+        sys.path.insert(0, str(sdk))
+        try:
+            from actql_sdk._local_core import LocalCore
+            from actql_sdk._local_product import InstalledLocalHost
+            from actql_sdk._local_work import OriginalLocalWork
+        finally:
+            sys.path.remove(str(sdk))
+        module = load('ordinary_outer_fuel', SCRIPTS / 'fixtures/python-local-repeated-host.py')
+        core = object.__new__(LocalCore)
+        core._identity, core._nonce, core._lock = object(), 41, threading.RLock()
+        core._closed = core._retired = core._closing = core._invoking = False
+        core._ordinary_host, core._host_initial_claimed = True, False
+        core._host_fuel_phase = core._host_operation_scope = core._host_retained_work = None
+        core._host_operation_id = core._host_operation_sequence = 0
+        from types import SimpleNamespace
+        core._instance, core._exports = object(), SimpleNamespace(_extern_map={'memory': object()})
+        class OpaqueObservationFailure(BaseException):
+            def __str__(self):
+                raise AssertionError('Optional fuel failure must not be formatted')
+        class FuelPort:
+            def __init__(self, owner):
+                self.core = owner
+                self.remaining, self.sets, self.reads, self.fail = 123, 0, 0, False
+            def set_fuel(self, value):
+                self.sets += 1
+                self.remaining = value
+            def get_fuel(self):
+                if not self.core._lock._is_owned() or self.core._invoking:
+                    raise AssertionError('Fuel read outside its original serialized boundary')
+                self.reads += 1
+                if self.fail:
+                    raise OpaqueObservationFailure()
+                return self.remaining
+        store = core._store = FuelPort(core)
+        core._platform_vm_original = (core, core._identity, core._nonce, store,
+            core._instance, core._exports, core._exports._extern_map['memory'], os.getpid())
+        observer = module._OrdinaryFuelObservation(LocalCore, InstalledLocalHost, OriginalLocalWork)
+        return module, core, store, observer, OriginalLocalWork
+
+    def test_normal_scope_measures_actual_start_end_and_never_adds_a_refill(self):
+        _, core, store, observer, _ = self.fixture()
+        methods = (type(core)._host_operation, type(store).set_fuel, type(store).get_fuel)
+        with observer:
+            with core._host_operation():
+                with core._lock:
+                    store.remaining -= 7
+        result = observer.summary()
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual(len(result['operations']), 1)
+        value = result['operations'][0]
+        self.assertTrue(value['available'])
+        self.assertEqual(value['ending'], 'normal-context')
+        self.assertEqual((value['startRemaining'], value['endRemaining'], value['consumedFuel']),
+                         (64_000_000_000, 63_999_999_993, 7))
+        self.assertEqual((store.sets, store.reads), (1, 2))
+        self.assertEqual(methods, (type(core)._host_operation, type(store).set_fuel, type(store).get_fuel))
+        self.assertIsNone(core._host_operation_scope)
+
+    def test_retained_scope_is_counted_only_at_the_same_actual_worker_return(self):
+        _, core, store, observer, work_type = self.fixture()
+        def invoke():
+            with core._lock:
+                store.remaining -= 13
+        with observer:
+            with core._host_operation():
+                work = work_type(invoke, owner=object(), on_exit=core._finish_work_operation)
+                core._retain_work_operation(work)
+            self.assertFalse(observer.summary()['operations'][0]['available'])
+            self.assertEqual(store.reads, 1)
+            work.start()
+            work._thread.join(2)
+            self.assertFalse(work._thread.is_alive())
+            self.assertIsNone(work._future.exception(timeout=0))
+        result = observer.summary()
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual(len(result['operations']), 1)
+        self.assertEqual(result['operations'][0]['ending'], 'retained-worker')
+        self.assertEqual(result['operations'][0]['consumedFuel'], 13)
+        self.assertEqual((store.sets, store.reads), (1, 2))
+        self.assertIsNone(core._host_retained_work)
+
+    def test_foreign_or_invoking_boundary_never_reads_fuel(self):
+        from types import SimpleNamespace
+        _, core, store, observer, _ = self.fixture()
+        with observer:
+            with core._host_operation():
+                frame = SimpleNamespace(f_code=type(core)._host_operation.__wrapped__.__code__,
+                    f_locals={'self': core, 'scope': core._host_operation_scope, 'initial': False})
+                with core._lock:
+                    before = store.reads
+                    core._invoking = True
+                    observer._profile(frame, 'c_return', getattr)
+                    core._invoking = False
+                    frame.f_locals['self'] = object()
+                    observer._profile(frame, 'c_return', getattr)
+                    self.assertEqual(store.reads, before)
+        self.assertTrue(observer.summary()['qualified'])
+
+    def test_missing_negative_and_optional_error_are_unavailable_not_zero(self):
+        _, core, store, observer, _ = self.fixture()
+        with core._host_operation():
+            observer.__enter__()  # Deliberately miss the real start; no reconstructed budget.
+        observer.__exit__(None, None, None)
+        self.assertFalse(observer.summary()['qualified'])
+        self.assertEqual(store.reads, 0)
+        for fault in ('negative', 'getter'):
+            with self.subTest(fault=fault):
+                _, core, store, observer, _ = self.fixture()
+                with observer:
+                    with core._host_operation():
+                        if fault == 'negative':
+                            store.remaining = -1
+                        else:
+                            store.fail = True
+                result = observer.summary()
+                self.assertFalse(result['qualified'])
+                self.assertIsNone(result['operations'][0]['consumedFuel'])
+
+    def test_failed_normal_body_preserves_primary_context_and_restores_profiles(self):
+        import threading
+        _, core, store, observer, _ = self.fixture()
+        primary, cause = RuntimeError('original primary'), ValueError('original cause')
+        try:
+            with observer:
+                with core._host_operation():
+                    raise primary from cause
+        except RuntimeError as caught:
+            self.assertIs(caught, primary)
+            self.assertIs(caught.__cause__, cause)
+        else:
+            self.fail('Original failure was hidden')
+        result = observer.summary()
+        self.assertFalse(result['qualified'])
+        self.assertIsNone(result['operations'][0]['consumedFuel'])
+        self.assertIsNone(sys.getprofile())
+        self.assertIsNone(threading.getprofile())
+        self.assertEqual(store.sets, 1)
+
+    def test_bootstrap_cleanup_and_observation_overflow_cannot_be_normal_zeroes(self):
+        _, core, store, observer, _ = self.fixture()
+        with observer:
+            with core._host_operation(initial=True):
+                pass
+            with core._host_cleanup():
+                pass
+            self.assertEqual(store.reads, 0)
+            for _ in range(observer.MAX_OPERATIONS):
+                with core._host_operation():
+                    store.remaining -= 1
+            before = store.reads
+            with core._host_operation():
+                store.remaining -= 1
+            self.assertEqual(store.reads, before)
+        result = observer.summary()
+        self.assertTrue(result['overflow'])
+        self.assertFalse(result['qualified'])
+        self.assertEqual(len(result['operations']), observer.MAX_OPERATIONS)
+        self.assertTrue(all(row['consumedFuel'] == 1 for row in result['operations']))
+
+    def test_failed_retained_worker_keeps_original_error_and_has_no_normal_cost(self):
+        _, core, store, observer, work_type = self.fixture()
+        primary = RuntimeError('original physical invocation failure')
+        def invoke():
+            raise primary
+        with observer:
+            with core._host_operation():
+                work = work_type(invoke, owner=object(), on_exit=core._finish_work_operation)
+                core._retain_work_operation(work)
+            work.start()
+            work._thread.join(2)
+            self.assertFalse(work._thread.is_alive())
+            self.assertIs(work._future.exception(timeout=0), primary)
+        result = observer.summary()
+        self.assertFalse(result['qualified'])
+        self.assertIsNone(result['operations'][0]['consumedFuel'])
+        self.assertEqual(result['operations'][0]['reason'], 'worker-failed-or-unavailable')
+        self.assertEqual((store.sets, store.reads), (1, 1))
+
+    def test_changed_original_memory_and_incomplete_owner_are_unavailable(self):
+        for fault in ('memory', 'pending'):
+            with self.subTest(fault=fault):
+                _, core, store, observer, work_type = self.fixture()
+                with observer:
+                    with core._host_operation():
+                        if fault == 'memory':
+                            core._exports._extern_map['memory'] = object()
+                        else:
+                            work = work_type(lambda: None, owner=object(),
+                                             on_exit=core._finish_work_operation)
+                            core._retain_work_operation(work)
+                result = observer.summary()
+                self.assertFalse(result['qualified'])
+                self.assertIsNone(result['operations'][0]['consumedFuel'])
+                self.assertEqual((store.sets, store.reads), (1, 1))
+                if fault == 'pending':
+                    # End the same actual worker after observation; no forced ACK or new operation.
+                    work.start()
+                    work._thread.join(2)
+                    self.assertFalse(work._thread.is_alive())
+                    self.assertIsNone(work._future.exception(timeout=0))
+
+    def test_unrelated_actual_code_is_never_hashed_by_the_observer(self):
+        from types import FunctionType
+        _, core, store, observer, _ = self.fixture()
+        # A real unrelated Python call whose constant is deliberately unhashable.
+        # It must not enter stage classification or invalidate normal evidence.
+        constant = []
+        code = (lambda: None).__code__.replace(co_consts=(constant,))
+        unrelated = FunctionType(code, {})
+        with observer:
+            with core._host_operation():
+                self.assertIs(unrelated(), constant)
+        result = observer.summary()
+        self.assertFalse(result['observationFailed'], result)
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual((store.sets, store.reads), (1, 2))
+
+    def test_original_matched_stage_still_has_same_scope_entry_and_return(self):
+        _, core, store, observer, _ = self.fixture()
+        with observer:
+            with core._host_operation():
+                with core._lock, self.assertRaises(ValueError):
+                    # Original method/receiver; its existing foreign-loan check
+                    # refuses before any guest call or physical reader.
+                    core.inspect_journal_observation(None, None)
+        result = observer.summary()
+        self.assertTrue(result['qualified'], result)
+        self.assertEqual([(r['stage'], r['event']) for r in result['stages']],
+                         [('journal-inspect', 'call'), ('journal-inspect', 'return')])
+        original = result['operations'][0]
+        for stage in result['stages']:
+            self.assertEqual((stage['core'], stage['scope'], stage['operation']),
+                             (original['core'], original['scope'], original['operation']))
+        self.assertEqual((store.sets, store.reads), (1, 4))
+
+
 class TaskRetirementSnapshotTests(unittest.TestCase):
     """Original Python worker/allowance timeline with explicit scalar FFI ports."""
 
@@ -1055,6 +1342,87 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
         self.assertTrue(result['observation_failed'])
         self.assertEqual(result['tasks'], [])
         self.assertEqual(len(calls), 2)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_survives_cleared_host_lists_without_core_entry(self):
+        module, core, work, observer, _, primary = self.run_original()
+        host = work._invoke.host
+        host._physical_work, host._public_run_references = [], []
+        host._closing, host._installation = True, None
+        core._closing = core._closed = True
+        core._task_loans.clear()
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(type(core), '_call', side_effect=AssertionError('No retired Core entry')) as call, \
+                patch.object(type(work), 'wait', side_effect=AssertionError('No work wait')) as wait:
+            module.report_contexts(primary, output, task_retirement=observer)
+        call.assert_not_called()
+        wait.assert_not_called()
+        record = json.loads(output.getvalue().splitlines()[0])
+        captured = record['captured_task_retirement']
+        self.assertEqual(captured['association'], 'same-original-worker-traceback')
+        self.assertEqual(captured['sample_timing'], 'original-task-close-return-before-worker-exit')
+        self.assertFalse(captured['live_selection'])
+        self.assertEqual(captured['snapshot'], observer.snapshot(work))
+        self.assertTrue(captured['snapshot']['available'])
+        self.assertNotIn('local_work', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_refuses_foreign_identity_and_preserves_unavailable_samples(self):
+        for settings in ({}, {'outside_lock': True}, {'observation_error': True}, {'closes': 17}):
+            with self.subTest(settings=settings):
+                module, _, work, observer, _, primary = self.run_original(**settings)
+                expected = observer.snapshot(work)
+                captured = module.captured_task_retirement(primary, observer)
+                self.assertEqual(captured['snapshot'], expected)
+                self.assertEqual(captured['snapshot']['available'], not settings)
+                owner = work._owner
+                work._owner = object()
+                self.assertIsNone(module.captured_task_retirement(primary, observer))
+                work._owner = owner
+                copied = type(primary)(work._invoke.host)
+                copied.__traceback__, copied.__context__ = primary.__traceback__, primary.__context__
+                self.assertIsNone(module.captured_task_retirement(copied, observer))
+                self.assertIsNone(module.captured_task_retirement(primary, object()))
+                self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_traceback_visits_are_bounded(self):
+        module, _, _, observer, _, primary = self.run_original()
+        def raise_with_prefix(depth):
+            if depth:
+                return raise_with_prefix(depth - 1)
+            raise primary
+        try:
+            raise_with_prefix(module.MAX_FRAMES + 4)
+        except type(primary):
+            pass
+        walk = module.traceback.walk_tb
+        visited = []
+        def bounded_walk(trace):
+            for frame in walk(trace):
+                visited.append(None)
+                if len(visited) > module.MAX_FRAMES:
+                    raise AssertionError('Unbounded diagnostic traceback traversal')
+                yield frame
+        with patch.object(module.traceback, 'walk_tb', bounded_walk):
+            self.assertIsNone(module.captured_task_retirement(primary, observer))
+        self.assertEqual(len(visited), module.MAX_FRAMES)
+
+    def test_captured_retirement_observation_error_never_replaces_primary(self):
+        module, _, work, observer, _, primary = self.run_original()
+        class OpaqueFailure(BaseException):
+            def __str__(self):
+                raise AssertionError('No optional diagnostic formatting')
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(module, 'captured_task_retirement', side_effect=OpaqueFailure(), create=True):
+            module.report_contexts(primary, output, task_retirement=observer)
+        record = json.loads(output.getvalue().splitlines()[0])
+        self.assertNotIn('captured_task_retirement', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
         self.assertIs(work._future.exception(timeout=0), primary)
 
     def test_absent_outer_retirement_lock_refuses_without_an_observer_entry(self):
@@ -1651,7 +2019,9 @@ class InitialPhaseObservationTests(unittest.TestCase):
         stream = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
                 patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
-                patch.object(consumer.sys, 'stderr', stream):
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True,
+                             side_effect=[1000] + list(range(1000, 1200, 10))) as clock:
             observed = consumer._sync('private-version', 'initial', Path(tmp) / 'original.json')
         self.assertIs(observed, control.result.return_value)
         records = [json.loads(line) for line in stream.getvalue().splitlines()]
@@ -1661,8 +2031,10 @@ class InitialPhaseObservationTests(unittest.TestCase):
             'first-result-enter', 'first-result-return', 'first-reread-enter', 'first-reread-return',
             'second-start-enter', 'second-start-return', 'second-state-enter', 'second-state-return',
             'second-result-enter', 'second-result-return', 'first-close-enter', 'first-close-return'])
-        self.assertTrue(all(set(record) == {'stage', 'phase'} and
+        self.assertTrue(all(set(record) == {'stage', 'phase', 'elapsed_ns'} and
                             record['stage'] == 'installed-sync-initial-phase' for record in records))
+        self.assertEqual([record['elapsed_ns'] for record in records], list(range(0, 200, 10)))
+        self.assertEqual(clock.call_count, 21)  # One origin and the same twenty boundaries.
         self.assertLess(len(stream.getvalue().encode()), 4096)
         self.assertNotIn('private-version', stream.getvalue())
         public.Client.open.assert_called_once_with()
@@ -1699,9 +2071,11 @@ class InitialPhaseObservationTests(unittest.TestCase):
         stream = io.StringIO()
         with patch.dict(sys.modules, {'actql': public}), patch.object(consumer, '_saved', return_value=saved), \
                 patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control) as observation, \
-                patch.object(consumer.sys, 'stderr', stream):
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True) as clock:
             self.assertIsNone(consumer._sync('fixture', 'resume', Path('/unused/receipt')))
         self.assertEqual(stream.getvalue(), '')
+        clock.assert_not_called()
         observation.assert_not_called()
         client.start_source.assert_not_called()
         client.attach.assert_called_once_with(saved['run'])
@@ -1718,6 +2092,53 @@ class InitialPhaseObservationTests(unittest.TestCase):
             consumer._sync_initial_phase(True, Foreign())
             consumer._sync_initial_phase(True, 'private-stage-not-selected')
         self.assertEqual(stream.getvalue(), '')
+
+    def test_elapsed_refuses_foreign_negative_overflow_and_failed_clock_without_fabricating_time(self):
+        consumer, _, _, _, _ = self.fixture()
+        class Foreign:
+            def __sub__(self, other):
+                raise AssertionError('Do not subtract foreign diagnostic clocks')
+            def __lt__(self, other):
+                raise AssertionError('Do not compare foreign diagnostic clocks')
+        maximum = (1 << 63) - 1
+        cases = [(0, 0, 0), (0, maximum, maximum), (100, 125, 25),
+                 (100, 99, None), (0, maximum + 1, None), (0, True, None),
+                 (0, 1.5, None), (0, Foreign(), None), (None, 100, None),
+                 (True, 100, None), (-1, 100, None), (maximum + 1, maximum + 2, None),
+                 (Foreign(), 100, None)]
+        for origin, now, expected in cases:
+            stream = io.StringIO()
+            with self.subTest(origin_type=type(origin).__name__, now_type=type(now).__name__), \
+                    patch.object(consumer.sys, 'stderr', stream), \
+                    patch.object(consumer, 'monotonic_ns', create=True, return_value=now):
+                consumer._sync_initial_phase(True, 'factory-enter', origin)
+            if expected is None:
+                self.assertEqual(stream.getvalue(), '')
+            else:
+                self.assertEqual(json.loads(stream.getvalue())['elapsed_ns'], expected)
+        stream = io.StringIO()
+        with patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt):
+            consumer._sync_initial_phase(True, 'factory-enter', 0)
+        self.assertEqual(stream.getvalue(), '')
+
+    def test_failed_origin_preserves_original_failure_and_first_close_without_reorigin(self):
+        consumer, public, client, _, control = self.fixture()
+        original = RuntimeError('original first-start failure')
+        client.start_source.side_effect = original
+        stream = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt) as clock:
+            with self.assertRaises(RuntimeError) as raised:
+                consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(raised.exception, original)
+        clock.assert_called_once_with()
+        self.assertEqual(stream.getvalue(), '')
+        self.assertEqual(client.__exit__.call_count, 1)
+        self.assertIs(client.__exit__.call_args.args[1], original)
+        control.result.assert_not_called()
 
 
 class InstalledCancellationTests(unittest.TestCase):

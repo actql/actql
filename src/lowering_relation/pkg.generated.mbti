@@ -1194,6 +1194,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  ExactModulo
+  IntegerDivide
   Pow
   Atan2
   Log

@@ -52309,7 +52309,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6eae30859ff3582c478ab8d2d14ae74d9dda65e5d84a6dbb66a161476c2f14e9",
+      "sha256": "dbd69108e00bebbabff5fb71dd5302266d142eb283d64dbb357513890326d5ed",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -52329,6 +52329,10 @@
         {
           "name": "request_query_lowering_data_bytes",
           "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , request_copy : ( Int , Int64 ) , ) - > Int64 ?"
+        },
+        {
+          "name": "request_integer_context_data_bytes",
+          "declaration": "request_integer_context_data_bytes ( tokens : Int64 ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -52337,7 +52341,8 @@
             "<module>",
             "[I]lower_request_published_query",
             "[I]prepared_request_query_lowering",
-            "request_query_lowering_data_bytes"
+            "request_query_lowering_data_bytes",
+            "request_integer_context_data_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -52527,6 +52532,10 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
+                "anchor": "test \"original integer context is funded before lowerer entry"
               }
             ]
           }
@@ -90525,6 +90534,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "inputsOutputs": [
@@ -90535,6 +90548,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "identity": [
@@ -90545,6 +90562,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "ownership": [
@@ -90555,6 +90576,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "synchronization": [
@@ -90565,6 +90590,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "failure": [
@@ -90575,6 +90604,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "cancellation": [
@@ -90585,6 +90618,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "resources": [
@@ -90595,6 +90632,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "extension": [
@@ -90605,6 +90646,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "verification": [
@@ -90615,12 +90660,16 @@
               {
                 "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
                 "anchor": "test \"platform VM capacity binds exact original Root"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
         }
       ],
-      "sha256": "e7e958fd0a54bf3b70883a69cd1ec9913cb514641a28dd79561e40213ce62cb7",
+      "sha256": "4f3622adf21314c467db6f6386beee657e2b96af5f917af55411e3df6e6fec20",
       "operations": [
         {
           "name": "allocated",

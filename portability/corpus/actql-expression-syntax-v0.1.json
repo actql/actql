@@ -1856,6 +1856,29 @@
         ]
       },
       "parameters": []
+    },
+    {
+      "source": {
+        "cast": {
+          "value": "$x",
+          "target": {
+            "type": "int64"
+          }
+        }
+      },
+      "tree": {
+        "cast": {
+          "value": {
+            "$param": "x"
+          },
+          "target": {
+            "type": "int64"
+          }
+        }
+      },
+      "parameters": [
+        "x"
+      ]
     }
   ],
   "negative": [
@@ -2529,6 +2552,17 @@
           "literal": null
         },
         "unexpected": false
+      }
+    },
+    {
+      "cast": {
+        "value": {
+          "literal": "12"
+        },
+        "target": {
+          "type": "int64",
+          "precision": 19
+        }
       }
     }
   ]

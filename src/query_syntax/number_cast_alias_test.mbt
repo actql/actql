@@ -15,7 +15,10 @@ test "NUMBER cast uses the original numeric target and authored span" {
 
 ///|
 test "NUMBER cast alias keeps quoted and unknown target refusals" {
-  for target in ["`NUMBER`", "NUMBERISH", "NUMERIC", "INT64", "FLOAT32"] {
+  for
+    target in [
+      "`NUMBER`", "NUMBERISH", "NUMERIC", "INT128", "`INT64`", "FLOAT32",
+    ] {
     assert_true(
       parse_expression("CAST('1.25' AS " + target + ")", expression_limits())
       is Err(_),

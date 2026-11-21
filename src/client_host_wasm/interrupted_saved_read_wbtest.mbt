@@ -59,7 +59,7 @@ test "saved interruption cleanup spends normal entry but retains original loans 
     slot: parent_slot,
     saved_result: None,
     saved_snapshot: None,
-    append_plan: None,
+    append_plan: Idle,
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,

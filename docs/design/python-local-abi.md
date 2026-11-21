@@ -4638,3 +4638,45 @@ must still match. An action name, disappearance of pending state, error type or
 denied readback, independent exit errors and different cleanup causes retain
 their refusal. The Future, exceptions and actual child/parent cleanup loans are
 not cleared or acknowledged by delivering this observation.
+
+
+#### Same-call scanned submission decoding
+
+The fresh append inventory may carry its own canonical submitted-row decode
+through the required fresh point read. Reuse requires the exact physical key,
+revision and complete original body bytes. Canonical-equivalent replacement
+bytes, a matching reference, or a previous transaction cannot supply that
+original. A miss takes the existing full decoder before the final mismatch
+refusal; malformed scanned bytes still refuse before physical I/O. Ordinary
+Saved/cold readers and all Run, task, current, cancellation and complete
+inventory checks retain their existing validators and ordering.
+
+The original submission projection owns this synchronous construction prefix.
+Its existing optional plan slot becomes Idle/Ready or a temporary token plus
+its prior plan, without a new normal holder or historical cache. Before creating
+that control it reserves 416 retention/execution bytes on the same Root: the
+40-byte control, 56-byte geometry, six 32-byte checked scalar Some carriers,
+and 128 bytes for the token Result, two private Some(token) carriers and four
+additional callback references. Before canonical row construction it grows that
+same token to the complete bounded prefix. Every production caller already
+point-selects its original projection; no extra projection enumeration is added. The fixed legacy row limit remains 262144 bytes; no construction
+observer selects the wider observed profile. The submitted-row representation
+uses the existing Native geometry: 32 headers, 64 references, 32 scalar words,
+three UTF-16 units per maximum input byte plus 71 fixed units, and the input
+wire extent. Its existing representation cost is 1836430 bytes. Three carriers
+cover the prior loop result, current decode and a differing point-read fallback;
+88 bytes cover old/new temporary control overlap, including the admitted
+amount stored in the grown control. The quote and 128 call-carrier bytes remain
+conservatively covered there. The resulting 5509754-byte prefix is admitted for both retention and execution before construction.
+Later current/prepare checks use that same admitted scalar without reconstructing
+geometry or a quote. Raw
+transfer capacity, retired Run capacity and the VM maximum supply no credit.
+
+The prefix remains owned after the validation callback returns, through the
+whole inventory's final consumption of the returned record. Only then may the
+same projection settle it and restore its prior plan. A failed settlement
+retains the same token and plan, rejects normal produce/observe paths, and
+preserves the initiating error. Projection or pool cleanup must settle that
+same debt before clearing its named owner; a failure refuses cleanup without
+discarding it. This synchronous purpose settlement is not physical I/O cleanup
+acknowledgment. No decoded historical row is retained to create future hits.
