@@ -7,12 +7,12 @@ import test from 'node:test';
 import {releaseVectorScalarFixturePaths, releaseVectorScalarEnvironment} from './release-vector-scalar-fixtures.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-function closure(paths) {
+function closure(paths: readonly string[]) {
   const delivered = new Set(paths.map(path => resolve(root, path)));
   const pending = [resolve(root, 'scripts/fixtures/release-vector-scalar-worker.mjs')];
-  const seen = new Set(), missing = [];
+  const seen = new Set<string>(), missing: string[] = [];
   while (pending.length) {
-    const path = pending.pop(); if (seen.has(path)) continue; seen.add(path);
+    const path = pending.pop()!; if (seen.has(path)) continue; seen.add(path);
     if (!delivered.has(path)) { missing.push(path); continue; }
     for (const match of readFileSync(path, 'utf8').matchAll(
       /(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {

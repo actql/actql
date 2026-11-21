@@ -1013,3 +1013,9 @@ target/
 /scripts/fixtures/retained-graph-observer.d.mts
 /scripts/fixtures/public-query-input.mjs
 /scripts/fixtures/public-query-input.d.mts
+/scripts/fixtures/vector-scalar-source-input.mjs
+/scripts/fixtures/vector-scalar-source-input.d.mts
+/scripts/release-vector-scalar-fixtures.mjs
+/scripts/release-vector-scalar-fixtures.d.mts
+/scripts/release-vector-scalar-fixtures.test.mjs
+/scripts/release-vector-scalar-fixtures.test.d.mts
