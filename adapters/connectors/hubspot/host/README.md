@@ -91,8 +91,10 @@ Common may reuse only its original generation and ordered-field correspondence;
 fresh Account/current checks, metadata observations and retirement still run.
 The connector supplies no alternate checking, permission or cleanup owner.
 
-The same metadata validation observes its closed original token/String extent.
-The existing Core profile identity recipe and native input constructor fund
+The same metadata validation observes the original object count and body and
+String lengths. The existing Common construction bridge owns the digest
+representation, target-field inventory and managed read-sequence bounds.
+Its profile identity recipe and the native input constructor fund
 canonical/hash workspace before the one loader metadata hash, then fold that
 workspace away after retaining the actual targets/digest. The final Site binding
 uses that digest through the same private preimage as the metadata-taking public
