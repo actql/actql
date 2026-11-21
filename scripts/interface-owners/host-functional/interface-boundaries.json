@@ -43476,7 +43476,7 @@
     {
       "module": "adapters/host-node/client-submit.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cd2ccc128d505fe381c9c7ae53f02a2f8f6c1bde470c0f3465b162c1a9cf3b37",
+      "sha256": "9ff40ce5432ba4adf587d7c6d89ec44a888a01199a5c8515833b4466dda9353e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -43506,8 +43506,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -43520,8 +43520,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -43534,8 +43534,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -43548,8 +43548,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43562,7 +43562,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "const prepared = prepare === undefined ? undefined : await prepare();"
               },
               {
@@ -43576,7 +43576,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -43590,8 +43590,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43604,7 +43604,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "// Both ingress transports use the same preparation and acceptance boundary."
               },
               {
@@ -43618,8 +43618,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -43650,8 +43650,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -43664,8 +43664,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -43678,8 +43678,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -43692,8 +43692,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43706,7 +43706,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "const prepared = prepare === undefined ? undefined : await prepare();"
               },
               {
@@ -43720,7 +43720,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -43734,8 +43734,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43748,7 +43748,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
+                "path": "adapters/host-node/client-submit.mts",
                 "anchor": "// Both ingress transports use the same preparation and acceptance boundary."
               },
               {
@@ -43762,8 +43762,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-submit.mjs",
-                "anchor": "export async function performClientSubmit({connection, requestId, prepare,"
+                "path": "adapters/host-node/client-submit.mts",
+                "anchor": "export async function performClientSubmit<Prepared>({connection, requestId, prepare,"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
