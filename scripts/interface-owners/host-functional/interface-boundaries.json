@@ -8224,7 +8224,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "export function createManagedSiteTransferCoordinator("
               },
               {
@@ -8242,7 +8242,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "export function createManagedSiteTransferCoordinator("
               },
               {
@@ -8260,7 +8260,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "destination.generation !== null &&"
               },
               {
@@ -8278,7 +8278,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "releaseExecutionSiteCleanup,"
               },
               {
@@ -8296,8 +8296,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
-                "anchor": "try { await state.upstream.retry(); }"
+                "path": "adapters/host-common/managed-site-transfer.mts",
+                "anchor": "try { await (state.upstream as CleanupHandle).retry!(); }"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -8314,7 +8314,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "import {ExecutionAuthorizationError, missingAuthorizationGate} from"
               },
               {
@@ -8332,7 +8332,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "releaseExecutionSiteCleanup,"
               },
               {
@@ -8350,7 +8350,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "Number.isSafeInteger(destination.maxBatchBytes) &&"
               },
               {
@@ -8368,8 +8368,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
-                "anchor": "setup, core, installation, {"
+                "path": "adapters/host-common/managed-site-transfer.mts",
+                "anchor": "setup: object, core: TransferCore, installation: object, {"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -8408,7 +8408,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "export function createManagedSiteTransferCoordinator("
               },
               {
@@ -8426,7 +8426,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "export function createManagedSiteTransferCoordinator("
               },
               {
@@ -8444,7 +8444,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "destination.generation !== null &&"
               },
               {
@@ -8462,7 +8462,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "releaseExecutionSiteCleanup,"
               },
               {
@@ -8480,8 +8480,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
-                "anchor": "try { await state.upstream.retry(); }"
+                "path": "adapters/host-common/managed-site-transfer.mts",
+                "anchor": "try { await (state.upstream as CleanupHandle).retry!(); }"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -8498,7 +8498,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "import {ExecutionAuthorizationError, missingAuthorizationGate} from"
               },
               {
@@ -8516,7 +8516,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "releaseExecutionSiteCleanup,"
               },
               {
@@ -8534,7 +8534,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
+                "path": "adapters/host-common/managed-site-transfer.mts",
                 "anchor": "Number.isSafeInteger(destination.maxBatchBytes) &&"
               },
               {
@@ -8552,8 +8552,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/managed-site-transfer.mjs",
-                "anchor": "setup, core, installation, {"
+                "path": "adapters/host-common/managed-site-transfer.mts",
+                "anchor": "setup: object, core: TransferCore, installation: object, {"
               },
               {
                 "path": "docs/design/remote-site-execution.md",

@@ -37,7 +37,6 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
   './execution-sites.mjs';
-// @ts-expect-error TS7016: remove after migrating the Site Transfer coordinator.
 import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs';
 // @ts-expect-error TS7016: remove after migrating durable result payload storage.
 import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
@@ -95,13 +94,10 @@ type ManagedOutput = SiteInput & Readonly<{
   close?: CloseOwner['close'];
   releaseOwner?: CloseOwner;
 }>;
-type SiteResolution = Readonly<{materials: readonly object[]; records: readonly unknown[]}>;
+type TransferCore = Parameters<typeof createManagedSiteTransferCoordinator>[1];
+type SiteResolution = Pick<Awaited<ReturnType<ReturnType<typeof createManagedSiteTransferCoordinator>['resolve']>>, 'materials'> &
+  Readonly<{records: readonly unknown[]}>;
 type ResolveSiteInputs = (inputs: readonly unknown[], signal?: AbortSignal) => Promise<SiteResolution>;
-type SiteTransferCoordinator = Readonly<{
-  resolve(candidate: SiteCandidate, inputs: readonly unknown[], signal?: AbortSignal): Promise<SiteResolution>;
-  releaseSource(output: ManagedOutput): Awaitable<unknown>;
-  close(): unknown;
-}>;
 type PreparedTask = Readonly<{
   task: number;
   durationMilliseconds: bigint | null;
@@ -196,10 +192,10 @@ type Core = Readonly<{
 }>;
 type ActivationScope = Readonly<{connection: string; resource: string; operation: 'write'}>;
 type Authorization = Readonly<{
-  authorize(boundary: 'activation', scope: ActivationScope,
+  authorize(boundary: 'activation' | 'transfer', scope: ActivationScope,
     options: Readonly<{subjectCid: string | undefined; signal: AbortSignal | undefined}>):
     Awaitable<Readonly<{action: string; runtimeDecision?: unknown}>>;
-  cover(boundary: 'activation', scope: ActivationScope): SynchronousRuntimeData;
+  cover(boundary: 'activation' | 'transfer', scope: ActivationScope): SynchronousRuntimeData;
   isProtectedSite(key: string): boolean;
 }>;
 type CompletionEvent = Readonly<{task: number; output: unknown; readRetained?: RetainedRead}>;
@@ -739,11 +735,11 @@ export async function runInstalledStrategy({
     rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup, preparationHolder});
   }
   const transfers = createManagedSiteTransferCoordinator(
-    setup, core, siteInstallation, {
+    setup, core as Core & TransferCore, siteInstallation, {
       authorization,
       subjectCid: programDefinitionCid,
     },
-  ) as SiteTransferCoordinator;
+  );
   // Every activation is proven inside the admitted envelope by a cheap local
   // check: an unprotected in-process Site running pure compute over captured
   // inputs is covered without evaluation; a Host-declared protected Site needs

@@ -1207,6 +1207,8 @@ target/
 /adapters/host-common/execution-site-control.fixture.d.mts
 /adapters/host-common/execution-sites.mjs
 /adapters/host-common/execution-sites.d.mts
+/adapters/host-common/managed-site-transfer.mjs
+/adapters/host-common/managed-site-transfer.d.mts
 /adapters/host-common/strategy.mjs
 /adapters/host-common/strategy.d.mts
 /adapters/host-common/task-observation.mjs
