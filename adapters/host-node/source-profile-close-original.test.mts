@@ -3,11 +3,24 @@ import {createHash} from 'node:crypto';
 import {mkdtemp, open, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 import {installedRuntimeBundleCid, readBoundedConfigurationText,
   readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 
-async function fixture(t) {
+type ReadArgs = [buffer: Buffer, offset: number, length: number, position: number | null];
+type CloseHandle = {
+  read(...args: ReadArgs): Promise<{bytesRead: number}>;
+  close(): Promise<false | void>;
+};
+type CloseFailure = {
+  cleanupHandle: {
+    primaryFailure: unknown;
+    status(): {pending: boolean};
+    retry(): Promise<{pending: boolean}>;
+  };
+};
+
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-original-file-close-'));
   const path = join(directory, 'source.txt'), text = 'original 雪\n';
   await writeFile(path, text);
@@ -20,14 +33,14 @@ async function fixture(t) {
     await rm(directory, {recursive: true, force: true});
   });
   const counts = {opens: 0, reads: 0, originalClose: 0, replacementClose: 0};
-  const handle = {
+  const handle: CloseHandle = {
     async read(...args) { counts.reads++; return file.read(...args); },
     async close() {
       assert.equal(this, handle); counts.originalClose++;
       await Reflect.apply(physicalClose, file, []);
     },
   };
-  const openFile = async (name, flags) => {
+  const openFile = async (name: string, flags: string) => {
     assert.equal(name, path); assert.equal(flags, 'r'); counts.opens++;
     return handle;
   };
@@ -37,9 +50,9 @@ async function fixture(t) {
 for (const kind of ['configuration', 'runtime']) {
   test(`${kind} read captures original close before its first awaited read`, async t => {
     const f = await fixture(t);
-    let entered, release;
-    const reading = new Promise(resolve => { entered = resolve; });
-    const pending = new Promise(resolve => { release = resolve; });
+    let entered!: () => void, release!: () => void;
+    const reading = new Promise<void>(resolve => { entered = resolve; });
+    const pending = new Promise<void>(resolve => { release = resolve; });
     f.handle.read = async (...args) => {
       f.counts.reads++;
       if (f.counts.reads === 1) { entered(); await pending; }
@@ -64,13 +77,13 @@ for (const kind of ['configuration', 'runtime']) {
 
 test('close-only retry retains the same original method and cannot acknowledge its replacement', async t => {
   const f = await fixture(t);
-  let pending = true, failure;
+  let pending = true, failure!: CloseFailure;
   f.handle.close = async function() {
     assert.equal(this, f.handle); f.counts.originalClose++;
     if (pending) return false;
     await Reflect.apply(f.physicalClose, f.file, []);
   };
-  await assert.rejects(installedRuntimeBundleCid(f.path, {openFile: f.openFile}), error => {
+  await assert.rejects(installedRuntimeBundleCid(f.path, {openFile: f.openFile}), (error: CloseFailure) => {
     failure = error; return error.cleanupHandle.status().pending === true;
   });
   const reads = f.counts.reads;
@@ -90,17 +103,17 @@ test('close-only retry retains the same original method and cannot acknowledge i
 
 test('unobserved close getter failure retains the FD without beginning intake and retries observation once', async t => {
   const f = await fixture(t), cause = new Error('original close getter');
-  let gets = 0, pending = true, failure;
+  let gets = 0, pending = true, failure!: CloseFailure;
   Object.defineProperty(f.handle, 'close', {configurable: true, get() {
     gets++;
     if (gets === 1) throw cause;
-    return async function() {
+    return async function(this: CloseHandle) {
       assert.equal(this, f.handle); f.counts.originalClose++;
       if (pending) return false;
       await Reflect.apply(f.physicalClose, f.file, []);
     };
   }});
-  await assert.rejects(readBoundedConfigurationUtf8(f.path, {maxBytes: 128, openFile: f.openFile}), error => {
+  await assert.rejects(readBoundedConfigurationUtf8(f.path, {maxBytes: 128, openFile: f.openFile}), (error: CloseFailure) => {
     failure = error; return error.cleanupHandle.primaryFailure === cause;
   });
   assert.equal(gets, 1);

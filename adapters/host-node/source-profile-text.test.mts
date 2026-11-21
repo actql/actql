@@ -3,9 +3,18 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {readBoundedConfigurationText, readSourceProfileJson} from './source-profile-json.mjs';
 
-function bytesSource(bytes, {virtualBytes = bytes.length, failClose = false} = {}) {
+type TextSource = {
+  reads: number; bytes: number; opens: number; closes: number; allowClose: boolean;
+  openFile(): Promise<{
+    read(buffer: Buffer, offset: number, length: number): Promise<{bytesRead: number}>;
+    close(): Promise<false | void>;
+  }>;
+};
+type TextCloseFailure = {cleanupPending: boolean; cleanupHandle: {retry(): Promise<unknown>}};
+
+function bytesSource(bytes: Buffer, {virtualBytes = bytes.length, failClose = false} = {}) {
   let position = 0;
-  const state = {reads: 0, bytes: 0, opens: 0, closes: 0, allowClose: !failClose};
+  const state = {reads: 0, bytes: 0, opens: 0, closes: 0, allowClose: !failClose} as TextSource;
   state.openFile = async () => {
     state.opens++;
     return {
@@ -62,7 +71,7 @@ test('publication text requires an explicit finite ceiling before acquisition', 
   const source = bytesSource(Buffer.from('{}'));
   for (const maxBytes of [undefined, null, -1, 1.5, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     await assert.rejects(readBoundedConfigurationText('/publication',
-      {maxBytes, openFile: source.openFile}),
+      {maxBytes, openFile: source.openFile} as Parameters<typeof readBoundedConfigurationText>[1]),
     {message: 'InvalidInstalledSourceProfileByteLimit'});
   }
   assert.equal(source.opens, 0);
@@ -70,9 +79,9 @@ test('publication text requires an explicit finite ceiling before acquisition', 
 
 test('publication text close failure returns no text and retries without rereading', async () => {
   const source = bytesSource(Buffer.from(' {"x":1.00}\n'), {failClose: true});
-  let failure;
+  let failure!: TextCloseFailure;
   await assert.rejects(readBoundedConfigurationText('/publication',
-    {maxBytes: 100, openFile: source.openFile}), error => {
+    {maxBytes: 100, openFile: source.openFile}), (error: TextCloseFailure) => {
     failure = error;
     assert.equal(error.cleanupPending, true);
     return true;

@@ -92142,15 +92142,15 @@
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "read captures original close before its first awaited read"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "close-only retry retains the same original method and cannot acknowledge its replacement"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
               },
               {
@@ -92292,15 +92292,15 @@
                 "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "read captures original close before its first awaited read"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "close-only retry retains the same original method and cannot acknowledge its replacement"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
               },
               {
@@ -92760,15 +92760,15 @@
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "read captures original close before its first awaited read"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "close-only retry retains the same original method and cannot acknowledge its replacement"
               },
               {
-                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "path": "adapters/host-node/source-profile-close-original.test.mts",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
               }
             ]
