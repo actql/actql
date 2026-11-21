@@ -43131,11 +43131,11 @@
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               },
               {
-                "path": "adapters/host-node/embedded-local-mock-preparation.test.mjs",
+                "path": "adapters/host-node/embedded-local-mock-preparation.test.mts",
                 "anchor": "Mock preparation lookup is bound to one original Host/installation/generation"
               },
               {
-                "path": "adapters/host-node/host-journal-preparation.test.mjs",
+                "path": "adapters/host-node/host-journal-preparation.test.mts",
                 "anchor": "fixed Host Journal projection retains one original pair and refuses copies and replacement"
               },
               {
@@ -121728,11 +121728,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "path": "adapters/host-node/local-preparation-registry.test.mts",
                 "anchor": "Core handler and dispatch tokens return only after their JS payload slots are severed"
               },
               {
-                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "path": "adapters/host-node/local-preparation-registry.test.mts",
                 "anchor": "Request registry cannot select a domain body"
               }
             ]
@@ -121872,11 +121872,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "path": "adapters/host-node/local-preparation-registry.test.mts",
                 "anchor": "Core handler and dispatch tokens return only after their JS payload slots are severed"
               },
               {
-                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "path": "adapters/host-node/local-preparation-registry.test.mts",
                 "anchor": "Request registry cannot select a domain body"
               }
             ]

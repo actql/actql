@@ -1041,3 +1041,9 @@ target/
 /adapters/host-node/local-preparation-registry.d.mts
 /adapters/host-node/local-preparation-custody.test.mjs
 /adapters/host-node/local-preparation-custody.test.d.mts
+/adapters/host-node/local-preparation-registry.test.mjs
+/adapters/host-node/local-preparation-registry.test.d.mts
+/adapters/host-node/embedded-local-mock-preparation.test.mjs
+/adapters/host-node/embedded-local-mock-preparation.test.d.mts
+/adapters/host-node/host-journal-preparation.test.mjs
+/adapters/host-node/host-journal-preparation.test.d.mts
