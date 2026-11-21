@@ -99808,8 +99808,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
-                "anchor": "export function checkedLocalManagedAdvance("
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
+                "anchor": "export function checkedLocalManagedAdvance<Value extends SynchronousResult>("
               }
             ],
             "identity": [
@@ -99901,49 +99901,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "identity": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "failure": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "resources": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
             "extension": [
               {
-                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "path": "adapters/local-node/managed-advance-diagnostic.mts",
                 "anchor": "function originalBudget"
               }
             ],
@@ -100265,7 +100265,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mts",
                 "anchor": "test('original typed row cause reaches"
               },
               {
@@ -100555,7 +100555,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mts",
                 "anchor": "test('original typed row cause reaches"
               }
             ]
@@ -100937,7 +100937,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mts",
                 "anchor": "test('original typed row cause reaches"
               }
             ]
@@ -106678,7 +106678,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mts",
                 "anchor": "test('original typed row cause reaches"
               },
               {
@@ -106806,7 +106806,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mts",
                 "anchor": "test('original typed row cause reaches"
               },
               {

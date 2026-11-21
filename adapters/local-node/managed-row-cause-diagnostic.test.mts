@@ -5,15 +5,17 @@ import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 import {dispatchFailureSnapshot, publicBudgetFailureMessage, retainedBudgetFailureMessage}
   from '../host-node/client-dispatch-diagnostic.mjs';
 
+type OriginalFailure = Error & {primaryDiagnostic?: unknown};
+
 test('original typed row cause reaches the same failure without reading private data or replacing cleanup', () => {
   const result = runtimeFailure({}), owner = {}, secret = 'PRIVATE_QUERY_AND_PROVIDER_VALUE';
   const original = Object.assign(new Error(secret), {code: 'MoonBitHostFailure', cleanupOwner: owner});
   let checks = 0, causes = 0, steps = 0;
   const moon = {
-    strategyModule_local_ManagedAdvanceCause(value) {
+    strategyModule_local_ManagedAdvanceCause(value: unknown) {
       assert.strictEqual(this, moon); assert.strictEqual(value, result); causes++; return 'evaluation.arithmetic_failure';
     },
-    strategyModule_local_ManagedAdvanceRowStep(value) {
+    strategyModule_local_ManagedAdvanceRowStep(value: unknown) {
       assert.strictEqual(this, moon); assert.strictEqual(value, result); steps++; return 41;
     },
   };
@@ -23,7 +25,7 @@ test('original typed row cause reaches the same failure without reading private 
   assert.deepEqual([checks, causes, steps], [1, 1, 1]);
   assert.strictEqual(original.cleanupOwner, owner);
   assert.equal(original.message, secret);
-  assert.deepEqual(dispatchFailureSnapshot(original).primaryDiagnostic, {
+  assert.deepEqual(dispatchFailureSnapshot(original)!.primaryDiagnostic, {
     code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'row_failure',
     task: 7, step: 41, cause: 'evaluation.arithmetic_failure',
   });
@@ -38,16 +40,16 @@ test('unavailable or malformed row diagnosis never replaces the original error o
       strategyModule_local_ManagedAdvanceCause: () => cause,
       strategyModule_local_ManagedAdvanceRowStep: () => step,
     }, runtimeFailure({}), () => {throw original;}, 7), error => error === original);
-    assert.equal(original.primaryDiagnostic, undefined);
+    assert.equal((original as OriginalFailure).primaryDiagnostic, undefined);
   }
   const fields = {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
     kind: 'row_failure', task: 0, step: 42, cause: 'rows.row_limit'};
-  assert(publicBudgetFailureMessage({primaryDiagnostic: fields}).includes('cause=rows.row_limit.'));
-  assert(!publicBudgetFailureMessage({primaryDiagnostic: fields}).includes('dimension='));
+  assert(publicBudgetFailureMessage({primaryDiagnostic: fields})!.includes('cause=rows.row_limit.'));
+  assert(!publicBudgetFailureMessage({primaryDiagnostic: fields})!.includes('dimension='));
   for (const bad of [{...fields, budget: {}}, {...fields, dimension: 'execution_bytes'},
     {...fields, unit: 1}, {...fields, step: -1}, {...fields, cause: 'provider secret'},
     Object.defineProperty({...fields}, 'cause', {get() {assert.fail('no getter');}})]) {
-    assert.equal(dispatchFailureSnapshot({primaryDiagnostic: bad}).primaryDiagnostic, undefined);
+    assert.equal(dispatchFailureSnapshot({primaryDiagnostic: bad})!.primaryDiagnostic, undefined);
   }
   const original = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
   assert.throws(() => checkedLocalManagedAdvance({
@@ -59,7 +61,7 @@ test('unavailable or malformed row diagnosis never replaces the original error o
 test('only the same failed cold Run control frame retains its bounded original row cause', () => {
   const message = publicBudgetFailureMessage({primaryDiagnostic: {code: 'MoonBitHostFailure',
     phase: 'local_managed_advance', kind: 'row_failure', task: 7, step: 41,
-    cause: 'evaluation.arithmetic_failure'}});
+    cause: 'evaluation.arithmetic_failure'}})!;
   const control = {revision: 4, physical_stop: 'confirmed', cancellation_requested: false};
   const state = {run_id: 'original-run', status: 'failed', result_available: false,
     next_action: {kind: 'none'}, terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}, control};

@@ -4535,49 +4535,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],

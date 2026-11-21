@@ -4,14 +4,38 @@
 import {originalDispatchFailureSnapshot} from '../host-common/dispatch-failure-observation.mjs';
 import {types as nodeTypes} from 'node:util';
 
+type DescribeCause = (cause: string) => unknown;
+type Diagnostic = Readonly<Record<string, unknown>>;
+type Budget = Readonly<{requested: string; remaining: string; policy: string; requestedIsLowerBound: boolean}>;
+type WorkOrResource = Readonly<{budget?: Budget; workLimit?: number; controlWorkLimit?: number}> &
+  (Readonly<{kind: 'resource'; dimension: 'retained_bytes' | 'execution_bytes'}> |
+   Readonly<{kind: 'control_work' | 'value_capture_work'}>);
+type LocalDiagnostic = Readonly<{phase: 'local_managed_advance'; task: number}> &
+  (WorkOrResource |
+   Readonly<{kind: 'logical_work'; step: number; workLimit: string; setting: 'installation.sourceFreeMaxWork' | 'unavailable'}> |
+   Readonly<{kind: 'row_failure'; cause: string; step: number}> |
+   Readonly<{kind: 'local_issue'; cause: string}>);
+type RunControl = Readonly<Record<string, unknown>>;
+type JournalFailureState = Readonly<{
+  status?: unknown;
+  terminal_error?: Readonly<{code?: unknown}> | null;
+}>;
+type PreviousJournalState = JournalFailureState & Readonly<{
+  run_id?: unknown;
+  result_available?: unknown;
+  next_action?: Readonly<{kind?: unknown}>;
+  terminal_error?: Readonly<{code?: unknown; message?: unknown}> | null;
+  control: RunControl;
+}>;
+
 // Resolve only the engine's own lazy Error stack. The managed cleanup wrapper
 // retains its original failure in one inert own slot; prefer that original
 // site without walking a cause chain or changing the cleanup owner. An
 // observer receives locations, never the exception, message or capabilities.
-export function dispatchFailureCodeSite(error, errorType, formatter) {
+export function dispatchFailureCodeSite(error: unknown, errorType: ErrorConstructor, formatter: unknown) {
   try {
     if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
-    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    const primary = Object.getOwnPropertyDescriptor(error as object, 'primaryFailure');
     if (primary !== undefined) {
       if (!Object.hasOwn(primary, 'value') || primary.value === error) return undefined;
       error = primary.value;
@@ -21,13 +45,13 @@ export function dispatchFailureCodeSite(error, errorType, formatter) {
     const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
     if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
         currentFormatter?.value !== formatter) return undefined;
-    const heading = {};
-    const code = Object.getOwnPropertyDescriptor(error, 'code');
+    const heading = {} as Record<'name' | 'message', string>;
+    const code = Object.getOwnPropertyDescriptor(error as object, 'code');
     if (!code || !Object.hasOwn(code, 'value') || typeof code.value !== 'string' ||
         code.value.length < 1 || code.value.length > 96 ||
         !/^[A-Za-z][A-Za-z0-9_]*$/u.test(code.value)) return undefined;
-    for (const key of ['name', 'message']) {
-      const own = Object.getOwnPropertyDescriptor(error, key);
+    for (const key of ['name', 'message'] as const) {
+      const own = Object.getOwnPropertyDescriptor(error as object, key);
       const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
       if (key === 'message' && own === undefined) return undefined;
       if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
@@ -37,9 +61,9 @@ export function dispatchFailureCodeSite(error, errorType, formatter) {
     // Only a bounded code used verbatim as its own inert message is a safe
     // heading. Arbitrary exception text is neither resolved nor copied.
     if (heading.name !== 'Error' || heading.message !== code.value) return undefined;
-    const field = Object.getOwnPropertyDescriptor(error, 'stack');
+    const field = Object.getOwnPropertyDescriptor(error as object, 'stack');
     if (field === undefined) return undefined;
-    let stack;
+    let stack: unknown;
     if (Object.hasOwn(field, 'value')) stack = field.value;
     else {
       const native = Object.getOwnPropertyDescriptor(new errorType(), 'stack');
@@ -47,10 +71,10 @@ export function dispatchFailureCodeSite(error, errorType, formatter) {
       stack = native.get.call(error);
     }
     if (typeof stack !== 'string') return undefined;
-    const header = heading.name === '' ? heading.message : heading.message === ''
+    const header = (heading.name as string) === '' ? heading.message : heading.message === ''
       ? heading.name : `${heading.name}: ${heading.message}`;
     if (!stack.startsWith(`${header}\n`)) return undefined;
-    const sites = [];
+    const sites: string[] = [];
     for (const line of stack.slice(header.length + 1, header.length + 16385).split('\n').slice(0, 16)) {
       // Drop function names and absolute installation/state prefixes. These
       // are optional source locations, not artifact or provenance evidence.
@@ -67,64 +91,64 @@ export function dispatchFailureCodeSite(error, errorType, formatter) {
 }
 
 
-export function dispatchFailureSnapshot(error) {
+export function dispatchFailureSnapshot(error: unknown) {
   if (error === undefined) return undefined;
   // Only the fixed runtime's actual Err path can populate this weak entry.
   // Do not accept a copied/adversarial primaryDiagnostic with these fields.
   const original = originalDispatchFailureSnapshot(error);
   let observed = original;
   try {
-    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    const primary = Object.getOwnPropertyDescriptor(error as object, 'primaryFailure');
     if (primary !== undefined && Object.hasOwn(primary, 'value')) {
       const retained = originalDispatchFailureSnapshot(primary.value);
       if (retained !== undefined) observed = retained;
     }
   } catch { /* An optional observation cannot invoke a foreign accessor. */ }
-  const text = name => {
+  const text = (name: string) => {
     try {
-      const field = Object.getOwnPropertyDescriptor(error, name);
+      const field = Object.getOwnPropertyDescriptor(error as object, name);
       return field !== undefined && Object.hasOwn(field, 'value') &&
         typeof field.value === 'string' ? field.value : undefined;
     } catch { return undefined; }
   };
-  let primaryDiagnostic = observed?.primaryDiagnostic;
+  let primaryDiagnostic: Diagnostic | undefined = observed?.primaryDiagnostic;
   try {
     if (primaryDiagnostic === undefined) {
-      let field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+      let field = Object.getOwnPropertyDescriptor(error as object, 'primaryDiagnostic');
       if (field === undefined) {
-        const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+        const primary = Object.getOwnPropertyDescriptor(error as object, 'primaryFailure');
         if (primary !== undefined && Object.hasOwn(primary, 'value') && primary.value !== error) {
           field = Object.getOwnPropertyDescriptor(primary.value, 'primaryDiagnostic');
         }
       }
       if (field !== undefined && Object.hasOwn(field, 'value')) {
-        const data = {};
+        const data: Record<string, unknown> = {};
         let validOrdinals = true;
         for (const key of ['code', 'phase', 'kind', 'task', 'unit', 'step']) {
           const member = Object.getOwnPropertyDescriptor(field.value, key);
           if (member !== undefined && Object.hasOwn(member, 'value')) data[key] = member.value;
           if ((key === 'task' || key === 'unit' || key === 'step') &&
-              (!Number.isSafeInteger(data[key]) || data[key] < 0 || data[key] > 2147483647)) {
+              (!Number.isSafeInteger(data[key]) || (data[key] as number) < 0 || (data[key] as number) > 2147483647)) {
             validOrdinals = false;
           }
         }
         const workLimit = Object.getOwnPropertyDescriptor(field.value, 'controlWorkLimit');
         const localWork = data.phase === 'local_managed_advance' && data.kind === 'control_work' &&
-          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          Number.isSafeInteger(data.task) && (data.task as number) >= 0 && (data.task as number) <= 2147483647 &&
           !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
           workLimit !== undefined && Object.hasOwn(workLimit, 'value') &&
           Number.isSafeInteger(workLimit.value) && workLimit.value >= 0 && workLimit.value <= 2147483647;
         const valueLimit = Object.getOwnPropertyDescriptor(field.value, 'workLimit');
         const valueWork = data.phase === 'local_managed_advance' && data.kind === 'value_capture_work' &&
-          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+          Number.isSafeInteger(data.task) && (data.task as number) >= 0 && (data.task as number) <= 2147483647 &&
+          Number.isSafeInteger(data.step) && (data.step as number) >= 0 && (data.step as number) <= 2147483647 &&
           !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
           valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
           Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
         const setting = Object.getOwnPropertyDescriptor(field.value, 'setting');
         const logicalWork = data.phase === 'local_managed_advance' && data.kind === 'logical_work' &&
-          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+          Number.isSafeInteger(data.task) && (data.task as number) >= 0 && (data.task as number) <= 2147483647 &&
+          Number.isSafeInteger(data.step) && (data.step as number) >= 0 && (data.step as number) <= 2147483647 &&
           !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
           !Object.hasOwn(field.value, 'dimension') && !Object.hasOwn(field.value, 'budget') &&
           valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
@@ -134,25 +158,25 @@ export function dispatchFailureSnapshot(error) {
           (setting.value === 'installation.sourceFreeMaxWork' || setting.value === 'unavailable');
         const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
         const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
-          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          Number.isSafeInteger(data.task) && (data.task as number) >= 0 && (data.task as number) <= 2147483647 &&
           !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
           !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
           dimension !== undefined && Object.hasOwn(dimension, 'value') &&
           (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
         const cause = Object.getOwnPropertyDescriptor(field.value, 'cause');
         const originalCause = data.phase === 'local_managed_advance' &&
-          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          Number.isSafeInteger(data.task) && (data.task as number) >= 0 && (data.task as number) <= 2147483647 &&
           !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'dimension') &&
           !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
           !Object.hasOwn(field.value, 'budget') && cause && Object.hasOwn(cause, 'value') &&
           typeof cause.value === 'string' && cause.value.length <= 96 &&
           /^[a-z_]+(?:\.[a-z_]+)*$/u.test(cause.value);
         const rowFailure = originalCause && data.kind === 'row_failure' &&
-          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647;
+          Number.isSafeInteger(data.step) && (data.step as number) >= 0 && (data.step as number) <= 2147483647;
         const localIssue = originalCause && data.kind === 'local_issue' &&
           !Object.hasOwn(field.value, 'step');
         if (data.code === 'MoonBitHostFailure' &&
-            (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
+            (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase as string) &&
               validOrdinals || localWork || valueWork || logicalWork || resource || rowFailure || localIssue) &&
             typeof data.kind === 'string' && data.kind.length <= 96 &&
             /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
@@ -165,9 +189,9 @@ export function dispatchFailureSnapshot(error) {
           // failed reserve/probe. A later ledger sample is not this failure.
           const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
           if ((resource || valueWork) && budgetField && Object.hasOwn(budgetField, 'value')) {
-            const original = budgetField.value, selected = {};
+            const original: unknown = budgetField.value, selected: Record<string, unknown> = {};
             const keys = ['requested', 'remaining', 'policy', 'requestedIsLowerBound'];
-            if (original != null && Object.keys(original).length === keys.length) {
+            if (original != null && Object.keys(original as object).length === keys.length) {
               let valid = true;
               for (const key of keys) {
                 const member = Object.getOwnPropertyDescriptor(original, key);
@@ -175,9 +199,9 @@ export function dispatchFailureSnapshot(error) {
                 selected[key] = member.value;
               }
               if (valid && keys.slice(0, 3).every(key => typeof selected[key] === 'string' &&
-                  /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key]) && BigInt(selected[key]) <= 9223372036854775807n) &&
-                  BigInt(selected.requested) > BigInt(selected.remaining) &&
-                  BigInt(selected.remaining) <= BigInt(selected.policy) &&
+                  /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key] as string) && BigInt(selected[key] as string) <= 9223372036854775807n) &&
+                  BigInt(selected.requested as string) > BigInt(selected.remaining as string) &&
+                  BigInt(selected.remaining as string) <= BigInt(selected.policy as string) &&
                   selected.requestedIsLowerBound === valueWork &&
                   (!valueWork || selected.policy === String(data.workLimit))) {
                 data.budget = Object.freeze(selected);
@@ -191,12 +215,12 @@ export function dispatchFailureSnapshot(error) {
   } catch { /* Optional inert DATA cannot mask execution or cleanup. */ }
   let cleanupDiagnostic;
   try {
-    const original = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
-    const field = Object.getOwnPropertyDescriptor(error, 'cleanupDiagnostic') ??
+    const original = Object.getOwnPropertyDescriptor(error as object, 'primaryFailure');
+    const field = Object.getOwnPropertyDescriptor(error as object, 'cleanupDiagnostic') ??
       (original !== undefined && Object.hasOwn(original, 'value') && original.value != null
         ? Object.getOwnPropertyDescriptor(original.value, 'cleanupDiagnostic') : undefined);
     if (field !== undefined && Object.hasOwn(field, 'value')) {
-      const read = key => Object.getOwnPropertyDescriptor(field.value, key)?.value;
+      const read = (key: string) => Object.getOwnPropertyDescriptor(field.value, key)?.value;
       const owner = read('owner'), phase = read('phase'), continuation = read('continuation');
       if (['local_managed', 'managed_operations'].includes(owner) &&
           ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'].includes(phase) &&
@@ -218,7 +242,7 @@ const rowFailureHeaderUnits =
   'Execution failed: phase=local_managed_advance; task=2147483647; step=2147483647; cause='.length +
   96 + '. Original execution failure; resource quantities were not retained.'.length;
 const rowFailureExplanationUnits = 512 - rowFailureHeaderUnits - 1;
-function failureCauseExplanation(cause, describeCause) {
+function failureCauseExplanation(cause: string, describeCause?: DescribeCause) {
   if (typeof describeCause !== 'function') return undefined;
   try {
     const value = describeCause(cause);
@@ -227,8 +251,8 @@ function failureCauseExplanation(cause, describeCause) {
   } catch { return undefined; }
 }
 
-export function publicBudgetFailureMessage(error, describeCause) {
-  const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
+export function publicBudgetFailureMessage(error: unknown, describeCause?: DescribeCause) {
+  const data = dispatchFailureSnapshot(error)?.primaryDiagnostic as LocalDiagnostic | undefined;
   if (data?.phase !== 'local_managed_advance') return undefined;
   if (data.kind === 'logical_work') {
     return `Budget exceeded: phase=${data.phase}; task=${data.task}; step=${data.step}; dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=${data.workLimit}; unit=work_units; setting=${data.setting}. ` +
@@ -260,19 +284,20 @@ export function publicBudgetFailureMessage(error, describeCause) {
       : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
 }
 
-export function retainedBudgetFailureMessage(key, state, runId, control, describeCause) {
+export function retainedBudgetFailureMessage(key: unknown, state: JournalFailureState, runId: string, control: RunControl,
+  describeCause?: DescribeCause) {
   if (typeof key !== 'string' || state.status !== 'failed' ||
       state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
       control.physical_stop !== 'confirmed') return undefined;
-  let previous;
+  let previous: PreviousJournalState | null;
   try { previous = JSON.parse(key); } catch { return undefined; }
   if (previous?.run_id !== runId || previous.status !== 'failed' ||
       previous.result_available !== false || previous.next_action?.kind !== 'none' ||
       previous.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
       previous.control === null || typeof previous.control !== 'object' ||
       Object.keys(previous.control).sort().join('\0') !== Object.keys(control).sort().join('\0') ||
-      Object.keys(control).some(name => previous.control[name] !== control[name])) return undefined;
-  const message = previous.terminal_error.message;
+      Object.keys(control).some(name => previous!.control[name] !== control[name])) return undefined;
+  const message = previous.terminal_error!.message;
   if (typeof message !== 'string') return undefined;
   const cause = message.length <= 512 &&
     /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); (?:step=(0|[1-9][0-9]{0,9}); )?cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.(?: (.*))?$/u.exec(message);
