@@ -48,6 +48,7 @@ export const statisticalAliasProgram = {version: 'actql/0.1',
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const aliasSuccess = (name, text, extra = {}) => success(name, text,
   {sourceRows: aliasRows, expected: aliasExpected, columns: aliasColumns, ...extra});
+const defaultAnalyticFrame = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
 export const statisticalAggregateSuccesses = [
   success('independent-json', JSON.stringify(statisticalAggregateProgram), {format: 'json'}),
   success('sql-null-exclusion', sql),
@@ -95,26 +96,26 @@ export const statisticalAggregateSuccesses = [
     {sourceRows: [{id: 3, amount: 3}, {id: 1, amount: null}, {id: 2, amount: 1}],
       expected: [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}],
       columns: [{name: 'id', contract: {type: 'number', nullable: false}}, {name: 'v', contract: number}]}),
+  // Both rows with id 2 see [1, 1, 4] in the default peer frame. The
+  // population variance is 2, and neither peer is an intermediate prefix.
+  {name: 'statistical-aggregate-analytic-default-frame', format: 'sql', text: defaultAnalyticFrame,
+    sourceRows: [{id: 2, amount: 4}, {id: 0, amount: null}, {id: 1, amount: 1},
+      {id: 2, amount: 1}, {id: 3, amount: null}],
+    results: {main: {rows: [{v: null}, {v: 0}, {v: 2}, {v: 2}, {v: 2}],
+      columns: aliasColumns, unordered: true}}, sourceReadSessionCount: 1},
 ];
-// The selected inline OVER profile requires an explicit ROWS frame. This
-// valid GoogleSQL form is an implementation gap, not a malformed input.
-const defaultAnalyticFrame = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
 export const statisticalAggregateRefusals = [
-  "SELECT VAR_POP('not a number') AS v FROM records",
-  'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records',
-  'SELECT STDDEV_POP(amount + @missing) AS v FROM records',
-  defaultAnalyticFrame,
-  'SELECT VAR_POP(*) AS v FROM records',
-  'SELECT `VAR_POP`(*) AS v FROM records',
-  "SELECT `VAR_POP`('not a number') AS v FROM records",
-  'SELECT `COUNT`(DISTINCT *) AS n FROM records',
-  'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)',
-  'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)',
-].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text,
-  ...(text === defaultAnalyticFrame
-    ? {expectedCode: 'ClientProgramImplementationLimit'}
-    : text.startsWith('SELECT DISTINCT VARIANCE')
-      ? {expectedCode: 'ClientProgramInvalidInput'} : {}),
+  [0, "SELECT VAR_POP('not a number') AS v FROM records"],
+  [1, 'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records'],
+  [2, 'SELECT STDDEV_POP(amount + @missing) AS v FROM records'],
+  [4, 'SELECT VAR_POP(*) AS v FROM records'],
+  [5, 'SELECT `VAR_POP`(*) AS v FROM records'],
+  [6, "SELECT `VAR_POP`('not a number') AS v FROM records"],
+  [7, 'SELECT `COUNT`(DISTINCT *) AS n FROM records'],
+  [8, 'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)'],
+  [9, 'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)'],
+].map(([index, text]) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text,
+  ...(text.startsWith('SELECT DISTINCT VARIANCE') ? {expectedCode: 'ClientProgramInvalidInput'} : {}),
 }));
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',

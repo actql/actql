@@ -246,18 +246,53 @@ test('fixed interval schemas close all units and independent exact integer preim
 });
 
 
-test('fixed interval query grammar adds only the declared source operand and preserves its full predecessor', () => {
+test('fixed interval grammar and later selected productions preserve the authenticated predecessor', () => {
   assert.equal(hash(retained.query_grammar).slice(7), retained.query_grammar_sha256);
   assert.equal(retained.query_grammar_sha256, before.grammar_manifest.query_text_grammar_sha256);
   const current = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
-  assert.equal(current.slice(0, retained.query_grammar.length), retained.query_grammar);
-  assert.equal(current.slice(retained.query_grammar.length), `
+  const fixedInterval = `
 (* A fixed interval is an operand role only at the shared Timestamp consumers;
    integral tokens retain their exact signed spelling before Common admission. *)
 fixed_interval = "INTERVAL", ( [ "+" | "-" ], interval_integer | parameter_token | path ), fixed_interval_unit ;
 interval_integer = ? exact decimal or 0x/0X hexadecimal integer token, admitted in signed64 context without binary64 conversion ? ;
 fixed_interval_unit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND"
                     | "SECOND" | "MINUTE" | "HOUR" | "DAY" ;
-`);
+`;
+  assert.ok(current.endsWith(fixedInterval));
+  let predecessor = current.slice(0, -fixedInterval.length);
+  // Each later form must match its independently stated production exactly.
+  // Reversing only those edits leaves the entire original grammar for comparison.
+  const selectedExtensions = [
+    ['cte_pipe      = "FROM", carrier_source, { from_join }, { "|>", cte_pipe_item } ;',
+      'cte_pipe      = "FROM", carrier_source, { join }, { "|>", cte_pipe_item } ;'],
+    [`select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection
+                | select_list, [ "FROM", source, { from_join } ],
+                  [ select_where_clause ], [ group_clause ],
+                  [ having_clause ], [ qualify_clause ], [ window_clause ] ) ;
+(* The child starts with SELECT or WITH, yields one column and has its own scope. *)
+scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ] ;`,
+    `select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
+                [ where_clause ], [ group_clause ],
+                [ having_clause ], [ qualify_clause ], [ window_clause ] ;`],
+    ['pipe_query    = "FROM", carrier_source, { from_join }, { "|>", pipe_item } ;',
+      'pipe_query    = "FROM", carrier_source, { join }, { "|>", pipe_item } ;'],
+    ['from_join     = join | ",", ( table_source, [ join_bound ] | unnest_source ) ;\n', ''],
+    [`select_where_clause = where_clause
+                    | "WHERE", expression, "IN", "(", relational_body, ")" ;
+`, ''],
+    [`group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | rollup | expression, { ",", expression } ) ;
+rollup        = "ROLLUP", "(", grouping_item, { ",", grouping_item }, ")" ;
+grouping_item = expression | "(", expression, ",", expression, { ",", expression }, ")" ;`,
+    'group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;'],
+    [`expression    = ? closed query expression grammar in query-text.md, including date_literal and timestamp_literal ? ;
+date_literal  = "DATE", ? STRING literal chunks decoding to YYYY-[M]M-[D]D ? ;
+timestamp_literal = "TIMESTAMP", ? STRING literal chunks decoding to a civil date with optional time and fixed UTC offset ? ;`,
+    'expression    = ? closed query expression grammar in query-text.md ? ;'],
+  ];
+  for (const [added, original] of selectedExtensions) {
+    assert.equal(predecessor.split(added).length, 2, added);
+    predecessor = predecessor.replace(added, original);
+  }
+  assert.equal(predecessor, retained.query_grammar);
   assert.equal(read('spec/manifests/actql-grammar-0.1.json').query_text_grammar_sha256, hash(current).slice(7));
 });
