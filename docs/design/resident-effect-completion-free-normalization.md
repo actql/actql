@@ -362,8 +362,10 @@ composition. Existing catalogue bodies and all saved recipes remain unchanged.
 Fresh selection first reads the retained narrow audit. The common
 completion-free profile still requires its own zero-entry proof.
 `actql-local-common-update-source-normalization-catalog.json` applies when
-the complete common audit finds one or more original sole-view selections and
-every completion is one of those selections. The same cumulative work bound
+the Native supplier explicitly selects Source normalization and the complete
+common audit proves every completion is an original sole-view selection.
+The public `completion-free` compilation option continues to require no
+completions. The same cumulative work bound
 covers the entire ordered original mapped UPDATE set. The journal records each
 original input path, its absent view and the resolver's selected name.
 

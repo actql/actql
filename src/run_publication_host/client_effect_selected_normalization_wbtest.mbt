@@ -43,7 +43,15 @@ test "selected normalization supplier reuses each original kind proof" {
 ///|
 test "selected normalization records the original implicit Source completion" {
   let completed = local_update_source_normalization_fixture(false)
-  let proof = issue_prepared_client_effect_selected_normalization(completed).unwrap()
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(completed)
+    is Err(Inventory(CompletionObserved)),
+  )
+  assert_true(completed.normalization is None)
+  let proof = issue_prepared_client_effect_selected_normalization(
+    completed,
+    allow_source_completion=true,
+  ).unwrap()
   assert_true(proof.inventory is SourceCompletedUpdate(_))
   let journal = prepared_client_effect_normalization_evidence(completed, proof).unwrap()
   assert_eq(
@@ -55,7 +63,10 @@ test "selected normalization records the original implicit Source completion" {
   assert_true(
     physical_equal(
       proof,
-      issue_prepared_client_effect_selected_normalization(completed).unwrap(),
+      issue_prepared_client_effect_selected_normalization(
+        completed,
+        allow_source_completion=true,
+      ).unwrap(),
     ),
   )
 }

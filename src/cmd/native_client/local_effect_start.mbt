@@ -69,7 +69,10 @@ fn local_effect_first_compilation(
     "create" if @syntax.effect_header_count(headers) == 1 =>
       @run_host.issue_prepared_client_effect_normalization(prepared)
     "update" =>
-      @run_host.issue_prepared_client_effect_selected_normalization(prepared)
+      @run_host.issue_prepared_client_effect_selected_normalization(
+        prepared,
+        allow_source_completion=true,
+      )
     _ => stop("LocalEffectNormalizationProfileNotInstalled")
   }
   let normalization = normalization_result.unwrap_or_else(() => {

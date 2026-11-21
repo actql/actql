@@ -25,7 +25,10 @@ fn original_local_update_materials_fixture(
     ).unwrap()
   }
   let proof = if common || source_completion {
-    issue_prepared_client_effect_selected_normalization(prepared).unwrap()
+    issue_prepared_client_effect_selected_normalization(
+      prepared,
+      allow_source_completion=source_completion,
+    ).unwrap()
   } else {
     issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
   }

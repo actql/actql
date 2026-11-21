@@ -277,6 +277,7 @@ pub fn issue_prepared_client_effect_local_update_normalization(
 /// neither a caller profile nor a failed alternate issuer selects this kind.
 pub fn issue_prepared_client_effect_selected_normalization(
   owner : PreparedClientEffectComputation,
+  allow_source_completion? : Bool = false,
 ) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
   let selected = match checked_client_effect_normalization_inventory(owner) {
     Ok(value) => value
@@ -287,8 +288,9 @@ pub fn issue_prepared_client_effect_selected_normalization(
     LocalUpdate(_) =>
       issue_prepared_client_effect_local_update_normalization(owner)
     CommonUpdate(_) => issue_common_update_normalization(owner, selected)
-    SourceCompletedUpdate(inventory) =>
+    SourceCompletedUpdate(inventory) if allow_source_completion =>
       issue_source_completed_update_normalization(owner, selected, inventory)
+    SourceCompletedUpdate(_) => Err(Inventory(CompletionObserved))
   }
   match original {
     Err(issue) => Err(issue)
