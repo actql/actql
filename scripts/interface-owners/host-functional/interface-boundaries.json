@@ -137564,7 +137564,7 @@
     {
       "module": "packages/run-host-core/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c8f46eebd8aad540b383264ea6c26900f856859a2da93c505347c44d05a1125e",
+      "sha256": "28e3ab9b2613d738dff973656a5872b7a71f4c04a0285bb7819d3bfa9663dced",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
