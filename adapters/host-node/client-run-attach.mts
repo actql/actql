@@ -1,15 +1,35 @@
 // Reattach to one retained Run without checking or executing its Program.
 // Current Host authorization is required even when a durable request exists.
-const cid = value => typeof value === 'string' &&
+import type {WireRequestLookup, WireRunRef} from '../../packages/client-wire/index.js';
+
+type RequestControlPort = Readonly<{clientRequestAdmitRecord: unknown}>;
+type PublicationControlPort = Readonly<{admit: unknown}>;
+type Durability = Extract<WireRequestLookup, {kind: 'found'}>['durability'];
+type Retained<Definition> = Readonly<{ref: WireRunRef; durability: Durability; revision: number; runDefinition: Definition}>;
+type AttachInput<Connection> = Readonly<{principalId: string; connection: Connection; ref: WireRunRef}>;
+type ScopeAnswer = Readonly<{namespaceId?: unknown; authorityScopeCid?: unknown}> | undefined;
+type AttachInstallation<Connection, RequestControl, PublicationControl, Definition> = Readonly<{
+  journal: Readonly<{
+    lookupRunDefinition(ref: WireRunRef, requestControl: RequestControl, publicationControl: PublicationControl):
+      Retained<Definition> | undefined;
+  }>;
+  requestControl: RequestControl;
+  publicationControl: PublicationControl;
+  authorizedScope(input: AttachInput<Connection>): ScopeAnswer | PromiseLike<ScopeAnswer>;
+  authorizeRun(input: Readonly<AttachInput<Connection> & {runDefinition: Definition}>): unknown;
+}>;
+
+const cid = (value: unknown): value is string => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
-const text = value => typeof value === 'string' &&
+const text = (value: unknown): value is string => typeof value === 'string' &&
   value.length > 0 && value.length <= 256 &&
   !/[\u0000-\u001f\u007f]/u.test(value);
 const denied = () => Object.assign(new Error('ClientRunAttachDenied'),
   {code: 'ClientRunAttachDenied'});
 
-export function installNodeClientRunAttach({journal, requestControl,
-  publicationControl, authorizedScope, authorizeRun}) {
+export function installNodeClientRunAttach<Connection, RequestControl extends RequestControlPort,
+  PublicationControl extends PublicationControlPort, Definition>({journal, requestControl,
+  publicationControl, authorizedScope, authorizeRun}: AttachInstallation<Connection, RequestControl, PublicationControl, Definition>) {
   if (typeof journal?.lookupRunDefinition !== 'function' ||
       typeof requestControl?.clientRequestAdmitRecord !== 'function' ||
       typeof publicationControl?.admit !== 'function' ||
@@ -17,7 +37,7 @@ export function installNodeClientRunAttach({journal, requestControl,
       typeof authorizeRun !== 'function') {
     throw new TypeError('InvalidClientRunAttachInstallation');
   }
-  return async ({principalId, connection, ref}) => {
+  return async ({principalId, connection, ref}: AttachInput<Connection>) => {
     if (!text(principalId) || !text(ref?.namespaceId) ||
         !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
       throw new TypeError('InvalidClientRunAttach');

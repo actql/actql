@@ -37223,8 +37223,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37237,8 +37237,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -37251,7 +37251,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "// installed Host supplies the current authorized scope; the caller supplies"
               },
               {
@@ -37265,8 +37265,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37279,8 +37279,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37293,7 +37293,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRequestLookupDenied'),"
               },
               {
@@ -37307,8 +37307,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37321,7 +37321,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "value.length > 0 && value.length <= 256 &&"
               },
               {
@@ -37335,7 +37335,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "// installed Host supplies the current authorized scope; the caller supplies"
               },
               {
@@ -37349,7 +37349,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-request-lookup.test.mjs",
+                "path": "adapters/host-node/client-request-lookup.test.mts",
                 "anchor": "test('request lookup uses the authorized scope and projects retained Run',"
               },
               {
@@ -37367,8 +37367,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37381,8 +37381,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -37395,7 +37395,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "// installed Host supplies the current authorized scope; the caller supplies"
               },
               {
@@ -37409,8 +37409,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37423,8 +37423,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37437,7 +37437,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRequestLookupDenied'),"
               },
               {
@@ -37451,8 +37451,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
-                "anchor": "export function installNodeClientRequestLookup({journal, control,"
+                "path": "adapters/host-node/client-request-lookup.mts",
+                "anchor": "export function installNodeClientRequestLookup<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37465,7 +37465,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "value.length > 0 && value.length <= 256 &&"
               },
               {
@@ -37479,7 +37479,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-lookup.mjs",
+                "path": "adapters/host-node/client-request-lookup.mts",
                 "anchor": "// installed Host supplies the current authorized scope; the caller supplies"
               },
               {
@@ -37493,7 +37493,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-request-lookup.test.mjs",
+                "path": "adapters/host-node/client-request-lookup.test.mts",
                 "anchor": "test('request lookup uses the authorized scope and projects retained Run',"
               },
               {
@@ -37552,8 +37552,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37566,8 +37566,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -37580,8 +37580,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' &&"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -37594,7 +37594,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "// Reattach to one retained Run without checking or executing its Program."
               },
               {
@@ -37608,8 +37608,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37622,7 +37622,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRunAttachDenied'),"
               },
               {
@@ -37636,8 +37636,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37650,7 +37650,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "value.length > 0 && value.length <= 256 &&"
               },
               {
@@ -37664,8 +37664,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37678,7 +37678,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-attach.test.mjs",
+                "path": "adapters/host-node/client-run-attach.test.mts",
                 "anchor": "test('attach denies foreign scope, absent Run and current policy revocation',"
               },
               {
@@ -37696,8 +37696,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37710,8 +37710,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -37724,8 +37724,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' &&"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -37738,7 +37738,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "// Reattach to one retained Run without checking or executing its Program."
               },
               {
@@ -37752,8 +37752,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37766,7 +37766,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRunAttachDenied'),"
               },
               {
@@ -37780,8 +37780,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -37794,7 +37794,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
+                "path": "adapters/host-node/client-run-attach.mts",
                 "anchor": "value.length > 0 && value.length <= 256 &&"
               },
               {
@@ -37808,8 +37808,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-attach.mjs",
-                "anchor": "export function installNodeClientRunAttach({journal, requestControl,"
+                "path": "adapters/host-node/client-run-attach.mts",
+                "anchor": "export function installNodeClientRunAttach<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -37822,7 +37822,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-attach.test.mjs",
+                "path": "adapters/host-node/client-run-attach.test.mts",
                 "anchor": "test('attach denies foreign scope, absent Run and current policy revocation',"
               },
               {
@@ -38552,8 +38552,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -38566,8 +38566,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -38580,7 +38580,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "typeof requestControl?.clientRequestAuthorityScopeCid !== 'function' ||"
               },
               {
@@ -38594,7 +38594,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "const retained = journal.lookupDefinition({namespaceId,"
               },
               {
@@ -38608,8 +38608,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -38622,7 +38622,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRunStartDenied'),"
               },
               {
@@ -38636,8 +38636,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38650,8 +38650,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 &&"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -38664,8 +38664,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -38696,8 +38696,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -38710,8 +38710,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -38724,7 +38724,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "typeof requestControl?.clientRequestAuthorityScopeCid !== 'function' ||"
               },
               {
@@ -38738,7 +38738,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "const retained = journal.lookupDefinition({namespaceId,"
               },
               {
@@ -38752,8 +38752,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -38766,7 +38766,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
+                "path": "adapters/host-node/client-run-start.mts",
                 "anchor": "const denied = () => Object.assign(new Error('ClientRunStartDenied'),"
               },
               {
@@ -38780,8 +38780,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -38794,8 +38794,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 &&"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -38808,8 +38808,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-run-start.mjs",
-                "anchor": "export function installNodeClientRunStart({journal, requestControl,"
+                "path": "adapters/host-node/client-run-start.mts",
+                "anchor": "export function installNodeClientRunStart<"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",

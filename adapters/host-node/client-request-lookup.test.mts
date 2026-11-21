@@ -9,10 +9,12 @@ const control = {clientRequestAdmitRecord() {}};
 const request = {principalId: 'principal-a', requestId: 'saved-request',
   connection: {mode: 'local', owner: 'local'}};
 
+type Installation = Parameters<typeof installNodeClientRequestLookup<typeof control, typeof request.connection>>[0];
+
 test('request lookup uses the authorized scope and projects retained Run',
   async () => {
     const selected = {namespaceId: 'namespace-a', authorityScopeCid};
-    const observed = [];
+    const observed: unknown[] = [];
     const lookup = installNodeClientRequestLookup({control,
       authorizedScope: async () => selected,
       journal: {lookup(key) {
@@ -30,7 +32,7 @@ test('request lookup uses the authorized scope and projects retained Run',
 
 test('request lookup separates absent, unavailable, and denied', async () => {
   const selected = {namespaceId: 'namespace-a', authorityScopeCid};
-  const install = (journal, authorizedScope = () => selected) =>
+  const install = (journal: Installation['journal'], authorizedScope: Installation['authorizedScope'] = () => selected) =>
     installNodeClientRequestLookup({journal, control, authorizedScope});
   assert.deepEqual(await install({lookup: () => undefined})(request),
     {kind: 'not_found'});

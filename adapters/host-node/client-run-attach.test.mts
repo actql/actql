@@ -9,15 +9,18 @@ const requestControl = {clientRequestAdmitRecord() {}};
 const publicationControl = {admit() {}};
 const request = {principalId: 'principal-a', connection: {mode: 'local'}, ref};
 
+type Installation = Parameters<typeof installNodeClientRunAttach<typeof request.connection,
+  typeof requestControl, typeof publicationControl, {identity: string}>>[0];
+
 test('attach denies foreign scope, absent Run and current policy revocation',
   async () => {
     let reads = 0;
-    const journal = {lookupRunDefinition() {
+    const journal: Installation['journal'] = {lookupRunDefinition() {
       reads++;
       return {ref, durability: 'durable', revision: 0,
         runDefinition: {identity: ref.runDefinitionCid}};
     }};
-    const install = (authorizedScope, authorizeRun = () => true) =>
+    const install = (authorizedScope: Installation['authorizedScope'], authorizeRun: Installation['authorizeRun'] = () => true) =>
       installNodeClientRunAttach({journal, requestControl,
         publicationControl, authorizedScope, authorizeRun});
     await assert.rejects(install(() => ({namespaceId: 'namespace-b',

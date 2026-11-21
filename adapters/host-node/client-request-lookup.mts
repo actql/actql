@@ -1,22 +1,35 @@
 // Project the durable request journal into the public lookup operation. The
 // installed Host supplies the current authorized scope; the caller supplies
 // only the request ID. Lookup never opens a Run or starts Compute.
-const cid = value => typeof value === 'string' &&
+import type {WireRequestLookup, WireRunRef} from '../../packages/client-wire/index.js';
+
+type LookupKey = Readonly<Pick<WireRunRef, 'namespaceId' | 'authorityScopeCid'> & {requestId: string}>;
+type Found = Pick<Extract<WireRequestLookup, {kind: 'found'}>, 'ref' | 'durability' | 'lookupExpiresAt'>;
+type ControlPort = Readonly<{clientRequestAdmitRecord: unknown}>;
+type LookupInput<Connection> = Readonly<{principalId: string; connection: Connection; requestId: string}>;
+type ScopeAnswer = Readonly<{namespaceId?: unknown; authorityScopeCid?: unknown}> | undefined;
+type LookupInstallation<Control, Connection> = Readonly<{
+  journal: Readonly<{lookup(key: LookupKey, control: Control): Found | undefined}>;
+  control: Control;
+  authorizedScope(input: LookupInput<Connection>): ScopeAnswer | PromiseLike<ScopeAnswer>;
+}>;
+
+const cid = (value: unknown): value is string => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
-const text = value => typeof value === 'string' &&
+const text = (value: unknown): value is string => typeof value === 'string' &&
   value.length > 0 && value.length <= 256 &&
   !/[\u0000-\u001f\u007f]/u.test(value);
 const denied = () => Object.assign(new Error('ClientRequestLookupDenied'),
   {code: 'ClientRequestLookupDenied'});
 
-export function installNodeClientRequestLookup({journal, control,
-  authorizedScope}) {
+export function installNodeClientRequestLookup<Control extends ControlPort, Connection>({journal, control,
+  authorizedScope}: LookupInstallation<Control, Connection>) {
   if (typeof journal?.lookup !== 'function' ||
       typeof control?.clientRequestAdmitRecord !== 'function' ||
       typeof authorizedScope !== 'function') {
     throw new TypeError('InvalidClientRequestLookupInstallation');
   }
-  return async ({principalId, connection, requestId}) => {
+  return async ({principalId, connection, requestId}: LookupInput<Connection>): Promise<WireRequestLookup> => {
     if (!text(principalId) || !text(requestId)) {
       throw new TypeError('InvalidClientRequestLookup');
     }

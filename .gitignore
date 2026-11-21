@@ -1413,3 +1413,13 @@ target/
 /adapters/host-node/node-public-initial-control-bootstrap.test.d.mts
 /adapters/host-node/client-request-journal-iterator-current.test.mjs
 /adapters/host-node/client-request-journal-iterator-current.test.d.mts
+/adapters/host-node/client-request-lookup.mjs
+/adapters/host-node/client-request-lookup.d.mts
+/adapters/host-node/client-run-start.mjs
+/adapters/host-node/client-run-start.d.mts
+/adapters/host-node/client-run-attach.mjs
+/adapters/host-node/client-run-attach.d.mts
+/adapters/host-node/client-request-lookup.test.mjs
+/adapters/host-node/client-request-lookup.test.d.mts
+/adapters/host-node/client-run-attach.test.mjs
+/adapters/host-node/client-run-attach.test.d.mts
