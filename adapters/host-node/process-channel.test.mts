@@ -7,9 +7,14 @@ import {pathToFileURL} from 'node:url';
 type HostChannel = Awaited<ReturnType<typeof startManagedExecution>>;
 type PreparedOptions = Parameters<typeof prepareManagedExecution>[0];
 type SpawnHook = NonNullable<Parameters<typeof startManagedExecution>[2]>;
-type TableWriteInput = Parameters<ReturnType<
-  typeof import('../connectors/local/host/iceberg-process.mjs').createIcebergPhysicalBridge
->['prepareWrite']>[0];
+type TableBridge = ReturnType<typeof import('../connectors/local/host/iceberg-process.mjs').createIcebergPhysicalBridge>;
+type TableWriteInput = Parameters<TableBridge['prepareWrite']>[0];
+type TableInspector = Parameters<TableBridge['inspectReadSelectorConstruction']>[1];
+type ConstructionFacts = {nodes: bigint; wire: bigint; strings: bigint; serializerText: bigint};
+type Assert<Condition extends true> = Condition;
+type _AcceptSynchronousConstruction = Assert<(() => ConstructionFacts) extends TableInspector ? true : false>;
+type _RejectAsyncConstruction = Assert<(() => Promise<ConstructionFacts>) extends TableInspector ? false : true>;
+type _RejectMissingConstructionFields = Assert<(() => Omit<ConstructionFacts, 'serializerText'>) extends TableInspector ? false : true>;
 type ProcessTestError = Error & {code: string; cause?: {message?: string}; cleanupHandle: HostChannel['cleanupHandle']};
 type EchoReply = {value: unknown; pid: number};
 

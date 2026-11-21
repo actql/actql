@@ -38,6 +38,9 @@ type OwnedPreparation = {bridge: object; payload: WritePayload; attempted: boole
 declare const physicalWritePreparationBrand: unique symbol;
 type PreparedWrite = Readonly<{[physicalWritePreparationBrand]: true}>;
 type PhysicalReply = {ok?: unknown; code?: unknown};
+type TableConstructionFacts = Readonly<{
+  nodes: bigint; wire: bigint; strings: bigint; serializerText: bigint; then?: never;
+}>;
 
 const frames = Object.freeze({maxBytes: 4 * 1024 * 1024, maxNodes: 100000, maxDepth: 32});
 const preparations = new WeakMap<object, OwnedPreparation>();
@@ -194,7 +197,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       Object.freeze(payload.selector.namespace);
       return Object.freeze(payload.selector);
     },
-    inspectReadSelectorConstruction<Value>(selector: unknown, inspect: (frame: ReturnType<typeof requestFrame>) => Value) {
+    inspectReadSelectorConstruction(selector: unknown, inspect: (frame: ReturnType<typeof requestFrame>) => TableConstructionFacts) {
       assertImplementation();
       if (typeof inspect !== 'function') fail('InvalidTableReadConstructionInspection');
       // The installed Source owner funds this inspection before entry. Use
