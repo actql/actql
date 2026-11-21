@@ -907,11 +907,11 @@ fn retained_effect_whole_source_export_control(
       )
       assert_eq(calls.val, 1)
       assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
-      // The eight-byte original row adds one row slot and up to eight
-      // retained value nodes. Its object and numeric value need two wire
-      // nodes and two views of two decoder nodes. The empty frame and
-      // decoder already reserve one byte each.
-      let row_growth = 64L * (1L + 8L + 2L + 2L * 2L) + 8L * (5L * 8L - 2L)
+      // The eight-byte original row adds one row slot. Its object and
+      // numeric value bound retained values, wire nodes and both decoder
+      // views at two nodes each. The empty frame and decoder already
+      // reserve one byte each.
+      let row_growth = 64L * (1L + 2L + 2L + 2L * 2L) + 8L * (5L * 8L - 2L)
       let offered : Array[Int64] = []
       assert_true(
         execution.prepare_captured_result_export(
@@ -1041,29 +1041,35 @@ test "publication bridge quotes complete shallow and nested rows by observed sha
     ] {
     let bytes = @scalar.admit_utf8_length64(wire, 10000L).unwrap()
     assert_true(bytes > 600L)
-    let quoted = publication_bridge_copy_row_limits(limits, wire, bytes)
+    let quoted = publication_bridge_copy_row_limits(limits, wire, bytes, 4)
     assert_eq(quoted.wire.max_nodes, observed_nodes)
     assert_eq(quoted.row.max_nodes, observed_nodes)
+    assert_eq(quoted.values.max_nodes, 4 + observed_nodes)
     assert_eq(quoted.row.max_bytes, limits.row.max_bytes)
     assert_eq(quoted.row.max_depth, limits.row.max_depth)
-    let (rows, nodes, text_bytes, original) = @local.local_import_next_retention_extent(
+    let (rows, _, text_bytes, original) = @local.local_import_next_retention_extent(
       limits, 1L, 4L, 10L, bytes,
     ).unwrap()
     let (measured_rows, measured_nodes, measured_text, measured) = @local.local_import_next_retention_extent(
       quoted, 1L, 4L, 10L, bytes,
     ).unwrap()
-    assert_eq(
-      (measured_rows, measured_nodes, measured_text),
-      (rows, nodes, text_bytes),
-    )
+    assert_eq(measured_rows, rows)
+    assert_eq(measured_nodes, 4L + observed_nodes.to_int64())
+    assert_eq(measured_text, text_bytes)
     assert_eq(
       original - measured,
-      3L * 64L * (bytes - observed_nodes.to_int64()),
+      4L * 64L * (bytes - observed_nodes.to_int64()),
     )
     // Geometry without matching length never reduces the original quote.
-    let fallback = publication_bridge_copy_row_limits(limits, wire, bytes + 1L)
+    let fallback = publication_bridge_copy_row_limits(
+      limits,
+      wire,
+      bytes + 1L,
+      4,
+    )
     assert_eq(fallback.row.max_nodes, limits.row.max_nodes)
     assert_eq(fallback.wire.max_nodes, limits.wire.max_nodes)
+    assert_eq(fallback.values.max_nodes, limits.values.max_nodes)
   }
 }
 

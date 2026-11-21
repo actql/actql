@@ -258,14 +258,14 @@ fn LocalValuesExecution::publication_original_for_task(
 }
 
 ///|
-// One preflight cursor and its three copied limit records at a time. The
+// One preflight cursor and its four copied limit records at a time. The
 // source row is borrowed from the existing producer transport.
 let publication_bridge_row_quote_controls : Int64 = {
   let source = @source.json_source_preflight_control_extent()
   @execution.preparation_representation_cost({
-    record_headers: source.record_headers + 6L,
+    record_headers: source.record_headers + 7L,
     reference_slots: source.reference_slots + 9L,
-    scalar_words: source.scalar_words + 18L,
+    scalar_words: source.scalar_words + 22L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -279,6 +279,7 @@ fn publication_bridge_copy_row_limits(
   limits : @local.LocalImportLimits,
   row : String,
   bytes : Int64,
+  prefix_nodes : Int,
 ) -> @local.LocalImportLimits {
   match
     installed_effect_dependency_wire_geometry(
@@ -289,11 +290,24 @@ fn publication_bridge_copy_row_limits(
       _ => true,
     ) {
     Some(geometry) if geometry.input_bytes.to_int64() == bytes &&
-      geometry.node_upper > 0 => {
+      geometry.node_upper > 0 &&
+      prefix_nodes >= 0 &&
+      prefix_nodes <= limits.values.max_nodes => {
       // Even a sparse row uses the original schema's field slots.
       let nodes = Int::max(geometry.node_upper, limits.wire.max_columns)
+      // Receiving admission retains each emitted value once. Container
+      // members and vector items are bounded by the full row's wire nodes.
+      // JSON wrappers and reference envelopes only add wire nodes, and
+      // an absent cell does not add a retained value. Preserve the exact
+      // already-admitted prefix separately from the pending row.
+      let prefix = prefix_nodes.to_int64()
+      let value_nodes = Int64::min(
+        limits.values.max_nodes.to_int64(),
+        prefix + geometry.node_upper.to_int64(),
+      ).to_int()
       {
         ..limits,
+        values: { ..limits.values, max_nodes: value_nodes, },
         wire: {
           ..limits.wire,
           max_nodes: Int::min(limits.wire.max_nodes, nodes),
@@ -401,7 +415,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         guard @execution.managed_publication_bridge_import_usage(bridge)
           is Some(usage) &&
           @local.local_import_next_retention_extent(
-            publication_bridge_copy_row_limits(imports, row, bytes),
+            publication_bridge_copy_row_limits(imports, row, bytes, usage.nodes),
             index.to_int64(),
             usage.nodes.to_int64(),
             usage.text_bytes.to_int64(),
