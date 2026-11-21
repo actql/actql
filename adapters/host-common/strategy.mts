@@ -151,6 +151,8 @@ type PublicationInventory = Readonly<{
   occurrences: readonly ResultOccurrence[];
   requestInventory: readonly Readonly<{result_name: string; result_definition_cid: string}>[];
 }>;
+type PublicationPayloadStore = Parameters<typeof storeCompletedResultPublicationPayload>[0];
+type PublicationPayload = Awaited<ReturnType<typeof storeCompletedResultPublicationPayload>>;
 type PayloadExportControl = Parameters<typeof storeCompletedResultPublicationPayload>[1];
 type PayloadLimits = Parameters<typeof storeCompletedResultPublicationPayload>[4];
 type PayloadPublication = Parameters<typeof storeCompletedResultPublicationPayload>[5];
@@ -262,7 +264,8 @@ type InstalledExecution = Readonly<{
   publicationInventory: PublicationInventory | undefined;
   publicationPreflight?: unknown;
   publishEffectFreeRun(store: unknown, publication: unknown, signal?: AbortSignal, resource?: unknown): Promise<unknown>;
-  storePublicationResult(result: number, store: unknown, publication: ResultPublication, signal?: AbortSignal, resource?: unknown): Promise<unknown>;
+  storePublicationResult(result: number, store: unknown, publication: ResultPublication, signal?: AbortSignal, resource?: unknown):
+    Promise<PublicationPayload & Readonly<{occurrence: Readonly<{name: string; task: number; definition: unknown}>}>>;
   refreshCompletedScratch(): Promise<void>;
   usage(): object;
   cleanupPending(): boolean;
@@ -1490,7 +1493,7 @@ export async function runInstalledStrategy({
           publication.transformation, signal, publication.resultProgress,
         ));
       const stored = await storeCompletedResultPublicationPayload(
-        store,
+        store as PublicationPayloadStore,
         core.outputExportControl,
         setup,
         result,

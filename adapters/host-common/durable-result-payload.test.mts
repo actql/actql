@@ -31,7 +31,7 @@ type FixtureStatus = Readonly<{
   reservedObjects: number;
   storedBytes: number;
 }>;
-type FixtureStore = Readonly<{
+type FixtureStore = Parameters<typeof storeCompletedResultPublicationPayload>[0] & Readonly<{
   close(): unknown;
   consumeObject(identity: string, accept: (chunk: Uint8Array) => unknown): Promise<unknown>;
   status(): FixtureStatus;
@@ -275,6 +275,8 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(stored.publication!.snapshot, snapshot);
     assert.equal(stored.publication!.durableBinding, durableBinding);
     assert.equal(stored.schema!.semanticCid, digest(defaultSchemaWire));
+    assert.equal(stored.physicalPrepared.cid, stored.physical.cid);
+    assert.notEqual(stored.physicalPrepared, stored.prepared);
     assert.deepEqual(events,
       ['evidence', 'artifact', 'snapshot', 'binding', 'cancel']);
     assert.equal(stored.prepared!.status().pending, true);

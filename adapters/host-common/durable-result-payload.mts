@@ -30,11 +30,12 @@ type PayloadIdentity = Readonly<{
 type CleanupStatus = Readonly<{pending: boolean; errors?: readonly unknown[]}>;
 type CleanupHandle = Readonly<{status(): CleanupStatus; retry(): Awaitable<unknown>}>;
 type PreparedOwner = CleanupHandle & Readonly<{release(): Awaitable<unknown>}>;
+type PhysicalPreparedOwner = PreparedOwner & Readonly<{cid: string}>;
 type CleanupOwner = Readonly<{pending(): boolean; retry?(): Awaitable<unknown>}>;
 type Physical = Readonly<{cid: string; bytes: number; created: boolean}>;
 type PreparedSchema = Readonly<{semanticCid: string; physical: Physical; created: boolean; prepared: PreparedOwner}>;
-type SealedPhysical = Physical & Readonly<{prepared?: PreparedOwner}>;
-type PreparedPhysical = Physical & Readonly<{prepared: PreparedOwner}>;
+type SealedPhysical = Physical & Readonly<{prepared?: PhysicalPreparedOwner}>;
+type PreparedPhysical = Physical & Readonly<{prepared: PhysicalPreparedOwner}>;
 type ObjectWriter<Sealed extends SealedPhysical = SealedPhysical> = Readonly<{
   append(batch: string): Awaitable<unknown>;
   seal(expectedCid: string): Awaitable<Sealed>;
@@ -47,6 +48,8 @@ type PayloadStore = Readonly<{
   putPreparedResultSchema?(wire: string, semanticCid: string, runDefinitionCid: string): Awaitable<PreparedSchema>;
   storeAuthorityCid?: string;
 }>;
+type PublicationPayloadStore = PayloadStore & Required<Pick<PayloadStore,
+  'createPreparedObjectWriter' | 'putPreparedResultSchema'>>;
 type IssuedEvidence = Readonly<{derivation: CommonObject; ordering: CommonObject}>;
 type ResultPublicationEvidence = IssuedEvidence & Readonly<{artifact: CommonObject; snapshot: CommonObject}>;
 type CleanupControl = Readonly<{
@@ -106,6 +109,13 @@ type BeginResult = (host: object, result: number, limits: ResultLimits) => Await
 type ReadBatch = (handle: ExportHandle, signal?: AbortSignal) => Awaitable<string | undefined>;
 type IssueEvidence = (handle: ExportHandle) => Awaitable<ResultPublicationEvidence>;
 type IssuePhysicalEvidence = (physical: Physical, orderedRows: PayloadIdentity, evidence: ResultPublicationEvidence) => CommonObject;
+type StoredPayload = Readonly<{physical: Physical; orderedRows: PayloadIdentity}>;
+type StoredPublicationPayload = StoredPayload & Readonly<{
+  publication: ResultPublicationEvidence & Readonly<{durableBinding: CommonObject}>;
+  schema: Omit<PreparedSchema, 'prepared'>;
+  physicalPrepared: PhysicalPreparedOwner;
+  prepared: PreparedOwner;
+}>;
 
 export class DurableResultPayloadError extends Error {
   declare code: string;
@@ -291,7 +301,7 @@ export async function storeCompletedResultPayload(
 /// issued before the physical object is sealed, so a failed issuance cannot
 /// strand an otherwise unreferenced durable payload.
 export async function storeCompletedResultPublicationPayload(
-  store: unknown,
+  store: PublicationPayloadStore,
   control: PublicationResultControl,
   host: object,
   result: number,
@@ -371,6 +381,16 @@ export async function storeCompletedResultPublicationPayload(
   );
 }
 
+async function storeCompletedPayload(
+  store: PayloadStore, control: PayloadControl, beginExport: () => Awaitable<ExportHandle>,
+  limits: PayloadLimits, signal?: AbortSignal,
+): Promise<StoredPayload>;
+async function storeCompletedPayload(
+  store: PublicationPayloadStore, control: PayloadControl, beginExport: () => Awaitable<ExportHandle>,
+  limits: PayloadLimits, signal: AbortSignal | undefined, issueEvidence: IssueEvidence,
+  issuePhysicalEvidence: IssuePhysicalEvidence, preparePhysical: true, schemaRunDefinitionCid: string,
+  readBatch?: ReadBatch,
+): Promise<StoredPublicationPayload>;
 async function storeCompletedPayload(
   store: PayloadStore,
   control: PayloadControl,

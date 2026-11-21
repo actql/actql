@@ -7,6 +7,7 @@ import {publishEffectFreeRun, publishEffectfulRun} from
 import {preparePrivatePublicationHolding} from
   './private-publication-holding.mjs';
 
+import type {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
 import type {publicationAction} from './publication-action.mjs';
 import type {SynchronousRuntimeData} from './runtime-result.mjs';
 
@@ -24,7 +25,7 @@ type CleanupState = Readonly<{pending: boolean; outcome?: string; errors?: reado
 type Cleanup = Readonly<{status(): CleanupState; retry?(): Awaitable<unknown>}>;
 type Prepared = Cleanup & Readonly<{release(): Awaitable<unknown>}>;
 type PreparedEntry = Readonly<{prepared?: Prepared}>;
-type PreparedPhysical = Prepared & Readonly<{cid: string}>;
+type PreparedPhysical = Awaited<ReturnType<typeof storeCompletedResultPublicationPayload>>['physicalPrepared'];
 type PreparedSchema = PreparedEntry & Readonly<{prepared: Prepared}>;
 type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];
 type HoldingRecord = Readonly<Omit<Parameters<HoldingStore['commitPhysicalHolding']>[0], 'namespace'> & {
@@ -143,7 +144,7 @@ type LiveResult = StoredResult & Readonly<{
   publication: StoredResult['publication'] & Readonly<{snapshot: CommonObject}>;
   physical: Physical; schema: Readonly<{semanticCid: string}>;
   orderedRows: Readonly<{resultSchemaWire: string}>;
-  physicalPrepared?: PreparedPhysical;
+  physicalPrepared: PreparedPhysical;
 }>;
 type StoredResults<Result extends StoredResult = StoredResult> = Readonly<{
   results: readonly Result[]; definitions: readonly Contract[]; artifacts: readonly Contract[];
