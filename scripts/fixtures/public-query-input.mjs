@@ -707,6 +707,13 @@ const anyValueSuccesses = [
     columns: [numberColumn('k'), {name: 'result', contract: {type: 'int64', nullable: true}}],
     sourceReadCount: 0},
 ];
+const navigationDefaultOriginal = {name: 'navigation-default-original', format: 'sql',
+  text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
+    + "20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+    + 'SELECT LAG(v, 1, 0) OVER (ORDER BY n) AS x FROM t',
+  results: {answer: {rows: [{x: 0}, {x: 10}, {x: 20}], unordered: true,
+    columns: [{name: 'x', contract: {type: 'number', nullable: true}}]}},
+  sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -805,6 +812,7 @@ export const sourceFreeSuccesses = [
   arrayToStringOriginal,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
+  navigationDefaultOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

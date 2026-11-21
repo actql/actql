@@ -792,6 +792,12 @@ offset atom. Common checking still rejects invalid parameter values before
 execution; the numeric domain, navigation nullability and window limits do
 not change.
 
+`LAG(value, offset, default)` and `LEAD(value, offset, default)` accept a
+third expression checked without row scope. Its domain matches the value
+expression, and it is used only when the requested row is absent. A referenced
+NULL remains NULL. The same authored window and position checks apply.
+[GoogleSQL navigation functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/navigation_functions#lag)
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),

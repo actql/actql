@@ -1482,19 +1482,31 @@ fn[T : RelationRows] analytic_advance_arguments(
     | PreparedLead(expression, _)
     | PreparedFirstValue(expression)
     | PreparedLastValue(expression) => {
-      if !s.demanded[call_index][source] {
-        analytic_next_call(s, 18)
-        return Ok(None)
+      let fallback = if s.references[call_index][source] < 0 {
+        @lower.analytic_call_default(call)
+      } else {
+        None
       }
-      match analytic_expression_step(s, expression, source, call_index) {
-        Err(issue) => Err(issue)
-        Ok(None) => Ok(None)
-        Ok(Some(value)) => {
-          s.arguments[call_index][source] = Some(value)
-          analytic_next_call(s, 18)
-          Ok(None)
+      if s.call_phase == 0 && s.demanded[call_index][source] {
+        match analytic_expression_step(s, expression, source, call_index) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(value)) => s.arguments[call_index][source] = Some(value)
+        }
+        if fallback is Some(_) {
+          s.call_phase = 1
+          return Ok(None)
         }
       }
+      if fallback is Some(fallback) {
+        match analytic_expression_step(s, fallback, source, call_index) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(value)) => s.evaluated[call_index][source] = Some(value)
+        }
+      }
+      analytic_next_call(s, 18)
+      Ok(None)
     }
     PreparedRowNumber | PreparedRank | PreparedDenseRank => {
       analytic_next_call(s, 18)
@@ -1716,10 +1728,15 @@ fn[T : RelationRows] analytic_advance_output(
         | PreparedFirstValue(_)
         | PreparedLastValue(_) => {
           let reference = s.references[index][source]
-          if reference < 0 {
-            Null
-          } else {
+          if reference >= 0 {
             s.arguments[index][reference].unwrap()
+          } else if @lower.analytic_call_default(call) is Some(_) {
+            guard s.evaluated[index][source] is Some(value) else {
+              return Err(InvalidRows)
+            }
+            value
+          } else {
+            Null
           }
         }
         PreparedFrameAggregate(_) =>

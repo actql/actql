@@ -5891,10 +5891,15 @@ functions return non-null safe-integer numbers; navigation/value functions
 retain their argument domain and bounds with nullable output. Frame aggregates
 have their ordinary result contracts and empty-input behavior.
 
-Calls are `{fn: row_number|rank|dense_rank}`, `{fn: lag|lead, expr, offset?}`,
+Calls are `{fn: row_number|rank|dense_rank}`, `{fn: lag|lead, expr, offset?, default?}`,
 `{fn: first_value|last_value, expr}`, or a [group aggregate](#group) call without
 an aggregate-local `order_by`. Offsets are nonnegative safe integers, default 1;
-out-of-partition navigation yields typed NULL and does not fabricate a row.
+out-of-partition navigation uses the call's checked `default` expression when
+present, and otherwise yields typed NULL. The default has no row scope and
+uses the original invocation's parameters. Its value domain matches `expr`;
+the returned contract owns the bounds of both. Navigation uses the referenced
+value, including NULL, whenever that reference exists. A default never
+fabricates a row or adds a frame member.
 `first_value` and `last_value` respect NULL elements. Rank/navigation calls
 reject `filter` and `distinct`. Aggregate calls retain their own filter/null/
 distinct laws. Result types follow the function, including nullable navigation.
@@ -11315,7 +11320,7 @@ AggregateFunction := count | count_if | any_value | sum | avg | min | max | arra
 AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
   functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
 AnalyticCall := {fn: row_number | rank | dense_rank}
-  | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue}
+  | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue, default?: Expression}
   | {fn: first_value | last_value, expr: Expression} | AggregateCall excluding any_value
 RowsFrame := {start: FrameBoundary, end: FrameBoundary}
 FrameBoundary := unbounded_preceding | current_row | unbounded_following

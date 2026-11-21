@@ -32,6 +32,7 @@ struct PreparedAnalyticCall {
   result : @contract.Contract
   argument_source : AnalyticSource?
   filter_source : AnalyticSource?
+  fallback : (Expression, AnalyticSource)?
 }
 
 ///|
@@ -265,7 +266,7 @@ pub fn prepare_analytic(
       @relation.RowNumber => PreparedRowNumber
       @relation.Rank => PreparedRank
       @relation.DenseRank => PreparedDenseRank
-      @relation.Lag(argument~, offset~) => {
+      @relation.Lag(argument~, offset~, ..) => {
         let expression = match lower(argument) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -276,7 +277,7 @@ pub fn prepare_analytic(
         }
         PreparedLag(expression, offset)
       }
-      @relation.Lead(argument~, offset~) => {
+      @relation.Lead(argument~, offset~, ..) => {
         let expression = match lower(argument) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -369,6 +370,20 @@ pub fn prepare_analytic(
         )
       PreparedRowNumber | PreparedRank | PreparedDenseRank => (None, None)
     }
+    let fallback = match call.function {
+      @relation.Lag(fallback=Some(index), ..)
+      | @relation.Lead(fallback=Some(index), ..) => {
+        if entries >= max_entries {
+          return Err(AnalyticPreparationLimit)
+        }
+        entries += 1
+        match lower(index) {
+          Ok(expression) => Some(expression)
+          Err(issue) => return Err(issue)
+        }
+      }
+      _ => None
+    }
     let prepare_source = fn(
       expression : Expression?,
     ) -> Result[AnalyticSource?, AnalyticIssue] {
@@ -389,12 +404,22 @@ pub fn prepare_analytic(
       Ok(source) => source
       Err(issue) => return Err(issue)
     }
+    let fallback = match fallback {
+      None => None
+      Some(expression) =>
+        match prepare_source(Some(expression)) {
+          Ok(Some(source)) => Some((expression, source))
+          Ok(None) => return Err(InvalidAnalyticCall(i))
+          Err(issue) => return Err(issue)
+        }
+    }
     calls.push({
       name: call.name,
       function,
       result: call.result,
       argument_source,
       filter_source,
+      fallback,
     })
   }
   Ok(
@@ -522,6 +547,11 @@ pub fn analytic_call_function(
   value : PreparedAnalyticCall,
 ) -> PreparedAnalyticFunction {
   value.function
+}
+
+///|
+pub fn analytic_call_default(call : PreparedAnalyticCall) -> Expression? {
+  call.fallback.map(pair => pair.0)
 }
 
 ///|
@@ -664,6 +694,10 @@ fn emit_analytic_params(
         @encode.string_value(out, "dense_rank")
       }
       PreparedLag(_, offset) | PreparedLead(_, offset) => {
+        if call.fallback is Some((_, source)) {
+          @encode.key(out, "default")
+          emit_analytic_source(source, out)
+        }
         guard call.argument_source is Some(source) else {
           raise @encode.InvalidStructure
         }

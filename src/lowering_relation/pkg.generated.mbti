@@ -40,6 +40,8 @@ pub fn analytic_call_at(PreparedAnalytic, Int) -> PreparedAnalyticCall?
 
 pub fn analytic_call_count(PreparedAnalytic) -> Int
 
+pub fn analytic_call_default(PreparedAnalyticCall) -> Expression?
+
 pub fn analytic_call_function(PreparedAnalyticCall) -> PreparedAnalyticFunction
 
 pub fn analytic_call_name(PreparedAnalyticCall) -> String

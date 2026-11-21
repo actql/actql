@@ -1915,7 +1915,7 @@ fn lower_analytic_call(
       } else {
         if arguments.is_empty() ||
           arguments.length() >
-          (if name == "LAG" || name == "LEAD" { 2 } else { 1 }) {
+          (if name == "LAG" || name == "LEAD" { 3 } else { 1 }) {
           raise Abort(UnsupportedAnalytic)
         }
         let argument = @query.expression_child(expression, arguments[0]).unwrap()
@@ -1935,7 +1935,7 @@ fn lower_analytic_call(
             },
           ),
         )
-        if arguments.length() == 2 {
+        if arguments.length() >= 2 {
           entries.push(
             (
               "offset",
@@ -1947,6 +1947,21 @@ fn lower_analytic_call(
               ),
             ),
           )
+        }
+        if arguments.length() == 3 {
+          let default_value = @query.expression_child(expression, arguments[2]).unwrap()
+          let lowered = match
+            @expression.append_with_properties(
+              default_value,
+              _ => None,
+              construction.builder,
+              max_work,
+              resolve_parameter=construction.parameter_resolver(),
+            ) {
+            Ok(node) => node
+            Err(error) => raise Abort(Expression(error))
+          }
+          entries.push(("default", lowered))
         }
       }
       construction.object(entries)

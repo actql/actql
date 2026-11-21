@@ -8,7 +8,7 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const call = (names, properties = {}, required = []) => ({type:'object',additionalProperties:false,required:['fn',...required],properties:{fn:{enum:names},...properties}});
 const rankings = call(['row_number','rank','dense_rank']);
-const navigation = call(['lag','lead'],{expr:{$ref:'#/$defs/value_expression'},offset:{oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]}},['expr']);
+const navigation = call(['lag','lead'],{expr:{$ref:'#/$defs/value_expression'},offset:{oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]},default:{$ref:'#/$defs/value_expression'}},['expr']);
 const values = call(['first_value','last_value'],{expr:{$ref:'#/$defs/value_expression'}},['expr']);
 const boundary = {oneOf:[{enum:['unbounded_preceding','current_row','unbounded_following']},...['preceding','following'].map(k=>({type:'object',additionalProperties:false,required:[k],properties:{[k]:positive}}))]};
 export const analyticSchema = {type:'object',additionalProperties:false,required:['partition_by','order_by','functions'],properties:{

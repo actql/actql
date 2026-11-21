@@ -13,6 +13,10 @@ pub fn bounded_analytic_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
   }
   for index in 0..<@lower.analytic_call_count(analytic) {
     let call = @lower.analytic_call_at(analytic, index).unwrap()
+    if @lower.analytic_call_default(call) is Some(fallback) &&
+      !@lower.expression_result_borrows_payload(fallback) {
+      return false
+    }
     match @lower.analytic_call_function(call) {
       @lower.PreparedRowNumber
       | @lower.PreparedRank

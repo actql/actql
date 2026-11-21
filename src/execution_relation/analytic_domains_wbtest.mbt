@@ -531,3 +531,36 @@ test "analytic array aggregate covers every constructible value domain" {
     }
   }
 }
+
+///|
+test "navigation default preserves NULL in an existing row and ignores undemanded defaults" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let value = @contract.with_nullability(number, true)
+  let owner = analytic_domain_owner(
+    number,
+    number,
+    value,
+    (
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"previous":{"fn":"lag","expr":{"field":"value"},"offset":1,"default":{"literal":0}},"following":{"fn":"lead","expr":{"field":"value"},"offset":1,"default":{"literal":9}},"same":{"fn":"lag","expr":{"field":"value"},"offset":0,"default":{"divide":[{"literal":1},{"literal":0}]}}}}
+    ),
+  )
+  let table = run_analytic_domain(owner, [
+    analytic_domain_row(1, Number(1), Number(1), Number(10)),
+    analytic_domain_row(2, Number(1), Number(2), Null),
+    analytic_domain_row(3, Number(1), Number(3), Number(30)),
+    analytic_domain_row(4, Number(2), Number(1), Number(40)),
+  ])
+  for
+    (name, expected) in [
+      ("previous", [Number(0), Number(10), Null, Number(0)]),
+      ("following", [Null, Number(30), Number(9), Number(9)]),
+      ("same", [Number(10), Null, Number(30), Number(40)]),
+    ] {
+    let column = analytic_domain_column(table, name)
+    assert_eq(
+      table.rows.map(row => object_result_wire(row[column])),
+      expected.map(object_result_wire),
+      msg=name,
+    )
+  }
+}

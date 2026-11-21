@@ -16,6 +16,9 @@ test('analytic calls reuse the frame aggregate matrix without local ordering',()
     assert.equal(c.properties.filter,undefined);
     assert.equal(c.properties.distinct,undefined);
   }
+  assert.deepEqual(calls[1].properties.default, {$ref:'#/$defs/value_expression'});
+  assert.equal(calls[0].properties.default, undefined);
+  assert.equal(calls[2].properties.default, undefined);
   assert.deepEqual(analyticSchema.allOf[0].then,{not:{required:['frame']}});
   assert.deepEqual(analyticSchema.allOf[0].else,{required:['frame']});
 });

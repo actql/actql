@@ -19,8 +19,8 @@ pub enum AnalyticFunction {
   RowNumber
   Rank
   DenseRank
-  Lag(argument~ : Int, offset~ : CountValue)
-  Lead(argument~ : Int, offset~ : CountValue)
+  Lag(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
+  Lead(argument~ : Int, offset~ : CountValue, fallback~ : Int?)
   FirstValue(argument~ : Int)
   LastValue(argument~ : Int)
   Aggregate(CheckedAggregate)
@@ -269,7 +269,7 @@ fn check_analytic(
             @decode.closed_object(
               s,
               if navigation {
-                ["fn", "expr", "offset"]
+                ["fn", "expr", "offset", "default"]
               } else {
                 ["fn", "expr"]
               },
@@ -279,7 +279,7 @@ fn check_analytic(
         )
         let expr_source = decoded(@decode.required(call, "expr"), s)
         let binding = expression(b, expr_source, None, visible, parameters)
-        let result = @contract.with_nullability(
+        let mut result = @contract.with_nullability(
           @typing.result_type(binding.expression),
           true,
         )
@@ -291,10 +291,34 @@ fn check_analytic(
             Some(s) => row_count(b, s, 0L, parameter_types, pending)
             None => Literal(1L)
           }
+          let fallback = @decode.lookup(call, "default").map(source => {
+            // A navigation default has no row scope. Parameters remain the
+            // original invocation's bound values, just as for other roots.
+            let binding = expression(b, source, None, Map([]), parameters)
+            let fallback_contract = @typing.result_type(binding.expression)
+            let (joined, used) = @contract.join_nullability_usage(
+              result,
+              fallback_contract,
+              b.work,
+            ) catch {
+              _ => fail(source, BudgetExceeded)
+            }
+            spend(b, source, count=used)
+            guard joined is Some(joined) else {
+              fail(
+                source,
+                InvalidAggregateArgument("navigation default domain"),
+              )
+            }
+            result = joined
+            let index = bindings.length()
+            bindings.push(binding)
+            index
+          })
           if fn_name == "lag" {
-            AnalyticFunction::Lag(argument~, offset~)
+            AnalyticFunction::Lag(argument~, offset~, fallback~)
           } else {
-            AnalyticFunction::Lead(argument~, offset~)
+            AnalyticFunction::Lead(argument~, offset~, fallback~)
           }
         } else {
           has_frame_call = true
