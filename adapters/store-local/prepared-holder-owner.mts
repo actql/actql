@@ -37,7 +37,7 @@ export function createPreparedHolderRegistry<Original extends PreparedOriginal>(
       }
       holderTransfers.delete(holder);
     },
-    select(handles: readonly object[], allowed: ReadonlyMap<string, number>) {
+    select(handles: readonly object[], allowed: Pick<ReadonlyMap<string, number>, 'get'>) {
       if (!Array.isArray(handles)) invalid();
       const selected: Readonly<Original>[] = [], seen = new Set<object>();
       for (const handle of handles) {

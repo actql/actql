@@ -653,8 +653,58 @@ export function createPrivatePublicationEvidence(
     return true;
   };
 
-  return {privateEvidenceKey, readPrivateEvidenceObject,
+  // Reconcile a private holding by exact admitted wire, then confirm its
+  // directory durability. A visible link alone is not a committed holding.
+  const confirmPrivateEvidence = async (binding: unknown) => {
+    active();
+    if (!exactKeys(binding, [
+      'name', 'semanticCid', 'holdingCid', 'wire',
+    ])) fail('InvalidPublicationPrivateEvidence');
+    const original = Object.freeze({...binding}) as Readonly<{name: string; semanticCid: string; holdingCid: string; wire: string}>;
+    if (!['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
+      'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
+      'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
+      'observation_set', 'run_invocation', 'source_evidence',
+      'content_input_artifact', 'content_evidence', 'content_generation',
+      'installation_publication'].includes(original.name) ||
+        typeof original.wire !== 'string') {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    cidHex(original.semanticCid);
+    cidHex(original.holdingCid);
+    const operation = materialRetentionCurrent().then(async () => {
+      active();
+      if (await readPhysicalHoldingDeletion(original.holdingCid) !== undefined) return undefined;
+      const record = await readPhysicalHolding(original.holdingCid);
+      if (record === undefined) return undefined;
+      if (record.namespace !== 'publication-private' ||
+          record.manifest_cid !== original.semanticCid || record.objects.length !== 1) {
+        fail('PublicationPrivateEvidenceUnavailable');
+      }
+      const release = retainPhysicalHoldingReader(original.holdingCid);
+      let stored: Buffer | undefined;
+      try {
+        stored = await readPrivateEvidenceObject(
+          original.name, original.semanticCid, original.holdingCid, 0, 1, record,
+        );
+        if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
+        // The same serialized operation retains its actual read facts through
+        // the real directory ACK, excluding retirement until adoption finishes.
+        await confirmPhysicalHoldingDirectory(record);
+        return record;
+      } finally {
+        stored?.fill(0);
+        stored = undefined;
+        release();
+      }
+    });
+    retainMaterialOperation(operation.catch(() => {}));
+    return operation;
+  };
+
+  return {privateEvidenceKey,
     readPrivateEvidence: readPrivateEvidence as ReadPrivateEvidence,
     preparePrivateEvidence, prepareModelRawEvidence, prepareLookupRawEvidence,
-    readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence, confirmModelRawCaptureOriginals};
+    readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence,
+    confirmModelRawCaptureOriginals, confirmPrivateEvidence};
 }

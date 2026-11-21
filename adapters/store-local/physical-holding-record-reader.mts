@@ -11,7 +11,7 @@ type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 // RegExp.test retains the original coercion. A parsed CID field is still
 // unknown until the existing selected identity or physical lookup checks it.
 type PhysicalHoldingObject = Readonly<{cid: unknown; byte_count: number}>;
-type PhysicalHoldingRecord = Readonly<{
+export type PhysicalHoldingRecord = Readonly<{
   version: 'actql-local-physical-holding/0.1';
   namespace: string;
   holding_cid: unknown;

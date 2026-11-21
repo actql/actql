@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "90855a5517bceb322c977af6ed24ec507ed0a022a992842f5f1664ac2682e5fc",
+      "sha256": "64e18afe6bb79ccb413e43c27f4153747e4424ee97cf7bc7a489d6c0120ba668",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6273,6 +6273,13 @@
             "index"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
@@ -6714,47 +6721,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding",
-          "parameters": [
-            "value",
-            "prepared",
-            "borrowedHoldingCids"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
-          "parameters": [
-            "cid",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
           "parameters": [
             "captured",
@@ -6792,41 +6758,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
-          "parameters": [
-            "record",
-            "adopt"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
           "parameters": [
             "objects"
@@ -6834,26 +6765,16 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
+          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [
-            "binding"
+            "cids"
           ],
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
@@ -7111,26 +7032,6 @@
             "state",
             "custody"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -7763,6 +7664,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
           "parameters": [
             "cid",
@@ -8270,11 +8185,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
           "parameters": [],
           "async": true
@@ -8506,23 +8416,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding",
-          "parameters": [
-            "holdingCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
           "parameters": [
             "publicIndexEntryCid"
@@ -8566,24 +8459,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
-          "parameters": [
-            "sourceHoldingCid",
-            "value"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
-          "parameters": [],
           "async": false
         },
         {
@@ -9090,23 +8965,10 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
-            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
-            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
-            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
             "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
@@ -9141,10 +9003,6 @@
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/operation/operation",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/status/status",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
@@ -9279,7 +9137,6 @@
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
@@ -9316,16 +9173,10 @@
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
             "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
             "openOriginalLocalPublicationStore/retireEffectCaptureCustody/retireEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
@@ -9355,8 +9206,9 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
             "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
             "cidHex/cidHex",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
-            "exactUtf8WireMatches/exactUtf8WireMatches"
+            "exactUtf8WireMatches/exactUtf8WireMatches",
+            "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
+            "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath"
           ],
           "exports": [
             "PublicationStoreError",
@@ -9945,7 +9797,7 @@
                 "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress,selection);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
                 "anchor": "const recoverPhysicalHoldingDeletions = async () => {"
               },
               {
@@ -12566,11 +12418,12 @@
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
             "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
-            "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners"
+            "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners",
+            "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
+            "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials"
           ],
           "exports": [],
           "attributes": {
@@ -14497,11 +14350,182 @@
     {
       "module": "adapters/store-local/physical-holding-record-writer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b65251d23fdddf263c66e2fa9645245a3caa24135a8eefc04d07a931754e3532",
+      "sha256": "e44aa377df037bd96d834d7c5fa0757188410b85c734424abe6ac8e835307553",
       "exports": [
+        "createPhysicalHoldingLifecycle",
         "createPhysicalHoldingRecordWriter"
       ],
       "operations": [
+        {
+          "name": "createPhysicalHoldingLifecycle",
+          "parameters": [
+            "configuration",
+            "physicalHoldingsDirectory",
+            "physicalHoldingDeletionsDirectory",
+            "active",
+            "cidHex",
+            "admitPhysicalHolding",
+            "readPhysicalHoldingAt",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "verifyPhysicalHoldingObjects",
+            "preparedObjectOwners",
+            "preparedObjects",
+            "confirmPreparedMaterials",
+            "adoptPreparedObjects",
+            "writePhysicalHoldingRecord",
+            "physicalHoldingPath",
+            "physicalHoldingDeletionPath",
+            "objectPath",
+            "syncDirectory",
+            "activePhysicalRecordWriters",
+            "activePhysicalHoldingReaders",
+            "retainPhysicalHoldingReader",
+            "pendingPhysicalHoldingDeletions",
+            "materialRetentionCurrent",
+            "retainMaterialOperation",
+            "materialHasLiveReference",
+            "rememberPhysicalRemoval",
+            "confirmPhysicalRemovals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding",
+          "parameters": [
+            "value",
+            "prepared",
+            "borrowedHoldingCids"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
+          "parameters": [
+            "cid",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+          "parameters": [
+            "record",
+            "adopt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding",
+          "parameters": [
+            "sourceHoldingCid",
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createPhysicalHoldingRecordWriter",
           "parameters": [
@@ -14553,9 +14577,34 @@
             "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry",
             "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry",
             "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry#2",
-            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/status/status"
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/status/status",
+            "createPhysicalHoldingLifecycle",
+            "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding",
+            "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
+            "createPhysicalHoldingLifecycle/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
+            "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
+            "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
+            "createPhysicalHoldingLifecycle/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
+            "createPhysicalHoldingLifecycle/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
+            "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
+            "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
+            "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/operation/operation",
+            "createPhysicalHoldingLifecycle/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/status/status",
+            "createPhysicalHoldingLifecycle/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
+            "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding",
+            "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup",
+            "createPhysicalHoldingLifecycle/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup#2",
+            "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding",
+            "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
+            "createPhysicalHoldingLifecycle/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding"
           ],
           "exports": [
+            "createPhysicalHoldingLifecycle",
             "createPhysicalHoldingRecordWriter"
           ],
           "attributes": {
@@ -14569,6 +14618,10 @@
               {
                 "path": "adapters/store-local/physical-holding-record-writer.mts",
                 "anchor": "export function createPhysicalHoldingRecordWriter("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "export function createPhysicalHoldingLifecycle<"
               }
             ],
             "identity": [
@@ -14581,12 +14634,20 @@
               {
                 "path": "adapters/store-local/physical-holding-record-writer.mts",
                 "anchor": "activePhysicalRecordWriters.add(writer);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "await confirmPhysicalRemovals(unconfirmedObjects);"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-record-writer.mts",
                 "anchor": "await syncDirectory(finalDirectory);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "await syncDirectory(physicalHoldingsDirectory);"
               }
             ],
             "failure": [
@@ -14621,6 +14682,10 @@
               {
                 "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
                 "anchor": "prepared custody acknowledges its final name without a redundant staging directory ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "private confirmation retains a failed original directory close"
               }
             ]
           }
@@ -15865,7 +15930,7 @@
     {
       "module": "adapters/store-local/publication-store-private-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b66eaf42cd15bd47b8d61035948ecc9bd8fd3444e58714475f69a6ff454602d7",
+      "sha256": "d59422fa99a564b816b1e6e7d392d7494ddba5d2621358755a8c710064c5dd6f",
       "exports": [
         "createPrivatePublicationEvidence",
         "encodePrivateEvidenceEnvelope",
@@ -15950,6 +16015,23 @@
           "async": false
         },
         {
+          "name": "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createPrivatePublicationEvidence/prepareLookupRawEvidence/prepareLookupRawEvidence",
           "parameters": [
             "binding",
@@ -16032,20 +16114,6 @@
           "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject",
-          "parameters": [
-            "name",
-            "semanticCid",
-            "holdingCid",
-            "index",
-            "objectCount",
-            "originalHolding",
-            "retainOriginalRead",
-            "beforeEnvelope"
-          ],
-          "async": true
         },
         {
           "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
@@ -16203,7 +16271,6 @@
             "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
             "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
             "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-            "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject",
             "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
             "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
             "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
@@ -16218,7 +16285,10 @@
             "createPrivatePublicationEvidence/prepareModelRawEvidence/prepareModelRawEvidence",
             "createPrivatePublicationEvidence/preparePrivateEvidence/preparePrivateEvidence",
             "createPrivatePublicationEvidence/readLookupRawEvidence/readLookupRawEvidence",
-            "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence"
+            "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation"
           ],
           "exports": [
             "encodePrivateEvidenceEnvelope",
@@ -16322,6 +16392,10 @@
               {
                 "path": "adapters/store-local/lookup-raw-evidence.test.mjs",
                 "anchor": "lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen"
+              },
+              {
+                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "anchor": "unknown installation commit retains the same preparation until original durability confirms"
               }
             ]
           }
