@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+import type {FileHandle} from 'node:fs/promises';
+import type {FixtureFailureFields, FixtureWrite} from './fixtures/store-file-ports.d.mts';
 import fs from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
@@ -11,11 +14,12 @@ import {createPublicationContractControlFixture} from
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+const cid = (value: string | Buffer) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 // Actual Store, staging file and native FD. Only the FD close observation is
 // controlled; contract control remains a double, not original Core admission.
-async function fixture(t, {primary} = {}) {
+async function fixture(t: TestContext, {primary}: {primary?: unknown} = {}) {
   const directory = await fs.mkdtemp(join(tmpdir(), 'actql-c-writer-false-close-'));
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: cid('original false-close authority'),
@@ -23,7 +27,9 @@ async function fixture(t, {primary} = {}) {
     maxObjectBytes: 16384, maxObjects: 40, maxContractNodes: 1000,
     maxContractDepth: 30}, createPublicationContractControlFixture());
   const originalOpen = fs.open;
-  let handle, path, writer, parent, passed = false, blocked = true;
+  let handle: FileHandle | undefined, path: Parameters<typeof fs.open>[0] | undefined,
+    writer: ReturnType<Store['createObjectWriter']> | undefined,
+    parent: ReturnType<typeof preparePrivatePublicationHolding> | undefined, passed = false, blocked = true;
   let opens = 0, writes = 0, stats = 0, closes = 0;
   fs.open = async (...args) => {
     const actual = await Reflect.apply(originalOpen, fs, args);
@@ -33,12 +39,12 @@ async function fixture(t, {primary} = {}) {
     path = args[0];
     opens++;
     return new Proxy(actual, {get(target, key) {
-      if (key === 'write') return async (...writeArgs) => {
+      if (key === 'write') return async (...writeArgs: Parameters<FixtureWrite>) => {
         writes++;
         if (primary !== undefined) throw primary;
         return Reflect.apply(target.write, target, writeArgs);
       };
-      if (key === 'stat') return async (...statArgs) => {
+      if (key === 'stat') return async (...statArgs: Parameters<FileHandle['stat']>) => {
         stats++;
         return Reflect.apply(target.stat, target, statArgs);
       };
@@ -62,7 +68,7 @@ async function fixture(t, {primary} = {}) {
     try { await writer?.cancel(); } catch { /* Retain failed original custody. */ }
     // A failing old product may have lost its handle. Close the diagnostic FD
     // directly only in teardown, never as product cleanup/retirement evidence.
-    if (handle?.fd >= 0) await handle.close();
+    if ((handle?.fd as number) >= 0) await handle!.close();
     try {
       assert.equal(await store.close(), true);
       if (passed) await fs.rm(directory, {recursive: true});
@@ -87,8 +93,8 @@ test('writer cancellation keeps the same live FD and reservation after explicit 
   const f = await fixture(t), writer = f.writer();
   await writer.append('abc');
   await assert.rejects(writer.cancel(), {code: 'PublicationStoreCleanupPending'});
-  assert(f.fd() >= 0);
-  assert.equal((await fs.stat(f.path())).size, 3);
+  assert((f.fd() as number) >= 0);
+  assert.equal((await fs.stat(f.path()!)).size, 3);
   assert.equal(writer.status().cleanupPending, true);
   assert.equal(writer.status().reservationHeld, true);
   assert.equal(f.store.status().reservedBytes, 3);
@@ -110,7 +116,7 @@ test('seal cannot publish or return capacity while its actual writer FD close is
   const f = await fixture(t), writer = f.writer();
   await writer.append('abc');
   await assert.rejects(writer.seal(cid('abc')), {code: 'PublicationStoreCleanupPending'});
-  assert(f.fd() >= 0);
+  assert((f.fd() as number) >= 0);
   assert.equal(writer.status().cleanupPending, true);
   assert.equal(writer.status().reservationHeld, true);
   assert.equal(f.store.status().objectCount, 0);
@@ -132,12 +138,12 @@ test('encrypted private parent preserves frozen write cause and same false-close
     {code: 'OriginalFrozenWriteFailure'}));
   const f = await fixture(t, {primary}), parent = f.parent();
   await assert.rejects(parent.commit(), error => {
-    assert.equal(error.cause, primary);
-    assert.equal(error.cleanupHandle, parent);
-    assert.equal(error.cleanupPending, true);
+    assert.equal((error as FixtureFailureFields).cause, primary);
+    assert.equal((error as FixtureFailureFields).cleanupHandle, parent);
+    assert.equal((error as FixtureFailureFields).cleanupPending, true);
     return true;
   });
-  assert(f.fd() >= 0);
+  assert((f.fd() as number) >= 0);
   assert.equal(parent.status().committed, false);
   assert.equal(parent.status().preparedPending, true);
   assert.equal(f.store.status().reservedBytes, 132);
@@ -161,12 +167,12 @@ test('encrypted private parent preserves frozen write cause and same false-close
 test('encrypted private seal keeps original parent pending until confirmed close-only abort', async t => {
   const f = await fixture(t), parent = f.parent();
   await assert.rejects(parent.commit(), error => {
-    assert.equal(error.code, 'PublicationStoreCleanupPending');
-    assert.equal(error.cleanupHandle, parent);
-    assert.equal(error.cleanupPending, true);
+    assert.equal((error as FixtureFailureFields).code, 'PublicationStoreCleanupPending');
+    assert.equal((error as FixtureFailureFields).cleanupHandle, parent);
+    assert.equal((error as FixtureFailureFields).cleanupPending, true);
     return true;
   });
-  assert(f.fd() >= 0);
+  assert((f.fd() as number) >= 0);
   assert.equal(parent.status().committed, false);
   assert.equal(parent.status().preparedPending, true);
   assert.equal(f.store.status().reservedBytes, 132);

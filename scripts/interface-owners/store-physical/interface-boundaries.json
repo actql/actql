@@ -1041,13 +1041,13 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
+                "path": "adapters/store-local/bounded-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1151,13 +1151,13 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
+                "path": "adapters/store-local/bounded-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1258,13 +1258,13 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
+                "path": "adapters/store-local/bounded-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
@@ -1640,13 +1640,13 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
+                "path": "adapters/store-local/bounded-close-custody.test.mts",
                 "anchor": "test("
               }
             ],
@@ -3614,7 +3614,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/object-writer-false-close-custody.test.mjs",
+                "path": "adapters/store-local/object-writer-false-close-custody.test.mts",
                 "anchor": "test("
               },
               {
@@ -3674,7 +3674,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/object-writer-false-close-custody.test.mjs",
+                "path": "adapters/store-local/object-writer-false-close-custody.test.mts",
                 "anchor": "test("
               },
               {
@@ -7859,7 +7859,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "test("
               },
               {
@@ -7977,7 +7977,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
+                "path": "adapters/store-local/bounded-close-custody.test.mts",
                 "anchor": "test("
               },
               {
@@ -8343,7 +8343,7 @@
                 "anchor": "an already corrupt final holding remains refused"
               },
               {
-                "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
+                "path": "adapters/store-local/physical-reader-close-ack.test.mts",
                 "anchor": "setter cannot discard the original Content FD responsibility"
               },
               {
@@ -15804,7 +15804,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/semantic-reader-custody.test.mjs",
+                "path": "adapters/store-local/semantic-reader-custody.test.mts",
                 "anchor": "semantic FD close failure blocks Store release until the same close-only retry succeeds"
               }
             ]
@@ -16170,7 +16170,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "path": "adapters/store-local/original-reader-close-custody.test.mts",
                 "anchor": "original FD close failure retains reader and byte custody through failed retry"
               },
               {
@@ -16321,7 +16321,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/object-verifier-close-custody.test.mjs",
+                "path": "adapters/store-local/object-verifier-close-custody.test.mts",
                 "anchor": "Store close retains and drives the same failed verifier FD without another read"
               },
               {
@@ -18471,7 +18471,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/store-contract-reader-custody.test.mjs",
+                "path": "adapters/store-local/store-contract-reader-custody.test.mts",
                 "anchor": "actual pre-owner format failure retains the same FD"
               },
               {
@@ -20359,7 +20359,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/bounded-reader-close-ack.test.mjs",
+                "path": "adapters/store-local/bounded-reader-close-ack.test.mts",
                 "anchor": "bounded original false close cannot return bytes or acknowledge the metadata FD"
               },
               {

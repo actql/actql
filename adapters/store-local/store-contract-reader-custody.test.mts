@@ -4,11 +4,16 @@ import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+import type {FileHandle} from 'node:fs/promises';
+import type {FixtureCleanupFailure, FixtureFailureFields, FixtureReadArguments} from './fixtures/store-file-ports.d.mts';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
 
-async function fixture(t) {
+type OpeningFailure = FixtureCleanupFailure & Readonly<{cause: Error & FixtureFailureFields}>;
+
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-store-contract-custody-'));
   t.after(() => rm(directory, {recursive: true}));
   const configuration = {directory, storeAuthorityCid: 'sha256:' + 'a'.repeat(64),
@@ -23,14 +28,15 @@ async function fixture(t) {
 for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreContractReadFailed'))]) {
   test(`actual pre-owner format failure retains the same FD${readFailure ? ' and frozen primary' : ''} through initialization retry`, async t => {
     const openOriginal = fs.open;
-    let original, nativeClose, allowClose = false, failure, opens = 0, closes = 0, reads = 0;
+    let original: FileHandle | undefined, nativeClose: FileHandle['close'] | undefined,
+      allowClose = false, failure: OpeningFailure | undefined, opens = 0, closes = 0, reads = 0;
     const blocked = Object.assign(new Error('OriginalStoreContractCloseFailed'), {code: 'EIO'});
     const restoreOpen = () => { fs.open = openOriginal; syncBuiltinESMExports(); };
     t.after(async () => {
       restoreOpen();
       allowClose = true;
-      if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
-      if (original?.fd >= 0) await Reflect.apply(nativeClose, original, []);
+      if (failure?.cleanupHandle?.status().pending) await failure!.cleanupHandle.retry();
+      if ((original?.fd as number) >= 0) await Reflect.apply(nativeClose!, original, []);
     });
     const f = await fixture(t);
     const path = join(f.directory, 'store.json');
@@ -43,34 +49,34 @@ for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreCont
       opens++;
       nativeClose = handle.close;
       const read = handle.read;
-      handle.read = function(...args) {
+      handle.read = (function(this: FileHandle, ...args: FixtureReadArguments) {
         reads++;
         if (readFailure) return Promise.reject(readFailure);
         return Reflect.apply(read, this, args);
-      };
-      handle.close = function(...args) {
+      }) as FileHandle['read'];
+      handle.close = function(this: FileHandle, ...args: Parameters<FileHandle['close']>) {
         closes++;
         if (!allowClose) return Promise.reject(blocked);
-        return Reflect.apply(nativeClose, this, args);
+        return Reflect.apply(nativeClose!, this, args);
       };
       return handle;
     };
     syncBuiltinESMExports();
     await assert.rejects(openLocalPublicationStore(f.configuration, f.control), error => {
-      failure = error;
-      return error.code === 'UnknownPublicationStoreFormat';
+      failure = error as OpeningFailure;
+      return (error as FixtureFailureFields).code === 'UnknownPublicationStoreFormat';
     });
-    assert.strictEqual(failure.cleanupHandle, failure.cause.cleanupHandle);
-    assert.strictEqual(failure.primaryFailure, failure.cause);
-    assert.strictEqual(failure.cleanupError, blocked);
-    if (readFailure) assert.strictEqual(failure.cause.cause, readFailure);
-    else assert.strictEqual(failure.cause, blocked);
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    assert(original.fd >= 0);
+    assert.strictEqual(failure!.cleanupHandle, failure!.cause.cleanupHandle);
+    assert.strictEqual(failure!.primaryFailure, failure!.cause);
+    assert.strictEqual(failure!.cleanupError, blocked);
+    if (readFailure) assert.strictEqual(failure!.cause.cause, readFailure);
+    else assert.strictEqual(failure!.cause, blocked);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
+    assert((original as FileHandle | undefined)!.fd >= 0);
     // Store ownership was not acquired; no artificial owner or reopen exists.
     await assert.rejects(readFile(join(f.directory, 'owner', 'owner.json')), {code: 'ENOENT'});
-    const installed = await retainInstalledHostInitializationFailure(failure, {});
-    assert.strictEqual(installed.primaryFailure, failure.primaryFailure);
+    const installed = await retainInstalledHostInitializationFailure(failure!, {});
+    assert.strictEqual(installed.primaryFailure, failure!.primaryFailure);
     assert.deepEqual(installed.cleanupHandle.status().owners, ['initialization']);
     assert.equal(installed.cleanupHandle.status().pending, true);
     assert.equal(closes, 2);
@@ -82,7 +88,7 @@ for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreCont
     const retry = installed.cleanupHandle.retry();
     assert.strictEqual(installed.cleanupHandle.retry(), retry);
     assert.equal((await retry).pending, false);
-    assert.equal(original.fd, -1);
+    assert.equal((original as FileHandle | undefined)!.fd, -1);
     assert.equal(closes, 3);
     assert.equal(reads, originalReads);
     assert.equal(opens, 1);

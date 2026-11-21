@@ -1,4 +1,7 @@
 // Type views for the fault fixtures that interpose the original Node file port.
+import type {ReadOptions, ReadOptionsWithBuffer, ReadPosition} from 'node:fs';
+import type {FileHandle, FileReadResult} from 'node:fs/promises';
+
 type PositionalBufferArguments = [buffer: NodeJS.ArrayBufferView, offset?: number | null,
   length?: number | null, position?: number | null];
 type BufferOptions = Readonly<{offset?: number; length?: number; position?: number}>;
@@ -14,8 +17,19 @@ export type FixtureCleanup = Readonly<{
   status(): Readonly<{pending: boolean}>;
   retry(): Promise<Readonly<{pending: boolean}>>;
 }>;
-export type FixtureCleanupFailure = Readonly<{
+export type FixtureReadArguments =
+  [buffer: NodeJS.ArrayBufferView, offset?: number | null, length?: number | null, position?: ReadPosition | null] |
+  [buffer: NodeJS.ArrayBufferView, options?: ReadOptions] |
+  [options?: ReadOptionsWithBuffer<NodeJS.ArrayBufferView>];
+export type FixtureRead = (...args: FixtureReadArguments) => Promise<FileReadResult<NodeJS.ArrayBufferView>>;
+export type FixtureFile = Omit<FileHandle, 'close'> & {close(): Promise<void | false>};
+
+export type FixtureFailureFields = Readonly<{
   code?: unknown;
+  cause?: unknown;
   primaryFailure?: unknown;
-  cleanupHandle: FixtureCleanup;
+  cleanupError?: unknown;
+  cleanupPending?: unknown;
+  cleanupHandle?: FixtureCleanup;
 }>;
+export type FixtureCleanupFailure = FixtureFailureFields & Readonly<{cleanupHandle: FixtureCleanup}>;
