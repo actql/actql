@@ -53,10 +53,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
-  serial? : (
-    ((Int, Int, Int) -> Bool)?,
-    (Array[@publication.CapturedEffectDependencyBody]) -> Bool,
-  )? = None,
+  serial? : KeyedDependencySerialFunding? = None,
   retain_catalog? : Bool = true,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
@@ -123,8 +120,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     if wire.length() > remaining {
       raise NativeLookupDependencyStop(Dependency(ByteLimit))
     }
-    let funding = if serial_member && serial is Some((prepare, _)) {
-      prepare
+    let funding = if serial_member && serial is Some(funding) {
+      funding.before
     } else {
       before_body
     }
@@ -152,7 +149,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     remaining -= bytes
     // The synchronous admission returned. No parser cursor is in the
     // retained dependency body or the duplicate table.
-    if serial_member && serial is Some((_, completed)) && !completed(bodies) {
+    if serial_member && serial is Some(funding) && !(funding.record)(bodies) {
       raise NativeLookupDependencyStop(ConstructionRefused)
     }
   }
@@ -481,22 +478,39 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         Some(component.original.output_policy),
       ] {
       if policy is Some(policy) {
-        let selected = require_native_lookup_dependency(
-          checked_client_source_policy_bodies(
-            program,
-            policy,
-            remaining,
-            max_nodes,
-            max_depth,
-            max_nodes,
-            retain_catalog~,
-            retained_body_keys=Some(seen),
-            before_body~,
-            admitted_body=policy_receiver,
-          ).map_err(issue => Static(issue)),
-        )
-        for (kind, cid, wire) in selected {
-          append(kind, cid, wire)
+        let funding = match serial {
+          None => before_body
+          Some(policy_funding) => {
+            if !(policy_funding.begin_batch)(bodies.length()) {
+              raise NativeLookupDependencyStop(ConstructionRefused)
+            }
+            policy_funding.before
+          }
+        }
+        {
+          let selected = require_native_lookup_dependency(
+            checked_client_source_policy_bodies(
+              program,
+              policy,
+              remaining,
+              max_nodes,
+              max_depth,
+              max_nodes,
+              retain_catalog~,
+              retained_body_keys=Some(seen),
+              before_body=funding,
+              admitted_body=policy_receiver,
+            ).map_err(issue => Static(issue)),
+          )
+          if serial is Some(_) && !selected.is_empty() {
+            raise NativeLookupDependencyStop(ForeignInput)
+          }
+          for (kind, cid, wire) in selected {
+            append(kind, cid, wire)
+          }
+        }
+        if serial is Some(policy_funding) && !(policy_funding.record)(bodies) {
+          raise NativeLookupDependencyStop(ConstructionRefused)
         }
       }
     }

@@ -22,10 +22,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
   max_nodes : Int,
   max_depth : Int,
   before_body : ((Int, Int, Int) -> Bool)?,
-  serial? : (
-    ((Int, Int, Int) -> Bool)?,
-    (Array[@publication.CapturedEffectDependencyBody]) -> Bool,
-  )? = None,
+  serial? : KeyedDependencySerialFunding? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -71,8 +68,8 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     if wire.length() > remaining {
       raise GenericKeyedDependencyStop(Dependency(ByteLimit))
     }
-    let funding = if serial_member && serial is Some((prepare, _)) {
-      prepare
+    let funding = if serial_member && serial is Some(funding) {
+      funding.before
     } else {
       before_body
     }
@@ -100,7 +97,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     remaining -= bytes
     // The synchronous admission returned. No parser cursor is in the
     // retained dependency body or the duplicate table.
-    if serial_member && serial is Some((_, completed)) && !completed(bodies) {
+    if serial_member && serial is Some(funding) && !(funding.record)(bodies) {
       raise GenericKeyedDependencyStop(ConstructionRefused)
     }
   }
@@ -439,22 +436,39 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         Some(component.original.output_policy),
       ] {
       if policy is Some(policy) {
-        let selected = require_generic_keyed_dependency(
-          checked_client_source_policy_bodies(
-            program,
-            policy,
-            remaining,
-            max_nodes,
-            max_depth,
-            max_nodes,
-            retain_catalog=true,
-            retained_body_keys=Some(seen),
-            before_body~,
-            admitted_body=policy_receiver,
-          ).map_err(issue => Static(issue)),
-        )
-        for (kind, cid, wire) in selected {
-          append(kind, cid, wire)
+        let funding = match serial {
+          None => before_body
+          Some(policy_funding) => {
+            if !(policy_funding.begin_batch)(bodies.length()) {
+              raise GenericKeyedDependencyStop(ConstructionRefused)
+            }
+            policy_funding.before
+          }
+        }
+        {
+          let selected = require_generic_keyed_dependency(
+            checked_client_source_policy_bodies(
+              program,
+              policy,
+              remaining,
+              max_nodes,
+              max_depth,
+              max_nodes,
+              retain_catalog=true,
+              retained_body_keys=Some(seen),
+              before_body=funding,
+              admitted_body=policy_receiver,
+            ).map_err(issue => Static(issue)),
+          )
+          if serial is Some(_) && !selected.is_empty() {
+            raise GenericKeyedDependencyStop(ForeignInput)
+          }
+          for (kind, cid, wire) in selected {
+            append(kind, cid, wire)
+          }
+        }
+        if serial is Some(policy_funding) && !(policy_funding.record)(bodies) {
+          raise GenericKeyedDependencyStop(ConstructionRefused)
         }
       }
     }
@@ -611,22 +625,29 @@ fn prepare_client_effect_keyed_generic_dependencies(
       let serial = match serial_cursor {
         None => None
         Some(cursor) =>
-          Some(
-            (
-              Some((bytes, nodes, depth) => {
-                before(bytes, nodes, depth, serial_cursor)
-              }),
-              bodies => {
-                match cursor.record_body(bodies, max_nodes) {
-                  Ok(_) => true
-                  Err(issue) => {
-                    primary.val = Some(issue)
-                    false
-                  }
+          Some({
+            before: Some((bytes, nodes, depth) => {
+              before(bytes, nodes, depth, serial_cursor)
+            }),
+            begin_batch: first => {
+              match cursor.begin_batch(first) {
+                Ok(_) => true
+                Err(issue) => {
+                  primary.val = Some(issue)
+                  false
                 }
-              },
-            ),
-          )
+              }
+            },
+            record: bodies => {
+              match cursor.record_body(bodies, max_nodes) {
+                Ok(_) => true
+                Err(issue) => {
+                  primary.val = Some(issue)
+                  false
+                }
+              }
+            },
+          })
       }
       let bodies = match
         build_client_effect_keyed_generic_dependency_bodies(

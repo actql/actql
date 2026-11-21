@@ -275,3 +275,86 @@ test "measured dependency extent binds the adopted collector Array before settle
     assert_true(cleanup())
   }
 }
+
+///|
+test "policy batch keeps both construction quotes and settles disjoint adopted ranges" {
+  let (lookup, cleanup) = keyed_wire_usage_fixture()
+  defer assert_true(cleanup())
+  let basis_r = lookup.retained_bytes
+  let basis_e = lookup.execution_bytes
+  let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+  reserve_keyed_dependency_serial_controls(lookup).unwrap()
+  let cursor = new_keyed_dependency_serial_cursor()
+  let serial = Some(cursor)
+  let bodies = Array(capacity=3)
+  fn collect(
+    wire : String,
+    cid : String,
+    bytes : Int,
+    nodes : Int,
+    meter : KeyedDependencySerialCursor?,
+  ) -> Unit {
+    let (body, _) = admit_client_effect_dependency_capture_body(
+      "request_values",
+      Some(cid),
+      wire,
+      1024,
+      32,
+      8,
+      Some((b, n, d) => {
+        grow_keyed_dependency_body(lookup, b, n, d, meter) is Ok(_)
+      }),
+      () => true,
+      wire_extent=Some((bytes, nodes)),
+    ).unwrap()
+    bodies.push(body)
+  }
+  collect(
+    "{}", "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    2, 1, serial,
+  )
+  cursor.record_body(bodies, 32).unwrap()
+  collect(
+    "{\"x\":\"é\"}",
+    "sha256:97f06f396a709c3a29824e1cc794eeb98e2d1a262d7d455439d286d42803f0fe",
+    10,
+    2,
+    None,
+  )
+  cursor.begin_batch(bodies.length()).unwrap()
+  grow_keyed_dependency_body(lookup, 16, 3, 3, serial).unwrap()
+  // The writer offers immutable text to admission. Keep both peaks until the
+  // external policy invocation returns and the body belongs to the collector.
+  collect(
+    "{\"x\":{\"y\":\"é\"}}", "sha256:75a66b3f24b3ab631f3c1a7582c6da55ec0d4fa59a64227accbc3a66ba94c760",
+    16, 3, serial,
+  )
+  let retained = 3L * 3L * 256L + 16L * 7L * 8L + 4096L
+  let execution = retained + (3L + 1L) * 2L * 256L
+  assert_eq(cursor.pending_retained, 2L * retained)
+  assert_eq(cursor.pending_execution, 2L * execution)
+  assert_eq(cursor.measured.unwrap().end, 1)
+  assert_eq(cursor.available_retained, 0L)
+  assert_eq(cursor.available_execution, 0L)
+  cursor.record_body(bodies, 32).unwrap()
+  let measured = cursor.measured.unwrap()
+  assert_eq((measured.start, measured.end), (2, 3))
+  assert_eq(
+    (measured.previous.unwrap().start, measured.previous.unwrap().end),
+    (0, 1),
+  )
+  assert_eq(cursor.pending_retained, -1L)
+  finish_keyed_lookup_protocol_metadata(
+    lookup,
+    phase,
+    32,
+    8,
+    [],
+    dependencies=Measured(bodies, measured),
+  ).unwrap()
+  // Two measured bodies and the unmeasured gap, independently priced.
+  // The outer Array is H3/R6/W3, including its adopted alias.
+  let keep = 16L * 128L + 3L * 16L + 6L * 8L + 3L * 8L + 566L + 696L + 886L
+  assert_eq(lookup.retained_bytes, basis_r + keep)
+  assert_eq(lookup.execution_bytes, basis_e + keep)
+}

@@ -653,7 +653,7 @@ fn finish_keyed_lookup_protocol_metadata(
   let dependency_frames = match dependencies {
     NoDependencies => if dependency_bodies is Some(_) { 16L } else { 0L }
     Unmeasured(_) => 20L
-    Measured(_, _) => 24L
+    Measured(_, _) => 32L
   }
   let frames = 4L * (max_depth.to_int64() + 1L) +
     4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L) +
@@ -747,29 +747,50 @@ fn finish_keyed_lookup_protocol_metadata(
       return Err(Assembly("capacity_overflow"))
     }
     retained = total
-    let (start, end) = match dependencies {
-      NoDependencies | Unmeasured(_) => (0, 0)
-      Measured(_, original) => {
-        guard physical_equal(original.bodies, bodies) &&
-          original.start >= 0 &&
-          original.start < original.end &&
-          original.end <= bodies.length() &&
-          @execution.checked_preparation_add_product(
+    // Preserve the original order of unmeasured bodies and their failures.
+    // The collector can have one Request interval and two policy intervals.
+    let ranges = match dependencies {
+      Measured(_, last) => {
+        let ordered = Array(capacity=3)
+        let mut limit = bodies.length()
+        let mut current = Some(last)
+        while current is Some(original) {
+          guard ordered.length() < 3 &&
+            physical_equal(original.bodies, bodies) &&
+            original.start >= 0 &&
+            original.start < original.end &&
+            original.end <= limit else {
+            return Err(Assembly("foreign_dependency_body_extent"))
+          }
+          ordered.push(original)
+          limit = original.start
+          current = original.previous
+        }
+        Some(ordered)
+      }
+      NoDependencies | Unmeasured(_) => None
+    }
+    let mut next_range = match ranges {
+      Some(ordered) => ordered.length() - 1
+      None => -1
+    }
+    let mut index = 0
+    while index < bodies.length() {
+      if next_range >= 0 &&
+        ranges is Some(ordered) &&
+        ordered[next_range].start == index {
+        let original = ordered[next_range]
+        guard @execution.checked_preparation_add_product(
             retained,
             original.bytes,
             1L,
           )
           is Some(next) else {
-          return Err(Assembly("foreign_dependency_body_extent"))
+          return Err(Assembly("capacity_overflow"))
         }
         retained = next
-        (original.start, original.end)
-      }
-    }
-    let mut index = 0
-    while index < bodies.length() {
-      if index == start && start < end {
-        index = end
+        index = original.end
+        next_range -= 1
         continue
       }
       let bytes = match

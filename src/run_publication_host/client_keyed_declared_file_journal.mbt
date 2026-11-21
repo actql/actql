@@ -744,22 +744,29 @@ fn prepare_declared_file_lookup_dependencies(
         }
       }
       let serial_cursor = Some(cursor)
-      let serial = Some(
-        (
-          Some((bytes, nodes, depth) => {
-            before(bytes, nodes, depth, serial_cursor)
-          }),
-          bodies => {
-            match cursor.record_body(bodies, max_nodes) {
-              Ok(_) => true
-              Err(issue) => {
-                primary.val = Some(issue)
-                false
-              }
+      let serial = Some({
+        before: Some((bytes, nodes, depth) => {
+          before(bytes, nodes, depth, serial_cursor)
+        }),
+        begin_batch: first => {
+          match cursor.begin_batch(first) {
+            Ok(_) => true
+            Err(issue) => {
+              primary.val = Some(issue)
+              false
             }
-          },
-        ),
-      )
+          }
+        },
+        record: bodies => {
+          match cursor.record_body(bodies, max_nodes) {
+            Ok(_) => true
+            Err(issue) => {
+              primary.val = Some(issue)
+              false
+            }
+          }
+        },
+      })
       let bodies = match
         keyed_lookup_native_dependency_bodies_from_original(
           lookup,

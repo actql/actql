@@ -1,12 +1,13 @@
 ///|
 // The measured interval belongs to this exact collector Array. It accounts
-// for only the direct admissions in the Request enumeration, not its
-// surrounding policy/Catalog construction.
+// for original admissions whose direct or outer policy constructor returned.
+// Earlier disjoint intervals remain on the same collector.
 priv struct KeyedDependencyMeasuredBodies {
   bodies : Array[@publication.CapturedEffectDependencyBody]
   start : Int
   end : Int
   bytes : Int64
+  previous : KeyedDependencyMeasuredBodies?
 }
 
 ///|
@@ -19,6 +20,7 @@ priv struct KeyedDependencySerialCursor {
   mut pending_execution : Int64
   mut pending_depth : Int
   mut extent_workspace_depth : Int
+  mut batch_start : Int
   mut measured : KeyedDependencyMeasuredBodies?
 }
 
@@ -31,8 +33,28 @@ fn new_keyed_dependency_serial_cursor() -> KeyedDependencySerialCursor {
     pending_execution: 0L,
     pending_depth: -1,
     extent_workspace_depth: -1,
+    batch_start: -1,
     measured: None,
   }
+}
+
+///|
+priv struct KeyedDependencySerialFunding {
+  before : ((Int, Int, Int) -> Bool)?
+  begin_batch : (Int) -> Bool
+  record : (Array[@publication.CapturedEffectDependencyBody]) -> Bool
+}
+
+///|
+fn KeyedDependencySerialCursor::begin_batch(
+  self : KeyedDependencySerialCursor,
+  start : Int,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  if self.pending_retained >= 0L || self.batch_start >= 0 {
+    return Err(Assembly("live_dependency_cursor"))
+  }
+  self.batch_start = start
+  Ok(())
 }
 
 ///|
@@ -42,45 +64,71 @@ fn KeyedDependencySerialCursor::record_body(
   max_nodes : Int,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   let end = bodies.length()
-  guard self.pending_retained >= 0L && bodies.get(end - 1) is Some(body) else {
+  let first = if self.batch_start >= 0 { self.batch_start } else { end - 1 }
+  if self.batch_start == end && self.pending_retained < 0L {
+    self.batch_start = -1
+    return Ok(())
+  }
+  guard self.pending_retained >= 0L && first >= 0 && first <= end else {
     return Err(Assembly("unavailable_dependency_body"))
   }
-  let (start, previous) = match self.measured {
-    None => (end - 1, 0L)
-    Some(original) => {
-      guard physical_equal(original.bodies, bodies) && original.end == end - 1 else {
-        return Err(Assembly("foreign_dependency_body_extent"))
-      }
-      (original.start, original.bytes)
+  let mut bytes = 0L
+  for index in first..<end {
+    let extent = match
+      keyed_dependency_body_extent_cost(
+        bodies[index],
+        max_nodes,
+        self.pending_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
+    guard @execution.checked_preparation_add_product(bytes, extent, 1L)
+      is Some(next) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    bytes = next
   }
-  let bytes = match
-    keyed_dependency_body_extent_cost(body, max_nodes, self.pending_depth) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard @execution.checked_preparation_add_product(previous, bytes, 1L)
-    is Some(total) &&
-    @execution.checked_preparation_add_product(
-      bytes, keyed_dependency_member_bytes, 1L,
+  guard @execution.checked_preparation_add_product(
+      bytes,
+      keyed_dependency_member_bytes,
+      (end - first).to_int64(),
     )
     is Some(keep) else {
     return Err(Assembly("capacity_overflow"))
   }
-  // The member allowance stays live through the last duplicate check. It
-  // covers the new key, the Array/Map slots and transient growth backing;
-  // the incoming wire comes from the still-live Request/page predecessor.
-  // The measured body includes its admitted wire, even when a distinct
-  // re-encoding replaced the input. No string equality proves a shared buffer.
+  // The enclosing collector keeps its adopted bodies, original incoming
+  // wire aliases and member controls. Only this returned constructor's
+  // excess quote becomes reusable; no reservation is returned here.
   if keep > self.pending_retained {
     return Err(Assembly("dependency_body_extent_exceeds_quote"))
+  }
+  if first < end {
+    let (start, preceding, previous) = match self.measured {
+      None => (first, 0L, None)
+      Some(original) => {
+        guard physical_equal(original.bodies, bodies) && original.end <= first else {
+          return Err(Assembly("foreign_dependency_body_extent"))
+        }
+        if original.end == first {
+          (original.start, original.bytes, original.previous)
+        } else {
+          (first, 0L, self.measured)
+        }
+      }
+    }
+    guard @execution.checked_preparation_add_product(preceding, bytes, 1L)
+      is Some(total) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    self.measured = Some({ bodies, start, end, bytes: total, previous, })
   }
   self.available_retained += self.pending_retained - keep
   self.available_execution += self.pending_execution - keep
   self.pending_retained = -1L
   self.pending_execution = 0L
   self.pending_depth = -1
-  self.measured = Some({ bodies, start, end, bytes: total, })
+  self.batch_start = -1
   Ok(())
 }
 
@@ -90,10 +138,11 @@ fn reserve_keyed_dependency_serial_controls(
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   // One body and one range certificate, plus the old/new certificate overlap
   // while updating the serial state. The extent stack is funded separately.
+  // Also keep the policy hook and up to two disjoint policy range records.
   guard @execution.preparation_representation_cost({
-      record_headers: 28L,
-      reference_slots: 44L,
-      scalar_words: 50L,
+      record_headers: 39L,
+      reference_slots: 61L,
+      scalar_words: 57L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -120,7 +169,9 @@ fn grow_keyed_dependency_body(
   depth : Int,
   serial : KeyedDependencySerialCursor?,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
-  if serial is Some(value) && value.pending_retained >= 0L {
+  if serial is Some(value) &&
+    value.pending_retained >= 0L &&
+    value.batch_start < 0 {
     return Err(Assembly("live_dependency_cursor"))
   }
   guard @execution.execution_capacity_inventory_bytes([
@@ -142,6 +193,19 @@ fn grow_keyed_dependency_body(
   let (available_r, available_e) = match serial {
     Some(value) => (value.available_retained, value.available_execution)
     None => (0L, 0L)
+  }
+  // Within a policy call its producer, wire, parser and receiver can overlap.
+  // Reserve each quote until the entire call has unwound.
+  let (pending_r, pending_e) = match serial {
+    Some(value) =>
+      (Int64::max(0L, value.pending_retained), value.pending_execution)
+    None => (0L, 0L)
+  }
+  guard @execution.checked_preparation_add_product(pending_r, retained, 1L)
+    is Some(total_r) &&
+    @execution.checked_preparation_add_product(pending_e, execution, 1L)
+    is Some(total_e) else {
+    return Err(Assembly("capacity_overflow"))
   }
   let grow_r = Int64::max(0L, retained - available_r)
   let needed_e = Int64::max(0L, execution - available_e)
@@ -188,9 +252,9 @@ fn grow_keyed_dependency_body(
         value.available_retained = Int64::max(0L, available_r - retained)
         value.available_execution = Int64::max(0L, available_e - execution) +
           (grow_e - needed_e)
-        value.pending_retained = retained
-        value.pending_execution = execution
-        value.pending_depth = depth
+        value.pending_retained = total_r
+        value.pending_execution = total_e
+        value.pending_depth = Int::max(value.pending_depth, depth)
         value.extent_workspace_depth = Int::max(
           value.extent_workspace_depth,
           depth,
