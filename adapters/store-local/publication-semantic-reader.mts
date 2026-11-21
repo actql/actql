@@ -14,7 +14,7 @@ type NativeContractRow = Readonly<{name: string; wire: string; publication?: tru
 export type SemanticContract = Readonly<{identity: string; name: string; wire: string}>;
 type SemanticOriginal<Contract> = Readonly<{bytes: Buffer}> & (
   Readonly<{native: Contract; publication: boolean; physicalCid?: never; generation?: never}> |
-  Readonly<{native?: never; physicalCid: string; generation?: Readonly<{device: string; inode: string}>}>
+  Readonly<{native?: never; publication?: never; physicalCid: string; generation?: Readonly<{device: string; inode: string}>}>
 );
 type SemanticIndex = Readonly<{
   publicationContract(cid: string, readDemand?: ReadDemand): NativeContractRow | undefined;

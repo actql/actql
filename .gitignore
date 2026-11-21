@@ -1549,3 +1549,5 @@ target/
 /adapters/store-local/delivery-record-store.d.mts
 /adapters/store-local/manifest-read-grant-store.mjs
 /adapters/store-local/manifest-read-grant-store.d.mts
+/adapters/store-local/run-metadata-inventory.mjs
+/adapters/store-local/run-metadata-inventory.d.mts

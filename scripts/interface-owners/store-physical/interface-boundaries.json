@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8a98d38b787ea5afc641538406f358f3a32ebdc14914b77256c1cac4d2a03dbe",
+      "sha256": "d516999e83408d79a3067e4dc63f043ee3d9bb9cf8cf54b828d3da1a300d21eb",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6336,28 +6336,11 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
-          "parameters": [
-            "contractCids",
-            "readOriginal"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/bootstrap/bootstrap",
           "parameters": [
             "path"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
-          "parameters": [
-            "runDefinitionCid",
-            "keyHash",
-            "initial"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
@@ -7001,21 +6984,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings",
-          "parameters": [
-            "entry"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
           "parameters": [],
           "async": false
@@ -7365,14 +7333,6 @@
           "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
-          "parameters": [
-            "runDefinitionCid",
-            "keyHash"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
@@ -7950,7 +7910,6 @@
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
-            "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
@@ -8025,11 +7984,7 @@
             "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
-            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
-            "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
-            "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
-            "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings",
-            "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories"
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
           ],
           "exports": [
             "PublicationStoreError",
@@ -11592,6 +11547,171 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/run-metadata-inventory.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e1381961f4e3b1182cff73686ac0395bce0412104066b7fd7724b09def57a18a",
+      "exports": [
+        "createRunMetadataInventory"
+      ],
+      "operations": [
+        {
+          "name": "createRunMetadataInventory",
+          "parameters": [
+            "configuration",
+            "attemptsDirectory",
+            "deliveriesDirectory",
+            "manifestReadsDirectory",
+            "retentionExtensionsDirectory",
+            "recordNamePattern",
+            "deliveryStarts",
+            "contractControl",
+            "currentDeliveryIndex",
+            "publicationAttemptPath",
+            "deliveryAttemptPath",
+            "contractPath",
+            "retentionExtensionDirectory",
+            "syncDirectory",
+            "verifyObject",
+            "admitContract",
+            "parseContract",
+            "readContract",
+            "readSemanticOriginal",
+            "readDeliveryAttemptContract",
+            "admitDeliveryClaim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunMetadataInventory/bindMetadataContractObjects/bindMetadataContractObjects",
+          "parameters": [
+            "contractCids",
+            "readOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRunMetadataInventory/collectRunMetadataContracts/collectRunMetadataContracts",
+          "parameters": [
+            "runDefinitionCid",
+            "keyHash",
+            "initial"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRunMetadataInventory/metadataResultBindings/metadataResultBindings",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRunMetadataInventory/metadataResultBindings/metadataResultBindings/metadataResultBindings",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunMetadataInventory/removeRunMetadataDirectories/removeRunMetadataDirectories",
+          "parameters": [
+            "runDefinitionCid",
+            "keyHash"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRunMetadataInventory",
+            "createRunMetadataInventory/bindMetadataContractObjects/bindMetadataContractObjects",
+            "createRunMetadataInventory/collectRunMetadataContracts/collectRunMetadataContracts",
+            "createRunMetadataInventory/metadataResultBindings/metadataResultBindings",
+            "createRunMetadataInventory/metadataResultBindings/metadataResultBindings/metadataResultBindings",
+            "createRunMetadataInventory/removeRunMetadataDirectories/removeRunMetadataDirectories"
+          ],
+          "exports": [
+            "createRunMetadataInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed Run metadata retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "const collectRunMetadataContracts = async ("
+              },
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "const bindMetadataContractObjects = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "if (attempt.run_definition_cid !== runDefinitionCid) fail('PublicationAttemptMismatch');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "const {attemptContract,grantContract,streaming}=admitDeliveryClaim(row);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "await syncDirectory(deliveriesDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "fail('PublicationContractCorrupt');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "if (progress.runCid === runDefinitionCid) deliveryStarts.delete(attemptCid);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "const physical = original.physicalCid === undefined"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/run-metadata-inventory.mts",
+                "anchor": "const extensionRoot = retentionExtensionDirectory(keyHash);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "metadata retirement hides the Run and reclaims its durable chain"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native publication inventory survives reopen and retires only its original ownership"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/manifest-read-grant-store.mjs",
