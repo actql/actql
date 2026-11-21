@@ -180,6 +180,7 @@ fn check_backend_capabilities(
             | Contains
             | Like
             | DateTruncate
+            | TimestampTruncate
             | DecimalDivide(_)
             | Utf8Truncate
             | ParseTimestamp

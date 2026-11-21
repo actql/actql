@@ -328,6 +328,22 @@ fn fixed_interval_unit(name : String) -> String? {
 }
 
 ///|
+fn timestamp_unit_call(path : Array[NamePart], arguments : Int) -> String? {
+  guard path is [{ value: name, .. }] else { return None }
+  if arguments == 1 &&
+    name.length() == 15 &&
+    upper_ascii(name) == "TIMESTAMP_TRUNC" {
+    Some("TIMESTAMP_TRUNC")
+  } else if arguments == 2 &&
+    name.length() == 14 &&
+    upper_ascii(name) == "TIMESTAMP_DIFF" {
+    Some("TIMESTAMP_DIFF")
+  } else {
+    None
+  }
+}
+
+///|
 fn ExpressionParser::peek(self : ExpressionParser) -> Token {
   self.source.tokens[self.offset]
 }
@@ -1155,10 +1171,7 @@ fn ExpressionParser::expression(
         args.push(result)
         let token = self.advance()
         if token.value == Symbol(44) &&
-          args.length() == 2 &&
-          path is [{ value: name, .. }] &&
-          name.length() == 14 &&
-          upper_ascii(name) == "TIMESTAMP_DIFF" {
+          timestamp_unit_call(path, args.length()) is Some(function_name) {
           // The unit is a syntax operand, with the span of the original word.
           if depth >= self.limits.max_depth {
             raise ExpressionAbort("Expression depth limit", self.peek().start)
@@ -1166,17 +1179,23 @@ fn ExpressionParser::expression(
           self.spend()
           let part = self.advance()
           guard part.value is Word(name) else {
-            raise ExpressionAbort("Expected TIMESTAMP_DIFF unit", part.start)
+            raise ExpressionAbort(
+              "Expected " + function_name + " unit",
+              part.start,
+            )
           }
           guard name.length() <= 11 &&
             fixed_interval_unit(name) is Some(unit) &&
             unit != "ns" else {
-            raise ExpressionAbort("Invalid TIMESTAMP_DIFF unit", part.start)
+            raise ExpressionAbort(
+              "Invalid " + function_name + " unit",
+              part.start,
+            )
           }
           let close = self.advance()
           if close.value != Symbol(41) {
             raise ExpressionAbort(
-              "Expected TIMESTAMP_DIFF closing parenthesis",
+              "Expected " + function_name + " closing parenthesis",
               close.start,
             )
           }

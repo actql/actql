@@ -130,6 +130,7 @@ pub(all) enum BinaryOperator {
   Contains
   Like
   DateTruncate
+  TimestampTruncate
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp
@@ -457,6 +458,7 @@ fn expression_tag(
     | "date_add"
     | "timestamp_add"
     | "timestamp_sub"
+    | "timestamp_trunc"
     | "date_trunc" => ()
     "array"
     | "empty_array"
@@ -1338,6 +1340,7 @@ fn lower_typed_expression_measured(
         "timestamp_add" => Many(TimestampAddition, args)
         "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
+        "timestamp_trunc" => Binary(TimestampTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "like" => Binary(Like, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])

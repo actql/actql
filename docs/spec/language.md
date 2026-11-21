@@ -2518,6 +2518,18 @@ is applied. Retain enclosing lazy demand, child failure, cancellation and
 workspace under the existing temporal expression owner. The earlier
 `date_diff` Number result and its selected units remain unchanged.
 
+### Fixed UTC Timestamp truncation
+
+<!-- requirement-block: scalar-expressions.exact-timestamp-trunc -->
+`{timestamp_trunc: [value, {literal: unit}]}` and the corresponding machine
+node MUST take a Timestamp and a static unit from `us|ms|s|m|h|d`. Return the
+start of the containing UTC bucket as Timestamp, preserving NULL. For
+subsecond units, discard only the fractional digits below the selected unit.
+An instant just before the epoch belongs to the preceding bucket. Preserve
+the original operand, enclosing lazy demand, failures and bounded expression
+evaluation. The existing unit-first `date_trunc` and its Date behavior retain
+their own contracts and bytes.
+
 ### Exact fixed SQL intervals
 
 <!-- requirement-block: scalar-expressions.fixed-interval-source -->

@@ -186,8 +186,8 @@ fn finish(
           invalid(cursor, origin, InvalidArguments)
         }
       }
-      if tag == "timestamp_diff" &&
-        !(literal(args[2])
+      if (tag == "timestamp_diff" || tag == "timestamp_trunc") &&
+        !(literal(args[if tag == "timestamp_trunc" { 1 } else { 2 }])
         is Some({ value: @map.String("us" | "ms" | "s" | "m" | "h" | "d"), .. })) {
         invalid(cursor, origin, InvalidArguments)
       }

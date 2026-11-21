@@ -367,6 +367,10 @@ It lowers both original operands, in order, and the selected literal unit
 to the Common `timestamp_diff` operation. Neither argument is implicitly
 converted from Date or String.
 
+`TIMESTAMP_TRUNC(value, unit)` accepts a Timestamp and the same six unquoted
+unit keywords as `TIMESTAMP_DIFF`. It selects `timestamp_trunc` in the original
+operand order. `DAY` starts at UTC midnight. This form uses fixed UTC buckets.
+
 `DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
 truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
 parentheses may preserve that literal but a Parameter, expression, alternate

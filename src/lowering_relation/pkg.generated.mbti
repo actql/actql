@@ -1220,6 +1220,7 @@ pub(all) enum BinaryOperator {
   Contains
   Like
   DateTruncate
+  TimestampTruncate
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp

@@ -630,6 +630,12 @@ export const timestampDiffOriginal = {name: 'timestamp-diff', format: 'sql',
   expected: [{hours: '3', reverse_hours: '-3'}],
   columns: ['hours', 'reverse_hours'].map(name => ({name,
     contract: {type: 'int64', nullable: false}})), sourceReadCount: 0};
+export const timestampTruncOriginal = {name: 'timestamp-trunc', format: 'sql',
+  text: "WITH t AS (SELECT TIMESTAMP '1969-12-31 23:59:59.999999+00' AS ts) "
+    + "SELECT TIMESTAMP_TRUNC(ts, DAY) AS day_start, TIMESTAMP_TRUNC(ts, MICROSECOND) AS at_micros FROM t",
+  expected: [{day_start: '1969-12-31T00:00:00.000Z', at_micros: '1969-12-31T23:59:59.999999Z'}],
+  columns: ['day_start', 'at_micros'].map(name => ({name,
+    contract: {type: 'timestamp', nullable: false}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -719,6 +725,7 @@ export const sourceFreeSuccesses = [
   timestampLiteralOriginal,
   ...generateArrayOriginalCases,
   timestampDiffOriginal,
+  timestampTruncOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

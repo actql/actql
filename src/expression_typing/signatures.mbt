@@ -1078,6 +1078,11 @@ fn infer(
       ignore(require_type(t, nodes, node.children[2], "string"))
       primitive(t, TimestampType, value.nullable || amount.nullable, source)
     }
+    "timestamp_trunc" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      ignore(require_type(t, nodes, node.children[1], "string"))
+      primitive(t, TimestampType, value.nullable, source)
+    }
     "timestamp_diff" => {
       let end = require_type(t, nodes, node.children[0], "timestamp")
       let start = require_type(t, nodes, node.children[1], "timestamp")

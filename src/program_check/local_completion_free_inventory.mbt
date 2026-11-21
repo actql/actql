@@ -565,6 +565,7 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "date_diff"
     | "timestamp_diff"
     | "date_trunc"
+    | "timestamp_trunc"
     | "decimal_divide"
     | "divide"
     | "empty_array"

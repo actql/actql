@@ -143,6 +143,7 @@ fn expression_role(
     | "rpad"
     | "concat"
     | "date_trunc"
+    | "timestamp_trunc"
     | "date_add"
     | "timestamp_add"
     | "timestamp_sub"
