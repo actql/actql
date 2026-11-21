@@ -319,7 +319,7 @@ export function assertJournalRestartCustody(restartUsage: JournalStatement, rest
       restartIssued.get()?.issued_count !== retained.n) {
     fail('ClientSubmissionRestartCustodyLost');
   }
-  return retained;
+  return retained as Row & Required<Usage>;
 }
 
 export function assertJournalIntentCustody(intentUsage: JournalStatement, intentIssued: JournalStatement, intentRetired: JournalStatement,
@@ -334,7 +334,7 @@ export function assertJournalIntentCustody(intentUsage: JournalStatement, intent
       !(Number.isSafeInteger as IsSafeInteger)(retained.n + retired) || retained.n + retired !== issued) {
     fail('ClientSubmittedIntentCustodyLost');
   }
-  return {...retained, issued, retired};
+  return {...retained, issued, retired} as Row & Required<Usage> & {issued: number; retired: number};
 }
 
 export function assertJournalNameCustody(nameCustody: JournalStatement) {

@@ -29012,20 +29012,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
           "parameters": [
             "parameters"
@@ -29111,8 +29097,6 @@
             "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
             "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
             "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
-            "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
-            "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
@@ -29244,7 +29228,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
@@ -30581,7 +30565,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
@@ -31916,7 +31900,8 @@
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
-        "createJournalSubmissionOriginals"
+        "createJournalSubmissionOriginals",
+        "createJournalSubmissionRows"
       ],
       "operations": [
         {
@@ -32030,9 +32015,122 @@
             "control"
           ],
           "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows",
+          "parameters": [
+            "database",
+            "select",
+            "epochAuthority",
+            "requestUsage",
+            "submissionIssued",
+            "intentSelect",
+            "intentUsage",
+            "intentIssued",
+            "intentRetired",
+            "restartSelect",
+            "restartUsage",
+            "restartIssued",
+            "originals",
+            "rejectSubmission",
+            "inspectionBytes",
+            "maxRecords"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/checkRestartLocked/checkRestartLocked",
+          "parameters": [
+            "requestId",
+            "restartWire",
+            "fields",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/checkSubmissionBinding/checkSubmissionBinding",
+          "parameters": [
+            "fields",
+            "submission",
+            "control",
+            "locked"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/recordIntentLocked/recordIntentLocked",
+          "parameters": [
+            "submissionRef",
+            "original",
+            "authorityScopeCid",
+            "currentAuthorization",
+            "phase",
+            "outcome",
+            "restartWire",
+            "requestId",
+            "control",
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/refuseEpoch/refuseEpoch",
+          "parameters": [
+            "validity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/restartDecision/restartDecision",
+          "parameters": [
+            "submissionRef",
+            "intentCid",
+            "unresolvedHistory",
+            "actorId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/retainedIntent/retainedIntent",
+          "parameters": [
+            "row",
+            "control",
+            "originalEpoch",
+            "expected",
+            "inserted"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal",
+          "parameters": [
+            "row",
+            "control",
+            "originalEpoch",
+            "previous",
+            "expected",
+            "inserted"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
+        "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "./client-request-journal-format.mjs",
         "./client-request-journal-records.mjs",
@@ -32057,10 +32155,21 @@
             "createJournalSubmissionOriginals/retainSubmissionOperation/retainSubmissionOperation/retainSubmissionOperation",
             "createJournalSubmissionOriginals/verifyEpoch/verifyEpoch",
             "createJournalSubmissionOriginals/verifyEpoch/verifyEpoch/verifyEpoch",
-            "createJournalSubmissionOriginals/verifyEpochLocked/verifyEpochLocked"
+            "createJournalSubmissionOriginals/verifyEpochLocked/verifyEpochLocked",
+            "createJournalSubmissionRows",
+            "createJournalSubmissionRows/checkSubmissionBinding/checkSubmissionBinding",
+            "createJournalSubmissionRows/recordIntentLocked/recordIntentLocked",
+            "createJournalSubmissionRows/refuseEpoch/refuseEpoch",
+            "createJournalSubmissionRows/restartDecision/restartDecision",
+            "createJournalSubmissionRows/retainedIntent/retainedIntent",
+            "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal",
+            "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
+            "createJournalSubmissionRows/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
+            "createJournalSubmissionRows/checkRestartLocked/checkRestartLocked"
           ],
           "exports": [
-            "createJournalSubmissionOriginals"
+            "createJournalSubmissionOriginals",
+            "createJournalSubmissionRows"
           ],
           "attributes": {
             "responsibility": [
@@ -32077,12 +32186,20 @@
               {
                 "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "const original = {captured: captured as WireSubmissionEpoch, handle};"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "export function createJournalSubmissionRows(database: JournalSqlConnection,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "operation.wire === row.epoch_wire ? originalEpoch : JSON.parse(row.epoch_wire as string);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "if (admitRef(link.submissionRef) !== row.original_submission_id ||"
               }
             ],
             "ownership": [
@@ -32125,6 +32242,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "const bytes = journalIntentWireBytes(wire, maxInspectionBytes, maxDatabaseBytes, primaryExecutionLimits);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "intentBytes > inspectionBytes - retained.bytes - restarts.bytes"
               }
             ],
             "extension": [
@@ -32149,6 +32270,14 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "unknown initial floor COMMIT never turns the operation memo into a durable ACK"
+              },
+              {
+                "path": "adapters/host-node/client-submission-usage.test.mjs",
+                "anchor": "failed original row mutation rolls back usage and issuance in the same native transaction"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "retained row identity is checked even when its wire is already admitted in this operation"
               }
             ]
           }
@@ -33479,7 +33608,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
@@ -34890,7 +35019,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
@@ -35694,7 +35823,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
@@ -37971,7 +38100,7 @@
                 "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
