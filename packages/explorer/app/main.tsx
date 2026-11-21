@@ -112,10 +112,11 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
     const inputNames = inputs?.map(input=>input.resource).join(', ');
     const inputDetail = inputNames ? `${ja ? '入力' : 'Input'} · ${inputNames}` : undefined;
     if (meaning.kind === 'join') {
-      const key = meaning.keys[0];
+      const key = meaning.keys.find(({left, right})=>!left.startsWith('aql_') && !right.startsWith('aql_'));
       const name = ja ? '結合' : 'Join';
       labels.set(step.stepId, {kind: ja ? 'データ結合' : 'Combine', title: key ?
-        `${name} · ${key.left} = ${key.right}` : name, inputs: inputDetail});
+        `${name} · ${key.left} = ${key.right}` :
+        meaning.keys.length ? (ja ? '確認済みのキーで結合' : 'Join on checked keys') : name, inputs: inputDetail});
     } else if (models?.length) {
       labels.set(step.stepId, {kind: 'Model', title: `${ja ? 'モデル' : 'Ask'} ${models.join(', ')}`,
         inputs: inputDetail});

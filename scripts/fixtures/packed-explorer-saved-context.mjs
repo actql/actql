@@ -205,8 +205,15 @@ try {
           return route?.length ? [{resource: input.resource, connector: input.connector,
             originalInputPort: input.port_id, route}] : [];
         })).find(routes=>new Set(routes.map(route=>route.resource)).size >= 2);
-        assert(visibleConvergence, 'Two declared inputs must reach the same visible Join by drawn original edges');
-        for (const {route} of visibleConvergence) for (const edge of route) {
+        // An original Stage input can bind a Join directly, without a
+        // projected producer Step. Do not require or draw a synthetic edge.
+        const shownDirectInputs = visibleInputs.filter(input=>visibleJoins.some(join=>join.id === input.step_id));
+        const drawnJoinEdges = visibleConvergence ? visibleConvergence.flatMap(origin=>origin.route) :
+          connections.filter(edge=>visibleJoins.some(join=>join.id === edge.targetStepId) &&
+            shownDirectInputs.some(input=>input.step_id === edge.sourceStepId || input.step_id === edge.targetStepId));
+        assert(visibleConvergence || shownDirectInputs.length > 0 && drawnJoinEdges.length > 0,
+          'Check two connected Source paths, or a direct original Join input beside a drawn Join dependency');
+        for (const edge of drawnJoinEdges) {
           const path = graph.getByTestId(`rf__edge-${edge.id}`).locator('.react-flow__edge-path');
           assert(await path.evaluate(path=>path.getTotalLength() > 0));
           const from = nodes.find(node=>node.id === edge.sourceStepId).ports.find(port=>port.port_id === edge.sourcePortId);
@@ -226,7 +233,8 @@ try {
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation']);
         receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
-          originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence};
+          originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence,
+          shownDirectInputs, drawnJoinEdges};
       } else {
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));

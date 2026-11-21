@@ -2026,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1f287e50a5075f62cba4230189d58ed553e0ab7153d7c19014d4aa971406e08e",
+      "sha256": "957d16b7aba5b7d9c97e19a316a74af0e1ba6b3c3bb40276f2aa5c6d8afb622c",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -4492,7 +4492,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "6659938745142fe8da1dea42ceb2e95d5787bd7d22b9c8aaf22ed9670eb46a18",
+      "sha256": "720b3760dcd191707909430d22cd510910a55a7337b5ec550dc60e0560889b7e",
       "exports": [],
       "operations": [
         {
@@ -4872,6 +4872,13 @@
         },
         {
           "name": "graphStepLabels/<call>#3",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#4",
           "parameters": [
             "input"
           ],
@@ -5273,7 +5280,8 @@
             "graphStepLabels/<call>",
             "graphStepLabels/<call>#2",
             "graphStepLabels/<call>#3",
-            "graphStepLabels/add"
+            "graphStepLabels/add",
+            "graphStepLabels/<call>#4"
           ],
           "exports": [],
           "attributes": {

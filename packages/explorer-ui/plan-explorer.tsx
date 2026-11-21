@@ -143,7 +143,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     <header className="actql-explorer-header">
       <div>{!workspace && <p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>}
         <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
-        <p>Data dependencies · layout does not indicate execution order.</p></div>
+        <p>{workspace && model.inputs.length > 0 ? 'Projected dependencies only · ' : 'Data dependencies · '}
+          layout does not indicate execution order.</p></div>
       <nav aria-label="Plan presentation">
         <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
         <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
