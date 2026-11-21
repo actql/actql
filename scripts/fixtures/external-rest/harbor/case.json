@@ -83,21 +83,11 @@
               "depth"
             ],
             "as": "selected"
-          },
-          {
-            "sort": [
-              {
-                "field": "slip_code",
-                "dir": "asc",
-                "nulls": "last"
-              }
-            ],
-            "as": "sorted"
           }
         ],
         "results": {
           "rows": {
-            "from": "sorted",
+            "from": "selected",
             "fields": [
               "slip_code",
               "depth"

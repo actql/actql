@@ -85,9 +85,12 @@ export async function captureStandardRestRead(client, {publicSdk, program, param
       input === undefined ? {available: false} : {available: true, input});
     const outcome = await settled;
     if (outcome.failed) {
-      const originalCheck = publicSdk.getSubmissionCheckObservation?.(outcome.cause);
-      if (originalCheck !== undefined) await save(outputRoot, 'original-submission-check.json', originalCheck);
-      throw outcome.cause;
+      try {
+        const originalCheck = publicSdk.getSubmissionCheckObservation?.(outcome.cause);
+        if (originalCheck !== undefined) await save(outputRoot, 'original-submission-check.json', originalCheck);
+      } finally {
+        throw outcome.cause;
+      }
     }
     assert.notEqual(input, undefined, 'OriginalStandardRestSubmissionInputUnavailable');
     const execution = outcome.value;
