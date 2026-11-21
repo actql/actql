@@ -1,4 +1,4 @@
-// Explicit ROWS frames, non-NULL concatenation and occurrence multiplicity.
+// Explicit ROWS and default frames, non-NULL concatenation and occurrence multiplicity.
 // Programs, values and complete contracts are authored independently.
 const number = {type: 'number', nullable: false};
 const string = {type: 'string', nullable: true};
@@ -55,20 +55,27 @@ export const analyticStringAggSuccesses = [
   success('typed-empty', sql, {sourceRows: [], expected: []}),
   success('all-null', sql, {sourceRows: [{id: 2, amount: null}, {id: 1, amount: null}],
     expected: [{id: 1, names: null}, {id: 2, names: null}]}),
+  {name: 'analytic-string-agg-default-frame', format: 'sql',
+    text: "SELECT STRING_AGG('b') OVER (ORDER BY id) AS names FROM records",
+    sourceRows, sourceReadSessionCount: 1,
+    results: {main: {columns: [{name: 'names', contract: string}], unordered: true, rows: [
+      {names: 'b'}, {names: 'b,b'}, {names: 'b,b,b'}, {names: 'b,b,b,b'},
+      {names: 'b,b,b,b,b'}, {names: 'b,b,b,b,b,b'},
+    ]}},
+  },
 ];
 export const analyticStringAggRefusals = [
-  `SELECT STRING_AGG(amount) OVER (${frame}) AS names FROM records`,
-  `SELECT STRING_AGG(DISTINCT 'b') OVER (${frame}) AS names FROM records`,
-  `SELECT STRING_AGG('b' WHERE id > 0) OVER (${frame}) AS names FROM records`,
-  `SELECT STRING_AGG('b' ORDER BY id) OVER (${frame}) AS names FROM records`,
-  "SELECT STRING_AGG('b') OVER (ORDER BY id) AS names FROM records",
-  `SELECT STRING_AGG(@missing) OVER (${frame}) AS names FROM records`,
-  `SELECT 'b' AS invented, STRING_AGG(invented) OVER (${frame}) AS names FROM records`,
-  `FROM records AS old |> AS current |> SELECT STRING_AGG(CAST(old.amount AS STRING)) OVER (${frame}) AS names`,
-].map((text, index) => ({name: 'analytic-string-agg-refuse-' + index, format: 'sql', text,
+  [0, `SELECT STRING_AGG(amount) OVER (${frame}) AS names FROM records`],
+  [1, `SELECT STRING_AGG(DISTINCT 'b') OVER (${frame}) AS names FROM records`],
+  [2, `SELECT STRING_AGG('b' WHERE id > 0) OVER (${frame}) AS names FROM records`],
+  [3, `SELECT STRING_AGG('b' ORDER BY id) OVER (${frame}) AS names FROM records`],
+  [5, `SELECT STRING_AGG(@missing) OVER (${frame}) AS names FROM records`],
+  [6, `SELECT 'b' AS invented, STRING_AGG(invented) OVER (${frame}) AS names FROM records`],
+  [7, `FROM records AS old |> AS current |> SELECT STRING_AGG(CAST(old.amount AS STRING)) OVER (${frame}) AS names`],
+].map(([index, text]) => ({name: 'analytic-string-agg-refuse-' + index, format: 'sql', text,
   // These sources fail in the already-pinned UnsupportedAnalytic branch.
   // Keep its public projection explicit rather than widening generic codes.
-  ...(index >= 1 && index <= 4 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
+  ...(index >= 1 && index <= 3 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 export const analyticStringAggExecutionFailures = [{
   name: 'analytic-string-agg-demanded-expression-error', format: 'sql',
   text: `SELECT STRING_AGG(IF(1 / 0 > 0, 'a', 'b')) OVER (${frame}) AS names FROM records`,
