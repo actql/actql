@@ -148,8 +148,18 @@ test('an already corrupt final holding remains refused without deletion or repai
   await store.close();
   const path = join(directory, 'physical-holdings', cid('atomic original holding').slice(7) + '.json');
   await fs.writeFile(path, Buffer.alloc(0), {flag: 'wx', mode: 0o600});
-  await assert.rejects(openLocalPublicationStore(configuration, createPublicationContractControlFixture()),
-    {code: 'InvalidPublicationPhysicalHoldingStore'});
-  assert.equal((await readFile(path)).length, 0);
+  const original = await fs.stat(path);
+  // Clean opening leaves immutable holdings to their selected read.
+  const reopened = await openLocalPublicationStore(configuration, createPublicationContractControlFixture());
+  try {
+    await assert.rejects(reopened.inspectPhysicalHolding(cid('atomic original holding')),
+      {code: 'InvalidPublicationPhysicalHoldingStore'});
+    assert.equal((await readFile(path)).length, 0);
+    const remaining = await fs.stat(path);
+    assert.equal(remaining.dev, original.dev);
+    assert.equal(remaining.ino, original.ino);
+  } finally {
+    assert.equal(await reopened.close(), true);
+  }
   scratch.passed();
 });
