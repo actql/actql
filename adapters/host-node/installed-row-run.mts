@@ -13,7 +13,7 @@ type RowRunOptions = Readonly<{
   capacity?: Readonly<{transferBytes: bigint; executionBytes: bigint;
     listingReport?: unknown; provider?: unknown; transferUnitBytes?: bigint}>;
   keyed?: boolean; originalRead?: unknown; originalKeyedRead?: unknown; wholeInput?: boolean;
-  responseBackingReleased?: () => unknown;
+  responseBackingReleased?: () => boolean;
 }>;
 type ReadAuthority = Readonly<{currentRead: () => unknown; signal?: AbortSignal}>;
 type ProviderRead = Readonly<{
@@ -32,8 +32,14 @@ type CompleteOptions = ReadAuthority & Readonly<{
   retainedRelationOutput?: boolean; captureOnly?: boolean;
 }>;
 type EvidenceScope = Readonly<{authorityScopeCid: string; effectiveDataPolicyCid: string}>;
-type Recovery = Readonly<{cleanup(): unknown; cleanupPending(): unknown}>;
-type CloseState = {closeFailed?: boolean; recovery?: Recovery};
+type TransportRecovery = Readonly<{
+  cleanup(): boolean | void | Promise<boolean | void>;
+  cleanupPending(): boolean;
+}>;
+type RowRunRecovery = Readonly<{
+  close(): void; cleanup(): Promise<boolean>; cleanupPending(): boolean;
+}>;
+type CloseState = {closeFailed?: boolean; recovery?: RowRunRecovery};
 
 const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 
@@ -106,7 +112,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   }
   const settled = new Set<unknown>();
   let transportStopped = false;
-  let transportRecovery: Recovery | undefined;
+  let transportRecovery: TransportRecovery | undefined;
   // Ordinary provider transfer is funded per native request through the SAME
   // response borrow below. Other profiles retain their explicit envelope.
   const run = checked(wholeInput
@@ -567,7 +573,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     return true;
   }
 
-  function closeAfterFailure(state: CloseState, recovery?: Recovery) {
+  function closeAfterFailure(state: CloseState, recovery?: TransportRecovery) {
     if (keyed) transportRecovery = recovery;
     else if (recovery !== undefined && transportRecovery === undefined) {
       // The same RowRun owns the recovery and its Core retirement. Retain the

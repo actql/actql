@@ -12665,7 +12665,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-row-run.mts",
-                "anchor": "function closeAfterFailure(state: CloseState, recovery?: Recovery) {"
+                "anchor": "function closeAfterFailure(state: CloseState, recovery?: TransportRecovery) {"
               }
             ],
             "resources": [
