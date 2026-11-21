@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "91f4dc684930105bc8e59a81174cb3b0e6f516515b061e804c51f998820a95e0",
+      "sha256": "85d3c41597d5abffdb0eb964d1ca0fa7b199436e3644ce85dea0cbda46c38661",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6326,37 +6326,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
-          "parameters": [
-            "supplied"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
-          "parameters": [
-            "contract",
-            "value",
-            "sequence"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendRecord/appendRecord",
-          "parameters": [
-            "suppliedWire",
-            "options"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
           "parameters": [],
           "async": false
@@ -6424,89 +6393,6 @@
         {
           "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
-          "parameters": [
-            "supplied",
-            "attemptOriginal",
-            "initialRecords"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
-          "parameters": [
-            "contract",
-            "value",
-            "sequence"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
-          "parameters": [
-            "supplied",
-            "attemptOriginal",
-            "records"
-          ],
           "async": false
         },
         {
@@ -6847,13 +6733,6 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createAttempt/createAttempt",
-          "parameters": [
-            "suppliedWire"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
@@ -7218,56 +7097,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/latestRecord/latestRecord",
-          "parameters": [
-            "attemptCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract",
-          "parameters": [
-            "attemptCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/latestRecordContract",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
           "parameters": [
             "query"
@@ -7435,6 +7264,13 @@
           "name": "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
           "parameters": [
             "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
+          "parameters": [
+            "cid"
           ],
           "async": false
         },
@@ -8252,25 +8088,10 @@
             "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
-            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
-            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
-            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
-            "openOriginalLocalPublicationStore/appendRecord/appendRecord",
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
-            "openOriginalLocalPublicationStore/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
@@ -8310,7 +8131,6 @@
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
-            "openOriginalLocalPublicationStore/createAttempt/createAttempt",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
@@ -8353,13 +8173,6 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
             "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/latestRecord/latestRecord",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/latestRecordContract",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
@@ -8372,6 +8185,7 @@
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
+            "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
             "openOriginalLocalPublicationStore/putBytes/putBytes",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
@@ -12027,6 +11841,313 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-progress.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8bb3a2fd4be8cdda78c7c837b2b1050745ee7785e883ed40fb37d6ee25a45b72",
+      "exports": [
+        "createPublicationProgress"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationProgress",
+          "parameters": [
+            "configuration",
+            "attemptsDirectory",
+            "recordNamePattern",
+            "contractControl",
+            "admitContract",
+            "parseContract",
+            "admitPublicationContracts",
+            "putAdmittedPublicationContract",
+            "putAdmittedPublicationContracts",
+            "putNativePublicationContracts",
+            "active",
+            "currentDeliveryIndex",
+            "runMetadataDeletionStarted",
+            "publicationAttemptPath",
+            "contractPath",
+            "syncDirectory",
+            "nativePublicationContract",
+            "readContract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords",
+          "parameters": [
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
+          "parameters": [
+            "contract",
+            "value",
+            "sequence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/appendRecord/appendRecord",
+          "parameters": [
+            "suppliedWire",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt",
+          "parameters": [
+            "supplied",
+            "attemptOriginal",
+            "initialRecords"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
+          "parameters": [
+            "contract",
+            "value",
+            "sequence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
+          "parameters": [
+            "supplied",
+            "attemptOriginal",
+            "records"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/createAttempt/createAttempt",
+          "parameters": [
+            "suppliedWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/latestRecord/latestRecord",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract/latestRecordContract",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract/names/names",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#4",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationProgress",
+            "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "createPublicationProgress/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
+            "createPublicationProgress/appendRecord/appendRecord",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
+            "createPublicationProgress/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+            "createPublicationProgress/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
+            "createPublicationProgress/createAttempt/createAttempt",
+            "createPublicationProgress/latestRecord/latestRecord",
+            "createPublicationProgress/latestRecordContract/latestRecordContract",
+            "createPublicationProgress/latestRecordContract/latestRecordContract/latestRecordContract",
+            "createPublicationProgress/latestRecordContract/latestRecordContract/names/names",
+            "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#2",
+            "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#3",
+            "createPublicationProgress/latestRecordContract/latestRecordContract/names/names#4"
+          ],
+          "exports": [
+            "createPublicationProgress"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "contract.identity === attemptOriginal.identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "await appendInitialPublicationRecords(initialRecords);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "await syncDirectory(attemptsDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "Object.defineProperty(error,'publicationStartKind',{value:'setup'});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "if (await runMetadataDeletionStarted(attempt.run_definition_cid))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "if (combined.length > configuration.maxObjects)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-progress.mts",
+                "anchor": "Independently adopted file attempts keep their original file progress."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start retains setup and initial progress in one transaction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication records are append-only and sequence creation is CAS"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-contract-store.mjs",

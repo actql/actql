@@ -4,7 +4,7 @@ import type {createPublicationSemanticReader, SemanticContract} from './publicat
 import type {validateConfiguration} from './publication-store-inputs.mjs';
 import {cidPattern, exactKeys, fail, PublicationStoreError} from './publication-store-io.mjs';
 
-type PublicationContract = SemanticContract & Readonly<{identityField: string}>;
+export type PublicationContract = SemanticContract & Readonly<{identityField: string}>;
 type ContractLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
 type ContractControl<Contract> = Readonly<{
   admit(name: string, wire: string, limits: ContractLimits): Contract;
@@ -18,7 +18,10 @@ type NativeStoreResult<Contract> = Admitted<Contract> & Readonly<{
 }>;
 type NativePublicationUsage = Readonly<{bytes: number; objects: number; progressCreated?: boolean}>;
 type StoredFileContract = Readonly<{
-  semanticCid: string; physical: Readonly<{cid: string; bytes: number; created: boolean}>; created: boolean;
+  semanticCid: string;
+  physical: Readonly<{cid: string; bytes: number; created: boolean}>;
+  created: boolean;
+  progressCreated?: never;
 }>;
 type Reservation = Readonly<{release(): unknown}>;
 type Cleanup = NonNullable<ActivePhysicalRecordWriter['cleanup']>;

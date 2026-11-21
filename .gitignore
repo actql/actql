@@ -1541,3 +1541,5 @@ target/
 /adapters/store-local/publication-contract-store.d.mts
 /adapters/store-local/publication-contract-node-bound.test.mjs
 /adapters/store-local/publication-contract-node-bound.test.d.mts
+/adapters/store-local/publication-progress.mjs
+/adapters/store-local/publication-progress.d.mts
