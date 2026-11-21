@@ -2984,7 +2984,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/managed-representations.mjs",
+                "path": "adapters/store-local/managed-representations.mts",
                 "anchor": "managedInputCodecContractCid"
               },
               {

@@ -4,7 +4,7 @@
 // logical CID; the common Host supplies authorization and ledger accounting.
 import {managedInputTransferEstimate, registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
-import type {ManagedTransferEstimate} from './managed-memory-representations.mjs';
+import type {ManagedTransferEstimate, SynchronousMemoryAction} from './managed-memory-representations.mjs';
 import {Buffer} from 'node:buffer';
 
 type TransferOptions = Readonly<{
@@ -12,7 +12,7 @@ type TransferOptions = Readonly<{
   input?: unknown;
   authorize?: (input: unknown) => boolean;
   destinationAuthorize?: (input: unknown) => boolean;
-  charge?: (bytes: bigint) => unknown;
+  charge?: (bytes: bigint) => ReturnType<SynchronousMemoryAction>;
   signal?: AbortSignal;
   estimate?: ManagedTransferEstimate;
 }>;

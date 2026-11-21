@@ -1169,3 +1169,5 @@ target/
 /adapters/store-local/managed-memory-transfer.d.mts
 /adapters/store-local/managed-memory-transfer.test.mjs
 /adapters/store-local/managed-memory-transfer.test.d.mts
+/adapters/store-local/managed-representations.mjs
+/adapters/store-local/managed-representations.d.mts

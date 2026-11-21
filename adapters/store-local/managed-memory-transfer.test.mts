@@ -5,11 +5,19 @@ import {createManagedMemoryTransferProvider} from
   './managed-memory-transfer.mjs';
 import {registerManagedMemoryInput, withManagedInputRows} from
   './managed-memory-representations.mjs';
+import type {installManagedRepresentation} from './managed-memory-representations.mjs';
 
 type Provider = ReturnType<typeof createManagedMemoryTransferProvider>;
 type Destination = Awaited<ReturnType<Provider['copy']>>;
 type CopyOptions = NonNullable<Parameters<Provider['copy']>[0]>;
 type Copy = {copy(options: CopyOptions): Promise<Destination>};
+type MemoryPin = Extract<Parameters<typeof installManagedRepresentation>[1], {memory: true}>;
+type Reject<Actual, Port> = Actual extends Port ? false : true;
+type Assert<Condition extends true> = Condition;
+type _RejectAsyncAcquire = Assert<Reject<() => Promise<void>, MemoryPin['acquire']>>;
+type _RejectAsyncReleaseUse = Assert<Reject<() => Promise<void>, MemoryPin['releaseUse']>>;
+type _RejectAsyncRelease = Assert<Reject<() => Promise<void>, Parameters<typeof registerManagedMemoryInput>[4]>>;
+type _RejectAsyncCharge = Assert<Reject<(bytes: bigint) => PromiseLike<void>, NonNullable<CopyOptions['charge']>>>;
 
 function source(rows: readonly string[], estimate: Parameters<typeof registerManagedMemoryInput>[5]) {
   const material = {};

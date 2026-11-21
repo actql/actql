@@ -16,7 +16,14 @@ type Occurrence = Readonly<{material: object; input: unknown; codecContractCid?:
 type RowUse = <Value, Committed>(occurrences: readonly Occurrence[], authorize: RowAuthorization,
   append: AppendRow, use: () => Value, signal?: AbortSignal, beforeRead?: BeforeRead,
   commit?: (provisional: Awaited<Value>) => Committed) => Promise<Awaited<Value> | Awaited<Committed>>;
-type UsePin = Readonly<{acquire(): void; releaseUse(): void; sourceAvailable(): boolean; available(): boolean}>;
+// These operations finish before their caller advances. The scalar return is discarded.
+export type SynchronousMemoryAction = () => void | boolean | number;
+type UsePin = Readonly<{
+  acquire: SynchronousMemoryAction;
+  releaseUse: SynchronousMemoryAction;
+  sourceAvailable(): boolean;
+  available(): boolean;
+}>;
 type Representation = Readonly<{
   readable: Readable;
   codecContractCid?: string;
@@ -33,8 +40,8 @@ type RowPlan = Readonly<{
   owners: readonly Representation[];
   groups: readonly RowGroup[];
 }>;
-type CleanupHandle = Readonly<{status(): unknown; retry(): unknown}>;
-type ManagedInputFailure = Error & {
+export type CleanupHandle = Readonly<{status(): unknown; retry(): unknown}>;
+export type ManagedInputFailure = Error & {
   code: string;
   primaryFailure: unknown;
   cleanupPending: boolean;
@@ -201,12 +208,12 @@ export function managedRepresentation(material: object) {
   return representations.get(material);
 }
 
-export function installManagedRepresentation(material: object, representation: Representation) {
+export function installManagedRepresentation<Installed extends Representation>(material: object, representation: Installed) {
   if (!material || typeof material !== 'object' ||
       representations.has(material)) {
     throw issue('InvalidManagedInputRegistration');
   }
-  representations.set(material, Object.freeze(representation));
+  representations.set(material, Object.freeze(representation) as Representation);
 }
 
 export function managedInputCodecContractCid(material: object) {
@@ -287,7 +294,7 @@ export function planManagedInputRows(materials: readonly object[]): RowPlan | un
 // use count and never turns the opaque material into a portable handle.
 export function registerManagedMemoryInput(
   material: object, readable: Readable, available: () => boolean,
-  rowProvider: RowProvider, release: () => void, transferEstimate?: ManagedTransferEstimate,
+  rowProvider: RowProvider, release: SynchronousMemoryAction, transferEstimate?: ManagedTransferEstimate,
 ) {
   const estimateValid = transferEstimate === undefined ||
     (transferEstimate !== null && typeof transferEstimate === 'object' &&

@@ -6,26 +6,50 @@ import {withVerifiedDelegatedFile} from './direct-file.mjs';
 import {admittedPhysicalManifestSnapshot} from './managed-manifest.mjs';
 import {installManagedRepresentation, managedRepresentation} from
   './managed-memory-representations.mjs';
+import type {LocalRetainedStore} from './files.mjs';
+import type {CleanupHandle, ManagedInputFailure, ManagedTransferEstimate,
+  registerManagedMemoryInput, withManagedInputRows} from './managed-memory-representations.mjs';
+
+type FileBody = Awaited<ReturnType<ReturnType<LocalRetainedStore['reserve']>['sealPhysical']>>;
+type FileBorrow = ReturnType<FileBody['delegateRead']>;
+type ReadFile = Parameters<Parameters<typeof withVerifiedDelegatedFile>[1]>[0];
+type RowUse = Parameters<typeof withManagedInputRows>;
+type RowProvider = Parameters<typeof registerManagedMemoryInput>[3];
+type FileRepresentation = Readonly<{
+  readable: (input: unknown) => boolean;
+  store: LocalRetainedStore;
+  body: FileBody;
+  codecContractCid: string;
+  physicalManifest: NonNullable<ReturnType<typeof admittedPhysicalManifestSnapshot>>;
+  rowProvider?: RowProvider;
+}>;
+type InputFileEntry = {
+  held: FileRepresentation;
+  indices: number[];
+  borrow: FileBorrow | undefined;
+  file: ReadFile | undefined;
+};
+
 export {managedInputCodecContractCid, managedInputPhysicalManifestCid,
   managedInputSupportsRows, managedInputTransferEstimate,
   planManagedInputRows,
   registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
-const issue = code => Object.assign(new Error(code), {code});
-const member = (value, name) => {
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
+const issue = (code: string) => Object.assign(new Error(code), {code});
+const member = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
-const cleanupState = handle => {
+const cleanupState = (handle: unknown) => {
   if (!handle || typeof member(handle, 'status') !== 'function') {
     return Object.freeze({pending: true, errors: Object.freeze([])});
   }
   try {
-    const state = handle.status();
+    const state = (handle as CleanupHandle).status() as {pending?: unknown; errors?: unknown} | undefined;
     if (!state || typeof state.pending !== 'boolean') {
       return Object.freeze({pending: true, errors: Object.freeze([])});
     }
@@ -42,7 +66,7 @@ const cleanupState = handle => {
 // unconfirmed native cleanup. Ordinary failures have already stopped using the
 // file and release synchronously. The returned failure is Host-owned and never
 // requires the original throwable to be mutable or even be an Error.
-function retainBorrowsUntilStopped(reason, borrows) {
+function retainBorrowsUntilStopped(reason: unknown, borrows: readonly (FileBorrow | undefined)[]) {
   const native = member(reason, 'cleanupHandle');
   if (member(reason, 'cleanupPending') !== true) return undefined;
   let released = false;
@@ -65,7 +89,7 @@ function retainBorrowsUntilStopped(reason, borrows) {
     });
   };
   const failure = issue(typeof member(reason, 'code') === 'string'
-    ? member(reason, 'code') : 'ManagedInputUseFailed');
+    ? member(reason, 'code') as string : 'ManagedInputUseFailed') as ManagedInputFailure;
   failure.cause = reason;
   failure.primaryFailure = reason;
   failure.cleanupPending = true;
@@ -75,7 +99,7 @@ function retainBorrowsUntilStopped(reason, borrows) {
     async retry() {
       if (released) return status();
       if (typeof member(native, 'retry') !== 'function') return status();
-      try { await native.retry(); }
+      try { await (native as CleanupHandle).retry(); }
       catch (error) {
         failure.cleanupErrors = Object.freeze([
           ...failure.cleanupErrors, error,
@@ -90,8 +114,8 @@ function retainBorrowsUntilStopped(reason, borrows) {
 }
 
 export function registerManagedInput(
-  material, readable, store, body, codecContractCid, physicalManifest,
-  rowProvider, transferEstimate,
+  material: object, readable: FileRepresentation['readable'], store: LocalRetainedStore, body: FileBody,
+  codecContractCid: string, physicalManifest: unknown, rowProvider?: RowProvider, transferEstimate?: ManagedTransferEstimate,
 ) {
   const estimateValid = transferEstimate === undefined ||
     (transferEstimate !== null && typeof transferEstimate === 'object' &&
@@ -137,14 +161,16 @@ export function registerManagedInput(
 // authorize and beforeRead belong to installed Host use/resource admission,
 // never Program options. Availability is not permission or a budget waiver.
 // use must await all local/native accesses before settling, even on failure.
-export async function withManagedInputFile(material, input, codecContractCid, authorize, use, signal, beforeRead) {
+export async function withManagedInputFile<Value>(material: object, input: unknown, codecContractCid: string,
+  authorize: (input: unknown) => boolean, use: (file: ReadFile) => Value, signal?: AbortSignal,
+  beforeRead?: (bytes: number) => unknown) {
   if (typeof authorize !== 'function' || typeof use !== 'function' ||
       (beforeRead !== undefined && typeof beforeRead !== 'function')) {
     throw issue('InvalidManagedInputUse');
   }
   const admit = () => {
     signal?.throwIfAborted();
-    const held = managedRepresentation(material);
+    const held = managedRepresentation(material) as FileRepresentation | undefined;
     if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
         !held.body.available() || !held.readable(input)) throw issue('ManagedInputUnavailable');
     if (!cid(codecContractCid) || held.codecContractCid !== codecContractCid) throw issue('UnsupportedManagedCodec');
@@ -173,7 +199,7 @@ export async function withManagedInputFile(material, input, codecContractCid, au
     borrow.confirmStopped();
     return result.value;
   } catch (error) {
-    if (['RetainedBodyChanged', 'RetainedBodyTruncated', 'ForeignStoreFile', 'ENOENT'].includes(error?.code)) held.body.close();
+    if (['RetainedBodyChanged', 'RetainedBodyTruncated', 'ForeignStoreFile', 'ENOENT'].includes((error as {code?: unknown} | null | undefined)?.code as string)) held.body.close();
     const retained = retainBorrowsUntilStopped(error, [borrow]);
     if (!retained) borrow.confirmStopped();
     throw retained ?? error;
@@ -183,8 +209,21 @@ export async function withManagedInputFile(material, input, codecContractCid, au
 // Logical input occurrences retain their independent authorization and view
 // checks. Exact duplicate physical bodies share one Store borrow and one
 // integrity pass while the callback receives one file occurrence per port.
-export async function withManagedInputFiles(
-  occurrences, authorize, use, signal, beforeRead, commit,
+export function withManagedInputFiles<Value, Committed>(
+  occurrences: RowUse[0], authorize: RowUse[1], use: (files: ReadFile[]) => Value | PromiseLike<Value>,
+  signal: AbortSignal | undefined, beforeRead: RowUse[5], commit: (value: Awaited<Value>) => Committed,
+): Promise<Awaited<Committed>>;
+export function withManagedInputFiles<Value>(
+  occurrences: RowUse[0], authorize: RowUse[1], use: (files: ReadFile[]) => Value | PromiseLike<Value>,
+  signal?: AbortSignal, beforeRead?: RowUse[5], commit?: undefined,
+): Promise<Awaited<Value>>;
+export function withManagedInputFiles<Value, Committed>(
+  occurrences: RowUse[0], authorize: RowUse[1], use: (files: ReadFile[]) => Value | PromiseLike<Value>,
+  signal?: AbortSignal, beforeRead?: RowUse[5], commit?: (value: Awaited<Value>) => Committed,
+): Promise<Awaited<Value> | Awaited<Committed>>;
+export async function withManagedInputFiles<Value, Committed>(
+  occurrences: RowUse[0], authorize: RowUse[1], use: (files: ReadFile[]) => Value | PromiseLike<Value>,
+  signal?: AbortSignal, beforeRead?: RowUse[5], commit?: (value: Awaited<Value>) => Committed,
 ) {
   if (!Array.isArray(occurrences) || occurrences.length === 0 ||
       typeof authorize !== 'function' || typeof use !== 'function' ||
@@ -192,14 +231,14 @@ export async function withManagedInputFiles(
       (commit !== undefined && typeof commit !== 'function')) {
     throw issue('InvalidManagedInputUse');
   }
-  const admit = index => {
+  const admit = (index: number) => {
     signal?.throwIfAborted();
     const occurrence = occurrences[index];
     if (!occurrence || typeof occurrence !== 'object') {
       throw issue('InvalidManagedInputUse');
     }
     const {material, input, codecContractCid} = occurrence;
-    const held = managedRepresentation(material);
+    const held = managedRepresentation(material) as FileRepresentation | undefined;
     if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
         !held.body.available() || !held.readable(input)) {
       throw issue('ManagedInputUnavailable');
@@ -218,8 +257,8 @@ export async function withManagedInputFiles(
     return held;
   };
   const held = occurrences.map((_, index) => admit(index));
-  const unique = [];
-  const byBody = new Map();
+  const unique: InputFileEntry[] = [];
+  const byBody = new Map<FileBody, InputFileEntry>();
   for (let index = 0; index < held.length; index++) {
     let entry = byBody.get(held[index].body);
     if (!entry) {
@@ -238,16 +277,16 @@ export async function withManagedInputFiles(
     }
     for (let index = 0; index < occurrences.length; index++) admit(index);
   };
-  async function verify(index) {
+  async function verify(index: number): Promise<Awaited<Value>> {
     if (index === unique.length) {
       live();
-      return use(held.map(value => byBody.get(value.body).file));
+      return use(held.map(value => byBody.get(value.body)!.file!)) as Awaited<Value>;
     }
     const entry = unique[index];
     let result;
     try {
       result = await withVerifiedDelegatedFile(
-        entry.borrow.descriptor,
+        entry.borrow!.descriptor,
         async file => {
           live();
           entry.file = file;
@@ -264,12 +303,12 @@ export async function withManagedInputFiles(
       );
     } catch (error) {
       if (['RetainedBodyChanged', 'RetainedBodyTruncated',
-        'ForeignStoreFile', 'ENOENT'].includes(error?.code)) {
+        'ForeignStoreFile', 'ENOENT'].includes((error as {code?: unknown} | null | undefined)?.code as string)) {
         entry.held.body.close();
       }
       throw error;
     }
-    entry.borrow.verify(result.report);
+    entry.borrow!.verify(result.report);
     live();
     return result.value;
   }
@@ -301,13 +340,14 @@ export async function withManagedInputFiles(
 // File providers retain exact generations through withManagedInputFiles. This
 // grouped operation is installed in the portable registry; portable consumers
 // do not import this Node implementation merely to use a memory generation.
-async function withManagedFileInputRows(
-  occurrences, authorize, append, use, signal, beforeRead, commit,
-) {
+async function withManagedFileInputRows<Value, Committed>(
+  occurrences: RowUse[0], authorize: RowUse[1], append: RowUse[2], use: () => Value,
+  signal?: AbortSignal, beforeRead?: RowUse[5], commit?: (value: Awaited<Value>) => Committed,
+): Promise<Awaited<Value> | Awaited<Committed>> {
   const providers = occurrences.map(occurrence =>
     managedRepresentation(occurrence?.material)?.rowProvider);
   const held = occurrences.map(occurrence =>
-    managedRepresentation(occurrence.material));
+    managedRepresentation(occurrence.material) as FileRepresentation);
   // The installed representation provider owns the codec needed to decode its
   // exact physical generation. A representation-neutral row consumer must not
   // know, or be able to relabel, that codec. Direct file consumers still pass
@@ -318,13 +358,13 @@ async function withManagedFileInputRows(
       input: occurrence.input,
       codecContractCid: held[index].codecContractCid,
     }));
-  return withManagedInputFiles(
+  return withManagedInputFiles<Value, Committed>(
     physicalOccurrences,
     authorize,
     async files => {
       for (let index = 0; index < files.length; index++) {
         signal?.throwIfAborted();
-        await providers[index].read(
+        await providers[index]!.read(
           files[index],
           row => append(index, row),
           signal,
