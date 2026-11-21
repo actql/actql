@@ -175,13 +175,45 @@ export function assessOrdinaryNativeApprovalSmoke(scenarios) {
     status: failures.length ? 'failed' : 'passed', failures, formalAcceptance: false};
 }
 
+function assessSharedFileNativeApproval({scenarios, harnessPhases}) {
+  const failures = [];
+  const scenario = Array.isArray(scenarios) && scenarios.length === 1 ? scenarios[0] : undefined;
+  const resultRows = scenario?.resultRows ?? null;
+  if (!scenario || scenario.template !== undefined || scenario.lockPathAbsent !== true || resultRows !== 1) {
+    failures.push('One complete shared-file Mock scenario required');
+  }
+  const approvals = Array.isArray(scenario?.commands) ? scenario.commands.filter(command =>
+    Array.isArray(command?.args) && command.args.includes('approve')) : [];
+  const approval = approvals.length === 1 ? approvals[0] : undefined;
+  if (!approval || approval.code !== 0 || approval.signal !== null || approval.killed === true) {
+    failures.push('One successful shared-file approval required');
+  }
+  const approvalWallNs = Number.isSafeInteger(approval?.wallNs) && approval.wallNs > 0 ? approval.wallNs : null;
+  if (approvalWallNs === null) failures.push('Original shared-file approval timing unavailable');
+  const writeCount = Array.isArray(approval?.acceptance?.writes) ? approval.acceptance.writes.length : null;
+  if (writeCount !== 3) failures.push('Three original shared-file write observations required');
+  for (const phase of ['shared-file-scenario', 'installed-integrity', 'registry-close']) {
+    const matches = Array.isArray(harnessPhases) ? harnessPhases.filter(row => row?.phase === phase) : [];
+    if (matches.length !== 1 || matches[0].state !== 'completed') {
+      failures.push(`One completed ${phase} observation required`);
+    }
+  }
+  return {status: failures.length ? 'failed' : 'passed', approvalWallNs, writeCount, resultRows,
+    failures, formalAcceptance: false};
+}
+
 // The caller has already closed its children and registry. Persist the original
 // observations before a slow smoke fails, and acknowledge scratch only on pass.
 export async function publishNativeApprovalReceipt({receipt, receiptFile, measureResources,
-  scratch, writeFile = writeReceiptFile, log = console.log}) {
-  if (!measureResources) receipt.approvalSmoke = assessOrdinaryNativeApprovalSmoke(receipt.scenarios);
+  sharedFileMock = false, scratch, writeFile = writeReceiptFile, log = console.log}) {
+  assert.equal(receipt.scope === 'local-shared-file-mock-approval-recovery', sharedFileMock,
+    'Shared-file Mock receipt requires its own mode');
+  assert(!sharedFileMock || !measureResources, 'Shared-file Mock receipt requires its own mode');
+  if (sharedFileMock) receipt.sharedFileApproval = assessSharedFileNativeApproval(receipt);
+  else if (!measureResources) receipt.approvalSmoke = assessOrdinaryNativeApprovalSmoke(receipt.scenarios);
   await writeFile(receiptFile, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
-  if (!measureResources) assert.equal(receipt.approvalSmoke.status, 'passed', receipt.approvalSmoke.failures.join('; '));
+  const assessment = sharedFileMock ? receipt.sharedFileApproval : receipt.approvalSmoke;
+  if (!measureResources) assert.equal(assessment.status, 'passed', assessment.failures.join('; '));
   scratch.passed();
   scratch.close();
   log(`Installed Native mock approval/recovery passed: ${receiptFile}`);

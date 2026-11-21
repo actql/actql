@@ -288,7 +288,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
   // Successful evidence is published only after every child has exited and the
   // private registry has confirmed closure. Cleanup failure is not acceptance.
   const receiptFile = join(directory, `${diagnoseSyscalls ? 'mock-syscalls' : 'mock-install'}-${platform}-${Date.now()}.json`);
-  await publishNativeApprovalReceipt({receipt, receiptFile, measureResources, scratch});
+  await publishNativeApprovalReceipt({receipt, receiptFile, measureResources, sharedFileMock, scratch});
 
   return receiptFile;
 }

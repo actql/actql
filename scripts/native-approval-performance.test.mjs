@@ -145,10 +145,10 @@ function smokeScenarios(wallNs = nativeApprovalTarget.maxMs * 1e6) {
       code: 0, signal: null, wallNs}]}));
 }
 
-async function installedSmokeTail(scenarios, measureResources = false, writeFailure) {
-  const receipt = {scenarios}, events = [];
+async function installedReceiptTail(receipt, {measureResources = false, sharedFileMock = false, writeFailure} = {}) {
+  const events = [];
   const pending = performance.publishNativeApprovalReceipt({receipt,
-    receiptFile: '/original-release/mock-install-linux-x64-gnu-1.json', measureResources,
+    receiptFile: '/original-release/mock-install-linux-x64-gnu-1.json', measureResources, sharedFileMock,
     writeFile: async (path, bytes, options) => {
       if (writeFailure) throw writeFailure;
       events.push({kind: 'receipt', path, value: JSON.parse(bytes), options});
@@ -158,6 +158,60 @@ async function installedSmokeTail(scenarios, measureResources = false, writeFail
   });
   return {receipt, events, pending};
 }
+
+function installedSmokeTail(scenarios, measureResources = false, writeFailure) {
+  return installedReceiptTail({scenarios}, {measureResources, writeFailure});
+}
+
+function sharedFileReceipt() {
+  return {scope: 'local-shared-file-mock-approval-recovery', harnessPhases: [
+    {phase: 'shared-file-scenario', state: 'completed'},
+    {phase: 'installed-integrity', state: 'completed'},
+    {phase: 'registry-close', state: 'completed'},
+  ], scenarios: [{lockPathAbsent: true, resultRows: 1, commands: [
+    {args: ['approve', 'original-checkpoint', '--wait', '--json'],
+      code: 0, signal: null, wallNs: 17, acceptance: {writes: [{}, {}, {}]}},
+  ]}]};
+}
+
+test('explicit shared-file receipt reports its one approved scenario and closes the original scratch', async () => {
+  const receipt = sharedFileReceipt();
+  const original = structuredClone(receipt);
+  const {events, pending} = await installedReceiptTail(receipt, {sharedFileMock: true});
+  await pending;
+  assert.deepEqual(events.map(event => event.kind), ['receipt', 'passed', 'closed', 'console']);
+  assert.deepEqual(events[0].value, {...original, sharedFileApproval: {
+    status: 'passed', approvalWallNs: 17, writeCount: 3, resultRows: 1,
+    failures: [], formalAcceptance: false,
+  }});
+  assert.equal(events[0].options.flag, 'wx');
+});
+
+test('shared-file receipt requires explicit mode and preserves failures before scratch close', async () => {
+  const implicit = await installedReceiptTail(sharedFileReceipt());
+  await assert.rejects(implicit.pending, /Shared-file Mock receipt requires its own mode/u);
+  assert.deepEqual(implicit.events, []);
+
+  const measured = await installedReceiptTail(sharedFileReceipt(), {sharedFileMock: true, measureResources: true});
+  await assert.rejects(measured.pending, /Shared-file Mock receipt requires its own mode/u);
+  assert.deepEqual(measured.events, []);
+
+  for (const change of [
+    receipt => {receipt.scenarios[0].template = 'deal-review-mock';},
+    receipt => {receipt.scenarios[0].lockPathAbsent = false;},
+    receipt => {receipt.scenarios[0].commands[0].code = 1;},
+    receipt => {receipt.scenarios[0].commands[0].acceptance.writes.pop();},
+    receipt => {receipt.harnessPhases.pop();},
+  ]) {
+    const receipt = sharedFileReceipt();
+    change(receipt);
+    const failed = await installedReceiptTail(receipt, {sharedFileMock: true});
+    await assert.rejects(failed.pending);
+    assert.deepEqual(failed.events.map(event => event.kind), ['receipt']);
+    assert.equal(failed.events[0].value.sharedFileApproval.status, 'failed');
+    assert.deepEqual(failed.events[0].value.scenarios, receipt.scenarios);
+  }
+});
 
 test('ordinary Native smoke persists the original slow approvals before rejecting and never marks them passed', async () => {
   const original = smokeScenarios(nativeApprovalTarget.maxMs * 1e6 + 1);
