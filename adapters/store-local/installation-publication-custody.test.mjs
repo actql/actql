@@ -116,9 +116,15 @@ test('installation holding admits only its exact purpose, not prefixes or arbitr
 
 test('unknown installation commit retains the same preparation until original durability confirms', async t => {
   let refuse = false;
-  const fault = Object.assign(new Error('OriginalInstallationHoldingDirectoryAckLost'), {code: 'EIO'});
+  const faults = [];
   const f = await fixture(t, {async syncDirectory(path) {
-    if (refuse && path === join(f.configuration.directory, 'physical-holdings')) throw fault;
+    if (refuse && path === join(f.configuration.directory, 'physical-holdings')) {
+      // Each original syscall refusal has its own error. Reusing a mutable
+      // error would carry the prior call's holding cleanup into the next ACK.
+      const fault = Object.assign(new Error('OriginalInstallationHoldingDirectoryAckLost'), {code: 'EIO'});
+      faults.push(fault);
+      throw fault;
+    }
     const fd = await open(path, 'r');
     try { await fd.sync(); } finally { await fd.close(); }
   }});
@@ -132,13 +138,22 @@ test('unknown installation commit retains the same preparation until original du
     commitPhysicalHolding: (...args) => f.store.commitPhysicalHolding(...args),
   }, binding);
   refuse = true;
-  await assert.rejects(owner.commit(), error => error.cleanupHandle === owner);
+  await assert.rejects(owner.commit(), error => {
+    assert.equal(error, faults[0]);
+    assert.equal(error.reconciliationFailure, faults[1]);
+    assert.equal(error.cleanupHandle, owner);
+    return true;
+  });
   assert.equal(owner.status().committed, false);
   assert.equal(owner.status().preparedPending, true);
   const original = await f.store.inspectPhysicalHolding(binding.holdingCid);
   const path = join(f.configuration.directory, 'objects', original.objects[0].cid.slice(7));
   const originalBytes = await readFile(path);
-  await assert.rejects(owner.retry(), error => error.cleanupHandle === owner);
+  await assert.rejects(owner.retry(), error => {
+    assert.equal(error, faults[2]);
+    assert.equal(error.cleanupHandle, owner);
+    return true;
+  });
   assert.equal(preparations, 1);
   await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
   refuse = false;
