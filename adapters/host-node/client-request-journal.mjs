@@ -6,26 +6,20 @@ import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {existsSync, mkdirSync, realpathSync} from 'node:fs';
-import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
+import {join} from 'node:path';
 import {throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {assertHostJournalDirectoryInspector} from './host-journal-directory.mjs';
-import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
-  from '../host-common/sqlite-schema-resource-bounds.mjs';
-import {assertOriginalPreparedLocalPublicationStoreOwnership,
-  captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
+import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
   from '../store-local/publication-store.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
+import {clientSourceOperationStorage} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
-import {fail, applyOriginal, operationDescriptors, operationKeys, snapshotPrimarySqlLimits,
-  snapshotPrimaryExecutionLimits, guardJournalCurrentness, boundedJournalWalFrames,
-  createJournalPrimaryConnection, journalDatabaseGeometry, boundJournalDatabaseExtent,
-  selectJournalTemporaryStorage, createJournalObservationConnection} from './client-request-journal-sql.mjs';
+import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCurrentness,
+  createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, evidenceJson, freezeAdmissionEvidence, instant, logicalPlanOriginalShape, retainedEvidence,
   retainedIdentity, retainedResultNames, retainedRunDefinition, retainedRunFacts,
@@ -33,17 +27,15 @@ import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSo
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
 import {keyedLookupOriginalTable, explanationOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
-  initializeJournalSchema, readJournalExplanationOriginal, probeJournalExplanation, readJournalExplanation,
+  snapshotJournalConfiguration, initializeJournalPrimaryStorage, readJournalExplanationOriginal, probeJournalExplanation, readJournalExplanation,
   insertJournalExplanationOriginal,
   validLocalExecutionOwnerReceipt, maxEpochTtlMs, hexKey, validEpochAuthority, assertJournalSubmissionCustody,
   assertJournalRestartCustody, assertJournalIntentCustody, journalIntentWireBytes,
-  assertJournalNameCustody, authenticateJournalName, assertJournalCancellationCustody,
-  inspectJournalNativeStorage} from './client-request-journal-format.mjs';
+  assertJournalNameCustody, authenticateJournalName, assertJournalCancellationCustody} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
 import {createJournalAttempts, validCancellationRef, ownedCancellationRef} from './client-request-journal-attempts.mjs';
 export {validateSourceInventory};
 
-const pathText = value => typeof value === 'string' && value.length > 0;
 const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
@@ -74,81 +66,13 @@ export function assertOriginalClientRequestJournal(journal) {
 // no second store, error chain, execution owner or status inference is added.
 
 
-export function openClientRequestJournal(directory, {
-  maxRecords = 100_000,
-  maxInspectionEntries = 100_000,
-  maxInspectionBytes = 64 * 1024 * 1024,
-  maxDatabaseBytes,
-  maxWalFrames,
-  primarySqlLimits,
-  primaryExecutionLimits,
-  primarySchemaLimits,
-  primarySchemaSqlSupport,
-  primaryCurrent,
-  primaryDirectoryInspection,
-  inspectionTemporaryDirectory,
-  maxRunDefinitionWireBytes = 65_536,
-  submissionEpochTtlMs = maxEpochTtlMs,
-  submissionEpochNow = Date.now,
-  updateOriginalControl,
-  sourceOperationLimits,
-} = {}, ownedOriginal) {
-  if (ownedOriginal !== undefined) {
-    if (!pathText(directory) || basename(resolve(directory)) !== 'requests') {
-      fail('InvalidClientRequestJournalConfiguration');
-    }
-    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
-      join(dirname(resolve(directory)), 'publication'));
-  }
-  if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
-      !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
-      !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
-      maxDatabaseBytes !== undefined &&
-        (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
-      maxWalFrames !== undefined &&
-        (!Number.isSafeInteger(maxWalFrames) || maxWalFrames < 1) ||
-      maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
-      maxRunDefinitionWireBytes < 1024 ||
-      !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
-      submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
-  if (primaryCurrent !== undefined && typeof primaryCurrent !== 'function') {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  if (inspectionTemporaryDirectory !== undefined &&
-      (typeof inspectionTemporaryDirectory !== 'string' ||
-        inspectionTemporaryDirectory.length === 0 || inspectionTemporaryDirectory.length > 4096 ||
-        !isAbsolute(inspectionTemporaryDirectory) || inspectionTemporaryDirectory.includes('\0'))) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  if (primaryDirectoryInspection !== undefined) {
-    // Validate the same private view and exact selected bound BEFORE any
-    // directory/format/native acquisition. No fallback on selected refusal.
-    assertHostJournalDirectoryInspector(primaryDirectoryInspection, maxInspectionEntries);
-  }
-  primarySqlLimits = snapshotPrimarySqlLimits(primarySqlLimits);
-  primaryExecutionLimits = snapshotPrimaryExecutionLimits(primaryExecutionLimits);
-  primarySchemaLimits = snapshotSqliteSchemaReadLimits(primarySchemaLimits);
-  primarySchemaSqlSupport = snapshotSqliteSchemaSqlSupport(primarySchemaSqlSupport, primarySchemaLimits);
-  if (primaryExecutionLimits !== undefined &&
-      (primarySqlLimits === undefined || maxDatabaseBytes === undefined)) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  if (primarySchemaLimits !== undefined && maxDatabaseBytes === undefined) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  if (maxWalFrames !== undefined && (maxDatabaseBytes === undefined ||
-      primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  // An optional selected-facility support bound is not a format rule or a
-  // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
-  // inspection, not after materializing rows. Unselected callers are unchanged.
-  const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
-    Math.min(maxInspectionBytes, maxDatabaseBytes);
-  const walFrames = boundedJournalWalFrames(maxWalFrames, inspectionBytes, maxDatabaseBytes);
+export function openClientRequestJournal(directory, options = {}, ownedOriginal) {
+  const configuration = snapshotJournalConfiguration(directory, options, ownedOriginal);
+  const {maxRecords, maxInspectionEntries, maxInspectionBytes, maxDatabaseBytes,
+    primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport,
+    primaryCurrent, primaryDirectoryInspection, inspectionTemporaryDirectory,
+    maxRunDefinitionWireBytes, submissionEpochTtlMs, submissionEpochNow, updateOriginalControl,
+    sourceOperationLimits, inspectionBytes, walFrames} = configuration;
   // Only the actual selected Root supplies this captured current fence. It
   // does not issue capacity; execute it before the first original directory,
   // copy or native acquisition, and again at each covered SQL boundary.
@@ -176,43 +100,8 @@ export function openClientRequestJournal(directory, {
   try {
     const transaction = initializationCleanup.open(primarySqlLimits, primaryExecutionLimits, walFrames);
     const {database, selectedSql} = initializationCleanup;
-    let temporarySelected = false;
-    let retainedGeometry;
-    if (ownedOriginal !== undefined && current) {
-      assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
-        join(dirname(resolve(directory)), 'publication'));
-      if (maxDatabaseBytes !== undefined) {
-        retainedGeometry = journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
-      }
-      selectJournalTemporaryStorage(database, primaryExecutionLimits);
-      selectedSql?.prepareWalCheckpoint();
-      temporarySelected = true;
-      // SQLite is the format authority for this already-owned database.
-      // Bound only schema metadata here; do not materialize historical rows.
-      const schema = database.prepare(`SELECT COUNT(*) AS entries,
-        COALESCE(SUM(length(CAST(sql AS BLOB))),0) AS bytes FROM sqlite_master`).get();
-      const schemaLimits = primarySchemaLimits ?? {
-        maxSchemaEntries: maxInspectionEntries, maxSchemaBytes: inspectionBytes};
-      if (!Number.isSafeInteger(schema?.entries) || schema.entries < 1 ||
-          schema.entries > schemaLimits.maxSchemaEntries ||
-          !Number.isSafeInteger(schema?.bytes) || schema.bytes < 0 ||
-          schema.bytes > schemaLimits.maxSchemaBytes) {
-        fail('SqliteSchemaPreparationUnavailable');
-      }
-      if (primarySchemaSqlSupport !== undefined) {
-        const statements = database.prepare('SELECT sql FROM sqlite_master WHERE sql IS NOT NULL').all();
-        if (statements.some(row => !primarySchemaSqlSupport.includes(row.sql))) {
-          fail('SqliteSchemaPreparationUnavailable');
-        }
-      }
-      inspectJournalNativeStorage(database, directoryAdmission);
-    }
-    boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames,
-      temporarySelected, retainedGeometry, selectedSql?.prepareWalCheckpoint);
-    database.exec('PRAGMA journal_mode = WAL');
-    database.exec('PRAGMA synchronous = FULL');
-    initializeJournalSchema(database, transaction, root, existed, inspectionBytes,
-      sourceOperationLimits, ownedOriginal);
+    initializeJournalPrimaryStorage(database, transaction, root, directory, existed,
+      directoryAdmission, configuration, selectedSql, ownedOriginal);
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {

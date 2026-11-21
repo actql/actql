@@ -5,9 +5,11 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
-  from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
+type Journal = Readonly<{close(): void; observationStorage(): unknown;
+  lookupReconciliationState(value: unknown): unknown}>;
 const selected = {
   maxDatabaseBytes: 1024 * 1024,
   primarySqlLimits: {maxPreparedStatements: 1000,
@@ -74,7 +76,7 @@ test('current refusal preserves the original asynchronous Journal method contrac
   try {
     assert.throws(() => journal.lookupReconciliationState({}), {code: 'InvalidClientRunLookup'});
     current = false;
-    let result;
+    let result: unknown;
     assert.doesNotThrow(() => {result = journal.admitOrLookupDefinition();});
     assert.ok(result instanceof Promise);
     await assert.rejects(result, error => error === refusal);
@@ -110,26 +112,26 @@ test('current-refused operations retain both original connections through pendin
   const {scratch, directory} = await fixture();
   const originalClose = DatabaseSync.prototype.close;
   let permit = false, closes = 0;
-  DatabaseSync.prototype.close = function () {
+  DatabaseSync.prototype.close = (function (this: DatabaseSync) {
     closes++;
     if (!permit) return false;
     return Reflect.apply(originalClose, this, []);
-  };
-  let journal, current = true;
+  }) as DatabaseSync['close'];
+  let journal: Journal | undefined, current = true;
   const refusal = new Error('OriginalJournalCurrentRefused');
   try {
     journal = openClientRequestJournal(directory, {...selected,
       primaryCurrent() {if (!current) throw refusal;}});
-    journal.observationStorage();
+    journal!.observationStorage();
   } finally { DatabaseSync.prototype.close = originalClose; }
   try {
     current = false;
-    assert.throws(() => journal.lookupReconciliationState({}),
+    assert.throws(() => journal!.lookupReconciliationState({}),
       error => error === refusal);
-    assert.throws(() => journal.close());
+    assert.throws(() => journal!.close());
     assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, false);
     permit = true;
-    journal.close();
+    journal!.close();
     const custody = observeOriginalClientRequestJournalCustody(journal);
     assert.equal(custody.databaseClosed, true);
     assert.equal(custody.observationDatabaseClosed, true);

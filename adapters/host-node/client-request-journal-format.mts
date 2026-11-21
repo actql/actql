@@ -2,18 +2,21 @@
 import {createHmac, randomBytes} from 'node:crypto';
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync, openSync, readSync,
   writeFileSync, type BigIntStats} from 'node:fs';
-import {dirname, join, resolve} from 'node:path';
+import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import type {SQLOutputValue} from 'node:sqlite';
 import type {WireRunRef} from '../../packages/client-wire/index.js';
 import {cid, structuralExplanationOriginalShape, text} from './client-request-journal-records.mjs';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
-import {inspectHostJournalDirectory} from './host-journal-directory.mjs';
-import {inspectClientSourceOperationStorage, sourceOperationTable} from './client-source-operation.mjs';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory} from './host-journal-directory.mjs';
+import {inspectClientSourceOperationStorage, snapshotClientSourceOperationLimits, sourceOperationTable} from './client-source-operation.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 // @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
-import {applyOriginal, boundedPrimarySql, fail, type JournalSqlConnection,
-  type snapshotPrimaryExecutionLimits} from './client-request-journal-sql.mjs';
+import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
+  from '../host-common/sqlite-schema-resource-bounds.mjs';
+import {applyOriginal, boundedJournalWalFrames, boundedPrimarySql, boundJournalDatabaseExtent, fail,
+  journalDatabaseGeometry, selectJournalTemporaryStorage, snapshotPrimaryExecutionLimits, snapshotPrimarySqlLimits,
+  type JournalSqlConnection} from './client-request-journal-sql.mjs';
 
 type Row = Record<string, SQLOutputValue>;
 type JournalStatement = ReturnType<JournalSqlConnection['prepare']>;
@@ -25,6 +28,17 @@ type SnapshotOptions = NonNullable<Parameters<typeof inspectSqliteSnapshot>[2]>;
 type InspectionSql = ReturnType<typeof boundedPrimarySql>;
 type CleanupCarrier = {cleanupHandle?: unknown};
 type InspectionFailure = {cleanupPending?: unknown; code?: string} | null | undefined;
+type JournalConfigurationInput = Readonly<{
+  maxRecords?: number; maxInspectionEntries?: number; maxInspectionBytes?: number;
+  maxDatabaseBytes?: number; maxWalFrames?: number;
+  primarySqlLimits?: unknown; primaryExecutionLimits?: unknown;
+  primarySchemaLimits?: unknown; primarySchemaSqlSupport?: unknown;
+  primaryCurrent?: Parameters<typeof boundedPrimarySql>[3]; primaryDirectoryInspection?: unknown;
+  inspectionTemporaryDirectory?: string;
+  maxRunDefinitionWireBytes?: number; submissionEpochTtlMs?: number; submissionEpochNow?: () => number;
+  updateOriginalControl?: unknown; sourceOperationLimits?: unknown;
+}>;
+
 
 // Originals of the existing checked keyed Source on this Request Journal.
 // The bound canonical schedule limits each batch; no Scope/Run or physical
@@ -770,6 +784,92 @@ export function inspectJournalSnapshot(directory: string, databasePath: string, 
   inspectionSql?.retireClosedNativeAliases();
 }
 
+const pathText = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
+// Snapshot the original Journal options once, in the caller's argument order,
+// before any selected directory or SQLite acquisition.
+export function snapshotJournalConfiguration(directory: unknown, {
+  maxRecords = 100_000,
+  maxInspectionEntries = 100_000,
+  maxInspectionBytes = 64 * 1024 * 1024,
+  maxDatabaseBytes,
+  maxWalFrames,
+  primarySqlLimits: rawPrimarySqlLimits,
+  primaryExecutionLimits: rawPrimaryExecutionLimits,
+  primarySchemaLimits: rawPrimarySchemaLimits,
+  primarySchemaSqlSupport: rawPrimarySchemaSqlSupport,
+  primaryCurrent,
+  primaryDirectoryInspection,
+  inspectionTemporaryDirectory,
+  maxRunDefinitionWireBytes = 65_536,
+  submissionEpochTtlMs = maxEpochTtlMs,
+  submissionEpochNow = Date.now,
+  updateOriginalControl,
+  sourceOperationLimits: rawSourceOperationLimits,
+}: JournalConfigurationInput = {}, ownedOriginal?: unknown) {
+  if (ownedOriginal !== undefined) {
+    if (!pathText(directory) || basename(resolve(directory)) !== 'requests') {
+      fail('InvalidClientRequestJournalConfiguration');
+    }
+    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+      join(dirname(resolve(directory)), 'publication'));
+  }
+  if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
+      !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
+      !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
+      maxDatabaseBytes !== undefined &&
+        (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
+      maxWalFrames !== undefined &&
+        (!Number.isSafeInteger(maxWalFrames) || maxWalFrames < 1) ||
+      maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
+      maxRunDefinitionWireBytes < 1024 ||
+      !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
+      submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  const sourceOperationLimits = snapshotClientSourceOperationLimits(rawSourceOperationLimits);
+  if (primaryCurrent !== undefined && typeof primaryCurrent !== 'function') {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (inspectionTemporaryDirectory !== undefined &&
+      (typeof inspectionTemporaryDirectory !== 'string' ||
+        inspectionTemporaryDirectory.length === 0 || inspectionTemporaryDirectory.length > 4096 ||
+        !isAbsolute(inspectionTemporaryDirectory) || inspectionTemporaryDirectory.includes('\0'))) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (primaryDirectoryInspection !== undefined) {
+    // Validate the same private view and exact selected bound BEFORE any
+    // directory/format/native acquisition. No fallback on selected refusal.
+    assertHostJournalDirectoryInspector(primaryDirectoryInspection, maxInspectionEntries);
+  }
+  const primarySqlLimits = snapshotPrimarySqlLimits(rawPrimarySqlLimits);
+  const primaryExecutionLimits = snapshotPrimaryExecutionLimits(rawPrimaryExecutionLimits);
+  const primarySchemaLimits = snapshotSqliteSchemaReadLimits(rawPrimarySchemaLimits);
+  const primarySchemaSqlSupport = snapshotSqliteSchemaSqlSupport(rawPrimarySchemaSqlSupport, primarySchemaLimits);
+  if (primaryExecutionLimits !== undefined &&
+      (primarySqlLimits === undefined || maxDatabaseBytes === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (primarySchemaLimits !== undefined && maxDatabaseBytes === undefined) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  if (maxWalFrames !== undefined && (maxDatabaseBytes === undefined ||
+      primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  // An optional selected-facility support bound is not a format rule or a
+  // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
+  // inspection, not after materializing rows. Unselected callers are unchanged.
+  const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
+    Math.min(maxInspectionBytes, maxDatabaseBytes);
+  const walFrames = boundedJournalWalFrames(maxWalFrames, inspectionBytes, maxDatabaseBytes);
+  return {maxRecords, maxInspectionEntries, maxInspectionBytes, maxDatabaseBytes,
+    primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport,
+    primaryCurrent, primaryDirectoryInspection, inspectionTemporaryDirectory,
+    maxRunDefinitionWireBytes, submissionEpochTtlMs, submissionEpochNow, updateOriginalControl,
+    sourceOperationLimits, inspectionBytes, walFrames};
+}
+
 export function admitJournalDirectory(directory: string, maxInspectionEntries: number,
   maxInspectionBytes: number, primarySqlLimits: Parameters<typeof inspectJournalSnapshot>[5],
   primaryExecutionLimits: Parameters<typeof inspectJournalSnapshot>[6], primarySchemaLimits: unknown,
@@ -830,6 +930,53 @@ export function admitJournalDirectory(directory: string, maxInspectionEntries: n
     fail('UnknownClientRequestJournalFormat', cause);
   }
   return true;
+}
+
+export function initializeJournalPrimaryStorage(database: JournalSqlConnection,
+  transaction: ReturnType<typeof createSqliteTransaction>, root: string, directory: string, existed: boolean,
+  directoryAdmission: ReturnType<typeof admitJournalDirectory>,
+  configuration: ReturnType<typeof snapshotJournalConfiguration>, selectedSql: InspectionSql | undefined,
+  ownedOriginal: unknown) {
+  const {maxDatabaseBytes, walFrames, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport,
+    maxInspectionEntries, inspectionBytes, sourceOperationLimits} = configuration;
+  let temporarySelected = false;
+  let retainedGeometry;
+  if (ownedOriginal !== undefined && directoryAdmission !== false) {
+    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+      join(dirname(resolve(directory)), 'publication'));
+    if (maxDatabaseBytes !== undefined) {
+      retainedGeometry = journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
+    }
+    selectJournalTemporaryStorage(database, primaryExecutionLimits);
+    selectedSql?.prepareWalCheckpoint();
+    temporarySelected = true;
+    // SQLite is the format authority for this already-owned database.
+    // Bound only schema metadata here; do not materialize historical rows.
+    const schema = database.prepare(`SELECT COUNT(*) AS entries,
+        COALESCE(SUM(length(CAST(sql AS BLOB))),0) AS bytes FROM sqlite_master`).get();
+    const schemaLimits = primarySchemaLimits ?? {
+      maxSchemaEntries: maxInspectionEntries, maxSchemaBytes: inspectionBytes};
+    if (!(Number.isSafeInteger as IsSafeInteger)(schema?.entries) || schema.entries < 1 ||
+        schema.entries > schemaLimits.maxSchemaEntries ||
+        !(Number.isSafeInteger as IsSafeInteger)(schema?.bytes) || schema.bytes < 0 ||
+        schema.bytes > schemaLimits.maxSchemaBytes) {
+      fail('SqliteSchemaPreparationUnavailable');
+    }
+    if (primarySchemaSqlSupport !== undefined) {
+      const statements = database.prepare('SELECT sql FROM sqlite_master WHERE sql IS NOT NULL').all();
+      if (statements.some(row => !primarySchemaSqlSupport.includes(row.sql as string))) {
+        fail('SqliteSchemaPreparationUnavailable');
+      }
+    }
+    // The owned path above admits the same marker and returns its format features.
+    inspectJournalNativeStorage(database, directoryAdmission as FormatFeatures);
+  }
+  boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames,
+    temporarySelected, retainedGeometry, selectedSql?.prepareWalCheckpoint);
+  database.exec('PRAGMA journal_mode = WAL');
+  database.exec('PRAGMA synchronous = FULL');
+  initializeJournalSchema(database, transaction, root, existed, inspectionBytes,
+    sourceOperationLimits, ownedOriginal);
 }
 
 export function initializeJournalSchema(database: JournalSqlConnection,

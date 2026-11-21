@@ -28277,23 +28277,7 @@
           "name": "openClientRequestJournal",
           "parameters": [
             "directory",
-            "maxRecords",
-            "maxInspectionEntries",
-            "maxInspectionBytes",
-            "maxDatabaseBytes",
-            "maxWalFrames",
-            "primarySqlLimits",
-            "primaryExecutionLimits",
-            "primarySchemaLimits",
-            "primarySchemaSqlSupport",
-            "primaryCurrent",
-            "primaryDirectoryInspection",
-            "inspectionTemporaryDirectory",
-            "maxRunDefinitionWireBytes",
-            "submissionEpochTtlMs",
-            "submissionEpochNow",
-            "updateOriginalControl",
-            "sourceOperationLimits",
+            "options",
             "ownedOriginal"
           ],
           "async": false
@@ -29023,13 +29007,6 @@
         },
         {
           "name": "openClientRequestJournal/openClientRequestJournal",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/openClientRequestJournal#2",
           "parameters": [],
           "async": false
         },
@@ -29182,7 +29159,6 @@
             "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent/init:retireSubmittedIntent",
             "openClientRequestJournal/journal/init:submissionIdentity/init:submissionIdentity",
             "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
-            "openClientRequestJournal/openClientRequestJournal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
@@ -30345,7 +30321,7 @@
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
               },
               {
-                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
                 "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
@@ -30453,7 +30429,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/openClientRequestJournal#2"
+            "openClientRequestJournal/openClientRequestJournal"
           ],
           "exports": [],
           "attributes": {
@@ -30470,12 +30446,12 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "} = {}, ownedOriginal) {"
+                "anchor": "export function openClientRequestJournal(directory, options = {}, ownedOriginal) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "join(dirname(resolve(directory)), 'publication'));"
               }
             ],
@@ -30501,7 +30477,7 @@
                 "anchor": "if (![0,1,2,3].includes(version as number)) fail('UnknownClientRequestJournalFormat');"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"
               }
             ],
@@ -30517,7 +30493,7 @@
                 "anchor": "if (bytes > BigInt(maxInspectionBytes))"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "schema.entries > schemaLimits.maxSchemaEntries ||"
               }
             ],
@@ -31965,7 +31941,6 @@
         "../host-common/observation.mjs",
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-result.mjs",
-        "../host-common/sqlite-schema-resource-bounds.mjs",
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
@@ -31975,7 +31950,6 @@
         "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
-        "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
@@ -32394,7 +32368,7 @@
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
               },
               {
-                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
                 "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
@@ -32456,6 +32430,7 @@
         "epochMarkerName",
         "explanationOriginalTable",
         "hexKey",
+        "initializeJournalPrimaryStorage",
         "initializeJournalSchema",
         "insertJournalExplanationOriginal",
         "inspectExplanationOriginalStorage",
@@ -32484,6 +32459,7 @@
         "retirementMarker",
         "retirementMarkerName",
         "selectColumns",
+        "snapshotJournalConfiguration",
         "submissionMarker",
         "submissionMarkerName",
         "syncDirectory",
@@ -32640,6 +32616,28 @@
           "name": "hexKey/hexKey",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "initializeJournalPrimaryStorage",
+          "parameters": [
+            "database",
+            "transaction",
+            "root",
+            "directory",
+            "existed",
+            "directoryAdmission",
+            "configuration",
+            "selectedSql",
+            "ownedOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "initializeJournalPrimaryStorage/initializeJournalPrimaryStorage",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -33069,6 +33067,31 @@
           "async": false
         },
         {
+          "name": "snapshotJournalConfiguration",
+          "parameters": [
+            "directory",
+            "maxRecords",
+            "maxInspectionEntries",
+            "maxInspectionBytes",
+            "maxDatabaseBytes",
+            "maxWalFrames",
+            "rawPrimarySqlLimits",
+            "rawPrimaryExecutionLimits",
+            "rawPrimarySchemaLimits",
+            "rawPrimarySchemaSqlSupport",
+            "primaryCurrent",
+            "primaryDirectoryInspection",
+            "inspectionTemporaryDirectory",
+            "maxRunDefinitionWireBytes",
+            "submissionEpochTtlMs",
+            "submissionEpochNow",
+            "updateOriginalControl",
+            "rawSourceOperationLimits",
+            "ownedOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "submissionUsageTables/submissionUsageTables",
           "parameters": [
             "name"
@@ -33132,12 +33155,17 @@
             "journalMarkerMatches",
             "journalMarkerMatches/journalMarkerMatches",
             "journalMarkerMatches/journalMarkerMatches#2",
-            "journalMarkerMatches/status/status"
+            "journalMarkerMatches/status/status",
+            "initializeJournalPrimaryStorage",
+            "initializeJournalPrimaryStorage/initializeJournalPrimaryStorage",
+            "snapshotJournalConfiguration"
           ],
           "exports": [
             "admitJournalDirectory",
             "inspectJournalSnapshot",
-            "journalMarkerMatches"
+            "journalMarkerMatches",
+            "initializeJournalPrimaryStorage",
+            "snapshotJournalConfiguration"
           ],
           "attributes": {
             "responsibility": [
@@ -33282,6 +33310,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn observe_client_submitted_intent("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function snapshotJournalConfiguration(directory: unknown, {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function initializeJournalPrimaryStorage(database: JournalSqlConnection,"
               }
             ],
             "identity": [
@@ -33500,6 +33536,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const original = admitIntentOriginal(wire, control, epoch,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "database.exec('PRAGMA synchronous = FULL');"
               }
             ],
             "failure": [
@@ -33734,6 +33774,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "schema.entries > schemaLimits.maxSchemaEntries ||"
               }
             ],
             "extension": [
@@ -33954,6 +33998,14 @@
               {
                 "path": "adapters/host-node/client-run-stop-observation.test.mjs",
                 "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
+                "anchor": "temporary storage precedes the schema-loading Pager pragma"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mts",
+                "anchor": "current and closed selected records reject invalid or incomplete inputs before filesystem work"
               }
             ]
           }
@@ -34215,7 +34267,7 @@
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
               },
               {
-                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
                 "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
@@ -34405,12 +34457,12 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "} = {}, ownedOriginal) {"
+                "anchor": "export function openClientRequestJournal(directory, options = {}, ownedOriginal) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "join(dirname(resolve(directory)), 'publication'));"
               }
             ],
@@ -34436,7 +34488,7 @@
                 "anchor": "if (![0,1,2,3].includes(version as number)) fail('UnknownClientRequestJournalFormat');"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "fail('SqliteSchemaPreparationUnavailable');"
               }
             ],
@@ -34452,7 +34504,7 @@
                 "anchor": "if (bytes > BigInt(maxInspectionBytes))"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "schema.entries > schemaLimits.maxSchemaEntries ||"
               }
             ],
@@ -36465,7 +36517,7 @@
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
               },
               {
-                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
                 "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
@@ -36524,7 +36576,7 @@
                 "anchor": "if (current !== existed)"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,"
               }
             ],
@@ -36540,7 +36592,7 @@
                 "anchor": "transaction.run(initializeSchema);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "database.exec('PRAGMA synchronous = FULL');"
               }
             ],
@@ -36566,7 +36618,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "boundJournalDatabaseExtent(database, maxDatabaseBytes"
               },
               {
@@ -37154,6 +37206,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-format-inspection.mjs",
+        "../host-common/sqlite-schema-resource-bounds.mjs",
         "../store-local/publication-store.mjs",
         "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
@@ -39060,7 +39113,7 @@
                 "anchor": "both execution-bounded Journal connections select original in-memory temporary storage"
               },
               {
-                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mjs",
+                "path": "adapters/host-node/client-request-journal-schema-temporary-order.test.mts",
                 "anchor": "temporary storage precedes the schema-loading Pager pragma"
               },
               {
@@ -39290,7 +39343,7 @@
                 "anchor": "test('the separate original observation connection enforces the selected database extent"
               },
               {
-                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mts",
                 "anchor": "test('current-refused operations retain both original connections through pending close and same-receiver retry"
               },
               {

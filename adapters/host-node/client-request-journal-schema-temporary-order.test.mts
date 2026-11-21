@@ -4,8 +4,10 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
-  from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
+
+type Journal = Readonly<{close(): void; observationStorage(): unknown}>;
 
 const options = {maxDatabaseBytes: 1024 * 1024, maxWalFrames: 200000,
   primarySqlLimits: {maxPreparedStatements: 1000,
@@ -20,28 +22,28 @@ test(`selected ${phase} temporary storage precedes the schema-loading Pager prag
     prefix: 'journal-schema-temporary-order-', label: 'same original schema temporary order',
   });
   const path = join(scratch.path, 'requests');
-  let journal;
+  let journal: Journal | undefined;
   if (phase === 'observation') journal = openClientRequestJournal(path, options);
   const prepare = DatabaseSync.prototype.prepare, open = DatabaseSync.prototype.open;
-  const originals = [];
+  const originals: DatabaseSync[] = [];
   let geometry = 0;
-  DatabaseSync.prototype.open = function (...args) {
+  DatabaseSync.prototype.open = function (this: DatabaseSync, ...args: Parameters<DatabaseSync['open']>) {
     originals.push(this);
     return Reflect.apply(open, this, args);
   };
-  DatabaseSync.prototype.prepare = function (sql) {
+  DatabaseSync.prototype.prepare = function (this: DatabaseSync, sql: string) {
     if (/^PRAGMA max_page_count = /u.test(sql)) {
       geometry++;
       // Explicit native observation at the actual preparation boundary.
       // It is not a product query, new capacity, or an operational issuer.
-      assert.equal(Reflect.apply(prepare, this, ['PRAGMA temp_store']).get().temp_store, 2,
+      assert.equal(Reflect.apply(prepare, this, ['PRAGMA temp_store']).get()!.temp_store, 2,
         'max_page_count has PragFlg_NeedSchema; MEMORY must already be effective');
     }
     return Reflect.apply(prepare, this, [sql]);
   };
   try {
     if (phase === 'primary') journal = openClientRequestJournal(path, options);
-    else journal.observationStorage();
+    else journal!.observationStorage();
     assert.equal(geometry, 1);
   } finally {
     DatabaseSync.prototype.open = open;
