@@ -153,6 +153,8 @@ assert.equal(await targetDigest(), expectedTarget, 'The original target must sta
 if (phase === 'produce') {
   assert.equal(markers.filter(item => item.operation === 'source').length, 2);
   assert(markers.every(item => item.run === receipt.ref.runDefinitionCid));
+  assert(markers.some(item => item.operation === 'infer'), 'Original Run must witness an Infer start');
+  assert(markers.some(item => item.operation === 'effect'), 'Original Run must witness an Effect application');
   assert(markers.every(item => item.operation !== 'effect' ||
     item.event === 'application_observed' && item.outcome === 'waiting_checkpoint'));
   receipt.attempts = markers;
