@@ -1848,9 +1848,6 @@ fn lower_analytic_call(
       if aggregate.distinct {
         raise Abort(UnsupportedAnalytic)
       }
-      if call.window.frame is None {
-        raise Abort(UnsupportedAnalytic)
-      }
       if ![
           "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
           "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "STRING_AGG",

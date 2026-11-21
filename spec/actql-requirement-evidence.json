@@ -11158,7 +11158,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "c94c82807c757b5b862de4caf2c38b7b763e086f7c8b7283e03dc3fc41908642",
+      "statement_sha256": "e9b51e9344cdce2bad6b034122288d0ba88e682ee57a292003586bccb88ad9d7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -18253,7 +18253,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "72128a20d6422a19341b0b52938b2fb2f25d1475d99650a0c2619854c03d171e",
+      "statement_sha256": "c0a2864fa15e510229079344ac254887abe6af346354df08a477a698a5babbea",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

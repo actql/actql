@@ -65,6 +65,8 @@ pub fn analytic_calls(CheckedAnalytic) -> Array[AnalyticCall]
 
 pub fn analytic_frame(CheckedAnalytic) -> RowsFrame?
 
+pub fn analytic_function_needs_position(AnalyticFunction, Bool) -> Bool
+
 pub fn analytic_order(CheckedAnalytic) -> Array[OrderTerm]
 
 pub fn analytic_partition(CheckedAnalytic) -> Array[KeyField]

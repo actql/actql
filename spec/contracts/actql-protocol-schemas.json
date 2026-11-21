@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:a92cb667a16211a913c213813079e3a194f2381278c879a358f2eac860c5d7ea",
+  "artifact_registry_cid": "sha256:c60cd31c68777cce224a53d28e56158de165da3c34b730258f22de35bf882814",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:e7b811a1dbee6d2efce6fe5d01eeef9ecf20437dc26c7fa008b0594e122a9440",
+    "executable_plan": "sha256:2766722691f771755646a1c9bb9ecf91ce228139247063abc0f5fb1f5313dcfe",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:8fbb31957d2a3e1048132c705f4aaea9974c759d8ba9bebd4019574cd44983d4",
+    "plan_document": "sha256:135371bef12c4e130c38649ab43c130d2d3ace9ac1c7a0a15ffdcf79a7cba7d1",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -38941,7 +38941,7 @@
                           },
                           "order_by": {
                             "type": "array",
-                            "minItems": 1,
+                            "minItems": 0,
                             "items": {
                               "oneOf": [
                                 {
@@ -40333,138 +40333,705 @@
                           },
                           {
                             "if": {
-                              "not": {
-                                "properties": {
-                                  "functions": {
-                                    "additionalProperties": {
-                                      "oneOf": [
-                                        {
-                                          "type": "object",
-                                          "additionalProperties": false,
-                                          "required": [
-                                            "fn"
-                                          ],
-                                          "properties": {
-                                            "fn": {
-                                              "enum": [
-                                                "row_number",
-                                                "rank",
-                                                "dense_rank",
-                                                "percent_rank"
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "type": "object",
-                                          "additionalProperties": false,
-                                          "required": [
-                                            "fn",
-                                            "buckets"
-                                          ],
-                                          "properties": {
-                                            "fn": {
-                                              "enum": [
-                                                "ntile"
-                                              ]
-                                            },
-                                            "buckets": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "integer",
-                                                  "minimum": 1,
-                                                  "maximum": 9007199254740991
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "required": [
-                                                    "$param"
-                                                  ],
-                                                  "properties": {
-                                                    "$param": {
-                                                      "type": "string",
-                                                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "type": "object",
-                                          "additionalProperties": false,
-                                          "required": [
-                                            "fn",
-                                            "expr"
-                                          ],
-                                          "properties": {
-                                            "fn": {
-                                              "enum": [
-                                                "lag",
-                                                "lead"
-                                              ]
-                                            },
-                                            "expr": {
-                                              "$ref": "#/$defs/value_expression"
-                                            },
-                                            "offset": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "integer",
-                                                  "minimum": 0,
-                                                  "maximum": 9007199254740991
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "required": [
-                                                    "$param"
-                                                  ],
-                                                  "properties": {
-                                                    "$param": {
-                                                      "type": "string",
-                                                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            },
-                                            "default": {
-                                              "$ref": "#/$defs/value_expression"
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "type": "object",
-                                          "additionalProperties": false,
-                                          "required": [
-                                            "fn",
-                                            "expr"
-                                          ],
-                                          "properties": {
-                                            "fn": {
-                                              "enum": [
-                                                "first_value",
-                                                "last_value"
-                                              ]
-                                            },
-                                            "expr": {
-                                              "$ref": "#/$defs/value_expression"
-                                            }
-                                          }
-                                        }
-                                      ]
-                                    }
-                                  }
+                              "properties": {
+                                "order_by": {
+                                  "maxItems": 0
                                 }
                               }
                             },
                             "then": {
-                              "required": [
-                                "frame"
-                              ]
+                              "not": {
+                                "required": [
+                                  "frame"
+                                ]
+                              },
+                              "properties": {
+                                "functions": {
+                                  "additionalProperties": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "count"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "not": {
+                                                  "anyOf": [
+                                                    {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "if": {
+                                              "required": [
+                                                "distinct"
+                                              ],
+                                              "properties": {
+                                                "distinct": {
+                                                  "const": true
+                                                }
+                                              }
+                                            },
+                                            "then": {
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "count_if"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "sum"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "avg"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "min"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "const": false
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "max"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "const": false
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn",
+                                          "fraction"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "percentile_disc"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "fraction": {
+                                            "oneOf": [
+                                              {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "$param"
+                                                ],
+                                                "properties": {
+                                                  "$param": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn",
+                                          "fraction"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "percentile_cont"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "fraction": {
+                                            "oneOf": [
+                                              {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "$param"
+                                                ],
+                                                "properties": {
+                                                  "$param": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "var_pop"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "var_samp"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "stddev_pop"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "stddev_samp"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         ]
@@ -71842,7 +72409,7 @@
                               },
                               "order_by": {
                                 "type": "array",
-                                "minItems": 1,
+                                "minItems": 0,
                                 "items": {
                                   "oneOf": [
                                     {
@@ -73234,138 +73801,705 @@
                               },
                               {
                                 "if": {
-                                  "not": {
-                                    "properties": {
-                                      "functions": {
-                                        "additionalProperties": {
-                                          "oneOf": [
-                                            {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "required": [
-                                                "fn"
-                                              ],
-                                              "properties": {
-                                                "fn": {
-                                                  "enum": [
-                                                    "row_number",
-                                                    "rank",
-                                                    "dense_rank",
-                                                    "percent_rank"
-                                                  ]
-                                                }
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "required": [
-                                                "fn",
-                                                "buckets"
-                                              ],
-                                              "properties": {
-                                                "fn": {
-                                                  "enum": [
-                                                    "ntile"
-                                                  ]
-                                                },
-                                                "buckets": {
-                                                  "oneOf": [
-                                                    {
-                                                      "type": "integer",
-                                                      "minimum": 1,
-                                                      "maximum": 9007199254740991
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "additionalProperties": false,
-                                                      "required": [
-                                                        "$param"
-                                                      ],
-                                                      "properties": {
-                                                        "$param": {
-                                                          "type": "string",
-                                                          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                                        }
-                                                      }
-                                                    }
-                                                  ]
-                                                }
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "required": [
-                                                "fn",
-                                                "expr"
-                                              ],
-                                              "properties": {
-                                                "fn": {
-                                                  "enum": [
-                                                    "lag",
-                                                    "lead"
-                                                  ]
-                                                },
-                                                "expr": {
-                                                  "$ref": "#/$defs/value_expression"
-                                                },
-                                                "offset": {
-                                                  "oneOf": [
-                                                    {
-                                                      "type": "integer",
-                                                      "minimum": 0,
-                                                      "maximum": 9007199254740991
-                                                    },
-                                                    {
-                                                      "type": "object",
-                                                      "additionalProperties": false,
-                                                      "required": [
-                                                        "$param"
-                                                      ],
-                                                      "properties": {
-                                                        "$param": {
-                                                          "type": "string",
-                                                          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                                        }
-                                                      }
-                                                    }
-                                                  ]
-                                                },
-                                                "default": {
-                                                  "$ref": "#/$defs/value_expression"
-                                                }
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "required": [
-                                                "fn",
-                                                "expr"
-                                              ],
-                                              "properties": {
-                                                "fn": {
-                                                  "enum": [
-                                                    "first_value",
-                                                    "last_value"
-                                                  ]
-                                                },
-                                                "expr": {
-                                                  "$ref": "#/$defs/value_expression"
-                                                }
-                                              }
-                                            }
-                                          ]
-                                        }
-                                      }
+                                  "properties": {
+                                    "order_by": {
+                                      "maxItems": 0
                                     }
                                   }
                                 },
                                 "then": {
-                                  "required": [
-                                    "frame"
-                                  ]
+                                  "not": {
+                                    "required": [
+                                      "frame"
+                                    ]
+                                  },
+                                  "properties": {
+                                    "functions": {
+                                      "additionalProperties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "count"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "not": {
+                                                      "anyOf": [
+                                                        {
+                                                          "required": [
+                                                            "field"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "required": [
+                                                            "expr"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "if": {
+                                                  "required": [
+                                                    "distinct"
+                                                  ],
+                                                  "properties": {
+                                                    "distinct": {
+                                                      "const": true
+                                                    }
+                                                  }
+                                                },
+                                                "then": {
+                                                  "anyOf": [
+                                                    {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "count_if"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "sum"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "avg"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "min"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "const": false
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "max"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "const": false
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn",
+                                              "fraction"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "percentile_disc"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "fraction": {
+                                                "oneOf": [
+                                                  {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "$param"
+                                                    ],
+                                                    "properties": {
+                                                      "$param": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                      }
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn",
+                                              "fraction"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "percentile_cont"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "fraction": {
+                                                "oneOf": [
+                                                  {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "$param"
+                                                    ],
+                                                    "properties": {
+                                                      "$param": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                      }
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "var_pop"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "var_samp"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "stddev_pop"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "stddev_samp"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             ]

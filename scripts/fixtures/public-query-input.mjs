@@ -736,6 +736,26 @@ const navigationFrameSuccesses = [
   results: {answer: {rows: values.map(result => ({result})), unordered: true,
     columns: [{name: 'result', contract: {type: 'number', nullable: true}}]}},
   sourceReadCount: 0}));
+const aggregateDefaultWindows = [
+  ['ordered', 'ORDER BY n'], ['partition', 'PARTITION BY s'], ['whole', ''],
+];
+const aggregateDefaultFrameSuccesses = [
+  {name: 'sum', call: 'SUM(v)', nullable: true,
+    rows: [[10, 30, 60], [40, 20, 40], [60, 60, 60]]},
+  {name: 'count', call: 'COUNT(*)', nullable: false,
+    rows: [[1, 2, 3], [2, 1, 2], [3, 3, 3]]},
+  {name: 'avg', call: 'AVG(v)', nullable: true,
+    rows: [[10, 15, 20], [20, 20, 20], [20, 20, 20]]},
+  {name: 'min', call: 'MIN(v)', nullable: true,
+    rows: [[10, 10, 10], [10, 20, 10], [10, 10, 10]]},
+].flatMap(({name, call, nullable, rows}) =>
+  aggregateDefaultWindows.map(([mode, window], index) => ({
+    name: `default-frame-${name}-${mode}-original`, format: 'sql',
+    text: numberingInputs + `SELECT ${call} OVER (${window}) AS x FROM t`,
+    results: {answer: {rows: rows[index].map(x => ({x})), unordered: true,
+      columns: [{name: 'x', contract: {type: 'number', nullable}}]}},
+    sourceReadCount: 0,
+  })));
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -837,6 +857,7 @@ export const sourceFreeSuccesses = [
   navigationDefaultOriginal,
   ...numberingSuccesses,
   ...navigationFrameSuccesses,
+  ...aggregateDefaultFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

@@ -111,6 +111,26 @@ pub fn analytic_call_at(value : CheckedAnalytic, index : Int) -> AnalyticCall? {
 }
 
 ///|
+fn analytic_aggregate_needs_order(value : CheckedAggregate) -> Bool {
+  aggregate_function(value) is (ArrayAgg | StringAgg | First | Last)
+}
+
+///|
+/// An ordered default aggregate reads every peer as a member. Only a ROWS
+/// frame or a call selecting positions needs total-order completion.
+pub fn analytic_function_needs_position(
+  value : AnalyticFunction,
+  explicit_frame : Bool,
+) -> Bool {
+  match value {
+    Rank | DenseRank | PercentRank => false
+    Aggregate(aggregate) =>
+      explicit_frame || analytic_aggregate_needs_order(aggregate)
+    _ => true
+  }
+}
+
+///|
 fn frame_boundary(
   b : Budget,
   source : @decode.Cursor,
@@ -217,9 +237,6 @@ fn check_analytic(
   )
   let order_source = decoded(@decode.required(obj, "order_by"), body)
   let order = row_order(b, order_source, visible)
-  if order.is_empty() {
-    fail(order_source, InvalidOrder)
-  }
   let frame = @decode.lookup(obj, "frame").map(s => {
     read_frame(b, s, parameter_types, pending)
   })
@@ -240,7 +257,6 @@ fn check_analytic(
   let calls : Array[AnalyticCall] = []
   let validation_calls : Map[Int, Int] = Map([])
   let mut has_frame_call = false
-  let mut has_frame_aggregate = false
   let mut needs_position = false
   for name in names {
     let s = @decode.lookup(funcs, name).unwrap()
@@ -256,10 +272,7 @@ fn check_analytic(
       "row_number" | "rank" | "dense_rank" | "percent_rank" => {
         ignore(decoded(@decode.closed_object(s, ["fn"]), s))
         let fn_value = match fn_name {
-          "row_number" => {
-            needs_position = true
-            AnalyticFunction::RowNumber
-          }
+          "row_number" => AnalyticFunction::RowNumber
           "rank" => AnalyticFunction::Rank
           "dense_rank" => AnalyticFunction::DenseRank
           _ => AnalyticFunction::PercentRank
@@ -275,7 +288,6 @@ fn check_analytic(
           parameter_types,
           pending,
         )
-        needs_position = true
         (Ntile(buckets), @contract.primitive(Signed64Type, nullable=false))
       }
       "lag" | "lead" | "first_value" | "last_value" => {
@@ -301,7 +313,6 @@ fn check_analytic(
         )
         let argument = bindings.length()
         bindings.push(binding)
-        needs_position = true
         let fn_value = if navigation {
           let offset = match @decode.lookup(call, "offset") {
             Some(s) => row_count(b, s, 0L, parameter_types, pending)
@@ -366,11 +377,20 @@ fn check_analytic(
           analytic=true,
         )
         has_frame_call = true
-        has_frame_aggregate = true
-        needs_position = true
         (AnalyticFunction::Aggregate(agg), agg.result)
       }
     }
+    let explicit_frame = frame is Some(_)
+    if order.is_empty() &&
+      (
+        explicit_frame ||
+        !(function is Aggregate(_)) ||
+        analytic_function_needs_position(function, explicit_frame)
+      ) {
+      fail(order_source, InvalidOrder)
+    }
+    needs_position = needs_position ||
+      analytic_function_needs_position(function, explicit_frame)
     fields.push((@schema.Unqualified(name), result))
     spend(b, s, count=pending.length() - validation_start)
     for index in validation_start..<pending.length() {
@@ -378,8 +398,7 @@ fn check_analytic(
     }
     calls.push({ name, source: s, function, result, })
   }
-  if (!has_frame_call && frame is Some(_)) ||
-    (has_frame_aggregate && frame is None) {
+  if !has_frame_call && frame is Some(_) {
     fail(body, InvalidFrame)
   }
   pending.push({ kind: AnalyticPeerOrder, source: order_source, })

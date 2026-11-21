@@ -189,13 +189,12 @@ pub fn prepare_analytic(
       return Err(AnalyticPreparationLimit)
     }
   }
+  let explicit_frame = @relation.analytic_frame(analytic) is Some(_)
   let mut requires_position = false
   for i in 0..<call_count {
     let call = @relation.analytic_call_at(analytic, i).unwrap()
-    match call.function {
-      @relation.Rank | @relation.DenseRank | @relation.PercentRank => ()
-      _ => requires_position = true
-    }
+    requires_position = requires_position ||
+      @relation.analytic_function_needs_position(call.function, explicit_frame)
   }
   let position_completion : Array[@schema.FieldName] = []
   let mut retained_position_order = false

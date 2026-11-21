@@ -209,6 +209,11 @@ Ordered `FIRST_VALUE(value)` and `LAST_VALUE(value)` with no explicit frame
 use the prefix through the last peer with the current order keys.
 [GoogleSQL window frames](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
 
+With no explicit frame, analytic `SUM`, `COUNT`, `AVG` and `MIN` include all
+rows through the current order-key peers when ordered, or the entire
+partition when unordered. Numeric operations require the selected numeric
+profile. [GoogleSQL aggregate window defaults](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
 `CURRENT_DATE()` and bare `CURRENT_DATE` return the non-null UTC Date of the
 original query invocation. Repeated occurrences and Saved reads use that same
 original. Time-zone arguments are outside this selected signature.
@@ -289,7 +294,6 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
-| Analytic aggregates without explicit `ROWS` frames | Outside the selected aggregate frame signatures. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `ARRAY_LENGTH` | This GoogleSQL function spelling is not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |

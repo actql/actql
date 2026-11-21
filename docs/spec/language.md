@@ -5883,7 +5883,8 @@ argument contracts are retained with nullable root output.
 
 The body contains required `partition_by`, `order_by`, `functions`, and optional
 `frame`. `partition_by` is a possibly empty list of equality-key fields;
-`order_by` is a nonempty authored OrderKey list. `functions` is a nonempty map
+`order_by` is the authored OrderKey list. It may be empty for an omitted
+frame with only order-independent aggregates. `functions` is a nonempty map
 of fresh output names to closed calls. Partition NULLs group together. Results
 retain original input-row order, fields, multiplicity and candidate keys;
 window ordering determines calculations, not a new publication order.
@@ -5919,9 +5920,12 @@ admitted. Start cannot be unbounded_following, end cannot be
 unbounded_preceding, and start cannot follow end in logical offset order.
 Intersect the logical inclusive interval with the partition; do not clamp an
 out-of-partition start to an existing row. Empty frames use aggregate empty-set
-laws and yield NULL for first/last value. Frame is required for aggregate
-calls, optional for first/last value, and absent for calls consisting solely
-of ranking/navigation. It does not affect
+laws and yield NULL for first/last value. When an aggregate has no explicit
+frame, its members are the partition prefix through the current authored peer
+group if ordered, or the entire partition if unordered. Array, string and
+first/last aggregates require an order. An explicit ROWS frame also requires
+an order. Frame is absent for calls consisting solely of ranking/navigation.
+It does not affect
 lag, lead or ranking. A bounded partition may use unbounded frame boundaries.
 
 <!-- requirement-block: analytic.peers -->
@@ -5938,6 +5942,8 @@ buckets than rows, only the first buckets receive rows.
 retained total witness complete position order without splitting peer groups.
 Reference keys are eligible for internal completion, not authored value order.
 Without an adequate position witness, position-sensitive functions fail check.
+An order-independent aggregate in an omitted frame uses complete peer groups
+or partitions without needing a position witness.
 Position completion is journaled under Deterministic completion, recording the
 authored peer order, the added identity terms or reused total witness, and the
 supporting evidence. It does not change peer groups or publication order.
@@ -11329,7 +11335,7 @@ AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
 AggregateFunction := count | count_if | any_value | sum | avg | min | max | array_agg |
   string_agg | first | last | percentile_disc | percentile_cont |
   var_pop | var_samp | stddev_pop | stddev_samp
-AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
+AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...] | [],
   functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
 AnalyticCall := {fn: row_number | rank | dense_rank | percent_rank}
   | {fn: ntile, buckets: PositiveIntegerValue}

@@ -813,6 +813,14 @@ The selected endpoint may itself be NULL. The same checked ordering and
 positional evidence apply.
 [GoogleSQL window frames](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
 
+For an analytic aggregate with no explicit frame, an ordered window extends
+from the partition start through the last authored peer of the current row.
+Without ordering, order-independent aggregates read the whole partition.
+The ordinary aggregate filters, NULL behavior and numeric profile continue
+to apply. Explicit ROWS frames and order-sensitive calls use the existing
+position checks.
+[GoogleSQL aggregate window defaults](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),

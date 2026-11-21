@@ -28,17 +28,15 @@ test "current date retains the SQL query-time boundary without selecting timezon
 }
 
 ///|
-test "unselected aggregate window defaults keep their implementation limit" {
+test "aggregate window defaults keep missing frame and order as authored" {
   for expression in ["SUM(id) OVER ()", "COUNT(*) OVER (ORDER BY id)"] {
-    assert_true(
-      lower(
-        "SELECT " + expression + " AS result FROM records",
-        Sql,
-        Some(test_context()),
-      )
-      is Err(QueryLowering(UnsupportedAnalytic)),
-      msg=expression,
-    )
+    let lowered = lower(
+      "SELECT " + expression + " AS result FROM records",
+      Sql,
+      Some(test_context()),
+    ).unwrap()
+    assert_true(lowered.document.contains("\"analytic\":"), msg=expression)
+    assert_true(!lowered.document.contains("\"frame\":"), msg=expression)
   }
 }
 

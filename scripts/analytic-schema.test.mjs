@@ -8,7 +8,7 @@ import {parameterPrograms} from './parameter-schema.mjs';
 test('analytic calls reuse the frame aggregate matrix without local ordering',()=>{
   assert.equal(analyticSchema.properties.partition_by.minItems,undefined);
   assert.equal(analyticSchema.properties.partition_by.uniqueItems,undefined);
-  assert.equal(analyticSchema.properties.order_by.minItems,1);
+  assert.equal(analyticSchema.properties.order_by.minItems,0);
   const calls=analyticSchema.properties.functions.additionalProperties.oneOf;
   assert.deepEqual(calls.slice(4),aggregateSchema(true).oneOf);
   for(const c of calls) assert.equal(c.properties.order_by,undefined);
@@ -25,9 +25,12 @@ test('analytic calls reuse the frame aggregate matrix without local ordering',()
   assert.ok(analyticSchema.allOf[0].if.properties.functions.additionalProperties.oneOf.includes(calls[1]));
   assert.deepEqual(analyticSchema.allOf[0].then,{not:{required:['frame']}});
   assert.equal(analyticSchema.allOf[0].else, undefined);
-  assert.deepEqual(analyticSchema.allOf[1].if.not.properties.functions.additionalProperties.oneOf,
-    calls.slice(0,4));
-  assert.deepEqual(analyticSchema.allOf[1].then,{required:['frame']});
+  const emptyOrder = analyticSchema.allOf[1];
+  assert.deepEqual(emptyOrder.if,{properties:{order_by:{maxItems:0}}});
+  assert.deepEqual(emptyOrder.then.not,{required:['frame']});
+  const unordered = emptyOrder.then.properties.functions.additionalProperties.oneOf;
+  assert.deepEqual(unordered, calls.slice(4).filter(call =>
+    !['array_agg','string_agg','first','last'].includes(call.properties.fn.const)));
 });
 
 test('analytic schema drift is rejected in both Program copies',()=>{
