@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "a7af400b15fe91642834240ccc6e6e93756d6a1294f71d72d9732b4537a80f70",
+      "sha256": "c7b1bb28a7d9ee12ef429fa675a61d61c5d9332401e1017bf6381a0f83395cc2",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -1861,6 +1861,7 @@
         "validWireControlResumeOriginShape",
         "validWireControlledRunStateShape",
         "validWireEffectfulStaticPlanViewShape",
+        "validWireExplanationContextShape",
         "validWireExplanationExpressionNodeShape",
         "validWireExplanationFactsShape",
         "validWireExplanationMeaningShape",
@@ -2063,6 +2064,13 @@
         },
         {
           "name": "validWireEffectfulStaticPlanViewShape/validWireEffectfulStaticPlanViewShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validWireExplanationContextShape/validWireExplanationContextShape",
           "parameters": [
             "value"
           ],
@@ -2496,6 +2504,7 @@
             "validWireControlResumeOriginShape/validWireControlResumeOriginShape",
             "validWireEffectfulStaticPlanViewShape/validWireEffectfulStaticPlanViewShape",
             "validWireExplanationExpressionNodeShape/validWireExplanationExpressionNodeShape",
+            "validWireExplanationContextShape/validWireExplanationContextShape",
             "validWireExplanationFactsShape/validWireExplanationFactsShape",
             "validWireExplanationMeaningShape/validWireExplanationMeaningShape",
             "validWireExplanationPredicateShape/validWireExplanationPredicateShape",
@@ -2542,6 +2551,7 @@
             "validWireControlledRunStateShape",
             "validWireEffectfulStaticPlanViewShape",
             "validWireExplanationExpressionNodeShape",
+            "validWireExplanationContextShape",
             "validWireExplanationFactsShape",
             "validWireExplanationMeaningShape",
             "validWireExplanationPredicateShape",
@@ -2677,6 +2687,10 @@
               {
                 "path": "scripts/interactive-run-control-contract.test.mjs",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
               }
             ]
           }

@@ -6,7 +6,7 @@ import {connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installClientStaticPlan} from './client-interactive-plan.mjs';
+import {installClientStaticEffectExplanation, installClientStaticPlan} from './client-interactive-plan.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {validClientBody, prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
@@ -31,6 +31,104 @@ const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
 const request = {connection, kind: 'program', input: {stages: []}, parameters: null,
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+
+async function staticExplanationFixture() {
+  const {effectfulStaticPlan: plan} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const binding = {program_definition_cid: plan.program_definition_cid,
+    parameter_values_cid: plan.parameter_values_cid,
+    compiled_plan_cid: plan.computation.plan_view.compiled_plan_cid,
+    logical_map_cid: plan.computation.plan_view.logical_map.self_cid};
+  const facts = {version: 'actql-explanation-facts/0.1', disclosure: 'structural',
+    ...binding, steps: [], self_cid: cid('e')};
+  const context = {version: 'actql-explanation-context/0.1', disclosure: 'structural',
+    binding: {...binding, check_environment_cid: plan.check_environment_cid},
+    items: [{kind: 'result', name: '結果', stage_ordinal: 0,
+      producer: {state: 'not_projected', reason: 'no_original_port'}}]};
+  return {plan, facts, context};
+}
+
+function explanationWires(view) {
+  return {plan: JSON.stringify(view.plan), facts: JSON.stringify(view.facts),
+    context: JSON.stringify(view.context)};
+}
+
+function explanationGeometry(value) {
+  if (value === null || typeof value !== 'object') return {nodes: 1, depth: 1};
+  const children = Object.values(value).map(explanationGeometry);
+  const keys = Array.isArray(value) ? 0 : children.length;
+  return {nodes: 1 + keys + children.reduce((sum, child) => sum + child.nodes, 0),
+    depth: 1 + Math.max(0, ...children.map(child => child.depth))};
+}
+
+test('static Explanation applies aggregate limits and retains the original during delivery', async () => {
+  const view = await staticExplanationFixture();
+  const wires = explanationWires(view);
+  const {nodes: maxNodes, depth: maxDepth} = explanationGeometry(view);
+  const limits = {maxWireBytes: Buffer.byteLength(JSON.stringify(view), 'utf8'), maxNodes, maxDepth};
+  let held = false;
+  let delivered = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    async withOriginal(actual, visit) {
+      assert.strictEqual(actual.connection, request.connection);
+      held = true;
+      try {return await visit(wires, () => assert.equal(held, true));}
+      finally {held = false;}
+    }});
+  const result = await read({...request, ...limits}, async actual => {
+    await Promise.resolve();
+    assert.equal(held, true);
+    delivered++;
+    assert.deepEqual(actual, view);
+    return 'delivered';
+  });
+  assert.equal(result, 'delivered');
+  assert.equal(held, false);
+  assert.equal(delivered, 1);
+  for (const [key, bound] of Object.entries(limits)) {
+    await assert.rejects(read({...request, ...limits, [key]: bound - 1},
+      () => assert.fail(`One-short ${key} must stop delivery`)), {code: 'StaticExplanationReadLimit'});
+    assert.equal(held, false);
+  }
+});
+
+test('static Explanation refuses denied egress before preparation or wire access', async () => {
+  let egressAllowed = false;
+  let prepared = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true,
+    authorizeEgress: async () => egressAllowed,
+    withOriginal(_request, visit) {
+      prepared++;
+      egressAllowed = false;
+      return visit({get plan() {assert.fail('Revoked egress must not inspect wires');}},
+        () => assert.fail('Revoked egress must stop before inspecting the original'));
+    }});
+  const consume = () => assert.fail('Denied facets must not be delivered');
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 0);
+  egressAllowed = true;
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 1);
+});
+
+test('static Explanation refuses foreign Context and preserves final original current loss', async () => {
+  const view = await staticExplanationFixture();
+  let wires = explanationWires({...view, context: {...view.context,
+    binding: {...view.context.binding, check_environment_cid: cid('f')}}});
+  const lost = new Error('original is no longer current');
+  let currentChecks = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    withOriginal: (_request, visit) => visit(wires, () => {
+      currentChecks++;
+      if (currentChecks === 2) throw lost;
+    })});
+  const consume = () => assert.fail('Foreign or stale facets must not be delivered');
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationEncodingRejected'});
+  assert.equal(currentChecks, 1);
+  currentChecks = 0;
+  wires = explanationWires(view);
+  await assert.rejects(read(request, consume), error => error === lost);
+  assert.equal(currentChecks, 2);
+});
 
 test('public static plan admits its original snapshot before options and returns the same read producer', async t => {
   const events = [], receipt = {}, admitted = new WeakSet();

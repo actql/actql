@@ -11815,7 +11815,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b57100d0b4c5a7904697bd3955096fb228e1fb6221f512ea32f766916ea19238",
+      "sha256": "ca232fbe6266e89888fb0b035fc4d263cc704d65ca42fc14ea7d108b4968b64d",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -11834,6 +11834,7 @@
         "WireControlResumeOrigin",
         "WireControlledRunState",
         "WireEffectfulStaticPlanView",
+        "WireExplanationContext",
         "WireExplanationExpressionNode",
         "WireExplanationFacts",
         "WireExplanationMeaning",
@@ -11880,6 +11881,7 @@
         "validWireControlResumeOriginShape",
         "validWireControlledRunStateShape",
         "validWireEffectfulStaticPlanViewShape",
+        "validWireExplanationContextShape",
         "validWireExplanationExpressionNodeShape",
         "validWireExplanationFactsShape",
         "validWireExplanationMeaningShape",
@@ -12021,6 +12023,13 @@
             "value: unknown"
           ],
           "result": "value is WireEffectfulStaticPlanView"
+        },
+        {
+          "name": "validWireExplanationContextShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationContext"
         },
         {
           "name": "validWireExplanationExpressionNodeShape",
@@ -15894,6 +15903,7 @@
             "WireControlResumeOrigin",
             "WireControlledRunState",
             "WireEffectfulStaticPlanView",
+            "WireExplanationContext",
             "WireExplanationExpressionNode",
             "WireExplanationFacts",
             "WireExplanationMeaning",
@@ -16132,9 +16142,11 @@
         },
         {
           "operations": [
+            "validWireExplanationContextShape",
             "validWireExplanationFactsShape"
           ],
           "exports": [
+            "validWireExplanationContextShape",
             "validWireExplanationFactsShape"
           ],
           "attributes": {
@@ -16230,6 +16242,10 @@
               {
                 "path": "scripts/interactive-run-control-contract.test.mjs",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
               }
             ]
           }

@@ -24911,13 +24911,39 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ac6bfabc78f377a2b113f6dca562e48f5de95c2fcd2edc52596f35a348073b35",
+      "sha256": "eaff815f79a71bf6b36d7e0bbedbea6b9ab7195f5b7c37feb6df25bb650a77e6",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
+        "installClientStaticEffectExplanation",
         "installClientStaticPlan"
       ],
       "operations": [
+        {
+          "name": "installClientStaticEffectExplanation",
+          "parameters": [
+            "authorize",
+            "authorizeEgress",
+            "withOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/consumeOriginal",
+          "parameters": [
+            "wires",
+            "assertCurrent"
+          ],
+          "async": true
+        },
         {
           "name": "installClientStaticPlan",
           "parameters": [
@@ -25265,6 +25291,86 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientStaticEffectExplanation",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/consumeOriginal"
+          ],
+          "exports": [
+            "installClientStaticEffectExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticEffectExplanation({authorize, authorizeEgress, withOriginal}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "return async function readStaticEffectExplanation(request, consume) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "function originalStaticExplanation({plan, facts, context}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "retains that reservation until this visitor finishes, and supplies a"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "const result = await withOriginal(request, async function consumeOriginal(wires, assertCurrent) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "let remaining = maxWireBytes - explanationReplyOverhead;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "// A private Host continuation for the structural projection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation applies aggregate limits and retains the original during delivery', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses denied egress before preparation or wire access', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation refuses foreign Context and preserves final original current loss', async () => {"
               }
             ]
           }
