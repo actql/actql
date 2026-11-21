@@ -87,6 +87,7 @@ for (const mode of ['false', 'throw']) test('extent refusal retains actual sourc
     for (let attempt = 0; attempt < 2; attempt++) {
       const observed = failure!.cleanupHandle.retry();
       assert.equal(observed.pending, true);
+      assert.equal(observed.errors[0]?.error, firstClose);
       assert(observed.errors.every(({error}) => error === firstClose));
     }
     assert.equal(closes, 1); assert.equal(replacementCloses, 0); assert.equal(reads, 0);
