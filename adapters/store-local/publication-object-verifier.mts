@@ -5,8 +5,8 @@ import {lstat, open} from 'node:fs/promises';
 import type {FileHandle} from 'node:fs/promises';
 import {fail, quantity} from './publication-store-io.mjs';
 
-type PhysicalReadHandle = Pick<FileHandle, 'read' | 'stat'> & {close(): Promise<void | false>};
-type ReadCleanupStatus = Readonly<{pending: boolean}>;
+export type PhysicalReadHandle = Pick<FileHandle, 'read' | 'stat'> & {close(): Promise<void | false>};
+export type ReadCleanupStatus = Readonly<{pending: boolean}>;
 type ReaderCleanup = Readonly<{
   status(): ReadCleanupStatus;
   retry(): Promise<ReadCleanupStatus>;
@@ -15,7 +15,7 @@ type SemanticReader = {
   cleanup: ReaderCleanup | undefined;
   failure?: unknown;
 };
-type ReadFailureCarrier = {
+export type ReadFailureCarrier = {
   cleanupHandle?: ReaderCleanup;
   cleanupPending?: boolean;
   cleanupError?: unknown;

@@ -1,79 +1,90 @@
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {lstat, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import fs, {lstat, mkdtemp, open, rm} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {createContext, runInContext} from 'node:vm';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
-// Actual product functions and original OS FD; only close failure and unrelated
-// Catalog/metadata/unlink ports are controlled. Not a public Run acceptance.
-const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-function part(first, next) {
-  const start = source.indexOf(first), end = source.indexOf(next, start);
-  assert(start >= 0 && end > start);
-  return source.slice(start, end);
-}
-const consumeBody = part('  const consumeObject = async (', '\n  const withCommittedResult = async (');
-const physicalBody = part('  const consumePhysicalHolding = async (', '\n  const ensurePhysicalHoldingDeletion = async ');
-const retireBody = part('  const createPhysicalHoldingDeletionCleanup = record => {', '\n  const retirePhysicalHolding = async ');
+const digest = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function fixture(t, {closeFailures = 1, consumerFailure, openFailure} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-original-reader-'));
-  const path = join(directory, 'original');
+  const originalOpen = fs.open;
+  const holdingCid = digest('original reader holding');
   const bytes = Buffer.from('original');
-  await writeFile(path, bytes);
-  const original = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const cid = digest(bytes);
+  const path = join(directory, 'objects', cid.slice(7));
+  const closeFailure = Object.assign(new Error('OriginalFdClosePending'), {code: 'EIO'});
+  let store, writer, preparation, original, failure;
+  let attempts = 0, published = 0, opens = 0;
+  let allowClose = false, retiring = false, committed = false;
   t.after(async () => {
-    if (original.fd >= 0) await original.close();
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+    allowClose = true;
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    else if (original?.fd >= 0) await original.close();
+    if (store !== undefined && !store.status().closed) {
+      if (committed) assert.equal((await store.retirePhysicalHolding(holdingCid)).cleanup.status().pending, false);
+      else if (preparation !== undefined) await preparation.release();
+      else await writer?.cancel();
+      assert.equal(await store.close(), true);
+    }
     await rm(directory, {recursive: true});
   });
-  const cid = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-  const record = {holding_cid: 'holding-original', manifest_cid: 'manifest-original', objects: [{cid, byte_count: bytes.length}]};
-  let attempts = 0, published = 0, opens = 0;
-  const closeFailure = Object.assign(new Error('OriginalFdClosePending'), {code: 'EIO'});
-  const unlinks = [], readers = new Map();
-  const context = createContext({
-    active() {}, quantity: value => Number.isSafeInteger(value) && value >= 0,
-    fail(code) { throw Object.assign(new Error(code), {code}); }, constants, createHash,
-    configuration: {maxObjectBytes: bytes.length}, objectPath: () => path, cidHex: value => value.slice(7),
-    async open(selected) {
-      opens++;
-      assert.equal(selected, path);
-      if (openFailure) throw openFailure;
-      return {
-        stat: () => original.stat(), read: (...args) => original.read(...args),
-        async close() {
-          attempts++;
-          if (attempts <= closeFailures) throw closeFailure;
-          await original.close();
-        },
-      };
-    },
-    activePhysicalHoldingReaders: readers, async inspectPhysicalHolding() { return record; },
-    pendingPhysicalHoldingDeletions: new Map(), materialRetentionBusy: Promise.resolve(), preparedObjects: new Map(),
-    async ensurePhysicalHoldingDeletion() {}, async readPhysicalHolding() { return record; },
-    physicalHoldingPath: () => join(directory, 'holding'), physicalHoldingDeletionPath: () => join(directory, 'deletion'),
-    physicalHoldingsDirectory: directory, physicalHoldingDeletionsDirectory: directory, objectsDirectory: directory,
-    lstat, async materialHasLiveReference() { return false; }, async unlink(selected) { unlinks.push(selected); },
-    async syncDirectory() {}, storedBytes: bytes.length, objectCount: 1, Buffer,
-  });
-  const product = runInContext(`(() => {${consumeBody}\n${physicalBody}\n${retireBody}
-    return {consumePhysicalHolding, createPhysicalHoldingDeletionCleanup};})()`, context);
-  return {original, bytes, path, closeFailure, readers, unlinks, context,
+  store = await openLocalPublicationStore({
+    directory, storeAuthorityCid: digest('original reader authority'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 4096, maxObjects: 16,
+    maxContractNodes: 4096, maxContractDepth: 64,
+  }, createPublicationContractControlFixture());
+  writer = store.createPreparedObjectWriter(bytes.length);
+  await writer.append(bytes);
+  preparation = (await writer.seal(cid)).prepared;
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1', namespace: 'content',
+    holding_cid: holdingCid, manifest_cid: digest('original reader manifest'),
+    objects: [{cid, byte_count: bytes.length}],
+  }, [preparation]);
+  committed = true;
+  fs.open = async (...args) => {
+    // The verifier uses O_NONBLOCK. Retirement owns its separate descriptor.
+    if (retiring || args[0] !== path || args[1] !== (constants.O_RDONLY | constants.O_NOFOLLOW)) {
+      return originalOpen(...args);
+    }
+    opens++;
+    if (openFailure !== undefined) throw openFailure;
+    assert.equal(original, undefined, 'the original reader may acquire only one FD');
+    original = await originalOpen(...args);
+    const close = original.close;
+    original.close = function() {
+      attempts++;
+      if (!allowClose && attempts <= closeFailures) return Promise.reject(closeFailure);
+      return Reflect.apply(close, this, []);
+    };
+    return original;
+  };
+  syncBuiltinESMExports();
+  return {store, bytes, path, closeFailure, fd: () => original?.fd,
     attempts: () => attempts, published: () => published, opens: () => opens,
     async consume() {
-      const result = await product.consumePhysicalHolding(record.holding_cid, 0, async chunk => {
-        assert.equal(chunk.toString(), bytes.toString());
-        if (consumerFailure) throw consumerFailure;
-      });
-      published++;
-      return result;
+      try {
+        const result = await store.consumePhysicalHolding(holdingCid, 0, async chunk => {
+          assert.deepEqual(chunk, bytes);
+          if (consumerFailure !== undefined) throw consumerFailure;
+        });
+        published++;
+        return result;
+      } catch (error) { failure = error; throw error; }
     },
-    retire: () => product.createPhysicalHoldingDeletionCleanup(record).retry(),
+    async retire() {
+      retiring = true;
+      try { return (await store.retirePhysicalHolding(holdingCid)).cleanup.status(); }
+      finally { retiring = false; }
+    },
   };
 }
 
@@ -83,27 +94,26 @@ test('original FD close failure retains reader and byte custody through failed r
   await assert.rejects(f.consume(), error => { failure = error; return error === f.closeFailure; });
   const handle = failure.cleanupHandle;
   assert.equal(handle.status().pending, true);
-  assert(f.original.fd >= 0);
-  assert.equal(f.readers.get('holding-original'), 1);
+  assert(f.fd() >= 0);
+  await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
   assert.equal(f.published(), 0);
   assert.equal((await f.retire()).pending, true);
-  assert.equal(f.context.storedBytes, f.bytes.length);
-  assert.equal(f.unlinks.length, 0);
+  assert.equal(f.store.status().storedBytes, f.bytes.length);
+  assert.equal((await lstat(f.path)).size, f.bytes.length);
   const one = handle.retry(), same = handle.retry();
   assert.equal(one, same, 'concurrent retry borrows the same original close flight');
   await assert.rejects(one, error => error === f.closeFailure);
   assert.equal(f.attempts(), 2);
   assert.equal(handle.status().pending, true);
-  assert.equal(f.readers.get('holding-original'), 1);
+  await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
   assert.equal((await f.retire()).pending, true);
   await handle.retry();
   assert.equal(handle.status().pending, false);
-  assert.equal(f.original.fd, -1);
-  assert.equal(f.readers.size, 0);
+  assert.equal(f.fd(), -1);
   assert.equal(f.opens(), 1, 'cleanup never reopens by path');
   assert.equal((await f.retire()).pending, false);
-  assert.equal(f.context.storedBytes, 0);
-  assert(f.unlinks.includes(f.path));
+  assert.equal(f.store.status().storedBytes, 0);
+  await assert.rejects(lstat(f.path), {code: 'ENOENT'});
   await handle.retry();
   assert.equal(f.attempts(), 3, 'confirmed close is not repeated');
 });
@@ -115,10 +125,10 @@ test('consumer failure remains primary while original FD cleanup is pending', as
   assert.equal(primary.cleanupError, f.closeFailure);
   assert.equal(primary.cleanupHandle.status().pending, true);
   assert.equal(f.published(), 0);
-  assert.equal(f.readers.size, 1);
+  await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
   await primary.cleanupHandle.retry();
-  assert.equal(f.original.fd, -1);
-  assert.equal(f.readers.size, 0);
+  assert.equal(f.fd(), -1);
+  assert.equal((await f.retire()).pending, false);
 });
 
 test('frozen consumer failure is preserved as cause with original FD cleanup', async t => {
@@ -127,7 +137,7 @@ test('frozen consumer failure is preserved as cause with original FD cleanup', a
   let failure;
   await assert.rejects(f.consume(), error => { failure = error; return error.cause === primary; });
   await failure.cleanupHandle.retry();
-  assert.equal(f.original.fd, -1);
+  assert.equal(f.fd(), -1);
   assert.equal(f.published(), 0);
 });
 
@@ -135,8 +145,7 @@ test('confirmed original close releases the same reader once', async t => {
   const f = await fixture(t, {closeFailures: 0});
   const result = await f.consume();
   assert.equal(result.bytes, f.bytes.length);
-  assert.equal(f.original.fd, -1);
-  assert.equal(f.readers.size, 0);
+  assert.equal(f.fd(), -1);
   assert.equal(f.attempts(), 1);
   assert.equal(f.published(), 1);
   assert.equal((await f.retire()).pending, false);
@@ -146,8 +155,9 @@ test('open rejection before allocation releases only its unacquired reader', asy
   const primary = new Error('OriginalOpenFailure');
   const f = await fixture(t, {openFailure: primary});
   await assert.rejects(f.consume(), error => error === primary);
-  assert.equal(f.readers.size, 0);
   assert.equal(f.attempts(), 0);
+  assert.equal(f.fd(), undefined);
+  assert.equal((await f.retire()).pending, false);
   assert.equal(primary.cleanupHandle, undefined);
   assert.equal(f.published(), 0);
 });

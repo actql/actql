@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "751bf69a3f58887276f137a8abb8b8c9e59afd0e4926e2acf1970688d479b161",
+      "sha256": "0a555ddf6f0e3c4e4f472c5f69b4be62b5ce3ccce3b11b221ff36cd9f200e13b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6955,42 +6955,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject",
-          "parameters": [
-            "cid",
-            "accept",
-            "closed"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject/consumeObject",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/consumeObject/consumeObject/status/status",
           "parameters": [],
           "async": false
         },
@@ -9320,12 +9284,6 @@
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/consumeObject",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/status/status",
             "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
@@ -13300,6 +13258,7 @@
         "./publication-custody-records.mjs",
         "./publication-metadata-deletion-markers.mjs",
         "./publication-metadata-inventory.mjs",
+        "./publication-object-consumer.mjs",
         "./publication-object-verifier.mjs",
         "./publication-store-bootstrap.mjs",
         "./publication-store-format.mjs",
@@ -13317,6 +13276,157 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-object-consumer.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e9f2f91c9565fb3095828ea7ab37f5d64a687a53770fbeeb45a71942ec71d2e3",
+      "exports": [
+        "createPublicationObjectConsumer"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationObjectConsumer",
+          "parameters": [
+            "configuration",
+            "objectPath",
+            "cidHex",
+            "active",
+            "physicalContentReadWindowBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject",
+          "parameters": [
+            "cid",
+            "accept",
+            "closed"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject/consumeObject",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectConsumer/consumeObject/consumeObject/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationObjectConsumer",
+            "createPublicationObjectConsumer/consumeObject/consumeObject",
+            "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry",
+            "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
+            "createPublicationObjectConsumer/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
+            "createPublicationObjectConsumer/consumeObject/consumeObject/consumeObject",
+            "createPublicationObjectConsumer/consumeObject/consumeObject/status/status"
+          ],
+          "exports": [
+            "createPublicationObjectConsumer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "one dedicated backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "export function createPublicationObjectConsumer("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "hash.digest('hex') !== cidHex(cid)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "const acknowledge = retire;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "const primary = readFailed ? readFailure : closeFailure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "await original!.close() === false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "Buffer.allocUnsafeSlow(Math.min(physicalContentReadWindowBytes, before.size - bytes))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-object-consumer.mts",
+                "anchor": "await accept(chunk);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
+                "anchor": "original FD close failure retains reader and byte custody through failed retry"
+              },
+              {
+                "path": "adapters/store-local/object-read-extent.test.mjs",
+                "anchor": "short reads fill the same dedicated piece with no read-ahead or alias reuse"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original physical object streaming, distinct delivered buffers and retained close-only cleanup."
     },
     {
       "module": "adapters/store-local/publication-object-verifier.mjs",

@@ -1523,3 +1523,5 @@ target/
 /adapters/store-local/publication-custody-records.d.mts
 /adapters/store-local/publication-object-verifier.mjs
 /adapters/store-local/publication-object-verifier.d.mts
+/adapters/store-local/publication-object-consumer.mjs
+/adapters/store-local/publication-object-consumer.d.mts
