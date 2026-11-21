@@ -330,6 +330,25 @@ function runtimeImportReferences(tree: Program, privateFunctions?: WeakSet<AnyNo
   return reference;
 }
 
+// A CommonJS TypeScript export can reassign its exact already published
+// object after freezing it. Keep the original literal as the only inventory.
+function replayedCommonJsExport(tree: Program) {
+  const [initial, freeze, final] = tree.body.slice(-3);
+  if (initial?.type !== 'VariableDeclaration' || initial.kind !== 'const' || initial.declarations.length !== 1 ||
+      freeze?.type !== 'ExpressionStatement' || final?.type !== 'ExpressionStatement') return;
+  const [declaration] = initial.declarations;
+  const prefix = declaration.init, seal = freeze.expression, replay = final.expression;
+  if (declaration.id.type !== 'Identifier' ||
+      prefix?.type !== 'AssignmentExpression' || prefix.operator !== '=' ||
+      prefix.left.type !== 'MemberExpression' || !exportsObject(prefix.left) || prefix.right.type !== 'ObjectExpression' ||
+      seal.type !== 'CallExpression' || seal.callee.type !== 'Identifier' || seal.callee.name !== 'freeze' ||
+      seal.arguments.length !== 1 || seal.arguments[0].type !== 'MemberExpression' || !exportsObject(seal.arguments[0]) ||
+      replay.type !== 'AssignmentExpression' || replay.operator !== '=' ||
+      replay.left.type !== 'MemberExpression' || !exportsObject(replay.left) ||
+      replay.right.type !== 'Identifier' || replay.right.name !== declaration.id.name) return;
+  return {declaration, replay};
+}
+
 // Keep implementation syntax available for diagnostics. Responsibility belongs
 // to the actual module and its escaping/public operations, not private helper
 // names or argument spelling. Compiler representation checks remain separate.
@@ -339,6 +358,7 @@ export function javascriptInterface(source: string, {resolveRuntimeImport}: {res
   const operations: {name: string; parameters: string[]; async: boolean}[] = [], exports: string[] = [], imports: string[] = [], compilerFields: string[] = [], unresolvedSyntax: string[] = [], occurrences = new Map<string, number>();
   const privateFunctions = new WeakSet<AnyNode>(), privateOperations: string[] = [];
   const runtimeReference = runtimeImportReferences(tree, privateFunctions);
+  const publishedAlias = replayedCommonJsExport(tree);
   function commonJsMembers(value: AnyNode | null | undefined) {
     if (value?.type === 'CallExpression' && value.callee.type === 'MemberExpression' &&
         (value.callee.object as NamedSyntax).name === 'Object' && propertyName(value.callee) === 'freeze') value = value.arguments[0];
@@ -403,7 +423,7 @@ export function javascriptInterface(source: string, {resolveRuntimeImport}: {res
         if (typeof name === 'string') exports.push(`commonjs:${name}`);
         else unresolvedSyntax.push('dynamic CommonJS export assignment');
       }
-      if (exportsObject(target)) commonJsMembers(node.right);
+      if (exportsObject(target) && node !== publishedAlias?.replay) commonJsMembers(node.right);
     }
     if (node.type === 'ExportDefaultDeclaration') exports.push('default');
     if (node.type === 'ExportAllDeclaration') exports.push(node.exported
@@ -420,7 +440,8 @@ export function javascriptInterface(source: string, {resolveRuntimeImport}: {res
     if (typeof key === 'string' && /^(?:\$tag|_\d+|_<dynamic>)$/u.test(key)) compilerFields.push(key);
     for (const [key, child] of Object.entries(node)) {
       if (['loc', 'start', 'end'].includes(key)) continue;
-      const binding = node.type === 'VariableDeclarator' && key === 'init' && node.id.type === 'Identifier'
+      const binding = node.type === 'VariableDeclarator' && key === 'init' && node.id.type === 'Identifier' &&
+        node !== publishedAlias?.declaration
         ? [...childScope, node.id.name] : childScope;
       if (Array.isArray(child)) child.forEach(value => visit(value as AnyNode, binding));
       else if (child && typeof child === 'object') visit(child as AnyNode, binding);

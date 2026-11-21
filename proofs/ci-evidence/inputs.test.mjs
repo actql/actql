@@ -277,7 +277,7 @@ test('mutation input identity follows the physically staged package cohort and r
   }
 });
 
-test('the ordinary mutation CJS dependency is keyed by exact bytes, presence and mode', () => {
+test('the ordinary mutation Resource bridge keys the selected original and compiler inputs', () => {
   const selected = catalog.actions.find(value => value.id === 'mutations-js');
   const files = new Map(base);
   for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path,'independent input');
@@ -293,6 +293,24 @@ test('the ordinary mutation CJS dependency is keyed by exact bytes, presence and
     assert.equal(compareInputs(original,inventory(changed,'b'.repeat(40),selected)).eligible,false);
   }
   assert.equal(compareInputs(original,inventory(files,'b'.repeat(40),selected,{[path]:'100755'})).eligible,false);
+
+  const authored = path.replace(/\.cjs$/u, '.cts');
+  const compiler = ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json'];
+  const typed = new Map(files);
+  typed.delete(path);
+  for (const member of [authored, ...compiler]) typed.set(member, `original ${member}`);
+  const migrated = inventory(typed,'b'.repeat(40),selected);
+  assert.deepEqual(migrated.unresolved, []);
+  assert(!migrated.inputs.files.some(entry => entry.path === path));
+  for (const member of [authored, ...compiler])
+    assert(migrated.inputs.files.some(entry => entry.path === member && entry.digest === hash(typed.get(member))));
+  assert.equal(compareInputs(original, migrated).eligible, false);
+  for (const member of compiler) {
+    const missing = new Map(typed); missing.delete(member);
+    assert.equal(compareInputs(migrated, inventory(missing,'c'.repeat(40),selected)).eligible, false);
+  }
+  typed.set(path, 'ambiguous tracked runtime');
+  assert(inventory(typed,'c'.repeat(40),selected).unresolved.includes('ambiguous authored Node Resource bridge'));
 });
 
 test('mutation roots match the actual thirteen registered test suites', () => {

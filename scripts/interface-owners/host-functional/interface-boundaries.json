@@ -121679,7 +121679,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-      "sha256": "9d2f8ce21ebf3d0497213b20cfe481ec3f745939be0004974160c759800d8aee",
+      "sha256": "14d3705a768997eb40f419007bd558b774908bb50f8ce7697f79c59d54993100",
       "exports": [
         "commonjs:assertOrdinaryManagedRunCurrent",
         "commonjs:ordinaryManagedRunStatus",
@@ -121857,43 +121857,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "function retainOrdinaryManagedRun("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "!state.preparedOriginals.has(prepared)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "runs.set(original,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.portsTaken = true;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.retiring = true;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "state.childrenPending()"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "state.childrenPending!()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "heldBytes + reservedRetention > q[4]"
               }
             ],
@@ -121935,43 +121935,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalContentRunPorts(original, prepared) {return ports(original, prepared, 'local-content');}"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalContentRunPorts(original: object, prepared: object) {return ports(original, prepared, 'local-content');}"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.purpose !== purpose"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "runs.set(original, {preparedOriginals, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.portsTaken = true;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.retiring = true;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "state.childrenPending()"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "state.childrenPending!()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "heldBytes + reservedRetention > q[4]"
               }
             ],
@@ -122003,8 +122003,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122013,8 +122013,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122023,8 +122023,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122033,8 +122033,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122043,8 +122043,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122053,8 +122053,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122063,8 +122063,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122073,8 +122073,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122083,8 +122083,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "function retainedPorts(original, state) {"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "function retainedPorts(original: object, state: RunState) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -122113,8 +122113,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122123,8 +122123,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122133,8 +122133,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122143,8 +122143,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122153,8 +122153,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122163,8 +122163,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122173,8 +122173,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122183,8 +122183,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122193,8 +122193,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "prepareOriginalLocalPreparationPorts(original: object, input: object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122223,43 +122223,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "function retainOrdinaryManagedRun("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "!state.preparedOriginals.has(prepared)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "runs.set(original,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.portsTaken = true;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "state.retiring = true;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "state.childrenPending()"
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
+                "anchor": "state.childrenPending!()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cts",
                 "anchor": "heldBytes + reservedRetention > q[4]"
               }
             ],
@@ -126392,7 +126392,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "432ad0060e6a910cc62d3b4892f8f415d66adbe06084aeffc091dd0d1fc68f3f",
+      "sha256": "bf1a1b15916a93fcf3fbcfeb6818b8a9683f14beaba6671d122dfe7c20839d24",
       "exports": [
         "assertRequestPreparationControl",
         "beginHttpRequestInput",

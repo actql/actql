@@ -1,4 +1,3 @@
-// @ts-expect-error TS7016 The ordinary Node Resource bridge is still authored as CommonJS.
 import resources from '../host-node/ordinary-node-resource-runtime.cjs';
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -7,22 +6,6 @@ import {runtimeIsError,runtimeField} from '../host-common/compiler-binding.gener
 type AssertCurrent = () => undefined;
 type ChildrenPending = () => boolean;
 type RequestMemory = Readonly<{retainedBytes: number; executionBytes: number}>;
-type PreparationRequirements = Readonly<{
-  planningWork: number;
-  attempts: number;
-  holdings: number;
-  transferBytes: bigint;
-  retainedBytes: bigint;
-  executionBytes: bigint;
-}>;
-
-// This view names the two operations used on the same physical Resource bridge.
-type PreparationResourcePorts = Readonly<{
-  retainOrdinaryManagedRun(input: object, requirements: PreparationRequirements,
-    assertCurrent: AssertCurrent, childrenPending: ChildrenPending, purpose: 'local-preparation'): object;
-  ordinaryManagedRunStatus(original: object): Readonly<{stopped: boolean}>;
-}>;
-
 // Common Results and their opaque preparation, policy and holder values are
 // consumed only by their original runtime.
 type AdmissionRuntime = Readonly<{
@@ -224,7 +207,7 @@ function openPreparationAdmission(
     // needed before that supplier owns the first constructor.
     const requirements=Object.freeze({planningWork:Number(limits[0]),attempts:Number(limits[1]),
       holdings:Number(limits[2]),transferBytes:limits[3],retainedBytes:limits[4],executionBytes:limits[5]});
-    state.original=(resources as PreparationResourcePorts).retainOrdinaryManagedRun(input,requirements,
+    state.original=resources.retainOrdinaryManagedRun(input,requirements,
       assertCurrent,childrenPending,'local-preparation');
     state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,input));
   return policy;
@@ -279,7 +262,7 @@ export function closeHostInitializationPreparation(state: InitializationState) {
     checked(moon.clientProgramCleanupLocalPreparationAdmission(state.admission));
     state.admission=undefined;
   }
-  if (state.original!==undefined && !(resources as PreparationResourcePorts).ordinaryManagedRunStatus(state.original).stopped) invalid();
+  if (state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.runtime=undefined;
 }
 
@@ -365,7 +348,7 @@ export function cleanupRequestInput(
   }
   // Clear only after the original stop is confirmed. No caller snapshot is
   // revoked, and no local Promise completion stands in for physical cleanup.
-  if(state.original!==undefined && !(resources as PreparationResourcePorts).ordinaryManagedRunStatus(state.original).stopped) invalid();
+  if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
   state.originalCheckResult=state.projectOriginalCheck=undefined;

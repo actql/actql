@@ -8,9 +8,10 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {mutationSourcePaths, stageMutationSource, pipelinePristineSourcePaths, stagePipelinePristineSource, pipelineChild, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
-import {scratchCompilerConfigs, scratchOriginal, scratchRuntime, snapshotFilePaths} from '../relation-pipeline/inventory.mjs';
+import {scratchCompilerConfigs, scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime, snapshotFilePaths} from '../relation-pipeline/inventory.mjs';
 import {pipelineFixedJsSourcePaths, stagePipelineFixedJsSource, pipelineFixedJsChild, localIsolatedRunArguments} from './isolation.mjs';
-import {gitTree} from './inputs.mjs';
+import {gitTree, hash} from './inputs.mjs';
+import {snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -291,6 +292,37 @@ test('typed pristine staging derives just its scratch runtime from the exact sel
   assert.equal(readFileSync(join(destination, 'source', scratchOriginal), 'utf8'), bodies.get(scratchOriginal));
   tree.entries.set(scratchRuntime, {kind: 'blob', mode: '100644'});
   assert.throws(() => pipelinePristineSourcePaths(tree), /Ambiguous authored pipeline scratch input/u);
+});
+
+test('typed Node Resource bridge is derived and checked for Session and both Pipeline profiles', t => {
+  for (const [profile, select, stage] of [
+    ['session', mutationSourcePaths, stageMutationSource],
+    ['pipeline-pristine', pipelinePristineSourcePaths, stagePipelinePristineSource],
+    ['pipeline-fixed-js', pipelineFixedJsSourcePaths, stagePipelineFixedJsSource],
+  ]) {
+    const {tree, bodies} = pipelineSources(), destination = temporary(t);
+    tree.entries.delete(resourceRuntime);
+    bodies.delete(resourceRuntime);
+    for (const path of [...scratchCompilerConfigs, 'package-lock.json', resourceOriginal]) {
+      tree.entries.set(path, {kind: 'blob', mode: '100644'});
+      bodies.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
+    }
+    bodies.set(resourceOriginal, "'use strict';\nexport = 17 as number;\n");
+    bodies.set(pipelineFixedJsChild, 'fixed campaign child');
+    tree.entries.set(pipelineFixedJsChild, {kind: 'blob', mode: '100644'});
+    assert(select(tree).includes(resourceOriginal) && !select(tree).includes(resourceRuntime));
+    const staged = stage({tree, destination});
+    const root = join(destination, 'source'), stagedRuntime = join(root, resourceRuntime);
+    const original = "'use strict';\nmodule.exports = 17;\n";
+    assert.equal(readFileSync(stagedRuntime, 'utf8'), original);
+    assert.equal(staged.files.filter(file => file.path === `source/${resourceRuntime}`).length, 1);
+    assert.equal(snapshotFromGit(tree, profile).sources[resourceRuntime], hash(original));
+    assert.deepEqual(checkMutationCheckout({root, tree, profile}), snapshotFromGit(tree, profile));
+    writeFileSync(stagedRuntime, "'use strict';\nmodule.exports = 18;\n");
+    assert.throws(() => checkMutationCheckout({root, tree, profile}), /bytes differ/u);
+    tree.entries.set(resourceRuntime, {kind: 'blob', mode: '100644'});
+    assert.throws(() => select(tree), /Ambiguous authored Node Resource bridge/u);
+  }
 });
 
 test('the staged fixed JS replay can load its actual mutation and scratch dependencies', async t => {

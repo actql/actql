@@ -341,6 +341,20 @@ test('closed literal and dynamic compiler field spellings do not bypass the repr
   assert.deepEqual(javascriptInterface("value['_' + 'column']; value[`_column`]").compilerFields, []);
 });
 
+test('the frozen CommonJS export alias preserves the original closed inventory', () => {
+  const original = 'module.exports = {run(input) { return input; }}; freeze(module.exports);';
+  const retained = 'const published = ' + original + ' module.exports = published;';
+  const before = javascriptInterface(original), after = javascriptInterface(retained);
+  assert.deepEqual(after.operations, before.operations);
+  assert.deepEqual(after.exports, before.exports);
+  assert.deepEqual(after.unresolvedSyntax, []);
+  for (const source of [
+    retained.replace('const published', 'let published'),
+    retained.replace('freeze(module.exports);', 'replace(published);'),
+    retained.replace('module.exports = published;', 'module.exports = foreign;'),
+  ]) assert.deepEqual(javascriptInterface(source).unresolvedSyntax, ['dynamic CommonJS export value']);
+});
+
 test('namespace reexports and class methods retain their actual public names', () => {
   const before = javascriptInterface('export * as First from "./member.mjs"; export class Host { read() {} }');
   const after = javascriptInterface('export * as Second from "./member.mjs"; export class Host { write() {} }');

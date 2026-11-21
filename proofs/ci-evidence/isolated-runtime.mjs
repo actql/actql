@@ -7,11 +7,12 @@ import {join, relative, isAbsolute} from 'node:path';
 import {release, cpus} from 'node:os';
 import {inventoryDistribution} from './runtime.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {hash} from './inputs.mjs';
+import {hash,mutationSnapshotPaths} from './inputs.mjs';
+import {resourceOriginal,resourceRuntime,runtimeEmit} from '../relation-pipeline/inventory.mjs';
 import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata, pipelinePristineSourcePaths, pipelineFixedJsSourcePaths} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
-import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
-import {pipelineScratchEmit} from './isolation.mjs';
+import {isolatedRunArguments, checkImageDefinition} from './isolation.mjs';
+import {proofRuntimeEmits} from './isolation.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
 import {mutationObservation} from './mutation-observation.mjs';
 
@@ -118,8 +119,8 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
   }
   if (profile === 'pipeline-fixed-js') assert.equal(manifest.testedRevision, tree.revision, 'Wrong fixed-campaign revision');
   const expected = profile === 'session' ? mutationSourcePaths(tree) : profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree);
-  const emitted = pipelineScratchEmit(tree, profile);
-  if (emitted) expected.push(emitted.path);
+  const emitted = new Map(proofRuntimeEmits(tree, profile).map(entry => [entry.path, entry]));
+  expected.push(...emitted.keys());
   expected.sort();
   const sourceDirectories = new Set(['source']);
   for (const path of expected) {
@@ -132,7 +133,7 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
   assert.deepEqual(actual.map(entry => entry.path.slice('source/'.length)).sort(), expected, 'Missing/extra isolated source inputs');
   for (const path of expected) {
     const entry = byPath.get(`source/${path}`);
-    const derived = emitted?.path === path ? emitted : null;
+    const derived = emitted.get(path);
     const bytes = derived ? derived.bytes : tree.read(path);
     const mode = derived ? derived.mode : Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
     assert.equal(entry.kind, 'file'); assert.equal(entry.mode, mode);
@@ -153,14 +154,15 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
 
 export function snapshotFromGit(tree, profile = 'session') {
   assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile));
-  if (profile !== 'session') {
-    const paths = (profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree)).filter(path => !path.startsWith('proofs/ci-evidence/'));
-    const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
-    return {digest: hash(JSON.stringify(sources)), sources};
-  }
-  const paths = mutationSourcePaths(tree).filter(path => path.startsWith('src/') || path.startsWith('proofs/bounded-session/') || mutationSnapshotExtras.includes(path));
+  const paths = profile === 'session'
+    ? mutationSourcePaths(tree).filter(path => path.startsWith('src/') || path.startsWith('proofs/bounded-session/') ||
+      mutationSnapshotPaths(tree).includes(path))
+    : (profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree))
+      .filter(path => !path.startsWith('proofs/ci-evidence/'));
   tree.prefetch?.(paths);
-  const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
+  const runtime = tree.entries.has(resourceOriginal) ? runtimeEmit(tree, resourceOriginal, resourceRuntime) : undefined;
+  if (runtime) paths.push(runtime.path);
+  const sources = Object.fromEntries(paths.sort().map(path => [path, hash(path === runtime?.path ? runtime.bytes : tree.read(path))]));
   return {digest: hash(JSON.stringify(sources)), sources};
 }
 
@@ -173,7 +175,8 @@ export function checkMutationCheckout({root, tree, profile = 'session'}) {
   for (const [path, digest] of Object.entries(expected.sources)) {
     const entry = tree.entries.get(path), file = join(root, path), state = lstatSync(file);
     assert(state.isFile() && !state.isSymbolicLink(), 'Nonregular mutation checkout input');
-    assert.equal(state.mode & 0o777, Number.parseInt(entry.mode.slice(-3), 8), 'Mutation checkout mode differs from Git');
+    const mode = path === resourceRuntime && tree.entries.has(resourceOriginal) ? 0o644 : Number.parseInt(entry.mode.slice(-3), 8);
+    assert.equal(state.mode & 0o777, mode, 'Mutation checkout mode differs from Git');
     assert.equal(hash(readFileSync(file)), digest, 'Mutation checkout bytes differ from Git');
   }
   return expected;

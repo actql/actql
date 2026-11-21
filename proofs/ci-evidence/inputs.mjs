@@ -15,8 +15,9 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '6acea9bb8f3669853489b481e5f2dc3a986b196f9247be76c51bcb29031301d3',
+  digest: '5c24d9e731cfc6859ff91d0a7da1d5a62c23cec0491ba3ff4860924ee9dbcf39',
   legacyDigest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
+  preResourceDigest: '6acea9bb8f3669853489b481e5f2dc3a986b196f9247be76c51bcb29031301d3',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
@@ -29,6 +30,13 @@ export const mutationSnapshotExtras = Object.freeze([
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
   'adapters/host-node/ordinary-node-resource-runtime.cjs',
 ]);
+const resourceRuntime = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+const resourceOriginal = 'adapters/host-node/ordinary-node-resource-runtime.cts';
+export function mutationSnapshotPaths(tree) {
+  if (!tree.entries.has(resourceOriginal)) return mutationSnapshotExtras;
+  return [...mutationSnapshotExtras.filter(path => path !== resourceRuntime), resourceOriginal,
+    'tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json'];
+}
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
@@ -401,11 +409,14 @@ function buildActionInputs({tree, revision, action, runtime}) {
   // pipeline executions. Their directory is not read/evaluated by Session.
   // Bind every evaluated module in the reviewed inventory import graph. A
   // changed dependency cannot inherit the inventory's unchanged digest.
-  for (const {path, digest, legacyDigest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
+  for (const {path, digest, legacyDigest, preResourceDigest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
     const entry = tree.entries.get(path);
     const actual = entry?.kind === 'blob' && entry.mode === '100644' ? hash(tree.read(path)) : null;
-    const legacy = legacyDigest && !tree.entries.has('scripts/owned-scratch.mts');
-    if (actual !== digest && (!legacy || actual !== legacyDigest))
+    const historicalResource = !tree.entries.has(resourceOriginal);
+    const legacy = legacyDigest && historicalResource && !tree.entries.has('scripts/owned-scratch.mts');
+    const preResource = preResourceDigest && historicalResource;
+    if (actual !== digest && (!legacy || actual !== legacyDigest) &&
+        (!preResource || actual !== preResourceDigest))
       unresolved.add('unreviewed pipeline inventory import/effect boundary');
   }
   function bridgeInputs() {
@@ -432,7 +443,9 @@ function buildActionInputs({tree, revision, action, runtime}) {
       configurations.push(...packageInputs.packageConfigurations);
     }
     if (action.id === 'mutations-js') {
-      mutationSnapshotExtras.forEach(add);
+      mutationSnapshotPaths(tree).forEach(add);
+      if (tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime))
+        unresolved.add('ambiguous authored Node Resource bridge');
       add('proofs/bounded-session/mutations.mjs');
       add('proofs/bounded-session/evidence.mjs');
     } else if (!action.package) unresolved.add(`unreviewed executor: ${action.id}`);
