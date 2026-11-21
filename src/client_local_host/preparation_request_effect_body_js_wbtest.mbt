@@ -767,13 +767,41 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
     let selected = original_effect_run_explanation_facets(original, definition).unwrap()
     assert_eq(
       selected.plan,
-      @publication_host.client_effectful_static_plan_view(
+      @publication_host.client_effect_static_computation_plan_view(
         prepared, compiled, 65536, 8192, 64,
       ).unwrap(),
     )
-    let plan_cid = @publication.publication_contract_identity(
-      @publication_host.client_effect_compilation_compiled_plan(compiled),
+    let original_plan = @publication_host.client_effect_compilation_compiled_plan(
+      compiled,
     )
+    assert_eq(
+      selected.compiled_plan,
+      @publication.publication_contract_json(original_plan),
+    )
+    let template = @publication_host.client_effect_compilation_template(
+      compiled,
+    )
+    assert_eq(
+      selected.invocation_template,
+      @publication.run_evidence_value_json(template),
+    )
+    guard @json.parse(selected.invocation_template) is Object(template_fields) &&
+      @json.parse(@publication.publication_contract_json(definition))
+      is Object(definition_fields) else {
+      fail("the original Template and Run Definition must be objects")
+    }
+    assert_true(
+      definition_fields.get("invocation_template_cid") is Some(String(value)) &&
+      value == @publication.run_evidence_value_identity(template),
+    )
+    assert_true(
+      template_fields.get("check_environment_cid") is Some(String(value)) &&
+      value ==
+      @publication_host.prepared_client_effect_computation_environment_cid(
+        prepared,
+      ),
+    )
+    let plan_cid = @publication.publication_contract_identity(original_plan)
     let facts = @publication.parse_interactive_run_control_shape(
       "explanation_facts",
       selected.facts,
@@ -789,6 +817,14 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
       64,
     ).unwrap()
     let binding = @identity.object_field(context, "binding").unwrap()
+    assert_true(
+      @identity.object_field(binding, "check_environment_cid")
+      is Some(@identity.String(value)) &&
+      value ==
+      @publication_host.prepared_client_effect_computation_environment_cid(
+        prepared,
+      ),
+    )
     for facet in [facts, binding] {
       assert_true(
         @identity.object_field(facet, "compiled_plan_cid")

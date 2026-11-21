@@ -339,7 +339,7 @@ pub fn capture_client_effect_run_observation_originals(PreparedClientEffectCompu
 
 pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
-pub fn capture_client_static_effect_explanation_original(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[(ClientStaticEffectExplanationOriginal, String), ClientStaticExplanationSourceIssue]
+pub fn capture_client_static_effect_explanation_original(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, computation_wire? : @ref.Ref[String?]?) -> Result[(ClientStaticEffectExplanationOriginal, String), ClientStaticExplanationSourceIssue]
 
 pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 

@@ -189,7 +189,7 @@ fn issue_client_effectful_static_plan_view(
   max_members : Int,
   max_work : Int,
   retained_explanation? : Ref[
-    (@canonical.CanonicalValue, ClientEffectStaticDeclarationSet)?,
+    (@canonical.CanonicalValue, ClientEffectStaticDeclarationSet, String)?,
   ]? = None,
 ) -> Result[String, ClientEffectfulStaticPlanIssue] {
   if !physical_equal(compiled.owner, prepared) {
@@ -232,7 +232,7 @@ fn issue_client_effectful_static_plan_view(
     ) {
     Ok(_) => {
       if retained_explanation is Some(retained) {
-        retained.val = Some((computation, declarations))
+        retained.val = Some((computation, declarations, component))
       }
       Ok(wire)
     }

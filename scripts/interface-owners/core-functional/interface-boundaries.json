@@ -48102,7 +48102,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
-      "sha256": "ced54fca471e339c3759e1f0697f118923af30b9fba1dd01b4f06a57d9e848bf",
+      "sha256": "4bfdfd39b1d44864db66eb879fe0b9585566720a9f4568209c8ad184da15dccd",
       "operations": [
         {
           "name": "[I]capture_request_effect_run_explanation",
@@ -48114,7 +48114,7 @@
         },
         {
           "name": "[I]original_effect_run_explanation_facets",
-          "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestStaticEffectExplanation , ClientRequestStaticContextIssue , ]"
+          "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestEffectRunExplanationFacets , ClientRequestStaticContextIssue , ]"
         }
       ],
       "exports": [],

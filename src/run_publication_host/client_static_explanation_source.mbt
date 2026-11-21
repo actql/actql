@@ -26,6 +26,7 @@ pub fn capture_client_static_effect_explanation_original(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  computation_wire? : Ref[String?]? = None,
 ) -> Result[
   (ClientStaticEffectExplanationOriginal, String),
   ClientStaticExplanationSourceIssue,
@@ -45,9 +46,12 @@ pub fn capture_client_static_effect_explanation_original(
     Ok(wire) => wire
     Err(issue) => return Err(Plan(issue))
   }
-  guard retained.val is Some((value, declarations)) &&
+  guard retained.val is Some((value, declarations, component)) &&
     @canonical.object_field(value, "logical_map") is Some(map) else {
     return Err(ForeignOriginal)
+  }
+  if computation_wire is Some(selected) {
+    selected.val = Some(component)
   }
   Ok(({ prepared, compiled, map, declarations, }, wire))
 }

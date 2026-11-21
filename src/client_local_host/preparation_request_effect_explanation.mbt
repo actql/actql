@@ -9,7 +9,19 @@ priv struct ClientRequestEffectRunExplanationData[I] {
   definition : @publication.PublicationContract
   limits : (Int, Int, Int)
   max_work : Int
-  facets : ClientRequestStaticEffectExplanation
+  facets : ClientRequestEffectRunExplanationFacets
+}
+
+///|
+/// The original Journal Plan wire is the computation, not the static Effect
+/// envelope. The Invocation Template anchors the checked environment on a
+/// later cold read via the existing Definition's template CID.
+pub struct ClientRequestEffectRunExplanationFacets {
+  plan : String
+  compiled_plan : String
+  invocation_template : String
+  facts : String
+  context : String
 }
 
 ///|
@@ -66,7 +78,7 @@ pub fn[I] capture_request_effect_run_explanation(
       }
       guard static_effect_plan_capture_construction(limits) is Some(overlap) &&
         @execution.preparation_representation_cost(
-          static_plan_quote_units(8L, 16L, 6L),
+          static_plan_quote_units(9L, 23L, 6L),
         )
         is Some(binding) &&
         @execution.checked_preparation_add_product(
@@ -84,9 +96,15 @@ pub fn[I] capture_request_effect_run_explanation(
         Ok(_) => ()
       }
       guard current() else { return Err(Preparation(ForeignOriginal)) }
-      let (original, plan) = match
+      let computation_wire = Ref(None)
+      let (original, _) = match
         @publication_host.capture_client_static_effect_explanation_original(
-          prepared, compiled, bytes, nodes, depth,
+          prepared,
+          compiled,
+          bytes,
+          nodes,
+          depth,
+          computation_wire=Some(computation_wire),
         ) {
         Err(issue) => return Err(Context(issue))
         Ok(value) => value
@@ -98,6 +116,9 @@ pub fn[I] capture_request_effect_run_explanation(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
+      guard computation_wire.val is Some(plan) else {
+        return Err(Preparation(ForeignOriginal))
+      }
       Ok({
         original: Some({
           owner,
@@ -106,7 +127,21 @@ pub fn[I] capture_request_effect_run_explanation(
           definition,
           limits,
           max_work,
-          facets: { plan, facts, context, },
+          facets: {
+            plan,
+            // Both already have immutable encoder output in the original
+            // compiler owner. Carry the strings without copying or encoding.
+            compiled_plan: @publication.publication_contract_json(
+              @publication_host.client_effect_compilation_compiled_plan(
+                compiled,
+              ),
+            ),
+            invocation_template: @publication.run_evidence_value_json(
+              @publication_host.client_effect_compilation_template(compiled),
+            ),
+            facts,
+            context,
+          },
         }),
       })
     },
@@ -114,13 +149,13 @@ pub fn[I] capture_request_effect_run_explanation(
 }
 
 ///|
-/// Borrow all three facets on the original working Request before adoption.
+/// Borrow the original Plan, binding and facets on the working Request.
 /// The caller carries this funded data through that same Run's admission.
 pub fn[I] original_effect_run_explanation_facets(
   original : ClientRequestEffectRunExplanation[I],
   definition : @publication.PublicationContract,
 ) -> Result[
-  ClientRequestStaticEffectExplanation,
+  ClientRequestEffectRunExplanationFacets,
   ClientRequestStaticContextIssue,
 ] {
   guard original.original is Some(selected) else {
