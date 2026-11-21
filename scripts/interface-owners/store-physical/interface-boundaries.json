@@ -3105,7 +3105,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "export function"
               },
               {
@@ -3115,7 +3115,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "createMetadataDeletionOwner"
               },
               {
@@ -3129,7 +3129,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "marker"
               },
               {
@@ -3139,7 +3139,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "pending"
               },
               {
@@ -3149,7 +3149,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "operations.serialize"
               },
               {
@@ -3159,7 +3159,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "catch (error)"
               },
               {
@@ -3169,7 +3169,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "async retry()"
               },
               {
@@ -3179,7 +3179,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.mts",
                 "anchor": "operations.settle()"
               },
               {
@@ -3199,7 +3199,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.test.mts",
                 "anchor": "test("
               },
               {
@@ -14275,7 +14275,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "export function"
               },
               {
@@ -14289,7 +14289,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "createResultDeletionOwner"
               },
               {
@@ -14297,7 +14297,7 @@
                 "anchor": "bounded UTF-8 text or bounded byte frames"
               },
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "if (allocation !== 'missing-unconfirmed') await operations.unlink();"
               },
               {
@@ -14307,7 +14307,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "operations.ensureMarker()"
               },
               {
@@ -14321,7 +14321,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "pending"
               },
               {
@@ -14335,7 +14335,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "operations.serialize"
               },
               {
@@ -14349,7 +14349,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "catch (error)"
               },
               {
@@ -14363,7 +14363,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "async retry()"
               },
               {
@@ -14377,7 +14377,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "operations.releaseCapacity()"
               },
               {
@@ -14405,11 +14405,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "path": "adapters/store-local/result-deletion-owner.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "path": "adapters/store-local/result-deletion-owner.test.mts",
                 "anchor": "an absent original with retained quota waits for its same directory ACK"
               },
               {
@@ -14529,7 +14529,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "// One exclusively held original allocation spans unlink, directory ACK, native"
               },
               {
@@ -14539,31 +14539,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
-                "anchor": "export function createPhysicalRetirementOwner(original, handle, operations)"
+                "path": "adapters/store-local/physical-retirement-owner.mts",
+                "anchor": "export function createPhysicalRetirementOwner<Original extends PhysicalOriginal>"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "original,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "await operations.releaseQuota(original);"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "String(held.ino) !== original.inode"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "const held = await handle.stat();"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "operations.fence(owner);"
               },
               {
@@ -14573,11 +14573,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "if (unlinkFlight !== undefined) return unlinkFlight;"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "if (retireFlight !== undefined) return retireFlight;"
               },
               {
@@ -14587,7 +14587,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "closePromise ??= Promise.resolve().then(() => handle.close())"
               },
               {
@@ -14604,7 +14604,7 @@
                 "anchor": "A replacement"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.mts",
                 "anchor": "await operations.releaseQuota(original);"
               },
               {
@@ -14617,11 +14617,11 @@
             },
             "verification": [
               {
-                "path": "adapters/store-local/physical-retirement-owner.test.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.test.mts",
                 "anchor": "concurrent cleanup and late ACK never unlink or refund a replacement"
               },
               {
-                "path": "adapters/store-local/physical-retirement-owner.test.mjs",
+                "path": "adapters/store-local/physical-retirement-owner.test.mts",
                 "anchor": "rejected real close never retries a descriptor reused by a replacement"
               },
               {

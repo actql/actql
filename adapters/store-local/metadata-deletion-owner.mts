@@ -2,10 +2,29 @@
 // durably reclaimed metadata. The Store remains the sole capacity ledger.
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 
-export function createMetadataDeletionOwner(marker, operations) {
+type Marker<Result, Contract> = Readonly<{
+  results: readonly Result[]; physical_holding_cids: readonly string[]; contract_objects: readonly Contract[];
+}>;
+type Operations<Result, Contract, Removal> = Readonly<{
+  serialize(run: () => Promise<void>): PromiseLike<void>;
+  syncObjects(objects: Map<string, Removal>): unknown;
+  releaseUnconfirmed(objects: Map<string, Removal>): unknown;
+  retireResult(result: Result): boolean | PromiseLike<boolean>;
+  retireHolding(holdingCid: string): boolean | PromiseLike<boolean>;
+  removeRunDirectories(): unknown;
+  removeIndex(): unknown;
+  reclaimContract(contract: Contract, unconfirmedObjects: Map<string, Removal>): unknown;
+  removeResultDeletionDirectory(): unknown;
+  removeInventory(): unknown;
+  compactMarker(): unknown;
+  settle(): undefined;
+}>;
+
+export function createMetadataDeletionOwner<Result, Contract, Removal>(
+  marker: Marker<Result, Contract>, operations: Operations<Result, Contract, Removal>) {
   let pending = true;
-  const errors = [];
-  const unconfirmedObjects = new Map();
+  const errors: unknown[] = [];
+  const unconfirmedObjects = new Map<string, Removal>();
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),

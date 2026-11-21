@@ -2,16 +2,30 @@
 // The Store retains the shared capacity ledger and material-retention queue.
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 
-export function createResultDeletionOwner(operations) {
+type Retention = 'wait' | 'settled' | 'free';
+type Allocation = 'missing' | 'shared' | 'missing-unconfirmed' | 'exclusive';
+type Operations = Readonly<{
+  serialize(run: () => Promise<void>): PromiseLike<void>;
+  ensureMarker(): unknown;
+  retention(): Retention | PromiseLike<Retention>;
+  markReclaiming(): undefined;
+  inspectAllocation(): Allocation | PromiseLike<Allocation>;
+  unlink(): unknown;
+  syncObjects(): unknown;
+  releaseCapacity(): unknown;
+  settle(clearReclaiming: boolean): undefined;
+}>;
+
+export function createResultDeletionOwner(operations: Operations) {
   let pending = true;
   let unlinked = false;
   let accounted = false;
-  const errors = [];
+  const errors: unknown[] = [];
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),
   });
-  const settle = clearReclaiming => {
+  const settle = (clearReclaiming: boolean) => {
     pending = false;
     operations.settle(clearReclaiming);
   };

@@ -1,12 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {mkdtemp, writeFile, readFile, lstat, open, unlink, rm} from 'node:fs/promises';
+import type {FileHandle} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 
-async function fixture(t, hooks = {}) {
+type Hooks = Readonly<{
+  close?(handle: FileHandle, nativeClose: () => Promise<void>): void | Promise<void>;
+  pathState?(): unknown;
+  unlinked?(path: string): unknown;
+  releaseQuota?(original: Readonly<{cid: string; device: string; inode: string; byte_count: number}>): unknown;
+}>;
+
+async function fixture(t: TestContext, hooks: Hooks = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retirement-owner-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'original');
@@ -16,14 +25,14 @@ async function fixture(t, hooks = {}) {
   t.after(async () => { if (handle.fd >= 0) await nativeClose(); });
   const original = Object.freeze({cid: `sha256:${createHash('sha256').update('payload').digest('hex')}`,
     byte_count: 7, device: String(state.dev), inode: String(state.ino)});
-  const fences = new Set();
+  const fences = new Set<unknown>();
   let closeCalls = 0, releases = 0, unlinks = 0;
   handle.close = async () => { closeCalls++; return hooks.close ? hooks.close(handle, nativeClose) : nativeClose(); };
   const owner = createPhysicalRetirementOwner(original, handle, {
     async pathState() {
       let state;
       try { state = await lstat(path); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
       if (hooks.pathState) await hooks.pathState();
       return state;
     },
@@ -44,9 +53,9 @@ async function fixture(t, hooks = {}) {
 }
 
 test('concurrent cleanup and late ACK never unlink or refund a replacement', async t => {
-  let permit, entered;
-  const blocked = new Promise(resolve => { permit = resolve; });
-  const observed = new Promise(resolve => { entered = resolve; });
+  let permit!: () => void, entered!: () => void;
+  const blocked = new Promise<void>(resolve => { permit = resolve; });
+  const observed = new Promise<void>(resolve => { entered = resolve; });
   const f = await fixture(t, {async pathState() { entered(); await blocked; },
     async unlinked(path) { await writeFile(path, 'payload'); }});
   const first = f.owner.unlinkOriginal(), second = f.owner.unlinkOriginal();
@@ -91,9 +100,9 @@ test('native quota uncertainty retains the fence and confirms only the original 
 });
 
 test('rejected real close never retries a descriptor reused by a replacement', async t => {
-  const replacements = [];
+  const replacements: FileHandle[] = [];
   t.after(async () => { for (const handle of replacements) await handle.close(); });
-  let reused, expectedFd, f;
+  let reused!: FileHandle | undefined, expectedFd: number | undefined, f!: Awaited<ReturnType<typeof fixture>>;
   const failure = Object.assign(new Error('lost real close reply'), {code: 'EIO'});
   f = await fixture(t, {async close(handle, nativeClose) {
     expectedFd = handle.fd;
@@ -110,9 +119,9 @@ test('rejected real close never retries a descriptor reused by a replacement', a
   await assert.rejects(f.owner.retireAfterDirectoryAck(), error => error === failure);
   await assert.rejects(f.owner.retireAfterDirectoryAck(), error => error === failure);
   await assert.rejects(f.owner.abandon(), {code: 'PublicationStoreCleanupPending'});
-  await reused.writeFile('replacement remains owned');
-  assert.equal(reused.fd, expectedFd);
-  assert.equal((await reused.stat()).size, 25);
+  await reused!.writeFile('replacement remains owned');
+  assert.equal(reused!.fd, expectedFd);
+  assert.equal((await reused!.stat()).size, 25);
   assert.deepEqual(f.counts(), {closeCalls: 1, releases: 0, unlinks: 1});
   assert(f.fences.has(f.owner), 'an unknown close cannot be replaced by vacuous later success');
 });

@@ -1,9 +1,35 @@
 // One exclusively held original allocation spans unlink, directory ACK, native
 // close and Store quota settlement. The Store supplies all authority and I/O.
-export function createPhysicalRetirementOwner(original, handle, operations) {
+import type {Stats} from 'node:fs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type PhysicalOriginal = Readonly<{device: string; inode: string; byte_count: number}>;
+type AllocationState = Readonly<Pick<Stats, 'dev' | 'ino' | 'isFile' | 'nlink' | 'size'>>;
+type Handle = Readonly<{
+  close(): boolean | void | PromiseLike<boolean | void>;
+  stat(): AllocationState | PromiseLike<AllocationState>;
+}>;
+type Retirement<Original> = Readonly<{
+  original: Original;
+  settled: boolean;
+  admit(): undefined;
+  abandon(): Promise<void>;
+  unlinkOriginal(): Promise<void>;
+  retireAfterDirectoryAck(): Promise<void>;
+}>;
+type Operations<Original> = Readonly<{
+  fence(owner: Retirement<Original>): SynchronousRuntimeData;
+  forget(owner: Retirement<Original>): SynchronousRuntimeData;
+  pathState(): AllocationState | undefined | PromiseLike<AllocationState | undefined>;
+  unlink(): unknown;
+  releaseQuota(original: Original): unknown;
+}>;
+
+export function createPhysicalRetirementOwner<Original extends PhysicalOriginal>(
+  original: Original, handle: Handle, operations: Operations<Original>) {
   let admitted = false, unlinked = false, settled = false;
-  let unlinkFlight, closePromise, retireFlight;
-  const fail = code => { throw Object.assign(new Error(code), {code}); };
+  let unlinkFlight: Promise<void> | undefined, closePromise: Promise<void> | undefined, retireFlight: Promise<void> | undefined;
+  const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
   const closeOriginal = () => {
     operations.fence(owner);
     // Node invalidates FileHandle.fd before its asynchronous close settles.
@@ -14,10 +40,10 @@ export function createPhysicalRetirementOwner(original, handle, operations) {
     });
     return closePromise;
   };
-  const owner = Object.freeze({
+  const owner: Retirement<Original> = Object.freeze({
     original,
     get settled() { return settled; },
-    admit() {
+    admit(): undefined {
       if (settled || closePromise !== undefined) fail('PublicationStoreCleanupPending');
       admitted = true;
     },

@@ -2,16 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 
-const failure = code => Object.assign(new Error(code), {code});
+const failure = (code: string) => Object.assign(new Error(code), {code});
+
+type Operations = Parameters<typeof createResultDeletionOwner>[0];
+type Retention = Awaited<ReturnType<Operations['retention']>>;
+type Allocation = Awaited<ReturnType<Operations['inspectAllocation']>>;
 
 function fixture() {
-  const calls = [];
-  let retention = 'free';
-  let allocation = 'exclusive';
-  const syncFailures = [];
+  const calls: string[] = [];
+  let retention: Retention = 'free';
+  let allocation: Allocation = 'exclusive';
+  const syncFailures: unknown[] = [];
   let unlinkFailures = 0;
   let busy = Promise.resolve();
-  const operations = {
+  const operations: Operations = {
     serialize(run) {
       calls.push('serialize');
       const operation = busy.then(run);
@@ -38,10 +42,10 @@ function fixture() {
   return {
     owner: createResultDeletionOwner(operations),
     calls,
-    setRetention: value => { retention = value; },
-    setAllocation: value => { allocation = value; },
+    setRetention: (value: Retention) => { retention = value; },
+    setAllocation: (value: Allocation) => { allocation = value; },
     failSync: () => { syncFailures.push(failure('SYNC_FAILED')); },
-    failSyncWith: error => { syncFailures.push(error); },
+    failSyncWith: (error: unknown) => { syncFailures.push(error); },
     failUnlink: () => { unlinkFailures++; },
   };
 }
@@ -88,7 +92,7 @@ test('sync failure retries durability without a second unlink or early release',
 
 test('shared or absent allocation settles without releasing Store capacity',
   async () => {
-    for (const allocation of ['shared', 'missing']) {
+    for (const allocation of ['shared', 'missing'] as const) {
       const {owner, calls, setAllocation} = fixture();
       setAllocation(allocation);
       assert.equal((await owner.retry()).pending, false);
@@ -131,7 +135,7 @@ test('concurrent retries unlink and release capacity only once', async () => {
 test('Result cleanup keeps first/latest original diagnostics through repeated failure without releasing custody', async () => {
   const f = fixture(), first = Object.freeze(new Error('original first directory failure'));
   const failures = [first, undefined, first, 'primitive directory failure', Object.freeze(new Error('original last directory failure'))];
-  const snapshots = [];
+  const snapshots: ReturnType<typeof f.owner.status>[] = [];
   for (let index = 0; index < failures.length; index++) {
     f.failSyncWith(failures[index]);
     await f.owner.retry().then(() => assert.fail('Expected original durability refusal'),

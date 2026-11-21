@@ -7997,11 +7997,11 @@
                 "anchor": "## Bounded deletion diagnostics"
               },
               {
-                "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.test.mts",
                 "anchor": "test('metadata cleanup keeps first/latest original diagnostics"
               },
               {
-                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "path": "adapters/store-local/result-deletion-owner.test.mts",
                 "anchor": "test('Result cleanup keeps first/latest original diagnostics"
               },
               {
@@ -131671,11 +131671,11 @@
                 "anchor": "## Bounded deletion diagnostics"
               },
               {
-                "path": "adapters/store-local/metadata-deletion-owner.test.mjs",
+                "path": "adapters/store-local/metadata-deletion-owner.test.mts",
                 "anchor": "test('metadata cleanup keeps first/latest original diagnostics"
               },
               {
-                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "path": "adapters/store-local/result-deletion-owner.test.mts",
                 "anchor": "test('Result cleanup keeps first/latest original diagnostics"
               },
               {

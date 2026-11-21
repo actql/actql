@@ -2,21 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 
-const failure = code => Object.assign(new Error(code), {code});
+const failure = (code: string) => Object.assign(new Error(code), {code});
 
 function fixture() {
-  const calls = [];
+  const calls: string[] = [];
   let busy = Promise.resolve();
   let resultReady = true;
   let holdingReady = true;
-  const syncFailures = [];
+  const syncFailures: unknown[] = [];
   let reclaimed = false;
   const marker = Object.freeze({
     results: Object.freeze(['result']),
     physical_holding_cids: Object.freeze(['holding']),
     contract_objects: Object.freeze(['contract']),
   });
-  const owner = createMetadataDeletionOwner(marker, {
+  const owner = createMetadataDeletionOwner<string, string, number>(marker, {
     serialize(run) {
       const operation = busy.then(run);
       busy = operation.catch(() => {});
@@ -49,10 +49,10 @@ function fixture() {
   return {
     owner,
     calls,
-    setResultReady(value) { resultReady = value; },
-    setHoldingReady(value) { holdingReady = value; },
+    setResultReady(value: boolean) { resultReady = value; },
+    setHoldingReady(value: boolean) { holdingReady = value; },
     failSync(error = failure('SYNC_FAILED')) { syncFailures.push(error); },
-    failSyncWith(error) { syncFailures.push(error); },
+    failSyncWith(error: unknown) { syncFailures.push(error); },
   };
 }
 
@@ -98,7 +98,7 @@ test('concurrent retries do not compact or release capacity twice',
 test('metadata cleanup keeps first/latest original diagnostics through repeated failure without releasing custody', async () => {
   const f = fixture(), first = Object.freeze(new Error('original first sync failure'));
   const failures = [first, undefined, first, 'primitive sync failure', Object.freeze(new Error('original last sync failure'))];
-  const snapshots = [];
+  const snapshots: ReturnType<typeof f.owner.status>[] = [];
   for (let index = 0; index < failures.length; index++) {
     f.failSyncWith(failures[index]);
     await f.owner.retry().then(() => assert.fail('Expected original sync refusal'),

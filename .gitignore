@@ -1337,3 +1337,15 @@ target/
 /adapters/store-local/publication-owner-lease.d.mts
 /adapters/host-node/local-files-native.mjs
 /adapters/host-node/local-files-native.d.mts
+/adapters/store-local/metadata-deletion-owner.mjs
+/adapters/store-local/metadata-deletion-owner.d.mts
+/adapters/store-local/metadata-deletion-owner.test.mjs
+/adapters/store-local/metadata-deletion-owner.test.d.mts
+/adapters/store-local/result-deletion-owner.mjs
+/adapters/store-local/result-deletion-owner.d.mts
+/adapters/store-local/result-deletion-owner.test.mjs
+/adapters/store-local/result-deletion-owner.test.d.mts
+/adapters/store-local/physical-retirement-owner.mjs
+/adapters/store-local/physical-retirement-owner.d.mts
+/adapters/store-local/physical-retirement-owner.test.mjs
+/adapters/store-local/physical-retirement-owner.test.d.mts
