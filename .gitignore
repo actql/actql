@@ -1199,3 +1199,5 @@ target/
 /adapters/local-node/finalization-diagnostic.test.d.mts
 /adapters/local-node/strategy-bundle.mjs
 /adapters/local-node/strategy-bundle.d.mts
+/adapters/local-node/strategy-bundle.test.mjs
+/adapters/local-node/strategy-bundle.test.d.mts

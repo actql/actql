@@ -4,40 +4,58 @@ import {localStrategyContribution} from './strategy-bundle.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from './retained-store.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousResultCheck} from '../host-common/runtime-result.mjs';
+import type {ManagedFailure} from '../host-common/managed-failure.mjs';
+// @ts-expect-error TS7016: remove after migrating the installed strategy runner.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
-import {createExecutionSiteControlFixture} from
-  '../host-common/execution-site-control.fixture.mjs';
-import {numericStrategyContribution} from
-  '../reference-compute-node/strategy-bundle.mjs';
+// @ts-expect-error TS7016: remove after migrating the Site control fixture.
+import {createExecutionSiteControlFixture} from '../host-common/execution-site-control.fixture.mjs';
+// @ts-expect-error TS7016: remove after migrating the Reference strategy.
+import {numericStrategyContribution} from '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
 import {installManagedRepresentation} from
   '../store-local/managed-memory-representations.mjs';
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
+  // @ts-expect-error TS7016: remove after migrating the execution Site implementation.
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
-import * as portableRuntime from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+type LocalBindings = Parameters<typeof localStrategyContribution>[0];
+type FixtureBindings = LocalBindings & {strategyHostManagedRequiresLogicalIdentity(): unknown};
+type PrepareOutputs = Parameters<ReturnType<typeof localStrategyContribution>['prepareNext']>[0];
+type Materialized = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['run']>>, {diagnostic: object}>;
+type CarrierCompletion = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['runPrepared']>>, {carrierMaterial: object}>;
+type ReadBody = Parameters<typeof registerRetainedInput>[2];
+type FixtureEvent = string | [string, bigint | number | string];
+type FixtureOptions = Readonly<{
+  guardUsage?: readonly number[];
+  close?(): void;
+  cleanupRefresh?(): boolean;
+}>;
+type RowUse = NonNullable<Extract<Parameters<typeof installManagedRepresentation>[1], {rowUse?: unknown}>['rowUse']>;
 
-const completedAdvance = run => () => {
+const runtimePath = '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const portableRuntime = await import(runtimePath) as LocalBindings;
+
+const completedAdvance = <Result extends Readonly<{$tag: number}>,>(run: () => Result) => () => {
   const result = run();
   return result?.$tag === 1
     ? {$tag: 1, _0: {complete: true, progress: 0n, work: 0n}} : result;
 };
 
 const siteControl = createExecutionSiteControlFixture();
-const ok = value => ({$tag: 1, _0: value});
-const failed = value => ({$tag: 0, _0: value});
-function installed(consume, completionFailure, options = {}) {
-  const events = [], material = {}, input = {}, task = {}, setup = {};
+const ok = (value?: unknown) => ({$tag: 1, _0: value});
+const failed = (value: unknown) => ({$tag: 0, _0: value});
+function installed(consume: ReadBody['consume'], completionFailure?: unknown, options: FixtureOptions = {}) {
+  const events: FixtureEvent[] = [], material = {}, input = {}, task = {}, setup = {};
   registerRetainedInput(material, value => value === input, {consume},
     {maxFrameBytes: 32, wire: {max_bytes: 32}});
   const operations = {
     inputs: [{material, input,
       frames: {maxBytes: 32, maxRows: 2, maxRowBytes: 32, maxFrameBytes: 32, maxDepth: 4},
       begin: () => { events.push('begin'); return ok(); },
-      charge: bytes => { events.push(['charge', bytes]); return ok(); },
-      append: row => { events.push(['row', row]); return ok(); },
+      charge: (bytes: bigint) => { events.push(['charge', bytes]); return ok(); },
+      append: (row: string) => { events.push(['row', row]); return ok(); },
       finish: () => { events.push('verified'); return ok(); },
     }],
     advance: completedAdvance(() => { events.push('execute'); return ok(); }),
@@ -58,18 +76,18 @@ function installed(consume, completionFailure, options = {}) {
     ...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
-    strategyHostTask: value => value,
+    strategyHostTask: value => value as number,
     strategyModule_local_Dispatch: (owner, work) => {
       assert.equal(owner, setup); assert.equal(work, task);
       events.push('reserved'); return ok(operations);
     },
-  }, setup, checked);
+  }, setup, checked as SynchronousResultCheck);
   return {entry, task, events};
 }
 
 test('Local contribution admits, reads, executes and completes before exposing its close operation', async () => {
   const f = installed(async accept => { await accept(new TextEncoder().encode('[{"id":3}]')); });
-  const output = await f.entry.run(f.task);
+  const output = await f.entry.run(f.task) as Materialized;
   assert.deepEqual(f.events, ['reserved', 'begin', ['charge', 10n], ['row', '{"id":3}'],
     'verified', 'execute', 'settle', 'complete']);
   assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 1,
@@ -82,7 +100,7 @@ test('Local contribution admits, reads, executes and completes before exposing i
 test('Local completion does not invent unavailable guard usage', async () => {
   const f = installed(async accept => { await accept(new TextEncoder().encode('[]')); },
     undefined, {guardUsage: []});
-  const output = await f.entry.run(f.task);
+  const output = await f.entry.run(f.task) as Materialized;
   assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 0,
     importedBytes: '2'});
   await output.close();
@@ -93,24 +111,24 @@ test('materializing Local completion retains its cleanup owner without Compute r
   const f = installed(async accept => {
     await accept(new TextEncoder().encode('[{"id":3}]'));
   }, undefined, {cleanupRefresh() { refreshes++; return released; }});
-  const output = await f.entry.run(f.task);
-  let failure;
+  const output = await f.entry.run(f.task) as Materialized;
+  let failure: ManagedFailure | undefined;
   await assert.rejects(output.close(), error => {
-    failure = error;
-    return error.cleanupPending === true;
+    failure = error as ManagedFailure;
+    return (error as ManagedFailure).cleanupPending === true;
   });
-  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(failure!.cleanupHandle.status().pending, true);
   const computes = () => f.events.filter(event => event === 'execute').length;
   const imports = () => f.events.filter(event => Array.isArray(event) && event[0] === 'row').length;
   assert.equal(computes(), 1);
   assert.equal(imports(), 1);
-  await failure.cleanupHandle.retry();
-  assert.equal(failure.cleanupHandle.status().pending, true);
+  await failure!.cleanupHandle.retry();
+  assert.equal(failure!.cleanupHandle.status().pending, true);
   released = true;
-  await failure.cleanupHandle.retry();
-  assert.equal(failure.cleanupHandle.status().pending, false);
+  await failure!.cleanupHandle.retry();
+  assert.equal(failure!.cleanupHandle.status().pending, false);
   const settled = refreshes;
-  await failure.cleanupHandle.retry();
+  await failure!.cleanupHandle.retry();
   assert.equal(refreshes, settled);
   assert.equal(computes(), 1);
   assert.equal(imports(), 1);
@@ -147,14 +165,14 @@ test('standard Local completion observes forced Site loss', async () => {
       strategyModule_local_Registration: () => registration,
       strategyHostRegistrationSelectionKey: () => 'local-test',
       strategyHostNextTask: () => -1,
-      strategyHostTask: value => value,
+      strategyHostTask: value => value as number,
       strategyHostManagedProducers: () => [],
       strategyModule_local_Dispatch: (owner, work) => {
         assert.equal(owner, setup);
         assert.equal(work, task);
         return ok(operations);
       },
-    }, setup, checked);
+    }, setup, checked as SynchronousResultCheck);
     const core = {
       siteControl,
       count: () => 2,
@@ -194,8 +212,8 @@ test('standard Local completion observes forced Site loss', async () => {
 
 test('Local cancellation stops before reservation or awaits the current reader before settlement', async () => {
   for (const before of [true, false]) {
-    let release;
-    const gate = new Promise(resolve => { release = resolve; });
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
     const f = installed(async () => { await gate; f.events.push('reader-returned'); });
     const controller = new AbortController();
     if (before) controller.abort();
@@ -239,15 +257,15 @@ test('materializing Local defers settlement until provider cleanup is confirmed'
       cleanupHandle,
     });
     const f = installed(async () => { throw primary; });
-    let failure;
+    let failure: ManagedFailure | undefined;
     try { await f.entry.run(f.task); }
-    catch (error) { failure = error; }
-    assert.equal(failure.primaryFailure, primary);
-    assert.equal(failure.cleanupPending, true);
-    assert.equal(failure.cleanupHandle.status().pending, true);
+    catch (error) { failure = error as ManagedFailure; }
+    assert.equal(failure!.primaryFailure, primary);
+    assert.equal(failure!.cleanupPending, true);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
     assert.deepEqual(f.events, ['reserved', 'begin', 'close']);
 
-    const status = await failure.cleanupHandle.retry();
+    const status = await failure!.cleanupHandle.retry();
     assert.equal(retries, 1);
     assert.equal(status.pending, false);
     assert.deepEqual(f.events, ['reserved', 'begin', 'close', 'settle']);
@@ -264,18 +282,18 @@ test('materializing Local preserves its primary failure when operation close fai
         if (closeAttempts === 1) throw closeFailure;
       },
     });
-    let failure;
+    let failure: ManagedFailure | undefined;
     try { await f.entry.run(f.task); }
-    catch (error) { failure = error; }
-    assert.equal(failure.primaryFailure, primary);
-    assert.equal(failure.cleanupPending, true);
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    assert.equal(failure.cleanupHandle.status().errors.includes(closeFailure),
+    catch (error) { failure = error as ManagedFailure; }
+    assert.equal(failure!.primaryFailure, primary);
+    assert.equal(failure!.cleanupPending, true);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
+    assert.equal(failure!.cleanupHandle.status().errors.includes(closeFailure),
       true);
     assert.deepEqual(f.events,
       ['reserved', 'begin', 'close', 'settle']);
 
-    const status = await failure.cleanupHandle.retry();
+    const status = await failure!.cleanupHandle.retry();
     assert.equal(status.pending, false);
     assert.equal(closeAttempts, 2);
     assert.deepEqual(f.events,
@@ -314,23 +332,23 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       strategyModule_local_ManagedCarrierDispatch: () => ok(
         localSupported ? {configuration: true} : undefined),
       strategyModule_local_RelationOutput: value => value,
-    }, setup, checked);
-    let complete = false, selected, ran;
+    } as FixtureBindings, setup, checked as SynchronousResultCheck);
+    let complete = false, selected: object | undefined, ran: 'local' | 'alternate' | undefined;
     const core = {
       siteControl,
       count: () => 3,
       taskCapacity: () => [0n, 0n],
       next: () => ({task: 1}),
-      task: task => task.task,
+      task: (task: {task: number}) => task.task,
       registration: () => registrations.source,
       nextTask: () => complete ? -1 : 2,
       managedProducers: () => complete ? [] : [1],
-      selectManaged: (_, __, registration) => { selected = registration; return true; },
+      selectManaged: (_: unknown, __: number, registration: object) => { selected = registration; return true; },
       managedMatches: () => true,
-      completed: (_, task) => task === 1 || complete,
+      completed: (_: unknown, task: number) => task === 1 || complete,
       finished: () => complete,
       stop: () => {}, closeOutputs: () => {},
-      output: (_, task) => task === 1 ? inputCompleted : undefined,
+      output: (_: unknown, task: number) => task === 1 ? inputCompleted : undefined,
       usage: () => ({}), explain: () => ({}),
     };
     const source = {
@@ -343,7 +361,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       registration: registrations.alternate,
       managedSelectionKey: 'alternate',
       run() { assert.fail('legacy alternate'); },
-      prepareNext(outputs) {
+      prepareNext(outputs: ReadonlyMap<number, unknown>) {
         return outputs.size && !localSupported
           ? {task: 2, durationMilliseconds: 1n} : undefined;
       },
@@ -364,7 +382,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
     const result = await runInstalledStrategy({setup, runtime: {core, contributions: [source, ...candidates]}});
     assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
     assert.equal(ran, localSupported ? 'local' : 'alternate');
-    assert.equal(selected, registrations[ran]);
+    assert.equal(selected, registrations[ran!]);
   }
 });
 
@@ -382,16 +400,16 @@ test('reference preparation propagates fatal failures instead of hiding them as 
     strategyHostManagedProducers: () => [1],
     strategyHostManagedRequiresLogicalIdentity: () => ok(false),
     strategyModule_reference_compute_ManagedDispatch: () => failed(fatal),
-  }, setup, checked);
+  }, setup, checked as SynchronousResultCheck);
   await assert.rejects(
     entry.prepareNext(new Map([[1, {material, completed: {}}]])),
-    error => error.code === 'MoonBitHostFailure' && error.cause === fatal,
+    error => (error as {code?: unknown}).code === 'MoonBitHostFailure' && (error as Error).cause === fatal,
   );
 });
 
 test('Local delegates zero-input and identity applicability to MoonBit', async () => {
   const setup = {}, registration = {}, configuration = {};
-  const seen = [];
+  const seen: unknown[][] = [];
   let nextTask = 1;
   const entry = localStrategyContribution({
     ...portableRuntime,
@@ -436,13 +454,13 @@ test('Local delegates zero-input and identity applicability to MoonBit', async (
       assert.equal(value, configuration);
       return [0n, 0n];
     },
-  }, setup, checked);
+  } as FixtureBindings, setup, checked as SynchronousResultCheck);
   for (const task of [1, 0]) {
     nextTask = task;
     const prepared = await entry.prepareNext(new Map());
-    assert.equal(prepared.task, task);
-    assert.equal(prepared.configuration, configuration);
-    assert.deepEqual(prepared.inputs, []);
+    assert.equal(prepared!.task, task);
+    assert.equal(prepared!.configuration, configuration);
+    assert.deepEqual(prepared!.inputs, []);
   }
   assert.deepEqual(seen, [[], []]);
 });
@@ -473,11 +491,11 @@ test('Local keeps supplied inputs inside the MoonBit Run boundary', async () => 
     },
     strategyModule_local_ManagedDuration: () => 1n,
     strategyModule_local_ManagedCapacity: () => [0n, 0n],
-  }, setup, checked);
+  } satisfies Partial<LocalBindings> as unknown as LocalBindings, setup, checked as SynchronousResultCheck);
   const prepared = await entry.prepareNext(new Map());
-  assert.equal(prepared.configuration, configuration);
-  assert.deepEqual(prepared.inputs, []);
-  assert.equal(prepared.dispatchInputs[0].suppliedRelation, true);
+  assert.equal(prepared!.configuration, configuration);
+  assert.deepEqual(prepared!.inputs, []);
+  assert.equal(prepared!.dispatchInputs[0].suppliedRelation, true);
 });
 
 test('Local offers both captured predecessors to the common managed owner', async () => {
@@ -503,11 +521,11 @@ test('Local offers both captured predecessors to the common managed owner', asyn
     strategyModule_local_ManagedUsesProvider: () => true,
     strategyModule_local_ManagedDuration: () => 1n,
     strategyModule_local_ManagedCapacity: () => [0n, 0n],
-  }, setup, checked);
+  } satisfies Partial<LocalBindings> as unknown as LocalBindings, setup, checked as SynchronousResultCheck);
   const prepared = await entry.prepareNext(new Map());
   assert.ok(prepared, 'both captures must reach common input admission');
-  assert.equal(prepared.configuration, configuration);
-  assert.deepEqual(prepared.inputs, []);
+  assert.equal(prepared!.configuration, configuration);
+  assert.deepEqual(prepared!.inputs, []);
   assert.deepEqual(prepared.dispatchInputs, [
     {task: 0, capturedRelation: true}, {task: 1, capturedRelation: true},
   ]);
@@ -519,12 +537,12 @@ test('Local offers both captured predecessors to the common managed owner', asyn
 test('bounded Local yields so cancellation reaches the active kernel',
   async () => {
     const setup = {}, registration = {}, configuration = {};
-    const events = [];
+    const events: FixtureEvent[] = [];
     let cancelled = false, stopped = false, cleanupCalls = 0;
     const operations = {
       inputs: [],
       execute: () => assert.fail('bounded execution used execute'),
-      advance: quantum => {
+      advance: (quantum: number) => {
         events.push(['advance', quantum]);
         if (cancelled) {
           stopped = true;
@@ -560,18 +578,18 @@ test('bounded Local yields so cancellation reaches the active kernel',
       strategyModule_local_ManagedDuration: () => 1n,
       strategyModule_local_ManagedCapacity: () => [0n, 0n],
       strategyModule_local_ManagedStart: () => ok(operations),
-    }, setup, checked);
+    } as FixtureBindings, setup, checked as SynchronousResultCheck);
     const prepared = await entry.prepareNext(new Map());
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 0);
-    const failure = await entry.runPrepared(prepared, controller.signal)
-      .then(() => assert.fail('cancelled execution completed'), error => error);
+    const failure = await entry.runPrepared(prepared!, controller.signal)
+      .then(() => assert.fail('cancelled execution completed'), error => error as ManagedFailure);
     assert.equal(failure.name, 'AbortError');
-    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure!.cleanupPending, true);
     assert.equal(stopped, true);
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    await failure.cleanupHandle.retry();
-    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
+    await failure!.cleanupHandle.retry();
+    assert.equal(failure!.cleanupHandle.status().pending, false);
     assert.deepEqual(events, [
       ['advance', 256],
       'cancel',
@@ -585,12 +603,12 @@ test('bounded Local yields so cancellation reaches the active kernel',
 
 test('bounded Local yields while finalizing a completed kernel', async () => {
   const setup = {}, registration = {}, configuration = {};
-  const events = [];
+  const events: FixtureEvent[] = [];
   let cancelled = false, cleanupCalls = 0, finalizationSteps = 0;
   const operations = {
     inputs: [],
     execute: () => assert.fail('bounded execution used execute'),
-    advance: quantum => {
+    advance: (quantum: number) => {
       events.push(['execute', quantum]);
       return ok({complete: true, progress: 1n, work: 1n});
     },
@@ -598,7 +616,7 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
       events.push('prepare-finalization');
       return ok();
     },
-    advance_finalization(quantum) {
+    advance_finalization(quantum: number) {
       events.push(['finalize', quantum]);
       finalizationSteps++;
       if (finalizationSteps === 1) setImmediate(() => controller.abort());
@@ -634,16 +652,16 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
     strategyModule_local_ManagedDuration: () => 1n,
     strategyModule_local_ManagedCapacity: () => [0n, 0n],
     strategyModule_local_ManagedStart: () => ok(operations),
-  }, setup, checked);
+  } as FixtureBindings, setup, checked as SynchronousResultCheck);
   const prepared = await entry.prepareNext(new Map());
   const controller = new AbortController();
-  const failure = await entry.runPrepared(prepared, controller.signal)
-    .then(() => assert.fail('cancelled finalization completed'), error => error);
+  const failure = await entry.runPrepared(prepared!, controller.signal)
+    .then(() => assert.fail('cancelled finalization completed'), error => error as ManagedFailure);
   assert.equal(failure.name, 'AbortError');
   assert.equal(finalizationSteps, 1);
-  assert.equal(failure.cleanupPending, true);
-  await failure.cleanupHandle.retry();
-  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(failure!.cleanupPending, true);
+  await failure!.cleanupHandle.retry();
+  assert.equal(failure!.cleanupHandle.status().pending, false);
   assert.deepEqual(events, [
     ['execute', 256],
     'prepare-finalization',
@@ -665,7 +683,7 @@ test('bounded Local validates terminal execution and finalization reports',
       {complete: true, progress: 0n, work: 1},
       {complete: true, work: 0n},
     ];
-    const runMalformed = async (report, finalization) => {
+    const runMalformed = async (report: typeof reports[number], finalization: boolean) => {
       const setup = {}, registration = {}, configuration = {};
       let cancelled = false;
       const operations = {
@@ -699,11 +717,11 @@ test('bounded Local validates terminal execution and finalization reports',
         strategyModule_local_ManagedDuration: () => 1n,
         strategyModule_local_ManagedCapacity: () => [0n, 0n],
         strategyModule_local_ManagedStart: () => ok(operations),
-      }, setup, checked);
+      } as FixtureBindings, setup, checked as SynchronousResultCheck);
       const prepared = await entry.prepareNext(new Map());
-      return entry.runPrepared(prepared).then(
+      return entry.runPrepared(prepared!).then(
         () => assert.fail('invalid terminal report was accepted'),
-        error => error,
+        error => error as Error,
       );
     };
     for (const report of reports) {
@@ -723,15 +741,15 @@ test('standard Host runs Local with mixed memory and provider inputs',
     for (const memoryFirst of [true, false]) {
       const setup = {};
       const registrations = {memory: {}, file: {}, local: {}};
-      const complete = new Set();
-      const inputByMaterial = new Map();
-      const rowsByMaterial = new Map();
+      const complete = new Set<number>();
+      const inputByMaterial = new Map<object, object>();
+      const rowsByMaterial = new Map<object, string>();
       const outputs = new Map();
       const memoryMaterial = {}, fileMaterial = {};
       for (const [material, row] of [
         [memoryMaterial, '{"side":"memory"}'],
         [fileMaterial, '{"side":"file"}'],
-      ]) {
+      ] as const) {
         inputByMaterial.set(material, {});
         rowsByMaterial.set(material, row);
       }
@@ -741,26 +759,26 @@ test('standard Host runs Local with mixed memory and provider inputs',
         () => true,
         Object.freeze({
           async read(_file, emit) {
-            await emit(rowsByMaterial.get(memoryMaterial));
+            await emit(rowsByMaterial.get(memoryMaterial)!);
           },
         }),
         () => {},
       );
       let providerUses = 0;
-      const providerUse = async (
+      const providerUse = (async (
         occurrences, authorize, append, use, signal, _beforeRead, commit,
       ) => {
         providerUses++;
         signal?.throwIfAborted();
         assert.equal(occurrences.length, 1);
         assert.equal(authorize(occurrences[0].input, 0), true);
-        await append(0, rowsByMaterial.get(fileMaterial));
+        await append(0, rowsByMaterial.get(fileMaterial)!);
         const provisional = await use();
         assert.equal(authorize(occurrences[0].input, 0), true);
         return typeof commit === 'function'
           ? commit(provisional)
           : provisional;
-      };
+      }) as RowUse;
       installManagedRepresentation(fileMaterial, {
         readable: input => input === inputByMaterial.get(fileMaterial),
         rowProvider: Object.freeze({async read() {}}),
@@ -798,18 +816,18 @@ test('standard Host runs Local with mixed memory and provider inputs',
           },
         };
       });
-      const appended = [[], []];
+      const appended: string[][] = [[], []];
       const outputMaterial = {};
       const outputCompleted = {};
       let advances = 0;
       const operations = {
         inputs: orderedMaterials.map((material, index) => ({
           input: inputByMaterial.get(material),
-          append: row => { appended[index].push(row); return ok(); },
+          append: (row: string) => { appended[index].push(row); return ok(); },
           finish: () => ok(),
         })),
         execute: () => assert.fail('bounded managed execution used execute'),
-        advance: quantum => {
+        advance: (quantum: number) => {
           assert.equal(quantum, 256);
           advances++;
           return ok({complete: advances === 2, progress: 1n, work: 1n});
@@ -848,7 +866,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         strategyModule_local_ManagedStart: () => ok(operations),
         strategyHostManagedInputMatchesMaterial: (input, material) =>
           inputByMaterial.get(material) === input,
-      }, setup, checked);
+      } as FixtureBindings, setup, checked as SynchronousResultCheck);
       const current = () => complete.has(1)
         ? complete.has(2) ? complete.has(3) ? -1 : 3 : 2
         : 1;
@@ -861,7 +879,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         selectManaged: () => true,
         managedMatches: () => true,
         taskCapacity: () => [0n, 0n],
-        completed: (_owner, task) => complete.has(task),
+        completed: (_owner: unknown, task: number) => complete.has(task),
         finished: () => complete.has(3),
         stop() {},
         closeOutputs() {},
@@ -898,7 +916,7 @@ test('standard Local dispatches a Carrier input to a Carrier output',
     let closed = false;
     const operations = {
       inputs: [],
-      advance: quantum => {
+      advance: (quantum: number) => {
         assert.equal(quantum, 256);
         return ok({complete: true, progress: 1n, work: 1n});
       },
@@ -956,10 +974,10 @@ test('standard Local dispatches a Carrier input to a Carrier output',
         assert.equal(value, configuration);
         return ok(operations);
       },
-    }, setup, checked);
-    const prepared = await local.prepareNext(outputs);
-    assert.equal(prepared.task, 2);
-    const result = await local.runPrepared(prepared);
+    }, setup, checked as SynchronousResultCheck);
+    const prepared = await local.prepareNext(outputs as unknown as PrepareOutputs);
+    assert.equal(prepared!.task, 2);
+    const result = await local.runPrepared(prepared!) as CarrierCompletion;
     assert.equal(result.completed, outputCompleted);
     assert.equal(result.carrierMaterial, outputMaterial);
     assert.equal(result.diagnostic.outputRepresentation,
@@ -1007,10 +1025,10 @@ test('configured row Store selects typed Carrier paths',
         close() {},
         cleanup_refresh: () => true,
       }),
-    }, setup, checked, store);
+    }, setup, checked as SynchronousResultCheck, store);
     const prepared = await local.prepareNext(new Map());
-    assert.equal(prepared.task, 1);
-    const result = await local.runPrepared(prepared);
+    assert.equal(prepared!.task, 1);
+    const result = await local.runPrepared(prepared!) as CarrierCompletion;
     assert.equal(result.completed, completed);
     assert.equal(result.carrierMaterial, carrierMaterial);
     assert.equal(result.diagnostic.outputRepresentation,
@@ -1023,7 +1041,7 @@ test('configured row Store selects typed Carrier paths',
 
 test('standard Host retains an exact Carrier across task dispatch', async () => {
   const setup = {};
-  const complete = new Set();
+  const complete = new Set<number>();
   const sourceRegistration = {};
   const localRegistration = {};
   const inputCompleted = {};
@@ -1055,7 +1073,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
   };
   const operations = {
     inputs: [],
-    advance: quantum => {
+    advance: (quantum: number) => {
       assert.equal(quantum, 256);
       return ok({complete: true, progress: 1n, work: 1n});
     },
@@ -1107,7 +1125,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
       assert.equal(value, configuration);
       return ok(operations);
     },
-  }, setup, checked);
+  }, setup, checked as SynchronousResultCheck);
   const core = {
     siteControl,
     count: () => 3,
@@ -1116,12 +1134,12 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     managedProducers: () => current() === 2 ? [1] : [],
     selectManaged: () => true,
     managedMatches: () => assert.fail('Carrier used Relation completion'),
-    managedCarrierMatches: (_owner, task, completed) =>
+    managedCarrierMatches: (_owner: unknown, task: number, completed: unknown) =>
       task === 1
         ? completed === inputCompleted
         : task === 2 && completed === outputCompleted,
     taskCapacity: () => [0n, 0n],
-    completed: (_owner, task) => complete.has(task),
+    completed: (_owner: unknown, task: number) => complete.has(task),
     finished: () => complete.has(2),
     stop() {},
     closeOutputs() {},
@@ -1156,17 +1174,17 @@ test('configured row Store keeps Relation file output while snapshot-only storag
     strategyModule_local_ManagedCapacity: () => [32n, 16n],
     strategyModule_local_ManagedStartRetained: () => assert.fail('planning cannot start'),
   };
-  assert.equal(await localStrategyContribution(moon, {}, checked, store)
+  assert.equal(await localStrategyContribution(moon, {}, checked as SynchronousResultCheck, store)
     .prepareNext(new Map()), undefined);
   for (const port of ['strategyModule_local_ManagedStartRetained',
     'strategyPrepareDurableResultRowFrames', 'strategyFeedDurableResultRowFrames',
     'strategyFinishDurableResultRowFrames', 'strategyCancelDurableResultRowFrames']) {
-    assert.equal(await localStrategyContribution({...moon, [port]: undefined}, {}, checked, store)
+    assert.equal(await localStrategyContribution({...moon, [port]: undefined}, {}, checked as SynchronousResultCheck, store)
       .prepareNext(new Map()), undefined);
   }
   const snapshot = installLocalSnapshotStore(() => assert.fail('planning cannot acquire a Store'));
-  const prepared = await localStrategyContribution(moon, {}, checked, snapshot)
+  const prepared = await localStrategyContribution(moon, {}, checked as SynchronousResultCheck, snapshot)
     .prepareNext(new Map());
-  assert.equal(prepared.task, 0);
-  assert.strictEqual(prepared.configuration, configuration);
+  assert.equal(prepared!.task, 0);
+  assert.strictEqual(prepared!.configuration, configuration);
 });

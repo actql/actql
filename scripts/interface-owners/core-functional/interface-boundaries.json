@@ -28448,7 +28448,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.test.mjs",
+                "path": "adapters/local-node/strategy-bundle.test.mts",
                 "anchor": "test('Local contribution admits, reads, executes and completes before exposing its close operation', async () => {"
               },
               {
@@ -28588,7 +28588,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/strategy-bundle.test.mjs",
+                "path": "adapters/local-node/strategy-bundle.test.mts",
                 "anchor": "test('Local contribution admits, reads, executes and completes before exposing its close operation', async () => {"
               },
               {
