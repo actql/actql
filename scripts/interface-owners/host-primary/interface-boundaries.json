@@ -7185,7 +7185,7 @@
                 "anchor": "Failed or interrupted writes retain their cleanup"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -7345,7 +7345,7 @@
                 "anchor": "Failed or interrupted writes retain their cleanup"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -7695,8 +7695,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -8281,8 +8281,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -8407,7 +8407,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -14729,8 +14729,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -15167,8 +15167,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -15261,7 +15261,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -17021,8 +17021,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -17663,8 +17663,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -17797,7 +17797,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -19235,8 +19235,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -19813,8 +19813,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -19935,7 +19935,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -20515,8 +20515,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -21093,8 +21093,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -21215,7 +21215,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -21795,8 +21795,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -22373,8 +22373,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -22495,7 +22495,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -23075,8 +23075,8 @@
                 "anchor": "exact submitted intent"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -23653,8 +23653,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -23775,7 +23775,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {

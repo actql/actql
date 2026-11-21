@@ -2,7 +2,6 @@
 // ordinary Host. Publication success alone cannot issue a state revision.
 import {authorizeRunStateRequest, inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
-// @ts-expect-error TS7016: the original physical Request Journal is still authored in JavaScript.
 import {observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
 import type {WireRunRef, WireRunState} from '../../packages/client-wire/index.js';

@@ -8,7 +8,6 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import support from './host-journal-schema-support.cjs';
-// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody, assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
 
 const options = Object.freeze({maxDatabaseBytes: 4194304, maxRecords: 128,

@@ -17816,7 +17816,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -18579,7 +18579,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               }
             ],
@@ -24268,7 +24268,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -24972,7 +24972,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -47167,7 +47167,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -87341,7 +87341,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -87995,7 +87995,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -89048,7 +89048,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -89719,7 +89719,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {

@@ -2489,7 +2489,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -3416,7 +3416,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -6223,7 +6223,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -8352,7 +8352,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -9192,7 +9192,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {

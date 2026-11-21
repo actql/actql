@@ -5,14 +5,16 @@ import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
-  from '../store-local/publication-store.mjs';
-import {isHostObservationProjection} from '../host-common/observation.mjs';
+// @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
+import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped} from '../store-local/publication-store.mjs';
+import {isHostObservationProjection, type installHostObservation} from '../host-common/observation.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import type {WireRunRef, WireSubmissionRef} from '../../packages/client-wire/index.js';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {clientSourceOperationStorage} from './client-source-operation.mjs';
 import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCurrentness,
-  createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
+  createJournalPrimaryConnection, createJournalObservationConnection, type JournalSqlConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, instant, logicalPlanOriginalShape, retainedIdentity, retainedRunDefinition, retainedRunFacts,
   createJournalKeyedLookupStorage, createJournalRunRecords, createJournalRunStart, createJournalRunObservations,
@@ -29,7 +31,56 @@ import {createJournalAttempts, createJournalCancellation} from './client-request
 import {createJournalSubmissionOriginals, createJournalSubmissionRows} from './client-request-journal-submission-originals.mjs';
 export {validateSourceInventory};
 
-const originalJournalCustodies = new WeakMap();
+type JournalCustody = Readonly<{
+  journalClosed: boolean; databaseClosed: boolean; observationAttempted: boolean; observationDatabaseClosed: boolean;
+}>;
+type JournalOptions = NonNullable<Parameters<typeof snapshotJournalConfiguration>[1]>;
+type JournalStatement = ReturnType<JournalSqlConnection['prepare']>;
+type SqlArgument = Parameters<JournalStatement['get']>[number];
+type Projection = NonNullable<ReturnType<typeof installHostObservation>>;
+type RunRecords = ReturnType<typeof createJournalRunRecords>;
+type RunAdmission = Parameters<RunRecords['acceptRecord']>[1];
+type RequestControl = Parameters<RunRecords['acceptRecord']>[2];
+type RequestKey = Parameters<RunRecords['lookupRecord']>[0];
+type RequestReader = Parameters<RunRecords['lookupRecord']>[1];
+type DefinitionControl = Parameters<typeof checkedRunDefinition>[1];
+type RunDefinition = ReturnType<typeof checkedRunDefinition>;
+type AdmissionEvidence = Parameters<typeof admissionEvidenceShape>[0];
+type DefinitionAdmission = Omit<RunAdmission, 'runDefinitionCid' | 'runDefinitionWire' | 'runAdmissionEvidence'> &
+  Readonly<{runDefinition: unknown; runAdmissionEvidence?: AdmissionEvidence;
+    originalPlan?: unknown; originalExplanation?: unknown; originalInferRun?: unknown}>;
+type AdmittedDefinition = Omit<ReturnType<RunRecords['acceptRecord']>, 'runDefinitionWire' | 'epochRejected'> &
+  Readonly<{runDefinition: RunDefinition | undefined}>;
+type AdmissionPublication = DefinitionControl & Readonly<{
+  originalRunPlanAdmissionEvidence?(original: unknown, definition: RunDefinition, programCid: unknown, evidence: AdmissionEvidence): unknown;
+  originalRunExplanationAdmissionEvidence?(original: unknown, definition: RunDefinition, programCid: unknown, evidence: AdmissionEvidence): unknown;
+  originalRunExplanationAdmissionAcknowledged?(original: unknown, definition: RunDefinition, programCid: unknown,
+    evidence: AdmissionEvidence): SynchronousRuntimeData;
+  originalInferRunAdmissionEvidence?(original: unknown, definition: RunDefinition, identity: unknown, evidence: AdmissionEvidence): unknown;
+}>;
+type IssuedDefinition = Partial<RunDefinition> & Readonly<{
+  runDefinition?: unknown; runAdmissionEvidence?: Readonly<Record<string, unknown>>;
+  originalPlan?: unknown; originalExplanation?: unknown; originalInferRun?: unknown; resultNames?: unknown;
+}>;
+type IssueDefinitionOptions = Pick<RunAdmission, 'namespaceId' | 'lookupExpiresAt' | 'resultNames' | 'submission'> &
+  Readonly<{sourceInventory?: string; issueDefinition(): IssuedDefinition | Promise<IssuedDefinition>}>;
+type RunFrame = ReturnType<typeof admitJournalRunDefinitionRow>;
+type ReadmittedRunFacts = ReturnType<typeof retainedRunFacts>;
+type RequestScope = Readonly<{namespaceId: unknown}>;
+type StopRequestControl = RequestControl & Parameters<SubmissionRows['retainedIntentOriginal']>[1] & Readonly<{
+  clientSubmittedIntentRequestsCommitStop(intent: unknown): unknown;
+  clientSubmittedIntentRequestsReadOnly(intent: unknown): unknown;
+}>;
+type SubmissionRows = ReturnType<typeof createJournalSubmissionRows>;
+type SubmissionMethods = SubmissionRows['methods'];
+type Attempts = ReturnType<typeof createJournalAttempts>;
+type AttemptOptions = Parameters<Attempts['submissionAttempt']>[2];
+type CancellationMethods = ReturnType<typeof createJournalCancellation>;
+type CancelRecord = CancellationMethods['recordCancellationOperation'];
+type CancelAttemptOptions = Parameters<CancelRecord>[1] & Readonly<{attemptRef?: Parameters<Attempts['cancellationAttempt']>[2]}>;
+type Failure = Readonly<{code?: string}> | null | undefined;
+
+const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
 const {facilityNativeRealpath, facilityRealpath, nativePathOptions,
@@ -40,15 +91,15 @@ export {assertOriginalClientRequestJournalFacilityCurrent};
 // capacity issuer. Only this module's actual constructor can install a member.
 // Logical close, native connection close and optional observation ownership
 // are distinct; a copied object cannot attest any of them.
-export function observeOriginalClientRequestJournalCustody(journal) {
-  const read = applyOriginal(originalJournalCustodyGet, originalJournalCustodies, [journal]);
+export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {
+  const read = applyOriginal(originalJournalCustodyGet, originalJournalCustodies, [journal]) as (() => JournalCustody) | undefined;
   if (read === undefined) fail('ForeignClientRequestJournalCustody');
   return read();
 }
 
 // Membership only, without constructing an observation before its caller's
 // optional metadata admission. This supplies no currentness or capacity.
-export function assertOriginalClientRequestJournal(journal) {
+export function assertOriginalClientRequestJournal(journal: unknown): void {
   if (applyOriginal(originalJournalCustodyGet, originalJournalCustodies, [journal]) === undefined) {
     fail('ForeignClientRequestJournalCustody');
   }
@@ -59,7 +110,7 @@ export function assertOriginalClientRequestJournal(journal) {
 // no second store, error chain, execution owner or status inference is added.
 
 
-export function openClientRequestJournal(directory, options = {}, ownedOriginal) {
+export function openClientRequestJournal(directory: string, options: JournalOptions = {}, ownedOriginal?: object) {
   const configuration = snapshotJournalConfiguration(directory, options, ownedOriginal);
   const {maxInspectionEntries, maxInspectionBytes, maxDatabaseBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport,
@@ -82,7 +133,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
   // the selected recipe. Native libc/libuv path holdings remain distinct
   // terms of that recipe; selecting this original does not supply them.
   const root = primaryCurrent === undefined ? realpathSync(directory) :
-    applyOriginal(facilityNativeRealpath, facilityRealpath, [directory, nativePathOptions]);
+    applyOriginal(facilityNativeRealpath!, facilityRealpath, [directory, nativePathOptions]) as string;
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
@@ -97,40 +148,40 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       directoryAdmission, configuration, selectedSql, ownedOriginal);
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
-  const ensureOpen = () => {
+  const ensureOpen = (): undefined => {
     if (closed) fail('ClientRequestJournalClosed');
     primaryCurrent?.();
     transaction.assertUsable();
   };
   const {rejectSubmission, submissionTransaction, submissionAttempt, rejectSubmissionEpoch,
     rejectCancellation, transact, cancellationAttempt} = createJournalAttempts(transaction, ensureOpen);
-  let observationProjection;
+  let observationProjection: Projection | undefined;
   // Count only rows actually returned by these selected native reads. This
   // neither visits other Runs nor measures SQLite's internal page traversal.
   // The existing observation context aggregates scalars without per-get I/O.
-  const selectedRequestStatement = (statement, selection, completeRef = false,
+  const selectedRequestStatement = (statement: JournalStatement, selection: 'request' | 'run-definition', completeRef = false,
     completeRow = false) => {
     const get = statement.get;
-    return Object.freeze({get(...parameters) {
-      const row = applyOriginal(get, statement, parameters);
+    return Object.freeze({get(...parameters: SqlArgument[]) {
+      const row = applyOriginal(get, statement, parameters) as ReturnType<typeof get>;
       if (observationProjection !== undefined) {
         try {
           const ref = completeRef ? {namespaceId: parameters[0],
             authorityScopeCid: parameters[1], runDefinitionCid: parameters[2]} : undefined;
           observationProjection.diagnostic('selected_rows_observed', {
-            ref, rowOwner: 'request-journal', selection, rowKind: 'run',
+            ref: ref as WireRunRef | undefined, rowOwner: 'request-journal', selection, rowKind: 'run',
             returnedRows: row === undefined ? 0 : 1,
             ...(selection === 'request' ? {requestSelection: {
-              authorityScopeCid: parameters[0], requestId: parameters[1]},
-            ...(row === undefined ? {} : {selectedRowRef: {namespaceId: row.namespace_id,
-              authorityScopeCid: row.authority_scope_cid, runDefinitionCid: row.run_definition_cid}})} :
-              !completeRef ? {runSelectionCid: parameters[0]} : {}),
+              authorityScopeCid: parameters[0] as string, requestId: parameters[1] as string},
+            ...(row === undefined ? {} : {selectedRowRef: {namespaceId: row.namespace_id as string,
+              authorityScopeCid: row.authority_scope_cid as string, runDefinitionCid: row.run_definition_cid as string}})} :
+              !completeRef ? {runSelectionCid: parameters[0] as string} : {}),
             // Partial projections and pre-Run request keys cannot classify a
             // complete returned Run identity. Absence here means unknown.
             unrelatedRows: !completeRow ? undefined : row === undefined ? 0 :
-              Number(row.namespace_id !== ref.namespaceId ||
-                row.authority_scope_cid !== ref.authorityScopeCid ||
-                row.run_definition_cid !== ref.runDefinitionCid),
+              Number(row.namespace_id !== ref!.namespaceId ||
+                row.authority_scope_cid !== ref!.authorityScopeCid ||
+                row.run_definition_cid !== ref!.runDefinitionCid),
             coverage: 'selected-returned',
           });
         } catch { /* Optional diagnostics never replace a native result. */ }
@@ -161,14 +212,15 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`);
   // These observation frames belong to this exact journal instance. They are
   // not authority and cannot be reconstituted from a copied DATA response.
-  const runStateFrames = new WeakMap();
-  const readRunDefinitionRow = (ref, requestControl) =>
+  const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();
+  const readRunDefinitionRow = (ref: WireRunRef, requestControl: Parameters<typeof readJournalRunDefinitionRow>[1]) =>
     readJournalRunDefinitionRow(ref, requestControl, ensureOpen, selectRef);
-  const retainRunStateFrame = (frame, selected) =>
+  const retainRunStateFrame = (frame: object, selected: WireRunRef) =>
     retainJournalRunStateFrame(runStateFrames, frame, selected);
-  const admitRunDefinitionRow = (row, requestControl, publicationControl) =>
+  const admitRunDefinitionRow = (row: Parameters<typeof admitJournalRunDefinitionRow>[1],
+    requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2], publicationControl: DefinitionControl) =>
     admitJournalRunDefinitionRow(runStateFrames, row, requestControl, publicationControl,
-      maxRunDefinitionWireBytes, updateOriginalControl);
+      maxRunDefinitionWireBytes, updateOriginalControl as Parameters<typeof admitJournalRunDefinitionRow>[5]);
   const selectRun = selectedRequestStatement(database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`), 'run-definition');
   const requestUsage = database.prepare('SELECT * FROM client_request_row_usage WHERE singleton=1');
@@ -243,15 +295,15 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
   const {requestCancellation, recordCancellationOperation, lookupCancellationOperation} =
     createJournalCancellation(database, {selectRef, requestUsage, submissionIssued, cancellationUsage,
       cancellationIssued, cancellationSelect, cancellationInsert}, ensureOpen,
-    {transact, rejectCancellation}, configuration);
+    {transact, rejectCancellation}, configuration as Parameters<typeof createJournalCancellation>[4]);
 
-  const readExplanationOriginal = ref =>
+  const readExplanationOriginal = (ref: WireRunRef) =>
     readJournalExplanationOriginal(database, ref, maxRunDefinitionWireBytes);
-  const probeExplanationRead = ref =>
+  const probeExplanationRead = (ref: WireRunRef) =>
     probeJournalExplanation(database, ensureOpen, ref, maxRunDefinitionWireBytes);
-  const readExplanationSelection = (ref, extent) =>
+  const readExplanationSelection = (ref: WireRunRef, extent: Parameters<typeof readJournalExplanation>[3]) =>
     readJournalExplanation(database, ensureOpen, ref, extent, maxRunDefinitionWireBytes);
-  const insertExplanationOriginal = (ref, original) =>
+  const insertExplanationOriginal = (ref: WireRunRef, original: Parameters<typeof insertJournalExplanationOriginal>[2]) =>
     insertJournalExplanationOriginal(database, ref, original);
 
   const {acceptRecord, lookupRecord, resolveOriginalDefinition} =
@@ -259,14 +311,15 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       cancellationIssued, intentSelect, insert, advanceSubmissionCustody},
     {ensureOpen, transact, checkSubmissionBinding, refuseEpoch, retainedIntent,
       assertJournalSubmissionCustody, assertJournalCancellationCustody,
-      readExplanationOriginal, insertExplanationOriginal}, configuration);
+      readExplanationOriginal, insertExplanationOriginal},
+    configuration as Parameters<typeof createJournalRunRecords>[2]);
 
   const observationConnection = createJournalObservationConnection(path, ensureOpen, primaryCurrent,
     primarySqlLimits, primaryExecutionLimits, walFrames, maxDatabaseBytes);
   const closeObservationStorage = observationConnection.closeObservationStorage;
   const journal = Object.freeze({
     retainSubmissionOperation,
-    prepareSubmittedIntent(epoch, wire, control) {
+    prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {
       ensureOpen();
       // This admission is not cached. An explicit original preparation borrow
       // is registered separately and released by the active operation.
@@ -274,14 +327,16 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     },
     closeObservationStorage,
     observationStorage: observationConnection.observationStorage,
-    installObservationProjection(projection) {
+    installObservationProjection(projection: unknown) {
       if (!isHostObservationProjection(projection) || observationProjection !== undefined) {
         throw new TypeError('ForeignHostObservationProjection');
       }
       observationProjection = projection;
     },
     resolveOrBindSubmittedName,
-    resolveNamedSubmissionAttempt(name, intent, options, control) {
+    resolveNamedSubmissionAttempt(name: unknown, intent: unknown,
+      options: Parameters<SubmissionMethods['resolveOrBindSubmittedName']>[2] & AttemptOptions,
+      control: Parameters<SubmissionMethods['resolveOrBindSubmittedName']>[3]): ReturnType<Attempts['submissionAttempt']> {
       return submissionAttempt(options.submissionRef, intent, options, control,
         () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded', originalIntent);
     },
@@ -289,11 +344,15 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     recordSubmittedIntent,
     // Invocation facts are projections of the existing admission boundary,
     // never replacement receipts or proof that another invocation did not run.
-    checkSubmissionAttempt(submissionRef, intent, options, control) {
+    checkSubmissionAttempt(submissionRef: WireSubmissionRef, intent: unknown,
+      options: Parameters<SubmissionMethods['checkSubmittedIntent']>[2] & AttemptOptions,
+      control: Parameters<SubmissionMethods['checkSubmittedIntent']>[3]): ReturnType<Attempts['submissionAttempt']> {
       return submissionAttempt(submissionRef, intent, options, control,
         () => journal.checkSubmittedIntent(submissionRef, intent, options, control), 'checked', originalIntent);
     },
-    recordSubmissionAttempt(submissionRef, intent, options, control) {
+    recordSubmissionAttempt(submissionRef: WireSubmissionRef, intent: unknown,
+      options: Parameters<SubmissionMethods['recordSubmittedIntent']>[2] & AttemptOptions,
+      control: Parameters<SubmissionMethods['recordSubmittedIntent']>[3]): ReturnType<Attempts['submissionAttempt']> {
       return submissionAttempt(submissionRef, intent, options, control,
         () => journal.recordSubmittedIntent(submissionRef, intent, options, control), 'recorded', originalIntent);
     },
@@ -306,8 +365,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // The transaction owns uniqueness and durable acceptance; no task is
     // started here. A duplicate is interpreted only by the common MoonBit
     // relation, never by comparing transport JSON or a local retry counter.
-    accept(identity, {namespaceId, runDefinitionCid, revision = 0,
-      lookupExpiresAt, submission}, control) {
+    accept(identity: unknown, {namespaceId, runDefinitionCid, revision = 0,
+      lookupExpiresAt, submission}: RunAdmission, control: RequestControl) {
       return acceptRecord(identity, {namespaceId, runDefinitionCid,
         revision, lookupExpiresAt, submission}, control);
     },
@@ -322,8 +381,9 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       return primarySchemaSqlSupport === undefined ||
         primarySchemaSqlSupport.includes(explanationOriginalTable);
     },
-    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
-      revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
+    acceptDefinition(identity: unknown, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
+      revision = 0, lookupExpiresAt, submission}: DefinitionAdmission,
+      requestControl: RequestControl, publicationControl: AdmissionPublication): AdmittedDefinition {
       ensureOpen();
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
@@ -342,11 +402,11 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
           Object.hasOwn(runAdmissionEvidence, 'structuralExplanationOriginal')) {
         fail('InvalidClientRunExplanationOriginal');
       }
-      let explanationOriginal;
-      let acknowledgeExplanation;
+      let explanationOriginal: Parameters<RunRecords['acceptRecord']>[3];
+      let acknowledgeExplanation: AdmissionPublication['originalRunExplanationAdmissionAcknowledged'];
       if (originalExplanation !== undefined) {
         if (originalPlan === undefined || typeof publicationControl.originalRunExplanationAdmissionEvidence !== 'function' ||
-            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl)) fail('InvalidClientRunExplanationOriginal');
+            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl as Parameters<typeof admissionEvidenceShape>[1])) fail('InvalidClientRunExplanationOriginal');
         acknowledgeExplanation = publicationControl.originalRunExplanationAdmissionAcknowledged;
         if (typeof acknowledgeExplanation !== 'function') fail('InvalidClientRunExplanationOriginal');
         // Exact selected facility support is a prerequisite, not permission or
@@ -368,13 +428,13 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
           if (Buffer.byteLength(factsWire) > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
           explanationOriginal = Object.freeze({factsWire});
         } catch (cause) {
-          if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          if ((cause as Failure)?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
           fail('InvalidClientRunExplanationOriginal', cause);
         }
       }
       if (originalInferRun !== undefined) {
         if (typeof publicationControl.originalInferRunAdmissionEvidence !== 'function' ||
-            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl)) {
+            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl as Parameters<typeof admissionEvidenceShape>[1])) {
           fail('InvalidClientInferRunOriginal');
         }
         let original;
@@ -386,7 +446,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       }
       if (originalPlan !== undefined) {
         if (typeof publicationControl.originalRunPlanAdmissionEvidence !== 'function' ||
-            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl)) fail('InvalidClientRunPlanOriginal');
+            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl as Parameters<typeof admissionEvidenceShape>[1])) fail('InvalidClientRunPlanOriginal');
         let original;
         try {
           original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,
@@ -400,7 +460,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
           // binding before issuance. Adopting its exact original is not a
           // second stored-map read or another execution permission.
         } catch (cause) {
-          if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          if ((cause as Failure)?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
           fail('InvalidClientRunPlanOriginal', cause);
         }
         runAdmissionEvidence = {...runAdmissionEvidence,
@@ -421,7 +481,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       // This optional projection runs after the semantic transaction. Only
       // its branded bounded queue is reachable here, never user delivery.
       observationProjection?.accepted(accepted,
-        requestControl.clientRequestCallerId(identity));
+        requestControl.clientRequestCallerId(identity) as string);
       observationProjection?.emit('run', 'definition_admitted',
         {ref: accepted.ref, revision: accepted.revision});
       return Object.freeze({
@@ -443,25 +503,26 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     },
     // Authorization and retention policy are performed by the Host before
     // exposing a found record. Physical lookup never starts Compute.
-    lookup(key, control) {
+    lookup(key: RequestKey, control: RequestReader) {
       return lookupRecord(key, control)?.found;
     },
     // Internal owner recovery, not a wire credential or current permission.
     // Both logical keys are re-admitted before the caller can reuse the scope.
-    lookupIdentity(key, control) {
+    lookupIdentity(key: RequestKey, control: RequestReader) {
       return lookupRecord(key, control)?.identity;
     },
-    lookupDefinition(key, requestControl, publicationControl) {
+    lookupDefinition(key: RequestKey, requestControl: RequestReader, publicationControl: DefinitionControl) {
       const retained = lookupRecord(key, requestControl);
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
         ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes, updateOriginalControl),
+          maxRunDefinitionWireBytes, updateOriginalControl as Parameters<typeof retainedRunFacts>[3]),
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
     // It does not infer authority from a CID alone or create another Run.
-    lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {
+    lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],
+      publicationControl: DefinitionControl, originalFrame?: RunFrame) {
       let original;
       if(originalFrame!==undefined) {
         ensureOpen();
@@ -478,7 +539,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // Internal retained facet read. Current Run/Plan and egress admission must
     // precede this operation in the existing Host service. It issues no Run,
     // compiler token or permission, and never repairs a legacy absence.
-    lookupRunExplanationOriginal(ref, requestControl, publicationControl) {
+    lookupRunExplanationOriginal(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],
+      publicationControl: DefinitionControl) {
       const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
       // Admit the SAME original Run before reading its associated facet.
@@ -489,15 +551,15 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // before probe, then the complete original/codec overlap before full read.
     probeRunExplanationOriginal: probeExplanationRead,
     readRunExplanationOriginal: readExplanationSelection,
-    canReinspectRunStopAfterStatePublication(beforeFrame, afterFrame) {
+    canReinspectRunStopAfterStatePublication(beforeFrame: object, afterFrame: object) {
       ensureOpen();
       return reinspectJournalRunStopAfterStatePublication(runStateFrames, beforeFrame, afterFrame);
     },
-    canReinspectRunAfterPhysicalClose(beforeFrame, afterFrame) {
+    canReinspectRunAfterPhysicalClose(beforeFrame: object, afterFrame: object) {
       ensureOpen();
       return reinspectJournalRunAfterPhysicalClose(runStateFrames, beforeFrame, afterFrame);
     },
-    canReinspectRunForSigning(beforeFrame, afterFrame) {
+    canReinspectRunForSigning(beforeFrame: object, afterFrame: object) {
       ensureOpen();
       return reinspectJournalRunForSigning(runStateFrames, beforeFrame, afterFrame);
     },
@@ -505,8 +567,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;
     // missing selected custody cannot be repaired from current caller options.
-    originalSubmittedIntent(identity, {namespaceId}, requestControl,
-      publicationControl) {
+    originalSubmittedIntent(identity: unknown, {namespaceId}: RequestScope, requestControl: StopRequestControl,
+      publicationControl: DefinitionControl) {
       ensureOpen();
       if (!text(namespaceId) ||
           typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function') {
@@ -514,8 +576,10 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       }
       const fields = checkedIdentity(identity, requestControl);
       const requestOriginal = Object.freeze({identity, fields});
-      let previousRunRow, previousRunFacts, previousIntent;
-      let previousReference;
+      let previousRunRow: NonNullable<ReturnType<RunRecords['lookupRecord']>>['row'] | undefined;
+      let previousRunFacts: ReadmittedRunFacts | undefined;
+      let previousIntent: ReturnType<SubmissionRows['retainedIntentOriginal']> | undefined;
+      let previousReference: Readonly<{epochWire: unknown; nonce: unknown; wire: string}> | undefined;
       const readOriginal = () => {
         try {
           assertJournalSubmissionCustody(requestUsage, submissionIssued);
@@ -529,19 +593,19 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
           // an actual change re-enters the original admission path below.
           if (previousRunRow === undefined ||
               Object.keys(run.row).length !== Object.keys(previousRunRow).length ||
-              Object.keys(run.row).some(key => run.row[key] !== previousRunRow[key])) {
+              Object.keys(run.row).some(key => run.row[key as keyof typeof run.row] !== previousRunRow![key as keyof typeof run.row])) {
             previousRunFacts = retainedRunFacts(run.row, publicationControl,
-              maxRunDefinitionWireBytes, updateOriginalControl);
+              maxRunDefinitionWireBytes, updateOriginalControl as Parameters<typeof retainedRunFacts>[3]);
             previousRunRow = Object.freeze({...run.row});
           }
-          const facts = previousRunFacts;
+          const facts = previousRunFacts!;
           const expectedCid = facts.runAdmissionEvidence?.submittedIntentCid;
           const row = intentSelect.get(fields.requestId);
           if (row === undefined) {
             if (expectedCid !== undefined) fail('ClientSubmittedIntentCustodyLost');
             return undefined;
           }
-          previousIntent = retainedIntentOriginal(row, requestControl, undefined, previousIntent);
+          previousIntent = retainedIntentOriginal(row as Parameters<typeof retainedIntentOriginal>[0], requestControl, undefined, previousIntent);
           const {intent, value: original} = previousIntent;
           if (intent === undefined || !['preparing', 'held', 'ready'].includes(original.phase)) {
             fail('ClientRequestSubmittedIntentMismatch');
@@ -590,20 +654,20 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     observeRunCancellation,
     // Recover identity and Definition from one physical journal observation.
     // This internal owner must not be projected as a Client wire response.
-    lookupOwnedDefinition(key, requestControl, publicationControl) {
+    lookupOwnedDefinition(key: RequestKey, requestControl: RequestReader, publicationControl: DefinitionControl) {
       const retained = lookupRecord(key, requestControl);
       if (retained === undefined) return undefined;
       return Object.freeze({...retained.found,
         requestIdentity: retained.identity,
         ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes, updateOriginalControl),
+          maxRunDefinitionWireBytes, updateOriginalControl as Parameters<typeof retainedRunFacts>[3]),
       });
     },
     // A resend can resolve an already accepted request before issuing a new
     // plan or Run Definition. The shared owner compares the checked intent;
     // absence does not prove that a concurrent submission cannot still land.
-    resolveDefinition(identity, {namespaceId}, requestControl,
-      publicationControl) {
+    resolveDefinition(identity: unknown, {namespaceId}: RequestScope,
+      requestControl: RequestControl, publicationControl: DefinitionControl) {
       ensureOpen();
       if (!text(namespaceId) || !requestControl ||
           typeof requestControl.clientRequestRelation !== 'function') {
@@ -617,8 +681,10 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // MoonBit relation decides whether a retained intent is the same request;
     // the callback may issue authority but must not start Compute. A racing
     // issuer is discarded when the atomic insert finds an existing Run.
-    async admitOrLookupDefinition(identity, {namespaceId, lookupExpiresAt,
-      issueDefinition, resultNames, sourceInventory, submission}, requestControl, publicationControl) {
+    async admitOrLookupDefinition(identity: unknown, {namespaceId, lookupExpiresAt,
+      issueDefinition, resultNames, sourceInventory, submission}: IssueDefinitionOptions,
+      requestControl: RequestControl, publicationControl: AdmissionPublication): Promise<AdmittedDefinition |
+        (NonNullable<ReturnType<RunRecords['resolveOriginalDefinition']>> & Readonly<{inserted: false}>)> {
       if (!text(namespaceId) || !instant(lookupExpiresAt) ||
           Date.parse(lookupExpiresAt) <= Date.now() ||
           typeof issueDefinition !== 'function') {
@@ -629,7 +695,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       assertJournalSubmissionCustody(requestUsage, submissionIssued);
       const fields = checkedIdentity(identity, requestControl);
       assertKeyedInventoryRequest(sourceInventory, fields);
-      const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
+      const epochValidity = checkSubmissionBinding(fields, submission, requestControl as Parameters<typeof checkSubmissionBinding>[2]);
       const retained = resolveOriginalDefinition(identity, fields, namespaceId,
         requestControl, publicationControl);
       if (retained !== undefined) {
@@ -653,7 +719,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     reservePhysicalStart: startPhysical,
     persistOriginalKeyedLookupActivation,
     persistOriginalKeyedLookupPage,
-    lookupOriginalSourceOperation(ref, occurrence) {
+    lookupOriginalSourceOperation(ref: WireRunRef, occurrence: unknown) {
       if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
       return sourceOperations.lookup(ref, occurrence);
     },
@@ -666,7 +732,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     // outcomes. Refused consumes no identity; another invocation can already
     // own the same cancellation. Pending custody and uncertain COMMIT never
     // produce this certificate. The durable original remains unchanged.
-    recordCancellationAttempt(ref, {attemptRef, ...options}, requestControl, publicationControl) {
+    recordCancellationAttempt(ref: Parameters<CancelRecord>[0], {attemptRef, ...options}: CancelAttemptOptions,
+      requestControl: Parameters<CancelRecord>[2], publicationControl: Parameters<CancelRecord>[3]): ReturnType<Attempts['cancellationAttempt']> {
       return cancellationAttempt(journal, ref, attemptRef, options, requestControl, publicationControl);
     },
     lookupCancellationOperation,
@@ -675,7 +742,7 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     markPreDispatchFailure,
     recordReconciliationState,
     lookupReconciliationState,
-    close() {
+    close(): undefined {
       closed = true;
       if (!databaseClosed) {
         initializationCleanup.close();

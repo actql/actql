@@ -6692,7 +6692,7 @@
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -7847,7 +7847,7 @@
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -8852,7 +8852,7 @@
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -9519,7 +9519,7 @@
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -10309,7 +10309,7 @@
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {

@@ -5,7 +5,6 @@ import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-// @ts-expect-error TS7016: remove when the original physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {request, requestControl, controls, definition, options}
   from './fixtures/original-plan-journal.mjs';

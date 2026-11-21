@@ -6998,7 +6998,7 @@
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -12804,7 +12804,7 @@
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {

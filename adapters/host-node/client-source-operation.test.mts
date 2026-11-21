@@ -5,7 +5,6 @@ import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {openClientRequestJournal} from './client-request-journal.mjs';
 // @ts-expect-error TS7016: remove after publication-store has an authored TypeScript entry.
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
@@ -18,24 +17,7 @@ import {request, requestControl, controls, definition, options}
 type OperationRuntime = Parameters<typeof bindClientSourceOperationRowRun>[1];
 type OriginalJob = Parameters<ReturnType<typeof bindClientSourceOperationRowRun>>[0];
 type Occurrence = Readonly<{stage: number; input: number; task: number}>;
-type Reference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
-type RunFrame = Readonly<{revision: number; physicalStartReserved: boolean; physicalCloseConfirmed: boolean;
-  observedTerminalOutcome: string | null}>;
-type Journal = Readonly<{
-  acceptDefinition(original: typeof request, admission: typeof options, control: object, publication: object): {ref: Reference};
-  reserveDispatch(original: typeof request, intent: Readonly<{namespaceId: string; currentAuthorization: boolean}>,
-    control: object, publication: object): unknown;
-  reservePhysicalStart(original: typeof request, intent: Readonly<{namespaceId: string; ref: Reference;
-    currentAuthorization: boolean; captureSourceOperation?: CaptureSource;
-    localExecutionOwner?: Readonly<{program: object; compiled: object}>}>,
-    control: object, publication: object): boolean;
-  lookupRunDefinition(ref: Reference, control: object, publication: object): RunFrame | undefined;
-  lookupOriginalSourceOperation(ref: Reference, occurrence: Occurrence): Readonly<{originalWire: string}> | undefined;
-  sourceOperationConfigured: boolean;
-  observeStoppedLocalExecutionOwner(ref: Reference, frame: RunFrame): boolean;
-  markPhysicalClose(ref: Reference, outcome: 'failed', frame: RunFrame): unknown;
-  close(): unknown;
-}>;
+type Journal = ReturnType<typeof openClientRequestJournal>;
 type CaptureSource = Readonly<{program: object; compiled: object; store: object; capture(value: object): void}>;
 type MutableInventory = {acquisitions: number; infer: object[]; serialization: number[][];
   effects: boolean; graphCarrier: boolean};

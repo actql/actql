@@ -2777,7 +2777,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -3257,7 +3257,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -6851,7 +6851,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -6927,7 +6927,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -12878,7 +12878,7 @@
                 "anchor": "attempt < 8"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "ensureOpen();"
               },
               {
@@ -13178,7 +13178,7 @@
                 "anchor": "attempt < 8"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "ensureOpen();"
               },
               {
@@ -13402,8 +13402,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -13516,8 +13516,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -13542,7 +13542,7 @@
                 "anchor": "### Client cancellation observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -13642,8 +13642,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mts",
@@ -13756,8 +13756,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication/run_wait.mbt",
@@ -13782,7 +13782,7 @@
                 "anchor": "### Client cancellation observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -20507,7 +20507,7 @@
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -21192,7 +21192,7 @@
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -22198,7 +22198,7 @@
                 "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -22761,7 +22761,7 @@
                 "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -28795,12 +28795,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -28813,7 +28813,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -28833,8 +28833,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -28887,7 +28887,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -28911,7 +28911,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -28923,7 +28923,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -28935,7 +28935,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -29009,7 +29009,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -29031,7 +29031,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -29075,7 +29075,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -29203,8 +29203,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -29285,7 +29285,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -29707,8 +29707,8 @@
                 "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -29735,8 +29735,8 @@
                 "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalJournalCustodies = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();"
               },
               {
                 "path": "adapters/host-node/client-request-journal-sql.mts",
@@ -29851,7 +29851,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,"
               }
             ],
@@ -29863,7 +29863,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const accepted = acceptRecord(identity, {namespaceId,"
               }
             ],
@@ -29881,7 +29881,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||"
               }
             ],
@@ -29929,8 +29929,8 @@
                 "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection, features: FormatFeatures) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function openClientRequestJournal(directory, options = {}, ownedOriginal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function openClientRequestJournal(directory: string, options: JournalOptions = {}, ownedOriginal?: object) {"
               }
             ],
             "identity": [
@@ -29967,7 +29967,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
               }
             ],
@@ -30129,12 +30129,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -30143,7 +30143,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -30163,8 +30163,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -30213,7 +30213,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -30237,7 +30237,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -30249,7 +30249,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -30261,7 +30261,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -30335,7 +30335,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -30357,7 +30357,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -30401,7 +30401,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -30525,8 +30525,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -30607,7 +30607,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -32373,8 +32373,8 @@
                 "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -32401,8 +32401,8 @@
                 "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalJournalCustodies = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();"
               },
               {
                 "path": "adapters/host-node/client-request-journal-sql.mts",
@@ -33399,12 +33399,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -33425,7 +33425,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -33445,8 +33445,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -33499,7 +33499,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -33523,7 +33523,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -33535,7 +33535,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -33547,7 +33547,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -33621,7 +33621,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -33647,7 +33647,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -33691,7 +33691,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -33819,8 +33819,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -33905,7 +33905,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -34272,8 +34272,8 @@
                 "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -34300,8 +34300,8 @@
                 "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalJournalCustodies = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();"
               },
               {
                 "path": "adapters/host-node/client-request-journal-sql.mts",
@@ -34490,7 +34490,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (closed) fail('ClientRequestJournalClosed');"
               }
             ],
@@ -34559,8 +34559,8 @@
                 "anchor": "export function inspectJournalNativeStorage(database: JournalSqlConnection, features: FormatFeatures) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function openClientRequestJournal(directory, options = {}, ownedOriginal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function openClientRequestJournal(directory: string, options: JournalOptions = {}, ownedOriginal?: object) {"
               }
             ],
             "identity": [
@@ -34597,7 +34597,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
               }
             ],
@@ -34810,12 +34810,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -34832,7 +34832,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -34852,8 +34852,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -34902,7 +34902,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -34926,7 +34926,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -34938,7 +34938,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -34950,7 +34950,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -35024,7 +35024,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -35046,7 +35046,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -35090,7 +35090,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -35214,8 +35214,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -35296,7 +35296,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -35614,12 +35614,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -35632,7 +35632,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -35652,8 +35652,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -35706,7 +35706,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -35730,7 +35730,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -35742,7 +35742,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -35754,7 +35754,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -35828,7 +35828,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -35850,7 +35850,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -35894,7 +35894,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -36022,8 +36022,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -36104,7 +36104,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -36522,8 +36522,8 @@
                 "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -36550,8 +36550,8 @@
                 "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalJournalCustodies = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();"
               },
               {
                 "path": "adapters/host-node/client-request-journal-sql.mts",
@@ -36675,7 +36675,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (current !== existed)"
               },
               {
@@ -36701,7 +36701,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
               },
               {
@@ -36711,11 +36711,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "primaryCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const initializationCleanup = createJournalPrimaryConnection(path, primaryCurrent);"
               }
             ],
@@ -38316,12 +38316,12 @@
                 "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "lookupRunDefinition(ref: WireRunRef, requestControl: Parameters<typeof admitJournalRunDefinitionRow>[2],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
@@ -38334,7 +38334,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
               },
               {
@@ -38354,8 +38354,8 @@
                 "anchor": "pub fn client_effect_target_selection_current("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -38408,7 +38408,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
               },
               {
@@ -38432,7 +38432,7 @@
                 "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -38444,7 +38444,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               },
               {
@@ -38456,7 +38456,7 @@
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
               },
               {
@@ -38530,7 +38530,7 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "const original = transaction.run(readOriginal);"
               },
               {
@@ -38552,7 +38552,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');"
               },
               {
@@ -38596,7 +38596,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
@@ -38724,8 +38724,8 @@
                 "anchor": "max_bytes : Int"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const runStateFrames = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const runStateFrames: Parameters<typeof admitJournalRunDefinitionRow>[0] = new WeakMap();"
               },
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
@@ -38806,7 +38806,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "fail('UnknownClientRequestJournalFormat');"
               },
               {
@@ -39064,7 +39064,7 @@
                 "anchor": "const originalInferRunTokens = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "if (originalInferRun !== undefined) {"
               }
             ],
@@ -39765,8 +39765,8 @@
                 "anchor": "function assertOriginalClientRequestJournalFacilityCurrent(database: unknown, statement: unknown, nativeBindings?: unknown): void {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "export function observeOriginalClientRequestJournalCustody(journal) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "export function observeOriginalClientRequestJournalCustody(journal: unknown): JournalCustody {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -39793,8 +39793,8 @@
                 "anchor": "function boundedJournalWalFrames(maxFrames: number | undefined,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalJournalCustodies = new WeakMap();"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "const originalJournalCustodies = new WeakMap<object, () => JournalCustody>();"
               },
               {
                 "path": "adapters/host-node/client-request-journal-sql.mts",
@@ -40063,7 +40063,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "try { closeObservationStorage(); }"
               },
               {
@@ -42455,7 +42455,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -42771,8 +42771,8 @@
                 "anchor": "export declare function validNamedSubmissionAttempt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "prepareSubmittedIntent(epoch: unknown, wire: unknown, control: Parameters<typeof admitIntentOriginal>[1]) {"
               }
             ],
             "identity": [
@@ -43123,7 +43123,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -71148,7 +71148,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -71512,7 +71512,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               }
             ],
@@ -125192,7 +125192,7 @@
                 "anchor": "attempt < 8"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "ensureOpen();"
               }
             ],
@@ -125296,7 +125296,7 @@
                 "anchor": "attempt < 8"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "ensureOpen();"
               }
             ],

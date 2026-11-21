@@ -8,7 +8,6 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-// @ts-expect-error TS7016: remove when the original physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal} from './client-request-journal.mjs';
 
 type CloseableJournal = Readonly<{close(): void}>;

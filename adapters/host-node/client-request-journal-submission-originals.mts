@@ -235,6 +235,7 @@ type RetainedIntent = Readonly<{
     unresolvedHistory?: StoredRestart; observation?: string;
   }>;
 }>;
+type SubmissionReceipt = RetainedIntent['value'] & Readonly<{inserted: boolean}>;
 type IntentStatements = Readonly<{
   epochAuthority: JournalStatement; requestUsage: JournalStatement; submissionIssued: JournalStatement;
   intentSelect: JournalStatement; intentUsage: JournalStatement; intentIssued: JournalStatement; intentRetired: JournalStatement;
@@ -540,7 +541,7 @@ export function createJournalSubmissionRows(database: JournalSqlConnection, sele
         return retained;
       });
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
-      return Object.freeze(result);
+      return Object.freeze(result as SubmissionReceipt);
     },
     checkSubmittedIntent(submissionRef: WireSubmissionRef, intent: unknown, {authorityScopeCid,
       currentAuthorization, unresolvedHistory, actorId}: CheckedIntentAdmission, control: RetainedSubmissionControl) {
@@ -565,7 +566,7 @@ export function createJournalSubmissionRows(database: JournalSqlConnection, sele
         return {requestId};
       });
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
-      return Object.freeze(result);
+      return Object.freeze(result as Readonly<{requestId: string}>);
     },
     recordSubmittedIntent(submissionRef: WireSubmissionRef, intent: unknown, {authorityScopeCid,
       currentAuthorization, phase = 'preparing', outcome, unresolvedHistory, actorId}: RecordedIntentAdmission,
@@ -590,7 +591,7 @@ export function createJournalSubmissionRows(database: JournalSqlConnection, sele
       const result = submissionTransaction(() => recordIntentLocked(submissionRef, original,
         {authorityScopeCid, currentAuthorization, phase, outcome}, restartWire, requestId, control));
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
-      return Object.freeze(result);
+      return Object.freeze(result as SubmissionReceipt);
     },
     lookupSubmittedIntent(submissionRef: WireSubmissionRef, {authorityScopeCid, currentAuthorization}: EpochAuthority,
     control: RetainedSubmissionControl, expected?: unknown) {

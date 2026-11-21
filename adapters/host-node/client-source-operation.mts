@@ -2,6 +2,8 @@
 // owners. These tables retain original identity, not another Run, retry state
 // machine, capacity issuer or permission decision.
 import type {DatabaseSync} from 'node:sqlite';
+import type {JournalSqlConnection} from './client-request-journal-sql.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Occurrence = Readonly<{stage: number; input: number; task: number}>;
 type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
@@ -26,8 +28,8 @@ type RunOriginal = Readonly<{
     clientProgramMatchesRequestIdentity(program: unknown, identity: unknown): boolean;
   }>;
   publicationControl: Readonly<{
-    checkClientCompiledRunOwner(compiled: unknown, program: unknown): undefined;
-    checkClientCompiledRunDefinition(compiled: unknown, definition: RunOriginal['definition']): undefined;
+    checkClientCompiledRunOwner(compiled: unknown, program: unknown): SynchronousRuntimeData;
+    checkClientCompiledRunDefinition(compiled: unknown, definition: RunOriginal['definition']): SynchronousRuntimeData;
   }>;
   checkStore: () => number; journal: object; store: object;
   requestId: string; requestScopeCid: string; intentCid: string;
@@ -105,7 +107,7 @@ export function snapshotClientSourceOperationLimits(limits: unknown): SourceOper
   return Object.freeze({maxRecords: fields.maxRecords.value, maxWireBytes: fields.maxWireBytes.value});
 }
 
-export function clientSourceOperationStorage(database: Pick<DatabaseSync, 'prepare'>, {ensureOpen, transact,
+export function clientSourceOperationStorage(database: Pick<JournalSqlConnection, 'prepare'>, {ensureOpen, transact,
   readRun, limits}: StorageOptions) {
   limits = snapshotClientSourceOperationLimits(limits);
   if (limits === undefined) return undefined;

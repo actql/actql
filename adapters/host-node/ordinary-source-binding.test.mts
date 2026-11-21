@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {validateSourceInventory} from './client-request-journal.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fixture.mjs';

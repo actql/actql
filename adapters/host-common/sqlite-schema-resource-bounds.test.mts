@@ -9,7 +9,6 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {inspectSqliteSnapshot} from './sqlite-format-inspection.mjs';
 import type {SqliteSchemaReadLimits} from './sqlite-schema-resource-bounds.mjs';
-// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {openClientRequestJournal} from '../host-node/client-request-journal.mjs';
 
 const defaults = Object.freeze({maxSchemaBytes: 1024 * 1024,
@@ -224,7 +223,7 @@ test('same Journal reopen consumes schema support bounds without replacing forma
   const f = await fixture({tables: 1});
   f.close();
   const directory = join(f.scratch.path, 'requests');
-  let journal = openClientRequestJournal(directory);
+  let journal: ReturnType<typeof openClientRequestJournal> | undefined = openClientRequestJournal(directory);
   journal.close();
   journal = undefined;
   try {

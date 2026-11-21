@@ -5,9 +5,9 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
+type JournalRef = Parameters<ReturnType<typeof openClientRequestJournal>['lookupReconciliationState']>[0];
 type Journal = Readonly<{close(): void; observationStorage(): unknown;
   lookupReconciliationState(value: unknown): unknown}>;
 const selected = {
@@ -34,13 +34,13 @@ test('failed pre-SQL operations keep current checks and do not create lifetime c
   const input = {get namespaceId() {reads++; return undefined;}};
   try {
     for (let index = 0; index < 3; index++) {
-      assert.throws(() => journal.lookupReconciliationState(input), {code: 'InvalidClientRunLookup'});
+      assert.throws(() => journal.lookupReconciliationState(input as unknown as JournalRef), {code: 'InvalidClientRunLookup'});
     }
     assert.equal(reads, 3);
     current = false;
-    assert.throws(() => journal.lookupReconciliationState(input), error => error === refusal);
+    assert.throws(() => journal.lookupReconciliationState(input as unknown as JournalRef), error => error === refusal);
     const borrowed = {...journal};
-    assert.throws(() => borrowed.lookupReconciliationState(input), error => error === refusal);
+    assert.throws(() => borrowed.lookupReconciliationState(input as unknown as JournalRef), error => error === refusal);
     assert.equal(reads, 3, 'both original facade calls refuse before another argument read');
   } finally { journal.close(); }
   assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, true);
@@ -74,10 +74,13 @@ test('current refusal preserves the original asynchronous Journal method contrac
   const journal = openClientRequestJournal(directory, {...selected,
     primaryCurrent() {if (!current) throw refusal;}});
   try {
-    assert.throws(() => journal.lookupReconciliationState({}), {code: 'InvalidClientRunLookup'});
+    assert.throws(() => journal.lookupReconciliationState({} as JournalRef), {code: 'InvalidClientRunLookup'});
     current = false;
     let result: unknown;
-    assert.doesNotThrow(() => {result = journal.admitOrLookupDefinition();});
+    assert.doesNotThrow(() => {
+      // @ts-expect-error TS2554: this runtime refusal deliberately omits all arguments.
+      result = journal.admitOrLookupDefinition();
+    });
     assert.ok(result instanceof Promise);
     await assert.rejects(result, error => error === refusal);
   } finally { journal.close(); }
@@ -94,10 +97,10 @@ test('each original current refusal precedes argument access without blocking cl
   const input = {get namespaceId() {reads++; return undefined;}};
   try {
     failed = true;
-    assert.throws(() => journal.lookupReconciliationState(input), error => error === original);
+    assert.throws(() => journal.lookupReconciliationState(input as unknown as JournalRef), error => error === original);
     assert.equal(checks, before + 1);
     assert.equal(reads, 0);
-    assert.throws(() => journal.lookupReconciliationState(input), error => error === original);
+    assert.throws(() => journal.lookupReconciliationState(input as unknown as JournalRef), error => error === original);
     assert.equal(checks, before + 2);
     assert.equal(reads, 0);
     assert.throws(() => observeOriginalClientRequestJournalCustody({...journal}),
@@ -126,7 +129,7 @@ test('current-refused operations retain both original connections through pendin
   } finally { DatabaseSync.prototype.close = originalClose; }
   try {
     current = false;
-    assert.throws(() => journal!.lookupReconciliationState({}),
+    assert.throws(() => journal!.lookupReconciliationState({} as JournalRef),
       error => error === refusal);
     assert.throws(() => journal!.close());
     assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, false);
@@ -150,7 +153,7 @@ test('current and closed selected records reject invalid or incomplete inputs be
   ];
   for (const [index, value] of invalid.entries()) {
     const path = directory + index;
-    assert.throws(() => openClientRequestJournal(path, value),
+    assert.throws(() => openClientRequestJournal(path, value as unknown as Parameters<typeof openClientRequestJournal>[1]),
       {code: 'InvalidClientRequestJournalConfiguration'});
     assert.equal(existsSync(path), false);
   }
@@ -158,7 +161,7 @@ test('current and closed selected records reject invalid or incomplete inputs be
   const journal = openClientRequestJournal(directory);
   try {
     for (let index = 0; index < 3; index++) {
-      assert.throws(() => journal.lookupReconciliationState({}), {code: 'InvalidClientRunLookup'});
+      assert.throws(() => journal.lookupReconciliationState({} as JournalRef), {code: 'InvalidClientRunLookup'});
     }
   } finally {journal.close();}
   scratch.passed();

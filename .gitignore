@@ -1475,3 +1475,5 @@ target/
 /adapters/host-node/client-request-journal-submission-originals.d.mts
 /adapters/host-node/client-keyed-lookup-journal.test.mjs
 /adapters/host-node/client-keyed-lookup-journal.test.d.mts
+/adapters/host-node/client-request-journal.mjs
+/adapters/host-node/client-request-journal.d.mts

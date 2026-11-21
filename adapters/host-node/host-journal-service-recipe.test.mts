@@ -9,7 +9,6 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import recipeModule from './host-journal-service-recipe.cjs';
 import nativeImage from './host-journal-native-image.cjs';
 import {createHostJournalDirectoryInspector} from './host-journal-directory.mjs';
-// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody, assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
 
 const shared = Object.freeze({explicitUnaccountedControlFixture: true});
@@ -112,12 +111,12 @@ test('fixed service arguments construct both actual Journal connections and insp
     assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync);
   };
   const selected = selectedArguments(current);
-  const first = openClientRequestJournal(directory, selected);
+  const first = openClientRequestJournal(directory, selected as Parameters<typeof openClientRequestJournal>[1]);
   first.observationStorage();
   first.close();
   assert.equal(observeOriginalClientRequestJournalCustody(first).databaseClosed, true);
   assert.equal(observeOriginalClientRequestJournalCustody(first).observationDatabaseClosed, true);
-  const second = openClientRequestJournal(directory, selected);
+  const second = openClientRequestJournal(directory, selected as Parameters<typeof openClientRequestJournal>[1]);
   second.observationStorage();
   second.close();
   assert.equal(observeOriginalClientRequestJournalCustody(second).databaseClosed, true);
@@ -135,7 +134,7 @@ test('same fixed current reaches native operations while original Journal close 
     assertOriginalClientRequestJournalFacilityCurrent(DatabaseSync, StatementSync);
   };
   const selected = selectedArguments(current);
-  const journal = openClientRequestJournal(directory, selected);
+  const journal = openClientRequestJournal(directory, selected as Parameters<typeof openClientRequestJournal>[1]);
   changed = true;
   assert.throws(() => journal.observationStorage(), value => value === original);
   journal.close();

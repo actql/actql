@@ -712,7 +712,8 @@ type RunRecordOwners = Readonly<{
 }>;
 type RequestRelation = Readonly<{clientRequestRelation(original: unknown, retained: unknown): number}>;
 type LookupControl = RequestIdentityAdmission<unknown> & Pick<RequestIdentityRead, 'clientRequestScopeCid'>;
-type AcceptanceControl = RequestIdentityRead & RequestRelation & Parameters<SubmissionRows['checkSubmissionBinding']>[2];
+type SubmissionControl = Parameters<SubmissionRows['checkSubmissionBinding']>[2];
+type AcceptanceControl = RequestIdentityRead & RequestRelation & Partial<SubmissionControl>;
 type RequestKey = Readonly<{namespaceId: unknown; authorityScopeCid: unknown; requestId: unknown}>;
 type RunLookupRow = RetainedRunRow & RequestIdentityRow & AdmissionRow & Readonly<{
   run_definition_cid: string; run_definition_wire: string | null;
@@ -779,7 +780,7 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
     // Retain observed expiry even if another admission fact later conflicts
     // and rolls its transaction back. The atomic check below still decides
     // whether this particular Run may be inserted.
-    checkSubmissionBinding(fields, submission, control);
+    checkSubmissionBinding(fields, submission, control as SubmissionControl);
     const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',
       error => typeof (error as ObservedFailure)?.code === 'string' &&
         ((error as NonNullable<ObservedFailure>).code!.startsWith('ClientRequest') ||
@@ -790,7 +791,7 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
       if (existing !== undefined) {
         // An expired identity may still identify its retained outcome. This
         // path performs no new issuance; authenticate the original binding.
-        checkSubmissionBinding(fields, submission, control, true);
+        checkSubmissionBinding(fields, submission, control as SubmissionControl, true);
         if (existing.namespace_id !== namespaceId) {
           fail('ClientRequestOwnerMismatch');
         }
@@ -841,7 +842,7 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
             {runDefinitionWire: existing.run_definition_wire}),
           resultNames: retainedResultNames(existing, maxRunDefinitionWireBytes)});
       }
-      const epochValidity = checkSubmissionBinding(fields, submission, control, true);
+      const epochValidity = checkSubmissionBinding(fields, submission, control as SubmissionControl, true);
       if (epochValidity !== 'admissible') {
         // Commit the expiry watermark without admitting a Run. Throwing inside
         // this transaction would roll the watermark back and let a backwards
@@ -860,7 +861,7 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
       let originalAdmissionEvidence = admissionEvidence;
       if (submission?.intentCid !== undefined && admittedEvidence !== undefined) {
         const original = retainedIntent(intentSelect.get(fields.requestId) as Parameters<typeof retainedIntent>[0],
-          control, submission.epoch);
+          control as SubmissionControl, submission.epoch);
         if (admittedEvidence.submittedIntentCid !== undefined &&
             admittedEvidence.submittedIntentCid !== original.intentCid) {
           fail('ClientRequestSubmittedIntentMismatch');
