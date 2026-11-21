@@ -646,6 +646,7 @@ export function managedComputeUsageReader(record: ComputeRegistry, ref: RunRefer
     if (run.value === undefined) return undefined;
     if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime!.clientProgramInstalledManagedRunAccounting;
     if (typeof run.usage !== 'function') return undefined;
-    return checked(Reflect.apply(run.usage, run.runtime, [run.value]));
+    // The original JS Core export returns Result[Array[Int64], Issue].
+    return checked(Reflect.apply(run.usage, run.runtime, [run.value])) as readonly bigint[];
   };
     }

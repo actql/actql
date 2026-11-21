@@ -67,6 +67,7 @@ export type ObservationStorage = Readonly<{
 type JournalPort = Readonly<{
   observationStorage(): ObservationStorage | undefined; closeObservationStorage?(): SynchronousRuntimeData;
 }>;
+type ManagedUsageReader = () => SynchronousRuntimeData;
 type ObservationProjection = NonNullable<ReturnType<typeof installHostObservation>>;
 
 export const observationVersion = 'actql-observation/0.1';
@@ -376,7 +377,7 @@ export function projectEffectPreflightFailure(projection: unknown, ref: RunRefer
 
 // The installed Host supplies a captured original Core reader. Public callers
 // cannot acquire a Ledger or execution authority through this projection.
-export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {
+export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {
   if (!projections.has(projection as object)) return undefined;
   return (projection as ObservationProjection).captureManagedRun(ref, readUsage);
 }
@@ -800,7 +801,7 @@ export function installHostObservation(connection: ObservationConnection | undef
     // copied state is not authorization or an observation-delivery ACK.
     applicationCallbackState: () => callbackState,
     canMeasureResources: () => !closed && config.allowed.has('compute') && config.measurements.has('resources'),
-    captureManagedRun(ref: RunReference, readUsage: () => SynchronousRuntimeData) {
+    captureManagedRun(ref: RunReference, readUsage?: ManagedUsageReader) {
       if (closed || !config.allowed.has('compute') || !config.measurements.has('resources')) return undefined;
       if (!cid(ref?.runDefinitionCid) || typeof readUsage !== 'function') {
         drop('resourceUnavailable'); return undefined;

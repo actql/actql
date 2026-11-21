@@ -48280,7 +48280,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mts",
-                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {"
               }
             ],
             "inputsOutputs": [
@@ -48706,7 +48706,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mts",
-                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {"
               }
             ],
             "inputsOutputs": [
@@ -48990,7 +48990,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mts",
-                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {"
               }
             ],
             "inputsOutputs": [
@@ -49362,7 +49362,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mts",
-                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage?: ManagedUsageReader) {"
               }
             ],
             "inputsOutputs": [
