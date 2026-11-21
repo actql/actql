@@ -240,58 +240,84 @@ test('same Journal reopen consumes schema support bounds without replacing forma
   f.scratch.passed();
 });
 
-type SchemaCopyFailure = {cleanupHandle?: {
-  status(): {pending: boolean}; retry(): {pending: boolean};
-}};
+type SchemaCopyFailure = {
+  code: string;
+  primaryFailure: unknown;
+  cleanupHandle: {
+    status(): {pending: boolean};
+    retry(): {pending: boolean; errors: readonly {error: unknown}[]};
+  };
+};
 for (const mode of ['false', 'throw']) {
-  test('schema copy FD ' + mode + ' close stays with its original owner before native open', async () => {
+  test('schema copy FD ' + mode + ' close stays Unknown with its original owner before native open', async () => {
     const f = await fixture();
+    const temporary = await createOwnedScratch({
+      parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
+      prefix: 'sqlite-schema-close-copy-', label: 'same-copy close outcome fixture',
+    });
     const open = fs.openSync, close = fs.closeSync;
-    let selected: number | undefined, failure: SchemaCopyFailure | undefined, permit = false, closes = 0;
+    const originalCause = new Error('OriginalSchemaCopyClosePending');
+    let selected: number | undefined, failure: SchemaCopyFailure | undefined;
+    let closes = 0, replacementCloses = 0;
     fs.openSync = function (path, flags, ...rest) {
       const fd = Reflect.apply(open, this, [path, flags, ...rest]);
-      if (String(path).includes('actql-journal-format-') && typeof flags === 'number') selected = fd;
+      if (typeof path === 'string' && path.includes('actql-journal-format-') && typeof flags === 'number') {
+        selected = fd;
+      }
       return fd;
     };
     fs.closeSync = function (fd) {
       if (fd === selected) {
         closes++;
-        if (!permit) {
-          if (mode === 'throw') throw new Error('OriginalSchemaCopyClosePending');
-          return false;
-        }
+        if (mode === 'throw') throw originalCause;
+        return false;
       }
       return Reflect.apply(close, this, [fd]);
     };
     syncBuiltinESMExports();
     try {
       assert.equal(beforeNativeOpen(() => {
-        assert.throws(() => inspectSqliteSnapshot(f.path, countTables, options()), error => {
+        assert.throws(() => inspectSqliteSnapshot(f.path, countTables, {
+          ...options(), temporaryDirectory: temporary.path,
+        }), error => {
           failure = error as SchemaCopyFailure;
-          return (error as SchemaCopyFailure).cleanupHandle?.status().pending === true;
+          return failure.code === 'SqliteJournalInitializationCleanupPending' &&
+            failure.cleanupHandle?.status().pending === true;
         });
       }), 0);
-      assert.equal(fs.fstatSync(selected!).isFile(), true);
-      const attempts = closes;
-      // The fixed close callback, not a later property replacement, owns ACK.
-      fs.closeSync = () => undefined;
+      assert(failure);
+      assert(selected !== undefined);
+      assert.equal(fs.fstatSync(selected).isFile(), true);
+      const primary = failure.primaryFailure;
+      if (mode === 'throw') assert.equal(primary, originalCause);
+      else {
+        assert(primary instanceof TypeError);
+        assert.equal(primary.message, 'SqliteInspectionFileCloseUnknown');
+      }
+      fs.closeSync = function (fd) {
+        if (fd === selected) { replacementCloses++; return; }
+        return Reflect.apply(close, this, [fd]);
+      };
       syncBuiltinESMExports();
-      assert.equal(failure!.cleanupHandle!.retry().pending, true);
-      assert.equal(closes, attempts + 1);
-      permit = true;
-      assert.equal(failure!.cleanupHandle!.retry().pending, false);
-      assert.throws(() => fs.fstatSync(selected!), {code: 'EBADF'});
-      assert.equal(failure!.cleanupHandle!.retry().pending, false);
-      assert.equal(closes, attempts + 2);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const observed: ReturnType<SchemaCopyFailure['cleanupHandle']['retry']> = failure.cleanupHandle.retry();
+        assert.equal(observed.pending, true);
+        assert(observed.errors.length > 0);
+        assert(observed.errors.every(({error}) => error === primary));
+      }
+      assert.equal(closes, 1);
+      assert.equal(replacementCloses, 0);
+      assert.equal(fs.fstatSync(selected).isFile(), true);
     } finally {
-      permit = true;
-      failure?.cleanupHandle?.retry();
       fs.openSync = open;
       fs.closeSync = close;
       syncBuiltinESMExports();
+      // The injected closer left this fixture's FD open. Teardown is not a product close ACK.
+      if (closes !== 0) Reflect.apply(close, fs, [selected]);
       f.close();
     }
     f.scratch.passed();
+    temporary.passed();
   });
 }
 

@@ -44,11 +44,11 @@ test('invalid copy ceilings refuse before attempting a physical source', () => {
   }
 });
 
-for (const mode of ['false', 'throw']) test('extent refusal retains actual source FD '+mode+' close and retries no reads', async () => {
+for (const mode of ['false', 'throw']) test('extent refusal retains actual source FD '+mode+' close Unknown without retrying the numeric FD', async () => {
   const {scratch, path, database} = await fixture();
   database.close();
   const open = fs.openSync, close = fs.closeSync, read = fs.readSync;
-  let fd, allow = false, closes = 0, reads = 0, failure;
+  let fd, closes = 0, replacementCloses = 0, reads = 0, failure;
   const originalCause = Object.freeze(new Error('OriginalInspectionCloseRefusal'));
   fs.openSync = function(selected, ...args) {
     const value = Reflect.apply(open, fs, [selected, ...args]);
@@ -58,8 +58,13 @@ for (const mode of ['false', 'throw']) test('extent refusal retains actual sourc
   fs.closeSync = function(value) {
     if (value === fd) {
       closes++;
-      fs.closeSync = () => undefined; syncBuiltinESMExports();
-      if (!allow) { if (mode === 'throw') throw originalCause; return false; }
+      fs.closeSync = replacement => {
+        if (replacement === fd) { replacementCloses++; return; }
+        return Reflect.apply(close, fs, [replacement]);
+      };
+      syncBuiltinESMExports();
+      if (mode === 'throw') throw originalCause;
+      return false;
     }
     return Reflect.apply(close, fs, [value]);
   };
@@ -70,14 +75,22 @@ for (const mode of ['false', 'throw']) test('extent refusal retains actual sourc
     catch (cause) { failure = cause; }
     assert.equal(failure.code, 'SqliteJournalInitializationCleanupPending');
     assert.equal(failure.primaryFailure.code, 'SqliteSnapshotInspectionUnavailable');
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    assert.equal(failure.cleanupHandle.retry().pending, true);
-    allow = true;
-    assert.equal(failure.cleanupHandle.retry().pending, false);
-    assert.equal(closes, 3); assert.equal(reads, 0);
+    const status = failure.cleanupHandle.status();
+    assert.equal(status.pending, true);
+    const firstClose = status.errors[0].error;
+    if (mode === 'throw') assert.equal(firstClose, originalCause);
+    else assert.match(firstClose.message, /^SqliteInspectionFileCloseUnknown$/u);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const observed = failure.cleanupHandle.retry();
+      assert.equal(observed.pending, true);
+      assert(observed.errors.every(({error}) => error === firstClose));
+    }
+    assert.equal(closes, 1); assert.equal(replacementCloses, 0); assert.equal(reads, 0);
+    assert.equal(fs.fstatSync(fd).isFile(), true);
   } finally {
-    allow = true; if (failure?.cleanupHandle.status().pending) failure.cleanupHandle.retry();
     fs.openSync = open; fs.closeSync = close; fs.readSync = read; syncBuiltinESMExports();
+    // The injected closer left this fixture's FD open. Teardown is not a product close ACK.
+    if (closes !== 0) Reflect.apply(close, fs, [fd]);
   }
   scratch.passed();
 });
