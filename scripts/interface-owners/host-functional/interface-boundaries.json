@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fec38e66a70eef9c9025d54711e465dd2d12e1220b7236fbb1fe863b66cb85e6",
+      "sha256": "d9314c8bb25d7def998da0aadc8d7d432767f7cb033367271b99fc1c3c315ba7",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28395,13 +28395,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
           "parameters": [
             "beforeFrame",
@@ -28410,24 +28403,10 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
           "parameters": [
             "beforeFrame",
             "afterFrame"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
-          "parameters": [
-            "key"
           ],
           "async": false
         },
@@ -29121,13 +29100,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/sameRunStateRow/sameRunStateRow/sameRunStateRow",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
           "parameters": [
             "parameters"
@@ -29188,7 +29160,6 @@
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
             "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
-            "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
@@ -29254,7 +29225,6 @@
             "openClientRequestJournal/openClientRequestJournal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
-            "openClientRequestJournal/sameRunStateRow/sameRunStateRow/sameRunStateRow",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/transact/transact",
             "openClientRequestJournal/verifyEpoch/verifyEpoch",
@@ -29267,9 +29237,7 @@
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
-            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -29474,8 +29442,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -30808,8 +30776,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -33310,8 +33278,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -34654,8 +34622,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -35454,8 +35422,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -36669,12 +36637,13 @@
     {
       "module": "adapters/host-node/client-request-journal-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1b0e2f5c3aecda8328e569be6100012d123a4c780f1e6a4fd273a608995f18f",
+      "sha256": "61901bf94ddf1f36ab06f50237aa3f4165d273d9980309fda126ce46fc5be6e8",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
         "admission",
         "admissionEvidenceShape",
+        "admitJournalRunDefinitionRow",
         "assertKeyedInventoryRequest",
         "assertSourceInventory",
         "checkedIdentity",
@@ -36684,11 +36653,17 @@
         "freezeAdmissionEvidence",
         "instant",
         "logicalPlanOriginalShape",
+        "readJournalRunDefinitionRow",
+        "reinspectJournalRunAfterPhysicalClose",
+        "reinspectJournalRunForSigning",
+        "reinspectJournalRunStopAfterStatePublication",
+        "retainJournalRunStateFrame",
         "retainedEvidence",
         "retainedIdentity",
         "retainedResultNames",
         "retainedRunDefinition",
         "retainedRunFacts",
+        "sameRunStateRow",
         "structuralExplanationOriginalShape",
         "text",
         "validateSourceInventory"
@@ -36728,6 +36703,18 @@
           "name": "admissionEvidenceShape/admissionEvidenceShape#3",
           "parameters": [
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitJournalRunDefinitionRow",
+          "parameters": [
+            "runStateFrames",
+            "row",
+            "requestControl",
+            "publicationControl",
+            "maxRunDefinitionWireBytes",
+            "updateOriginalControl"
           ],
           "async": false
         },
@@ -36809,6 +36796,64 @@
           "async": false
         },
         {
+          "name": "readJournalRunDefinitionRow",
+          "parameters": [
+            "ref",
+            "requestControl",
+            "ensureOpen",
+            "selectRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunAfterPhysicalClose",
+          "parameters": [
+            "runStateFrames",
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunAfterPhysicalClose/reinspectJournalRunAfterPhysicalClose",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunForSigning",
+          "parameters": [
+            "runStateFrames",
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunForSigning/reinspectJournalRunForSigning",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunStopAfterStatePublication",
+          "parameters": [
+            "runStateFrames",
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "reinspectJournalRunStopAfterStatePublication/reinspectJournalRunStopAfterStatePublication",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "retainedEvidence",
           "parameters": [
             "row",
@@ -36856,6 +36901,30 @@
             "publicationControl",
             "maxWireBytes",
             "updateOriginalControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainJournalRunStateFrame",
+          "parameters": [
+            "runStateFrames",
+            "frame",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameRunStateRow/sameRunStateRow",
+          "parameters": [
+            "row",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameRunStateRow/sameRunStateRow/sameRunStateRow",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -36964,7 +37033,18 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
-            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5"
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
+            "admitJournalRunDefinitionRow",
+            "readJournalRunDefinitionRow",
+            "reinspectJournalRunAfterPhysicalClose",
+            "reinspectJournalRunAfterPhysicalClose/reinspectJournalRunAfterPhysicalClose",
+            "reinspectJournalRunForSigning",
+            "reinspectJournalRunForSigning/reinspectJournalRunForSigning",
+            "reinspectJournalRunStopAfterStatePublication",
+            "reinspectJournalRunStopAfterStatePublication/reinspectJournalRunStopAfterStatePublication",
+            "retainJournalRunStateFrame",
+            "sameRunStateRow/sameRunStateRow",
+            "sameRunStateRow/sameRunStateRow/sameRunStateRow"
           ],
           "exports": [
             "admission",
@@ -36985,7 +37065,14 @@
             "retainedRunFacts",
             "structuralExplanationOriginalShape",
             "text",
-            "validateSourceInventory"
+            "validateSourceInventory",
+            "admitJournalRunDefinitionRow",
+            "readJournalRunDefinitionRow",
+            "reinspectJournalRunAfterPhysicalClose",
+            "reinspectJournalRunForSigning",
+            "reinspectJournalRunStopAfterStatePublication",
+            "retainJournalRunStateFrame",
+            "sameRunStateRow"
           ],
           "attributes": {
             "responsibility": [
@@ -37186,8 +37273,8 @@
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "original.row.run_definition_cid !== selected?.runDefinitionCid)"
               },
               {
                 "path": "docs/design/interactive-run-control.md",

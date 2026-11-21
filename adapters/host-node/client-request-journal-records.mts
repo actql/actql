@@ -4,7 +4,9 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {canonicalJson} from './local-account-config.mjs';
 import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-values-capacity.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
-import {fail} from './client-request-journal-sql.mjs';
+import {fail, type JournalSqlConnection} from './client-request-journal-sql.mjs';
+import type {SQLOutputValue} from 'node:sqlite';
+import type {WireRunRef} from '../../packages/client-wire/index.js';
 
 type RawRecord = Readonly<Record<string, unknown>>;
 type RequestIdentityRow = Readonly<{
@@ -558,4 +560,124 @@ export function retainedRunFacts(row: RetainedRunRow, publicationControl: Defini
       ? undefined : row.physical_start_reserved === 1,
     observedTerminalOutcome: row.observed_terminal_outcome,
   });
+}
+
+// Native SQLite rows stay DATA. Frame membership belongs to the map that
+// the actual open Journal creates and never returns to its callers.
+type JournalRow = Readonly<Record<string, SQLOutputValue>>;
+type JournalRunFrames = WeakMap<object, Readonly<{
+  row: JournalRow;
+  requestControl: RequestIdentityRead;
+  publicationControl: DefinitionControl;
+}>>;
+
+export function readJournalRunDefinitionRow(ref: WireRunRef | null | undefined,
+  requestControl: RequestIdentityAdmission<unknown>, ensureOpen: () => void,
+  selectRef: Pick<ReturnType<JournalSqlConnection['prepare']>, 'get'>) {
+  ensureOpen();
+  if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
+      !cid(ref?.runDefinitionCid) ||
+      typeof requestControl?.clientRequestAdmitRecord !== 'function') {
+    fail('InvalidClientRunLookup');
+  }
+  try {
+    return selectRef.get(ref.namespaceId, ref.authorityScopeCid,
+      ref.runDefinitionCid);
+  } catch (error) { fail('ClientRequestLookupUnknown', error); }
+}
+
+export function retainJournalRunStateFrame(runStateFrames: JournalRunFrames, frame: object,
+  selected: WireRunRef | null | undefined) {
+  const original = runStateFrames.get(frame);
+  if (original === undefined || original.row.namespace_id !== selected?.namespaceId ||
+      original.row.authority_scope_cid !== selected?.authorityScopeCid ||
+      original.row.run_definition_cid !== selected?.runDefinitionCid) {
+    fail('ForeignRunStateObservation');
+  }
+  return original;
+}
+
+export const sameRunStateRow = (row: JournalRow | undefined, original: JournalRow) => row !== undefined &&
+  Object.keys(row).length === Object.keys(original).length &&
+  Object.keys(row).every(key => row[key] === original[key]);
+const statePublicationAdvanced = (old: JournalRow, next: JournalRow) =>
+  Number.isSafeInteger(old.state_revision) && (old.state_revision as number) >= 0 &&
+  Number.isSafeInteger(next.state_revision) &&
+    ((next.state_revision as number) > (old.state_revision as number) || old.state_observation_key === null &&
+      old.state_revision === 0 && next.state_revision === 0) &&
+  (old.state_observation_key === null || typeof old.state_observation_key === 'string' && old.state_observation_key.length > 0) &&
+  typeof next.state_observation_key === 'string' && next.state_observation_key.length > 0 &&
+  next.state_observation_key !== old.state_observation_key;
+const physicalCloseAdvanced = (old: JournalRow, next: JournalRow) =>
+  Number.isSafeInteger(old.revision) && (old.revision as number) >= 0 &&
+  Number.isSafeInteger(next.revision) && next.revision === (old.revision as number) + 1 &&
+  old.physical_start_reserved === 1 && old.physical_close_confirmed === 0 &&
+  next.physical_close_confirmed === 1 && old.cancellation_requested === 0 &&
+  old.observed_terminal_outcome === null;
+export function admitJournalRunDefinitionRow(runStateFrames: JournalRunFrames,
+  row: JournalRow, requestControl: RequestIdentityRead, publicationControl: DefinitionControl,
+  maxRunDefinitionWireBytes: number, updateOriginalControl: UpdateOriginalControl | undefined) {
+  const retained = retainedIdentity(row as RequestIdentityRow, requestControl);
+  if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
+    fail('ClientRequestJournalCorrupt');
+  }
+  const accepted = admission(row as AdmissionRow);
+  const facts = Object.freeze({
+    ref: accepted.ref, durability: accepted.durability,
+    revision: accepted.revision, requestId: (row as RequestIdentityRow).caller_request_id,
+    ...retainedRunFacts(row as RetainedRunRow, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl),
+  });
+  runStateFrames.set(facts, Object.freeze({row: Object.freeze({...row}),
+    requestControl, publicationControl}));
+  return facts;
+}
+
+// Only public observation metadata may explain this particular frame
+// change. Both frames already belong to this Journal's full admission;
+// every immutable/control column and selected key must remain exact.
+export function reinspectJournalRunStopAfterStatePublication(runStateFrames: JournalRunFrames,
+  beforeFrame: object, afterFrame: object) {
+  const before = runStateFrames.get(beforeFrame), after = runStateFrames.get(afterFrame);
+  if (before === undefined || after === undefined || beforeFrame === afterFrame ||
+      before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
+  const old = before.row, next = after.row;
+  return statePublicationAdvanced(old, next) &&
+    Object.keys(old).length === Object.keys(next).length &&
+    Object.keys(old).every(key => key === 'state_revision' || key === 'state_observation_key' || old[key] === next[key]);
+}
+
+// Signing may overlap this Journal owner's completed physical-stop write.
+// This is reobservation of the SAME admitted Run, never stop authority or
+// permission to accept another control, publication or identity change.
+export function reinspectJournalRunAfterPhysicalClose(runStateFrames: JournalRunFrames,
+  beforeFrame: object, afterFrame: object) {
+  const before = runStateFrames.get(beforeFrame), after = runStateFrames.get(afterFrame);
+  if (before === undefined || after === undefined || beforeFrame === afterFrame ||
+      before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
+  const old = before.row, next = after.row;
+  return physicalCloseAdvanced(old, next) &&
+    Object.keys(old).length === Object.keys(next).length &&
+    Object.keys(old).every(key => key === 'revision' || key === 'physical_close_confirmed' || old[key] === next[key]);
+}
+
+// A signing recovery can span both the original physical close and its
+// public status publication. Compose those same one-way progressions;
+// every other complete admitted column remains exact. No copied frame or
+// changed cancellation, terminal, authority or retained body is accepted.
+export function reinspectJournalRunForSigning(runStateFrames: JournalRunFrames,
+  beforeFrame: object, afterFrame: object) {
+  const before = runStateFrames.get(beforeFrame), after = runStateFrames.get(afterFrame);
+  if (before === undefined || after === undefined || beforeFrame === afterFrame ||
+      before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
+  const old = before.row, next = after.row;
+  const samePhysical = old.revision === next.revision &&
+    old.physical_close_confirmed === next.physical_close_confirmed;
+  const samePublication = old.state_revision === next.state_revision &&
+    old.state_observation_key === next.state_observation_key;
+  return old.cancellation_requested === 0 && old.observed_terminal_outcome === null &&
+    (samePhysical || physicalCloseAdvanced(old, next)) &&
+    (samePublication || statePublicationAdvanced(old, next)) &&
+    Object.keys(old).length === Object.keys(next).length &&
+    Object.keys(old).every(key => key === 'revision' || key === 'physical_close_confirmed' ||
+      key === 'state_revision' || key === 'state_observation_key' || old[key] === next[key]);
 }
