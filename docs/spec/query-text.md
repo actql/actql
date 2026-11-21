@@ -157,6 +157,12 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+An unquoted `DATE` followed by STRING literal chunks selects a non-null Date.
+After the usual chunk decoding, the date is `YYYY-[M]M-[D]D`, in the Gregorian
+calendar from `0001-01-01` through `9999-12-31`. SQL lowers the literal to the
+padded `YYYY-MM-DD` spelling of the common `date_literal` expression. Invalid
+calendar dates are refused before execution.
+
 Integer tokens follow the selected [GoogleSQL lexical forms](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#integer_literals): decimal digits or `0x`/`0X` followed by one or more hexadecimal digits. Hexadecimal digits are case-insensitive; the token and AST retain the exact authored spelling and original source span. Unary `+` and `-` remain expression operators. The existing common `number` profile admits integer magnitudes through `9007199254740991` (`0x1fffffffffffff`) exactly, before conversion to finite binary64. Larger integer tokens are refused without rounding; this profile does not claim GoogleSQL's full INT64 value domain. Signed zero expression tokens normalize to canonical positive zero; canonical JSON Number and Parameter admission still reject negative zero. Hexadecimal fractions, binary exponents, digit separators and incomplete prefixes are not integer tokens in the selected profile.
 
 SQL `MOD`/`DIV` have a separate exact signature context. It retains original

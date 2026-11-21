@@ -42,7 +42,7 @@ fn expression_role(
   origin : Origin,
 ) -> Role raise Stop {
   match tag {
-    "field" | "$param" | "literal" | "template" => Data
+    "field" | "$param" | "literal" | "date_literal" | "template" => Data
     "to_number"
     | "to_string"
     | "to_boolean"

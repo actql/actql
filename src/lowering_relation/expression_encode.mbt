@@ -143,6 +143,10 @@ fn emit_frames(
             )
             pending.push(Value(value.value))
           }
+          DateLiteral(value) => {
+            pending.push(Op("date_literal"))
+            pending.push(Value(value.value))
+          }
           TypedNull => {
             pending.push(Op("typed_null"))
             @encode.begin_object(output)

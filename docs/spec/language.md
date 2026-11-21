@@ -3380,6 +3380,11 @@ negative zero; this is not the full GoogleSQL JSON integer domain. The complete
 input is bounded, including discarded duplicates, with depth at most 500 and
 the caller's tighter value/expression ceilings.
 
+A structured `{date_literal: "YYYY-MM-DD"}` is a non-null Date expression.
+It accepts canonical Gregorian dates in years 0001 through 9999. Its machine
+node `{op: "date_literal", body: "YYYY-MM-DD"}` preserves the Date domain
+when the same spelling also occurs as a Text literal.
+
 <!-- requirement-block: common-expression-contract.typed-json-wire -->
 Non-SQL-NULL JSON values MUST retain their common JSON domain in canonical
 typed-cell wire as the closed `{"$json":payload}` envelope. SQL NULL remains
@@ -11563,7 +11568,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:4cbca799a8c32f0e92b153b0cff575ba893873983d1c64532645383203f7b0cd
+../../spec/contracts/actql-aoa.json# sha256:8b84393c3d38fca3b305c1c044639ba5e5864454dfc2160133462a34f7a599c3
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11572,13 +11577,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:51ba270a05eeb56424314cac588712ed1668a07de63a628dd9aecdb80186db27
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:8fe178875664bacd86ef0e86cac7de46f7bd98b2566c7867b633da50bad07ba7
+../../spec/contracts/actql-expressions.json# sha256:de8d34b002309a7edc610ec9351a73ed00e80e04c76db4fa7e438c239f5f56c8
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c8e382edc6f37145953016637c3277ab793dfb8aed2ff011f0ede3e816b93949
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:ea92431bef19056d7a2899a1b86f422d266a2fe5b3d2d2896f44f3f03121e17b
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:1fb3a6ac73e9f1d9e4561121e7cf5e737a8c1378e8842e49663501422b747a88
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:d6bb2573825196a25ebfc2e73f657f78412f24f0b482fd8f51b59e3eef6d6c1a
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:043427623b48f5a49c1b2d01ff0dbe5f6cdf3316e4219ee12ee40d028468d91f
+../../spec/contracts/actql-expressions.json#/laws sha256:2f5556eef510c33a7e97dfcfc37cded0238c3f8adb4a070488629e295e32768b
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:12ca285ac1d59c9828a2089d65acee7bd6ad78ee44ff741c91934772898ba3bf
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:f548374233d8328ef6e4d87c30966659da6a3f4928d2aff2a9d0dfcff8057886
 ```
 
 <!-- stage-contract-pins:start -->

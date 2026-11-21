@@ -83,6 +83,7 @@ fn flatten(
       "field"
       | "$param"
       | "literal"
+      | "date_literal"
       | "typed_literal"
       | "template"
       | "#null"

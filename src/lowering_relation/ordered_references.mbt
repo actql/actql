@@ -191,7 +191,11 @@ fn prepare_ordered_reference_material(
               bytes -= size
               entries.push({ at: path, target, })
             }
-            Literal(_) | TypedNull | EmptyArray | CurrentTimestamp => ()
+            Literal(_)
+            | DateLiteral(_)
+            | TypedNull
+            | EmptyArray
+            | CurrentTimestamp => ()
             Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)

@@ -167,6 +167,7 @@ fn member_is_literal(source : @builder.Source, cursor : @wire.Cursor) -> Bool {
   @origin.kind(origin) == @origin.Authored &&
   (
     member_lookup(cursor, "literal") is Some(_) ||
+    member_lookup(cursor, "date_literal") is Some(_) ||
     member_lookup(cursor, "typed_literal") is Some(_)
   )
 }

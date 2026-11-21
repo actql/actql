@@ -587,6 +587,8 @@ fn append_resolved(
               ("value", lowering.add(String(text))),
             ]),
           )
+        DateLiteral(text) =>
+          lowering.form("date_literal", lowering.add(String(text)))
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>

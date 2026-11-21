@@ -2869,6 +2869,19 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "date_literal"
+              ],
+              "properties": {
+                "date_literal": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "date_add"
               ],
               "properties": {
@@ -9255,6 +9268,23 @@
                     "$ref": "#/$defs/expression"
                   },
                   "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_literal"
+                },
+                "body": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
                 }
               }
             },
@@ -21602,6 +21632,19 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "date_literal"
+              ],
+              "properties": {
+                "date_literal": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "date_add"
               ],
               "properties": {
@@ -27074,6 +27117,23 @@
                     "$ref": "#/$defs/machine_expression"
                   },
                   "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_literal"
+                },
+                "body": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
                 }
               }
             },
@@ -35393,6 +35453,19 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "date_literal"
+              ],
+              "properties": {
+                "date_literal": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "date_add"
               ],
               "properties": {
@@ -40877,6 +40950,23 @@
               ],
               "properties": {
                 "op": {
+                  "const": "date_literal"
+                },
+                "body": {
+                  "type": "string",
+                  "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "date_add"
                 },
                 "body": {
@@ -45093,6 +45183,11 @@
       "identity": "Canonical typed-wire bytes and expression nodes distinguish JSON domains from ordinary scalars and SQL NULL. JSON data keys retain their Unicode scalar sequence. Existing identifier normalization remains separate. Bound wire byte measurements include the envelope. Storage/replay uses the same typed-wire contract and exact pins; old untagged typed JSON wire is not accepted as the new format.",
       "consumers": "Graph Delta and snapshot identity-body parsers consume an explicitly checked JSON payload through the common read-only accessor. Their semantic body format is not the typed-cell envelope. No graph identity, execution owner or authority is invented by this conversion.",
       "wire_contract_cid": "sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b"
+    },
+    "date_literal": {
+      "source": "A closed date_literal body is the canonical YYYY-MM-DD spelling of a Gregorian calendar date from 0001-01-01 through 9999-12-31. SQL DATE string chunks lower to this spelling after decoding.",
+      "type": "The value is a non-null Date under the existing checked Date contract. Invalid calendar dates are refused before execution.",
+      "identity": "The machine expression is {op: date_literal, body: YYYY-MM-DD}; its date identity is distinct from a Text literal containing the same spelling."
     },
     "typed_json_wire": {
       "version": "actql-json-value-wire/0.1",

@@ -242,6 +242,7 @@ pub(all) enum ExpressionKind {
   ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
+  DateLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)

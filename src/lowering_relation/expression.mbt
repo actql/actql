@@ -17,6 +17,7 @@ struct Expression {
 pub enum ExpressionBody {
   Field(String, @relation.ReferenceTarget)
   Literal(@value.CheckedValue)
+  DateLiteral(@value.CheckedValue)
   TypedNull
   Array(Array[Expression])
   EmptyArray
@@ -218,6 +219,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Case(clauses, _) => clauses.length()
     Field(_, _)
     | Literal(_)
+    | DateLiteral(_)
     | TypedNull
     | CurrentTimestamp
     | EmptyArray
@@ -342,6 +344,7 @@ fn expression_tag(
     "current_timestamp"
     | "field"
     | "literal"
+    | "date_literal"
     | "typed_literal"
     | "$param"
     | "negate"
@@ -509,6 +512,7 @@ fn expression_children(
     }
     "empty_array"
     | "literal"
+    | "date_literal"
     | "typed_literal"
     | "field"
     | "$param"
@@ -1147,6 +1151,8 @@ fn lower_typed_expression_measured(
           }
           ExpressionBody::Field(name, target)
         }
+        "date_literal" =>
+          DateLiteral(lower_comparison_literal(contract, body, budget))
         "typed_literal" => {
           let literal_type = @decode.text(
             @decode.lookup(@decode.open_object(body).unwrap(), "type").unwrap(),
@@ -1432,6 +1438,7 @@ fn lower_typed_expression_measured(
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
           Field(_, _)
           | Literal(_)
+          | DateLiteral(_)
           | TypedNull
           | EmptyArray
           | CurrentTimestamp => false

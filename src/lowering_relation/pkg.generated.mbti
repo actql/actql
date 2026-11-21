@@ -1335,6 +1335,7 @@ type Expression
 pub enum ExpressionBody {
   Field(String, @relation_typing.ReferenceTarget)
   Literal(@value_admission.CheckedValue)
+  DateLiteral(@value_admission.CheckedValue)
   TypedNull
   Array(Array[Expression])
   EmptyArray

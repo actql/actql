@@ -471,6 +471,16 @@ fn infer(
     }
     "#null" => put(t, Hole, true, source)
     "current_timestamp" => primitive(t, TimestampType, false, source)
+    "date_literal" => {
+      let text = string(node.body)
+      charge(t.budget, source, text)
+      let contract = @contract.primitive(DateType, nullable=false)
+      guard !text.has_prefix("0000-") &&
+        @value.checked_date_value(text, contract) is Some(_) else {
+        fail(source, InvalidStaticOption("Gregorian DATE literal"))
+      }
+      typed(t, contract, source)
+    }
     "typed_literal" => {
       if string(part(node.body, "type")) == "int64" {
         let contract = @contract.primitive(Signed64Type, nullable=false)

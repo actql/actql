@@ -55,7 +55,7 @@ test('resident physical Source environments advertise their exact normative two-
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:b877f5fdd30fdefce15ca13154871d093bcf7a585c3dabddbb956fb75c55a6fe');
+  assert.equal(expected, 'sha256:25e773b8c12b962f3edcebfe47e9558d6f0eb0a9b77a52d3c4802e6be9336ccb');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
@@ -68,7 +68,7 @@ test('current Catalog dependency fixtures pin the normative environment grammar'
 
 test('current expression fixture resolves only the normative root', () => {
   const expected = cid(json('spec/contracts/actql-expressions.json'));
-  assert.equal(expected, 'sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46');
+  assert.equal(expected, 'sha256:de8d34b002309a7edc610ec9351a73ed00e80e04c76db4fa7e438c239f5f56c8');
   hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
   assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
@@ -77,13 +77,13 @@ test('current Program roots pin the normative closed source schema', () => {
   const body = json('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   const expected = cid(body);
-  assert.equal(expected, 'sha256:f56caad304f12ed1333eabce03313ab8e5ba3cbc73c7c0c07b2abb7a2c16523f');
+  assert.equal(expected, 'sha256:1b6edfcc051c53a5fc9536092cb28c9a315a6b87c3145c667002d46f4e5494b7');
   hasPin('src/pipeline_check_context/core_contracts_test.mbt', expected);
 });
 
 test('managed completion fixture pins the complete normative profile', () => {
   const expected = cid(json('spec/contracts/actql-managed-retained-execution.json'));
-  assert.equal(expected, 'sha256:79e683e142d1a6f60052f11e0c92c8d976bbbfbefe35ab87a4783dc93a63a32a');
+  assert.equal(expected, 'sha256:ba6100c8e76b75f746051944c224eec2294a95706ee1405ff544d574916758ac');
   hasPin('src/execution_relation/managed_completion_wbtest.mbt', expected);
 });
 

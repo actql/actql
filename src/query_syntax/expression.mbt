@@ -27,6 +27,7 @@ pub(all) enum ExpressionKind {
   ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
+  DateLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
@@ -556,6 +557,35 @@ fn ExpressionParser::string_chunks(
 }
 
 ///|
+// SQL allows one- or two-digit civil month and day. The Common Date checker
+// owns calendar validation for the canonical spelling emitted here.
+fn canonical_sql_date(text : String) -> String? {
+  let end = text.length()
+  guard end >= 8 && end <= 10 && text[4] == '-' else { return None }
+  let month_end = if text[6] == '-' { 6 } else { 7 }
+  let day_length = end - month_end - 1
+  guard text[month_end] == '-' && day_length >= 1 && day_length <= 2 else {
+    return None
+  }
+  for index in 0..<end {
+    if index != 4 &&
+      index != month_end &&
+      (text[index] < '0' || text[index] > '9') {
+      return None
+    }
+  }
+  if end == 10 {
+    return Some(text)
+  }
+  let year = text[:5].to_owned()
+  let month = text[5:month_end].to_owned()
+  let day = text[month_end + 1:].to_owned()
+  let padded_month = if month.length() == 1 { "0" + month } else { month }
+  let padded_day = if day_length == 1 { "0" + day } else { day }
+  Some(year + padded_month + "-" + padded_day)
+}
+
+///|
 // Explicit Pratt continuations bound heap work without recursive native calls.
 fn ExpressionParser::expression(
   self : ExpressionParser,
@@ -610,6 +640,14 @@ fn ExpressionParser::expression(
             self.peek().value is Text(_) => {
             let (value, end) = self.string_chunks(self.advance())
             result = self.add(JsonLiteral(value), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "DATE" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            guard canonical_sql_date(value) is Some(date) else {
+              raise ExpressionAbort("Expected DATE literal YYYY-MM-DD", t.start)
+            }
+            result = self.add(DateLiteral(date), t.start, end)
           }
           value if value == Symbol(91) || keyword(t, "ARRAY") => {
             let mut target : ArrayElementType? = None

@@ -156,6 +156,10 @@ SELECT FORMAT_TIMESTAMP('yyyy',
   CAST('2026-01-02T03:04:05.123456789Z' AS TIMESTAMP)) AS year;
 ```
 
+`DATE '2026-01-02'` returns a non-null Date. One-digit months and days are
+accepted and the Result uses the canonical padded spelling. Invalid Gregorian
+dates are refused before execution.
+
 Ordinary collection aggregates require their own `ORDER BY`; an enclosing
 query's order is not a substitute. `STRING_AGG(s, ',' ORDER BY n)` is the
 supported spelling. `ARRAY_AGG` uses ActQL's existing NULL exclusion with or
@@ -210,7 +214,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
-| `TIMESTAMP '…'` and `DATE '…'` typed literals | Not selected literal spellings. Timestamp conversion uses the canonical `CAST` grammar above; this does not add a Date cast. |
+| `TIMESTAMP '…'` typed literal | Timestamp conversion uses the canonical `CAST` grammar above. |
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |

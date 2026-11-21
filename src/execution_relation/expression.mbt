@@ -560,7 +560,11 @@ fn advance_expression_frame_impl(
         }
         let body = @lower.expression_body(expr)
         let leaf = match body {
-          Field(_, _) | Literal(_) | TypedNull | CurrentTimestamp => true
+          Field(_, _)
+          | Literal(_)
+          | DateLiteral(_)
+          | TypedNull
+          | CurrentTimestamp => true
           Unary(_, _)
           | Array(_)
           | EmptyArray
@@ -618,7 +622,8 @@ fn advance_expression_frame_impl(
             }
             frame.state = Return(value)
           }
-          Literal(value) => frame.state = Return(capture(value.value))
+          Literal(value) | DateLiteral(value) =>
+            frame.state = Return(capture(value.value))
           CurrentTimestamp => {
             guard frame.query_time is Some(original) else {
               return Err({

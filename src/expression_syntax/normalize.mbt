@@ -14,6 +14,9 @@ fn finish(
       }
       let tag = fields[0].key
       let body = fields[0].value
+      if tag == "date_literal" && !(body.value is @map.String(_)) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "typed_literal" {
         guard part(body, "type")
           is Some({ value: @map.String("json" | "int64"), .. }) &&
