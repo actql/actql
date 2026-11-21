@@ -87498,12 +87498,16 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "d2ac652d63dc51e208e48fab7448ff645594ecb5faf8d8fcd5c42c4de5d1c16f",
+      "sha256": "1e14154cdefc0eb260117cd1e400335672c2ae9ca45e8d4d56cbe1a7fcc7ee63",
       "exports": [],
       "operations": [
         {
           "name": "[T]installed_effect_model_unit_managed_export_limits",
           "declaration": "[ T ] installed_effect_model_unit_managed_export_limits ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , output : @ execution . ManagedCompletedOutput [ T ] , material : @ execution . ManagedRetainedOutput [ T ] , ) - > Result [ @ publication_host . PublicationOutputExportLimits , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "[T]measure_installed_effect_direct_publication",
+          "declaration": "[ T ] measure_installed_effect_direct_publication ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , capacity : @ execution . ExecutionCapacity , measure : ( ) - > Result [ T , ClientEffectUnitPreparationIssue ] , ) - > Result [ T , ClientEffectUnitPreparationIssue ]"
         },
         {
           "name": "borrow_installed_effect_dispatch_preparation",
@@ -87524,6 +87528,10 @@
         {
           "name": "effect_unit_sealed_geometry",
           "declaration": "effect_unit_sealed_geometry ( name : String , body : @ encode . EncodingConstructionGeometry , identity : String , ) - > @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "installed_effect_direct_publication_control",
+          "declaration": "installed_effect_direct_publication_control ( entries : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_effect_managed_publication_limits",
@@ -87586,11 +87594,13 @@
           "operations": [
             "<module>",
             "[T]installed_effect_model_unit_managed_export_limits",
+            "[T]measure_installed_effect_direct_publication",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
+            "installed_effect_direct_publication_control",
             "installed_effect_managed_publication_limits",
             "installed_effect_model_unit_parent",
             "installed_effect_model_unit_result_export_limits",
@@ -87685,6 +87695,10 @@
               {
                 "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
                 "anchor": "test \"Native shared-file Effect joins and binds both original Source observations without a Model\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+                "anchor": "test \"two Effect Unit measurements return writer workspace on the same adopted Plan\""
               }
             ]
           }

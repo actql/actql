@@ -433,6 +433,108 @@ pub fn prepare_installed_effect_model_source_unit(
 }
 
 ///|
+// Direct Source publication measures existing emitters. A pending unordered
+// key can precede its value's node debit.
+fn installed_effect_direct_publication_control(
+  entries : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard max_nodes > 0 &&
+    max_nodes < 2147483647 &&
+    installed_effect_dependency_fixed_capacity(entries, 1, max_depth)
+    is Some(census) &&
+    @encode.measuring_writer_construction_extent(0, max_depth) is Some(base) &&
+    @encode.measuring_writer_construction_extent(max_nodes + 1, max_depth)
+    is Some(writer) &&
+    @execution.preparation_representation_cost({
+      record_headers: base.record_headers,
+      reference_slots: base.reference_slots,
+      scalar_words: base.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(base_bytes) &&
+    @execution.preparation_representation_cost({
+      record_headers: writer.record_headers,
+      reference_slots: writer.reference_slots,
+      scalar_words: writer.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(writer_bytes) else {
+    return None
+  }
+  // The dependency census includes its exact zero-key measuring writer.
+  // Replace that item with this writer's complete frame and key workspace.
+  // The geometry and census backing stay in the original retained extent.
+  let retained = @execution.execution_capacity_retained_bytes(census)
+  let execution = @execution.execution_capacity_execution_bytes(census)
+  guard retained >= base_bytes &&
+    execution >= base_bytes &&
+    @execution.checked_preparation_add_product(
+      execution - base_bytes,
+      writer_bytes,
+      1L,
+    )
+    is Some(peak) else {
+    return None
+  }
+  @execution.execution_capacity(retained - base_bytes, peak)
+}
+
+///|
+// The measuring frame is synchronous and returns only its immutable quote.
+// Preserve the execution floor that was already live before opening it;
+// failed measurement or a failed current check keeps the original debit.
+fn[T] measure_installed_effect_direct_publication(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @execution.ExecutionCapacity,
+  measure : () -> Result[T, ClientEffectUnitPreparationIssue],
+) -> Result[T, ClientEffectUnitPreparationIssue] {
+  let holder = match effect_unit_publication_body(owner, plan, request) {
+    Err(issue) => return Err(Run(issue))
+    Ok(value) => value
+  }
+  let (_, base_execution) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Run(Preparation(issue)))
+    Ok(value) => value
+  }
+  match
+    reserve_effect_unit_publication_capacity(owner, plan, request, capacity) {
+    Err(issue) => return Err(Run(issue))
+    Ok(_) => ()
+  }
+  let measured = match measure() {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (retained, execution) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Run(Preparation(issue)))
+    Ok(value) => value
+  }
+  let floor = Int64::max(base_execution, retained)
+  if execution > floor {
+    match
+      @resources.reconcile_preparation_publication_execution(
+        holder, plan, floor,
+      ) {
+      Err(issue) => return Err(Run(Preparation(issue)))
+      Ok(_) => ()
+    }
+  }
+  guard effect_unit_publication_body(owner, plan, request) is Ok(current) &&
+    physical_equal(current, holder) else {
+    return Err(Run(Retired))
+  }
+  Ok(measured)
+}
+
+///|
 /// Construct one combined Unit from this Run's original Source observation.
 /// The admitted Plan retains both the variable bodies and their failed prefix.
 pub fn prepare_installed_effect_combined_source_unit(
@@ -468,57 +570,36 @@ pub fn prepare_installed_effect_combined_source_unit(
   // At most five measured bodies per Source (request, retention, scope,
   // ordering and relation), plus the union and local computation. Pay for
   // the measuring frames and both census arrays before creating a writer.
-  // A pending unordered key can precede its value's node debit.
   let entries = plan.captures.length().to_int64() * 5L + 2L
   guard entries <= 2147483647L &&
-    max_nodes > 0 &&
-    max_nodes < 2147483647 &&
-    installed_effect_dependency_fixed_capacity(entries.to_int(), 1, max_depth)
-    is Some(census) &&
-    @encode.measuring_writer_construction_extent(max_nodes + 1, max_depth)
-    is Some(writer) &&
-    @execution.preparation_execution_capacity({
-      retained: {
-        record_headers: writer.record_headers,
-        reference_slots: writer.reference_slots,
-        scalar_words: writer.scalar_words,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      workspace: {
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      retained_nodes: 0L,
-      workspace_nodes: 0L,
-      retained_bytes: 0L,
-      workspace_bytes: 0L,
-    })
-    is Some(frames) &&
-    standard_create_sequence_pair_capacity(census, frames) is Some(control) else {
-    return Err(Run(InsufficientCapacity))
-  }
-  match
-    reserve_effect_unit_publication_capacity(owner, plan, request, control) {
-    Err(issue) => return Err(Run(issue))
-    Ok(_) => ()
-  }
-  let bodies = match
-    @publication_host.client_effect_combined_source_unit_construction_geometry(
-      publication, unit, retention, max_bytes, max_nodes, max_depth,
-    ) {
-    Err(issue) => return Err(Evidence(issue))
-    Ok(value) => value
-  }
-  guard effect_unit_publication_capacity(
-      bodies,
-      @publication.publication_contract_identity(definition),
+    installed_effect_direct_publication_control(
+      entries.to_int(),
+      max_nodes,
+      max_depth,
     )
-    is Some(required) else {
+    is Some(control) else {
     return Err(Run(InsufficientCapacity))
+  }
+  let required = match
+    measure_installed_effect_direct_publication(owner, plan, request, control, () => {
+      let bodies = match
+        @publication_host.client_effect_combined_source_unit_construction_geometry(
+          publication, unit, retention, max_bytes, max_nodes, max_depth,
+        ) {
+        Err(issue) => return Err(Evidence(issue))
+        Ok(value) => value
+      }
+      match
+        effect_unit_publication_capacity(
+          bodies,
+          @publication.publication_contract_identity(definition),
+        ) {
+        None => Err(Run(InsufficientCapacity))
+        Some(value) => Ok(value)
+      }
+    }) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
   match
     reserve_effect_unit_publication_capacity(owner, plan, request, required) {
