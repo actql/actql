@@ -55074,7 +55074,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "assert.strictEqual(await observed,stopped);"
               },
               {
@@ -55086,7 +55086,7 @@
                 "anchor": "## Deferred Local request capture"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
@@ -55492,7 +55492,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "assert.strictEqual(await observed,stopped);"
               },
               {
@@ -55504,7 +55504,7 @@
                 "anchor": "## Deferred Local request capture"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
@@ -55784,7 +55784,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "assert.strictEqual(await observed,stopped);"
               },
               {
@@ -55796,7 +55796,7 @@
                 "anchor": "## Deferred Local request capture"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {
@@ -56156,7 +56156,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "assert.strictEqual(await observed,stopped);"
               },
               {
@@ -56168,7 +56168,7 @@
                 "anchor": "## Deferred Local request capture"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               },
               {

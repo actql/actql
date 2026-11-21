@@ -7331,7 +7331,7 @@
                 "anchor": "## Deferred Local request capture"
               },
               {
-                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mts",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               }
             ]
