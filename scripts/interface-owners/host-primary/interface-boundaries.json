@@ -4445,8 +4445,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
               },
               {
                 "path": "adapters/store-local/publication-owner-lease.mts",
@@ -32258,8 +32258,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
               },
               {
                 "path": "adapters/store-local/publication-owner-lease.mts",
