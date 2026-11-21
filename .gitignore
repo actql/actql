@@ -1179,3 +1179,5 @@ target/
 /adapters/local-node/retained-store.d.mts
 /adapters/local-node/retained-process.mjs
 /adapters/local-node/retained-process.d.mts
+/adapters/local-node/carrier-snapshot.mjs
+/adapters/local-node/carrier-snapshot.d.mts
