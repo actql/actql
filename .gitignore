@@ -1679,6 +1679,8 @@ target/
 /adapters/host-common/content-generation-control.d.mts
 /adapters/host-common/publication-progress-control.mjs
 /adapters/host-common/publication-progress-control.d.mts
+/adapters/host-common/manifest-access.mjs
+/adapters/host-common/manifest-access.d.mts
 /adapters/host-common/content-output-demand.test.mjs
 /adapters/host-common/content-output-demand.test.d.mts
 /adapters/host-common/recovered-source-content-control.test.mjs
