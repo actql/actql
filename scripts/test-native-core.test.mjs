@@ -1449,8 +1449,9 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
+    const sibling = lineage ? '"other":[{"id":"middle","value":3}],' : '';
     assert.equal(require('node:fs').readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'),
-      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\\n');
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],' + sibling + '"keep":"untouched"}\\n');
     if (process.env.ACTQL_FIXTURE_TARGET_ZERO === '1') console.log('Total tests: 0, passed: 0, failed: 0.');
     else console.log('Total tests: 1, passed: 1, failed: 0.');
     process.exit(0);
