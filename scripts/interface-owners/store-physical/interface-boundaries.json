@@ -3795,7 +3795,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/process-client.test.mjs",
+                "path": "adapters/store-local/process-client.test.mts",
                 "anchor": "test("
               },
               {
@@ -4046,7 +4046,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/process-client.test.mjs",
+                "path": "adapters/store-local/process-client.test.mts",
                 "anchor": "test("
               },
               {
@@ -14143,7 +14143,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/representations.mjs",
+                "path": "adapters/store-local/representations.mts",
                 "anchor": "consumeRetainedInput"
               },
               {
@@ -14203,7 +14203,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/representations.test.mjs",
+                "path": "adapters/store-local/representations.test.mts",
                 "anchor": "test("
               },
               {

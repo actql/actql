@@ -1133,3 +1133,9 @@ target/
 /adapters/store-local/process-service-fixture.d.mts
 /adapters/store-local/process-service.test.mjs
 /adapters/store-local/process-service.test.d.mts
+/adapters/store-local/representations.mjs
+/adapters/store-local/representations.d.mts
+/adapters/store-local/representations.test.mjs
+/adapters/store-local/representations.test.d.mts
+/adapters/store-local/process-client.test.mjs
+/adapters/store-local/process-client.test.d.mts

@@ -4,12 +4,16 @@ import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
   retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
   withRetainedInputFile} from './representations.mjs';
 
+type Body = Parameters<typeof registerRetainedInput>[2];
+type Assert<Condition extends true> = Condition;
+type _RejectAsyncReadability = Assert<(() => Promise<boolean>) extends Parameters<typeof registerRetainedInput>[1] ? false : true>;
+
 test('installed representation access preserves exact material and port without exposing file configuration', async () => {
   const material = {};
   const input = {};
   const configuration = {parentDirectory: '/not-public', maxFrameBytes: 64,
     wire: {max_bytes: 100, max_nodes: 20, max_depth: 4, max_columns: 2, max_order_work: 100}};
-  const body = {async consume(accept) { await accept(new Uint8Array([1, 2])); }};
+  const body = {async consume(accept: Parameters<Body['consume']>[0]) { await accept(new Uint8Array([1, 2])); }};
   registerRetainedInput(material, read => read === input, body, configuration);
   configuration.maxFrameBytes = 1000;
   configuration.wire.max_bytes = 1000;
@@ -24,7 +28,7 @@ test('installed representation access preserves exact material and port without 
   assert.throws(() => registerRetainedInput(material, () => true, body, configuration));
   await assert.rejects(consumeRetainedInput({}, input, () => {}), {code: 'RetainedInputUnavailable'});
   await assert.rejects(consumeRetainedInput(material, {}, () => {}), {code: 'RetainedInputUnavailable'});
-  let received;
+  let received: number[] | undefined;
   await consumeRetainedInput(material, input, chunk => { received = [...chunk]; });
   assert.deepEqual(received, [1, 2]);
 });
@@ -65,10 +69,10 @@ test('direct physical admission is forwarded only for the exact live input', asy
   registerRetainedInput(material, value => value === input, {
     async consume() {}, nativeFilePath() { return '/trusted-fixture'; },
     async withVerifiedFile(use, signal, beforeRead) {
-      await beforeRead(12); used++; return use({path: '/trusted-fixture', bytes: 12});
+      await beforeRead!(12); used++; return use({path: '/trusted-fixture', bytes: 12});
     },
   }, {maxFrameBytes: 12, wire: {max_bytes: 12}});
-  const charge = bytes => { charged += bytes; throw rejected; };
+  const charge = (bytes: number) => { charged += bytes; throw rejected; };
   await assert.rejects(withRetainedInputFile(material, {}, () => {}, undefined, charge),
     {code: 'RetainedInputUnavailable'});
   assert.equal(charged, 0);
