@@ -486,6 +486,7 @@ fn[I] admit_explanation_read_originals(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  projection_extent_issue : ClientRequestExplanationReadIssue,
 ) -> Result[
   (@publication.PublicationContract, @publication.PublicationContract?),
   ClientRequestExplanationReadIssue,
@@ -504,10 +505,12 @@ fn[I] admit_explanation_read_originals(
     guard plan_wire is Some(plan) && plan_view_wire is Some(view) else {
       return Err(Projection(ForeignOriginal))
     }
-    guard @scalar.admit_utf8_length(plan, stored_bytes) is Ok(plan_size) &&
-      @scalar.admit_utf8_length(view, max_bytes) is Ok(view_size) &&
-      @scalar.admit_utf8_length(facts, max_bytes) is Ok(facts_size) else {
+    guard @scalar.admit_utf8_length(plan, stored_bytes) is Ok(plan_size) else {
       return Err(ReadLimit)
+    }
+    guard @scalar.admit_utf8_length(view, max_bytes) is Ok(view_size) &&
+      @scalar.admit_utf8_length(facts, max_bytes) is Ok(facts_size) else {
+      return Err(projection_extent_issue)
     }
     // Map nodes are contained in the original bounded Plan view. The map's
     // independent canonical encode can use the full selected wire allowance.
@@ -625,8 +628,20 @@ pub fn[I] read_request_explanation_view(
   }
   let (definition, plan) = match
     admit_explanation_read_originals(
-      owner, input, definition_wire, plan_wire, plan_view_wire, facts_wire, stored_bytes,
-      max_bytes, max_nodes, max_depth,
+      owner,
+      input,
+      definition_wire,
+      plan_wire,
+      plan_view_wire,
+      facts_wire,
+      stored_bytes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      // The original Facts-only wire rejected an over-bound retained Plan
+      // or Facts as InvalidWire during projection. Keep that public error
+      // when the quote detects the same extent before parsing.
+      Projection(Contract(InvalidWire)),
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -763,6 +778,7 @@ pub fn[I] read_request_explanation_context(
       max_bytes,
       max_nodes,
       max_depth,
+      ReadLimit,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
