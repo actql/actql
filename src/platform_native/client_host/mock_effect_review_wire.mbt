@@ -117,18 +117,94 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.effect_review is None &&
+    self.first_start is Some(first) &&
+    self.local_observation is Some(_) &&
+    materials.request == Some(self.request) &&
+    physical_equal(materials.run_definition, self.definition) else {
+    return Err(ForeignOriginal)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  self.capture.save_original_effect_review_in_original_read(
+    first,
+    self.namespace_id,
+    self.principal,
+    self.current_time,
+    () => !self.closing && !self.closed,
+    saved => self.effect_review = Some(saved),
+    store,
+    materials,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    schema_wires,
+    codec_cids,
+    manifest,
+    receipt,
+    captured,
+    preview_identity,
+    review_wire,
+    authoring_cid,
+    store_authority,
+    connection,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Persist in the captured Read after the original first-start proof. The
+/// original command retains every partial Store child before the next call.
+pub fn NativeLocalJournalCapture::save_original_effect_review_in_original_read(
+  self : Self,
+  first : NativeClientWorkFirstStart,
+  namespace_id : String,
+  principal : String,
+  current_time : () -> String,
+  owner_current : () -> Bool,
+  retain : (NativeMockEffectReview) -> Unit,
+  store : @publication_store.Store,
+  materials : @host.ClientEffectRunMaterials,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  schema_wires : Array[String],
+  codec_cids : Array[String],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  preview_identity : @publication.EffectPreviewIdentity,
+  review_wire : String,
+  authoring_cid : String,
+  store_authority : String,
+  connection : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, NativeClientMockModelIssue] {
   try {
-    if self.closing ||
-      self.closed ||
-      self.advancing ||
-      self.effect_review is Some(_) ||
-      materials.request != Some(self.request) ||
-      !physical_equal(materials.run_definition, self.definition) {
+    let definition = materials.run_definition
+    if materials.request != Some(first.request) ||
+      first.definition_cid !=
+      @publication.publication_contract_identity(definition) {
       return Err(ForeignOriginal)
     }
     let (key_bytes, key_nodes, key_depth) = native_mock_model_evidence_key_codec_limits
     mock_model_require(
-      self.capture
+      self
       .prepare_model_entry_construction(
         Some(key_bytes),
         nodes=key_nodes,
@@ -157,25 +233,15 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
     }
     let binding = mock_model_require(
       @publication.prepare_effect_capture_holding_binding(
-        self.definition,
-        invocation,
-        definitions,
-        artifacts,
-        manifest,
-        receipt,
-        captured,
-        preview_identity,
-        store_authority,
-        max_bytes,
-        max_nodes,
-        max_depth,
+        definition, invocation, definitions, artifacts, manifest, receipt, captured,
+        preview_identity, store_authority, max_bytes, max_nodes, max_depth,
       ).map_err(issue => Review(Binding(issue))),
     )
     let measure = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
     emit_native_mock_effect_review(
       measure,
-      self.request,
-      self.definition,
+      first.request,
+      definition,
       invocation,
       definitions,
       artifacts,
@@ -192,7 +258,7 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
     )
     let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
     mock_model_require(
-      self.capture
+      self
       .prepare_model_entry_construction(
         Some(bytes),
         nodes~,
@@ -212,8 +278,8 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
     let writer = @encode.writer(bytes, nodes, depth)
     emit_native_mock_effect_review(
       writer,
-      self.request,
-      self.definition,
+      first.request,
+      definition,
       invocation,
       definitions,
       artifacts,
@@ -229,14 +295,14 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
       authoring_cid,
     )
     let continuation = @encode.finish(writer)
-    guard @publication.run_definition_run_id(self.definition) is Ok(run_id) &&
-      @publication.run_definition_lifetime(self.definition) is Some((_, until)) else {
+    guard @publication.run_definition_run_id(definition) is Ok(run_id) &&
+      @publication.run_definition_lifetime(definition) is Some((_, until)) else {
       return Err(ForeignOriginal)
     }
-    let created_at = (self.current_time)()
+    let created_at = current_time()
     if !@host.client_effect_run_start_current(
         materials.allowed,
-        self.definition,
+        definition,
         created_at,
       ) {
       return Err(ForeignOriginal)
@@ -252,7 +318,7 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
               materials.compilation,
             ),
             run_definition_cid=@publication.publication_contract_identity(
-              self.definition,
+              definition,
             ),
           ),
           phase: @checkpoint.Commit,
@@ -279,6 +345,13 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
       owned_wire_bytes: 0L,
     }).unwrap()
     self.save_effect_review_original_in_scope(
+      first,
+      definition,
+      namespace_id,
+      principal,
+      current_time,
+      owner_current,
+      retain,
       store,
       materials.allowed,
       binding,
@@ -289,7 +362,7 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
       continuation,
       {
         authorization_context_cid: @host.client_request_authority_scope_cid(
-          self.request,
+          first.request,
         ),
         environment_binding_cid: @host.prepared_client_effect_computation_environment_cid(
           materials.prepared,

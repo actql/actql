@@ -101,14 +101,47 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
     business.effect_model is Some(state) &&
     state.proposals is Some(proposals) &&
     business.request_run is Some(run) &&
-    business.model_work.length() == 1 &&
+    business.model_work.length() <= 1 &&
+    (business.model_work.length() == 1 || state.source_start is Some(_)) &&
     self.original.project is Some(project) &&
     project.mock_declarations is Some(mock) &&
     mock.write_installations is Some(installations) &&
     state.targets.is_empty() else {
     stop("LocalOriginalEffectTargetsUnavailable")
   }
-  let work = business.model_work[0]
+  let work = business.model_work.get(0)
+  state.observe_mock_effect_targets_in_original_request(
+    run,
+    proposals,
+    installations,
+    (connection, resource) => {
+      self.require_mock_effect_source(
+        state, run, work, connection, resource, "LocalEffectTargetObservationDenied",
+      )
+    },
+    task => self.original.with_business_request(self.capture, task),
+    issue => self.original.retain_primary(issue),
+  )
+}
+
+///|
+// Account checks stay outside the Request frame. The caller supplies its
+// original suspend/enter/return boundary around each physical advance.
+fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
+  state : Self,
+  run : @local_values.ClientInstalledManagedRun,
+  proposals : LocalNativeMockEffectProposals,
+  installations : Array[LocalProjectMockWriteInstallation],
+  require_target_read : (String, String) -> Unit raise ClientStop,
+  in_request : (() -> Unit raise ClientStop) -> Unit raise ClientStop,
+  report : (LocalCommandPreparationIssue) -> Unit,
+) -> Unit raise ClientStop {
+  guard state.proposals is Some(original) &&
+    physical_equal(original, proposals) &&
+    state.targets.is_empty() else {
+    stop("LocalOriginalEffectTargetsUnavailable")
+  }
+  let report_proposal = issue => report(CommandBusinessEffectProposals(issue))
   let headers = @checked.effect_program_static_headers(
     @run_host.prepared_client_effect_computation_candidate(
       state._retained_prepared,
@@ -120,15 +153,20 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
   let policy = @run_host.client_standard_effect_computation_limits()
   for index, entry in proposals.members {
     let header = @syntax.effect_header_at(headers, index).unwrap()
-    let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
+    // The retained Result's liveness follows the original Source backing.
+    // Check that borrow in its Request before returning to the Read for
+    // target authorization; neither boundary can stand in for the other.
+    in_request(() => {
+      let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
+          stop("LocalOriginalEffectTargetsUnavailable")
+        },
+      )
+      if @strategy.captured_effect_input_member_index(input) != index ||
+        @strategy.captured_effect_input_stage(input) !=
+        @syntax.effect_header_stage(header) {
         stop("LocalOriginalEffectTargetsUnavailable")
-      },
-    )
-    if @strategy.captured_effect_input_member_index(input) != index ||
-      @strategy.captured_effect_input_stage(input) !=
-      @syntax.effect_header_stage(header) {
-      stop("LocalOriginalEffectTargetsUnavailable")
-    }
+      }
+    })
     let descriptor = @run_host.client_effect_member_descriptor(
       state._retained_prepared,
       @syntax.effect_header_stage(header),
@@ -153,22 +191,14 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
       stop("LocalOriginalEffectTargetsUnavailable")
     }
     let authorize = () => {
-      match
-        work.require_source_in_original_read(
-          self.connection,
-          installation._retained_source._retained_connection,
-          binding.view.resource,
-        ) {
-        Err(issue) => {
-          self.original.retain_primary(CommandBusinessModel(issue))
-          stop("LocalEffectTargetObservationDenied")
-        }
-        Ok(_) => ()
-      }
+      require_target_read(
+        installation._retained_source._retained_connection,
+        binding.view.resource,
+      )
     }
     for row_index, proposal in entry.rows {
       authorize()
-      let held = self.original.with_business_request(self.capture, () => {
+      in_request(() => {
         let operation = @local_values.borrow_installed_effect_operation(
             run,
             state._retained_prepared,
@@ -181,7 +211,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
             "native.mock.file.capture-target",
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-          .native_effect_proposal(self.original)
+          .native_effect_proposal_with_cause(report_proposal)
         let held : LocalNativeMockEffectTarget = {
           operation,
           child: None,
@@ -221,7 +251,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
                   true,
                 )
                 is Ok(extent) else {
-                self.original.retain_primary(
+                report(
                   CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
                 )
                 return false
@@ -232,16 +262,14 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
                 ) {
                 Ok(_) => true
                 Err(issue) => {
-                  self.original.retain_primary(
-                    CommandBusinessEffectProposals(Managed(issue)),
-                  )
+                  report(CommandBusinessEffectProposals(Managed(issue)))
                   false
                 }
               }
             }),
           ) {
           Err(issue) => {
-            self.original.retain_primary(CommandBusinessSource(issue))
+            report(CommandBusinessSource(issue))
             stop("LocalOriginalEffectTargetUnavailable")
           }
           Ok(value) => value
@@ -249,26 +277,26 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         held.child = Some(child)
         @local_values.start_installed_effect_operation(operation)
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-        .native_effect_proposal(self.original)
-        held
+        .native_effect_proposal_with_cause(report_proposal)
       })
+      let held = state.targets[state.targets.length() - 1]
       let mut complete = false
       while !complete {
         authorize()
-        complete = self.original.with_business_request(self.capture, () => {
+        in_request(() => {
           let result = held.child.unwrap().advance()
           // Preserve the SAME physical first cause before accounting invokes
           // another fallible boundary. Its byte debt remains independently
           // retained even when that later boundary also refuses.
           if result is Err(issue) {
-            self.original.retain_primary(CommandBusinessSource(issue))
+            report(CommandBusinessSource(issue))
           }
           // Actual receive bytes are charged even when the next projection
           // refuses. TargetIO projects only on a subsequent advance.
           held
           .account_bytes()
           .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-          .native_effect_proposal(self.original)
+          .native_effect_proposal_with_cause(report_proposal)
           match result {
             Err(_) => stop("LocalOriginalEffectTargetUnavailable")
             Ok(value) => {
@@ -282,13 +310,13 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
                   }),
                 )
               }
-              value
+              complete = value
             }
           }
         })
       }
       authorize()
-      self.original.with_business_request(self.capture, () => {
+      in_request(() => {
         let request = @local_values.retain_installed_effect_operation_construction(
             run,
             state._retained_prepared,
@@ -301,7 +329,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
             "native.mock.file.request",
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-          .native_effect_proposal(self.original)
+          .native_effect_proposal_with_cause(report_proposal)
         held.request_operation = Some(request)
         guard held.observed is Some((before, version)) &&
           held.child is Some(child) else {
@@ -323,7 +351,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         @local_values.begin_installed_effect_operation_input(request, extent)
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-        .native_effect_proposal(self.original)
+        .native_effect_proposal_with_cause(report_proposal)
         let changes = @json.parse(proposal.1) catch {
           _ => stop("LocalOriginalEffectChangesUnavailable")
         }
@@ -340,7 +368,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         )
         match child.check_update(changes_wire) {
           Err(issue) => {
-            self.original.retain_primary(CommandBusinessSource(issue))
+            report(CommandBusinessSource(issue))
             stop("LocalOriginalEffectChangesUnavailable")
           }
           Ok(_) => ()
@@ -348,7 +376,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         held.request_input = Some({ value, before, version, initial: capacity, })
         match child.close() {
           Err(issue) => {
-            self.original.retain_primary(CommandBusinessSource(issue))
+            report(CommandBusinessSource(issue))
             stop("LocalOriginalEffectTargetCleanupPending")
           }
           Ok(false) => stop("LocalOriginalEffectTargetCleanupPending")
@@ -359,17 +387,17 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
       // The original validation frame has returned; its replacement Bytes,
       // parser/writer temporaries and full Target document are no longer live.
       // Only the retained request input remains on its own same-Plan backing.
-      self.original.with_business_request(self.capture, () => {
+      in_request(() => {
         if !@local_values.retire_installed_effect_operation(
             held.operation,
             true,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-          .native_effect_proposal(self.original) {
+          .native_effect_proposal_with_cause(report_proposal) {
           stop("LocalOriginalEffectTargetCleanupPending")
         }
       })
-      self.original.with_business_request(self.capture, () => {
+      in_request(() => {
         let request = held.request_operation.unwrap()
         let input = held.request_input.unwrap()
         let capacity = native_mock_effect_request_json_capacity(
@@ -389,7 +417,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         @local_values.grow_installed_effect_operation_input(request, extent)
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-        .native_effect_proposal(self.original)
+        .native_effect_proposal_with_cause(report_proposal)
         let value = input.value
         let before = input.before
         let version = input.version
@@ -422,14 +450,14 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         held.request_input = None
       })
       // Final JSON constructor aliases have returned before output completion.
-      self.original.with_business_request(self.capture, () => {
+      in_request(() => {
         let request = held.request_operation.unwrap()
         let wire = held._retained_request.unwrap().0
         @local_values.complete_installed_effect_operation_construction_output(
           request, wire,
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-        .native_effect_proposal(self.original)
+        .native_effect_proposal_with_cause(report_proposal)
       })
     }
   }

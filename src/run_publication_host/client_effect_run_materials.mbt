@@ -413,7 +413,7 @@ pub fn admit_client_effect_run_materials(
         return Err(Input(MaterialsConstructionRefused("normalization_read")))
       }
       let journal = match
-        admit_completion_free_material_journal(wire, inventory) {
+        admit_effect_normalization_material_journal(wire, inventory) {
         Ok(value) => value
         Err(issue) => return Err(Normalization(issue))
       }

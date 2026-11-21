@@ -50,6 +50,98 @@ fn local_effect_prefix_fixture_original(
 }
 
 ///|
+fn native_shared_file_effect_input(
+  project : LocalProjectMockDeclarations,
+) -> (@checked.CheckEnvironment, @run_host.ClientSubmittedIntent) raise {
+  project
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let source = project
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let environment = project.prepare_model_environment(source).unwrap()
+  let document = local_input_text_file(
+    project._retained_project.directory,
+    "multiple-targets.program.json",
+    65536L,
+  )
+  let input : Json = {
+    "kind": "aql",
+    "input": { "format": "aql-json", "text": Json::string(document) },
+    "parameters": null,
+    "stopBefore": "commit",
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_project_mock_relation_wire(input).unwrap(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  (environment, intent)
+}
+
+///|
+test "Native shared-file UPDATE retains both Source completions through original compilation" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let (environment, intent) = native_shared_file_effect_input(project)
+  let preparation = local_prepare_submitted_run_program(intent, environment)
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected the original Effect preparation")
+  }
+  let candidate = @run_host.prepared_client_effect_computation_candidate(
+    prepared,
+  )
+  let headers = @checked.effect_program_static_headers(candidate)
+  assert_eq(@syntax.effect_header_count(headers), 3)
+  assert_true(
+    @checked.effect_program_local_update_completion_free_inventory(candidate)
+    is Err(CompletionObserved),
+  )
+  assert_true(
+    @checked.effect_program_common_update_completion_free_inventory(candidate)
+    is Err(CompletionObserved),
+  )
+  let original = local_effect_prefix_fixture_original(preparation)
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
+  let journal = @publication.run_evidence_value_json(
+    @run_host.restore_client_effect_run_normalization(materials).unwrap(),
+  )
+  let body = @json.parse(journal)
+  guard body is Object(fields) && fields.get("entries") is Some(Array(entries)) else {
+    fail("missing the original Source entries")
+  }
+  assert_eq(entries.length(), 2)
+  for index, name in ["accounts", "contacts"] {
+    guard entries[index] is Object(entry) else { fail("missing Source entry") }
+    assert_eq(
+      entry.get("path"),
+      Some(Json::string("$.stages[0].inputs[\"" + name + "\"].view")),
+    )
+    assert_eq(entry.get("authored"), Some(Json::string("null")))
+    assert_eq(entry.get("canonical"), Some(Json::string("records")))
+    assert_eq(
+      entry.get("rule"),
+      Some(Json::string("actql.source.sole-view-completion")),
+    )
+  }
+}
+
+///|
 test "CLI first Effect compilation retains original create profile and exact normalization journal" {
   let preparation = local_effect_prefix_fixture_preparation()
   let original = local_effect_prefix_fixture_original(preparation)

@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:18566fd697949e33932b9e2d78cf98e3120e1cf5d7a2dc1ee2929b51e329730c",
+  "artifact_registry_cid": "sha256:275dd05d4a3ccae01066d5bc3de4da903bfb17cc2f9d62b7df476d9c65773b65",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17449,7 +17449,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:fa2a330e9b17d844f81c1da940446ce5f8f4b318d00712398e2815d27a4faec0",
+    "executable_plan": "sha256:730e1acf19cbeb4c1dd6ef70f5d5f4a7ee3d60e1aeeebb4b8cb981a0c6212b74",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17473,7 +17473,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:f1631bb615848ed9a52decf7ace9cb5fc81af59b3f1159a77545ad6baa0cb8bb",
+    "plan_document": "sha256:372fba41324d6a759e80b5d85623550d9a127b7ea562c439e0633b29365d7b63",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -42115,6 +42115,54 @@
                                   "properties": {
                                     "fn": {
                                       "const": "count_if"
+                                    },
+                                    "field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "expr": {
+                                      "$ref": "#/$defs/value_expression"
+                                    },
+                                    "filter": {
+                                      "$ref": "#/$defs/predicate"
+                                    }
+                                  },
+                                  "allOf": [
+                                    {
+                                      "oneOf": [
+                                        {
+                                          "required": [
+                                            "field"
+                                          ],
+                                          "not": {
+                                            "required": [
+                                              "expr"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "required": [
+                                            "expr"
+                                          ],
+                                          "not": {
+                                            "required": [
+                                              "field"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "fn"
+                                  ],
+                                  "properties": {
+                                    "fn": {
+                                      "const": "any_value"
                                     },
                                     "field": {
                                       "type": "string",
@@ -75821,6 +75869,54 @@
                                       "properties": {
                                         "fn": {
                                           "const": "count_if"
+                                        },
+                                        "field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "expr": {
+                                          "$ref": "#/$defs/value_expression"
+                                        },
+                                        "filter": {
+                                          "$ref": "#/$defs/predicate"
+                                        }
+                                      },
+                                      "allOf": [
+                                        {
+                                          "oneOf": [
+                                            {
+                                              "required": [
+                                                "field"
+                                              ],
+                                              "not": {
+                                                "required": [
+                                                  "expr"
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "required": [
+                                                "expr"
+                                              ],
+                                              "not": {
+                                                "required": [
+                                                  "field"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "fn"
+                                      ],
+                                      "properties": {
+                                        "fn": {
+                                          "const": "any_value"
                                         },
                                         "field": {
                                           "type": "string",

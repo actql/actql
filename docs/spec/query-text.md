@@ -891,9 +891,10 @@ obligations. NULL computed keys share their existing common NULL partition;
 CASE/IF/COALESCE retain ordinary demand semantics and expression failures do not
 publish a partial Result. This connection retains ActQL's existing finite
 number and recursive type contracts; it does not claim Google's complete type
-profile, including its floating-point partition exclusion. Optional ordering,
-default frames and nested window calls remain outside this implemented inline
-profile. Named-window resolution is described separately below.
+profile, including its floating-point partition exclusion. Nested window
+calls remain outside this inline profile. Ordering may be omitted only for the
+order-independent aggregate cases described above. Named-window resolution is
+described separately below.
 
 DISTINCT aggregate calls are not admitted to the implemented explicit-ROWS
 analytic path. The selected GoogleSQL resolver forbids a DISTINCT window call

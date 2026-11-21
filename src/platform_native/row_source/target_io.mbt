@@ -214,6 +214,9 @@ pub fn prepare_native_relation_file_target_io(
 /// The callback runs before any lock/Reader/body and supplies no permission.
 /// After it returns the owner locks and reobserves the original file, then
 /// performs the unchanged typed expected-version and replacement checks.
+/// The Saved Effect caller can pass its latest ACK for this same selected file
+/// from the same application. That ACK binds only the observed file generation
+/// and complete bytes, even if the prior row used another collection provider.
 pub fn prepare_native_relation_file_target_update_io(
   provider : NativeRelationFilePreparedProvider,
   writable : Array[String],
@@ -260,9 +263,14 @@ fn prepare_native_relation_file_target_io_original(
     ) {
     return Err(InvalidInput)
   }
-  if predecessor is Some(prior) &&
-    (update is None || !physical_equal(prior.provider, provider)) {
-    return Err(ForeignOriginal)
+  if predecessor is Some(prior) {
+    let same_file = prior.provider.selection.directory ==
+      provider.selection.directory &&
+      prior.provider.selection.name == provider.selection.name
+    if update is None ||
+      !(physical_equal(prior.provider, provider) || (staged_update && same_file)) {
+      return Err(ForeignOriginal)
+    }
   }
   // Private constructor selection only, never authority or funding evidence.
   // Keep the general entrance's original validation order and refusal.

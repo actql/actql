@@ -140,7 +140,7 @@ fn claim_native_client_retained_work_start(
 ///|
 // Operational evidence retained only by the original Work. It is not a public
 // body/CID, lease generation, resume claim or permission to send a request.
-priv struct NativeClientWorkFirstStart {
+struct NativeClientWorkFirstStart {
   journal : NativeClientRunJournal
   request : @host.ClientRequestIdentity
   definition_cid : String
