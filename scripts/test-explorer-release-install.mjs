@@ -16,13 +16,15 @@ import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 
 const [input, selection, evidenceInput] = process.argv.slice(2);
 const savedContext = selection === '--saved-context';
-assert(input && (process.argv.length === 3 || savedContext && evidenceInput && process.argv.length === 5),
-  'usage: test-explorer-release-install.mjs <Explorer-RC-directory> [--saved-context <evidence-directory>]');
+const beforeRun = selection === '--before-run';
+const interactive = savedContext || beforeRun;
+assert(input && (process.argv.length === 3 || interactive && evidenceInput && process.argv.length === 5),
+  'usage: test-explorer-release-install.mjs <Explorer-RC-directory> [--saved-context|--before-run <evidence-directory>]');
 const directory = resolve(input);
 const evidence = evidenceInput === undefined ? directory : resolve(evidenceInput);
-const harness = savedContext ? checkoutState(fileURLToPath(new URL('../', import.meta.url))) : undefined;
-if (savedContext) {
-  assert(harness.clean, 'Saved Context acceptance requires clean test source');
+const harness = interactive ? checkoutState(fileURLToPath(new URL('../', import.meta.url))) : undefined;
+if (harness) {
+  assert(harness.clean, 'Interactive Explorer acceptance requires clean test source');
   await mkdir(evidence);
 }
 const manifest = await verifyPackageRelease(directory);
@@ -75,13 +77,11 @@ try {
   assert.equal(JSON.parse(await readFile(join(consumer, 'node_modules/react/package.json'))).version, '19.3.0');
   results.push(await run('npm', ['ls', 'react', 'react-dom', '--all', '--json']));
   auditPackedPackages(consumer, manifest.cohort.packages);
-  if (savedContext) {
-    const project = scaffoldProject(join(consumer, 'saved-project'), 'churn-risk-mock');
-    const beforeProject = scaffoldProject(join(consumer, 'before-project'), 'deal-review-mock');
+  if (interactive) {
+    const project = scaffoldProject(join(consumer, 'project'), savedContext ? 'churn-risk-mock' : 'deal-review-mock');
     const fixture = join(consumer, 'saved-context.mjs');
     await copyFile(new URL('./fixtures/packed-explorer-saved-context.mjs', import.meta.url), fixture);
-    results.push(await run(process.execPath, [fixture, 'before', beforeProject.directory, evidence]));
-    for (const phase of ['produce', 'restore']) {
+    for (const phase of savedContext ? ['produce', 'restore'] : ['before']) {
       results.push(await run(process.execPath, [fixture, phase, project.directory, evidence]));
     }
   } else {
@@ -96,7 +96,7 @@ try {
     consumer, node: process.version, platform: process.platform, arch: process.arch,
     registry: 'fixed-ActQL-loopback-and-normal-third-party-registry', publicPublication: false,
     installLockSha256: createHash('sha256').update(await readFile(join(consumer, 'package-lock.json'))).digest('hex'),
-    browserInteractiveAcceptance: savedContext, results};
+    browserInteractiveAcceptance: interactive, results};
   await writeFile(join(evidence, `explorer-install-${Date.now()}.json`), JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx'});
   scratch.passed(); console.log(`Installed Explorer read-only package acceptance passed: ${consumer}`);
 } finally {await registry.close();}

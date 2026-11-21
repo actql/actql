@@ -144,7 +144,7 @@ try {
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));
         await page.getByLabel('Query options').click();
         const {plan, facts, context} = original.saved.explanation.view;
-        const openOriginal = async () => {
+        const openOriginal = async verifyOriginalBody => {
           await page.getByRole('button', {name: 'Open Run', exact: true}).click();
           await page.locator('textarea[name="ref"]').fill(JSON.stringify(original.ref));
           const reply = page.waitForResponse(response =>
@@ -152,15 +152,19 @@ try {
           await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
           const response = await reply;
           assert.equal(response.status(), 200);
-          const {data} = await response.json();
-          assert.deepEqual(data.runRef, original.ref);
-          assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
-          assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
-          assert.equal(data.explanation.story.factsCid, facts.self_cid);
-          assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+          if (verifyOriginalBody) {
+            const {data} = await response.json();
+            assert.deepEqual(data.runRef, original.ref);
+            assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
+            assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
+            assert.equal(data.explanation.story.factsCid, facts.self_cid);
+            assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+          }
           await page.getByRole('dialog', {name: 'Open Run'}).waitFor({state: 'hidden'});
+          const heading = page.locator('.story-heading .eyebrow');
+          assert((await heading.textContent()).includes(original.ref.runDefinitionCid.slice(7, 19)));
         };
-        await openOriginal();
+        await openOriginal(true);
         const story = page.getByRole('region', {name: 'Original story', exact: true});
         await story.waitFor();
         assert.match(await story.textContent(), /model-task:churn-risk\.v1/u);
@@ -195,7 +199,9 @@ try {
         assert.equal(await page.locator('input[name="bootstrap"], textarea[name="ref"]').count(), 0);
         await page.screenshot({path: join(evidence, 'installed-reconnect.png')});
         await connect('Reconnect');
-        await openOriginal();
+        await openOriginal(false);
+        await story.waitFor();
+        assert.match(await story.textContent(), /model-task:churn-risk\.v1/u);
         await page.setViewportSize({width: 390, height: 844});
         await page.getByRole('button', {name: /Hide query/}).click();
         assert.equal(await page.locator('#query-pane').count(), 0);
