@@ -961,3 +961,7 @@ target/
 /scripts/fixtures/run-revision-assertions.d.mts
 /scripts/run-revision-assertions.test.mjs
 /scripts/run-revision-assertions.test.d.mts
+/scripts/fixtures/client-cleanup.mjs
+/scripts/fixtures/client-cleanup.d.mts
+/scripts/fixtures/client-cleanup.test.mjs
+/scripts/fixtures/client-cleanup.test.d.mts

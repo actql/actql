@@ -2,12 +2,17 @@
 // Run/Host attempt. Only fulfillment from this same sealed Client confirms
 // its release. A deadline or a cancellation request is never that ACK.
 import {setTimeout} from 'node:timers/promises';
+import type {Client} from '@actql/sdk';
 
-export async function closeFixtureClient(client, {signal = AbortSignal.timeout(5000)} = {}) {
+type ClientClose = Pick<Client, 'close'>;
+type CleanupOptions = {signal?: AbortSignal};
+type CloseFailure = {code?: unknown; cleanupPending?: unknown};
+
+export async function closeFixtureClient(client: ClientClose, {signal = AbortSignal.timeout(5000)}: CleanupOptions = {}) {
   for (;;) {
     try { await client.close(); return; }
     catch (error) {
-      if (error?.code !== 'ClientCleanupPending' || error.cleanupPending !== true ||
+      if ((error as CloseFailure | null | undefined)?.code !== 'ClientCleanupPending' || (error as CloseFailure).cleanupPending !== true ||
           signal.aborted) throw error;
       try { await setTimeout(10, undefined, {signal}); }
       catch { throw error; }
@@ -15,8 +20,10 @@ export async function closeFixtureClient(client, {signal = AbortSignal.timeout(5
   }
 }
 
-export async function withFixtureClientCleanup(client, operation, options) {
-  let failed = false, primary, value;
+export async function withFixtureClientCleanup<Value>(
+  client: ClientClose, operation: () => Value | PromiseLike<Value>, options?: CleanupOptions,
+): Promise<Value> {
+  let failed = false, primary: unknown, value: Value | undefined;
   try { value = await operation(); }
   catch (error) { failed = true; primary = error; }
   try { await closeFixtureClient(client, options); }
@@ -28,5 +35,5 @@ export async function withFixtureClientCleanup(client, operation, options) {
     throw cleanup;
   }
   if (failed) throw primary;
-  return value;
+  return value as Value;
 }

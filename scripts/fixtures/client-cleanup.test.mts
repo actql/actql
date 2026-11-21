@@ -13,7 +13,7 @@ const pending = () => Object.assign(new Error('ClientCleanupPending'),
   {code:'ClientCleanupPending', cleanupPending:true});
 
 test('fixture closes only the same Client until its original cleanup fulfills', async () => {
-  const calls = [], client = {async close() {
+  const calls: object[] = [], client = {async close() {
     assert.equal(this, client); calls.push(this);
     if (calls.length < 3) throw pending();
   }};
@@ -52,8 +52,8 @@ test('fixture cancellation during retry delay does not start another cleanup att
 });
 
 test('fixture does not acknowledge cleanup while its same original close is unsettled', async () => {
-  let settle, completed = false, attempts = 0;
-  const original = new Promise(resolve => {settle = resolve;});
+  let settle!: () => void, completed = false, attempts = 0;
+  const original = new Promise<void>(resolve => {settle = resolve;});
   const result = closeFixtureClient({close() {attempts++; return original;}})
     .then(() => {completed = true;});
   await Promise.resolve();
@@ -62,7 +62,7 @@ test('fixture does not acknowledge cleanup while its same original close is unse
 });
 
 test('fixture returns the original operation result only after cleanup', async () => {
-  const expected = Object.freeze({original:true}), events = [];
+  const expected = Object.freeze({original:true}), events: string[] = [];
   const result = await withFixtureClientCleanup({async close() {events.push('closed');}},
     async () => {events.push('operation'); return expected;});
   assert.equal(result, expected); assert.deepEqual(events, ['operation','closed']);
@@ -113,8 +113,8 @@ test('external short-query staging follows actual relative imports and preserves
 
 
 test('short-query fixture keeps Host reads separate from its selected write and delegation outcome', async () => {
-  for (const selected of ['allow', 'delegate']) {
-    const value = shortQueryAuthorization(selected), account = JSON.parse(value.value.accountConfiguration);
+  for (const selected of ['allow', 'delegate'] as const) {
+    const value = shortQueryAuthorization(selected), account = JSON.parse(value.value.accountConfiguration) as {entries: {entry_id: string; outcome: string; operation: unknown}[]};
     assert.equal(value.count(), 0);
     assert.deepEqual(account.entries.map(entry => entry.entry_id), ['owner-read', 'write']);
     const [read, write] = account.entries;
