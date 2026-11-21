@@ -50,13 +50,12 @@ fn local_effect_prefix_fixture_original(
 }
 
 ///|
-test "Native shared-file UPDATE retains both Source completions through original compilation" {
-  let project = native_project_mock_model_fixture(
-    "shared-file-empty-models",
-    operation="run",
-  )
-  defer project.retire()
-  project.prepare_source_declarations().unwrap()
+fn native_shared_file_effect_preparation(
+  project : LocalProjectMockDeclarations,
+) -> (
+  @local_host.NativeClientSubmittedPreparation,
+  @run_host.PreparedClientEffectComputation,
+) raise {
   project
   .prepare_models(
     local_project_mock_task_limits(),
@@ -90,6 +89,18 @@ test "Native shared-file UPDATE retains both Source completions through original
     is EffectComputation(prepared) else {
     fail("expected the original Effect preparation")
   }
+  (preparation, prepared)
+}
+
+///|
+test "Native shared-file UPDATE retains both Source completions through original compilation" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let (preparation, prepared) = native_shared_file_effect_preparation(project)
   let candidate = @run_host.prepared_client_effect_computation_candidate(
     prepared,
   )
@@ -129,6 +140,90 @@ test "Native shared-file UPDATE retains both Source completions through original
     assert_eq(
       entry.get("rule"),
       Some(Json::string("actql.source.sole-view-completion")),
+    )
+  }
+}
+
+///|
+test "Native shared-file Effect Plan retains both whole inputs and all three file operations without a Model" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  // The component projects the authored writes using fixed installation
+  // observations. No Account, Journal start, file access or approval is issued.
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let (preparation, prepared) = native_shared_file_effect_preparation(project)
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "local-test",
+    "original-request",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+    source_inputs=project.prepare_effect_sources(prepared, direct),
+  )
+  assert_true(original.model_compiled is None)
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let file_limits = local_project_mock_file_limits()
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    original,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: file_limits.max_work,
+      max_bytes: file_limits.page.max_bytes,
+      max_nodes: file_limits.page.max_nodes,
+      max_depth: file_limits.page.max_depth,
+    },
+    file_limits.page.max_bytes,
+    [],
+    provider_factory=native_request_provider_factory,
+  )
+  let (_, members, _) = @local_values.prepared_installed_effect_managed_shape(
+    plan,
+  )
+  assert_eq(members, 3)
+  for index, name in ["Account", "Contact"] {
+    let (_, original_source, _) = @local_values.prepared_installed_effect_managed_whole_source(
+      plan, index,
+    ).unwrap()
+    assert_eq(
+      @row_host.row_input_acquisition_target_resource(original_source),
+      name,
+    )
+  }
+  for index in 0..<members {
+    assert_true(
+      @local_values.prepared_installed_effect_managed_operation(
+        plan, index, true, 1, "native.mock.file.write",
+      )
+      is Ok(_),
     )
   }
 }

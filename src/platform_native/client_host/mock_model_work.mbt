@@ -151,29 +151,15 @@ pub fn NativeClientMockModelWork::claim_start_in_original_read(
     self.closed {
     return Err(ForeignOriginal)
   }
-  let result = self.capture.with_local_effect_start_authority(
+  let result = self.capture.claim_effect_start_in_original_read(
     self.request,
     self.principal,
     connection,
     () => !self.closing && !self.closed,
-    None,
-    (journal, operations, current) => {
-      let token = match
-        claim_native_client_retained_work_first_start_with_operations(
-          journal,
-          self.request,
-          current,
-          operations=Some(operations),
-        ) {
-        Ok(value) => value
-        Err(issue) => return Ok(Err(NativeClientMockModelIssue::Start(issue)))
-      }
-      self.first_start = Some(token)
-      Ok(Ok(()))
-    },
+    token => self.first_start = Some(token),
   )
   match result {
-    Ok(value) => value
+    Ok(value) => value.map_err(issue => Start(issue))
     Err(issue) => Err(Original(issue))
   }
 }
@@ -190,27 +176,17 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
   guard self.first_start is Some(first) && !self.closing && !self.closed else {
     return Err(ForeignOriginal)
   }
-  let result = self.capture.with_local_effect_start_authority(
+  let result = self.capture.require_effect_source_in_original_read(
+    first,
     self.request,
     self.principal,
     control_connection,
+    source_connection,
+    resource,
     () => !self.closing && !self.closed,
-    Some((source_connection, resource)),
-    (journal, operations, current) => {
-      Ok(
-        first
-        .require_current(
-          journal,
-          self.request,
-          current,
-          reads=Some(operations.reads),
-        )
-        .map_err(issue => NativeClientMockModelIssue::Start(issue)),
-      )
-    },
   )
   match result {
-    Ok(value) => value
+    Ok(value) => value.map_err(issue => Start(issue))
     Err(issue) => Err(Original(issue))
   }
 }

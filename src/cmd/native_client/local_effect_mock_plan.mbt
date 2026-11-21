@@ -371,12 +371,35 @@ fn native_mock_effect_managed_plan(
     bootstrap=Some((retained, execution)),
     publication=Some(publication),
   ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
-  let operations = native_mock_effect_operations(
+  native_mock_effect_source_plan(
     prepared,
+    first,
     mock,
+    contracts,
     limits.identity.wire,
     record_bytes,
     capture_recipes,
+    model=Some(model),
+    provider_factory=_ => [provider],
+  )
+}
+
+///|
+fn native_mock_effect_source_plan(
+  prepared : @run_host.PreparedClientEffectComputation,
+  first : LocalEffectFirstCompilation,
+  mock : LocalProjectMockDeclarations,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  wire : @execution.RowWireLimits,
+  record_bytes : Int,
+  capture_recipes : Array[Array[@execution.ExecutionCapacity]],
+  model? : @local_values.ClientInstalledEffectModelDemand? = None,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local_compute.ManagedProvider,
+  ],
+) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
+  let operations = native_mock_effect_operations(
+    prepared, mock, wire, record_bytes, capture_recipes,
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
@@ -408,9 +431,9 @@ fn native_mock_effect_managed_plan(
     Some(assets.fragment),
     assets.ordered,
     operations,
-    model=Some(model),
+    model~,
     runtime_admission=true,
-    provider_factory=_ => [provider],
+    provider_factory~,
   ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
 }
 
