@@ -1067,3 +1067,15 @@ target/
 /scripts/test-package-release-carrier-continuation.d.mts
 /reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mjs
 /reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.d.mts
+/scripts/fixtures/nearest-carrier-source-data.mjs
+/scripts/fixtures/nearest-carrier-source-data.d.mts
+/scripts/fixtures/carrier-peer-scope-public-input.mjs
+/scripts/fixtures/carrier-peer-scope-public-input.d.mts
+/scripts/release-carrier-peer-scope-query-cases.mjs
+/scripts/release-carrier-peer-scope-query-cases.d.mts
+/scripts/release-carrier-peer-scope-fixtures.mjs
+/scripts/release-carrier-peer-scope-fixtures.d.mts
+/scripts/test-package-release-carrier-peer-scope.mjs
+/scripts/test-package-release-carrier-peer-scope.d.mts
+/reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mjs
+/reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.d.mts

@@ -11,11 +11,32 @@ import {selectReleaseCarrierPeerCases} from '../../scripts/release-carrier-peer-
 const {successes, refusals} = await selectReleaseCarrierPeerCases();
 import {encodeRetainedFixture} from '../../scripts/fixtures/retained-fixture-values.mjs';
 
-const inventory = ['successes', 'refusals'].flatMap(kind =>
+import type {createVerifiedCaseReceipts} from '../../scripts/fixtures/cte-value-table-receipts.mjs';
+
+type ReceiptWriter = ReturnType<typeof createVerifiedCaseReceipts>;
+type CaseReceipt = Parameters<ReceiptWriter['record']>[0];
+type RefusalReceipt = Parameters<ReceiptWriter['recordRefusal']>[0];
+type ObservedCase = Pick<CaseReceipt, 'name' | 'beforeSubmit' | 'beforeRead' | 'afterReplay'> & {
+  mode: unknown; ref: unknown; results: {answer: {rows: readonly unknown[]; columns: unknown}};
+};
+type ObservedRefusal = Pick<RefusalReceipt, 'name' | 'beforeSubmit' | 'afterRefusal'> & {
+  mode: unknown; submissionRef: unknown;
+  outcome: {kind: unknown; problem: {code: unknown}; submissionRef: unknown};
+};
+type ObservedReceipt = {
+  version: unknown; mode: unknown; complete: unknown;
+  cases: readonly ObservedCase[]; refusals: readonly ObservedRefusal[];
+};
+type TransportReport = {
+  mode: unknown; complete: unknown; expectedInventory: unknown; completedInventory: unknown;
+  actualNormal: unknown; actualRefusal: unknown; observations: Readonly<Record<string, unknown>>;
+};
+
+const inventory = (['successes', 'refusals'] as const).flatMap(kind =>
   ({successes, refusals})[kind].map((item, index) => JSON.stringify([
     'carrier-peer-scope', kind, index, item.name,
     createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')])));
-export function auditCarrierPeerTransport(mode, report, receipt) {
+export function auditCarrierPeerTransport(mode: string, report: TransportReport, receipt: ObservedReceipt) {
   assert.ok(['local', 'remote'].includes(mode));
   assert.equal(report.mode, mode); assert.equal(report.complete, true);
   assert.deepEqual(report.expectedInventory, inventory);
@@ -35,18 +56,18 @@ export function auditCarrierPeerTransport(mode, report, receipt) {
     assert.deepEqual(Object.keys(actual.results), ['answer']);
     // Original F03 texts declare no ORDER BY. Preserve duplicates as a multiset;
     // named rank, score, key values and full column order remain exact.
-    const orderedKeys = value => Array.isArray(value) ? value.map(orderedKeys)
+    const orderedKeys = (value: unknown): unknown => Array.isArray(value) ? value.map(orderedKeys)
       : value !== null && typeof value === 'object'
-        ? Object.fromEntries(Object.keys(value).sort().map(key => [key, orderedKeys(value[key])]))
+        ? Object.fromEntries(Object.keys(value).sort().map(key => [key, orderedKeys((value as Record<string, unknown>)[key])]))
         : value;
-    const rowKey = row => encodeRetainedFixture(orderedKeys(row));
+    const rowKey = (row: unknown) => encodeRetainedFixture(orderedKeys(row));
     assert.deepEqual(actual.results.answer.rows.map(rowKey).sort(),
       fixture.results.answer.rows.map(rowKey).sort());
     assert.deepEqual(actual.results.answer.columns, fixture.results.answer.columns);
     actualRows += actual.results.answer.rows.length;
     assert.equal(actual.beforeRead.acceptedRuns - actual.beforeSubmit.acceptedRuns, 1);
-    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
-      assert.equal(actual.beforeRead[key] - actual.beforeSubmit[key], fixture.sourceReadSessionCount);
+    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions'] as const) {
+      assert.equal(actual.beforeRead[key]! - actual.beforeSubmit[key]!, fixture.sourceReadSessionCount);
     }
     assert.deepEqual(actual.afterReplay, actual.beforeRead,
       'attach/resend/lookup/reread retain the original Run and acquisition');
@@ -72,7 +93,7 @@ export function auditCarrierPeerTransport(mode, report, receipt) {
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [directory, ...extra] = process.argv.slice(2);
   assert.equal(extra.length, 0); assert.ok(directory);
-  const read = name => readFile(join(resolve(directory), name), 'utf8').then(JSON.parse);
+  const read = (name: string) => readFile(join(resolve(directory!), name), 'utf8').then(JSON.parse);
   const audits = [];
   for (const mode of ['local', 'remote']) {
     audits.push(auditCarrierPeerTransport(mode,
