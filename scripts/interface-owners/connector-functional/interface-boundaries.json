@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "10cfec7e97da45074e939ba5e3847e6f4fb1823239c0e4bd320e36aa703621bf",
+      "sha256": "75c8164f4914ea73d1c3f812f1d01bb54581143f3d8740d1684bb943daab6259",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -19715,6 +19715,7 @@
       "role": "common-semantics",
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
+        "captureDeclaredUpdateTargetCapacity",
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
         "effectRecoveryPreviewBounds",
@@ -19732,6 +19733,21 @@
         "selectInstalledEffectCredentialOperation"
       ],
       "operations": [
+        {
+          "name": "captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "original",
+            "maxTargetBytes"
+          ],
+          "async": false
+        },
         {
           "name": "captureInstalledEffectPlanRecipe",
           "parameters": [
@@ -20509,11 +20525,13 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6a75414f468cf7e417df30335c189bf28fe7190748bf7102aa80711ac1d041ab",
+      "sha256": "1ce2fdcb74135c19ab2a071580b196048f778670cd3fcf7946bbba840d246319",
       "contracts": [
         {
           "operations": [
             "<module>",
+            "captureDeclaredUpdateTargetCapacity",
+            "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
             "captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe#2",
@@ -20567,6 +20585,7 @@
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe"
           ],
           "exports": [
+            "captureDeclaredUpdateTargetCapacity",
             "captureInstalledEffectPlanRecipe",
             "captureInstalledStandardCreateLimits",
             "prepareInstalledEffectCredentialChild",

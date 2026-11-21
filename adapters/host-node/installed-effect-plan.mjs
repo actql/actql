@@ -283,6 +283,28 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
 // The selected Host supplies original typed extents from its actual implementation
 // recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
 // Core values; this view creates no capacity, admission or permission.
+export function captureDeclaredUpdateTargetCapacity(moon) {
+  const method = name => {
+    const field = Object.getOwnPropertyDescriptor(moon, name);
+    if (typeof field?.value !== 'function' || nodeTypes.isProxy(field.value) ||
+        nodeTypes.isAsyncFunction(field.value)) fail('InvalidInstalledEffectPlanRecipe');
+    return field.value;
+  };
+  const quantity = method('clientProgramInstalledSourceConstructionCapacity');
+  const compose = method('clientProgramComposeInstalledSourceConstructionCapacity');
+  return (original, maxTargetBytes) => {
+    if (!Number.isSafeInteger(maxTargetBytes) || maxTargetBytes < 1 || maxTargetBytes > 2147483647) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    const targetBytes = BigInt(maxTargetBytes);
+    // Original path/query text, encoded pieces, joined query and complete
+    // target can coexist. Keep each worst-case UTF-16 backing and the encoded
+    // wire in the existing physical operation until that child retires.
+    const target = checked(Reflect.apply(quantity, moon, [0n, 0n, 0n, 0n, 8n * targetBytes, targetBytes]));
+    return checked(Reflect.apply(compose, moon, [original, [target]]));
+  };
+}
+
 export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   if (recipe === undefined) return undefined;
   if (recipe === null || typeof recipe !== 'object' || nodeTypes.isProxy(recipe)) fail('InvalidInstalledEffectPlanRecipe');
@@ -428,6 +450,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const original = entries[String(index)].value;
       if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) fail('InvalidInstalledEffectPlanRecipe');
       const entry = own(original, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes',
+        ...(Object.hasOwn(original, 'maxTargetBytes') ? ['maxTargetBytes'] : []),
         ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : []),
         ...(Object.hasOwn(original, 'slot') ? ['slot'] : []),
         ...(Object.hasOwn(original, 'resource') ? ['resource'] : []),
@@ -436,7 +459,12 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
+      const maxTargetBytes = entry.maxTargetBytes?.value;
       if (typeof phase !== 'string') fail('InvalidInstalledEffectPlanRecipe');
+      if (entry.maxTargetBytes !== undefined && (phase !== 'write' ||
+          !Number.isSafeInteger(maxTargetBytes) || maxTargetBytes < 1 || maxTargetBytes > 2147483647)) {
+        fail('InvalidInstalledEffectPlanRecipe');
+      }
       const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
       const target = ['capture-target', 'apply-target', 'resume-target'].includes(phase);
       const slot = entry.slot?.value, resource = entry.resource?.value;
@@ -465,6 +493,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
           (discardResponseProjection !== true || responseExtent === undefined)) fail('InvalidInstalledEffectPlanRecipe');
       phases.set(phase, named ? 'named' : 'single'); slots.add(phaseSlot); indexes.add(key);
       return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
+        ...(maxTargetBytes === undefined ? {} : {maxTargetBytes}),
         ...(entry.perRow === undefined ? {} : {perRow}),
         ...(slot === undefined ? {} : {slot}),
         ...(resource === undefined ? {} : {resource}),

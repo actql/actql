@@ -1485,7 +1485,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "440727cd0c16e70d307db9def83dec169f6a4616a493a5f63f71f1fa8280d655",
+      "sha256": "56d2562ade22054bf32aa6a5c295bcce7213c6e31d0aae36e01ee55404be705d",
       "exports": [
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
@@ -1538,6 +1538,13 @@
             "writeSlot"
           ],
           "async": true
+        },
+        {
+          "name": "invokeDeclaredRowUpdate/invokeDeclaredRowUpdate",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         },
         {
           "name": "invokeScopedCredentialOperation",
@@ -1610,6 +1617,7 @@
             "invocationBindingsMatch/invocationBindingsMatch",
             "invocationScopeFields",
             "invokeDeclaredRowUpdate",
+            "invokeDeclaredRowUpdate/invokeDeclaredRowUpdate",
             "invokeScopedCredentialOperation",
             "ownInvocationAuthorization",
             "ownInvocationContext",

@@ -178,7 +178,7 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
         guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxMembers, maxRecoveryBytes});
       const recipe = captureKintoneEffectPlanRecipeBuilder({moon})({mapping: mapped.mapping, fields: beforeFields, formResource: source.formResource,
         bindingUnits: textUnits, credentialSite: installedRowCredentialOperationSite(site.credential), limits: policy,
-        inputLimits: ownerLimits, maxRecoveryBytes});
+        inputLimits: ownerLimits, maxRecoveryBytes, maxTargetBytes: prefix.length + 'records.json'.length});
       return Object.freeze({write, managedPlanRecipes: Object.freeze({update: recipe})});
     },
   }));

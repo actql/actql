@@ -9087,7 +9087,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "864a1c3f551a49c9bfeb81176d640fe8365a2f077c1be88442316ee20102ec0f",
+      "sha256": "27a272c3df5b1bbe05f045bf8d5c5ce18a4272fd5d43a8debf64547cd3768d17",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
@@ -9455,7 +9455,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "e2345d535922a9f2f37da457f893fc3f32c5ddd03ac60eefda4c8fe9ac9fae9e",
+      "sha256": "5473e58234a1e95f1e879ba312a57e4264f1b77fa2bd09a1ebbadef0cb6b8f9c",
       "exports": [
         "captureKintoneEffectPlanRecipeBuilder"
       ],
@@ -9484,7 +9484,8 @@
             "credentialSite",
             "limits",
             "inputLimits",
-            "maxRecoveryBytes"
+            "maxRecoveryBytes",
+            "maxTargetBytes"
           ],
           "async": false
         },

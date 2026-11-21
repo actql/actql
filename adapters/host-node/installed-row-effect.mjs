@@ -1223,7 +1223,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   // including per-row observations. Do not select the unfunded legacy port.
   const updateRecipe = declaredUpdate ? suppliedRecipes?.update ?? suppliedRecipe : undefined;
   const updateWriteSlot = selectInstalledEffectCredentialOperation(updateRecipe, 'write');
-  if (declaredUpdate && (updateWriteSlot === undefined || updateRecipe.physicalWrite !== undefined)) {
+  if (declaredUpdate && (updateWriteSlot?.maxTargetBytes === undefined || updateRecipe.physicalWrite !== undefined)) {
     fail('InvalidInstalledEffectPlanRecipe');
   }
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {

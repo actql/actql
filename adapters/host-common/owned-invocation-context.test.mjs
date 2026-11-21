@@ -136,7 +136,9 @@ test('declared row UPDATE admits only bounded HTTP DATA under the original Host 
     }};
   const transport = {method: 'PUT', path: '/records', body: '{}',
     query: [['id', '東京']], headers: [['accept', 'application/json']], responseHeaders: ['etag']};
-  const writeSlot = Object.freeze({phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32});
+  const exactTarget = '/records?id=%E6%9D%B1%E4%BA%AC';
+  const writeSlot = Object.freeze({phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32,
+    maxTargetBytes: exactTarget.length});
   const update = {prepareUpdateWrite(...data) {
     assert.deepEqual(data, [member, request, current, origin, registration, signal]);
     return transport;
@@ -150,11 +152,22 @@ test('declared row UPDATE admits only bounded HTTP DATA under the original Host 
   assert.equal(invocations[0].signal, signal);
   assert.equal(invocations[0].useId, 'original-use');
   assert.deepEqual(invocations[0].operations.get('update-record'), {method: 'PUT',
-    path: '/records?id=%E6%9D%B1%E4%BA%AC', body: '{}',
+    path: exactTarget, body: '{}',
     headers: [['accept', 'application/json']], responseHeaders: ['etag']});
   assert.equal(invocations[0].maxRequestBytes, 2);
   assert.equal(invocations[0].maxResponseBytes, 32);
-  for (const replacement of [{operation: 'foreign'}, {maxRequestBytes: 3}, {maxResponseBytes: 64},
+  const preEncoded = '/' + '%20'.repeat(writeSlot.maxTargetBytes);
+  for (const [prepared, code] of [
+    [{...transport, path: preEncoded, query: []}, 'InvalidHttpRequestTarget'],
+    [{...transport, query: [['id', '東京a']]}, 'InvalidHttpRequestQuery'],
+    [{...transport, path: '/records/' + '界'.repeat(10), query: []}, 'InvalidHttpRequestTarget'],
+  ]) {
+    await assert.rejects(invokeDeclaredRowUpdate({prepareUpdateWrite: () => prepared},
+      invocation, 'update-record', writeSlot), {code});
+  }
+  await assert.rejects(invokeDeclaredRowUpdate(update, invocation, 'update-record',
+    {...writeSlot, maxTargetBytes: undefined}), {code: 'InvalidOwnedInvocationContext'});
+  for (const replacement of [{operation: 'foreign'}, {maxRequestBytes: 3}, {maxResponseBytes: 64}, {maxTargetBytes: 4096},
     {responseCustody: {}}, {bodyBytes: new Uint8Array()}, {authorization: {}}, {credential: {}},
     {callResource() {assert.fail('Codec tried to replace the Host transport');}},
     {method: 'DELETE', body: undefined}, {body: '€'}, {body: undefined},
@@ -193,7 +206,7 @@ test('invalid async UPDATE encoding settles inside its original invocation witho
     authorization: {scope: {operation: 'update-record'}},
     callResource() {assert.fail('Invalid async encoder reached physical send');},
   };
-  const slot = {phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32};
+  const slot = {phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32, maxTargetBytes: 8};
   let reject;
   const encoded = new Promise((_resolve, refuse) => {reject = refuse;});
   const result = invokeDeclaredRowUpdate({prepareUpdateWrite: () => encoded},

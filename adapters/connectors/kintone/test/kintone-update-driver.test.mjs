@@ -62,7 +62,8 @@ function fixture(changes = {}) {
       scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
     async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
     ...changes}, 'kintone:records:update', {phase: 'write',
-    maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes});
+    maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes,
+    maxTargetBytes: '/k/v1/records.json'.length});
   const recover = (entry, requestCid) => ({maxRows: config.maxRows, durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     recorded: {members: [{claims: [{canonicalRequestCid: requestCid}]}]}, members: [member],
     body: {effects: [{changes: [{after: {value: structuredClone(value)}, target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});
@@ -142,7 +143,8 @@ test('kintone driver sends one exact guarded PUT and projects only actual native
     {statusCode: 200, body: bytes({records: [{id: '9007199254740992', revision: '8'}]})}]) {
     assert.equal(f.driver.project({request: final.request, observation: bad}).kind, 'unclassified-response');
   }
-  await assert.rejects(f.send(current, final.request, {authorization: {scope: {resourceOrigin: 'https://other.invalid'}}}),
+  await assert.rejects(f.send(current, final.request, {authorization: {scope: {
+    resourceOrigin: 'https://other.invalid', operation: 'kintone:records:update', connectorRegistration: 'kintone'}}}),
     {code: 'ForeignKintoneUpdateOrigin'});
   assert.equal(f.state.writes.length, 1);
 });

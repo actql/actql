@@ -18,6 +18,9 @@ import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.m
 
 export const HUBSPOT_INSTALLED_UPDATE_OPERATION = 'hubspot:objects:batch-update';
 export const HUBSPOT_UPDATE_TARGET_VERSION = 'actql-installed-hubspot-effect-target-read/0.1';
+const updatePathPrefix = '/crm/v3/objects/';
+const updatePathSuffix = '/batch/update';
+export const hubspotUpdatePathFixedBytes = updatePathPrefix.length + updatePathSuffix.length;
 const recoveryKind = 'hubspot-update-requests';
 const recoveryVersion = 'actql-installed-hubspot-update-recovery/0.1';
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -224,7 +227,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       if (Buffer.byteLength(body) > responsePolicy.maxRequestBytes) fail('HubSpotUpdateRequestLimit');
       signal?.throwIfAborted();
       return {method: 'POST',
-        path: '/crm/v3/objects/' + segment(requests.objectType(request)) + '/batch/update',
+        path: updatePathPrefix + segment(requests.objectType(request)) + updatePathSuffix,
         query: [], headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
     project({request, observation}) {

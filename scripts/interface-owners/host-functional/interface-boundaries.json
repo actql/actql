@@ -5948,7 +5948,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9bafc3a2dafd66a446cc6bf9f1f5e77dfc80160ea869208c4e215df90e96c6e3",
+      "sha256": "ed87a5341bfd81d029006d57453ff1a75e9da3acbca17814cba67b88c19ff65b",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -6047,7 +6047,8 @@
           "parameters": [
             "path",
             "query",
-            "maxQueryBytes"
+            "maxQueryBytes",
+            "maxTargetBytes"
           ],
           "async": false
         },

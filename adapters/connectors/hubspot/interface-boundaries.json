@@ -2129,14 +2129,15 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "bba4dd1ddc8e0d7880960a24466950c920ec99f88f7786cb82944460d204ea71",
+      "sha256": "9b14974fbce9fad618946f677fe5fcf491224d76ae0d6dbcccd6ab4bb04cb6bd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
       "exports": [
         "HUBSPOT_INSTALLED_UPDATE_OPERATION",
         "HUBSPOT_UPDATE_TARGET_VERSION",
-        "hubspotUpdateDriver"
+        "hubspotUpdateDriver",
+        "hubspotUpdatePathFixedBytes"
       ],
       "operations": [
         {
@@ -2388,7 +2389,8 @@
           "exports": [
             "HUBSPOT_INSTALLED_UPDATE_OPERATION",
             "HUBSPOT_UPDATE_TARGET_VERSION",
-            "hubspotUpdateDriver"
+            "hubspotUpdateDriver",
+            "hubspotUpdatePathFixedBytes"
           ],
           "attributes": {
             "responsibility": [
@@ -2469,7 +2471,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "b51e371d9c7f23283820fdb9c62d2c02c4615b5e179845cdb3b58765930e66a5",
+      "sha256": "ec60f1d7e4b426eb856658c6b511f17166eeb798e15e83c3abb1c161e16f1380",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",

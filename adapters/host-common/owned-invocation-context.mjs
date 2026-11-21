@@ -126,7 +126,8 @@ function invokeCredentialRequest({
   const request = binary
     ? ownHttpByteRequest({method, path, query, headers, body, bodyBytes,
       bodyMediaType, maxBodyBytes: maxRequestBytes})
-    : ownHttpRequest({method, path, query, headers, body});
+    : ownHttpRequest({method, path, query, headers, body}, installedLimits === undefined ? undefined
+      : {maxTargetBytes: installedLimits.maxTargetBytes});
   const observed = ownResponseHeaderNames(responseHeaders);
   const context = ownInvocationContext({
     authorization, credential,
@@ -167,7 +168,7 @@ export function rowUpdateTransportObservation(response) {
 export const declaredRowUpdateKinds = Object.freeze(['update']);
 
 const updateTransportFields = Object.freeze(['method', 'path', 'query', 'headers', 'body', 'responseHeaders']);
-const updateHostFields = Object.freeze(['operation', 'maxRequestBytes', 'maxResponseBytes',
+const updateHostFields = Object.freeze(['operation', 'maxRequestBytes', 'maxResponseBytes', 'maxTargetBytes',
   'bodyBytes', 'bodyMediaType', 'responseCustody', 'authorization', 'credential', 'callResource', 'then']);
 const updateMethods = Object.freeze(['POST', 'PATCH', 'PUT']);
 const stringData = value => typeof value === 'string';
@@ -218,8 +219,9 @@ function captureDeclaredUpdateTransport(transport, maxRequestBytes) {
 // Author transport code receives identity DATA and the original cancellation
 // signal. It has no physical send callback or credential.
 export async function invokeDeclaredRowUpdate(declaration, invocation, operation, writeSlot) {
-  if (writeSlot?.phase !== 'write' || !Number.isSafeInteger(writeSlot.maxRequestBytes) ||
-      writeSlot.maxRequestBytes < 1) fail();
+  if (writeSlot?.phase !== 'write' ||
+      ![writeSlot.maxRequestBytes, writeSlot.maxTargetBytes].every(value =>
+        Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) fail();
   const {member, request, current, authorization, credential, signal} = invocation;
   const scope = invocationScopeFields(authorization?.scope, credential?.control);
   if (scope?.operation !== operation) fail();
