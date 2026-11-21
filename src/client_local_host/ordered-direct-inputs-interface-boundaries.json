@@ -1796,6 +1796,10 @@
           "declaration": "[ I ] request_program_compilation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientPureCompilationLimits , ClientRequestProgramPlanIssue , ]"
         },
         {
+          "name": "[I]request_program_compilation_original",
+          "declaration": "[ I ] request_program_compilation_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > @ publication_host . ClientRunCompilation ?"
+        },
+        {
           "name": "[I]request_program_plan_quote",
           "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
         },
@@ -1845,6 +1849,7 @@
             "[I]prepare_request_program_compilation",
             "[I]prepare_request_program_module_body",
             "[I]prepare_request_program_module_body_owned",
+            "[I]request_program_compilation_original",
             "[I]request_program_plan_quote",
             "[I]reserve_request_domain_run_metadata",
             "[I]reserve_request_program_plan",
@@ -1892,6 +1897,10 @@
               }
             ],
             "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "pub fn[I] request_program_compilation_original("
+              },
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"

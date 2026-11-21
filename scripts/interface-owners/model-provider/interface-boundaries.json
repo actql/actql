@@ -3643,6 +3643,10 @@
           "declaration": "emit_public_task_prompt ( value : PublicModelTaskDeclaration , self_cid : String ? , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
         },
         {
+          "name": "emit_public_task_prompt_payload",
+          "declaration": "emit_public_task_prompt_payload ( value : PublicModelTaskDeclaration , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
           "name": "normalize_public_model_task",
           "declaration": "normalize_public_model_task ( declaration : PublicModelTaskDeclaration , defaults : ModelProviderDefaults , resolved : ResolvedModelProviderDefaults , provider : String , limits : ModelTaskLimits , ) - > Result [ NormalizedPublicModelTask , ModelTaskIssue ]"
         },
@@ -3677,6 +3681,7 @@
             "emit_normalized_public_task",
             "emit_public_task_checked_contract",
             "emit_public_task_prompt",
+            "emit_public_task_prompt_payload",
             "normalize_public_model_task",
             "normalize_public_model_task_selected",
             "normalized_public_model_task_materials",
@@ -3697,6 +3702,10 @@
               }
             ],
             "inputsOutputs": [
+              {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "fn emit_public_task_prompt_payload("
+              },
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "pub fn install_original_model_mock("
