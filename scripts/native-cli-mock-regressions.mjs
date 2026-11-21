@@ -1,7 +1,7 @@
 // Original3639/3642 follow-up in the existing installed RC consumer. Explicit
 // ports test the assertions; only matching installed artifacts qualify products.
 import assert from 'node:assert/strict';
-import {readFile, writeFile} from 'node:fs/promises';
+import {lstat, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {expectedChanges} from './native-cli-mock-scenario.mjs';
 import {projectTargetSnapshot, assertProjectSequenceRows, assertProjectResultDescription,
@@ -158,6 +158,13 @@ export async function runOriginalMockRegressions({root, cli, node, persist, snap
           // Each owner reads only its own originals; namespace/Run handles are
           // never attached to the other Host, even when sharing the file.
           for (const previous of record.runs.slice(0, -1)) await readSaved(previous);
+          phase = 'write-lock-cleanup';
+          // A successful handoff exercises the previous writer's lock
+          // retirement. Observe absence after the final writer as well,
+          // where no later writer would expose an orphaned path.
+          await assert.rejects(lstat(join(project, 'mock/data.json.actql-write.lock')),
+            {code: 'ENOENT'}, 'Completed writer must release the shared Mock write lock');
+          run.writeLockAbsent = true;
         }
       } else {
         for (const fixture of originalMockReadonlyCases) {
